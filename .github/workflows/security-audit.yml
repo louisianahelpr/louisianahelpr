@@ -1,5 +1,9 @@
 name: Security Audit
 
+permissions:
+  contents: read
+  security-events: write
+
 # Scans dependencies for known CVEs. Apple's review process flags apps that
 # ship with vulnerable libraries, so we want to catch these before submission.
 #

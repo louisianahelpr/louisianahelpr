@@ -1,20 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { TimePickerWheel } from "@/components/TimePickerWheel";
-import { DatePickerField } from "@/components/DatePickerField";
 import PageHeader from "@/components/PageHeader";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { ImagePlus, X, MapPin, Calendar, Clock, DollarSign,
-  CreditCard, Shield, ChevronLeft, Briefcase, Repeat, Users, Zap, CheckCircle2, UserCheck,
-} from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { X, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -27,8 +17,11 @@ import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { hapticSuccess } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
-import { isSafePreviewUrl } from "@/lib/imagePreview";
 import { AiJobBuilder, type AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
+import { CheckoutStep } from "@/components/postjob/CheckoutStep";
+import { LogisticsSection } from "@/components/postjob/LogisticsSection";
+import { BudgetSection } from "@/components/postjob/BudgetSection";
+import { DetailsSection, categories } from "@/components/postjob/DetailsSection";
 
 // Fires brand-tinted confetti for the user's first 3 successful posts.
 // After post #3 the novelty fades back to a quiet checkmark — counter
@@ -53,19 +46,6 @@ async function maybeFireFirstPostConfetti() {
     /* confetti is candy — never break the flow */
   }
 }
-
-const categories = [
-  { value: "cleaning", label: "Cleaning" },
-  { value: "yard_work", label: "Yard Work" },
-  { value: "moving", label: "Moving" },
-  { value: "errands", label: "Errands" },
-  { value: "handyman", label: "Handyman" },
-  { value: "painting", label: "Painting" },
-  { value: "delivery", label: "Delivery" },
-  { value: "pet_care", label: "Pet Care" },
-  { value: "assembly", label: "Assembly" },
-  { value: "other", label: "Other" },
-];
 
 type Step = "form" | "checkout";
 
@@ -232,6 +212,9 @@ const PostJob = () => {
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    // Strict MIME allowlist — keeps the broader `image/*` check honest
+    // (a maliciously crafted SVG/AVIF could still be image/*) and gives
+    // a precise toast for rejected files.
     const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
     const safeFiles = files.filter((file) => allowedImageTypes.has(file.type));
 
@@ -634,354 +617,68 @@ const PostJob = () => {
 
               <form onSubmit={handleReview} className="space-y-5">
                 {/* SECTION 1: DETAILS */}
-                <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Briefcase className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <h2 className="font-display text-base font-semibold">Details</h2>
-                    </div>
-                    {detailsComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
-                    <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Help me move a couch" required maxLength={100} />
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
-                    <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide details about the task…" required rows={4} maxLength={1000} />
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <Label>Category <span className="text-destructive">*</span></Label>
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {categories.map((c) => (
-                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Image Upload */}
-                  <div className="space-y-2.5">
-                    <Label>Photos (optional, max 5)</Label>
-                    <div className="flex flex-wrap gap-3">
-                      {imagePreviews.map((src, i) => (
-                        <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                          {isSafePreviewUrl(src) ? (
-                            <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-muted/40">
-                              <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => removeImage(i)}
-                            className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                      {imageFiles.length < 5 && (
-                        <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                          <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            onChange={handleImageSelect}
-                          />
-                        </label>
-                      )}
-                    </div>
-                  </div>
-                </section>
+                <DetailsSection
+                  title={title}
+                  setTitle={setTitle}
+                  description={description}
+                  setDescription={setDescription}
+                  category={category}
+                  setCategory={setCategory}
+                  imagePreviews={imagePreviews}
+                  imageFiles={imageFiles}
+                  onImageSelect={handleImageSelect}
+                  onRemoveImage={removeImage}
+                  detailsComplete={detailsComplete}
+                />
 
                 {/* SECTION 2: LOGISTICS */}
-                <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                        <MapPin className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <h2 className="font-display text-base font-semibold">Logistics</h2>
-                    </div>
-                    {logisticsComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Location <span className="text-destructive">*</span></Label>
-                    <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} autoComplete="street-address" aria-label="Street address" />
-                    <div className="grid grid-cols-3 gap-2.5">
-                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} autoComplete="address-level2" aria-label="City" className="px-3 text-[14px]" />
-                      <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} autoComplete="address-level1" aria-label="State" className="px-3 text-[14px]" />
-                      <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} inputMode="numeric" autoComplete="postal-code" aria-label="Zip code" className="px-3 text-[14px]" />
-                    </div>
-                    {/* Parish is silently looked up from zip for Louisiana sales tax (admin-only). */}
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <Shield className="w-3 h-3 shrink-0" />
-                      Only the city will be visible to applicants until you select a helper.
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
-                    <DatePickerField
-                      id="date"
-                      value={dateNeeded}
-                      onChange={setDateNeeded}
-                      min={new Date().toISOString().split("T")[0]}
-                      placeholder="Choose a date"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Start time <span className="text-destructive">*</span></Label>
-                    <TimePickerWheel value={startTime} onChange={setStartTime} />
-                  </div>
-
-                  <label
-                    htmlFor="flexible"
-                    className="flex items-start gap-3 rounded-2xl border border-border bg-background/40 p-4 cursor-pointer min-h-[44px]"
-                  >
-                    <Checkbox
-                      id="flexible"
-                      checked={isFlexibleSchedule}
-                      onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
-                      className="mt-0.5"
-                    />
-                    <span className="text-xs text-muted-foreground leading-snug">
-                      <span className="font-medium text-foreground">Flexible schedule</span> — helpr can start earlier or later on the scheduled day
-                    </span>
-                  </label>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="hours">Estimated hours <span className="text-destructive">*</span></Label>
-                    <Input id="hours" type="number" inputMode="decimal" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <Label htmlFor="requirements">Special requirements</Label>
-                    <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc. (optional)" rows={2} maxLength={500} />
-                  </div>
-
-                  {/* Recurring Job — mutually exclusive with Group job. Recurring
-                      bills weekly/monthly to one helper; group splits a single
-                      job across many. The two semantics don't compose. */}
-                  <div className={`rounded-xl border p-4 space-y-3 ${isGroupJob ? "border-border/40 bg-muted/20 opacity-60" : "border-border"}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Repeat className="w-4 h-4 text-primary" />
-                        <Label htmlFor="recurring" className={isGroupJob ? "cursor-not-allowed" : "cursor-pointer"}>Recurring task</Label>
-                      </div>
-                      <Switch
-                        id="recurring"
-                        checked={isRecurring}
-                        disabled={isGroupJob}
-                        onCheckedChange={setIsRecurring}
-                      />
-                    </div>
-                    {isGroupJob && (
-                      <p className="text-xs text-muted-foreground">
-                        Turn off Group job to make this recurring instead.
-                      </p>
-                    )}
-                    {isRecurring && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        <div className="space-y-2.5">
-                          <Label>Frequency</Label>
-                          <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="daily">Daily</SelectItem>
-                              <SelectItem value="weekly">Weekly</SelectItem>
-                              <SelectItem value="biweekly">Every 2 weeks</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2.5">
-                          <Label>Until</Label>
-                          <Input type="date" value={recurrenceEndDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} min={dateNeeded} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Group Job — mutually exclusive with Recurring (see above). */}
-                  <div className={`rounded-xl border p-4 space-y-3 ${isRecurring ? "border-border/40 bg-muted/20 opacity-60" : "border-border"}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-primary" />
-                        <Label htmlFor="group" className={isRecurring ? "cursor-not-allowed" : "cursor-pointer"}>Group job (multiple helprs)</Label>
-                      </div>
-                      <Switch
-                        id="group"
-                        checked={isGroupJob}
-                        disabled={isRecurring}
-                        onCheckedChange={setIsGroupJob}
-                      />
-                    </div>
-                    {isRecurring && (
-                      <p className="text-xs text-muted-foreground">
-                        Turn off Recurring task to split this across multiple helprs instead.
-                      </p>
-                    )}
-                    {isGroupJob && (
-                      <div className="space-y-2 pt-1">
-                        <Label>How many helprs needed?</Label>
-                        <Input
-                          type="number"
-                          inputMode="numeric"
-                          min="2"
-                          max="10"
-                          value={helpersNeeded}
-                          onChange={(e) => setHelpersNeeded(e.target.value)}
-                          className="w-24"
-                          aria-label="Number of helpers needed"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helpr
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </section>
+                <LogisticsSection
+                  streetAddress={streetAddress}
+                  setStreetAddress={setStreetAddress}
+                  city={city}
+                  setCity={setCity}
+                  addrState={addrState}
+                  setAddrState={setAddrState}
+                  zipCode={zipCode}
+                  setZipCode={setZipCode}
+                  dateNeeded={dateNeeded}
+                  setDateNeeded={setDateNeeded}
+                  startTime={startTime}
+                  setStartTime={setStartTime}
+                  isFlexibleSchedule={isFlexibleSchedule}
+                  setIsFlexibleSchedule={setIsFlexibleSchedule}
+                  estimatedHours={estimatedHours}
+                  setEstimatedHours={setEstimatedHours}
+                  specialRequirements={specialRequirements}
+                  setSpecialRequirements={setSpecialRequirements}
+                  isRecurring={isRecurring}
+                  setIsRecurring={setIsRecurring}
+                  recurrenceInterval={recurrenceInterval}
+                  setRecurrenceInterval={setRecurrenceInterval}
+                  recurrenceEndDate={recurrenceEndDate}
+                  setRecurrenceEndDate={setRecurrenceEndDate}
+                  isGroupJob={isGroupJob}
+                  setIsGroupJob={setIsGroupJob}
+                  helpersNeeded={helpersNeeded}
+                  setHelpersNeeded={setHelpersNeeded}
+                  budgetNum={budgetNum}
+                  logisticsComplete={logisticsComplete}
+                />
 
                 {/* SECTION 3: BUDGET */}
-                <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                        <DollarSign className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <h2 className="font-display text-base font-semibold">Budget</h2>
-                    </div>
-                    {budgetComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="budget">Budget <span className="text-destructive">*</span></Label>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-muted-foreground">$</span>
-                      <Input
-                        id="budget"
-                        type="text"
-                        inputMode="decimal"
-                        value={budget}
-                        onChange={(e) => {
-                          // Keep digits and a single decimal point only — store as plain number string
-                          const cleaned = e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*?)\..*/g, "$1");
-                          setBudget(cleaned);
-                        }}
-                        onBlur={(e) => {
-                          const n = parseFloat(e.target.value);
-                          if (!Number.isNaN(n) && n > 0) setBudget(n.toFixed(2));
-                        }}
-                        placeholder="50.00"
-                        className="pl-8 text-[15px] font-medium tabular-nums"
-                        required
-                      />
-                    </div>
-                    {suggested && (
-                      <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/15 px-3 py-2">
-                        <span className="text-base leading-none">💡</span>
-                        <p className="text-xs text-muted-foreground">
-                          Suggested: <span className="font-semibold text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs
-                        </p>
-                      </div>
-                    )}
-                    {/* Quick-tap budget presets */}
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {budgetPresets.map((amt) => {
-                        const isActive = parseFloat(budget) === amt;
-                        return (
-                          <button
-                            key={amt}
-                            type="button"
-                            onClick={() => setBudget(amt.toFixed(2))}
-                            aria-pressed={isActive}
-                            className={`min-h-11 px-4 py-2 rounded-full text-sm font-semibold tabular-nums transition-all ${
-                              isActive
-                                ? "bg-primary text-primary-foreground shadow-sm scale-[1.02]"
-                                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                            }`}
-                          >
-                            ${amt}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Urgent Job */}
-                  <div className={`rounded-xl border p-4 space-y-3 ${isUrgent ? "border-accent bg-accent/5" : "border-border"}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-accent" />
-                        <Label htmlFor="urgent" className="cursor-pointer">Mark as Urgent</Label>
-                      </div>
-                      <Switch id="urgent" checked={isUrgent} onCheckedChange={setIsUrgent} />
-                    </div>
-                    {isUrgent && (
-                      <div className="space-y-3">
-                        <p className="text-xs text-muted-foreground">
-                          ⚡ Your job will be highlighted and nearby helprs notified immediately. The urgent bonus goes directly to the helpr — no platform fee applied.
-                        </p>
-                        <Label className="text-xs">Urgent bonus ($5 minimum)</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {["5", "10", "15", "20"].map((amt) => (
-                            <button
-                              key={amt}
-                              type="button"
-                              onClick={() => { setUrgentFee(amt); setCustomUrgentFee(false); }}
-                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                                urgentFee === amt && !customUrgentFee
-                                  ? "bg-accent text-accent-foreground"
-                                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                              }`}
-                            >
-                              ${amt}
-                            </button>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={() => { setCustomUrgentFee(true); setUrgentFee(""); }}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                              customUrgentFee
-                                ? "bg-accent text-accent-foreground"
-                                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                            }`}
-                          >
-                            Custom
-                          </button>
-                        </div>
-                        {customUrgentFee && (
-                          <Input
-                            type="number"
-                            inputMode="numeric"
-                            min="5"
-                            step="1"
-                            value={urgentFee}
-                            onChange={(e) => setUrgentFee(e.target.value)}
-                            placeholder="Enter amount ($5+)"
-                            className="w-32"
-                            aria-label="Custom urgent fee amount in dollars"
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </section>
+                <BudgetSection
+                  budget={budget}
+                  setBudget={setBudget}
+                  suggested={suggested}
+                  budgetPresets={budgetPresets}
+                  isUrgent={isUrgent}
+                  setIsUrgent={setIsUrgent}
+                  urgentFee={urgentFee}
+                  setUrgentFee={setUrgentFee}
+                  customUrgentFee={customUrgentFee}
+                  setCustomUrgentFee={setCustomUrgentFee}
+                  budgetComplete={budgetComplete}
+                />
 
                 {/* Submit — inline at the end of the form on every viewport.
                     Was previously fixed-position on mobile, which overlapped
@@ -997,171 +694,36 @@ const PostJob = () => {
           {/* STEP 2: ORDER SUMMARY / CHECKOUT */}
 
           {step === "checkout" && (
-            <>
-              <p className="text-muted-foreground text-xs">Review your task before paying</p>
-
-              {/* Task Details Card */}
-              <div className="rounded-2xl liquid-glass overflow-hidden">
-                <div className="p-5 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h2 className="font-display font-bold text-foreground text-base">{title}</h2>
-                      <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                        {categoryLabel}
-                      </span>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => setStep("form")} className="text-xs text-muted-foreground">
-                      <ChevronLeft className="w-3 h-3 mr-1" /> Edit
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{description}</p>
-
-                  {/* Photos */}
-                  {imagePreviews.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {imagePreviews.map((src, i) =>
-                        isSafePreviewUrl(src) ? (
-                          <img loading="lazy" decoding="async" key={i} src={src} alt="" className="w-16 h-12 rounded-lg object-cover border border-border" />
-                        ) : (
-                          <div key={i} className="w-16 h-12 rounded-lg border border-border bg-muted/40 flex items-center justify-center">
-                            <ImagePlus className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <MapPin className="w-4 h-4 text-primary shrink-0" />
-                      <span>{`${streetAddress}, ${city}, ${addrState} ${zipCode}`}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="w-4 h-4 text-primary shrink-0" />
-                      <span>{new Date(dateNeeded + "T00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}{isFlexibleSchedule ? " (flexible)" : ""}</span>
-                    </div>
-                    {startTime && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="w-4 h-4 text-primary shrink-0" />
-                        <span>{startTime}{isFlexibleSchedule ? " (flexible)" : ""}</span>
-                      </div>
-                    )}
-                    {estimatedHours && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Briefcase className="w-4 h-4 text-primary shrink-0" />
-                        <span>{estimatedHours}h estimated</span>
-                      </div>
-                    )}
-                  </div>
-
-                   {specialRequirements && (
-                    <div className="rounded-lg bg-secondary/30 p-3 mt-2">
-                      <p className="text-xs text-muted-foreground font-medium mb-1">Special Requirements</p>
-                      <p className="text-sm text-foreground">{specialRequirements}</p>
-                    </div>
-                  )}
-                  {isRecurring && (
-                    <div className="rounded-lg bg-primary/5 p-3 mt-2">
-                      <p className="text-xs text-primary font-medium mb-1 flex items-center gap-1"><Repeat className="w-3 h-3" /> Recurring Task</p>
-                      <p className="text-sm text-foreground capitalize">{recurrenceInterval}{recurrenceEndDate ? ` until ${new Date(recurrenceEndDate + "T00:00").toLocaleDateString()}` : ""}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Payment Breakdown Card */}
-              <div className="rounded-2xl liquid-glass overflow-hidden">
-                <div className="px-5 py-4 border-b border-border">
-                  <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-primary" /> Payment Breakdown
-                  </h3>
-                </div>
-                <div className="p-5 space-y-3">
-                  {/* What the customer pays */}
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Task budget</span>
-                    <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Service fee ({customerFee ?? 10}%)</span>
-                    <span className="font-medium text-foreground">${customerFeeAmount.toFixed(2)}</span>
-                  </div>
-                  {isUrgent && urgentFeeNum > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent bonus (goes to helpr)</span>
-                      <span className="font-medium text-foreground">${urgentFeeNum.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Sales Tax</span>
-                    <span className="font-medium text-muted-foreground italic">Calculated at checkout</span>
-                  </div>
-                  <div className="h-px bg-border" />
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-foreground">Subtotal (before tax)</span>
-                    <span className="text-xl font-bold text-foreground">${totalCharge.toFixed(2)}</span>
-                  </div>
-                  <p className="text-muted-foreground text-xs">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>
-                </div>
-              </div>
-
-              {/* Trust Signals */}
-              <div className="rounded-2xl liquid-glass p-5 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Secure Payment</p>
-                    <p className="text-xs text-muted-foreground">Your payment is processed securely via Stripe. The helpr is paid only after both parties confirm job completion.</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <DollarSign className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Money-Back Guarantee</p>
-                    <p className="text-xs text-muted-foreground">If the job isn't completed, your payment will be refunded.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Confirmation Checkbox */}
-              <div className="flex items-start gap-3 rounded-xl liquid-glass p-4">
-                <Checkbox
-                  id="confirm-details"
-                  checked={confirmed}
-                  onCheckedChange={(checked) => setConfirmed(checked === true)}
-                  className="mt-0.5"
-                />
-                <label htmlFor="confirm-details" className="text-sm text-foreground cursor-pointer leading-snug">
-                  I've reviewed all details above and confirm everything is correct. I understand the helpr's payout will be released after both parties confirm job completion.
-                </label>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={handleSubmit}
-                  disabled={saving || uploading || !confirmed}
-                >
-                  {confirmed ? <CreditCard className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-                  {uploading ? "Uploading photos…" : saving ? "Processing…" : !confirmed ? "Confirm details to continue" : `Pay $${totalCharge.toFixed(2)}`}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full text-muted-foreground"
-                  onClick={() => setStep("form")}
-                  disabled={saving}
-                >
-                  <ChevronLeft className="w-4 h-4 mr-1" /> Back to edit
-                </Button>
-              </div>
-            </>
+            <CheckoutStep
+              title={title}
+              description={description}
+              categoryLabel={categoryLabel}
+              imagePreviews={imagePreviews}
+              streetAddress={streetAddress}
+              city={city}
+              addrState={addrState}
+              zipCode={zipCode}
+              dateNeeded={dateNeeded}
+              startTime={startTime}
+              estimatedHours={estimatedHours}
+              isFlexibleSchedule={isFlexibleSchedule}
+              specialRequirements={specialRequirements}
+              isRecurring={isRecurring}
+              recurrenceInterval={recurrenceInterval}
+              recurrenceEndDate={recurrenceEndDate}
+              isUrgent={isUrgent}
+              urgentFeeNum={urgentFeeNum}
+              budgetNum={budgetNum}
+              customerFee={customerFee}
+              customerFeeAmount={customerFeeAmount}
+              totalCharge={totalCharge}
+              confirmed={confirmed}
+              setConfirmed={setConfirmed}
+              saving={saving}
+              uploading={uploading}
+              onEdit={() => setStep("form")}
+              onSubmit={handleSubmit}
+            />
           )}
         </div>
       </main>

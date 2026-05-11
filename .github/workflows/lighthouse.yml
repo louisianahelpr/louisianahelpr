@@ -1,5 +1,8 @@
 name: Lighthouse CI
 
+permissions:
+  contents: read
+
 # Runs Lighthouse against the published site to catch performance regressions
 # before they ship. Fails the run if mobile performance drops below threshold.
 #

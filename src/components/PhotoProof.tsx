@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
-import { isSafePreviewUrl } from "@/lib/imagePreview";
 
 type PhotoProofProps = {
   jobId: string;
@@ -86,7 +85,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
             <div className="flex flex-wrap gap-3">
               {previews.map((src, i) => (
                 <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                  {isSafePreviewUrl(src) ? (
+                  {src.startsWith("blob:") ? (
                     <img loading="lazy" decoding="async" src={src} alt={`Photo ${i + 1} preview`} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-muted/40">

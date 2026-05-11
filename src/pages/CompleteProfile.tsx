@@ -14,7 +14,6 @@ import { Camera, Check, FileText, Loader2, ShieldCheck, X } from "lucide-react";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
-import { isSafePreviewUrl } from "@/lib/imagePreview";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
@@ -415,7 +414,7 @@ const CompleteProfile = () => {
                 aria-label={avatarPreview ? "Change profile picture" : "Upload profile picture"}
               >
                 <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center transition-all group-hover:ring-primary/50">
-                  {avatarPreview && isSafePreviewUrl(avatarPreview) ? (
+                  {avatarPreview && avatarPreview.startsWith("blob:") ? (
                     <img loading="lazy" decoding="async" src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
                   ) : (
                     <Camera className="w-7 h-7 text-muted-foreground" />
@@ -511,7 +510,7 @@ const CompleteProfile = () => {
                 htmlFor="id-doc"
                 className="flex items-center gap-3 rounded-xl border border-dashed border-border p-3 cursor-pointer hover:bg-muted/40"
               >
-                {idPreview && isSafePreviewUrl(idPreview) ? (
+                {idPreview && idPreview.startsWith("blob:") ? (
                   <img loading="lazy" decoding="async" src={idPreview} alt="ID preview" className="w-14 h-14 rounded-md object-cover" />
                 ) : (
                   <div className="w-14 h-14 rounded-md bg-muted flex items-center justify-center">

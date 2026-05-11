@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { isSafePreviewUrl } from "@/lib/imagePreview";
 
 type SupportCategory = "message" | "suggestion" | "report" | "help";
 
@@ -331,7 +330,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                 className="hidden"
                 onChange={handleScreenshotPick}
               />
-              {screenshotPreview && isSafePreviewUrl(screenshotPreview) ? (
+              {screenshotPreview && screenshotPreview.startsWith("blob:") ? (
                 <div className="relative inline-block rounded-xl overflow-hidden border border-border">
                   <img loading="lazy" decoding="async"
                     src={screenshotPreview}

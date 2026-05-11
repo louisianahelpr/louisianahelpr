@@ -220,6 +220,14 @@ html.app-shell {
 html.app-shell body {
   height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Even on document-scroll routes (Signup, etc.), suppress iOS body
+   rubber-band so pulling down past the top doesn't bounce the whole
+   screen. Internal scroll containers stay unaffected. */
+body {
+  overscroll-behavior-y: none;
 }
 
 /* Scrollbar Styling */

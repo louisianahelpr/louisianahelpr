@@ -1,5 +1,22 @@
 import { Link } from "react-router-dom";
-import { Apple, Facebook, Heart, Mail, MapPin } from "lucide-react";
+import { Apple, Heart, Mail, MapPin } from "lucide-react";
+
+// Inline Facebook glyph — lucide-react v1.x removed brand icons including
+// `Facebook`. Inlining the standard "f" mark keeps the social link working
+// without pinning lucide back to 0.x. Sized + styled via className/props
+// to match the previous <Facebook> usage.
+const Facebook = ({ className, strokeWidth, fill }: { className?: string; strokeWidth?: number; fill?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className={className}
+    fill={fill ?? "currentColor"}
+    stroke="currentColor"
+    strokeWidth={strokeWidth ?? 1.5}
+    aria-hidden="true"
+  >
+    <path d="M14 13.5h2.5l1-4H14V7c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" />
+  </svg>
+);
 
 const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";

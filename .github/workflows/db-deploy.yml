@@ -1,5 +1,8 @@
 name: Supabase DB Deploy
 
+permissions:
+  contents: read
+
 # Auto-deploys Supabase migrations to prod when changes land on main.
 # Closes the manual-handoff gap that caused the May-09 migration-pipeline
 # drift (12 local migration files unapplied to prod, including the

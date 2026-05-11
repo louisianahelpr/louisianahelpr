@@ -1,5 +1,8 @@
 name: Bundle Size Check
 
+permissions:
+  contents: read
+
 # Guards against JS bundle bloat that hurts mobile performance.
 # Mobile Lighthouse score is heavily impacted by total JS shipped — this
 # workflow fails PRs that push individual chunks over a defined budget.

@@ -356,12 +356,14 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </div>
           </div>
 
-          {/* Post FAB — flat deep-olive (bark) puck that sits inside the
-              tab bar instead of popping out. Earlier sienna + spreading
-              halo read as a separate object hovering above the bar; user
-              feedback was that it looked like it was "popping out". This
-              version drops the radial highlight and the large outer
-              shadows so the button reads as part of the dock. */}
+          {/* Post FAB — flat deep-olive (bark) puck wrapped in a soft
+              green glow. Earlier sienna 3D dome read as "popping out"
+              (radial top sheen + gradient body); user kept the glow but
+              wanted the dome flattened and the warm color swapped to
+              the brand olive. So: surface is flat solid bark with no
+              inner gradient, but the outer shadow halo is back — now
+              tinted bark instead of sienna so it reads as a green
+              glow grounded to the dock. */}
           {!isPendingApproval && (
             <div className="relative shrink-0 w-14 h-14">
               <button
@@ -376,7 +378,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                   border: "1px solid hsl(70 22% 24%)",
                   boxShadow:
                     "inset 0 1px 0 0 rgba(255, 255, 255, 0.10), " +
-                    "0 1px 2px hsl(70 20% 18% / 0.18)",
+                    "0 1px 2px hsl(70 20% 18% / 0.22), " +
+                    "0 8px 18px -6px hsl(var(--bark) / 0.55), " +
+                    "0 18px 36px -12px hsl(var(--bark) / 0.4)",
                 }}
               >
                 <Plus

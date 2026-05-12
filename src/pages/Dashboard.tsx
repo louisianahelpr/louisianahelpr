@@ -133,6 +133,27 @@ const Dashboard = () => {
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+  // Top saved search (most-recently-created) — surfaced on the greeting
+  // when there are 0 jobs nearby, so the empty state feels intentional
+  // ("we're watching for X") rather than confusing.
+  const [topSavedSearch, setTopSavedSearch] = useState<{ name: string } | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("saved_searches")
+        .select("name")
+        .eq("user_id", user.id)
+        .eq("notify_enabled", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) setTopSavedSearch({ name: data.name });
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");
@@ -441,6 +462,28 @@ const Dashboard = () => {
                 </>
               )}
             </p>
+            {/* "Watching for" chip — only shown when 0 jobs nearby and
+                the user has an active saved search. Reframes the empty
+                state as intentional rather than confusing. */}
+            {filters.filteredJobs.length === 0 && topSavedSearch && (
+              <button
+                type="button"
+                onClick={() => navigate("/profile?tab=notifications")}
+                className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full active:opacity-70 transition-opacity"
+                style={{
+                  background: "hsl(var(--burnt-sienna) / 0.10)",
+                  border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
+                }}
+              >
+                <Search className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
+                <span
+                  className="text-[0.7rem] font-sans font-semibold tracking-wide truncate max-w-[200px]"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                >
+                  Watching for: {topSavedSearch.name}
+                </span>
+              </button>
+            )}
           </motion.div>
 
           <motion.section

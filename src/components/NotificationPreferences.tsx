@@ -120,28 +120,98 @@ const NotificationPreferences = () => {
 
   return (
     <div className="flex-1 min-h-0 rounded-2xl liquid-glass overflow-hidden shadow-sm flex flex-col">
-      <div className="flex items-center justify-end gap-6 px-4 py-2 border-b border-border/40 relative shrink-0" style={{ background: "hsl(var(--ivory-sand) / 0.3)" }}>
-        {saving && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground absolute left-4 top-2.5" />}
-        <div className="flex items-center gap-1.5 font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-          <Smartphone className="w-3.5 h-3.5" /> App
+      {/* Push master toggle moved to the TOP — it gates every row below
+          it, so it's the lead control. Bark-tinted backdrop signals
+          "this is the master switch" without shouting. */}
+      <div
+        className="flex items-center justify-between px-4 py-3 shrink-0 relative"
+        style={{
+          background: "hsl(var(--bark) / 0.06)",
+          borderBottom: "0.5px solid hsl(var(--bark) / 0.18)",
+        }}
+      >
+        {saving && (
+          <Loader2 className="w-4 h-4 animate-spin absolute left-3 top-3" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+        )}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span
+            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ background: "hsl(var(--bark) / 0.12)", color: "hsl(var(--bark))" }}
+          >
+            <Bell className="w-4 h-4" />
+          </span>
+          <div className="min-w-0">
+            <Label
+              className="font-display italic font-bold leading-tight block"
+              style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            >
+              Push Notifications
+            </Label>
+            <p className="font-serif italic text-[0.7rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              Master switch for everything below
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-          <Mail className="w-3.5 h-3.5" /> Email
+        <Switch
+          checked={prefs.push_enabled}
+          onCheckedChange={() => toggle("push_enabled")}
+          disabled={!loaded}
+          aria-label="Push notifications master toggle"
+          className={`shrink-0 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
+        />
+      </div>
+
+      {/* Column header — App / Email so users know what each switch
+          controls. Sits below the master, above the per-category rows. */}
+      <div
+        className="flex items-center justify-end gap-7 px-4 py-1.5 shrink-0"
+        style={{
+          background: "hsl(var(--ivory-sand) / 0.4)",
+          borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)",
+        }}
+      >
+        <div
+          className="flex items-center gap-1 font-serif italic uppercase"
+          style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+        >
+          <Smartphone className="w-3 h-3" /> App
+        </div>
+        <div
+          className="flex items-center gap-1 font-serif italic uppercase"
+          style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+        >
+          <Mail className="w-3 h-3" /> Email
         </div>
       </div>
 
-      {rows.map((item) => (
+      {rows.map((item, idx) => (
         <div
           key={item.key}
-          className={`flex items-center justify-between px-4 py-2.5 border-b border-border/40 last:border-b-0 shrink-0 transition-opacity ${
+          className={`flex items-center justify-between px-4 py-2.5 shrink-0 transition-opacity ${
             prefs.push_enabled || prefs[item.emailKey] ? "" : "opacity-60"
           }`}
+          style={{
+            borderBottom: idx < rows.length - 1 ? "0.5px solid hsl(var(--olivewood) / 0.08)" : "none",
+          }}
         >
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <span className="text-primary shrink-0">{item.icon}</span>
-            <Label className="text-ds-13 font-medium text-foreground truncate">{item.label}</Label>
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <span
+              className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+              style={{
+                background: "hsl(var(--burnt-sienna) / 0.10)",
+                color: "hsl(var(--burnt-sienna))",
+              }}
+            >
+              {item.icon}
+            </span>
+            <Label
+              className="font-sans font-semibold truncate"
+              style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+            >
+              {item.label}
+            </Label>
           </div>
-          <div className={`flex items-center gap-6 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
+          <div className={`flex items-center gap-7 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
             <Switch
               checked={prefs[item.key] && prefs.push_enabled}
               onCheckedChange={() => toggle(item.key)}
@@ -158,21 +228,13 @@ const NotificationPreferences = () => {
         </div>
       ))}
 
-      <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-t border-border shrink-0">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <Bell className="w-4 h-4 text-primary shrink-0" />
-          <Label className="text-ds-13 font-medium text-foreground truncate">Push Notifications</Label>
-        </div>
-        <Switch
-          checked={prefs.push_enabled}
-          onCheckedChange={() => toggle("push_enabled")}
-          disabled={!loaded}
-          aria-label="Push notifications master toggle"
-          className={`mr-[3.75rem] transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
-        />
-      </div>
-
-      <div className="flex items-start gap-2 px-4 py-2.5 border-t border-border/40 shrink-0" style={{ background: "hsl(var(--ivory-sand) / 0.25)" }}>
+      <div
+        className="flex items-start gap-2 px-4 py-2.5 shrink-0"
+        style={{
+          background: "hsl(var(--ivory-sand) / 0.4)",
+          borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
+        }}
+      >
         <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
         <p className="font-serif italic leading-snug" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
           Critical security alerts — logins, disputes — can't be turned off.

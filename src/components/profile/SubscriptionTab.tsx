@@ -200,18 +200,30 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         </div>
       )}
 
-      {/* Tier cards — compact so all 3 fit in a single viewport on iPhone
-          (no scroll). Editorial sizing kept; just trimmed padding +
-          font-sizes + gaps from the breathable original. */}
+      {/* Tier cards — single-row compact layout so all 3 tiers fit in
+          one iPhone viewport without scrolling, for every billing cycle.
+          Row layout: [icon] [name + forWhom + feature dots] [price + CTA]. */}
       <div className="space-y-2">
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
           const saveBadge = getSaveBadge(tier);
           const isPro = tier.id === "pro";
+          const accent =
+            tier.id === "elite"
+              ? "hsl(var(--gold-warm))"
+              : tier.id === "pro"
+                ? "hsl(var(--burnt-sienna))"
+                : "hsl(var(--bark))";
+          const accentSoft =
+            tier.id === "elite"
+              ? "hsl(var(--gold-warm) / 0.14)"
+              : tier.id === "pro"
+                ? "hsl(var(--burnt-sienna) / 0.12)"
+                : "hsl(var(--bark) / 0.10)";
           return (
             <div
               key={tier.id}
-              className={`relative rounded-2xl p-3.5 ${
+              className={`relative rounded-2xl px-3 py-2.5 ${
                 isPro
                   ? "liquid-glass border-2 border-primary/40 shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.25)]"
                   : "liquid-glass"
@@ -219,86 +231,111 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             >
               {isPro && (
                 <span
-                  className="absolute -top-2 left-4 text-[9px] uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap"
+                  className="absolute -top-2 left-3 text-[9px] uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap"
                   style={{ letterSpacing: "0.18em" }}
                 >
                   Most popular
                 </span>
               )}
 
-              <div className="flex items-start justify-between gap-2.5 mb-2">
-                <div className="min-w-0 flex-1 flex items-start gap-2.5">
-                  <span
-                    className="shrink-0 w-9 h-9 rounded-ds-md flex items-center justify-center"
-                    style={{
-                      background:
-                        tier.id === "elite"
-                          ? "hsl(var(--gold-warm) / 0.14)"
-                          : tier.id === "pro"
-                            ? "hsl(var(--burnt-sienna) / 0.12)"
-                            : "hsl(var(--bark) / 0.10)",
-                      color:
-                        tier.id === "elite"
-                          ? "hsl(var(--gold-warm))"
-                          : tier.id === "pro"
-                            ? "hsl(var(--burnt-sienna))"
-                            : "hsl(var(--bark))",
-                    }}
-                  >
-                    <TierIcon name={tier.iconName} className="w-4 h-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-display italic font-bold leading-tight flex items-center gap-2 flex-wrap" style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+              <div className="flex items-center gap-3">
+                {/* Icon — smaller (w-8) to free vertical space */}
+                <span
+                  className="shrink-0 w-8 h-8 rounded-ds-md flex items-center justify-center"
+                  style={{ background: accentSoft, color: accent }}
+                >
+                  <TierIcon name={tier.iconName} className="w-4 h-4" />
+                </span>
+
+                {/* Name + forWhom on one line + features dot row underneath.
+                    Keeps the card to ~2 lines of text instead of the
+                    previous 5-line bulleted block. */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <h3
+                      className="font-display italic font-bold leading-none"
+                      style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
+                    >
                       {tier.name}
-                      {isActive && (
-                        <span className="text-[9px] not-italic font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
-                          <CheckCircle className="w-2.5 h-2.5" /> Current
-                        </span>
-                      )}
                     </h3>
-                    <p
-                      className="font-serif italic leading-snug mt-0.5"
-                      style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                    {isActive && (
+                      <span className="text-[9px] not-italic font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
+                        <CheckCircle className="w-2.5 h-2.5" /> Current
+                      </span>
+                    )}
+                    <span
+                      className="font-serif italic truncate"
+                      style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}
                     >
                       {tier.forWhom}
-                    </p>
+                    </span>
                   </div>
+                  {/* Features as inline dots — one line, truncated if
+                      necessary. Drops "Everything in X" prefixes since
+                      the visual stacking already conveys ascending tier. */}
+                  <p
+                    className="font-serif italic mt-0.5 truncate"
+                    style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  >
+                    {tier.features
+                      .filter((f) => !/^Everything in/i.test(f))
+                      .join(" · ")}
+                  </p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.2rem", color: "hsl(var(--primary))", letterSpacing: "-0.02em" }}>
+
+                {/* Price + CTA on the right edge */}
+                <div className="shrink-0 flex flex-col items-end gap-1">
+                  <p
+                    className="font-display italic font-bold tabular-nums leading-none"
+                    style={{ fontSize: "1rem", color: accent, letterSpacing: "-0.02em" }}
+                  >
                     {getPrice(tier)}
                   </p>
                   {saveBadge && (
-                    <span className="inline-block mt-0.5 text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary">
+                    <span
+                      className="text-[8.5px] px-1 py-px rounded-full font-bold"
+                      style={{ background: accentSoft, color: accent, letterSpacing: "0.06em" }}
+                    >
                       {saveBadge}
                     </span>
                   )}
+                  {!isActive && (
+                    <button
+                      onClick={() =>
+                        currentTier && !isExpired
+                          ? handleManageSubscription()
+                          : handleSubscribe(tier.id)
+                      }
+                      disabled={loadingCheckout === tier.id || loadingPortal}
+                      className="inline-flex items-center justify-center gap-1 px-2.5 h-7 rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96] disabled:opacity-60"
+                      style={
+                        isPro
+                          ? {
+                              background: "hsl(var(--bark))",
+                              color: "hsl(var(--parchment))",
+                              border: "1px solid hsl(70 22% 24%)",
+                              boxShadow:
+                                "inset 0 1px 0 0 rgba(255,255,255,0.12), 0 4px 10px -3px hsl(var(--bark) / 0.45)",
+                            }
+                          : {
+                              background: "hsla(0, 0%, 100%, 0.55)",
+                              color: "hsl(var(--ink-deep))",
+                              border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                            }
+                      }
+                    >
+                      {(loadingCheckout === tier.id || loadingPortal) && (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      )}
+                      {currentTier && !isExpired
+                        ? "Change"
+                        : billingInterval === "one_time"
+                          ? "Buy"
+                          : "Subscribe"}
+                    </button>
+                  )}
                 </div>
               </div>
-
-              <ul className="space-y-0.5 mb-2.5">
-                {tier.features.map((f) => (
-                  <li key={f} className="font-serif italic flex items-start gap-1.5" style={{ fontSize: "0.75rem", color: "hsl(var(--ink-deep))" }}>
-                    <CheckCircle className="w-3 h-3 shrink-0 mt-0.5 text-primary" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {!isActive && (
-                <button
-                  onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
-                  disabled={loadingCheckout === tier.id || loadingPortal}
-                  className={`w-full px-3 h-9 rounded-ds-md font-bold text-ds-11 transition-all flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.97] ${
-                    isPro
-                      ? "bg-gradient-to-b from-primary to-primary/85 text-primary-foreground shadow-[0_4px_14px_-2px_hsl(var(--primary)/0.4),inset_0_1px_0_hsl(var(--primary-foreground)/0.25)] hover:shadow-[0_6px_18px_-2px_hsl(var(--primary)/0.5),inset_0_1px_0_hsl(var(--primary-foreground)/0.25)] border border-primary/40"
-                      : "liquid-glass text-foreground hover:bg-secondary/40 border border-border"
-                  }`}
-                >
-                  {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {currentTier && !isExpired ? "Change to this plan" : billingInterval === "one_time" ? `Buy ${tier.name}` : `Subscribe to ${tier.name}`}
-                </button>
-              )}
             </div>
           );
         })}

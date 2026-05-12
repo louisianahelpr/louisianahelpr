@@ -272,7 +272,7 @@ export const AppliedJobsTab = ({
     return (
           <div
             key={app.id}
-            className={`rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${!isMinimalCard ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
+            className={`rounded-2xl liquid-glass overflow-hidden hover:shadow-md transition-all duration-200 ${!isMinimalCard ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
             onClick={!isMinimalCard ? () => setExpandedJobId(isExpanded ? null : app.job_id) : undefined}
             {...(!isMinimalCard && {
               role: "button",
@@ -286,13 +286,29 @@ export const AppliedJobsTab = ({
               },
             })}
           >
-            {/* Header - matches poster layout */}
-            <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">
-              <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${(categoryColors[job.category || "other"] || categoryColors.other).title}`}>
+            {/* Header — italic display title + payout chip (matches poster
+                surfaces across the app). */}
+            <div
+              className="w-full px-4 py-2.5 flex items-center justify-between text-left"
+              style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+            >
+              <h3
+                className="font-display italic font-bold leading-snug truncate min-w-0"
+                style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
                 {job.title || "Task"}
               </h3>
-              <span className="flex items-center gap-0.5 font-semibold text-primary text-ds-13 bg-primary/8 px-2 py-0.5 rounded-full shrink-0 ml-3" title={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}>
-                <DollarSign className="w-3.5 h-3.5" />{payout.toFixed(2)}
+              <span
+                className="inline-flex items-center gap-0.5 font-display italic font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-full shrink-0 ml-3"
+                title={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
+                style={{
+                  background: "hsl(var(--burnt-sienna) / 0.10)",
+                  color: "hsl(var(--burnt-sienna))",
+                  letterSpacing: "-0.015em",
+                }}
+              >
+                <DollarSign className="w-3.5 h-3.5" strokeWidth={2.25} />
+                {payout.toFixed(2)}
               </span>
             </div>
 

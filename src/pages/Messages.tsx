@@ -60,6 +60,9 @@ type Conversation = {
       see at a glance whether they're discussing an open posting, an
       awarded job, or a completed one. */
   jobStatus?: string | null;
+  /** True when the current user posted the job — drives poster-specific
+      quick reply set in the chat composer. */
+  viewerIsPoster?: boolean;
   lastMessage: string;
   lastAt: string;
   unread: number;
@@ -161,12 +164,12 @@ const Messages = () => {
 
     const [profilesRes, jobsRes] = await Promise.all([
       supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
-      supabase.from("jobs").select("id, title, status").in("id", jobIds),
+      supabase.from("jobs").select("id, title, status, customer_id").in("id", jobIds),
     ]);
 
     const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
     const avatarMap = new Map<string, string | null>(profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || []);
-    const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status }]) || []);
+    const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id }]) || []);
 
     const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => ({
       otherUserId: v.otherUserId,
@@ -175,6 +178,9 @@ const Messages = () => {
       jobTitle: jobMap.get(v.jobId)?.title || "Job",
       jobId: v.jobId,
       jobStatus: jobMap.get(v.jobId)?.status ?? null,
+      // Track whether the current user is the poster on this job so the
+      // chat can render poster-specific quick replies (vs helper-specific).
+      viewerIsPoster: jobMap.get(v.jobId)?.customer_id === uid,
       lastMessage: v.messages[0].content,
       lastAt: v.messages[0].created_at,
       unread: v.messages.filter((m) => m.receiver_id === uid && !m.read).length,
@@ -195,7 +201,7 @@ const Messages = () => {
         // No existing conversation — create a placeholder so user can start messaging
         const [profileRes, jobRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
-          supabase.from("jobs").select("id, title, status").eq("id", deepLinkJobId).maybeSingle(),
+          supabase.from("jobs").select("id, title, status, customer_id").eq("id", deepLinkJobId).maybeSingle(),
         ]);
         const name = profileRes.data?.[0]?.full_name || "User";
         const placeholder: Conversation = {
@@ -205,6 +211,7 @@ const Messages = () => {
           jobTitle: jobRes.data?.title || "Job",
           jobId: deepLinkJobId,
           jobStatus: jobRes.data?.status ?? null,
+          viewerIsPoster: jobRes.data?.customer_id === uid,
           lastMessage: "",
           lastAt: new Date().toISOString(),
           unread: 0,
@@ -1071,7 +1078,10 @@ const Messages = () => {
 
               {/* Quick replies — populate the input instead of sending instantly */}
               <div className="pt-1">
-                <QuickReplies onSelect={(msg) => setDraft(msg)} />
+                <QuickReplies
+                  onSelect={(msg) => setDraft(msg)}
+                  audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
+                />
               </div>
 
               {/* Rich message input */}

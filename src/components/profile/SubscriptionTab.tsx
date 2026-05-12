@@ -134,6 +134,9 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     return null;
   };
 
+  // Currently-subscribed users get a hero "Your plan" card on top — the
+  // tier cards below reframe as "change to" rather than the main pitch.
+  const activeTierConfig = currentTier && !isExpired ? tierConfig.find((t) => t.id === currentTier.toLowerCase()) : null;
   return (
     <div className="space-y-5 pb-24">
       <ProfileTabHeader
@@ -142,6 +145,95 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         meta={currentTier && !isExpired ? `${currentTier[0].toUpperCase()}${currentTier.slice(1)} plan${expiresAt ? ` · renews ${expiresAt.toLocaleDateString([], { month: "short", day: "numeric" })}` : ""}` : isExpired ? "Plan expired — pick one to renew" : "Free plan · upgrade to unlock more"}
         onBack={onBack}
       />
+
+      {/* Current plan hero — only renders when the user is actively
+          subscribed. Bigger, warmer surface that confirms what they're
+          paying for; tier cards below become "change to" options. */}
+      {activeTierConfig && (
+        <div
+          className="rounded-2xl p-5 relative overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 55%), " +
+              "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.12) 0%, transparent 60%), " +
+              "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.78) 100%)",
+            border: "0.5px solid hsl(var(--bark) / 0.22)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+              "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22), " +
+              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+              "0 14px 30px -8px hsl(var(--olivewood) / 0.14)",
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <span
+              className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
+              style={{
+                background:
+                  activeTierConfig.id === "elite"
+                    ? "hsl(var(--gold-warm) / 0.18)"
+                    : activeTierConfig.id === "pro"
+                      ? "hsl(var(--burnt-sienna) / 0.14)"
+                      : "hsl(var(--bark) / 0.12)",
+                color:
+                  activeTierConfig.id === "elite"
+                    ? "hsl(var(--gold-warm))"
+                    : activeTierConfig.id === "pro"
+                      ? "hsl(var(--burnt-sienna))"
+                      : "hsl(var(--bark))",
+              }}
+            >
+              <TierIcon name={activeTierConfig.iconName} className="w-5 h-5" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <span
+                className="font-serif italic uppercase"
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Your plan
+              </span>
+              <h2
+                className="font-display italic font-bold leading-tight mt-0.5"
+                style={{ fontSize: "1.45rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+              >
+                {activeTierConfig.name}.
+              </h2>
+              {expiresAt && (
+                <p
+                  className="font-serif italic mt-1"
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                >
+                  Renews{" "}
+                  <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                    {expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <Button
+              onClick={handleManageSubscription}
+              disabled={loadingPortal}
+              variant="outline"
+              className="rounded-ds-md"
+            >
+              {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Crown className="w-4 h-4 mr-2" />}
+              Manage
+            </Button>
+            <Button
+              onClick={refreshSubscription}
+              disabled={refreshing}
+              variant="ghost"
+              className="rounded-ds-md font-sans font-semibold"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Billing cycle pills — Annual carries the save badge inline so the
           cheapest option is the most visually inviting one. */}
@@ -188,17 +280,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         })}
       </div>
 
-      {currentTier && !isExpired && (
-        <div className="flex gap-2">
-          <Button onClick={handleManageSubscription} disabled={loadingPortal} variant="outline" className="flex-1 h-10">
-            {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Crown className="w-4 h-4 mr-2 text-primary" />}
-            Manage subscription
-          </Button>
-          <Button onClick={refreshSubscription} disabled={refreshing} variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Refresh">
-            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
-      )}
+      {/* Manage row used to live here — now consolidated into the
+          "Your plan" hero above when actively subscribed. */}
 
       {/* Tier cards — single-row compact layout so all 3 tiers fit in
           one iPhone viewport without scrolling, for every billing cycle.

@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Gift, Copy, Users, DollarSign, Check, Banknote, Loader2 } from "lucide-react";
+import { Gift, Copy, Users, DollarSign, Check, Banknote, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { useReferralData } from "@/hooks/useReferralData";
 import { queryKeys } from "@/lib/queryKeys";
@@ -30,6 +30,24 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     setCopied(true);
     toast.success("Referral code copied!");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareReferral = async () => {
+    if (!referralCode) return;
+    const url = `${window.location.origin}/signup?ref=${encodeURIComponent(referralCode)}`;
+    const shareText = `Join me on Louisiana Helpr — local task marketplace. Use code ${referralCode} and we both earn $5 on your first job.`;
+    // Native share where available (iOS, Android, supported desktop) —
+    // falls back to clipboard so the action never silently fails.
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: "Louisiana Helpr", text: shareText, url });
+        return;
+      } catch {
+        // User cancelled or share API errored — fall through to clipboard.
+      }
+    }
+    await navigator.clipboard.writeText(`${shareText}\n${url}`);
+    toast.success("Share link copied!");
   };
 
   const handleCashOut = async () => {
@@ -96,10 +114,30 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "2.5rem", color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
           {referralCode}
         </p>
-        <Button variant="default" size="sm" className="w-full h-11" onClick={copyCode}>
-          {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-          {copied ? "Copied" : "Copy code"}
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            size="sm"
+            className="h-11 rounded-ds-md"
+            onClick={shareReferral}
+            style={{
+              background: "hsl(var(--bark))",
+              backgroundImage: "none",
+              border: "1px solid hsl(var(--bark))",
+              color: "hsl(var(--parchment))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -4px hsl(var(--bark) / 0.30)",
+            }}
+          >
+            <Share2 className="w-4 h-4 mr-1.5" />
+            Share
+          </Button>
+          <Button variant="outline" size="sm" className="h-11 rounded-ds-md" onClick={copyCode}>
+            {copied ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
+            {copied ? "Copied" : "Copy code"}
+          </Button>
+        </div>
         <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
           When a friend completes their first job using your code, <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>you both earn $5</span>. Up to 5 friends ($25 max).
         </p>

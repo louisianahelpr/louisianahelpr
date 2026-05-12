@@ -231,13 +231,39 @@ const UserProfile = () => {
           {/* Profile Card — brand-aligned hero. Avatar with tier ring,
               italic display name, italic serif meta and bio. */}
           <div
-            className="rounded-2xl liquid-glass p-5 text-center space-y-3"
+            className="rounded-2xl liquid-glass p-5 text-center space-y-3 relative overflow-hidden"
             style={{
               backgroundImage:
                 "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
                 "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
             }}
           >
+            {/* Verified Helpr ribbon — visible top-right corner badge
+                for ID-verified helpers. Promotes the trust signal from
+                a small chip to a prominent marker posters see at first
+                glance. Gold-warm so it reads as recognition, not status. */}
+            {isIdVerified && (
+              <div
+                aria-label="Verified Helpr"
+                className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
+                style={{
+                  background: "hsl(var(--gold-warm) / 0.14)",
+                  border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+                    "0 1px 2px hsl(var(--gold-warm) / 0.12), " +
+                    "0 4px 10px -3px hsl(var(--gold-warm) / 0.28)",
+                }}
+              >
+                <ShieldCheck className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.5} />
+                <span
+                  className="font-sans font-bold uppercase tracking-wider"
+                  style={{ fontSize: "0.6rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.16em" }}
+                >
+                  Verified
+                </span>
+              </div>
+            )}
             <div className="relative inline-block">
               {profile.avatar_url ? (
                 <img

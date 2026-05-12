@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Rocket } from "lucide-react";
+import { Rocket, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface JobBoostDialogProps {
   jobId: string;
@@ -14,6 +16,16 @@ interface JobBoostDialogProps {
 
 export function JobBoostDialog({ jobId, open, onClose }: JobBoostDialogProps) {
   const [boosting, setBoosting] = useState(false);
+  const { profile } = useCurrentUser();
+  // Pro / Elite tier perk: posters with an active subscription get
+  // boosted visibility surfaced as a "you have this already" callout
+  // instead of the $3 paywall. Their post still flips the boost flags
+  // via the server (no checkout redirect) — we'll wire that in once
+  // the create-boost-payment edge function knows to skip charging.
+  const subTier = (profile?.subscription_tier ?? "free") as string;
+  const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
+  const subActive = subExp ? subExp > new Date() : false;
+  const isSubscriber = subActive && (subTier === "pro" || subTier === "elite");
 
   const handleBoost = async () => {
     setBoosting(true);
@@ -57,7 +69,9 @@ export function JobBoostDialog({ jobId, open, onClose }: JobBoostDialogProps) {
           </p>
         </DialogHeader>
         <div className="space-y-3">
-          {/* Price card — parchment-gold pill recipe (matches Tip + Payout) */}
+          {/* Price card — parchment-gold pill recipe (matches Tip + Payout).
+              Subscribers see "Included" instead of $3 since Boosted
+              Visibility is bundled with their plan. */}
           <div
             className="rounded-2xl p-5 text-center"
             style={{
@@ -72,18 +86,51 @@ export function JobBoostDialog({ jobId, open, onClose }: JobBoostDialogProps) {
                 "0 8px 22px -6px hsl(var(--gold-warm) / 0.30)",
             }}
           >
-            <p
-              className="font-display italic font-bold tabular-nums leading-none"
-              style={{ fontSize: "2.5rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
-            >
-              $3
-            </p>
-            <p
-              className="font-serif italic mt-1.5"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
-            >
-              One-time · runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
-            </p>
+            {isSubscriber ? (
+              <>
+                <span
+                  className="font-serif italic uppercase inline-flex items-center gap-1.5"
+                  style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
+                >
+                  <Sparkles className="w-3 h-3" /> Included with {subTier === "elite" ? "Elite" : "Pro"}
+                </span>
+                <p
+                  className="font-display italic font-bold leading-none mt-2"
+                  style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+                >
+                  Free boost.
+                </p>
+                <p
+                  className="font-serif italic mt-1.5"
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                >
+                  Runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
+                </p>
+              </>
+            ) : (
+              <>
+                <p
+                  className="font-display italic font-bold tabular-nums leading-none"
+                  style={{ fontSize: "2.5rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
+                >
+                  $3
+                </p>
+                <p
+                  className="font-serif italic mt-1.5"
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                >
+                  One-time · runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
+                </p>
+                <Link
+                  to="/profile?tab=subscription"
+                  onClick={onClose}
+                  className="inline-flex items-center gap-1 mt-2 text-[0.72rem] font-sans font-semibold active:opacity-70"
+                  style={{ color: "hsl(var(--bark))" }}
+                >
+                  <Sparkles className="w-3 h-3" /> Free with Pro · See plans
+                </Link>
+              </>
+            )}
           </div>
           <ul className="space-y-1.5">
             {[
@@ -128,7 +175,7 @@ export function JobBoostDialog({ jobId, open, onClose }: JobBoostDialogProps) {
             }}
           >
             <Rocket className="w-4 h-4 mr-1.5" />
-            {boosting ? "Boosting…" : "Boost for $3"}
+            {boosting ? "Boosting…" : isSubscriber ? "Boost — included" : "Boost for $3"}
           </Button>
         </DialogFooter>
       </DialogContent>

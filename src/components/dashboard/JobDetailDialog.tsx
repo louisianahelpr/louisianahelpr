@@ -41,7 +41,7 @@ const JobDetailDialog = ({
   const [payoutExpanded, setPayoutExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [, setApplicationCount] = useState<number | null>(null);
+  const [applicationCount, setApplicationCount] = useState<number | null>(null);
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
 
   // Reset transient state when the dialog switches to a new job.
@@ -643,6 +643,31 @@ const JobDetailDialog = ({
             )}
           </div>
         </a>
+
+        {/* Applicant queue + Apply social proof — surfaces "X helpers
+            already applied — you'd be #(X+1) in line" only when there
+            are existing applicants, so it functions as light urgency
+            without crying wolf on fresh posts. */}
+        {applicationCount !== null && applicationCount > 0 && (
+          <div
+            className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.08)",
+              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+            }}
+          >
+            <Users className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
+            <p
+              className="font-serif italic leading-snug"
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                {applicationCount} helpr{applicationCount === 1 ? "" : "s"} already applied.
+              </span>{" "}
+              You'd be #{applicationCount + 1} in line.
+            </p>
+          </div>
+        )}
 
         {/* Footer actions — Flag · Save · Message · Apply.
             Each secondary icon button gets a hover-scale + glow ring effect

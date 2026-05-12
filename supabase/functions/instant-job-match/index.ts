@@ -128,8 +128,11 @@ Deno.serve(async (req) => {
     const { error: notifyErr } = await supabase.from("notifications").insert(
       scored.map((h) => ({
         user_id: h.user_id,
-        title: "🔥 New job match!",
-        message: `"${job.title}" ($${job.budget}) in ${job.location} — Quick Apply now!`,
+        // Brand-voiced push copy — calm, informative, no emoji shouting.
+        // "Match for you" reads as concierge-style alerting rather than
+        // the previous "🔥 New job match!" which felt notification-spam.
+        title: "Match for you",
+        message: `${job.title} in ${job.location} · $${job.budget}. Tap to apply before someone else.`,
         type: "job_match",
         link: `/dashboard?quickApply=${job.id}`,
         read: false,

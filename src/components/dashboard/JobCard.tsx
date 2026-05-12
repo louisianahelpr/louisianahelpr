@@ -91,9 +91,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             className="block w-11 h-11 rounded-full flex items-center justify-center font-sans font-semibold text-[0.78rem] tracking-[0.06em] uppercase transition-transform hover:scale-105 overflow-hidden"
             style={{
               backgroundColor: "hsl(var(--bark) / 0.12)",
-              border: "1px solid hsl(var(--bark) / 0.22)",
+              // Tier halo around poster avatar: gold for Elite posters,
+              // sienna for Pro, default subtle bark for free. Surfaces
+              // subscriber posters in the helper's feed at a glance.
+              boxShadow:
+                job.posterSubscriptionTier === "elite"
+                  ? "0 0 0 2px hsl(var(--gold-warm)), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)"
+                  : job.posterSubscriptionTier === "pro"
+                    ? "0 0 0 2px hsl(var(--burnt-sienna)), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)"
+                    : "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)",
+              border:
+                job.posterSubscriptionTier === "elite" || job.posterSubscriptionTier === "pro"
+                  ? "none"
+                  : "1px solid hsl(var(--bark) / 0.22)",
               color: "hsl(var(--bark))",
-              boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)",
             }}
             aria-label={`View ${job.posterName}'s profile`}
           >

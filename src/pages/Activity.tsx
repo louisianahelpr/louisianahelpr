@@ -277,6 +277,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       if (data?.bothDone) {
         hapticSuccess();
         toast.success("Job completed! Payment released.");
+        // Brand-tinted confetti for the first 3 completed jobs — fades to
+        // silent after to avoid noise on regulars.
+        const { maybeCelebrate } = await import("@/lib/celebrate");
+        void maybeCelebrate("first_complete", { particleCount: 120 });
         await refresh();
         setStatusFilter("completed");
       } else {

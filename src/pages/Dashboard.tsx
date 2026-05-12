@@ -154,6 +154,34 @@ const Dashboard = () => {
     })();
     return () => { cancelled = true; };
   }, [user?.id]);
+
+  // Inactive subscriber nudge — if a paid helper hasn't applied to
+  // anything in 7+ days, surface a gentle "your sub is paying for
+  // itself when you apply" banner. Caps the cost-justification at the
+  // moment the user is checking the feed.
+  const [inactiveNudge, setInactiveNudge] = useState(false);
+  useEffect(() => {
+    if (!user || !profile) return;
+    const subTier = (profile.subscription_tier ?? "free") as string;
+    const subExp = profile.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
+    const subActive = subExp ? subExp > new Date() : false;
+    if (!subActive || subTier === "free") return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("applications")
+        .select("created_at")
+        .eq("helper_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const last = data?.created_at ? new Date(data.created_at).getTime() : 0;
+      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+      if (!last || Date.now() - last > sevenDaysMs) setInactiveNudge(true);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, profile?.subscription_tier, profile?.subscription_expires_at]);
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");
@@ -485,6 +513,41 @@ const Dashboard = () => {
               </button>
             )}
           </motion.div>
+
+          {/* Inactive subscriber nudge — gentle reminder for paid helpers
+              who haven't applied in 7+ days. Dismissible per-session. */}
+          {inactiveNudge && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
+              style={{
+                background:
+                  "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 55%)",
+                border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
+              }}
+            >
+              <Star className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} fill="currentColor" />
+              <div className="flex-1 min-w-0">
+                <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
+                  Your subscription pays for itself when you apply.
+                </p>
+                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+                  Plenty of work nearby — see what's open below.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInactiveNudge(false)}
+                aria-label="Dismiss"
+                className="shrink-0 -mt-1 -mr-1 p-1.5 rounded-full active:opacity-70"
+                style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          )}
 
           <motion.section
             initial={{ opacity: 0, y: 16 }}

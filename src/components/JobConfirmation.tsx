@@ -183,27 +183,61 @@ export function JobConfirmation({
 
       {/* Confirmation popup */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-primary" />
-              Confirm This Job
+        <DialogContent className="!gap-3">
+          <DialogHeader className="!text-left space-y-0">
+            <span
+              className="font-serif italic uppercase inline-flex items-center gap-1.5"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              <ShieldCheck className="w-3 h-3" /> Locking it in
+            </span>
+            <DialogTitle
+              className="font-display italic font-bold leading-tight mt-1"
+              style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+            >
+              Commit to this job?
             </DialogTitle>
+            <p
+              className="font-serif italic mt-1"
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}
+            >
+              The other party will see you're locked in for the scheduled date.
+            </p>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-ds-11 text-muted-foreground">
-              By confirming, you're letting the other party know this job is still on and you'll be ready on the scheduled date.
-            </p>
-            <div className="rounded-lg bg-muted/50 p-3 space-y-1">
-              <p className="text-ds-11 text-muted-foreground">📅 Scheduled for</p>
-              <p className="text-ds-13 font-medium text-foreground">
+            <div
+              className="rounded-ds-md p-3"
+              style={{
+                background: "hsl(var(--ivory-sand) / 0.4)",
+                border: "0.5px solid hsl(var(--olivewood) / 0.10)",
+              }}
+            >
+              <p
+                className="font-serif italic uppercase mb-0.5"
+                style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Scheduled for
+              </p>
+              <p
+                className="font-display italic font-bold leading-tight"
+                style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+              >
                 {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
               </p>
             </div>
-            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
-              <p className="text-ds-11 text-amber-700 flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.
+            <div
+              className="rounded-ds-md p-3"
+              style={{
+                background: "hsl(var(--burnt-sienna) / 0.08)",
+                border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+              }}
+            >
+              <p
+                className="font-serif italic leading-snug flex items-start gap-2"
+                style={{ fontSize: "0.78rem", color: "hsl(var(--burnt-sienna))" }}
+              >
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.</span>
               </p>
             </div>
           </div>

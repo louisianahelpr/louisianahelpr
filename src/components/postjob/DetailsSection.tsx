@@ -1,8 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImagePlus, X, Briefcase, CheckCircle2 } from "lucide-react";
+import { categoryIcons, categoryColors } from "@/components/activity/activityConstants";
 
 export const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -76,42 +76,116 @@ export function DetailsSection({
 
       <div className="space-y-2.5">
         <Label>Category <span className="text-destructive">*</span></Label>
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {categories.map((c) => (
-              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Visual chip grid — icon + label per category. Active chip
+            gets the category's brand color as a glass-pill ring so the
+            picked category reads at a glance instead of as a dropdown
+            row. Much more inviting first-impression on a post flow. */}
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          {categories.map((c) => {
+            const Icon = categoryIcons[c.value] ?? Briefcase;
+            const colors = categoryColors[c.value];
+            const active = category === c.value;
+            return (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => setCategory(c.value)}
+                aria-pressed={active}
+                className="flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-2xl transition-all active:scale-[0.97]"
+                style={
+                  active
+                    ? {
+                        background: "hsla(0, 0%, 100%, 0.7)",
+                        border: "0.5px solid hsl(var(--bark) / 0.35)",
+                        boxShadow:
+                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                          "0 0 0 2px hsl(var(--bark) / 0.18), " +
+                          "0 6px 16px -4px hsl(var(--bark) / 0.22)",
+                      }
+                    : {
+                        background: "hsla(0, 0%, 100%, 0.45)",
+                        border: "0.5px solid hsl(var(--olivewood) / 0.12)",
+                        boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+                      }
+                }
+              >
+                <span
+                  className={`w-9 h-9 rounded-full flex items-center justify-center ${colors?.dot ?? ""}`}
+                  style={
+                    !colors?.dot
+                      ? { background: "hsl(var(--olivewood) / 0.12)" }
+                      : undefined
+                  }
+                >
+                  <Icon className="w-4 h-4 text-white/90" strokeWidth={2.25} />
+                </span>
+                <span
+                  className="font-sans font-semibold text-center leading-tight"
+                  style={{
+                    fontSize: "0.7rem",
+                    color: active ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.85)",
+                  }}
+                >
+                  {c.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Image Upload */}
+      {/* Image Upload — brand-aligned thumbnail grid. Active photo tiles
+          get a sienna-tint hover for delete; the empty Add tile uses the
+          parchment-glass dashed border treatment instead of generic gray. */}
       <div className="space-y-2.5">
         <Label>Photos (optional, max 5)</Label>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2.5">
           {imagePreviews.map((src, i) => (
-            <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
+            <div
+              key={i}
+              className="relative w-20 h-20 rounded-2xl overflow-hidden group"
+              style={{
+                border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
+              }}
+            >
               {(/^blob:/i.test(src) || /^data:image\//i.test(src)) ? (
                 <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted/40">
-                  <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
+                  <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
                 </div>
               )}
               <button
                 type="button"
                 onClick={() => onRemoveImage(i)}
-                className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Remove photo"
+                className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 active:scale-90 transition-all"
+                style={{
+                  background: "hsl(var(--burnt-sienna))",
+                  color: "hsl(var(--parchment))",
+                  boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                }}
               >
-                <X className="w-3 h-3" />
+                <X className="w-3 h-3" strokeWidth={2.5} />
               </button>
             </div>
           ))}
           {imageFiles.length < 5 && (
-            <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
-              <ImagePlus className="w-5 h-5 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
+            <label
+              className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
+              style={{
+                background: "hsla(0, 0%, 100%, 0.4)",
+                border: "1.5px dashed hsl(var(--bark) / 0.30)",
+              }}
+            >
+              <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+              <span
+                className="font-sans font-semibold mt-1"
+                style={{ fontSize: "0.62rem", color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
+              >
+                Add photo
+              </span>
               <input
                 type="file"
                 accept="image/*"

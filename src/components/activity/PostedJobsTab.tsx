@@ -503,8 +503,28 @@ export const PostedJobsTab = ({
                         )}
                         {/* Approve & Complete (primary) — only after helper marks done */}
                         {(job as any).helper_completed_at && (
-                          <Button size="sm" className="w-full" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
-                            <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Approved ✓" : "Approve & Complete"}
+                          <Button
+                            size="sm"
+                            className="w-full rounded-ds-md"
+                            onClick={() => onComplete(job.id)}
+                            disabled={completingJobId === job.id || !!(job as any).poster_completed_at}
+                            style={
+                              !(job as any).poster_completed_at
+                                ? {
+                                    background: "hsl(var(--bark))",
+                                    backgroundImage: "none",
+                                    border: "1px solid hsl(var(--bark))",
+                                    color: "hsl(var(--parchment))",
+                                    fontFamily: "Montserrat, system-ui, sans-serif",
+                                    fontWeight: 600,
+                                    letterSpacing: "0.01em",
+                                    boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                                  }
+                                : undefined
+                            }
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            {completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Approved ✓" : "Approve & release payment"}
                           </Button>
                         )}
                         {/* Message — primary action while work is in progress */}

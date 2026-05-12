@@ -691,11 +691,33 @@ export const AppliedJobsTab = ({
                     const label = completingJobId === app.job_id ? "…" : !hasPhotos ? "Upload before & after photos first" : tooEarly ? `Available in ${minutesLeft} min` : "Mark Complete";
                     return (
                       <>
-                        <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={disabled}>
-                          <CheckCircle2 className="w-4 h-4 mr-1" />{label}
+                        <Button
+                          size="sm"
+                          className="w-full rounded-ds-md"
+                          onClick={() => onComplete(app.job_id)}
+                          disabled={disabled}
+                          style={
+                            !disabled
+                              ? {
+                                  background: "hsl(var(--bark))",
+                                  backgroundImage: "none",
+                                  border: "1px solid hsl(var(--bark))",
+                                  color: "hsl(var(--parchment))",
+                                  fontFamily: "Montserrat, system-ui, sans-serif",
+                                  fontWeight: 600,
+                                  letterSpacing: "0.01em",
+                                  boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                                }
+                              : undefined
+                          }
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" />
+                          {label === "Mark Complete" ? "I'm done — request payout" : label}
                         </Button>
                         {tooEarly && (
-                          <p className="text-[10px] text-muted-foreground text-center">Mark Complete is available 30 minutes after arrival to ensure quality.</p>
+                          <p className="font-serif italic text-center" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                            Available 30 minutes after arrival to ensure quality.
+                          </p>
                         )}
                       </>
                     );

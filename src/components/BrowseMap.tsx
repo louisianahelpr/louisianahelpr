@@ -162,13 +162,34 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
 
   if (jobs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 rounded-2xl border border-border bg-card/40 px-6 text-center">
-        <p className="font-display italic text-ds-13 text-foreground">
-          No jobs on the map just yet.
-        </p>
-        <p className="font-serif italic text-ds-11 text-muted-foreground mt-1">
-          New posts appear here as soon as they go live across Louisiana.
-        </p>
+      <div className="flex flex-col items-center justify-center h-96 rounded-2xl liquid-glass px-6 text-center gap-3">
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center"
+          style={{
+            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+            border: "1px solid hsl(var(--olivewood) / 0.10)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+              "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+              "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+          }}
+        >
+          <Loader2 className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+        </div>
+        <div className="space-y-1">
+          <p
+            className="font-display italic font-bold leading-tight"
+            style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          >
+            Empty map for now.
+          </p>
+          <p
+            className="font-serif italic max-w-[260px]"
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            New posts land here the moment they go live across Louisiana.
+          </p>
+        </div>
       </div>
     );
   }

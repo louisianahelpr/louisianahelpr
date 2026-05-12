@@ -779,22 +779,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               const ctaTo = isPosted ? "/post-job" : "/dashboard";
               const Icon = isPosted ? Search : Send;
               return (
-                <div className="px-4 pt-4 pb-3 flex">
-                  {/* Empty-state card — sized to its content with a
-                      modest min-height so it doesn't stretch to a giant
-                      blank rectangle on tall screens. The bottom panel
-                      (parent glass card) handles the visual continuity
-                      down to the MobileNav dock area. */}
-                  <div
-                    className="flex-1 flex flex-col items-center text-center gap-4 px-6 py-8 rounded-2xl"
-                    style={{
-                      backgroundColor: "hsl(0, 0%, 100%)",
-                      border: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                      boxShadow:
-                        "0 1px 2px hsl(var(--olivewood) / 0.04), " +
-                        "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
-                    }}
-                  >
+                <div className="px-4 pt-4 pb-3 flex flex-1 min-h-0">
+                  {/* Empty-state card — brand-aligned liquid-glass surface
+                      (was plain bg-white that clashed with the warm parchment
+                      page background), centered in the available scroll area.
+                      Same pattern as Dashboard's empty state from PR #73. */}
+                  <div className="flex-1 liquid-glass min-h-full flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-2xl">
                     <div
                       className="w-20 h-20 rounded-full flex items-center justify-center"
                       style={{
@@ -829,7 +819,21 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                         {body}
                       </p>
                     </div>
-                    <Button onClick={() => navigate(ctaTo)} className="rounded-ds-md">
+                    <Button
+                      onClick={() => navigate(ctaTo)}
+                      className="rounded-full px-6 h-12"
+                      style={{
+                        background: "hsl(var(--bark))",
+                        color: "hsl(var(--parchment))",
+                        border: "1px solid hsl(70 22% 24%)",
+                        fontFamily: "Montserrat, system-ui, sans-serif",
+                        fontWeight: 600,
+                        boxShadow:
+                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
+                          "0 1px 2px hsl(70 20% 18% / 0.18), " +
+                          "0 8px 18px -6px hsl(var(--bark) / 0.45)",
+                      }}
+                    >
                       {ctaLabel}
                     </Button>
                   </div>

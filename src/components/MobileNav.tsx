@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { prefetchRoute } from "@/lib/routePrefetch";
+import { hapticLight } from "@/lib/haptics";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
@@ -168,6 +169,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         navigate("/account-pending");
         return;
       }
+      // Tab-switch haptic — subtle confirmation on every nav tap (only
+      // fires on native iOS/Android; web no-op via safe wrapper).
+      hapticLight();
       // If we're inside this tab's stack but not on its root, pop back to root.
       if (!isGuest && inStack && location.pathname !== path) {
         navigate(path);

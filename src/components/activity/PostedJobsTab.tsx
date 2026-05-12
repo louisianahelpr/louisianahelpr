@@ -416,13 +416,46 @@ export const PostedJobsTab = ({
                 {/* Actions */}
                 <div className="border-t border-border/30 bg-muted/8 px-4 py-3">
                   <div className="space-y-2">
-                    {job.status === "open" && (
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onBoost(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
-                        <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                        <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
-                      </div>
-                    )}
+                    {job.status === "open" && (() => {
+                      // Boost cooldown — show when the job is currently
+                      // boosted so the poster knows the boost is running
+                      // and when they can re-boost (after expiry).
+                      const boostExp = (job as any).boost_expires_at
+                        ? new Date((job as any).boost_expires_at)
+                        : null;
+                      const isBoosted = boostExp && boostExp > new Date();
+                      return (
+                      <>
+                        {isBoosted && (
+                          <div
+                            className="rounded-ds-md px-3 py-2 mb-2 flex items-center gap-2"
+                            style={{
+                              background: "hsl(var(--gold-warm) / 0.10)",
+                              border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+                            }}
+                          >
+                            <Rocket className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
+                            <p
+                              className="font-serif italic leading-snug"
+                              style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                            >
+                              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                                Boosted until {boostExp.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}.
+                              </span>{" "}
+                              Re-boost available after expiry.
+                            </p>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" disabled={!!isBoosted} onClick={() => onBoost(job.id)}>
+                            <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
+                          </Button>
+                          <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                          <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                        </div>
+                      </>
+                      );
+                    })()}
                     {job.status === "accepted" && (
                       <div className="space-y-2">
                         <p className="text-ds-11 text-muted-foreground text-center">
@@ -720,20 +753,115 @@ export const PostedJobsTab = ({
               </div>
             ) : (
               <div className="space-y-3 max-w-lg mx-auto">
-                {applications.map((app) => (
+                {applications.map((app) => {
+                  const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
+                  const isElite = helperTier === "elite";
+                  const isPro = helperTier === "pro";
+                  const haloColor = isElite
+                    ? "hsl(var(--gold-warm))"
+                    : isPro
+                      ? "hsl(var(--burnt-sienna))"
+                      : null;
+                  const helperName = formatName(app.profiles?.full_name, "Helpr");
+                  const helperInitials = helperName
+                    .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+                  return (
                   <div key={app.id} className="p-4 rounded-ds-md liquid-glass space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Avatar with Pro/Elite halo ring — gold for Elite,
+                          sienna for Pro, no ring for free helpers. Makes
+                          subscribed applicants pop in the poster's review. */}
+                      <a
+                        href={`/user/${app.helper_id}`}
+                        className="shrink-0 w-11 h-11 rounded-full overflow-hidden inline-flex items-center justify-center"
+                        style={{
+                          background: "hsl(var(--bark) / 0.12)",
+                          boxShadow: haloColor
+                            ? `0 0 0 2.5px ${haloColor}`
+                            : "0 0 0 1px hsl(var(--olivewood) / 0.18)",
+                        }}
+                      >
+                        {app.profiles?.avatar_url ? (
+                          <img
+                            loading="lazy"
+                            decoding="async"
+                            src={app.profiles.avatar_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="font-display italic font-bold text-[0.85rem]" style={{ color: "hsl(var(--bark))" }}>
+                            {helperInitials}
+                          </span>
+                        )}
+                      </a>
                       <div className="flex-1 min-w-0">
-                        <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{formatName(app.profiles?.full_name, "Helpr")}</a>
-                        {app.profiles?.skills && <p className="text-ds-11 text-muted-foreground mt-0.5">{app.profiles.skills}</p>}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <a
+                            href={`/user/${app.helper_id}`}
+                            className="font-display italic font-bold truncate hover:underline"
+                            style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                          >
+                            {helperName}
+                          </a>
+                          {isElite && (
+                            <span
+                              className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                              style={{
+                                background: "hsl(var(--gold-warm) / 0.14)",
+                                color: "hsl(var(--gold-warm))",
+                                letterSpacing: "0.08em",
+                              }}
+                            >
+                              Elite
+                            </span>
+                          )}
+                          {isPro && (
+                            <span
+                              className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                              style={{
+                                background: "hsl(var(--burnt-sienna) / 0.12)",
+                                color: "hsl(var(--burnt-sienna))",
+                                letterSpacing: "0.08em",
+                              }}
+                            >
+                              Pro
+                            </span>
+                          )}
+                        </div>
+                        {app.profiles?.skills && (
+                          <p className="font-serif italic mt-0.5 line-clamp-1" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+                            {app.profiles.skills}
+                          </p>
+                        )}
                         {app.reviewCount !== undefined && app.reviewCount > 0 && (
                           <div className="flex items-center gap-1 mt-1">
-                            <Star className="w-3 h-3 fill-accent text-accent" />
-                            <span className="text-ds-11 text-muted-foreground">{app.avgRating?.toFixed(1)} ({app.reviewCount} reviews)</span>
+                            <Star className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
+                            <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                              {app.avgRating?.toFixed(1)} ({app.reviewCount} review{app.reviewCount === 1 ? "" : "s"})
+                            </span>
                           </div>
                         )}
                       </div>
-                      {app.status === "pending" && <Button size="sm" onClick={() => onAcceptApplication(app)}>Select</Button>}
+                      {app.status === "pending" && (
+                        <Button
+                          size="sm"
+                          className="rounded-ds-md shrink-0"
+                          onClick={() => onAcceptApplication(app)}
+                          style={{
+                            background: "hsl(var(--bark))",
+                            backgroundImage: "none",
+                            border: "1px solid hsl(var(--bark))",
+                            color: "hsl(var(--parchment))",
+                            fontFamily: "Montserrat, system-ui, sans-serif",
+                            fontWeight: 600,
+                            letterSpacing: "0.01em",
+                            boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -4px hsl(var(--bark) / 0.32)",
+                          }}
+                        >
+                          Select
+                        </Button>
+                      )}
                       {app.status === "accepted" && <span className="text-ds-11 px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
                       {app.status === "rejected" && <span className="text-ds-11 px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
                     </div>
@@ -766,7 +894,8 @@ export const PostedJobsTab = ({
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

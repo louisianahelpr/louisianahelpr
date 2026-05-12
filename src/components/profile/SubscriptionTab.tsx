@@ -33,7 +33,7 @@ const tierConfig: Array<{
     annual: "$50/yr",
     oneTime: "$5 one-time",
     annualSave: "Save 17%",
-    features: ["Helpr Badge", "Search Priority", "5-min Early Access"],
+    features: ["Helpr Badge", "Instant Payouts", "Search Priority", "5-min Early Access"],
   },
   {
     id: "pro",
@@ -44,7 +44,7 @@ const tierConfig: Array<{
     annual: "$100/yr",
     oneTime: "$10 one-time",
     annualSave: "Save 17%",
-    features: ["Everything in Basic", "Boosted Visibility", "Portfolio Showcase", "10-min Early Access"],
+    features: ["Everything in Basic", "Instant Payouts", "Portfolio Showcase", "10-min Early Access"],
   },
   {
     id: "elite",
@@ -55,7 +55,7 @@ const tierConfig: Array<{
     annual: "$150/yr",
     oneTime: "$15 one-time",
     annualSave: "Save 17%",
-    features: ["Everything in Pro", "Landing Spotlight", "Auto-Match", "20-min Early Access"],
+    features: ["Everything in Pro", "Free Job Boosts", "Landing Spotlight", "Auto-Match", "20-min Early Access"],
   },
 ];
 
@@ -282,6 +282,29 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
 
       {/* Manage row used to live here — now consolidated into the
           "Your plan" hero above when actively subscribed. */}
+
+      {/* Lock-in rate pill — only shown when annual is the chosen cycle.
+          Concrete commitment hook: "lock in current pricing for a year". */}
+      {billingInterval === "annual" && (
+        <div
+          className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+          style={{
+            background: "hsl(var(--gold-warm) / 0.10)",
+            border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+          }}
+        >
+          <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
+          <p
+            className="font-serif italic leading-snug"
+            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+              Lock in {new Date().getFullYear()} pricing.
+            </span>{" "}
+            Annual rates are guaranteed for the full year, no matter what we change later.
+          </p>
+        </div>
+      )}
 
       {/* Tier cards — single-row compact layout so all 3 tiers fit in
           one iPhone viewport without scrolling, for every billing cycle.

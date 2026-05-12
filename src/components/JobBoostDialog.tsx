@@ -11,21 +11,20 @@ interface JobBoostDialogProps {
   jobId: string;
   open: boolean;
   onClose: () => void;
-  onBoosted: () => void;
+  onBoosted?: () => void;
 }
 
-export function JobBoostDialog({ jobId, open, onClose }: JobBoostDialogProps) {
+export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDialogProps) {
   const [boosting, setBoosting] = useState(false);
   const { profile } = useCurrentUser();
-  // Pro / Elite tier perk: posters with an active subscription get
-  // boosted visibility surfaced as a "you have this already" callout
-  // instead of the $3 paywall. Their post still flips the boost flags
-  // via the server (no checkout redirect) — we'll wire that in once
-  // the create-boost-payment edge function knows to skip charging.
+  // Elite-only perk: Boost is a top-tier subscriber benefit so the
+  // upsell ladder reads Basic → Pro → Elite (each tier unlocks
+  // something specific). Pro / Basic posters see the $3 paywall with
+  // an upgrade nudge; Elite sees "Free boost." instead.
   const subTier = (profile?.subscription_tier ?? "free") as string;
   const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
   const subActive = subExp ? subExp > new Date() : false;
-  const isSubscriber = subActive && (subTier === "pro" || subTier === "elite");
+  const isSubscriber = subActive && subTier === "elite";
 
   const handleBoost = async () => {
     setBoosting(true);
@@ -35,6 +34,14 @@ export function JobBoostDialog({ jobId, open, onClose }: JobBoostDialogProps) {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      // Elite perk path — server flipped the boost flags directly and
+      // returned `free: true`. No Stripe redirect needed.
+      if (data?.free) {
+        toast.success(data.message || "Job boosted — included with Elite");
+        onBoosted?.();
+        onClose();
+        return;
+      }
       if (!data?.url) throw new Error("No checkout URL returned");
       // Redirect to Stripe Checkout. The webhook will flip the boost flags
       // on the job once payment captures, so we don't update the DB here.
@@ -92,7 +99,7 @@ export function JobBoostDialog({ jobId, open, onClose }: JobBoostDialogProps) {
                   className="font-serif italic uppercase inline-flex items-center gap-1.5"
                   style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
                 >
-                  <Sparkles className="w-3 h-3" /> Included with {subTier === "elite" ? "Elite" : "Pro"}
+                  <Sparkles className="w-3 h-3" /> Included with Elite
                 </span>
                 <p
                   className="font-display italic font-bold leading-none mt-2"
@@ -125,9 +132,9 @@ export function JobBoostDialog({ jobId, open, onClose }: JobBoostDialogProps) {
                   to="/profile?tab=subscription"
                   onClick={onClose}
                   className="inline-flex items-center gap-1 mt-2 text-[0.72rem] font-sans font-semibold active:opacity-70"
-                  style={{ color: "hsl(var(--bark))" }}
+                  style={{ color: "hsl(var(--gold-warm))" }}
                 >
-                  <Sparkles className="w-3 h-3" /> Free with Pro · See plans
+                  <Sparkles className="w-3 h-3" /> Free with Elite · See plans
                 </Link>
               </>
             )}

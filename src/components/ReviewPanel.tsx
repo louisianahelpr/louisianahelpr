@@ -9,6 +9,7 @@ import ReportDialog from "@/components/ReportDialog";
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
 import { maybeCelebrate } from "@/lib/celebrate";
 import { track, AhaEvent } from "@/lib/analytics";
+import { TipDialog } from "@/components/TipDialog";
 
 interface ReviewFormProps {
   open: boolean;
@@ -89,6 +90,11 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
   });
   const [feedback, setFeedback] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // When a poster leaves a 5-star review, surface a tip prompt before
+  // closing the form. Tighter than the separate Tip flow — caught at
+  // the moment of peak satisfaction.
+  const [tipPromptOpen, setTipPromptOpen] = useState(false);
+  const [tipDialogOpen, setTipDialogOpen] = useState(false);
 
   const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
 
@@ -139,6 +145,11 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
         track(AhaEvent.FirstReviewLeft, { jobId, rating: 5 });
         // Fire-and-forget — internally rate-limited to once per 90 days.
         void maybeRequestInAppReview();
+        // 5-star moment — show the tip prompt instead of closing
+        // immediately so the poster can tip while still satisfied.
+        setTipPromptOpen(true);
+        setSubmitting(false);
+        return;
       }
       onClose();
     }
@@ -243,6 +254,62 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Tip prompt — only opens after a 5-star review. Tighter than
+          waiting for the separate tip flow on Activity. */}
+      <Dialog open={tipPromptOpen} onOpenChange={(o) => { if (!o) { setTipPromptOpen(false); onClose(); } }}>
+        <DialogContent className="!gap-3 sm:max-w-sm">
+          <DialogHeader className="!text-left space-y-0">
+            <span
+              className="font-serif italic uppercase"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
+            >
+              Five stars — nice
+            </span>
+            <DialogTitle
+              className="font-display italic font-bold leading-tight mt-1"
+              style={{ fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.5rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+            >
+              Send {revieweeName} a tip?
+            </DialogTitle>
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+              Goes straight to the helpr — no platform cut. Most posters tip 10–15% for great work.
+            </p>
+          </DialogHeader>
+          <DialogFooter className="!gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => { setTipPromptOpen(false); onClose(); }}
+              className="rounded-ds-md"
+            >
+              No thanks
+            </Button>
+            <Button
+              onClick={() => { setTipPromptOpen(false); setTipDialogOpen(true); }}
+              className="rounded-ds-md"
+              style={{
+                background: "hsl(var(--bark))",
+                backgroundImage: "none",
+                border: "1px solid hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                letterSpacing: "0.01em",
+                boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+              }}
+            >
+              Send a tip
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <TipDialog
+        open={tipDialogOpen}
+        onClose={() => { setTipDialogOpen(false); onClose(); }}
+        jobId={jobId}
+        helperName={revieweeName}
+      />
     </Dialog>
   );
 };

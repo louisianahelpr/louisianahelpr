@@ -136,22 +136,35 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-destructive" /> Dispute Job
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="!gap-3">
+        <DialogHeader className="!text-left space-y-0">
+          <span
+            className="font-serif italic uppercase inline-flex items-center gap-1.5"
+            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+          >
+            <AlertTriangle className="w-3 h-3" /> Last resort
+          </span>
+          <DialogTitle
+            className="font-display italic font-bold leading-tight mt-1"
+            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+          >
+            File a dispute.
           </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <p className="text-ds-11 text-muted-foreground">
-            You've already requested a revision. If the issue still isn't resolved, filing a dispute will put the payment on hold for <strong>72 hours</strong> while you and the helpr try to work it out.
+          <p
+            className="font-serif italic mt-1"
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}
+          >
+            You've already requested a revision. Filing a dispute holds payment for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours</strong> while an admin reviews.
           </p>
-
-          <div className="space-y-2">
-            <Label>Reason</Label>
+        </DialogHeader>
+        <div className="space-y-3.5">
+          <div className="space-y-1.5">
+            <Label className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Reason
+            </Label>
             <Select value={reason} onValueChange={setReason}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a reason..." />
+              <SelectTrigger className="rounded-ds-md bg-white/60 border-border/60 focus:border-primary/40">
+                <SelectValue placeholder="Pick the closest fit…" />
               </SelectTrigger>
               <SelectContent>
                 {DISPUTE_REASONS.map((r) => (
@@ -161,53 +174,97 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Details (optional)</Label>
+          <div className="space-y-1.5">
+            <Label className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              What happened?
+            </Label>
             <Textarea
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              placeholder="Describe what happened..."
+              placeholder="The more specific you are, the faster admin can help…"
               rows={3}
               maxLength={1000}
+              className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Photo evidence (optional, up to 5)</Label>
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-1.5">
+            <Label className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Photo evidence — up to 5
+            </Label>
+            <div className="flex flex-wrap gap-1.5">
               {evidenceFiles.map((file, i) => (
-                <div key={i} className="flex items-center gap-1 text-ds-11 bg-secondary px-2 py-1 rounded-md">
-                  <span className="truncate max-w-[120px]">{file.name}</span>
-                  <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive">
+                <div
+                  key={i}
+                  className="flex items-center gap-1 text-[0.7rem] px-2 py-1 rounded-full"
+                  style={{
+                    background: "hsl(var(--bark) / 0.10)",
+                    color: "hsl(var(--bark))",
+                    border: "0.5px solid hsl(var(--bark) / 0.22)",
+                  }}
+                >
+                  <span className="truncate max-w-[120px] font-sans font-medium">{file.name}</span>
+                  <button onClick={() => removeFile(i)} className="active:opacity-70" style={{ color: "hsl(var(--burnt-sienna))" }}>
                     <X className="w-3 h-3" />
                   </button>
                 </div>
               ))}
             </div>
             {evidenceFiles.length < 5 && (
-              <label className="inline-flex items-center gap-1.5 text-ds-13 text-primary cursor-pointer hover:underline">
-                <Upload className="w-4 h-4" /> Add photos
+              <label
+                className="inline-flex items-center gap-1.5 text-[0.78rem] font-sans font-semibold cursor-pointer active:opacity-70"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                <Upload className="w-3.5 h-3.5" strokeWidth={2.25} /> {evidenceFiles.length === 0 ? "Add photos" : "Add more"}
                 <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
               </label>
             )}
           </div>
 
-          <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-            <p className="text-ds-11 text-destructive font-medium">⚠️ Strict 72-Hour Dispute Policy:</p>
-            <ul className="text-ds-11 text-muted-foreground mt-1 space-y-0.5 list-disc pl-4">
-              <li>Payment is held for <strong>72 hours only</strong> while admin reviews</li>
-              <li><strong>If not resolved within 72 hours, payment is automatically released to the helpr</strong></li>
-              <li>You must provide evidence (photos, messages) to support your claim</li>
-              <li>False or frivolous disputes may result in account warnings or suspension</li>
-              <li>3+ disputes in 30 days will flag your account for review</li>
-              <li>Both parties will be notified of the outcome</li>
+          <div
+            className="rounded-ds-md p-3"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.08)",
+              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+              boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+            }}
+          >
+            <p
+              className="font-serif italic uppercase"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            >
+              The fine print
+            </p>
+            <ul
+              className="font-serif italic mt-1.5 space-y-0.5 list-disc pl-4 leading-snug"
+              style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              <li>Payment is held for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours only</strong> while admin reviews.</li>
+              <li>If unresolved in 72 hours, payment auto-releases to the helpr.</li>
+              <li>Evidence (photos, messages) makes your case stronger.</li>
+              <li>False or frivolous disputes can lead to warnings or suspension.</li>
+              <li>3+ disputes in 30 days flags your account for review.</li>
             </ul>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="destructive" onClick={handleSubmit} disabled={submitting || !reason}>
-            {submitting ? "Submitting…" : "Submit Dispute"}
+        <DialogFooter className="!gap-2">
+          <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting || !reason}
+            className="rounded-ds-md"
+            style={{
+              background: reason ? "hsl(var(--burnt-sienna))" : undefined,
+              backgroundImage: "none",
+              border: reason ? "1px solid hsl(var(--burnt-sienna))" : undefined,
+              color: reason ? "hsl(var(--parchment))" : undefined,
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow: reason ? "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)" : undefined,
+            }}
+          >
+            {submitting ? "Submitting…" : "Submit dispute"}
           </Button>
         </DialogFooter>
       </DialogContent>

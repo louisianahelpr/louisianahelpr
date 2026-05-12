@@ -480,15 +480,42 @@ export const AppliedJobsTab = ({
 
             {/* === ACTION SECTIONS === */}
 
-            {/* Offered: accept/decline */}
+            {/* Offered: accept/decline — celebratory framing since this
+                is a poster reaching out directly. Gold-warm accent
+                surfaces the "you were picked" moment without shouting. */}
             {isOffered && (
-              <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="px-4 py-3 space-y-2.5"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  borderTop: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+                  background:
+                    "radial-gradient(80% 100% at 50% 0%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%)",
+                }}
+              >
+                <p
+                  className="font-serif italic uppercase inline-flex items-center gap-1.5"
+                  style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
+                >
+                  <ThumbsUp className="w-3 h-3" /> You were picked
+                </p>
                 {(app as any).offer_message && (
-                  <div className="text-ds-13 bg-primary/5 border border-primary/15 rounded-lg p-3">
-                    <p className="text-ds-11 font-medium text-primary mb-1 flex items-center gap-1">
+                  <div
+                    className="rounded-ds-md p-3"
+                    style={{
+                      background: "hsla(0, 0%, 100%, 0.65)",
+                      border: "0.5px solid hsl(var(--olivewood) / 0.12)",
+                    }}
+                  >
+                    <p
+                      className="font-serif italic uppercase mb-1 inline-flex items-center gap-1"
+                      style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                    >
                       <MessageSquare className="w-3 h-3" /> Message from poster
                     </p>
-                    <p className="text-foreground">{(app as any).offer_message}</p>
+                    <p className="font-serif italic leading-relaxed" style={{ fontSize: "0.88rem", color: "hsl(var(--ink-deep))" }}>
+                      "{(app as any).offer_message}"
+                    </p>
                   </div>
                 )}
                 {/* Job countdown */}
@@ -500,9 +527,36 @@ export const AppliedJobsTab = ({
                     consequenceText="Accept or decline before the deadline"
                   />
                 )}
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onHelperResponse(app, false)}><ThumbsDown className="w-4 h-4 mr-1" /> Decline</Button>
-                  <Button size="sm" className="flex-1" onClick={() => onHelperResponse(app, true)}><ThumbsUp className="w-4 h-4 mr-1" /> Accept Job</Button>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 rounded-ds-md"
+                    onClick={() => onHelperResponse(app, false)}
+                    style={{
+                      color: "hsl(var(--burnt-sienna))",
+                      borderColor: "hsl(var(--burnt-sienna) / 0.30)",
+                    }}
+                  >
+                    <ThumbsDown className="w-4 h-4 mr-1" /> Decline
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 rounded-ds-md"
+                    onClick={() => onHelperResponse(app, true)}
+                    style={{
+                      background: "hsl(var(--bark))",
+                      backgroundImage: "none",
+                      border: "1px solid hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      fontFamily: "Montserrat, system-ui, sans-serif",
+                      fontWeight: 600,
+                      letterSpacing: "0.01em",
+                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                    }}
+                  >
+                    <ThumbsUp className="w-4 h-4 mr-1" /> Accept job
+                  </Button>
                 </div>
               </div>
             )}

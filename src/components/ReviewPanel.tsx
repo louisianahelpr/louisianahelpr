@@ -39,10 +39,20 @@ const StarRow = ({
 }) => {
   const [hover, setHover] = useState(0);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg liquid-glass p-3">
+    <div className="flex items-center justify-between gap-3 rounded-2xl liquid-glass p-3.5">
       <div className="flex-1 min-w-0">
-        <p className="text-ds-13 font-semibold text-foreground">{label}</p>
-        <p className="text-ds-11 text-muted-foreground">{sublabel}</p>
+        <p
+          className="font-display italic font-bold leading-tight"
+          style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+        >
+          {label}
+        </p>
+        <p
+          className="font-serif italic mt-0.5"
+          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}
+        >
+          {sublabel}
+        </p>
       </div>
       <div className="flex gap-0.5 shrink-0">
         {[1, 2, 3, 4, 5].map((s) => (
@@ -52,13 +62,15 @@ const StarRow = ({
             onClick={() => onChange(s)}
             onMouseEnter={() => setHover(s)}
             onMouseLeave={() => setHover(0)}
-            className="p-0.5"
+            className="p-0.5 active:scale-90 transition-transform"
             aria-label={`${label} ${s} star${s > 1 ? "s" : ""}`}
           >
             <Star
-              className={`w-6 h-6 transition-colors ${
-                s <= (hover || value) ? "fill-accent text-accent" : "text-muted-foreground/30"
-              }`}
+              className="w-6 h-6 transition-colors"
+              style={{
+                color: s <= (hover || value) ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
+                fill: s <= (hover || value) ? "hsl(var(--burnt-sienna))" : "transparent",
+              }}
             />
           </button>
         ))}
@@ -131,9 +143,26 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display">Review {revieweeName}</DialogTitle>
+      <DialogContent className="max-h-[90vh] overflow-y-auto !gap-3">
+        <DialogHeader className="!text-left space-y-0">
+          <span
+            className="font-serif italic uppercase"
+            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          >
+            Your turn
+          </span>
+          <DialogTitle
+            className="font-display italic font-bold leading-tight mt-1"
+            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+          >
+            Rate {revieweeName}.
+          </DialogTitle>
+          <p
+            className="font-serif italic mt-1"
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            Reviews are how other neighbors decide who to trust.
+          </p>
         </DialogHeader>
         <div className="space-y-3">
           {CATEGORY_ROWS.map((row) => (
@@ -145,33 +174,67 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               sublabel={row.sublabel}
             />
           ))}
-          <div className="flex flex-wrap gap-2 pt-1">
-            {quickOptions.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => toggleQuickOption(opt)}
-                className={`text-ds-11 px-3 py-1.5 rounded-full border transition-colors ${
-                  feedback.includes(opt)
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
+          <p
+            className="font-serif italic uppercase pt-1"
+            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          >
+            Tap any that fit
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {quickOptions.map((opt) => {
+              const selected = feedback.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => toggleQuickOption(opt)}
+                  className="text-[0.72rem] font-sans font-semibold px-3 py-1.5 rounded-full transition-all active:scale-[0.97]"
+                  style={
+                    selected
+                      ? {
+                          background: "hsl(var(--bark))",
+                          color: "hsl(var(--parchment))",
+                          border: "0.5px solid hsl(var(--bark))",
+                          boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                        }
+                      : {
+                          background: "hsla(0, 0%, 100%, 0.55)",
+                          color: "hsl(var(--ink-deep))",
+                          border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                        }
+                  }
+                >
+                  {opt}
+                </button>
+              );
+            })}
           </div>
           <Textarea
             aria-label="Review comment (optional)"
             placeholder="Add a comment (optional)…"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
-            rows={2}
+            rows={3}
+            className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
           />
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || !allRated}>
+        <DialogFooter className="!gap-2">
+          <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting || !allRated}
+            className="rounded-ds-md"
+            style={{
+              background: allRated ? "hsl(var(--bark))" : undefined,
+              backgroundImage: "none",
+              border: allRated ? "1px solid hsl(var(--bark))" : undefined,
+              color: allRated ? "hsl(var(--parchment))" : undefined,
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow: allRated ? "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)" : undefined,
+            }}
+          >
             {submitting ? "Submitting…" : "Submit review"}
           </Button>
         </DialogFooter>

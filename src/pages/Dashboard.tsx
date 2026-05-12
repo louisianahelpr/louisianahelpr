@@ -428,10 +428,18 @@ const Dashboard = () => {
                 color: "hsl(var(--olivewood) / 0.55)",
               }}
             >
-              {new Date().toLocaleDateString("en-US", { weekday: "long" })}
-              {" · "}
-              {filters.filteredJobs.length} {filters.filteredJobs.length === 1 ? "job" : "jobs"} nearby
-              {recommendedJobs.length > 0 && ` · ${recommendedJobs.length} picked for you`}
+              {/* Full date so the eyebrow is informative even when no jobs
+                  are nearby (avoids triple "0 jobs" redundancy across the
+                  greeting eyebrow, Browse-Tasks header, and empty-state
+                  card on quiet days). Job count only appears when > 0. */}
+              {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              {filters.filteredJobs.length > 0 && (
+                <>
+                  {" · "}
+                  {filters.filteredJobs.length} {filters.filteredJobs.length === 1 ? "job" : "jobs"} nearby
+                  {recommendedJobs.length > 0 && ` · ${recommendedJobs.length} picked for you`}
+                </>
+              )}
             </p>
           </motion.div>
 
@@ -477,61 +485,80 @@ const Dashboard = () => {
                 >
                   {filters.hasFilters ? "Filtered Results" : "Browse Tasks"}
                 </h2>
-                <span
-                  className="font-serif italic mt-0.5 text-[0.72rem]"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                >
-                  {filters.filteredJobs.length}{" "}
-                  {filters.filteredJobs.length === 1 ? "job" : "jobs"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                {filters.hasFilters && (
-                  <Button variant="ghost" size="sm" onClick={filters.clearFilters} className="text-ds-11 text-muted-foreground hover:text-destructive h-8 rounded-ds-md btn-press">
-                    <X className="w-3 h-3 mr-1" /> Clear
-                  </Button>
+                {/* Subtitle hidden when 0 jobs — the empty-state card
+                    below already says "Nothing nearby just yet" in a much
+                    more prominent way. Showing "0 jobs" here too is
+                    redundant noise. */}
+                {filters.filteredJobs.length > 0 && (
+                  <span
+                    className="font-serif italic mt-0.5 text-ds-11"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    {filters.filteredJobs.length}{" "}
+                    {filters.filteredJobs.length === 1 ? "job" : "jobs"}
+                  </span>
                 )}
-                {user && (
-                  <SavedSearches
-                    userId={user.id}
-                    currentFilters={{
-                      selectedCategory: filters.selectedCategory,
-                      maxBudget: filters.maxBudget,
-                      locationFilter: filters.locationFilter,
-                    }}
-                    onApplySearch={(s) => {
-                      filters.setSelectedCategory(s.category);
-                      filters.setMaxBudget(s.max_budget ? String(s.max_budget) : "");
-                      filters.setLocationFilter(s.location_keyword || "");
-                    }}
-                  />
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
-                  className={`h-8 w-8 rounded-ds-md btn-press ${filters.searchOpen || filters.searchQuery ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                  aria-label="Search jobs"
-                  aria-expanded={filters.searchOpen}
-                >
-                  <Search className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
-                  className={`h-8 w-8 rounded-ds-md btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                  aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
-                  aria-expanded={filters.filtersOpen}
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                  {filters.activeFilterCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
-                      {filters.activeFilterCount}
-                    </span>
-                  )}
-                </Button>
               </div>
+              {(() => {
+                // When there are zero open jobs AND no active filters, the
+                // toolbar (saved-searches / search / filters) has nothing
+                // useful to do. Dim it (opacity 50%, no pointer events) so
+                // the eye doesn't get pulled to dead controls on an empty
+                // screen. Still rendered for layout continuity.
+                const isEmptyAndUnfiltered = filters.filteredJobs.length === 0 && !filters.hasFilters;
+                return (
+                  <div
+                    className={`flex items-center gap-1 transition-opacity ${isEmptyAndUnfiltered ? "opacity-40 pointer-events-none" : ""}`}
+                    aria-hidden={isEmptyAndUnfiltered ? "true" : undefined}
+                  >
+                    {filters.hasFilters && (
+                      <Button variant="ghost" size="sm" onClick={filters.clearFilters} className="text-ds-11 text-muted-foreground hover:text-destructive h-8 rounded-ds-md btn-press">
+                        <X className="w-3 h-3 mr-1" /> Clear
+                      </Button>
+                    )}
+                    {user && (
+                      <SavedSearches
+                        userId={user.id}
+                        currentFilters={{
+                          selectedCategory: filters.selectedCategory,
+                          maxBudget: filters.maxBudget,
+                          locationFilter: filters.locationFilter,
+                        }}
+                        onApplySearch={(s) => {
+                          filters.setSelectedCategory(s.category);
+                          filters.setMaxBudget(s.max_budget ? String(s.max_budget) : "");
+                          filters.setLocationFilter(s.location_keyword || "");
+                        }}
+                      />
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
+                      className={`h-8 w-8 rounded-ds-md btn-press ${filters.searchOpen || filters.searchQuery ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                      aria-label="Search jobs"
+                      aria-expanded={filters.searchOpen}
+                    >
+                      <Search className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
+                      className={`h-8 w-8 rounded-ds-md btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                      aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
+                      aria-expanded={filters.filtersOpen}
+                    >
+                      <SlidersHorizontal className="w-4 h-4" />
+                      {filters.activeFilterCount > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
+                          {filters.activeFilterCount}
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Expandable search bar */}
@@ -632,30 +659,31 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* List ⇄ Map toggle. Same pattern as guest /browse but
-                wired to apply directly via handleApplyRequest, no
-                signup redirect. Lives outside the elevated content box
-                so the toggle reads as a peer of the box. */}
-            <div className="px-3 pt-3 pb-1">
-              <div className="flex gap-1 p-1 bg-muted/40 rounded-ds-md border border-border w-full max-w-xs mx-auto">
-                <button
-                  onClick={() => setView("list")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-ds-11 font-medium transition-colors ${
-                    view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <List className="w-3.5 h-3.5" /> List
-                </button>
-                <button
-                  onClick={() => setView("map")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-ds-11 font-medium transition-colors ${
-                    view === "map" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <MapIcon className="w-3.5 h-3.5" /> Map
-                </button>
+            {/* List ⇄ Map toggle — hidden when 0 jobs because the map
+                would show an empty Louisiana with no pins, making the
+                toggle a UI-noise tax. Re-appears the moment jobs land. */}
+            {filters.filteredJobs.length > 0 && (
+              <div className="px-3 pt-3 pb-1">
+                <div className="flex gap-1 p-1 bg-muted/40 rounded-ds-md border border-border w-full max-w-xs mx-auto">
+                  <button
+                    onClick={() => setView("list")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-ds-11 font-medium transition-colors ${
+                      view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <List className="w-3.5 h-3.5" /> List
+                  </button>
+                  <button
+                    onClick={() => setView("map")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-ds-11 font-medium transition-colors ${
+                      view === "map" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <MapIcon className="w-3.5 h-3.5" /> Map
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {view === "map" && (
               <div className="px-3 pt-2 pb-3">
@@ -695,19 +723,20 @@ const Dashboard = () => {
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
             <div className="px-4 pt-4 flex-1 min-h-0 flex">
-              {/* Empty-state white card — extends to the bottom of the
-                  screen, top corners rounded, bottom corners flat to merge
-                  with the dock. Same pattern as Posts/Jobs/Messages. */}
+              {/* Empty-state liquid-glass card — replaces the previous
+                  flat-white card so the empty state visually belongs with
+                  the warm parchment surface above. Top corners rounded,
+                  bottom flat to merge with the dock. */}
               <div
-                className="flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
+                className="liquid-glass flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
                 style={{
-                  backgroundColor: "hsl(0, 0%, 100%)",
-                  borderLeft: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                  borderRight: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                  borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                  borderBottomLeftRadius: 0,
+                  borderBottomRightRadius: 0,
+                  borderBottom: "none",
                   boxShadow:
-                    "0 1px 2px hsl(var(--olivewood) / 0.04), " +
-                    "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                    "0 14px 30px -8px hsl(var(--olivewood) / 0.14)",
                   paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
                 }}
               >
@@ -731,7 +760,7 @@ const Dashboard = () => {
                   </div>
                   <div className="space-y-1.5">
                     <span className="text-display-eyebrow">
-                      {filters.hasFilters ? "No matches" : "Quiet right now"}
+                      {filters.hasFilters ? "No matches" : "All quiet — for now"}
                     </span>
                     <p
                       className="font-display italic font-bold leading-tight"
@@ -741,7 +770,7 @@ const Dashboard = () => {
                         letterSpacing: "-0.02em",
                       }}
                     >
-                      {filters.hasFilters ? "No jobs match your filters." : "Nothing nearby just yet."}
+                      {filters.hasFilters ? "No jobs match your filters." : "Nothing today, neighbor."}
                     </p>
                     <p
                       className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
@@ -751,7 +780,19 @@ const Dashboard = () => {
                         ? filters.boostedOnly
                           ? "No boosted jobs right now — try clearing the filter to see all open work."
                           : "Try widening your parish, raising your budget, or clearing a filter."
-                        : "New jobs are posted every day across Louisiana. Check back soon."}
+                        : (() => {
+                            // Rotating friendly tip — picks one of 4 every
+                            // hour so the empty state feels alive on repeat
+                            // visits instead of static. Deterministic per
+                            // hour keeps it from flickering on every render.
+                            const tips = [
+                              "New jobs post throughout the day. Helprs often check in around lunch and after work.",
+                              "Most posts go up on weekday evenings. Pull down to refresh anytime.",
+                              "Saved a search? Helpr will ping you the moment a matching job hits the board.",
+                              "Quiet days happen. The neighborhood circles back — usually before sundown.",
+                            ];
+                            return tips[new Date().getHours() % tips.length];
+                          })()}
                     </p>
                   </div>
                   {filters.hasFilters ? (
@@ -761,44 +802,36 @@ const Dashboard = () => {
                   ) : (
                     <button
                       onClick={() => navigate("/post-job")}
-                      className="group relative inline-flex items-center gap-2.5 px-6 h-12 rounded-full overflow-hidden transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.96] z-10"
+                      className="group relative inline-flex items-center gap-2.5 px-6 h-12 rounded-full overflow-hidden transition-transform duration-200 active:scale-[0.96]"
                       style={{
-                        // Mesh gradient — radial highlight at upper-left
-                        // gives the button volume; falls off to a deeper
-                        // Bark at the lower-right edge for depth.
-                        background:
-                          "radial-gradient(120% 120% at 25% 20%, hsl(70 22% 44%) 0%, hsl(70 20% 33%) 55%, hsl(70 22% 24%) 100%)",
+                        // Flat olive bark — matches the MobileNav FAB so the
+                        // CTA reads as a peer of the bottom dock. Previous
+                        // version used a radial gradient that produced a
+                        // visible horizontal "band" at the gradient stop,
+                        // which looked like a hairline strikethrough on
+                        // some iOS rendering paths. Flat solid bark + soft
+                        // halo eliminates the band entirely.
+                        background: "hsl(var(--bark))",
                         color: "hsl(var(--parchment))",
-                        border: "1px solid hsl(70 20% 33%)",
+                        border: "1px solid hsl(70 22% 24%)",
                         fontFamily: "Montserrat, system-ui, sans-serif",
                         fontWeight: 600,
                         letterSpacing: "0.01em",
                         boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.35), " +
-                          "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.15), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.1), " +
-                          "0 10px 26px -6px hsl(var(--bark) / 0.55), " +
-                          "0 22px 44px -10px hsl(var(--bark) / 0.4)",
+                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
+                          "0 1px 2px hsl(70 20% 18% / 0.22), " +
+                          "0 8px 18px -6px hsl(var(--bark) / 0.55), " +
+                          "0 18px 36px -12px hsl(var(--bark) / 0.4)",
                       }}
                     >
-                      {/* Soft sweep — single restrained shimmer crosses
-                          the button on hover. */}
-                      <span
-                        aria-hidden
-                        className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[900ms] ease-out pointer-events-none"
-                        style={{
-                          background:
-                            "linear-gradient(90deg, transparent 0%, hsla(0, 0%, 100%, 0.22) 50%, transparent 100%)",
-                        }}
-                      />
                       <Plus
-                        className="w-4 h-4 relative z-10"
+                        className="w-4 h-4"
                         strokeWidth={2.75}
                         style={{ color: "hsl(var(--parchment))" }}
                       />
-                      <span className="relative z-10 text-[0.92rem]">Post the first job</span>
+                      <span className="text-ds-15">Post the first job</span>
                       <ArrowRight
-                        className="w-4 h-4 relative z-10 transition-transform duration-300 group-hover:translate-x-1"
+                        className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
                         strokeWidth={2.5}
                       />
                     </button>
@@ -1060,31 +1093,11 @@ const Dashboard = () => {
       </AlertDialog>
       <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />
 
-      {/* Floating "Post a Request" — mobile-only FAB pinned bottom-right
-          above the MobileNav. Persistent across scroll so the primary
-          action is always one thumb-tap away. iOS users expect this
-          pattern; without it they have to scroll to the top to find
-          a CTA. md:hidden because the desktop dashboard surfaces the
-          CTA in the header. */}
-      <button
-        onClick={() => navigate("/post-job")}
-        className="md:hidden fixed bottom-24 right-4 z-30 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-[0.92] hover:-translate-y-0.5"
-        style={{
-          background:
-            "radial-gradient(120% 120% at 25% 20%, hsl(70 22% 44%) 0%, hsl(70 20% 33%) 55%, hsl(70 22% 24%) 100%)",
-          color: "hsl(var(--parchment))",
-          border: "1px solid hsl(70 20% 33%)",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.35), " +
-            "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.15), " +
-            "0 6px 14px hsl(var(--bark) / 0.45), " +
-            "0 14px 28px -8px hsl(var(--bark) / 0.4)",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        }}
-        aria-label="Post a Request"
-      >
-        <Plus className="w-6 h-6" strokeWidth={2.5} />
-      </button>
+      {/* Floating-FAB removed — MobileNav already renders a Post FAB at the
+          right edge of the bottom dock. Two FABs at the same screen corner
+          was the "stacked plus buttons" bug visible in TestFlight build
+          screenshots. Desktop surfaces the CTA in the header (md:flex)
+          so no desktop replacement is needed. */}
     </div>
     </PullToRefreshWrapper>
   );

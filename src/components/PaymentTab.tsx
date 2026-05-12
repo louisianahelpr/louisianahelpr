@@ -88,6 +88,14 @@ export function PaymentTab({ earningsJobs, totalEarnings }: PaymentTabProps) {
               </p>
             </div>
           </div>
+          {totalSpent === 0 && totalEarnings === 0 && (
+            <p
+              className="font-serif italic mt-3 text-center"
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.65)" }}
+            >
+              No activity yet — post a job or complete one to see totals here.
+            </p>
+          )}
           <div className="mt-4 rounded-ds-md flex items-start gap-2.5 px-3 py-2.5" style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}>
             <CreditCard className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
             <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>

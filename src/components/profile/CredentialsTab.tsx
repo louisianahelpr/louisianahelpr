@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ShieldCheck, Upload, FileText, X, BadgeCheck, Clock, AlertTriangle } from "lucide-react";
+import { ShieldCheck, Upload, FileText, X, BadgeCheck, Clock, AlertTriangle, Lock } from "lucide-react";
 import CredentialBadge from "@/components/CredentialBadge";
 
 interface CredentialFields {
@@ -205,18 +205,39 @@ export function CredentialsTab({ userId }: { userId: string }) {
         </div>
       </div>
 
-      {/* Licensed */}
+      {/* Licensed — eyebrow reflects current state so the user reads
+          their status at a glance even with the toggle collapsed. */}
       <div className="rounded-2xl liquid-glass p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              Document
+            <p
+              className="font-serif italic uppercase"
+              style={{
+                fontSize: "0.6rem",
+                color:
+                  data.license_status === "verified"
+                    ? "hsl(var(--bark))"
+                    : data.license_status === "rejected"
+                      ? "hsl(var(--destructive))"
+                      : "hsl(var(--burnt-sienna) / 0.78)",
+                letterSpacing: "0.18em",
+              }}
+            >
+              {data.license_status === "verified"
+                ? "Verified"
+                : data.license_status === "pending"
+                  ? "Under review"
+                  : data.license_status === "rejected"
+                    ? "Action needed"
+                    : "Optional"}
             </p>
             <Label htmlFor="lic-toggle" className="font-display italic font-bold leading-tight cursor-pointer" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               I am licensed
             </Label>
             <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-              Upload your professional license — required when toggled on.
+              {licensedOn
+                ? "Upload your professional license to earn the verified badge."
+                : "Toggle on if you hold a professional license — upload to verify."}
             </p>
           </div>
           <Switch
@@ -280,18 +301,39 @@ export function CredentialsTab({ userId }: { userId: string }) {
         )}
       </div>
 
-      {/* Insured */}
+      {/* Insured — eyebrow reflects current state so the user reads
+          their status at a glance even with the toggle collapsed. */}
       <div className="rounded-2xl liquid-glass p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              Document
+            <p
+              className="font-serif italic uppercase"
+              style={{
+                fontSize: "0.6rem",
+                color:
+                  data.insurance_status === "verified"
+                    ? "hsl(var(--bark))"
+                    : data.insurance_status === "rejected"
+                      ? "hsl(var(--destructive))"
+                      : "hsl(var(--burnt-sienna) / 0.78)",
+                letterSpacing: "0.18em",
+              }}
+            >
+              {data.insurance_status === "verified"
+                ? "Verified"
+                : data.insurance_status === "pending"
+                  ? "Under review"
+                  : data.insurance_status === "rejected"
+                    ? "Action needed"
+                    : "Optional"}
             </p>
             <Label htmlFor="ins-toggle" className="font-display italic font-bold leading-tight cursor-pointer" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               I am insured
             </Label>
             <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-              Upload your Certificate of Insurance (COI) — required when toggled on.
+              {insuredOn
+                ? "Upload your Certificate of Insurance (COI) to earn the verified badge."
+                : "Toggle on if you carry professional insurance — upload to verify."}
             </p>
           </div>
           <Switch
@@ -355,9 +397,15 @@ export function CredentialsTab({ userId }: { userId: string }) {
         )}
       </div>
 
-      <p className="text-[11px] text-muted-foreground text-center">
-        Documents are reviewed by Helpr admins before badges go live. We never share your documents publicly.
-      </p>
+      <div
+        className="rounded-ds-md flex items-start gap-2.5 px-3 py-2.5"
+        style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}
+      >
+        <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+        <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+          Documents are reviewed by Helpr admins before badges go live. We never share them publicly.
+        </p>
+      </div>
     </div>
   );
 }

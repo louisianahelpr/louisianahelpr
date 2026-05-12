@@ -151,8 +151,21 @@ export function PayoutSetupForm() {
   if (statusLoading) {
     return (
       <div className="space-y-4" aria-busy="true">
-        <div className="h-16 rounded-lg bg-muted/40 animate-pulse" />
-        <div className="h-10 rounded-lg bg-muted/30 animate-pulse" />
+        <div
+          className="h-16 rounded-ds-md animate-pulse"
+          style={{
+            background: "hsla(0, 0%, 100%, 0.45)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.10)",
+            boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+          }}
+        />
+        <div
+          className="h-10 rounded-ds-md animate-pulse"
+          style={{
+            background: "hsla(0, 0%, 100%, 0.35)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.08)",
+          }}
+        />
         {!methodsLoading && methods.length > 0 && (
           <div className="space-y-2">
             {methods.map((m) => (
@@ -191,13 +204,25 @@ export function PayoutSetupForm() {
   return (
     <div className="space-y-4">
       {!status?.connected && (
-        <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-4">
+        <div
+          className="rounded-ds-md p-4"
+          style={{
+            background: "hsl(var(--burnt-sienna) / 0.08)",
+            border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+            boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+          }}
+        >
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
             <div>
-              <p className="text-ds-13 font-medium text-foreground">No payout account connected</p>
-              <p className="text-ds-11 text-muted-foreground mt-1">
-                Set up your payout account through Stripe to receive payments for completed jobs.
+              <p
+                className="font-display italic font-bold leading-tight"
+                style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
+                Connect to start earning
+              </p>
+              <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+                Set up your payout account through Stripe so completed jobs pay out straight to your bank.
               </p>
             </div>
           </div>
@@ -205,13 +230,25 @@ export function PayoutSetupForm() {
       )}
 
       {needsMoreInfo && (
-        <div className="rounded-lg bg-accent/50 border border-accent p-4">
+        <div
+          className="rounded-ds-md p-4"
+          style={{
+            background: "hsl(var(--gold-warm) / 0.10)",
+            border: "0.5px solid hsl(var(--gold-warm) / 0.34)",
+            boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+          }}
+        >
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-accent-foreground shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(38 60% 32%)" }} />
             <div>
-              <p className="text-ds-13 font-medium text-foreground">Verification incomplete</p>
-              <p className="text-ds-11 text-muted-foreground mt-1">
-                Stripe needs more information to enable payouts. Click below to complete your setup.
+              <p
+                className="font-display italic font-bold leading-tight"
+                style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
+                One more step
+              </p>
+              <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+                Stripe needs a few more details before payouts can run. Pick up where you left off below.
               </p>
             </div>
           </div>
@@ -220,7 +257,21 @@ export function PayoutSetupForm() {
 
       {!isFullyOnboarded && (
         <>
-          <Button onClick={handleOnboard} disabled={onboarding} className="w-full">
+          <Button
+            onClick={handleOnboard}
+            disabled={onboarding}
+            className="w-full rounded-ds-md"
+            style={{
+              background: "hsl(var(--bark))",
+              backgroundImage: "none",
+              border: "1px solid hsl(var(--bark))",
+              color: "hsl(var(--parchment))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow: "0 1px 2px hsl(var(--bark) / 0.16), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+            }}
+          >
             {onboarding ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to Stripe…</>
             ) : needsMoreInfo ? (
@@ -288,14 +339,21 @@ export function PayoutSetupForm() {
 
       {isFullyOnboarded && (
         <>
-          <Button variant="outline" onClick={handleManageDashboard} className="w-full">
+          <Button variant="outline" onClick={handleManageDashboard} className="w-full rounded-ds-md">
             <ExternalLink className="w-4 h-4 mr-2" /> Manage payouts on Stripe
           </Button>
-          <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+          <div
+            className="rounded-ds-md p-3"
+            style={{
+              background: "hsl(var(--bark) / 0.06)",
+              border: "0.5px solid hsl(var(--bark) / 0.20)",
+              boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+            }}
+          >
             <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-primary shrink-0" />
-              <p className="text-ds-11 text-muted-foreground">
-                Payouts will be automatically sent to your default method when jobs are completed.
+              <CheckCircle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
+              <p className="font-serif italic" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}>
+                Payouts run automatically to your default method when jobs are completed.
               </p>
             </div>
           </div>

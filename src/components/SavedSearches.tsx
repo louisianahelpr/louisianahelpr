@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Bell, BellOff, Bookmark, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
 interface SavedSearch {
   id: string;
@@ -58,6 +59,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
   const handleSave = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
+      hapticError();
       toast.error("Give your search a name");
       return;
     }
@@ -66,9 +68,11 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
       !currentFilters.maxBudget &&
       !currentFilters.locationFilter
     ) {
+      hapticError();
       toast.error("Set at least one filter before saving");
       return;
     }
+    hapticMedium();
     setSaving(true);
     const { error } = await supabase.from("saved_searches").insert({
       user_id: userId,
@@ -80,20 +84,24 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
     });
     setSaving(false);
     if (error) {
+      hapticError();
       toast.error(error.message);
       return;
     }
+    hapticSuccess();
     toast.success("Search saved — you'll be notified of matching jobs");
     setName("");
     load();
   };
 
   const toggleNotify = async (s: SavedSearch) => {
+    hapticLight();
     const { error } = await supabase
       .from("saved_searches")
       .update({ notify_enabled: !s.notify_enabled })
       .eq("id", s.id);
     if (error) {
+      hapticError();
       toast.error(error.message);
       return;
     }
@@ -103,12 +111,15 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
   };
 
   const remove = async (id: string) => {
+    hapticMedium();
     const { error } = await supabase.from("saved_searches").delete().eq("id", id);
     if (error) {
+      hapticError();
       toast.error(error.message);
       return;
     }
     setSearches((prev) => prev.filter((x) => x.id !== id));
+    hapticSuccess();
     toast.success("Search deleted");
   };
 

@@ -9,6 +9,7 @@ import { AlertTriangle, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import type { Database } from "@/integrations/supabase/types";
 
 const DISPUTE_REASONS = [
@@ -58,9 +59,11 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
 
   const handleSubmit = async () => {
     if (!reason) {
+      hapticError();
       toast.error("Please select a reason");
       return;
     }
+    hapticHeavy();
     setSubmitting(true);
     try {
       // Upload evidence photos
@@ -119,10 +122,12 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
         link: `https://www.louisianahelpr.com/admin?tab=disputes`,
       });
 
+      hapticSuccess();
       toast.success("Dispute submitted. Payment is on hold pending admin review.");
       onDisputed();
       onClose();
     } catch (err: unknown) {
+      hapticError();
       toast.error(getErrorMessage(err));
     } finally {
       setSubmitting(false);

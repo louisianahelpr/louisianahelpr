@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban } from "lucide-react";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
+import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -425,6 +426,7 @@ const Messages = () => {
 
   const deleteConversation = async (convo: Conversation) => {
     if (!userId) return;
+    hapticHeavy();
     // RLS only allows deleting own sent messages — so only delete those
     const { error } = await supabase
       .from("messages")
@@ -434,21 +436,26 @@ const Messages = () => {
       .eq("receiver_id", convo.otherUserId);
 
     if (error) {
+      hapticError();
       toast.error("Failed to delete conversation");
     } else {
       // Remove from local list — the other person's messages still exist for them
       setConversations((prev) => prev.filter((c) => !(c.jobId === convo.jobId && c.otherUserId === convo.otherUserId)));
+      hapticSuccess();
       toast.success("Your messages in this conversation have been deleted");
     }
     setDeleteConvoConfirm(null);
   };
 
   const deleteMessage = async (messageId: string) => {
+    hapticHeavy();
     const { error } = await supabase.from("messages").delete().eq("id", messageId);
     if (error) {
+      hapticError();
       toast.error("Failed to delete message");
     } else {
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      hapticSuccess();
       toast.success("Message deleted");
     }
     setDeleteMessageConfirm(null);

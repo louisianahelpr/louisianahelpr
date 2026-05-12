@@ -72,7 +72,25 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
       />
 
       {loading ? (
-        <p className="text-muted-foreground">Loading…</p>
+        <div className="space-y-4">
+          <div className="rounded-2xl liquid-glass p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="h-8 w-8 rounded-md bg-muted/40 animate-pulse" />
+              <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
+              <div className="h-8 w-8 rounded-md bg-muted/40 animate-pulse" />
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: 35 }).map((_, i) => (
+                <div key={i} className="h-9 rounded bg-muted/30 animate-pulse" />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
+            <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
+            <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
+          </div>
+        </div>
       ) : (
         <>
           <div className="rounded-2xl liquid-glass p-5">

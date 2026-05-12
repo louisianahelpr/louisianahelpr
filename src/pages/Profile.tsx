@@ -4,7 +4,6 @@ import { formatName } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import ReferralSection from "@/components/ReferralSection";
 import NotificationPreferences from "@/components/NotificationPreferences";
@@ -37,8 +36,17 @@ const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
 
 const TabFallback = () => (
-  <div className="flex items-center justify-center py-16">
-    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+  <div className="space-y-4">
+    <div className="rounded-2xl liquid-glass p-5 space-y-3">
+      <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
+      <div className="h-4 w-2/3 rounded bg-muted/30 animate-pulse" />
+      <div className="h-4 w-1/2 rounded bg-muted/30 animate-pulse" />
+    </div>
+    <div className="rounded-2xl liquid-glass p-5 space-y-3">
+      <div className="h-4 w-1/3 rounded bg-muted/30 animate-pulse" />
+      <div className="h-4 w-3/4 rounded bg-muted/30 animate-pulse" />
+      <div className="h-4 w-1/2 rounded bg-muted/30 animate-pulse" />
+    </div>
   </div>
 );
 

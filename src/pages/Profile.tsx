@@ -534,6 +534,7 @@ const ProfilePage = () => {
               onAvatarUpload={handleAvatarUpload}
               onIdUpload={handleIdUpload}
               onBack={() => setTab("landing")}
+              onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls } as any) : prev)}
             />
           )}
 

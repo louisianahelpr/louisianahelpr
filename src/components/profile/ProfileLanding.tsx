@@ -79,6 +79,30 @@ export function ProfileLanding({
         ? "Pro plan — bump to Elite for max reach"
         : "Free plan — upgrade for more visibility";
 
+  // ─── Portfolio gallery + completion meter ──────────────────────────
+  // portfolio_urls is on profiles (text[]). Gallery shows up to 6 inline
+  // on the landing; tap navigates into Edit Profile to manage. The
+  // completion meter shares the same 6-item checklist as ProfileEditForm
+  // so the % matches between landing and edit views.
+  const portfolioUrls: string[] = ((profile as any)?.portfolio_urls ?? []) as string[];
+  const completionItems = [
+    { label: "Profile photo", done: !!profile?.avatar_url },
+    { label: "Phone", done: !!(profile as any)?.phone },
+    { label: "Location", done: !!profile?.location && !!(profile as any)?.zip_code },
+    { label: "Bio", done: !!profile?.bio && profile.bio.trim().length >= 20 },
+    {
+      label: "ID verified",
+      done:
+        profile?.idv_status === "verified" ||
+        profile?.idv_status === "pending" ||
+        profile?.idv_status === "processing" ||
+        profile?.idv_status === "manual_review",
+    },
+    { label: "Work photos", done: portfolioUrls.length > 0 },
+  ];
+  const completionDone = completionItems.filter((i) => i.done).length;
+  const completionPct = Math.round((completionDone / completionItems.length) * 100);
+
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
       title: "Account",
@@ -306,11 +330,84 @@ export function ProfileLanding({
               onClick={() => onSelectTab("profile")}
               className="w-full text-left font-serif italic text-ds-13 leading-snug active:opacity-70 transition-opacity"
               style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-            >
-              + Add a short bio so applicants know who they're hiring.
-            </button>
+            >+ Add a short bio so applicants know who they're hiring.</button>
           )}
         </div>
+        {/* Work portfolio gallery — up to 6 photos of previous work shown
+            in a horizontal scroll. Applicants browse this to decide who to
+            hire. Tap a photo to open the full-size lightbox. Empty state
+            nudges helpers to upload (biggest single conversion lever). */}
+        {portfolioUrls.length > 0 ? (
+          <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+            <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Recent work
+            </p>
+            <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1">
+              {portfolioUrls.slice(0, 6).map((url, i) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => onSelectTab("profile")}
+                  className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform"
+                  aria-label={`Work sample ${i + 1}`}
+                >
+                  <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onSelectTab("profile")}
+            className="mt-3 pt-3 w-full text-left flex items-center justify-between gap-3 active:opacity-70 transition-opacity"
+            style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
+          >
+            <div className="min-w-0">
+              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                Recent work
+              </p>
+              <p className="font-serif italic text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                Add photos of previous jobs so applicants can see your work.
+              </p>
+            </div>
+            <span className="text-ds-11 font-semibold shrink-0" style={{ color: "hsl(var(--bark))" }}>
+              + Add photos
+            </span>
+          </button>
+        )}
+        {/* Completion meter — quiet horizontal bar at the bottom of the
+            hero. Disappears at 100% to remove the nag once the user is
+            fully set up. */}
+        {completionPct < 100 && (
+          <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                {completionPct}% complete
+              </span>
+              <button
+                type="button"
+                onClick={() => onSelectTab("profile")}
+                className="text-ds-11 font-semibold active:opacity-70"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                {completionItems.find((i) => !i.done)?.label} →
+              </button>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${completionPct}%`,
+                  background:
+                    completionPct >= 66
+                      ? "hsl(var(--bark) / 0.85)"
+                      : "hsl(var(--burnt-sienna) / 0.75)",
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom box — menu groups + account actions. Extends

@@ -179,21 +179,25 @@ const SupportPage = () => {
 
           {user && (
             <section className="space-y-2">
-              <h2 className="text-ds-13 font-semibold text-foreground">Send Us a Message</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                Send us a message
+              </p>
+              <div className="grid grid-cols-2 gap-3">
                 {categories.map((c) => (
                   <button
                     key={c.key}
                     onClick={() => setOpenCategory(c.key)}
-                    className="rounded-2xl liquid-glass hover:border-primary/40 hover:shadow-sm transition-all px-3 py-2.5 flex items-center gap-2 sm:flex-col sm:items-start sm:gap-1.5"
+                    className="rounded-2xl liquid-glass p-4 text-left transition-all hover:-translate-y-0.5 active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
                   >
-                    <div className={`w-8 h-8 rounded-ds-md bg-gradient-to-br ${c.accent} flex items-center justify-center shrink-0`}>
+                    <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${c.accent} flex items-center justify-center mb-2.5`}>
                       {c.icon}
                     </div>
-                    <div className="text-left min-w-0">
-                      <p className="font-medium text-ds-11 text-foreground leading-tight truncate">{c.label}</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight truncate">{c.description}</p>
-                    </div>
+                    <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                      {c.label}
+                    </p>
+                    <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                      {c.description}
+                    </p>
                   </button>
                 ))}
               </div>

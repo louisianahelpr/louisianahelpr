@@ -89,16 +89,9 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
 
   const selected = supportCategories.find((c) => c.key === category) ?? null;
 
-  // Auto-scroll the form into view when a category is picked so users don't
-  // have to hunt for the newly-revealed inputs (especially on small screens
-  // where the form sits below the fold under the 4 category cards).
-  useEffect(() => {
-    if (!category) return;
-    const t = window.setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 120);
-    return () => window.clearTimeout(t);
-  }, [category]);
+  // (Previously: a `scrollIntoView` fired on category selection that lurched
+  // the whole page downward and felt like a hard screen change. Removed —
+  // the form now expands in place below the cards, no auto-scroll.)
 
   // Clear the screenshot if the user switches away from "Report Issue".
   useEffect(() => {
@@ -230,16 +223,34 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         onBack={onBack}
       />
 
-      {!selected ? (
-        <div className="grid grid-cols-2 gap-3 shrink-0">
-          {supportCategories.map((c) => (
+      {/* Cards stay full-size whether or not one is selected. Selecting a
+          card adds a 2px primary ring + lift; the others dim to 60% so
+          the choice reads at a glance. No layout-shift, no scroll jump
+          (previously the cards collapsed to a compact 4-icon row +
+          auto-scrolled the form into view, which felt like a hard screen
+          change). */}
+      <div className="grid grid-cols-2 gap-3 shrink-0">
+        {supportCategories.map((c) => {
+          const isActive = category === c.key;
+          return (
             <button
               key={c.key}
               type="button"
               onClick={() => setCategory(c.key)}
-              className="relative rounded-2xl liquid-glass hover:border-primary/40 p-4 text-left transition-all hover:-translate-y-0.5 active:scale-[0.98]"
+              aria-pressed={isActive}
+              className={`relative rounded-2xl liquid-glass p-4 text-left transition-all active:scale-[0.98] ${
+                isActive
+                  ? "ring-2 ring-primary/60 -translate-y-0.5 shadow-md"
+                  : category
+                    ? "opacity-60 hover:opacity-100 hover:-translate-y-0.5"
+                    : "hover:border-primary/40 hover:-translate-y-0.5"
+              }`}
             >
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center mb-2.5 text-primary">
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center mb-2.5 transition-colors ${
+                  isActive ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                }`}
+              >
                 {c.icon}
               </div>
               <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
@@ -249,35 +260,9 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                 {c.description}
               </p>
             </button>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-4 gap-2 shrink-0">
-          {supportCategories.map((c) => {
-            const isActive = category === c.key;
-            return (
-              <button
-                key={c.key}
-                type="button"
-                onClick={() => setCategory(c.key)}
-                aria-pressed={isActive}
-                className={`flex flex-col items-center justify-center gap-1 rounded-ds-md px-2 py-2.5 transition-all active:scale-[0.98] ${
-                  isActive
-                    ? "border-2 border-primary bg-primary/10 text-primary"
-                    : "liquid-glass text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <div className={`w-4 h-4 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-                  {c.icon}
-                </div>
-                <p className={`text-[11px] font-semibold leading-tight text-center ${isActive ? "text-foreground" : "text-foreground/80"}`}>
-                  {c.label}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      )}
+          );
+        })}
+      </div>
 
       {selected && (
         <form

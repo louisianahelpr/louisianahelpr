@@ -580,17 +580,27 @@ export function SignupStep3(props: SignupStep3Props) {
       </div>
 
       <div className="flex gap-3">
-        <Button variant="outline" className="flex-1" onClick={onBack}>
+        <Button variant="outline" className="flex-1 rounded-ds-md" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </Button>
         <Button
-          className="flex-1"
+          className="flex-1 rounded-ds-md"
           onClick={() => {
             if (isLicensed && !licenseFile) { toast.error("Please upload your license or turn off the Licensed toggle"); return; }
             if (isInsured && !insuranceFile) { toast.error("Please upload your insurance document or turn off the Insured toggle"); return; }
             onSubmit();
           }}
           disabled={loading || (isLicensed && !licenseFile) || (isInsured && !insuranceFile)}
+          style={{
+            background: "hsl(var(--bark))",
+            backgroundImage: "none",
+            border: "1px solid hsl(var(--bark))",
+            color: "hsl(var(--parchment))",
+            fontFamily: "Montserrat, system-ui, sans-serif",
+            fontWeight: 600,
+            letterSpacing: "0.01em",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px rgba(0,0,0,0.1)",
+          }}
         >
           {loading
             ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>

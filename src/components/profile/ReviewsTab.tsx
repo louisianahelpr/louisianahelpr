@@ -25,7 +25,14 @@ const MiniStars = ({ value, size = "sm" }: { value: number; size?: "sm" | "xs" }
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
-        <Star key={s} className={`${cls} ${s <= Math.round(value) ? "text-primary fill-primary" : "text-muted-foreground/30"}`} />
+        <Star
+          key={s}
+          className={cls}
+          style={{
+            color: s <= Math.round(value) ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
+            fill: s <= Math.round(value) ? "hsl(var(--burnt-sienna))" : "transparent",
+          }}
+        />
       ))}
     </div>
   );
@@ -49,6 +56,52 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
         meta={avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
         onBack={onBack}
       />
+
+      {/* Hero summary — big rating number + stars + count. Anchors the
+          page so the reader has the at-a-glance signal before they scroll
+          into individual reviews. Hides when there are no reviews. */}
+      {reviewCount > 0 && avgRating != null && (
+        <div className="rounded-2xl liquid-glass px-5 py-4 flex items-center gap-4">
+          <div className="shrink-0 text-center">
+            <p
+              className="font-display italic font-bold tabular-nums leading-none"
+              style={{ fontSize: "2.25rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
+            >
+              {avgRating.toFixed(1)}
+            </p>
+            <p
+              className="font-serif italic mt-1 text-[0.68rem]"
+              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+            >
+              out of 5
+            </p>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-0.5 mb-1.5">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star
+                  key={n}
+                  className="w-4 h-4"
+                  style={{
+                    color: n <= Math.round(avgRating) ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
+                    fill: n <= Math.round(avgRating) ? "hsl(var(--burnt-sienna))" : "transparent",
+                  }}
+                />
+              ))}
+            </div>
+            <p
+              className="font-serif italic text-[0.85rem]"
+              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            >
+              Based on{" "}
+              <span className="font-display not-italic font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                {reviewCount}
+              </span>{" "}
+              completed job{reviewCount !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       {hasCategoryData && (
         <div className="rounded-2xl liquid-glass p-5 grid grid-cols-3 gap-3">
@@ -96,7 +149,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
                     {Array.from({ length: 5 }).map((_, s) => (
                       <Star
                         key={s}
-                        className={`w-3.5 h-3.5 ${s < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30"}`}
+                        className="w-3.5 h-3.5"
+                        style={{
+                          color: s < review.rating ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
+                          fill: s < review.rating ? "hsl(var(--burnt-sienna))" : "transparent",
+                        }}
                       />
                     ))}
                   </div>

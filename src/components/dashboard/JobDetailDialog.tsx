@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  MapPin, Calendar, DollarSign, Clock, Star, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, ChevronDown, Rocket, Zap, ChevronLeft, ChevronRight, X, ShieldCheck, Lock,
+  MapPin, Calendar, DollarSign, Clock, Star, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, ChevronDown, Rocket, Zap, ChevronLeft, ChevronRight, X, Lock, Crown, Sparkles,
 } from "lucide-react";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { categoryLabels, categoryColors, categoryIcons } from "@/components/activity/activityConstants";
@@ -533,7 +533,7 @@ const JobDetailDialog = ({
         >
           <div className="flex items-center gap-2.5">
             <div
-              className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-sans font-semibold text-[0.75rem] tracking-[0.06em] uppercase"
+              className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-sans font-semibold text-[0.75rem] tracking-[0.06em] uppercase overflow-hidden"
               style={{
                 backgroundColor: "hsl(var(--bark) / 0.12)",
                 border: "1px solid hsl(var(--bark) / 0.22)",
@@ -541,7 +541,17 @@ const JobDetailDialog = ({
                 boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)",
               }}
             >
-              {posterInitials}
+              {(job as any).posterAvatarUrl ? (
+                <img
+                  loading="lazy"
+                  decoding="async"
+                  src={(job as any).posterAvatarUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                posterInitials
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p
@@ -588,7 +598,10 @@ const JobDetailDialog = ({
             />
           </div>
 
-          {/* Trust signal row — centered along the bottom of the poster card */}
+          {/* Trust signal row — only show truthful platform/poster facts.
+              Helpr escrow is always true (platform guarantee). Pro/Elite
+              tier badge only renders when the poster actually has one.
+              Repeat-poster badge shows when they've posted multiple jobs. */}
           <div
             className="flex items-center justify-center gap-3 mt-2 pt-2 text-[10px] font-sans font-semibold uppercase"
             style={{
@@ -598,19 +611,36 @@ const JobDetailDialog = ({
             }}
           >
             <span className="inline-flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} />
-              Verified ID
-            </span>
-            <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-            <span className="inline-flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} />
-              Replies ~2h
-            </span>
-            <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-            <span className="inline-flex items-center gap-1">
               <Lock className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} />
-              Escrow
+              Helpr Escrow
             </span>
+            {job.posterSubscriptionTier === "elite" && (
+              <>
+                <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+                <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--gold-warm))" }}>
+                  <Crown className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  Elite Poster
+                </span>
+              </>
+            )}
+            {job.posterSubscriptionTier === "pro" && (
+              <>
+                <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+                <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  Pro Poster
+                </span>
+              </>
+            )}
+            {(job.posterReviewCount ?? 0) >= 3 && (
+              <>
+                <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+                <span className="inline-flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} fill="currentColor" />
+                  Trusted
+                </span>
+              </>
+            )}
           </div>
         </a>
 
@@ -724,13 +754,19 @@ const JobDetailDialog = ({
             }}
           >
             <span
-              className="relative z-10 inline-flex items-center gap-1.5 min-w-0 truncate"
+              className="relative z-10 inline-flex items-center justify-center gap-2 min-w-0"
               style={{
                 color: "white",
                 textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)",
               }}
             >
-              <span className="truncate">Apply for this task</span>
+              <span className="truncate">Apply</span>
+              <span
+                className="font-display italic font-bold tabular-nums shrink-0"
+                style={{ fontSize: "0.95rem", letterSpacing: "-0.01em" }}
+              >
+                · earn ${payout.toFixed(0)}
+              </span>
               <ChevronRight
                 className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
                 strokeWidth={2.5}

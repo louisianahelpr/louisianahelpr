@@ -128,6 +128,9 @@ export function useDashboardData() {
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
       );
+      const avatarMap = new Map<string, string | null>(
+        profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
+      );
 
       // Build poster tier map — only count tier if subscription hasn't expired
       const nowDate = new Date();
@@ -158,6 +161,7 @@ export function useDashboardData() {
           return {
             ...j,
             posterName: nameMap.get(j.customer_id) || "User",
+            posterAvatarUrl: avatarMap.get(j.customer_id) ?? null,
             posterReviewCount: stats?.count ?? 0,
             posterAvgRating: stats?.avg ?? 0,
             posterCompletedJobs: 0,

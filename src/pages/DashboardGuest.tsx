@@ -84,6 +84,9 @@ const DashboardGuest = () => {
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
       );
+      const avatarMap = new Map<string, string | null>(
+        profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
+      );
       const reviewStatsMap = new Map<string, { count: number; avg: number }>();
       for (const r of reviewsRes.data ?? []) {
         const existing = reviewStatsMap.get(r.reviewee_id);
@@ -104,6 +107,7 @@ const DashboardGuest = () => {
           return {
             ...j,
             posterName: nameMap.get(j.customer_id) || "User",
+            posterAvatarUrl: avatarMap.get(j.customer_id) ?? null,
             posterReviewCount: stats?.count ?? 0,
             posterAvgRating: stats?.avg ?? 0,
             posterCompletedJobs: 0,

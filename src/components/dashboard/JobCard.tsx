@@ -88,7 +88,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           <a
             href={`/user/${job.customer_id}`}
             onClick={(e) => e.stopPropagation()}
-            className="block w-11 h-11 rounded-full flex items-center justify-center font-sans font-semibold text-[0.78rem] tracking-[0.06em] uppercase transition-transform hover:scale-105"
+            className="block w-11 h-11 rounded-full flex items-center justify-center font-sans font-semibold text-[0.78rem] tracking-[0.06em] uppercase transition-transform hover:scale-105 overflow-hidden"
             style={{
               backgroundColor: "hsl(var(--bark) / 0.12)",
               border: "1px solid hsl(var(--bark) / 0.22)",
@@ -97,7 +97,17 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             }}
             aria-label={`View ${job.posterName}'s profile`}
           >
-            {posterInitials}
+            {(job as any).posterAvatarUrl ? (
+              <img
+                loading="lazy"
+                decoding="async"
+                src={(job as any).posterAvatarUrl}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              posterInitials
+            )}
           </a>
           {(() => {
             const CategoryIcon = categoryIcons[job.category] || categoryIcons.other;

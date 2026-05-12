@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MapPin, DollarSign, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, DollarSign, Clock, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 import type { Database } from "@/integrations/supabase/types";
@@ -146,9 +146,24 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                 </h3>
               </div>
               {selectedJobs.length === 0 ? (
-                <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-                  No jobs scheduled for this day.
-                </p>
+                <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-3 px-6 py-8">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                      border: "1px solid hsl(var(--olivewood) / 0.10)",
+                      boxShadow:
+                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                        "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                        "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+                    }}
+                  >
+                    <CalendarDays className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                  </div>
+                  <p className="font-serif italic max-w-[260px]" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                    Nothing scheduled for this day.
+                  </p>
+                </div>
               ) : (
                 selectedJobs.map((job) => (
                   <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
@@ -168,9 +183,29 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                 </h3>
               </div>
               {upcomingJobs.length === 0 ? (
-                <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-                  No upcoming jobs on the calendar.
-                </p>
+                <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-3 px-6 py-10">
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                      border: "1px solid hsl(var(--olivewood) / 0.10)",
+                      boxShadow:
+                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                        "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                        "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+                    }}
+                  >
+                    <CalendarDays className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-display italic font-bold" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                      Calendar's clear.
+                    </p>
+                    <p className="font-serif italic max-w-[260px]" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                      No upcoming jobs yet — book one and it'll show up here.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 upcomingJobs.map((job) => (
                   <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />

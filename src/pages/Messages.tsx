@@ -53,8 +53,13 @@ type Message = {
 type Conversation = {
   otherUserId: string;
   otherUserName: string;
+  otherUserAvatarUrl?: string | null;
   jobTitle: string;
   jobId: string;
+  /** Job status — surfaced as a chip in the chat header so participants
+      see at a glance whether they're discussing an open posting, an
+      awarded job, or a completed one. */
+  jobStatus?: string | null;
   lastMessage: string;
   lastAt: string;
   unread: number;
@@ -156,17 +161,20 @@ const Messages = () => {
 
     const [profilesRes, jobsRes] = await Promise.all([
       supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
-      supabase.from("jobs").select("id, title").in("id", jobIds),
+      supabase.from("jobs").select("id, title, status").in("id", jobIds),
     ]);
 
     const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
-    const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
+    const avatarMap = new Map<string, string | null>(profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || []);
+    const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status }]) || []);
 
     const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => ({
       otherUserId: v.otherUserId,
       otherUserName: profileMap.get(v.otherUserId) || "User",
-      jobTitle: jobMap.get(v.jobId) || "Job",
+      otherUserAvatarUrl: avatarMap.get(v.otherUserId) ?? null,
+      jobTitle: jobMap.get(v.jobId)?.title || "Job",
       jobId: v.jobId,
+      jobStatus: jobMap.get(v.jobId)?.status ?? null,
       lastMessage: v.messages[0].content,
       lastAt: v.messages[0].created_at,
       unread: v.messages.filter((m) => m.receiver_id === uid && !m.read).length,
@@ -187,14 +195,16 @@ const Messages = () => {
         // No existing conversation — create a placeholder so user can start messaging
         const [profileRes, jobRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
-          supabase.from("jobs").select("id, title").eq("id", deepLinkJobId).maybeSingle(),
+          supabase.from("jobs").select("id, title, status").eq("id", deepLinkJobId).maybeSingle(),
         ]);
         const name = profileRes.data?.[0]?.full_name || "User";
         const placeholder: Conversation = {
           otherUserId: deepLinkUserId,
           otherUserName: formatName(name),
+          otherUserAvatarUrl: profileRes.data?.[0]?.avatar_url ?? null,
           jobTitle: jobRes.data?.title || "Job",
           jobId: deepLinkJobId,
+          jobStatus: jobRes.data?.status ?? null,
           lastMessage: "",
           lastAt: new Date().toISOString(),
           unread: 0,
@@ -469,12 +479,13 @@ const Messages = () => {
       const caption = parts.slice(1).join("\n").trim();
       return (
         <div className="space-y-1">
-          <img loading="lazy" decoding="async"
+          <img
+            loading="lazy"
+            decoding="async"
             src={url}
             alt="Shared photo"
             className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
             onClick={() => window.open(url, "_blank")}
-            loading="lazy"
           />
           {caption && <p>{caption}</p>}
         </div>
@@ -742,7 +753,11 @@ const Messages = () => {
               className="flex flex-col h-[calc(100dvh-4rem)] transition-[padding] duration-150"
               style={{ paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : "env(safe-area-inset-bottom)" }}
             >
-              {/* Chat header — compact, vertically centered */}
+              {/* Chat header — compact, vertically centered. Avatar uses
+                  the other user's photo when available, name is brand-
+                  display italic, and a small status chip surfaces where
+                  the job currently stands so both sides have shared
+                  context without scrolling back. */}
               <div className="flex items-center gap-2.5 px-1 py-2 -mx-4 px-4 border-b border-border bg-card">
                 <Button
                   variant="ghost"
@@ -753,15 +768,61 @@ const Messages = () => {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
-                <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0 self-center">
-                  <span className="text-ds-13 font-bold text-primary">{activeConvo.otherUserName.charAt(0).toUpperCase()}</span>
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 self-center overflow-hidden"
+                  style={{
+                    backgroundColor: "hsl(var(--bark) / 0.12)",
+                    border: "1px solid hsl(var(--bark) / 0.22)",
+                  }}
+                >
+                  {activeConvo.otherUserAvatarUrl ? (
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={activeConvo.otherUserAvatarUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--bark))" }}>
+                      {activeConvo.otherUserName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden self-center">
-                  <p className="font-semibold text-foreground text-[15px] leading-tight truncate flex items-center gap-1.5">
+                  <p
+                    className="font-display italic font-bold leading-tight truncate flex items-center gap-1.5"
+                    style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                  >
                     <span className="truncate">{activeConvo.otherUserName}</span>
                     <OnlineIndicator isOnline={isOtherOnline} />
                   </p>
-                  <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">{activeConvo.jobTitle}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <p className="text-[11px] truncate leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      {activeConvo.jobTitle}
+                    </p>
+                    {activeConvo.jobStatus && (() => {
+                      const status = activeConvo.jobStatus;
+                      const chip: { label: string; color: string; bg: string } =
+                        status === "open"
+                          ? { label: "Open", color: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.12)" }
+                          : status === "assigned" || status === "in_progress"
+                            ? { label: "Awarded", color: "hsl(var(--burnt-sienna))", bg: "hsl(var(--burnt-sienna) / 0.12)" }
+                            : status === "completed"
+                              ? { label: "Completed", color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.1)" }
+                              : status === "cancelled"
+                                ? { label: "Cancelled", color: "hsl(var(--destructive))", bg: "hsl(var(--destructive) / 0.1)" }
+                                : { label: status, color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.1)" };
+                      return (
+                        <span
+                          className="text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                          style={{ color: chip.color, backgroundColor: chip.bg, letterSpacing: "0.08em" }}
+                        >
+                          {chip.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -805,9 +866,34 @@ const Messages = () => {
                   </div>
                 )}
                 {messages.length === 0 && (
-                  <div className="text-center py-12 space-y-2">
-                    <MessageSquare className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                    <p className="text-ds-11 text-muted-foreground">No messages yet. Say hello!</p>
+                  <div className="flex flex-col items-center text-center py-14 gap-3">
+                    <div
+                      className="w-14 h-14 rounded-full flex items-center justify-center"
+                      style={{
+                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                        border: "1px solid hsl(var(--olivewood) / 0.10)",
+                        boxShadow:
+                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                          "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+                      }}
+                    >
+                      <MessageSquare className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                    </div>
+                    <div className="space-y-1">
+                      <p
+                        className="font-display italic font-bold"
+                        style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                      >
+                        Say hello.
+                      </p>
+                      <p
+                        className="font-serif italic text-[0.82rem] max-w-[260px]"
+                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      >
+                        Send the first message to get the job moving.
+                      </p>
+                    </div>
                   </div>
                 )}
                 {messages.map((m) => {
@@ -816,10 +902,28 @@ const Messages = () => {
                     <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                       <div
                         className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 ${
-                          mine
-                            ? "bg-primary text-primary-foreground rounded-br-md"
-                            : "bg-secondary text-secondary-foreground rounded-bl-md"
+                          mine ? "rounded-br-md" : "rounded-bl-md"
                         }`}
+                        style={mine ? {
+                          // "Mine" bubble — bark with subtle inner highlight + soft shadow
+                          // for a tactile, brand-aligned feel (vs. flat primary fill).
+                          background: "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.92) 100%)",
+                          color: "hsl(var(--parchment))",
+                          boxShadow:
+                            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), " +
+                            "0 1px 2px hsl(var(--bark) / 0.18), " +
+                            "0 6px 14px -6px hsl(var(--bark) / 0.32)",
+                        } : {
+                          // "Theirs" bubble — translucent parchment with a hairline border
+                          // so it reads as an inbound card without looking gray-on-gray.
+                          backgroundColor: "hsla(0, 0%, 100%, 0.78)",
+                          color: "hsl(var(--ink-deep))",
+                          border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+                          boxShadow:
+                            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
+                            "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                            "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
+                        }}
                       >
                         {m.attachment_url && m.attachment_mime && (
                           <MessageAttachment

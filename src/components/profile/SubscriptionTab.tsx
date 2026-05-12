@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Crown, CheckCircle, Loader2, RefreshCw } from "lucide-react";
+import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles, Star } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -11,11 +11,24 @@ import { useQueryClient } from "@tanstack/react-query";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-const tierConfig = [
+type TierIconName = "star" | "sparkles" | "crown";
+
+const tierConfig: Array<{
+  id: string;
+  name: string;
+  iconName: TierIconName;
+  forWhom: string;
+  monthly: string;
+  annual: string;
+  oneTime: string;
+  annualSave: string;
+  features: string[];
+}> = [
   {
     id: "basic",
     name: "Basic",
-    badge: "⭐",
+    iconName: "star",
+    forWhom: "For casual side-hustlers",
     monthly: "$5/mo",
     annual: "$50/yr",
     oneTime: "$5 one-time",
@@ -25,7 +38,8 @@ const tierConfig = [
   {
     id: "pro",
     name: "Pro",
-    badge: "🔥",
+    iconName: "sparkles",
+    forWhom: "For active helpers landing 2+ jobs/week",
     monthly: "$10/mo",
     annual: "$100/yr",
     oneTime: "$10 one-time",
@@ -35,7 +49,8 @@ const tierConfig = [
   {
     id: "elite",
     name: "Elite",
-    badge: "💎",
+    iconName: "crown",
+    forWhom: "For pro contractors who want max reach",
     monthly: "$15/mo",
     annual: "$150/yr",
     oneTime: "$15 one-time",
@@ -43,6 +58,12 @@ const tierConfig = [
     features: ["Everything in Pro", "Landing Spotlight", "Auto-Match", "20-min Early Access"],
   },
 ];
+
+const TierIcon = ({ name, className, style }: { name: TierIconName; className?: string; style?: React.CSSProperties }) => {
+  if (name === "star") return <Star className={className} style={style} strokeWidth={2} />;
+  if (name === "sparkles") return <Sparkles className={className} style={style} strokeWidth={2} />;
+  return <Crown className={className} style={style} strokeWidth={2} />;
+};
 
 export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Profile | null; user: User | null; onBack: () => void }) => {
   const [loadingPortal, setLoadingPortal] = useState(false);
@@ -122,25 +143,46 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         onBack={onBack}
       />
 
-      {/* Billing cycle pills */}
+      {/* Billing cycle pills — Annual carries the save badge inline so the
+          cheapest option is the most visually inviting one. */}
       <div className="flex items-center gap-1 rounded-2xl liquid-glass p-1.5">
         {([
           { key: "one_time" as const, label: "Once" },
           { key: "monthly" as const, label: "Monthly" },
-          { key: "annual" as const, label: "Annual" },
+          { key: "annual" as const, label: "Annual", save: "−17%" },
         ]).map((opt) => {
           const active = billingInterval === opt.key;
           return (
             <button
               key={opt.key}
               onClick={() => setBillingInterval(opt.key)}
-              className={`flex-1 px-3 h-9 rounded-ds-md text-ds-13 font-semibold transition-all ${
+              className={`flex-1 px-3 h-9 rounded-ds-md text-ds-13 font-semibold transition-all inline-flex items-center justify-center gap-1.5 ${
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {opt.label}
+              {opt.save && (
+                <span
+                  className={`text-[9px] font-bold tracking-wider px-1 py-0.5 rounded ${
+                    active
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-burnt-sienna-soft"
+                  }`}
+                  style={
+                    !active
+                      ? {
+                          background: "hsl(var(--burnt-sienna) / 0.14)",
+                          color: "hsl(var(--burnt-sienna))",
+                          letterSpacing: "0.06em",
+                        }
+                      : { letterSpacing: "0.06em" }
+                  }
+                >
+                  {opt.save}
+                </span>
+              )}
             </button>
           );
         })}
@@ -185,18 +227,42 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               )}
 
               <div className="flex items-start justify-between gap-2.5 mb-2">
-                <div className="min-w-0 flex-1">
-                  <p className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                    {tier.id === "basic" ? "Entry" : tier.id === "pro" ? "Recommended" : "Top tier"}
-                  </p>
-                  <h3 className="font-display italic font-bold leading-tight flex items-center gap-2 flex-wrap" style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-                    <span className="not-italic">{tier.badge}</span> {tier.name}
-                    {isActive && (
-                      <span className="text-[9px] not-italic font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
-                        <CheckCircle className="w-2.5 h-2.5" /> Current
-                      </span>
-                    )}
-                  </h3>
+                <div className="min-w-0 flex-1 flex items-start gap-2.5">
+                  <span
+                    className="shrink-0 w-9 h-9 rounded-ds-md flex items-center justify-center"
+                    style={{
+                      background:
+                        tier.id === "elite"
+                          ? "hsl(var(--gold-warm) / 0.14)"
+                          : tier.id === "pro"
+                            ? "hsl(var(--burnt-sienna) / 0.12)"
+                            : "hsl(var(--bark) / 0.10)",
+                      color:
+                        tier.id === "elite"
+                          ? "hsl(var(--gold-warm))"
+                          : tier.id === "pro"
+                            ? "hsl(var(--burnt-sienna))"
+                            : "hsl(var(--bark))",
+                    }}
+                  >
+                    <TierIcon name={tier.iconName} className="w-4 h-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-display italic font-bold leading-tight flex items-center gap-2 flex-wrap" style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+                      {tier.name}
+                      {isActive && (
+                        <span className="text-[9px] not-italic font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
+                          <CheckCircle className="w-2.5 h-2.5" /> Current
+                        </span>
+                      )}
+                    </h3>
+                    <p
+                      className="font-serif italic leading-snug mt-0.5"
+                      style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                    >
+                      {tier.forWhom}
+                    </p>
+                  </div>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.2rem", color: "hsl(var(--primary))", letterSpacing: "-0.02em" }}>

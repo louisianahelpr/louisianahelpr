@@ -77,12 +77,12 @@ const AdminMarketing = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+        <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center">
           <Mail className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-2xl font-display font-bold">Marketing Campaigns</h2>
-          <p className="text-xs text-muted-foreground">
+          <h2 className="text-ds-24 font-display font-bold">Marketing Campaigns</h2>
+          <p className="text-ds-11 text-muted-foreground">
             One-off announcement emails to segmented users. Honors promotional opt-out.
           </p>
         </div>
@@ -97,7 +97,7 @@ const AdminMarketing = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Compose</CardTitle>
+          <CardTitle className="text-ds-15">Compose</CardTitle>
           <CardDescription>HTML body — keep it short, mobile-first.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -118,7 +118,7 @@ const AdminMarketing = () => {
               value={html}
               onChange={(e) => setHtml(e.target.value)}
               rows={10}
-              className="font-mono text-xs"
+              className="font-mono text-ds-11"
             />
           </div>
         </CardContent>
@@ -126,7 +126,7 @@ const AdminMarketing = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className="text-ds-15 flex items-center gap-2">
             <Users className="w-4 h-4" /> Audience
           </CardTitle>
           <CardDescription>Only verified, approved users will receive emails.</CardDescription>
@@ -162,7 +162,7 @@ const AdminMarketing = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Send</CardTitle>
+          <CardTitle className="text-ds-15">Send</CardTitle>
           <CardDescription>Test first, then send to the full segment.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -196,7 +196,7 @@ const AdminMarketing = () => {
           </Button>
 
           {lastResult && (
-            <div className="rounded-lg border bg-muted/40 p-4 text-sm">
+            <div className="rounded-lg border bg-muted/40 p-4 text-ds-13">
               <p className="font-semibold">Last send result</p>
               <p className="text-muted-foreground">
                 {lastResult.sent} delivered · {lastResult.failed} failed · {lastResult.total} total

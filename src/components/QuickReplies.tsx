@@ -32,12 +32,12 @@ export const QuickReplies = ({ onSelect }: QuickRepliesProps) => {
   if (showEta) {
     return (
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        <span className="shrink-0 text-xs font-semibold text-muted-foreground pr-1">ETA:</span>
+        <span className="shrink-0 text-ds-11 font-semibold text-muted-foreground pr-1">ETA:</span>
         {ETA_PRESETS.map((m) => (
           <Button
             key={m}
             size="sm"
-            className="shrink-0 text-xs h-7 px-3 rounded-full"
+            className="shrink-0 text-ds-11 h-7 px-3 rounded-full"
             onClick={() => pickEnRoute(m)}
           >
             {m} min
@@ -46,7 +46,7 @@ export const QuickReplies = ({ onSelect }: QuickRepliesProps) => {
         <Button
           variant="ghost"
           size="sm"
-          className="shrink-0 text-xs h-7 px-2 rounded-full"
+          className="shrink-0 text-ds-11 h-7 px-2 rounded-full"
           onClick={() => setShowEta(false)}
           aria-label="Cancel"
         >
@@ -60,7 +60,7 @@ export const QuickReplies = ({ onSelect }: QuickRepliesProps) => {
     <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
       <Button
         size="sm"
-        className="shrink-0 text-xs h-7 px-2.5 gap-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+        className="shrink-0 text-ds-11 h-7 px-2.5 gap-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
         onClick={() => setShowEta(true)}
       >
         <Navigation className="w-3 h-3" />
@@ -71,7 +71,7 @@ export const QuickReplies = ({ onSelect }: QuickRepliesProps) => {
           key={qr.label}
           variant="outline"
           size="sm"
-          className="shrink-0 text-xs h-7 px-2.5 gap-1 rounded-full"
+          className="shrink-0 text-ds-11 h-7 px-2.5 gap-1 rounded-full"
           onClick={() => onSelect(qr.message)}
         >
           <qr.icon className="w-3 h-3" />

@@ -164,14 +164,14 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-5">
         <DialogHeader className="pr-8 space-y-1">
-          <DialogTitle className="font-display flex items-center gap-2 text-base sm:text-lg">
+          <DialogTitle className="font-display flex items-center gap-2 text-ds-15 sm:text-ds-17">
             <ShieldAlert className="w-5 h-5 text-destructive shrink-0" />
             <span className="truncate">Take Action: {profile?.full_name || "User"}</span>
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-5">
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Action type</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Action type</p>
             <div className="grid grid-cols-3 gap-2">
               {(
                 [
@@ -183,12 +183,12 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
                 <button
                   key={opt.key}
                   onClick={() => setBanType(opt.key)}
-                  className={`p-2.5 rounded-xl border text-center space-y-1 transition-colors ${
+                  className={`p-2.5 rounded-ds-md border text-center space-y-1 transition-colors ${
                     banType === opt.key ? opt.color : "border-border bg-card hover:bg-secondary/30"
                   }`}
                 >
                   <div className="flex justify-center">{opt.icon}</div>
-                  <p className="text-xs font-medium">{opt.label}</p>
+                  <p className="text-ds-11 font-medium">{opt.label}</p>
                 </button>
               ))}
             </div>
@@ -196,7 +196,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
 
           {banType === "temporary" && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Duration (days)</p>
+              <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Duration (days)</p>
               <Select value={duration} onValueChange={setDuration}>
                 <SelectTrigger>
                   <SelectValue />
@@ -211,7 +211,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           )}
 
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reason</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Reason</p>
             <Textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
@@ -222,7 +222,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
 
           {banType === "permanent" && (
             <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
-              <p className="text-xs text-destructive flex items-start gap-1.5">
+              <p className="text-ds-11 text-destructive flex items-start gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>This action is severe. The user will lose access permanently.</span>
               </p>

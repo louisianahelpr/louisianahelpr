@@ -8,7 +8,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
 const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
-  <div className={`rounded-xl border p-3 ${
+  <div className={`rounded-ds-md border p-3 ${
     job.status === "open" ? "bg-primary/10 text-primary border-primary/20" :
     job.status === "in_progress" || job.status === "accepted" ? "bg-accent/20 text-accent-foreground border-accent/30" :
     "border-border bg-card"
@@ -16,16 +16,16 @@ const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
     <div className="flex items-start justify-between gap-3">
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap mb-1">
-          <h4 className="font-semibold text-sm">{job.title}</h4>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-background/50 font-medium">{isPosted ? "Posted" : "Assigned"}</span>
+          <h4 className="font-semibold text-ds-13">{job.title}</h4>
+          <span className="text-ds-11 px-2 py-0.5 rounded-full bg-background/50 font-medium">{isPosted ? "Posted" : "Assigned"}</span>
         </div>
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
           <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
           <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
           {job.start_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {job.start_time}</span>}
         </div>
       </div>
-      <span className="text-xs font-medium capitalize">{job.status.replace("_", " ")}</span>
+      <span className="text-ds-11 font-medium capitalize">{job.status.replace("_", " ")}</span>
     </div>
   </div>
 );
@@ -87,8 +87,8 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
           </div>
           <div className="space-y-3">
             <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
-            <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
-            <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
+            <div className="h-20 rounded-ds-md bg-muted/30 animate-pulse" />
+            <div className="h-20 rounded-ds-md bg-muted/30 animate-pulse" />
           </div>
         </div>
       ) : (
@@ -119,7 +119,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                   <button
                     key={day}
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                    className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors ${
+                    className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-ds-13 transition-colors ${
                       isSelected ? "bg-primary text-primary-foreground" :
                       isToday ? "bg-primary/10 text-primary font-bold" :
                       "hover:bg-secondary text-foreground"

@@ -188,20 +188,20 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Are you sure you want to cancel <strong className="text-foreground">"{jobTitle}"</strong>?
           </p>
 
           {/* Full Cancellation Policy */}
-          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Full Cancellation Policy</p>
+          <div className="rounded-ds-md border border-border bg-muted/30 p-4 space-y-3">
+            <p className="text-ds-11 font-semibold text-foreground uppercase tracking-wide">Full Cancellation Policy</p>
 
             {/* Step 1: Before helpr selected */}
             <div className={`flex items-start gap-2.5 p-3 rounded-lg border transition-all ${!hasHelper ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" : "bg-muted/20 border-border opacity-50"}`}>
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className="text-xs font-semibold text-foreground">Before a helpr is selected</p>
+                  <p className="text-ds-11 font-semibold text-foreground">Before a helpr is selected</p>
                   {!hasHelper && <span className="text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5">Cancel anytime with no fee. You&apos;ll receive a full refund.</p>
@@ -220,7 +220,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${hasHelper ? "bg-accent text-accent-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>2</div>
                 <div className="flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-xs font-semibold text-foreground">After a helpr is selected</p>
+                    <p className="text-ds-11 font-semibold text-foreground">After a helpr is selected</p>
                     {hasHelper && <span className="text-[10px] font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -245,15 +245,15 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               {hasHelper && cancellationFee > 0 && (
                 <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-ds-11">
                     <span className="text-muted-foreground">Cancellation fee ({cancellationFeePercent}% of ${jobBudget.toFixed(2)})</span>
                     <span className="font-semibold text-foreground">${cancellationFee.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-ds-11">
                     <span className="text-muted-foreground">Platform fee (10%)</span>
                     <span className="text-muted-foreground">−${platformCut.toFixed(2)}</span>
                   </div>
-                  <div className="border-t border-border pt-1.5 flex justify-between text-xs">
+                  <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">
                     <span className="text-muted-foreground">{helperName || "Helpr"} receives</span>
                     <span className="font-semibold text-primary">${helperPayout.toFixed(2)}</span>
                   </div>
@@ -272,11 +272,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           </div>
 
           {/* Strike system — always visible */}
-          <div className={`rounded-xl border p-4 space-y-3 ${hasHelper ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
-            <p className={`text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive" : "text-muted-foreground"}`}>
+          <div className={`rounded-ds-md border p-4 space-y-3 ${hasHelper ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
+            <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive" : "text-muted-foreground"}`}>
               <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies when helpr is selected)
             </p>
-            <div className="space-y-2 text-xs text-muted-foreground">
+            <div className="space-y-2 text-ds-11 text-muted-foreground">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
                 <p><strong className="text-foreground">1st strike:</strong> Written warning on your account. Admins notified.</p>

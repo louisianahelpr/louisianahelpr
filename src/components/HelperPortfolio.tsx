@@ -46,12 +46,12 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-display font-semibold text-foreground flex items-center gap-2">
+      <h2 className="text-ds-17 font-display font-semibold text-foreground flex items-center gap-2">
         <Camera className="w-5 h-5 text-primary" /> Work Portfolio
       </h2>
       <div className="grid grid-cols-2 gap-3">
         {items.map((item, idx) => (
-          <div key={idx} className="rounded-xl liquid-glass overflow-hidden group">
+          <div key={idx} className="rounded-ds-md liquid-glass overflow-hidden group">
             {/* Show the first after photo as the main image */}
             <div className="relative aspect-[4/3]">
               <img
@@ -67,8 +67,8 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
               )}
             </div>
             <div className="p-2.5">
-              <p className="text-xs font-medium text-foreground truncate">{item.jobTitle}</p>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-ds-11 font-medium text-foreground truncate">{item.jobTitle}</p>
+              <p className="text-muted-foreground text-ds-11">
                 {new Date(item.completedAt).toLocaleDateString()}
               </p>
             </div>

@@ -28,7 +28,7 @@ const OfflineBanner = () => {
     <div
       role="status"
       aria-live="polite"
-      className="fixed top-0 left-0 right-0 z-[60] bg-destructive text-destructive-foreground text-xs font-medium py-2 px-4 flex items-center justify-center gap-2 shadow-md"
+      className="fixed top-0 left-0 right-0 z-[60] bg-destructive text-destructive-foreground text-ds-11 font-medium py-2 px-4 flex items-center justify-center gap-2 shadow-md"
       style={{ paddingTop: "calc(0.5rem + env(safe-area-inset-top, 0px))" }}
     >
       <WifiOff className="w-3.5 h-3.5" />

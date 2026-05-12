@@ -66,7 +66,7 @@ export function MessageAttachment({ path, mime, size, mine }: MessageAttachmentP
             className="max-w-xs max-h-64 object-cover"
           />
         ) : (
-          <div className="flex items-center justify-center w-48 h-32 bg-muted text-xs text-muted-foreground">
+          <div className="flex items-center justify-center w-48 h-32 bg-muted text-ds-11 text-muted-foreground">
             Failed to load
           </div>
         )}
@@ -80,7 +80,7 @@ export function MessageAttachment({ path, mime, size, mine }: MessageAttachmentP
       <button
         type="button"
         onClick={handleOpen}
-        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-ds-13 transition-colors ${
           mine
             ? "bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground"
             : "bg-background/60 hover:bg-background text-foreground border border-border"

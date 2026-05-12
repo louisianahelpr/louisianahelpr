@@ -382,7 +382,7 @@ const Admin = () => {
 
                 <ThemeToggle />
                 <NotificationPanel />
-                <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9" aria-label="Log out">
+                <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-ds-md h-9 w-9" aria-label="Log out">
                   <LogOut className="w-4 h-4" />
                 </Button>
               </div>
@@ -398,7 +398,7 @@ const Admin = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleViewChange("home")}
-                  className="h-10 w-10 rounded-xl -ml-2 hover:bg-secondary/60 shrink-0 mt-0.5"
+                  className="h-10 w-10 rounded-ds-md -ml-2 hover:bg-secondary/60 shrink-0 mt-0.5"
                   aria-label="Back to admin dashboard"
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -459,7 +459,7 @@ const AdminBadgeToggle = () => {
       type="button"
       onClick={toggleSidebar}
       aria-label="Toggle admin menu"
-      className="flex items-center gap-1.5 px-2 h-9 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 mr-1 btn-press"
+      className="flex items-center gap-1.5 px-2 h-9 rounded-ds-md bg-destructive/10 text-destructive hover:bg-destructive/20 mr-1 btn-press"
     >
       <Shield className="w-3.5 h-3.5" />
       <span className="text-[11px] font-bold uppercase tracking-wide">Admin</span>
@@ -499,7 +499,7 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="rounded-xl liquid-glass p-4 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+      className="rounded-ds-md liquid-glass p-4 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
     >
       <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center", accentClasses)}>
@@ -507,7 +507,7 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
         </div>
         {trend && (
           <span className={cn(
-            "text-xs sm:text-[11px] font-semibold px-2 py-1 rounded-md flex items-center gap-0.5",
+            "text-ds-11 sm:text-[11px] font-semibold px-2 py-1 rounded-md flex items-center gap-0.5",
             trend.up ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
           )}>
             {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -515,8 +515,8 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
           </span>
         )}
       </div>
-      <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{value}</p>
-      <p className="text-xs sm:text-xs text-muted-foreground mt-1 sm:mt-1.5 leading-tight">{label}</p>
+      <p className="text-ds-20 sm:text-ds-24 font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      <p className="text-ds-11 sm:text-ds-11 text-muted-foreground mt-1 sm:mt-1.5 leading-tight">{label}</p>
     </button>
   );
 };
@@ -527,19 +527,19 @@ const PriorityAlert = ({ label, count, color, onClick }: {
   <button
     onClick={onClick}
     className={cn(
-      "flex items-center gap-2.5 rounded-xl border p-2.5 sm:p-3.5 text-left transition-all w-full hover:shadow-sm",
+      "flex items-center gap-2.5 rounded-ds-md border p-2.5 sm:p-3.5 text-left transition-all w-full hover:shadow-sm",
       color === "destructive"
         ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
         : "border-accent/30 bg-accent/5 hover:bg-accent/10"
     )}
   >
     <span className={cn(
-      "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold tabular-nums shrink-0",
+      "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-ds-11 sm:text-ds-13 font-bold tabular-nums shrink-0",
       color === "destructive" ? "bg-destructive/15 text-destructive" : "bg-accent/15 text-accent-foreground"
     )}>
       {count}
     </span>
-    <span className="text-xs sm:text-sm font-semibold text-foreground flex-1 leading-tight">{label}</span>
+    <span className="text-ds-11 sm:text-ds-13 font-semibold text-foreground flex-1 leading-tight">{label}</span>
     <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
   </button>
 );
@@ -623,7 +623,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
         <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" />
-            <p className="text-[10px] sm:text-xs font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
+            <p className="text-[10px] sm:text-ds-11 font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
           </div>
           <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
             {stats.pendingApprovals > 0 && (
@@ -644,7 +644,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
 
       {/* Financial Health — full width */}
       <div className="space-y-2 sm:space-y-3">
-        <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
+        <p className="text-[10px] sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
         <div className="grid grid-cols-2 gap-4 sm:gap-4">
           <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />

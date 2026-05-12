@@ -51,7 +51,7 @@ export function DetailsSection({
           <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
             <Briefcase className="w-3.5 h-3.5 text-primary" />
           </div>
-          <h2 className="font-display text-base font-semibold">Details</h2>
+          <h2 className="font-display text-ds-15 font-semibold">Details</h2>
         </div>
         {detailsComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
       </div>

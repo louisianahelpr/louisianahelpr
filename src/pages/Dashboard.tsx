@@ -310,7 +310,7 @@ const Dashboard = () => {
           <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
             <XCircle className="w-8 h-8 text-destructive" />
           </div>
-          <h1 className="text-page-title text-foreground text-2xl">
+          <h1 className="text-page-title text-foreground text-ds-24">
             Account {banStatus === "permanently_banned" ? "Permanently Banned" : "Temporarily Suspended"}
           </h1>
           <p className="text-muted-foreground">
@@ -340,16 +340,16 @@ const Dashboard = () => {
             {approvalStatus === "pending" ? (
               <>
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><Clock className="w-8 h-8 text-primary" /></div>
-                <h1 className="text-page-title text-foreground text-2xl">Profile under review</h1>
+                <h1 className="text-page-title text-foreground text-ds-24">Profile under review</h1>
                 <p className="text-muted-foreground">Thanks for signing up, {firstName}! Your profile is being reviewed.</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">
                   We'll let you know as soon as you're approved. This screen updates automatically.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-                  <Button onClick={handleCheckStatus} className="rounded-xl btn-press">
+                  <Button onClick={handleCheckStatus} className="rounded-ds-md btn-press">
                     Check status
                   </Button>
-                  <Button variant="outline" onClick={handleSignOut} className="rounded-xl">
+                  <Button variant="outline" onClick={handleSignOut} className="rounded-ds-md">
                     Sign out
                   </Button>
                 </div>
@@ -357,10 +357,10 @@ const Dashboard = () => {
             ) : (
               <>
                 <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto"><XCircle className="w-8 h-8 text-destructive" /></div>
-                <h1 className="text-page-title text-foreground text-2xl">Profile not approved</h1>
+                <h1 className="text-page-title text-foreground text-ds-24">Profile not approved</h1>
                 <p className="text-muted-foreground">Unfortunately, your profile was not approved. Please contact support.</p>
                 <div className="flex items-center justify-center gap-2 pt-2">
-                  <Button variant="outline" onClick={handleSignOut} className="rounded-xl">
+                  <Button variant="outline" onClick={handleSignOut} className="rounded-ds-md">
                     Sign out
                   </Button>
                 </div>
@@ -487,7 +487,7 @@ const Dashboard = () => {
               </div>
               <div className="flex items-center gap-1">
                 {filters.hasFilters && (
-                  <Button variant="ghost" size="sm" onClick={filters.clearFilters} className="text-xs text-muted-foreground hover:text-destructive h-8 rounded-xl btn-press">
+                  <Button variant="ghost" size="sm" onClick={filters.clearFilters} className="text-ds-11 text-muted-foreground hover:text-destructive h-8 rounded-ds-md btn-press">
                     <X className="w-3 h-3 mr-1" /> Clear
                   </Button>
                 )}
@@ -510,7 +510,7 @@ const Dashboard = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
-                  className={`h-8 w-8 rounded-xl btn-press ${filters.searchOpen || filters.searchQuery ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`h-8 w-8 rounded-ds-md btn-press ${filters.searchOpen || filters.searchQuery ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
                   aria-label="Search jobs"
                   aria-expanded={filters.searchOpen}
                 >
@@ -520,7 +520,7 @@ const Dashboard = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
-                  className={`h-8 w-8 rounded-xl btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`h-8 w-8 rounded-ds-md btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
                   aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
                   aria-expanded={filters.filtersOpen}
                 >
@@ -551,7 +551,7 @@ const Dashboard = () => {
                       placeholder="Search tasks…"
                       value={filters.searchQuery}
                       onChange={(e) => filters.setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-9 h-10 text-sm rounded-xl border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                      className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
                     />
                     {filters.searchQuery && (
                       <button onClick={() => filters.setSearchQuery("")} className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press">
@@ -597,13 +597,13 @@ const Dashboard = () => {
             {!filters.filtersOpen && (filters.selectedCategory || filters.locationFilter || filters.maxBudget || filters.expiresWithin || filters.matchAvailability) && (
               <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30">
                 {filters.selectedCategory && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                     {categoryLabels[filters.selectedCategory]}
                     <button onClick={() => filters.setSelectedCategory(null)} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {filters.locationFilter && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                     <MapPin className="w-3 h-3" />
                     {filters.locationFilter.startsWith("nearby:")
                       ? `Within ${filters.locationFilter.slice(7)} mi`
@@ -612,19 +612,19 @@ const Dashboard = () => {
                   </span>
                 )}
                 {filters.maxBudget && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                     ≤ ${filters.maxBudget}
                     <button onClick={() => filters.setMaxBudget("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {filters.expiresWithin && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                     {filters.expiresWithin}
                     <button onClick={() => filters.setExpiresWithin("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {filters.matchAvailability && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                     <Clock className="w-3 h-3" /> My hours
                     <button onClick={() => filters.setMatchAvailability(false)} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
                   </span>
@@ -637,10 +637,10 @@ const Dashboard = () => {
                 signup redirect. Lives outside the elevated content box
                 so the toggle reads as a peer of the box. */}
             <div className="px-3 pt-3 pb-1">
-              <div className="flex gap-1 p-1 bg-muted/40 rounded-xl border border-border w-full max-w-xs mx-auto">
+              <div className="flex gap-1 p-1 bg-muted/40 rounded-ds-md border border-border w-full max-w-xs mx-auto">
                 <button
                   onClick={() => setView("list")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-medium transition-colors ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-ds-11 font-medium transition-colors ${
                     view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -648,7 +648,7 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => setView("map")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-medium transition-colors ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-ds-11 font-medium transition-colors ${
                     view === "map" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -744,7 +744,7 @@ const Dashboard = () => {
                       {filters.hasFilters ? "No jobs match your filters." : "Nothing nearby just yet."}
                     </p>
                     <p
-                      className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                      className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
                       style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                     >
                       {filters.hasFilters
@@ -755,7 +755,7 @@ const Dashboard = () => {
                     </p>
                   </div>
                   {filters.hasFilters ? (
-                    <Button variant="outline" onClick={filters.clearFilters} className="rounded-xl">
+                    <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
                       Clear filters
                     </Button>
                   ) : (
@@ -893,7 +893,7 @@ const Dashboard = () => {
                   {hasNextPage && (
                     <div ref={loadMoreRef} className="px-4 py-4 flex justify-center">
                       {isFetchingNextPage ? (
-                        <span className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                        <span className="text-ds-11 text-muted-foreground inline-flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
                           Loading more jobs…
                         </span>
@@ -902,7 +902,7 @@ const Dashboard = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => fetchNextPage()}
-                          className="text-xs text-muted-foreground hover:text-foreground rounded-xl btn-press"
+                          className="text-ds-11 text-muted-foreground hover:text-foreground rounded-ds-md btn-press"
                         >
                           Load more
                         </Button>
@@ -951,7 +951,7 @@ const Dashboard = () => {
               {confirmApplyJob
                 ? <div className="space-y-3">
                     <p>Are you sure you want to apply for <span className="font-semibold text-foreground">"{confirmApplyJob.title}"</span>?</p>
-                    <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-1.5 text-sm">
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-1.5 text-ds-13">
                       {(() => {
                         const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
                         const perHelper = confirmApplyJob.budget / helpers;
@@ -960,24 +960,24 @@ const Dashboard = () => {
                         return (
                           <>
                              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Earnings Breakdown</p>
-                             <div className="flex justify-between text-xs text-muted-foreground">
+                             <div className="flex justify-between text-ds-11 text-muted-foreground">
                                <span>Job Budget{helpers > 1 ? ` (÷${helpers} helprs)` : ""}</span>
                                <span className="text-foreground font-medium">${perHelper.toFixed(2)}</span>
                              </div>
-                             <div className="flex justify-between text-xs text-muted-foreground">
+                             <div className="flex justify-between text-ds-11 text-muted-foreground">
                                <span>Platform Fee ({platformFee}%)</span>
                                <span className="text-destructive/70">−${commission.toFixed(2)}</span>
                              </div>
                             {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
-                              <div className="flex justify-between text-xs text-muted-foreground">
+                              <div className="flex justify-between text-ds-11 text-muted-foreground">
                                 <span>Urgent bonus</span>
                                 <span className="text-accent">+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
                               </div>
                             )}
                             <div className="h-px bg-border my-1" />
                             <div className="flex justify-between">
-                              <span className="font-semibold text-foreground text-sm">Your Payout</span>
-                              <span className="font-bold text-primary text-sm">${payout.toFixed(2)}</span>
+                              <span className="font-semibold text-foreground text-ds-13">Your Payout</span>
+                              <span className="font-bold text-primary text-ds-13">${payout.toFixed(2)}</span>
                             </div>
                           </>
                         );
@@ -987,22 +987,22 @@ const Dashboard = () => {
                 : <p>Are you sure you want to apply for this task?</p>}
             </AlertDialogDescription>
             <div className="space-y-1.5 mt-2">
-              <label htmlFor="apply-message" className="text-xs text-muted-foreground">Add a message (optional)</label>
+              <label htmlFor="apply-message" className="text-ds-11 text-muted-foreground">Add a message (optional)</label>
               <Textarea
                 id="apply-message"
                 value={applyMessage}
                 onChange={(e) => setApplyMessage(e.target.value)}
                 placeholder="Introduce yourself or share relevant experience…"
                 rows={3}
-                className="text-sm"
+                className="text-ds-13"
               />
             </div>
             {/* File attachments */}
             <div className="space-y-1.5 mt-2">
-              <label className="text-xs text-muted-foreground">Attach certs or previous work (optional)</label>
+              <label className="text-ds-11 text-muted-foreground">Attach certs or previous work (optional)</label>
               <div className="space-y-1.5">
                 {applyFiles.map((file, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs bg-secondary/30 rounded-lg px-2.5 py-1.5">
+                  <div key={i} className="flex items-center gap-2 text-ds-11 bg-secondary/30 rounded-lg px-2.5 py-1.5">
                     <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span className="truncate flex-1">{file.name}</span>
                     <span className="text-muted-foreground shrink-0">{(file.size / 1024).toFixed(0)}KB</span>
@@ -1012,7 +1012,7 @@ const Dashboard = () => {
                   </div>
                 ))}
                 {applyFiles.length < 5 && (
-                  <label className="flex items-center gap-2 text-xs text-primary cursor-pointer hover:underline">
+                  <label className="flex items-center gap-2 text-ds-11 text-primary cursor-pointer hover:underline">
                     <Paperclip className="w-3.5 h-3.5" />
                     <span>Add file</span>
                     <input
@@ -1045,16 +1045,16 @@ const Dashboard = () => {
       <AlertDialog open={!!confirmDismissJobId} onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg rounded-lg p-4 sm:p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-base sm:text-lg">Not Interested?</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm">
+            <AlertDialogTitle className="text-ds-15 sm:text-ds-17">Not Interested?</AlertDialogTitle>
+            <AlertDialogDescription className="text-ds-13">
               {confirmDismissJob
                 ? <>Remove <span className="font-semibold text-foreground">"{confirmDismissJob.title}"</span> from your feed? You won't see it again.</>
                 : "Remove this job from your feed?"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row justify-end gap-2 sm:gap-2">
-            <AlertDialogCancel className="mt-0 h-9 px-3 text-sm">Keep It</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDismissConfirm} className="h-9 px-3 text-sm bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
+            <AlertDialogCancel className="mt-0 h-9 px-3 text-ds-13">Keep It</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDismissConfirm} className="h-9 px-3 text-ds-13 bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

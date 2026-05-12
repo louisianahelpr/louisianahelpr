@@ -166,7 +166,7 @@ export const RichMessageInput = ({
           ) : (
             <div className="h-20 w-32 rounded-lg border border-border bg-muted flex items-center gap-2 px-3">
               <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
-              <span className="text-xs text-foreground truncate">{stagedFile.name}</span>
+              <span className="text-ds-11 text-foreground truncate">{stagedFile.name}</span>
             </div>
           )}
           <button
@@ -240,7 +240,7 @@ export const RichMessageInput = ({
               <span className="block">
                 We detected <strong className="text-foreground">{pendingViolation?.toLowerCase()}</strong> in your message.
               </span>
-              <span className="block text-xs">
+              <span className="block text-ds-11">
                 Payments and conversations outside Helpr aren't protected by our dispute policy, escrow, or insurance.
                 Sending anyway will hide the message from the recipient and add a fraud flag to your account.
                 Two flags within 24 hours triggers an automatic 7-day suspension.

@@ -42,21 +42,21 @@ export function JobBoostDialog({ jobId, open, onClose }: JobBoostDialogProps) {
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-center space-y-2">
+          <div className="rounded-ds-md bg-primary/5 border border-primary/20 p-4 text-center space-y-2">
             <p className="text-3xl font-bold text-foreground">$3</p>
-            <p className="text-xs text-muted-foreground">Your job will appear at the top of the feed for <span className="font-semibold text-foreground">24 hours</span></p>
+            <p className="text-ds-11 text-muted-foreground">Your job will appear at the top of the feed for <span className="font-semibold text-foreground">24 hours</span></p>
           </div>
-          <ul className="space-y-2 text-xs text-muted-foreground">
+          <ul className="space-y-2 text-ds-11 text-muted-foreground">
             <li className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">✓</span>
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-ds-11">✓</span>
               Featured placement at top of browse feed
             </li>
             <li className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">✓</span>
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-ds-11">✓</span>
               "Boosted" badge makes your post stand out
             </li>
             <li className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">✓</span>
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-ds-11">✓</span>
               Get more applications, faster
             </li>
           </ul>

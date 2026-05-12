@@ -46,7 +46,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
             <p className="font-display italic font-bold" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))" }}>
               {isPosted ? "No posts yet" : "No history yet"}
             </p>
-            <p className="font-serif italic text-sm max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-13 max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               {isPosted
                 ? "Tell a neighbor what you need done — they'll see it within minutes."
                 : "Every job you complete builds your record. Apply to one to get started."}
@@ -57,7 +57,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
       ) : (
         <div className="space-y-3">
           {jobs.map((job) => (
-            <div key={job.id} className="rounded-xl liquid-glass p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
+            <div key={job.id} className="rounded-ds-md liquid-glass p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
@@ -73,12 +73,12 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
                 </div>
                 {isPosted ? (
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-base font-bold text-primary tabular-nums">${job.budget}</span>
+                    <span className="text-ds-15 font-bold text-primary tabular-nums">${job.budget}</span>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
                   </div>
                 ) : (
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <span className="text-base font-bold text-primary tabular-nums">${job.budget}</span>
+                    <span className="text-ds-15 font-bold text-primary tabular-nums">${job.budget}</span>
                   </div>
                 )}
               </div>

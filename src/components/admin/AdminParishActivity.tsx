@@ -25,14 +25,14 @@ const AdminParishActivity = () => {
   }, []);
 
   return (
-    <div className="rounded-xl liquid-glass p-5">
+    <div className="rounded-ds-md liquid-glass p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
             <MapPin className="w-4 h-4 text-accent-foreground" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Hot Parishes</p>
+            <p className="text-ds-13 font-semibold text-foreground">Hot Parishes</p>
             <p className="text-[11px] text-muted-foreground">Top 5 by recent activity</p>
           </div>
         </div>
@@ -44,7 +44,7 @@ const AdminParishActivity = () => {
           {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-6">No parish activity yet.</p>
+        <p className="text-ds-11 text-muted-foreground text-center py-6">No parish activity yet.</p>
       ) : (
         <div className="space-y-1.5">
           {rows.map((r, i) => (
@@ -52,15 +52,15 @@ const AdminParishActivity = () => {
               key={r.parish}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors"
             >
-              <span className="text-sm font-bold text-muted-foreground w-5 tabular-nums">{i + 1}</span>
+              <span className="text-ds-13 font-bold text-muted-foreground w-5 tabular-nums">{i + 1}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{r.parish}</p>
+                <p className="text-ds-13 font-medium text-foreground truncate">{r.parish}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {r.active_jobs} active · {r.helper_count} helprs
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-foreground tabular-nums">${r.revenue_30d.toFixed(0)}</p>
+                <p className="text-ds-13 font-bold text-foreground tabular-nums">${r.revenue_30d.toFixed(0)}</p>
                 <p className="text-[11px] text-primary flex items-center gap-0.5 justify-end">
                   <TrendingUp className="w-2.5 h-2.5" />
                   {r.completed_jobs_30d} jobs

@@ -73,10 +73,10 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
         className="flex items-center gap-2 w-full text-left px-3 py-2.5"
       >
         <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground flex-1">
+        <span className="text-ds-11 text-muted-foreground flex-1">
           <span className="font-medium text-foreground">Try the AI Job Builder</span> — describe your task and let AI fill the form
         </span>
-        <span className="text-xs text-muted-foreground">{open ? "Hide" : "Show"}</span>
+        <span className="text-ds-11 text-muted-foreground">{open ? "Hide" : "Show"}</span>
       </button>
       {open && (
         <div className="space-y-2 p-3 pt-0 border-t border-dashed border-border">
@@ -85,7 +85,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g. I need help moving furniture from my apartment to a new house across town."
             rows={3}
-            className="text-sm"
+            className="text-ds-13"
           />
           <Button
             type="button"

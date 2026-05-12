@@ -92,21 +92,21 @@ const AdminBusinessVerificationQueue = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+        <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center">
           <Building2 className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-xl font-display font-bold text-foreground">
+          <h2 className="text-ds-20 font-display font-bold text-foreground">
             Business verification queue
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Approve to grant the Verified Business badge to the owner and every active team member.
           </p>
         </div>
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl liquid-glass p-10 text-center text-xs text-muted-foreground">
+        <div className="rounded-2xl liquid-glass p-10 text-center text-ds-11 text-muted-foreground">
           No pending business verifications. 🎉
         </div>
       ) : (
@@ -114,14 +114,14 @@ const AdminBusinessVerificationQueue = () => {
           {rows.map((r) => (
             <div key={r.business_id} className="rounded-2xl liquid-glass p-4 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground truncate">
+                  <p className="font-semibold text-ds-13 text-foreground truncate">
                     {r.business_name}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-ds-11 text-muted-foreground truncate">
                     Owner: {r.owner_name || "Unnamed"} · {r.owner_email}
                   </p>
                 </div>
@@ -131,9 +131,9 @@ const AdminBusinessVerificationQueue = () => {
               </div>
 
               {r.document_url && (
-                <div className="rounded-xl border border-border bg-secondary/40 p-3 space-y-2">
+                <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-ds-11 font-semibold uppercase tracking-wider text-muted-foreground">
                       {r.document_type ? docLabels[r.document_type] : "Document"}
                     </p>
                     <a
@@ -213,7 +213,7 @@ function DocPreview({ url }: { url: string }) {
   const isPdf = /\.pdf(\?|$)/i.test(url);
   if (isPdf) {
     return (
-      <div className="flex items-center gap-2 rounded-lg bg-background/60 p-3 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-lg bg-background/60 p-3 text-ds-11 text-muted-foreground">
         <FileText className="w-4 h-4" /> PDF document — open to review
       </div>
     );

@@ -169,12 +169,12 @@ const NotificationPanel = () => {
           <SheetTitle className="font-display">Notifications</SheetTitle>
           <div className="flex items-center gap-2 pt-1">
             {pushSupported && !pushEnabled && (
-              <Button variant="ghost" size="sm" onClick={enablePush} className="text-xs text-primary h-7 px-2">
+              <Button variant="ghost" size="sm" onClick={enablePush} className="text-ds-11 text-primary h-7 px-2">
                 <BellRing className="w-3.5 h-3.5 mr-1" /> Enable push
               </Button>
             )}
             {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={markAllRead} className="text-xs text-muted-foreground h-7 px-2">
+              <Button variant="ghost" size="sm" onClick={markAllRead} className="text-ds-11 text-muted-foreground h-7 px-2">
                 <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
               </Button>
             )}
@@ -187,7 +187,7 @@ const NotificationPanel = () => {
           {notifications.length === 0 ? (
             <div className="text-center py-16 px-4">
               <Bell className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-xs text-muted-foreground">No notifications yet</p>
+              <p className="text-ds-11 text-muted-foreground">No notifications yet</p>
             </div>
           ) : (
             <div>
@@ -205,13 +205,13 @@ const NotificationPanel = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className={`text-sm font-medium truncate ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
+                        <p className={`text-ds-13 font-medium truncate ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
                           {n.title}
                         </p>
                         {!n.read && <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                      <p className="text-xs text-muted-foreground/60 mt-1">{timeAgo(n.created_at)}</p>
+                      <p className="text-ds-11 text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                      <p className="text-ds-11 text-muted-foreground/60 mt-1">{timeAgo(n.created_at)}</p>
                     </div>
                   </div>
                 </button>

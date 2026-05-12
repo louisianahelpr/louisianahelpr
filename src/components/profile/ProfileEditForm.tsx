@@ -94,7 +94,7 @@ export function ProfileEditForm({
                   onError={() => setAvatarBroken(true)}
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-display italic font-bold border-2 border-primary/20">
+                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
                   {initials}
                 </div>
               )}
@@ -121,16 +121,16 @@ export function ProfileEditForm({
           </p>
           <div className="space-y-3">
             <div>
-              <Label htmlFor="phone" className="text-xs mb-1.5 block">Phone</Label>
+              <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
               <Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
-                <Label htmlFor="location" className="text-xs mb-1.5 block">City</Label>
+                <Label htmlFor="location" className="text-ds-11 mb-1.5 block">City</Label>
                 <Input id="location" autoComplete="address-level2" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-10" />
               </div>
               <div>
-                <Label htmlFor="zipCode" className="text-xs mb-1.5 block">ZIP</Label>
+                <Label htmlFor="zipCode" className="text-ds-11 mb-1.5 block">ZIP</Label>
                 <Input
                   id="zipCode"
                   value={zipCode}
@@ -152,14 +152,14 @@ export function ProfileEditForm({
             <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
               About your work
             </p>
-            <span className={`text-xs font-medium ${bioOk ? "text-green-600 dark:text-green-500" : "text-muted-foreground"}`}>{bio.trim().length}/20</span>
+            <span className={`text-ds-11 font-medium ${bioOk ? "text-green-600 dark:text-green-500" : "text-muted-foreground"}`}>{bio.trim().length}/20</span>
           </div>
           <Textarea
             id="bio"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="What you do, tools you bring, what makes you reliable…"
-            className="min-h-[112px] resize-none text-sm leading-relaxed"
+            className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
           />
           <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
             Customers read this when deciding who to hire. The more specific, the better.
@@ -187,7 +187,7 @@ export function ProfileEditForm({
               Upload a government-issued ID. Encrypted in transit and reviewed by Helpr.
             </p>
             <label className="shrink-0">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 h-9 rounded-xl bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 active:scale-[0.98] transition-all">
+              <span className="inline-flex items-center gap-1.5 text-ds-11 font-semibold px-3 h-9 rounded-ds-md bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 active:scale-[0.98] transition-all">
                 {idUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                 {hasId ? "Replace" : "Upload"}
               </span>
@@ -207,14 +207,14 @@ export function ProfileEditForm({
           <button
             type="button"
             onClick={onBack}
-            className="rounded-2xl liquid-glass h-12 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:scale-[0.98] transition-all"
+            className="rounded-2xl liquid-glass h-12 inline-flex items-center justify-center gap-2 text-ds-13 font-semibold text-foreground hover:bg-secondary/40 active:scale-[0.98] transition-all"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving || justSaved}
-            className={`col-span-2 rounded-2xl h-12 inline-flex items-center justify-center gap-2 text-sm font-bold transition-all active:scale-[0.98] disabled:active:scale-100 shadow-[0_2px_4px_hsl(var(--primary)/0.15),0_12px_32px_-12px_hsl(var(--primary)/0.45)] ${
+            className={`col-span-2 rounded-2xl h-12 inline-flex items-center justify-center gap-2 text-ds-13 font-bold transition-all active:scale-[0.98] disabled:active:scale-100 shadow-[0_2px_4px_hsl(var(--primary)/0.15),0_12px_32px_-12px_hsl(var(--primary)/0.45)] ${
               saving
                 ? "bg-muted text-muted-foreground cursor-not-allowed"
                 : justSaved

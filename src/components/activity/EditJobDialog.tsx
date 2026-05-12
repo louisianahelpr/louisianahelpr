@@ -76,7 +76,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         </DialogHeader>
         <div className="space-y-4">
           {locked && (
-            <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+            <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-md p-2">
               Fields are locked because a helpr has been accepted.
             </p>
           )}

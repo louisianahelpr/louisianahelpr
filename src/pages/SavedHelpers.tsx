@@ -155,7 +155,7 @@ const SavedHelpers = () => {
                 placeholder="Search by name or skills…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 rounded-xl"
+                className="pl-9 rounded-ds-md"
               />
             </div>
           )}
@@ -205,7 +205,7 @@ const SavedHelpers = () => {
                   {helpers.length === 0 ? "No saved helprs yet." : "Nothing matches that search."}
                 </p>
                 <p
-                  className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                  className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 >
                   {helpers.length === 0
@@ -282,7 +282,7 @@ const SavedHelpers = () => {
                       <Button
                         size="sm"
                         onClick={() => navigate(`/post-job?offerTo=${h.helper_id}`)}
-                        className="flex-1 rounded-xl"
+                        className="flex-1 rounded-ds-md"
                       >
                         <Send className="w-3.5 h-3.5 mr-1.5" />
                         Offer a job
@@ -291,7 +291,7 @@ const SavedHelpers = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => navigate(`/user/${h.helper_id}`)}
-                        className="rounded-xl"
+                        className="rounded-ds-md"
                       >
                         <Briefcase className="w-3.5 h-3.5 mr-1.5" />
                         Profile
@@ -300,7 +300,7 @@ const SavedHelpers = () => {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleRemove(h.helper_id)}
-                        className="rounded-xl"
+                        className="rounded-ds-md"
                         aria-label="Remove from saved"
                       >
                         <Heart className="w-3.5 h-3.5 fill-destructive text-destructive" />

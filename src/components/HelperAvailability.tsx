@@ -101,7 +101,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
     }
   };
 
-  if (!loaded) return <p className="text-xs text-muted-foreground p-3">Loading availability...</p>;
+  if (!loaded) return <p className="text-ds-11 text-muted-foreground p-3">Loading availability...</p>;
 
   if (compact) {
     return (
@@ -149,7 +149,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                       className="h-8 px-2 rounded-lg text-[11px] gap-1.5"
                     />
                   ) : (
-                    <span className="text-xs font-medium text-muted-foreground">Unavailable</span>
+                    <span className="text-ds-11 font-medium text-muted-foreground">Unavailable</span>
                   )}
                 </div>
               </div>
@@ -161,7 +161,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             onClick={handleSave}
             disabled={saving}
             size="lg"
-            className="w-full h-9 rounded-lg text-sm font-semibold"
+            className="w-full h-9 rounded-lg text-ds-13 font-semibold"
           >
             {saving ? "Saving..." : "Save Availability"}
           </Button>

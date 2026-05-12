@@ -50,7 +50,7 @@ const AccountDenied = () => {
           >
             We couldn't approve your account.
           </h1>
-          <p className="font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
             Unfortunately, your account was not approved at this time.
           </p>
         </div>
@@ -69,7 +69,7 @@ const AccountDenied = () => {
             >
               Reason
             </p>
-            <p className="text-sm font-sans" style={{ color: "hsl(var(--ink-deep))" }}>{denyReason}</p>
+            <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>{denyReason}</p>
           </div>
         )}
 
@@ -82,24 +82,24 @@ const AccountDenied = () => {
           </h2>
 
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "hsl(var(--bark) / 0.1)" }}>
+            <div className="w-9 h-9 rounded-ds-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "hsl(var(--bark) / 0.1)" }}>
               <RefreshCw className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
             </div>
             <div>
-              <p className="text-sm font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Re-apply with updated info</p>
-              <p className="text-xs font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Re-apply with updated info</p>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                 Sign up again with the same email to resubmit your profile with a new photo, ID, and details.
               </p>
             </div>
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "hsl(var(--bark) / 0.1)" }}>
+            <div className="w-9 h-9 rounded-ds-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "hsl(var(--bark) / 0.1)" }}>
               <Mail className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
             </div>
             <div>
-              <p className="text-sm font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Contact support</p>
-              <p className="text-xs font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Contact support</p>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                 If you think this was a mistake, reach out to our team.
               </p>
             </div>
@@ -108,7 +108,7 @@ const AccountDenied = () => {
 
         <div className="flex flex-col gap-3">
           <Button
-            className="w-full rounded-xl"
+            className="w-full rounded-ds-md"
             size="lg"
             onClick={async () => { await supabase.auth.signOut(); navigate("/signup"); }}
             style={{
@@ -124,14 +124,14 @@ const AccountDenied = () => {
             Re-apply now
           </Button>
           <a href="mailto:admin@louisianahelpr.com">
-            <Button variant="ghost" className="w-full rounded-xl" size="sm">
+            <Button variant="ghost" className="w-full rounded-ds-md" size="sm">
               <Mail className="w-4 h-4 mr-2" />
               Email support
             </Button>
           </a>
         </div>
 
-        <p className="text-xs font-sans" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+        <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
           Need help? Email us at{" "}
           <a
             href="mailto:admin@louisianahelpr.com"

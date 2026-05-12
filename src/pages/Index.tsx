@@ -192,7 +192,7 @@ const Index = () => {
           hero with proper breathing room above the Three Steps section. */}
       <div className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-20 pb-4 sm:pb-6">
         <p
-          className="text-center font-serif italic text-xs sm:text-sm tracking-[0.18em] uppercase"
+          className="text-center font-serif italic text-ds-11 sm:text-ds-13 tracking-[0.18em] uppercase"
           style={{ color: "hsl(var(--burnt-sienna))", opacity: 0.55 }}
         >
           Serving New Orleans · Baton Rouge · Lafayette · Shreveport · Lake

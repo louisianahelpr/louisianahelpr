@@ -68,11 +68,11 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <Skeleton className="h-8 w-full rounded-md" />
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <Skeleton className="h-16 rounded-xl" />
-          <Skeleton className="h-16 rounded-xl" />
-          <Skeleton className="h-16 rounded-xl" />
+          <Skeleton className="h-16 rounded-ds-md" />
+          <Skeleton className="h-16 rounded-ds-md" />
+          <Skeleton className="h-16 rounded-ds-md" />
         </div>
-        <div className="rounded-xl liquid-glass p-3 space-y-2 flex-1 min-h-0">
+        <div className="rounded-ds-md liquid-glass p-3 space-y-2 flex-1 min-h-0">
           <Skeleton className="h-4 w-28" />
           <Skeleton className="h-3 w-full" />
           <Skeleton className="h-3 w-5/6" />
@@ -112,7 +112,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           { icon: DollarSign, label: "Earned", value: `$${totalCredits}` },
           { icon: Gift, label: "Available", value: `$${unredeemedCredits}` },
         ].map(({ icon: Icon, label, value }) => (
-          <div key={label} className="rounded-xl liquid-glass p-3 text-center">
+          <div key={label} className="rounded-ds-md liquid-glass p-3 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Icon className="w-3 h-3 text-primary" />
               <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>

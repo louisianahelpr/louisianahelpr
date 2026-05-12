@@ -64,15 +64,15 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
             </button>
 
             <div className="text-6xl mb-4">🎂</div>
-            <h2 className="text-page-title text-foreground text-2xl">
+            <h2 className="text-page-title text-foreground text-ds-24">
               Happy Birthday, {firstName}! 🎉
             </h2>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-ds-11 text-muted-foreground mt-2">
               Wishing you an amazing day! Thank you for being part of the Helpr community.
             </p>
             <div className="flex items-center justify-center gap-1 mt-4 text-primary">
               <Cake className="w-4 h-4" />
-              <span className="text-xs font-medium">From the Helpr team with ❤️</span>
+              <span className="text-ds-11 font-medium">From the Helpr team with ❤️</span>
             </div>
           </motion.div>
         </motion.div>

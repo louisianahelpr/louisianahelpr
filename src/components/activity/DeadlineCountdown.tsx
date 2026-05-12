@@ -49,10 +49,10 @@ const DeadlineCountdown = ({ deadline, expiredText, consequenceText, variant = "
       <Timer className="w-4 h-4 shrink-0 mt-0.5" />
       <div className="min-w-0">
         {isExpired ? (
-          <p className="text-xs font-semibold">{expiredText}</p>
+          <p className="text-ds-11 font-semibold">{expiredText}</p>
         ) : (
           <>
-            <p className="text-xs font-semibold tabular-nums">{timeStr} remaining</p>
+            <p className="text-ds-11 font-semibold tabular-nums">{timeStr} remaining</p>
             <p className="text-[10px] mt-0.5 opacity-80">{consequenceText}</p>
           </>
         )}

@@ -255,7 +255,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
     <Dialog open={open} onOpenChange={setOpen}>
       {!hideTrigger && (
         <DialogTrigger asChild>
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5">
+          <Button size="sm" variant="outline" className="h-8 text-ds-11 gap-1.5">
             <Receipt className="w-3.5 h-3.5" />
             Tax Export
           </Button>
@@ -274,7 +274,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
 
         <div className="space-y-4 py-2">
           <div>
-            <label className="text-xs font-semibold text-foreground mb-2 block">Date Range</label>
+            <label className="text-ds-11 font-semibold text-foreground mb-2 block">Date Range</label>
             <Select value={mode} onValueChange={(v) => setMode(v as RangeMode)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -287,7 +287,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
 
           {mode === "month" && (
             <div>
-              <label className="text-xs font-semibold text-foreground mb-2 block">Month</label>
+              <label className="text-ds-11 font-semibold text-foreground mb-2 block">Month</label>
               <Select value={month} onValueChange={setMonth}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -302,7 +302,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
           {mode === "custom" && (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs font-semibold text-foreground mb-2 block">From</label>
+                <label className="text-ds-11 font-semibold text-foreground mb-2 block">From</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !customStart && "text-muted-foreground")}>
@@ -316,7 +316,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
                 </Popover>
               </div>
               <div>
-                <label className="text-xs font-semibold text-foreground mb-2 block">To</label>
+                <label className="text-ds-11 font-semibold text-foreground mb-2 block">To</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !customEnd && "text-muted-foreground")}>

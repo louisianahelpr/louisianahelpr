@@ -148,21 +148,21 @@ const SupportPage = () => {
           </div>
 
           <section className="rounded-2xl liquid-glass px-4 py-2.5 sm:py-3">
-            <h2 className="text-sm font-semibold text-foreground mb-2">Contact Us</h2>
+            <h2 className="text-ds-13 font-semibold text-foreground mb-2">Contact Us</h2>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-primary shrink-0" />
-                <a href="mailto:admin@louisianahelpr.com" className="text-[11px] sm:text-xs text-primary hover:underline truncate">
+                <a href="mailto:admin@louisianahelpr.com" className="text-[11px] sm:text-ds-11 text-primary hover:underline truncate">
                   admin@louisianahelpr.com
                 </a>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-primary shrink-0" />
-                <p className="text-[11px] sm:text-xs text-muted-foreground">Reply 24–48h</p>
+                <p className="text-[11px] sm:text-ds-11 text-muted-foreground">Reply 24–48h</p>
               </div>
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-primary shrink-0" />
-                <div className="flex gap-1.5 text-[11px] sm:text-xs">
+                <div className="flex gap-1.5 text-[11px] sm:text-ds-11">
                   <Link to="/terms" className="text-primary hover:underline">Terms</Link>
                   <span className="text-muted-foreground">·</span>
                   <Link to="/privacy" className="text-primary hover:underline">Privacy</Link>
@@ -172,14 +172,14 @@ const SupportPage = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary shrink-0" />
-                <p className="text-[11px] sm:text-xs text-muted-foreground">Helprs reviewed</p>
+                <p className="text-[11px] sm:text-ds-11 text-muted-foreground">Helprs reviewed</p>
               </div>
             </div>
           </section>
 
           {user && (
             <section className="space-y-2">
-              <h2 className="text-sm font-semibold text-foreground">Send Us a Message</h2>
+              <h2 className="text-ds-13 font-semibold text-foreground">Send Us a Message</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {categories.map((c) => (
                   <button
@@ -187,11 +187,11 @@ const SupportPage = () => {
                     onClick={() => setOpenCategory(c.key)}
                     className="rounded-2xl liquid-glass hover:border-primary/40 hover:shadow-sm transition-all px-3 py-2.5 flex items-center gap-2 sm:flex-col sm:items-start sm:gap-1.5"
                   >
-                    <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${c.accent} flex items-center justify-center shrink-0`}>
+                    <div className={`w-8 h-8 rounded-ds-md bg-gradient-to-br ${c.accent} flex items-center justify-center shrink-0`}>
                       {c.icon}
                     </div>
                     <div className="text-left min-w-0">
-                      <p className="font-medium text-xs text-foreground leading-tight truncate">{c.label}</p>
+                      <p className="font-medium text-ds-11 text-foreground leading-tight truncate">{c.label}</p>
                       <p className="text-[10px] text-muted-foreground leading-tight truncate">{c.description}</p>
                     </div>
                   </button>
@@ -201,15 +201,15 @@ const SupportPage = () => {
           )}
 
           <section className="space-y-2 hidden sm:block">
-            <h2 className="text-sm font-semibold text-foreground">Frequently Asked Questions</h2>
+            <h2 className="text-ds-13 font-semibold text-foreground">Frequently Asked Questions</h2>
             <div className="space-y-2">
               {faqItems.map((item, i) => (
                 <details key={i} className="rounded-2xl liquid-glass group">
-                  <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-foreground hover:text-primary transition-colors list-none flex items-center justify-between">
+                  <summary className="px-4 py-3 cursor-pointer text-ds-13 font-medium text-foreground hover:text-primary transition-colors list-none flex items-center justify-between">
                     {item.q}
                     <span className="text-muted-foreground group-open:rotate-180 transition-transform">▾</span>
                   </summary>
-                  <p className="px-4 pb-3 text-xs text-muted-foreground">{item.a}</p>
+                  <p className="px-4 pb-3 text-ds-11 text-muted-foreground">{item.a}</p>
                 </details>
               ))}
             </div>
@@ -221,7 +221,7 @@ const SupportPage = () => {
 
           {!user && (
             <section className="rounded-2xl liquid-glass p-4 text-center space-y-3">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-ds-11 text-muted-foreground">
                 Sign in to send a message directly, or email us at{" "}
                 <a href="mailto:admin@louisianahelpr.com" className="text-primary hover:underline">
                   admin@louisianahelpr.com
@@ -249,8 +249,8 @@ const SupportPage = () => {
                     {activeCategory.icon}
                   </div>
                   <div>
-                    <SheetTitle className="text-lg">{activeCategory.label}</SheetTitle>
-                    <SheetDescription className="text-xs">{activeCategory.description}</SheetDescription>
+                    <SheetTitle className="text-ds-17">{activeCategory.label}</SheetTitle>
+                    <SheetDescription className="text-ds-11">{activeCategory.description}</SheetDescription>
                   </div>
                 </div>
               </SheetHeader>
@@ -259,26 +259,26 @@ const SupportPage = () => {
                 {/* Help: search-first */}
                 {openCategory === "help" && (
                   <div className="space-y-2">
-                    <Label className="text-xs">Search FAQs first</Label>
+                    <Label className="text-ds-11">Search FAQs first</Label>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         value={helpQuery}
                         onChange={(e) => setHelpQuery(e.target.value)}
                         placeholder="Try 'how do I post a job'…"
-                        className="pl-9 rounded-xl"
+                        className="pl-9 rounded-ds-md"
                       />
                     </div>
                     {filteredFaqs.length > 0 && (
                       <div className="space-y-1.5 pt-1">
                         <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Suggested</p>
                         {filteredFaqs.slice(0, 3).map((f, i) => (
-                          <details key={i} className="rounded-xl border border-border bg-muted/30">
-                            <summary className="px-3 py-2 text-xs font-medium cursor-pointer list-none flex items-center justify-between">
+                          <details key={i} className="rounded-ds-md border border-border bg-muted/30">
+                            <summary className="px-3 py-2 text-ds-11 font-medium cursor-pointer list-none flex items-center justify-between">
                               {f.q}
                               <span className="text-muted-foreground text-[10px]">▾</span>
                             </summary>
-                            <p className="px-3 pb-2 text-xs text-muted-foreground">{f.a}</p>
+                            <p className="px-3 pb-2 text-ds-11 text-muted-foreground">{f.a}</p>
                           </details>
                         ))}
                       </div>
@@ -289,9 +289,9 @@ const SupportPage = () => {
                 {/* Suggestion: category dropdown */}
                 {openCategory === "suggestion" && (
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Category</Label>
+                    <Label className="text-ds-11">Category</Label>
                     <Select value={suggestionType} onValueChange={setSuggestionType}>
-                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="rounded-ds-md"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ui-ux">UI / UX</SelectItem>
                         <SelectItem value="new-features">New Features</SelectItem>
@@ -305,9 +305,9 @@ const SupportPage = () => {
                 {openCategory === "report" && (
                   <>
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Type of Issue</Label>
+                      <Label className="text-ds-11">Type of Issue</Label>
                       <Select value={issueType} onValueChange={setIssueType}>
-                        <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="rounded-ds-md"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="bug">Bug / Crash</SelectItem>
                           <SelectItem value="payment">Payment Issue</SelectItem>
@@ -317,10 +317,10 @@ const SupportPage = () => {
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Screenshot (optional)</Label>
-                      <label className="flex items-center gap-2 rounded-xl border border-dashed border-border bg-muted/30 px-3 py-2.5 cursor-pointer hover:border-primary/40 transition">
+                      <Label className="text-ds-11">Screenshot (optional)</Label>
+                      <label className="flex items-center gap-2 rounded-ds-md border border-dashed border-border bg-muted/30 px-3 py-2.5 cursor-pointer hover:border-primary/40 transition">
                         <Upload className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground truncate flex-1">
+                        <span className="text-ds-11 text-muted-foreground truncate flex-1">
                           {screenshot ? screenshot.name : "Tap to upload an image"}
                         </span>
                         {screenshot && (
@@ -345,19 +345,19 @@ const SupportPage = () => {
 
                 {openCategory !== "help" && (
                   <div className="space-y-1.5">
-                    <Label htmlFor="subject" className="text-xs">Subject (optional)</Label>
+                    <Label htmlFor="subject" className="text-ds-11">Subject (optional)</Label>
                     <Input
                       id="subject"
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
                       placeholder="Brief summary…"
-                      className="rounded-xl"
+                      className="rounded-ds-md"
                     />
                   </div>
                 )}
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="message" className="text-xs">
+                  <Label htmlFor="message" className="text-ds-11">
                     {openCategory === "suggestion" ? "Share your idea *" : "Your message *"}
                   </Label>
                   <Textarea
@@ -372,13 +372,13 @@ const SupportPage = () => {
                     }
                     rows={4}
                     required
-                    className="rounded-xl resize-none"
+                    className="rounded-ds-md resize-none"
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full rounded-xl bg-gradient-to-r from-primary to-primary/85 shadow-md"
+                  className="w-full rounded-ds-md bg-gradient-to-r from-primary to-primary/85 shadow-md"
                   disabled={sending || !message.trim()}
                 >
                   {sending ? "Sending…" : (

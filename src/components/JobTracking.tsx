@@ -234,8 +234,8 @@ export function JobTracking({
   if (!helperId) return null;
 
   return (
-    <div className="rounded-xl liquid-glass p-4 space-y-4">
-      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+    <div className="rounded-ds-md liquid-glass p-4 space-y-4">
+      <h3 className="text-ds-13 font-semibold text-foreground flex items-center gap-2">
         <Navigation className="w-4 h-4 text-primary" /> Live Job Tracking
       </h3>
 
@@ -290,7 +290,7 @@ export function JobTracking({
 
       {/* ETA */}
       {tracking?.eta_minutes && tracking.status === "on_the_way" && (
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-ds-11 text-muted-foreground text-center">
           ETA: ~{tracking.eta_minutes} min
         </p>
       )}
@@ -326,7 +326,7 @@ export function JobTracking({
           } else {
             return (
               <div className="pt-2 border-t border-border">
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-ds-11 text-muted-foreground text-center">
                   Confirm the job below to unlock the next step
                 </p>
               </div>
@@ -345,7 +345,7 @@ export function JobTracking({
         return (
           <div className="pt-2 border-t border-border space-y-2">
             {isLocked && lockMessage && (
-              <p className="text-xs text-muted-foreground text-center">{lockMessage}</p>
+              <p className="text-ds-11 text-muted-foreground text-center">{lockMessage}</p>
             )}
             <Button
               size="sm"

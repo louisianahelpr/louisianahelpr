@@ -47,13 +47,13 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Show your appreciation{helperName ? ` to ${helperName}` : ""} with a tip!
           </p>
 
           {/* Custom amount — primary option */}
           <div className="space-y-2">
-            <label htmlFor="tip-dialog-amount" className="text-sm font-medium text-foreground">Enter tip amount</label>
+            <label htmlFor="tip-dialog-amount" className="text-ds-13 font-medium text-foreground">Enter tip amount</label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
@@ -65,7 +65,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   min="1"
-                  className="pl-7 text-lg font-semibold h-12"
+                  className="pl-7 text-ds-17 font-semibold h-12"
                 />
               </div>
               <Button
@@ -80,7 +80,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
 
           <div className="flex items-center gap-2">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">or quick pick</span>
+            <span className="text-ds-11 text-muted-foreground">or quick pick</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
@@ -90,7 +90,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
               <Button
                 key={amt}
                 variant="outline"
-                className="text-lg font-bold h-14 hover:bg-primary hover:text-primary-foreground transition-colors"
+                className="text-ds-17 font-bold h-14 hover:bg-primary hover:text-primary-foreground transition-colors"
                 onClick={() => handleSend(amt)}
                 disabled={sending}
               >

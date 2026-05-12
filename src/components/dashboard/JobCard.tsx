@@ -237,7 +237,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             bottom seat), gold-warm hairline at the top edge for the
             "earned" cue. */}
         <div
-          className="flex flex-col items-center px-2.5 py-1.5 rounded-xl"
+          className="flex flex-col items-center px-2.5 py-1.5 rounded-ds-md"
           style={{
             background: "linear-gradient(180deg, hsla(38, 50%, 96%, 0.78) 0%, hsla(38, 30%, 92%, 0.62) 100%)",
             backdropFilter: "blur(20px) saturate(170%)",

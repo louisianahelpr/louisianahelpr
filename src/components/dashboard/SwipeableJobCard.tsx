@@ -118,7 +118,7 @@ const SwipeableJobCard = ({
         style={{ opacity: backgroundOpacity }}
       >
         <motion.div
-          className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl"
+          className="flex flex-col items-center gap-1 px-3 py-2 rounded-ds-md"
           style={{
             scale: iconScale,
             background: "hsl(var(--burnt-sienna) / 0.15)",

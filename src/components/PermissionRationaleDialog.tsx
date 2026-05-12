@@ -91,13 +91,13 @@ export function PermissionRationaleDialog() {
         <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
           <AlertDialogCancel
             onClick={() => __resolveRationale(false)}
-            className="rounded-xl h-11 mt-0"
+            className="rounded-ds-md h-11 mt-0"
           >
             Not now
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => __resolveRationale(true)}
-            className="rounded-xl h-11"
+            className="rounded-ds-md h-11"
           >
             {copy.cta}
           </AlertDialogAction>

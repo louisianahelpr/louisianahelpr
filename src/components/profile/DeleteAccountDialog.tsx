@@ -40,7 +40,7 @@ export function DeleteAccountDialog({
                 This action is permanent. You will lose your job history, earnings records, and verified credentials. This cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="my-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive flex items-start gap-2">
+            <div className="my-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-ds-11 text-destructive flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>Any pending or in-transit Stripe payouts will be forfeited. Cash out your available balance from the Earnings tab first.</span>
             </div>

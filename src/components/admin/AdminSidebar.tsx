@@ -39,7 +39,7 @@ const AdminSidebar = ({
       <SidebarHeader className="border-b border-sidebar-border h-14 flex flex-row items-center px-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
         <div className="flex items-center gap-2 min-w-0">
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-ds-md flex items-center justify-center shrink-0"
             style={{
               background: "linear-gradient(135deg, hsl(var(--ink-deep)) 0%, hsl(var(--bark)) 100%)",
             }}

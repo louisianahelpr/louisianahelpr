@@ -134,7 +134,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             <button
               key={opt.key}
               onClick={() => setBillingInterval(opt.key)}
-              className={`flex-1 px-3 h-9 rounded-xl text-sm font-semibold transition-all ${
+              className={`flex-1 px-3 h-9 rounded-ds-md text-ds-13 font-semibold transition-all ${
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -223,7 +223,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 <button
                   onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
                   disabled={loadingCheckout === tier.id || loadingPortal}
-                  className={`w-full px-3 h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.97] ${
+                  className={`w-full px-3 h-9 rounded-ds-md font-bold text-ds-11 transition-all flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.97] ${
                     isPro
                       ? "bg-gradient-to-b from-primary to-primary/85 text-primary-foreground shadow-[0_4px_14px_-2px_hsl(var(--primary)/0.4),inset_0_1px_0_hsl(var(--primary-foreground)/0.25)] hover:shadow-[0_6px_18px_-2px_hsl(var(--primary)/0.5),inset_0_1px_0_hsl(var(--primary-foreground)/0.25)] border border-primary/40"
                       : "liquid-glass text-foreground hover:bg-secondary/40 border border-border"

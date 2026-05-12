@@ -261,7 +261,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                 type="button"
                 onClick={() => setCategory(c.key)}
                 aria-pressed={isActive}
-                className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 transition-all active:scale-[0.98] ${
+                className={`flex flex-col items-center justify-center gap-1 rounded-ds-md px-2 py-2.5 transition-all active:scale-[0.98] ${
                   isActive
                     ? "border-2 border-primary bg-primary/10 text-primary"
                     : "liquid-glass text-muted-foreground hover:text-foreground"
@@ -287,7 +287,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           className="rounded-2xl liquid-glass p-5 space-y-4"
         >
           <div className="space-y-1.5">
-            <Label htmlFor="support-subject" className="text-xs">
+            <Label htmlFor="support-subject" className="text-ds-11">
               Subject <span className="text-muted-foreground/60">(optional)</span>
             </Label>
             <Input
@@ -301,7 +301,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="support-message" className="text-xs">
+            <Label htmlFor="support-message" className="text-ds-11">
               {selected.key === "suggestion"
                 ? "Your idea *"
                 : selected.key === "report"
@@ -316,13 +316,13 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               onChange={(e) => setMessage(e.target.value)}
               placeholder={selected.messagePlaceholder}
               required
-              className="min-h-[160px] resize-none text-sm leading-relaxed"
+              className="min-h-[160px] resize-none text-ds-13 leading-relaxed"
             />
           </div>
 
           {selected.key === "report" && (
             <div className="space-y-1.5">
-              <Label className="text-xs">Screenshot <span className="text-muted-foreground/60">(optional)</span></Label>
+              <Label className="text-ds-11">Screenshot <span className="text-muted-foreground/60">(optional)</span></Label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -331,7 +331,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                 onChange={handleScreenshotPick}
               />
               {screenshotPreview && screenshotPreview.startsWith("blob:") ? (
-                <div className="relative inline-block rounded-xl overflow-hidden border border-border">
+                <div className="relative inline-block rounded-ds-md overflow-hidden border border-border">
                   <img loading="lazy" decoding="async"
                     src={screenshotPreview}
                     alt="Screenshot preview"

@@ -133,12 +133,12 @@ export function IDVPromptDialog({
         {isAdminReview && (
           <div className="flex items-start gap-3 p-3 rounded-[12px] bg-amber-500/10 border border-amber-500/30 mt-2">
             <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-            <div className="text-sm text-foreground">
+            <div className="text-ds-13 text-foreground">
               <p className="font-medium">What happened</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-ds-11 text-muted-foreground mt-1">
                 {failureReason || "Stripe couldn't confirm your identity automatically from the photos provided."}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-ds-11 text-muted-foreground mt-2">
                 An admin will review your ID upload manually. You'll receive a notification when it's resolved — typically within 24 hours.
               </p>
             </div>
@@ -149,36 +149,36 @@ export function IDVPromptDialog({
           <div className="space-y-3 py-2">
             <div className="flex items-start gap-3 p-3 rounded-[12px] bg-muted/40 border border-border">
               <FileCheck2 className="w-5 h-5 text-primary mt-0.5 shrink-0" aria-hidden="true" />
-              <div className="text-sm">
+              <div className="text-ds-13">
                 <p className="font-medium text-foreground">Photo of your government ID</p>
-                <p className="text-muted-foreground text-xs">Driver's license, passport, or state ID</p>
+                <p className="text-muted-foreground text-ds-11">Driver's license, passport, or state ID</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-[12px] bg-muted/40 border border-border">
               <Camera className="w-5 h-5 text-primary mt-0.5 shrink-0" aria-hidden="true" />
-              <div className="text-sm">
+              <div className="text-ds-13">
                 <p className="font-medium text-foreground">A quick selfie</p>
-                <p className="text-muted-foreground text-xs">We compare it to your ID to make sure it's really you</p>
+                <p className="text-muted-foreground text-ds-11">We compare it to your ID to make sure it's really you</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground px-1">
+            <p className="text-ds-11 text-muted-foreground px-1">
               Verification is handled securely by Stripe Identity. Most checks finish in under 2 minutes.
             </p>
           </div>
         )}
 
         {isPending && (
-          <p className="text-xs text-muted-foreground px-1 py-2">
+          <p className="text-ds-11 text-muted-foreground px-1 py-2">
             You'll get a notification as soon as the review finishes. No need to do anything else right now.
           </p>
         )}
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-xl h-11">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-ds-md h-11">
             {isPending || isAdminReview ? "OK" : "Not now"}
           </Button>
           {!isPending && !isAdminReview && (
-            <Button onClick={handleStart} disabled={loading} className="rounded-xl h-11">
+            <Button onClick={handleStart} disabled={loading} className="rounded-ds-md h-11">
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className="w-4 h-4 mr-2" />}
               Start verification
             </Button>

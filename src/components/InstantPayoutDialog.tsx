@@ -78,28 +78,28 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : error ? (
-          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-sm text-destructive">
+          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 text-ds-13 text-destructive">
             {error}
           </div>
         ) : quote ? (
           <div className="space-y-4">
-            <div className="rounded-xl liquid-glass p-4 space-y-2">
-              <div className="flex justify-between text-sm">
+            <div className="rounded-ds-md liquid-glass p-4 space-y-2">
+              <div className="flex justify-between text-ds-13">
                 <span className="text-muted-foreground">Available balance</span>
                 <span className="font-medium text-foreground">{fmt(quote.gross_cents)}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-ds-13">
                 <span className="text-muted-foreground">Instant payout fee (3% + $1, min $2)</span>
                 <span className="font-medium text-destructive">−{fmt(quote.fee_cents)}</span>
               </div>
               <div className="h-px bg-border my-2" />
               <div className="flex justify-between">
                 <span className="font-semibold text-foreground">You'll receive</span>
-                <span className="font-bold text-primary text-lg">{fmt(quote.net_cents)}</span>
+                <span className="font-bold text-primary text-ds-17">{fmt(quote.net_cents)}</span>
               </div>
             </div>
 
-            <div className="rounded-lg bg-muted/50 p-3 flex items-start gap-2 text-xs text-muted-foreground">
+            <div className="rounded-lg bg-muted/50 p-3 flex items-start gap-2 text-ds-11 text-muted-foreground">
               <Clock className="w-4 h-4 shrink-0 mt-0.5" />
               <p>
                 Arrives in ~30 minutes to your eligible debit card. Prefer to wait? Standard payouts

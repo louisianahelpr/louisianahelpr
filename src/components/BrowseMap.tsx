@@ -163,10 +163,10 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
   if (jobs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-96 rounded-2xl border border-border bg-card/40 px-6 text-center">
-        <p className="font-display italic text-sm text-foreground">
+        <p className="font-display italic text-ds-13 text-foreground">
           No jobs on the map just yet.
         </p>
-        <p className="font-serif italic text-xs text-muted-foreground mt-1">
+        <p className="font-serif italic text-ds-11 text-muted-foreground mt-1">
           New posts appear here as soon as they go live across Louisiana.
         </p>
       </div>
@@ -200,14 +200,14 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
           >
             <Popup>
               <div className="space-y-1.5 min-w-[180px]">
-                <p className="font-display font-bold text-sm leading-tight">
+                <p className="font-display font-bold text-ds-13 leading-tight">
                   {job.title}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">
                   {labels[job.category as keyof typeof labels] ?? job.category}
                   {job.parish ? ` · ${job.parish}` : ""}
                 </p>
-                <p className="font-mono text-sm font-semibold">${Number(job.budget).toFixed(2)}</p>
+                <p className="font-mono text-ds-13 font-semibold">${Number(job.budget).toFixed(2)}</p>
                 {job.is_urgent && (
                   <p className="text-[10px] uppercase tracking-wide text-destructive font-bold">
                     Urgent
@@ -217,7 +217,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
                   <Button
                     size="sm"
                     onClick={() => onJobAction(job.id)}
-                    className="w-full mt-1.5 h-8 text-xs"
+                    className="w-full mt-1.5 h-8 text-ds-11"
                   >
                     {ctaLabel}
                   </Button>

@@ -115,7 +115,7 @@ export function ProfileLanding({
         </button>
         <div className="flex flex-row items-center gap-3.5 pr-10">
           {/* Avatar — 70px squircle, left */}
-          <div className="w-[75px] h-[75px] rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-xl font-bold overflow-hidden shrink-0">
+          <div className="w-[75px] h-[75px] rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-20 font-bold overflow-hidden shrink-0">
             {profile?.avatar_url && !avatarBroken ? (
               <img
                 loading="lazy"
@@ -208,8 +208,8 @@ export function ProfileLanding({
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">Set up your payout account</p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-ds-13 font-semibold text-foreground">Set up your payout account</p>
+                  <p className="text-ds-11 text-muted-foreground mt-1">
                     Add a bank account in Payment Settings to accept jobs and receive payments.
                   </p>
                 </div>
@@ -235,7 +235,7 @@ export function ProfileLanding({
                     className={`min-h-[78px] rounded-[20px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] px-2 py-2.5 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${isActive ? "ring-2 ring-primary/30 text-primary" : "text-foreground hover:bg-secondary/40"}`}
                     aria-expanded={isActive}
                   >
-                    <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${isActive ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"}`}>
+                    <span className={`w-9 h-9 rounded-ds-md flex items-center justify-center ${isActive ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"}`}>
                       <GroupIcon className="w-4.5 h-4.5" />
                     </span>
                     <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] leading-tight text-center">
@@ -269,12 +269,12 @@ export function ProfileLanding({
                           />
                         )}
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className="w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
+                          <div className="w-10 h-10 rounded-ds-md bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
                             {item.icon}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground leading-tight">{item.label}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.desc}</p>
+                            <p className="text-ds-13 font-semibold text-foreground leading-tight">{item.label}</p>
+                            <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">{item.desc}</p>
                           </div>
                         </div>
                         <span className="w-5 flex items-center justify-center shrink-0">
@@ -293,14 +293,14 @@ export function ProfileLanding({
             <button
               type="button"
               onClick={onRequestDelete}
-              className="rounded-[20px] bg-destructive/10 border border-destructive/40 hover:bg-destructive/15 hover:border-destructive/60 py-3 inline-flex items-center justify-center gap-2 text-sm font-semibold text-destructive shadow-[0_1px_2px_hsl(0_60%_30%/0.06),0_8px_28px_-12px_hsl(0_60%_30%/0.18)] active:opacity-90 transition-colors"
+              className="rounded-[20px] bg-destructive/10 border border-destructive/40 hover:bg-destructive/15 hover:border-destructive/60 py-3 inline-flex items-center justify-center gap-2 text-ds-13 font-semibold text-destructive shadow-[0_1px_2px_hsl(0_60%_30%/0.06),0_8px_28px_-12px_hsl(0_60%_30%/0.18)] active:opacity-90 transition-colors"
             >
               <Trash2 className="w-4 h-4" /> Delete
             </button>
             <button
               type="button"
               onClick={onRequestLogout}
-              className="rounded-[20px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-3 inline-flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-secondary/40 active:bg-secondary/60 transition-colors"
+              className="rounded-[20px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-3 inline-flex items-center justify-center gap-2 text-ds-13 font-semibold text-foreground hover:bg-secondary/40 active:bg-secondary/60 transition-colors"
             >
               <LogOut className="w-4 h-4" /> Sign out
             </button>

@@ -100,7 +100,7 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Provide a reason for denying this application.
           </p>
           <Textarea

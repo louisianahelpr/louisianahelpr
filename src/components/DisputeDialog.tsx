@@ -138,7 +138,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             You've already requested a revision. If the issue still isn't resolved, filing a dispute will put the payment on hold for <strong>72 hours</strong> while you and the helpr try to work it out.
           </p>
 
@@ -171,7 +171,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
             <Label>Photo evidence (optional, up to 5)</Label>
             <div className="flex flex-wrap gap-2">
               {evidenceFiles.map((file, i) => (
-                <div key={i} className="flex items-center gap-1 text-xs bg-secondary px-2 py-1 rounded-md">
+                <div key={i} className="flex items-center gap-1 text-ds-11 bg-secondary px-2 py-1 rounded-md">
                   <span className="truncate max-w-[120px]">{file.name}</span>
                   <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive">
                     <X className="w-3 h-3" />
@@ -180,7 +180,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               ))}
             </div>
             {evidenceFiles.length < 5 && (
-              <label className="inline-flex items-center gap-1.5 text-sm text-primary cursor-pointer hover:underline">
+              <label className="inline-flex items-center gap-1.5 text-ds-13 text-primary cursor-pointer hover:underline">
                 <Upload className="w-4 h-4" /> Add photos
                 <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
               </label>
@@ -188,8 +188,8 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           </div>
 
           <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-            <p className="text-xs text-destructive font-medium">⚠️ Strict 72-Hour Dispute Policy:</p>
-            <ul className="text-xs text-muted-foreground mt-1 space-y-0.5 list-disc pl-4">
+            <p className="text-ds-11 text-destructive font-medium">⚠️ Strict 72-Hour Dispute Policy:</p>
+            <ul className="text-ds-11 text-muted-foreground mt-1 space-y-0.5 list-disc pl-4">
               <li>Payment is held for <strong>72 hours only</strong> while admin reviews</li>
               <li><strong>If not resolved within 72 hours, payment is automatically released to the helpr</strong></li>
               <li>You must provide evidence (photos, messages) to support your claim</li>

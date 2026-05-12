@@ -43,7 +43,7 @@ export function BudgetSection({
           <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
             <DollarSign className="w-3.5 h-3.5 text-primary" />
           </div>
-          <h2 className="font-display text-base font-semibold">Budget</h2>
+          <h2 className="font-display text-ds-15 font-semibold">Budget</h2>
         </div>
         {budgetComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
       </div>
@@ -72,9 +72,9 @@ export function BudgetSection({
           />
         </div>
         {suggested && (
-          <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/15 px-3 py-2">
-            <span className="text-base leading-none">💡</span>
-            <p className="text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
+            <span className="text-ds-15 leading-none">💡</span>
+            <p className="text-ds-11 text-muted-foreground">
               Suggested: <span className="font-semibold text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs
             </p>
           </div>
@@ -89,7 +89,7 @@ export function BudgetSection({
                 type="button"
                 onClick={() => setBudget(amt.toFixed(2))}
                 aria-pressed={isActive}
-                className={`min-h-11 px-4 py-2 rounded-full text-sm font-semibold tabular-nums transition-all ${
+                className={`min-h-11 px-4 py-2 rounded-full text-ds-13 font-semibold tabular-nums transition-all ${
                   isActive
                     ? "bg-primary text-primary-foreground shadow-sm scale-[1.02]"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -103,7 +103,7 @@ export function BudgetSection({
       </div>
 
       {/* Urgent Job */}
-      <div className={`rounded-xl border p-4 space-y-3 ${isUrgent ? "border-accent bg-accent/5" : "border-border"}`}>
+      <div className={`rounded-ds-md border p-4 space-y-3 ${isUrgent ? "border-accent bg-accent/5" : "border-border"}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-accent" />
@@ -113,17 +113,17 @@ export function BudgetSection({
         </div>
         {isUrgent && (
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               ⚡ Your job will be highlighted and nearby helprs notified immediately. The urgent bonus goes directly to the helpr — no platform fee applied.
             </p>
-            <Label className="text-xs">Urgent bonus ($5 minimum)</Label>
+            <Label className="text-ds-11">Urgent bonus ($5 minimum)</Label>
             <div className="flex flex-wrap gap-2">
               {["5", "10", "15", "20"].map((amt) => (
                 <button
                   key={amt}
                   type="button"
                   onClick={() => { setUrgentFee(amt); setCustomUrgentFee(false); }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-full text-ds-11 font-medium transition-colors ${
                     urgentFee === amt && !customUrgentFee
                       ? "bg-accent text-accent-foreground"
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -135,7 +135,7 @@ export function BudgetSection({
               <button
                 type="button"
                 onClick={() => { setCustomUrgentFee(true); setUrgentFee(""); }}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-ds-11 font-medium transition-colors ${
                   customUrgentFee
                     ? "bg-accent text-accent-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"

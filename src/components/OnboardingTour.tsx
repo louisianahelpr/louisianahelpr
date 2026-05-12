@@ -257,22 +257,22 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
           {/* Actions */}
           <div className="px-6 pb-5 flex items-center gap-2">
             {state.currentStep > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleBack} className="text-muted-foreground rounded-xl">
+              <Button variant="ghost" size="sm" onClick={handleBack} className="text-muted-foreground rounded-ds-md">
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
             )}
             <div className="flex-1" />
             {state.currentStep < steps.length - 1 ? (
               <>
-                <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-muted-foreground text-xs rounded-xl">
+                <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-muted-foreground text-ds-11 rounded-ds-md">
                   Skip tour
                 </Button>
-                <Button size="sm" onClick={() => handleGoToStep(currentStep.action)} className="rounded-xl">
+                <Button size="sm" onClick={() => handleGoToStep(currentStep.action)} className="rounded-ds-md">
                   {currentStep.action ? "Go there" : "Next"} <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </>
             ) : (
-              <Button size="sm" onClick={handleNext} className="rounded-xl">
+              <Button size="sm" onClick={handleNext} className="rounded-ds-md">
                 <CheckCircle2 className="w-4 h-4 mr-1" /> Get started
               </Button>
             )}

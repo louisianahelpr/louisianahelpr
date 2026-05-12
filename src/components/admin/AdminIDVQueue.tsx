@@ -177,21 +177,21 @@ const AdminIDVQueue = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-page-title text-foreground text-2xl flex items-center gap-2">
+        <h2 className="text-page-title text-foreground text-ds-24 flex items-center gap-2">
           <ShieldCheck className="w-6 h-6 text-primary" /> Identity Verification
         </h2>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-ds-11 text-muted-foreground mt-1">
           Hybrid IDV: Stripe auto-approves clear submissions; uncertain ones land here.
         </p>
       </div>
 
       {/* Settings card */}
-      <div className="rounded-xl liquid-glass p-5 space-y-4 max-w-2xl">
+      <div className="rounded-ds-md liquid-glass p-5 space-y-4 max-w-2xl">
         <h3 className="font-semibold text-foreground">Settings</h3>
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-0.5">
-            <Label htmlFor="hybrid-toggle" className="text-sm font-medium">Hybrid IDV enabled</Label>
-            <p className="text-xs text-muted-foreground">When off, all new signups go to the manual queue.</p>
+            <Label htmlFor="hybrid-toggle" className="text-ds-13 font-medium">Hybrid IDV enabled</Label>
+            <p className="text-ds-11 text-muted-foreground">When off, all new signups go to the manual queue.</p>
           </div>
           <Switch
             id="hybrid-toggle"
@@ -200,8 +200,8 @@ const AdminIDVQueue = () => {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="threshold" className="text-sm font-medium">Auto-approve confidence threshold</Label>
-          <p className="text-xs text-muted-foreground">Submissions scoring at or above this value are auto-approved (0–100).</p>
+          <Label htmlFor="threshold" className="text-ds-13 font-medium">Auto-approve confidence threshold</Label>
+          <p className="text-ds-11 text-muted-foreground">Submissions scoring at or above this value are auto-approved (0–100).</p>
           <Input
             id="threshold"
             type="number"
@@ -226,7 +226,7 @@ const AdminIDVQueue = () => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-ds-13 font-medium border transition-colors flex items-center gap-1.5 ${
                 activeTab === tab.key
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-card text-muted-foreground border-border hover:border-primary/50"
@@ -248,8 +248,8 @@ const AdminIDVQueue = () => {
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : profiles.length === 0 ? (
-        <div className="rounded-xl liquid-glass p-8 text-center">
-          <p className="text-xs text-muted-foreground">No users in this status.</p>
+        <div className="rounded-ds-md liquid-glass p-8 text-center">
+          <p className="text-ds-11 text-muted-foreground">No users in this status.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -258,22 +258,22 @@ const AdminIDVQueue = () => {
               t.key === p.idv_status || (t.key === "pending" && (p.idv_status === "pending" || p.idv_status === "processing"))
             );
             return (
-              <div key={p.user_id} className="rounded-xl liquid-glass p-4 flex items-center justify-between gap-3">
+              <div key={p.user_id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-foreground text-sm truncate">{formatName(p.full_name, "—")}</p>
+                    <p className="font-semibold text-foreground text-ds-13 truncate">{formatName(p.full_name, "—")}</p>
                     {tab && (
-                      <Badge className={`text-xs ${tab.color}`}>{p.idv_status}</Badge>
+                      <Badge className={`text-ds-11 ${tab.color}`}>{p.idv_status}</Badge>
                     )}
                     {p.idv_confidence !== null && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-ds-11">
                         {Math.round(p.idv_confidence)}% confidence
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{p.email || "—"}</p>
+                  <p className="text-ds-11 text-muted-foreground truncate">{p.email || "—"}</p>
                   {p.idv_failure_reason && (
-                    <p className="text-xs text-destructive mt-1">⚠️ {p.idv_failure_reason}</p>
+                    <p className="text-ds-11 text-destructive mt-1">⚠️ {p.idv_failure_reason}</p>
                   )}
                   {p.idv_attempted_at && (
                     <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -320,7 +320,7 @@ const AdminIDVQueue = () => {
             <DialogTitle>{formatName(selected?.full_name, "User")}</DialogTitle>
           </DialogHeader>
           {selected && (
-            <div className="space-y-3 text-sm">
+            <div className="space-y-3 text-ds-13">
               <Row label="Email" value={selected.email || "—"} />
               <Row label="IDV Status" value={selected.idv_status || "—"} />
               <Row label="Confidence" value={selected.idv_confidence !== null ? `${Math.round(selected.idv_confidence)}%` : "—"} />
@@ -339,8 +339,8 @@ const AdminIDVQueue = () => {
 
 const Row = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
   <div className="flex justify-between gap-4 border-b border-border pb-1.5">
-    <span className="text-muted-foreground text-xs uppercase tracking-wide">{label}</span>
-    <span className={`text-foreground text-right break-all ${mono ? "font-mono text-xs" : ""}`}>{value}</span>
+    <span className="text-muted-foreground text-ds-11 uppercase tracking-wide">{label}</span>
+    <span className={`text-foreground text-right break-all ${mono ? "font-mono text-ds-11" : ""}`}>{value}</span>
   </div>
 );
 

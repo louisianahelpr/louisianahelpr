@@ -55,7 +55,7 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, subtitle, hideBac
               size="icon"
               onClick={handleBack}
               aria-label="Go back"
-              className="h-10 w-10 shrink-0 rounded-xl -ml-2"
+              className="h-10 w-10 shrink-0 rounded-ds-md -ml-2"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>

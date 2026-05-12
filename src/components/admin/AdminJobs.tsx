@@ -317,7 +317,7 @@ const AdminJobs = () => {
                   openJob(job);
                 }
               }}
-              className={`rounded-xl border bg-card p-4 cursor-pointer hover:bg-secondary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              className={`rounded-ds-md border bg-card p-4 cursor-pointer hover:bg-secondary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 showFlagStyle ? "border-destructive/30" : "border-border"
               } ${isRemoved ? "opacity-60" : ""}`}
             >
@@ -327,11 +327,11 @@ const AdminJobs = () => {
                     {showFlagStyle && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
                     {flags && isResolved && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
                     <p className="font-semibold text-foreground truncate">{job.title}</p>
-                    <Badge variant="secondary" className="text-xs capitalize">{categoryLabels[job.category] || job.category}</Badge>
-                    {isRemoved && <Badge variant="destructive" className="text-xs">Removed</Badge>}
-                    {flags && isResolved && <Badge variant="outline" className="text-xs gap-1"><CheckCircle2 className="w-3 h-3" />Resolved</Badge>}
+                    <Badge variant="secondary" className="text-ds-11 capitalize">{categoryLabels[job.category] || job.category}</Badge>
+                    {isRemoved && <Badge variant="destructive" className="text-ds-11">Removed</Badge>}
+                    {flags && isResolved && <Badge variant="outline" className="text-ds-11 gap-1"><CheckCircle2 className="w-3 h-3" />Resolved</Badge>}
                   </div>
-                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
                     <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
                     <span className="font-medium text-foreground">${job.budget}</span>
@@ -346,10 +346,10 @@ const AdminJobs = () => {
                   )}
                 </div>
                 <div className="flex flex-col gap-1 items-end flex-shrink-0">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>
+                  <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>
                     {job.status.replace("_", " ")}
                   </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${paymentColors[job.payment_status || "unpaid"] || ""}`}>
+                  <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${paymentColors[job.payment_status || "unpaid"] || ""}`}>
                     {job.payment_status || "unpaid"}
                   </span>
                 </div>
@@ -377,10 +377,10 @@ const AdminJobs = () => {
                 resolvedFlags.has(detailJob.id) ? (
                   <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 flex items-start justify-between gap-3">
                     <div className="space-y-1.5 flex-1">
-                      <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                      <p className="text-ds-11 font-semibold text-primary flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Flags marked as resolved
                       </p>
-                      <p className="text-xs text-muted-foreground pl-5">An admin reviewed this job and confirmed it's fine.</p>
+                      <p className="text-ds-11 text-muted-foreground pl-5">An admin reviewed this job and confirmed it's fine.</p>
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => reopenFlag(detailJob.id)}>
                       Reopen
@@ -389,7 +389,7 @@ const AdminJobs = () => {
                 ) : (
                   <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
                     <div className="flex items-start justify-between gap-3">
-                      <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
+                      <p className="text-ds-11 font-semibold text-destructive flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5" /> Auto-flagged Issues
                       </p>
                       <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => markFlagResolved(detailJob.id)}>
@@ -397,7 +397,7 @@ const AdminJobs = () => {
                       </Button>
                     </div>
                     {jobFlags.get(detailJob.id)!.map((flag, i) => (
-                      <p key={i} className="text-xs text-destructive/80 pl-5">• {flag}</p>
+                      <p key={i} className="text-ds-11 text-destructive/80 pl-5">• {flag}</p>
                     ))}
                   </div>
                 )
@@ -406,12 +406,12 @@ const AdminJobs = () => {
               {/* Removal info */}
               {(detailJob as any).removal_reason && (
                 <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3">
-                  <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
+                  <p className="text-ds-11 font-semibold text-destructive flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5" /> Removed by Admin
                   </p>
-                  <p className="text-sm text-foreground mt-1">{(detailJob as any).removal_reason}</p>
+                  <p className="text-ds-13 text-foreground mt-1">{(detailJob as any).removal_reason}</p>
                   {(detailJob as any).removed_at && (
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-ds-11 text-muted-foreground mt-1">
                       Removed on {new Date((detailJob as any).removed_at).toLocaleString()}
                     </p>
                   )}
@@ -430,44 +430,44 @@ const AdminJobs = () => {
 
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary" className="capitalize">{categoryLabels[detailJob.category] || detailJob.category}</Badge>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[detailJob.status]}`}>
+                <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[detailJob.status]}`}>
                   {detailJob.status.replace("_", " ")}
                 </span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${paymentColors[detailJob.payment_status || "unpaid"]}`}>
+                <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${paymentColors[detailJob.payment_status || "unpaid"]}`}>
                   {detailJob.payment_status || "unpaid"}
                 </span>
               </div>
 
-              <p className="text-sm text-foreground">{detailJob.description}</p>
+              <p className="text-ds-13 text-foreground">{detailJob.description}</p>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg bg-secondary/30 p-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Budget</p>
+                  <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Budget</p>
                   <p className="font-semibold text-foreground">${detailJob.budget}</p>
                 </div>
                 <div className="rounded-lg bg-secondary/30 p-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>
+                  <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>
                   <p className="font-semibold text-foreground">{detailJob.location}</p>
                 </div>
                 <div className="rounded-lg bg-secondary/30 p-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date Needed</p>
+                  <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date Needed</p>
                   <p className="font-semibold text-foreground">{new Date(detailJob.date_needed).toLocaleDateString()}</p>
                 </div>
                 {detailJob.start_time && (
                   <div className="rounded-lg bg-secondary/30 p-3">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Start Time</p>
+                    <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Start Time</p>
                     <p className="font-semibold text-foreground">{detailJob.start_time}</p>
                   </div>
                 )}
                 {detailJob.estimated_hours && (
                   <div className="rounded-lg bg-secondary/30 p-3">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
+                    <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
                     <p className="font-semibold text-foreground">{detailJob.estimated_hours}h</p>
                   </div>
                 )}
                 {detailJob.platform_fee_amount && (
                   <div className="rounded-lg bg-secondary/30 p-3">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Platform Fee</p>
+                    <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Platform Fee</p>
                     <p className="font-semibold text-foreground">${detailJob.platform_fee_amount} ({detailJob.platform_fee_percent}%)</p>
                   </div>
                 )}
@@ -475,32 +475,32 @@ const AdminJobs = () => {
 
               {detailJob.special_requirements && (
                 <div className="rounded-lg bg-secondary/30 p-3">
-                  <p className="text-xs text-muted-foreground mb-1">Special Requirements</p>
-                  <p className="text-sm text-foreground">{detailJob.special_requirements}</p>
+                  <p className="text-ds-11 text-muted-foreground mb-1">Special Requirements</p>
+                  <p className="text-ds-13 text-foreground">{detailJob.special_requirements}</p>
                 </div>
               )}
 
               {detailJob.revision_note && (
                 <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
-                  <p className="text-xs text-destructive mb-1">Revision Note</p>
-                  <p className="text-sm text-foreground">{detailJob.revision_note}</p>
+                  <p className="text-ds-11 text-destructive mb-1">Revision Note</p>
+                  <p className="text-ds-13 text-foreground">{detailJob.revision_note}</p>
                 </div>
               )}
 
               <div className="space-y-2 pt-2 border-t border-border">
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-ds-13">
                   <User className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-muted-foreground">Posted by</span>
                   <span className="font-medium text-foreground">{posterName || "Loading…"}</span>
                 </div>
                 {detailJob.helper_id && (
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-ds-13">
                     <User className="w-3.5 h-3.5 text-muted-foreground" />
                     <span className="text-muted-foreground">Assigned to</span>
                     <span className="font-medium text-foreground">{helperName || "Loading…"}</span>
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">
                   Created {new Date(detailJob.created_at).toLocaleString()}
                 </p>
               </div>
@@ -545,7 +545,7 @@ const AdminJobs = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               This will cancel the job and notify the poster{detailJob?.helper_id ? " and assigned helper" : ""}. Please provide a reason:
             </p>
             <Textarea
@@ -557,9 +557,9 @@ const AdminJobs = () => {
             />
             {detailJob && (
               <div className="rounded-lg bg-secondary/30 p-3">
-                <p className="text-xs text-muted-foreground">Job being removed</p>
-                <p className="text-sm font-medium text-foreground">{detailJob.title}</p>
-                <p className="text-xs text-muted-foreground">${detailJob.budget} · {detailJob.location}</p>
+                <p className="text-ds-11 text-muted-foreground">Job being removed</p>
+                <p className="text-ds-13 font-medium text-foreground">{detailJob.title}</p>
+                <p className="text-ds-11 text-muted-foreground">${detailJob.budget} · {detailJob.location}</p>
               </div>
             )}
           </div>
@@ -587,7 +587,7 @@ const AdminJobs = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               Issues a Stripe refund for the captured payment. Leave the
               amount field blank for a full refund (cancels the job +
               notifies both parties); enter a smaller dollar amount to issue
@@ -595,20 +595,20 @@ const AdminJobs = () => {
             </p>
             {detailJob && (
               <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
-                <p className="text-xs text-muted-foreground">Refunding</p>
-                <p className="text-sm font-medium text-foreground">{detailJob.title}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">Refunding</p>
+                <p className="text-ds-13 font-medium text-foreground">{detailJob.title}</p>
+                <p className="text-ds-11 text-muted-foreground">
                   ${detailJob.budget} · payment_status: {detailJob.payment_status}
                   {detailJob.helper_id && " · helper assigned"}
                 </p>
               </div>
             )}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">
+              <label className="text-ds-11 font-medium text-foreground">
                 Refund amount <span className="text-muted-foreground font-normal">(blank = full refund)</span>
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-13 text-muted-foreground pointer-events-none">$</span>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -618,7 +618,7 @@ const AdminJobs = () => {
                   placeholder={detailJob ? `${Number(detailJob.budget).toFixed(2)}` : "0.00"}
                   value={refundAmount}
                   onChange={(e) => setRefundAmount(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full rounded-md border border-input bg-background pl-7 pr-3 py-2 text-ds-13 focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               {refundAmount.trim() && Number(refundAmount) > 0 && detailJob && Number(refundAmount) < Number(detailJob.budget) && (
@@ -637,8 +637,8 @@ const AdminJobs = () => {
             />
             {detailJob?.payment_status === "released" && (
               <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
-                <p className="text-xs text-destructive font-medium mb-1">⚠️ Money already paid out</p>
-                <p className="text-xs text-foreground">
+                <p className="text-ds-11 text-destructive font-medium mb-1">⚠️ Money already paid out</p>
+                <p className="text-ds-11 text-foreground">
                   This payment has already been transferred to the helper.
                   Refunding the customer means the platform absorbs the loss
                   unless you separately reverse the transfer in Stripe.

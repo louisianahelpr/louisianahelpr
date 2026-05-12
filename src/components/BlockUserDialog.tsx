@@ -105,7 +105,7 @@ export function BlockUserDialog({
             Block {blockedUserName}?
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
-            <div className="space-y-3 text-sm">
+            <div className="space-y-3 text-ds-13">
               <p>Once blocked:</p>
               <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
                 <li>You won&apos;t see their messages, applications, or profile.</li>

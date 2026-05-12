@@ -90,8 +90,8 @@ export function SignupStep2(props: SignupStep2Props) {
   return (
     <div className="space-y-6">
       {isBusinessSignup && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
-          <p className="text-sm font-semibold text-primary">📊 Business account</p>
+        <div className="rounded-ds-md border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <p className="text-ds-13 font-semibold text-primary">📊 Business account</p>
           <div className="space-y-2">
             <Label htmlFor="companyName" className={labelCls}>Company name <span className="text-destructive">*</span></Label>
             <Input
@@ -103,7 +103,7 @@ export function SignupStep2(props: SignupStep2Props) {
               className={inputCls}
             />
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             You'll be the owner. Invite 1 teammate free (2 seats total) — add more anytime with seat upgrades.
           </p>
         </div>
@@ -112,7 +112,7 @@ export function SignupStep2(props: SignupStep2Props) {
       {/* Section 1: Your photo (top of page — most personal first) */}
       <section className="space-y-4">
         <div className="flex flex-col items-center gap-2">
-          <Label className="text-sm font-medium">Profile picture <span className="text-destructive text-xs">*</span></Label>
+          <Label className="text-ds-13 font-medium">Profile picture <span className="text-destructive text-ds-11">*</span></Label>
           <label className="cursor-pointer group relative inline-block">
             <div className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary/40">
               {avatarPreview && avatarPreview.startsWith("blob:") ? (
@@ -145,7 +145,7 @@ export function SignupStep2(props: SignupStep2Props) {
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone" className={labelCls}>Phone number <span className="text-destructive text-xs">*</span></Label>
+          <Label htmlFor="phone" className={labelCls}>Phone number <span className="text-destructive text-ds-11">*</span></Label>
           <Input
             id="phone"
             type="tel"
@@ -160,9 +160,9 @@ export function SignupStep2(props: SignupStep2Props) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-xs">*</span></Label>
+          <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-ds-11">*</span></Label>
           <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={setDateOfBirth} />
-          <p className="text-xs" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>You must be at least 18 years old.</p>
+          <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>You must be at least 18 years old.</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
@@ -178,9 +178,9 @@ export function SignupStep2(props: SignupStep2Props) {
             rows={4}
             required
             minLength={20}
-            className="rounded-xl"
+            className="rounded-ds-md"
           />
-          <p className={`text-xs ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
+          <p className={`text-ds-11 ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
             {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
           </p>
         </div>
@@ -193,8 +193,8 @@ export function SignupStep2(props: SignupStep2Props) {
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
               <ShieldCheck className="w-7 h-7 text-primary" strokeWidth={1.75} />
             </div>
-            <h3 className="text-base font-display font-semibold text-foreground">Government-issued ID <span className="text-destructive">*</span></h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <h3 className="text-ds-15 font-display font-semibold text-foreground">Government-issued ID <span className="text-destructive">*</span></h3>
+            <p className="text-ds-11 text-muted-foreground leading-relaxed">
               Driver's license, state ID, or passport. Stored encrypted and used for safety, fraud prevention, and compliance. Re-verified by Stripe when you post or apply to your first job.
             </p>
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-primary font-medium pt-1">
@@ -202,7 +202,7 @@ export function SignupStep2(props: SignupStep2Props) {
             </div>
           </div>
           {idFile ? (
-            <div className="flex items-center justify-between gap-3 rounded-xl liquid-glass p-3">
+            <div className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-3">
               <div className="flex items-center gap-3 min-w-0">
                 {idPreview && idPreview.startsWith("blob:") ? (
                   <img loading="lazy" decoding="async" src={idPreview} alt="ID preview" className="w-14 h-14 rounded-lg object-cover border border-border shrink-0" />
@@ -212,23 +212,23 @@ export function SignupStep2(props: SignupStep2Props) {
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{idFile.name}</p>
-                  <p className="text-xs text-muted-foreground">{(idFile.size / 1024).toFixed(0)} KB · uploaded</p>
+                  <p className="text-ds-13 font-medium text-foreground truncate">{idFile.name}</p>
+                  <p className="text-ds-11 text-muted-foreground">{(idFile.size / 1024).toFixed(0)} KB · uploaded</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => { setIdFile(null); setIdPreview(null); }}
-                className="text-xs text-destructive hover:underline shrink-0 font-medium"
+                className="text-ds-11 text-destructive hover:underline shrink-0 font-medium"
               >
                 Remove
               </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card hover:border-primary/60 hover:bg-primary/[0.02] px-4 py-7 cursor-pointer transition-all">
+            <label className="flex flex-col items-center justify-center gap-2 rounded-ds-md border-2 border-dashed border-border bg-card hover:border-primary/60 hover:bg-primary/[0.02] px-4 py-7 cursor-pointer transition-all">
               <Camera className="w-7 h-7 text-primary/70" strokeWidth={1.75} />
-              <span className="text-sm font-semibold text-foreground">Upload your ID</span>
-              <span className="text-xs text-muted-foreground">JPG, PNG, or PDF · Max 5MB</span>
+              <span className="text-ds-13 font-semibold text-foreground">Upload your ID</span>
+              <span className="text-ds-11 text-muted-foreground">JPG, PNG, or PDF · Max 5MB</span>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp,application/pdf"

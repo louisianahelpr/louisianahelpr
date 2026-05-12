@@ -145,7 +145,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">How was your experience with {revieweeName} on "{jobTitle}"?</p>
+            <p className="text-ds-11 text-muted-foreground">How was your experience with {revieweeName} on "{jobTitle}"?</p>
             <div className="flex gap-1 justify-center">
               {[1, 2, 3, 4, 5].map((s) => (
                 <button key={s} onClick={() => setRating(s)} onMouseEnter={() => setHoverRating(s)} onMouseLeave={() => setHoverRating(0)}>
@@ -159,7 +159,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                   key={opt}
                   type="button"
                   onClick={() => toggleQuickOption(opt)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  className={`text-ds-11 px-3 py-1.5 rounded-full border transition-colors ${
                     feedback.includes(opt)
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
@@ -190,9 +190,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">Tips go directly to {revieweeName}. Totally optional!</p>
+            <p className="text-ds-11 text-muted-foreground">Tips go directly to {revieweeName}. Totally optional!</p>
             <div className="space-y-2">
-              <label htmlFor="custom-tip-amount" className="text-sm font-medium text-foreground">Enter your tip</label>
+              <label htmlFor="custom-tip-amount" className="text-ds-13 font-medium text-foreground">Enter your tip</label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
@@ -204,7 +204,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                     value={customTip}
                     onChange={(e) => setCustomTip(e.target.value)}
                     min="1"
-                    className="pl-7 text-lg font-semibold h-12"
+                    className="pl-7 text-ds-17 font-semibold h-12"
                   />
                 </div>
                 <Button
@@ -218,12 +218,12 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             </div>
             <div className="flex items-center gap-2">
               <div className="h-px flex-1 bg-border" />
-              <span className="text-xs text-muted-foreground">or quick pick</span>
+              <span className="text-ds-11 text-muted-foreground">or quick pick</span>
               <div className="h-px flex-1 bg-border" />
             </div>
             <div className="flex gap-3 justify-center">
               {[5, 10, 20].map((amt) => (
-                <Button key={amt} variant="outline" size="lg" onClick={() => sendTip(amt)} disabled={saving} className="text-lg font-bold">
+                <Button key={amt} variant="outline" size="lg" onClick={() => sendTip(amt)} disabled={saving} className="text-ds-17 font-bold">
                   ${amt}
                 </Button>
               ))}
@@ -246,14 +246,14 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               Helpr grows by neighbors telling neighbors. Send a friend
               your link — when they sign up and complete their first job,
               you both get a credit.
             </p>
             {referralLink ? (
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 p-2 pl-3">
-                <span className="flex-1 text-xs font-mono truncate text-foreground">
+              <div className="flex items-center gap-2 rounded-ds-md border border-border bg-muted/40 p-2 pl-3">
+                <span className="flex-1 text-ds-11 font-mono truncate text-foreground">
                   {referralLink}
                 </span>
                 <Button size="sm" onClick={copyReferral} className="rounded-lg shrink-0">
@@ -265,7 +265,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 </Button>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground italic">Loading your invite link…</p>
+              <p className="text-ds-11 text-muted-foreground italic">Loading your invite link…</p>
             )}
           </div>
           <DialogFooter>

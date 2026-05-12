@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MapPin, DollarSign, Calendar, ClipboardList } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -129,7 +130,11 @@ const JobHistory = () => {
           </div>
 
           {loading ? (
-            <p className="font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>Loading…</p>
+            <div className="space-y-3">
+              <JobCardSkeleton />
+              <JobCardSkeleton />
+              <JobCardSkeleton />
+            </div>
           ) : jobs.length === 0 ? (
             <div className="flex flex-col items-center text-center px-6 gap-4 justify-center py-16">
               <div

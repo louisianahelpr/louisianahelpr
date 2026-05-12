@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { HelperAvailability } from "@/components/HelperAvailability";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const Availability = () => {
@@ -77,8 +77,14 @@ const Availability = () => {
 
           <div className="flex-1 min-h-0 rounded-xl liquid-glass overflow-hidden flex flex-col">
             {loading || !userId ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              <div className="p-4 space-y-3">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="h-5 w-20 rounded bg-muted/40 animate-pulse" />
+                    <div className="flex-1 h-9 rounded-md bg-muted/30 animate-pulse" />
+                    <div className="h-9 w-9 rounded-md bg-muted/30 animate-pulse" />
+                  </div>
+                ))}
               </div>
             ) : (
               <HelperAvailability userId={userId} compact />

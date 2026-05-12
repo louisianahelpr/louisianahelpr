@@ -290,9 +290,18 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       <section className="space-y-3">
         {/* Wallet card (Available + Pending side-by-side) */}
         {stripeLoading ? (
-          <div className="rounded-2xl liquid-glass p-4 flex items-center gap-3">
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">Loading live payout data…</p>
+          <div className="rounded-2xl liquid-glass p-5 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <div className="h-3 w-20 rounded bg-muted/40 animate-pulse" />
+                <div className="h-7 w-24 rounded bg-muted/40 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-20 rounded bg-muted/40 animate-pulse" />
+                <div className="h-7 w-24 rounded bg-muted/40 animate-pulse" />
+              </div>
+            </div>
+            <div className="h-9 w-full rounded-md bg-muted/30 animate-pulse" />
           </div>
         ) : !stripeData?.connected ? (
           <div className="rounded-2xl liquid-glass p-5 space-y-3">

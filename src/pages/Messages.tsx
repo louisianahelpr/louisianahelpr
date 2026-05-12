@@ -606,19 +606,19 @@ const Messages = () => {
                 // glass surface, no inner white card. Mirrors the home
                 // page's empty-state pattern.
                 <div className="px-3 pt-4 flex-1 min-h-0 flex">
-                  {/* Empty-state card — own white box that stretches to
-                      the bottom of the screen. Bottom corners flat so it
-                      merges with the dock area. */}
+                  {/* Empty-state card — liquid-glass (was flat white,
+                      which clashed with the warm parchment surface above
+                      it). Bottom corners flat so it merges with the dock. */}
                   <div
-                    className="flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
+                    className="flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
                     style={{
-                      backgroundColor: "hsl(0, 0%, 100%)",
-                      borderLeft: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                      borderRight: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                      borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                      borderBottomLeftRadius: 0,
+                      borderBottomRightRadius: 0,
+                      borderBottom: "none",
                       boxShadow:
-                        "0 1px 2px hsl(var(--olivewood) / 0.04), " +
-                        "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
+                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                        "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                        "0 14px 30px -8px hsl(var(--olivewood) / 0.14)",
                       paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
                     }}
                   >
@@ -656,9 +656,24 @@ const Messages = () => {
                         Apply to a task or accept a helpr's offer — your conversations will land here.
                       </p>
                     </div>
-                    <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md btn-press">
+                    <button
+                      onClick={() => navigate("/dashboard")}
+                      className="group relative inline-flex items-center gap-2.5 px-6 h-12 rounded-full overflow-hidden transition-transform duration-200 active:scale-[0.96]"
+                      style={{
+                        background: "hsl(var(--bark))",
+                        color: "hsl(var(--parchment))",
+                        border: "1px solid hsl(70 22% 24%)",
+                        fontFamily: "Montserrat, system-ui, sans-serif",
+                        fontWeight: 600,
+                        letterSpacing: "0.01em",
+                        boxShadow:
+                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
+                          "0 1px 2px hsl(70 20% 18% / 0.22), " +
+                          "0 8px 18px -6px hsl(var(--bark) / 0.55)",
+                      }}
+                    >
                       Browse tasks
-                    </Button>
+                    </button>
                   </div>
                 </div>
               ) : (

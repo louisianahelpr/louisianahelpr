@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CreditCard, DollarSign, BanknoteIcon } from "lucide-react";
+import { CreditCard, DollarSign, BanknoteIcon, ChevronRight } from "lucide-react";
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -10,9 +10,12 @@ type Job = Database["public"]["Tables"]["jobs"]["Row"];
 interface PaymentTabProps {
   earningsJobs: Job[];
   totalEarnings: number;
+  /** Optional: when provided, renders a "See full breakdown →" link
+      that jumps to the Earnings tab. */
+  onSeeEarnings?: () => void;
 }
 
-export function PaymentTab({ earningsJobs, totalEarnings }: PaymentTabProps) {
+export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: PaymentTabProps) {
   const [searchParams] = useSearchParams();
 
   // Surface Stripe redirect outcomes; the live status is rendered inside
@@ -29,8 +32,37 @@ export function PaymentTab({ earningsJobs, totalEarnings }: PaymentTabProps) {
   }, [searchParams]);
 
   const isHelper = true;
+  // Lifetime totals — completed jobs only so cancelled/expired don't
+  // inflate the headline numbers.
+  const completedJobs = earningsJobs.filter((j) => j.status === "completed");
+  const lifetimeSpent = completedJobs.reduce((s, j) => s + j.budget, 0);
+  const lifetimeEarned = totalEarnings;
+  // This-month slice — bucketed by completed_at (falls back to created_at
+  // for older rows that don't have a completion timestamp).
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const monthCompleted = completedJobs.filter((j) => {
+    const t = (j as any).completed_at
+      ? new Date((j as any).completed_at).getTime()
+      : new Date(j.created_at).getTime();
+    return t >= monthStart;
+  });
+  const monthSpent = monthCompleted.reduce((s, j) => s + j.budget, 0);
+  // Earnings-by-month isn't separately tracked here (totalEarnings is a
+  // single lifetime figure), so we estimate the month slice proportionally
+  // by completed-job share. Accurate enough for the summary preview;
+  // exact figures live on the Earnings tab.
+  const monthEarned =
+    completedJobs.length > 0
+      ? (monthCompleted.length / completedJobs.length) * lifetimeEarned
+      : 0;
 
-  const totalSpent = earningsJobs.length > 0 ? earningsJobs.filter(j => j.status === "completed").reduce((s, j) => s + j.budget, 0) : 0;
+  const [scope, setScope] = useState<"lifetime" | "month">("lifetime");
+  const totalSpent = scope === "month" ? monthSpent : lifetimeSpent;
+  const totalEarnedView = scope === "month" ? monthEarned : lifetimeEarned;
+  const spentCount = scope === "month" ? monthCompleted.length : completedJobs.length;
+  const earnedCount = spentCount;
+  const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
 
   return (
     <div className="space-y-5">
@@ -70,6 +102,42 @@ export function PaymentTab({ earningsJobs, totalEarnings }: PaymentTabProps) {
           </div>
         </div>
         <div className="rounded-2xl liquid-glass p-5">
+          {/* Scope toggle — lifetime vs this month. Inline so the
+              switch is right next to the numbers it reframes. */}
+          <div
+            className="flex items-center gap-0.5 p-0.5 rounded-full mb-4"
+            style={{
+              background: "hsl(var(--ivory-sand) / 0.4)",
+              border: "0.5px solid hsl(var(--olivewood) / 0.08)",
+            }}
+          >
+            {([
+              { key: "lifetime" as const, label: "Lifetime" },
+              { key: "month" as const, label: monthLabel },
+            ]).map((opt) => {
+              const active = scope === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setScope(opt.key)}
+                  className="flex-1 px-3 h-7 rounded-full text-[0.7rem] font-sans font-semibold transition-all"
+                  style={
+                    active
+                      ? {
+                          background: "hsl(var(--bark))",
+                          color: "hsl(var(--parchment))",
+                          boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                        }
+                      : { color: "hsl(var(--olivewood) / 0.7)" }
+                  }
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
@@ -78,24 +146,44 @@ export function PaymentTab({ earningsJobs, totalEarnings }: PaymentTabProps) {
               <p className="font-display italic font-bold tabular-nums leading-none mt-1" style={{ fontSize: "1.6rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
                 ${totalSpent.toFixed(2)}
               </p>
+              <p className="font-serif italic mt-1" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}>
+                {spentCount === 0 ? "no jobs yet" : `across ${spentCount} job${spentCount === 1 ? "" : "s"}`}
+              </p>
             </div>
             <div className="border-l border-border/40 pl-4">
               <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                 Total earned
               </p>
               <p className="font-display italic font-bold tabular-nums leading-none mt-1" style={{ fontSize: "1.6rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-                ${totalEarnings.toFixed(2)}
+                ${totalEarnedView.toFixed(2)}
+              </p>
+              <p className="font-serif italic mt-1" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}>
+                {earnedCount === 0 ? "no jobs yet" : `from ${earnedCount} completed`}
               </p>
             </div>
           </div>
-          {totalSpent === 0 && totalEarnings === 0 && (
+
+          {totalSpent === 0 && totalEarnedView === 0 ? (
             <p
               className="font-serif italic mt-3 text-center"
               style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.65)" }}
             >
               No activity yet — post a job or complete one to see totals here.
             </p>
+          ) : (
+            onSeeEarnings && (
+              <button
+                type="button"
+                onClick={onSeeEarnings}
+                className="mt-3 w-full inline-flex items-center justify-center gap-1 py-2 rounded-ds-md text-[0.78rem] font-sans font-semibold active:opacity-70 transition-opacity"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                See full breakdown
+                <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.25} />
+              </button>
+            )
           )}
+
           <div className="mt-4 rounded-ds-md flex items-start gap-2.5 px-3 py-2.5" style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}>
             <CreditCard className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
             <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>

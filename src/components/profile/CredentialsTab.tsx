@@ -183,27 +183,78 @@ export function CredentialsTab({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5" />
+      {(() => {
+        // Eyebrow reflects what the user has actually verified so the
+        // card reads as proof, not promise. Possibilities:
+        //   none verified → "Not yet verified"
+        //   license only  → "Licensed"
+        //   insurance only → "Insured"
+        //   both          → "Licensed & Insured"
+        const licVerified = data.license_status === "verified";
+        const insVerified = data.insurance_status === "verified";
+        const eyebrow =
+          licVerified && insVerified
+            ? "Licensed & Insured"
+            : licVerified
+              ? "Licensed"
+              : insVerified
+                ? "Insured"
+                : "Not yet verified";
+        const anyVerified = licVerified || insVerified;
+        return (
+          <div className="rounded-2xl liquid-glass p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-ds-md flex items-center justify-center shrink-0"
+                style={{
+                  background: anyVerified ? "hsl(var(--bark) / 0.12)" : "hsl(var(--burnt-sienna) / 0.10)",
+                  color: anyVerified ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
+                }}
+              >
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  className="font-serif italic uppercase"
+                  style={{
+                    fontSize: "0.6rem",
+                    color: anyVerified ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna) / 0.78)",
+                    letterSpacing: "0.18em",
+                  }}
+                >
+                  {eyebrow}
+                </p>
+                <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                  Professional credentials
+                </h2>
+                <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  Proof of license and insurance earns verified badges on your profile.
+                </p>
+              </div>
+            </div>
+            <div className="pt-1">
+              {anyVerified ||
+              data.license_status === "pending" ||
+              data.insurance_status === "pending" ? (
+                <CredentialBadge credentials={data} size="md" />
+              ) : (
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-sans font-medium"
+                  style={{
+                    background: "hsl(var(--burnt-sienna) / 0.10)",
+                    color: "hsl(var(--burnt-sienna))",
+                    fontSize: "0.72rem",
+                    border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                  }}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  No badges yet — upload to earn them
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              Seal of trust
-            </p>
-            <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-              Professional credentials
-            </h2>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-              Proof of license and insurance earns the verified seal on your profile.
-            </p>
-          </div>
-        </div>
-        <div className="pt-1">
-          <CredentialBadge credentials={data} size="md" />
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Licensed — eyebrow reflects current state so the user reads
           their status at a glance even with the toggle collapsed. */}

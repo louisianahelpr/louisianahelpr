@@ -578,7 +578,11 @@ const ProfilePage = () => {
                 meta="Cards, bank accounts, payouts"
                 onBack={() => setTab("landing")}
               />
-              <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
+              <PaymentTab
+                earningsJobs={earningsJobs}
+                totalEarnings={totalEarnings}
+                onSeeEarnings={() => setTab("earnings")}
+              />
             </div>
           )}
 

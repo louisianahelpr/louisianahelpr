@@ -203,6 +203,21 @@ export function PayoutSetupForm() {
 
   return (
     <div className="space-y-4">
+      {/* Refresh chip — small, always-available so the user can re-poll
+          Stripe if onboarding gets stuck in a stale state. Hidden during
+          the initial load (skeleton) so it doesn't double up. */}
+      {status?.connected && (
+        <button
+          type="button"
+          onClick={loadData}
+          disabled={statusQuery.isFetching}
+          className="inline-flex items-center gap-1 text-[0.7rem] font-sans font-semibold tracking-wide active:opacity-70 transition-opacity disabled:opacity-50"
+          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+        >
+          <RefreshCw className={`w-3 h-3 ${statusQuery.isFetching ? "animate-spin" : ""}`} />
+          {statusQuery.isFetching ? "Refreshing…" : "Refresh status"}
+        </button>
+      )}
       {!status?.connected && (
         <div
           className="rounded-ds-md p-4"

@@ -695,25 +695,73 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                         )}
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent align="end" className="w-56 p-2">
-                      <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">Filter by status</p>
-                      <div className="grid grid-cols-1 gap-1">
+                    <PopoverContent align="end" className="w-60 p-2">
+                      <p
+                        className="font-serif italic uppercase px-2 pt-1 pb-2"
+                        style={{
+                          fontSize: "0.62rem",
+                          color: "hsl(var(--burnt-sienna) / 0.78)",
+                          letterSpacing: "0.18em",
+                        }}
+                      >
+                        Filter by status
+                      </p>
+                      <div className="grid grid-cols-1 gap-0.5">
                         {activeStatusFilters.map((f) => {
                           const count = activeCounts[f.key] || 0;
                           const isActive = statusFilter === f.key;
+                          // Status-color dot — matches the chip-color logic
+                          // each filter ships with so the dropdown reads as
+                          // a legend, not just a flat list.
+                          const dotColor =
+                            f.key === "in_progress"
+                              ? "hsl(var(--burnt-sienna))"
+                              : f.key === "completed"
+                                ? "hsl(var(--bark))"
+                                : f.key === "cancelled"
+                                  ? "hsl(var(--destructive))"
+                                  : f.key === "accepted"
+                                    ? "hsl(var(--bark))"
+                                    : f.key === "direct_offer"
+                                      ? "hsl(var(--gold-warm))"
+                                      : "hsl(var(--olivewood) / 0.5)";
                           return (
                             <button
                               key={f.key}
                               onClick={() => { setStatusFilter(f.key); setFilterOpen(false); }}
-                              className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-ds-13 font-medium transition ${
+                              className="flex items-center justify-between w-full px-2.5 py-2 rounded-ds-md text-ds-13 transition active:scale-[0.99]"
+                              style={
                                 isActive
-                                  ? "bg-primary text-primary-foreground"
-                                  : "text-foreground hover:bg-secondary/60"
-                              }`}
+                                  ? {
+                                      background: "hsl(var(--bark))",
+                                      color: "hsl(var(--parchment))",
+                                      fontWeight: 600,
+                                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                                    }
+                                  : {
+                                      color: "hsl(var(--ink-deep))",
+                                      fontWeight: 500,
+                                    }
+                              }
                             >
-                              <span>{f.label}</span>
+                              <span className="inline-flex items-center gap-2 min-w-0">
+                                <span
+                                  className="shrink-0 w-1.5 h-1.5 rounded-full"
+                                  style={{
+                                    background: isActive ? "hsl(var(--parchment) / 0.85)" : dotColor,
+                                  }}
+                                />
+                                <span className="truncate">{f.label}</span>
+                              </span>
                               {count > 0 && (
-                                <span className={`text-ds-10 tabular-nums ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                                <span
+                                  className="text-[0.7rem] tabular-nums font-sans font-semibold shrink-0 ml-2 px-1.5 py-0.5 rounded-full"
+                                  style={
+                                    isActive
+                                      ? { background: "hsl(var(--parchment) / 0.18)", color: "hsl(var(--parchment))" }
+                                      : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.85)" }
+                                  }
+                                >
                                   {count}
                                 </span>
                               )}

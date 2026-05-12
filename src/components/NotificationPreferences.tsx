@@ -34,6 +34,10 @@ interface Prefs {
   email_work_status: boolean;
   financial_alerts: boolean;
   email_financial_alerts: boolean;
+  /** When true, non-urgent job matches are batched into a daily
+      digest instead of being pushed individually. Urgent jobs always
+      fire realtime regardless. */
+  match_digest_mode: boolean;
 }
 
 const defaultPrefs: Prefs = {
@@ -45,6 +49,7 @@ const defaultPrefs: Prefs = {
   transit_updates: true, email_transit_updates: false,
   work_status: true, email_work_status: true,
   financial_alerts: true, email_financial_alerts: true,
+  match_digest_mode: false,
 };
 
 interface Row {
@@ -182,6 +187,47 @@ const NotificationPreferences = () => {
         >
           <Mail className="w-3 h-3" /> Email
         </div>
+      </div>
+
+      {/* Digest mode toggle — when on, non-urgent job-match pushes are
+          batched into one daily summary instead of firing per-match.
+          Sits between the master and the per-category rows so it reads
+          as a delivery preference, not a category. */}
+      <div
+        className={`flex items-center justify-between px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-60"}`}
+        style={{
+          borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
+        }}
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span
+            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+            style={{
+              background: "hsl(var(--gold-warm) / 0.14)",
+              color: "hsl(var(--gold-warm))",
+            }}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+          </span>
+          <div className="min-w-0">
+            <Label
+              className="font-sans font-semibold block truncate"
+              style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+            >
+              Daily match digest
+            </Label>
+            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              Batch non-urgent matches into one push per day. Urgent jobs still fire instantly.
+            </p>
+          </div>
+        </div>
+        <Switch
+          checked={prefs.match_digest_mode}
+          onCheckedChange={() => toggle("match_digest_mode")}
+          disabled={!loaded || !prefs.push_enabled}
+          aria-label="Daily match digest"
+          className={`shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
+        />
       </div>
 
       {rows.map((item, idx) => (

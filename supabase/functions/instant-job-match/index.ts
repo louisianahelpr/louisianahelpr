@@ -37,10 +37,12 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get the job details
+    // Get the job details — include urgency so we can decide whether
+    // this match goes out immediately (urgent) or rolls into the daily
+    // digest (everything else, for users who opt in).
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("id, title, category, location, budget, customer_id")
+      .select("id, title, category, location, budget, customer_id, is_urgent")
       .eq("id", jobId)
       .single();
 
@@ -141,21 +143,75 @@ Deno.serve(async (req) => {
       other: "✨",
     };
     const emoji = categoryEmoji[job.category] ?? "✨";
-    const { error: notifyErr } = await supabase.from("notifications").insert(
-      scored.map((h) => ({
-        user_id: h.user_id,
-        // Category emoji in the title for faster glance recognition.
-        title: `${emoji} Match for you`,
-        message: `${job.title} in ${job.location} · $${job.budget}. Tap to apply before someone else.`,
-        type: "job_match",
-        link: `/dashboard?quickApply=${job.id}`,
-        read: false,
-      })),
-    );
-    if (notifyErr) throw notifyErr;
+
+    // Smart batching: pull each scored helper's notification preference
+    // and route non-urgent matches to a pending bucket (job_match_pending)
+    // when they opted into "digest" mode. Urgent jobs always fire
+    // immediately regardless of preference.
+    const scoredIds = scored.map((h) => h.user_id);
+    let digestMap = new Map<string, boolean>();
+    if (scoredIds.length > 0) {
+      const { data: prefs } = await supabase
+        .from("notification_preferences")
+        .select("user_id, match_digest_mode")
+        .in("user_id", scoredIds);
+      digestMap = new Map(
+        (prefs ?? []).map((p: { user_id: string; match_digest_mode: boolean | null }) =>
+          [p.user_id, !!p.match_digest_mode] as const,
+        ),
+      );
+    }
+
+    const immediate: typeof scored = [];
+    const deferred: typeof scored = [];
+    for (const h of scored) {
+      const digest = digestMap.get(h.user_id) ?? false;
+      if (job.is_urgent || !digest) {
+        immediate.push(h);
+      } else {
+        deferred.push(h);
+      }
+    }
+
+    // Immediate fan-out — full push notification.
+    if (immediate.length > 0) {
+      const { error: notifyErr } = await supabase.from("notifications").insert(
+        immediate.map((h) => ({
+          user_id: h.user_id,
+          // Category emoji in the title for faster glance recognition.
+          title: `${emoji} Match for you${job.is_urgent ? " · Urgent" : ""}`,
+          message: `${job.title} in ${job.location} · $${job.budget}. Tap to apply before someone else.`,
+          type: "job_match",
+          link: `/dashboard?quickApply=${job.id}`,
+          read: false,
+        })),
+      );
+      if (notifyErr) throw notifyErr;
+    }
+
+    // Deferred — write to a queue table the daily-match-digest cron
+    // reads from. Schema: (user_id, job_id, created_at). Idempotent
+    // dedupe at write time via upsert on (user_id, job_id).
+    if (deferred.length > 0) {
+      const { error: queueErr } = await supabase.from("match_digest_queue").upsert(
+        deferred.map((h) => ({
+          user_id: h.user_id,
+          job_id: job.id,
+          created_at: new Date().toISOString(),
+        })),
+        { onConflict: "user_id,job_id", ignoreDuplicates: true },
+      );
+      // Queue failure is non-fatal — log + continue. We'd rather have
+      // some users miss a digest entry than block the match endpoint.
+      if (queueErr) console.warn("match_digest_queue upsert failed:", queueErr.message);
+    }
 
     return new Response(
-      JSON.stringify({ notified: scored.length, matchedHelpers: scored.map((h) => h.user_id) }),
+      JSON.stringify({
+        notified: immediate.length,
+        queued_for_digest: deferred.length,
+        matchedHelpers: scored.map((h) => h.user_id),
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

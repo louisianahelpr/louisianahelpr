@@ -7,6 +7,7 @@ import { Star, Flag } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
+import { maybeCelebrate } from "@/lib/celebrate";
 import { track, AhaEvent } from "@/lib/analytics";
 
 interface ReviewFormProps {
@@ -128,6 +129,9 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       else toast.error("Failed to submit review");
     } else {
       toast.success("Review submitted!");
+      // Brand-tinted confetti for the first few reviews so the moment
+      // feels worth doing again. After the limit it fades to silent.
+      void maybeCelebrate("first_review");
       // Aha-moment analytics + native review prompt. A 5-star review is the
       // strongest signal that this user would also rate us 5 stars on the App Store.
       track(AhaEvent.ReviewLeft, { jobId, rating: scores.rating });

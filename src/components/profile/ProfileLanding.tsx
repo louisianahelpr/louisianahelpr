@@ -22,6 +22,14 @@ interface MenuItem {
   needsAction?: boolean;
 }
 
+interface ReviewPreview {
+  rating: number;
+  feedback: string | null;
+  created_at: string;
+  reviewerName: string;
+  jobTitle: string;
+}
+
 interface ProfileLandingProps {
   profile: Profile | null;
   displayName: string;
@@ -40,6 +48,8 @@ interface ProfileLandingProps {
   onLoadInlineJobs: () => void;
   onRequestDelete: () => void;
   onRequestLogout: () => void;
+  /** Up to 2 most recent reviews surfaced on the hero card. */
+  reviewsPreview?: ReviewPreview[];
 }
 
 export function ProfileLanding({
@@ -60,6 +70,7 @@ export function ProfileLanding({
   onLoadInlineJobs,
   onRequestDelete,
   onRequestLogout,
+  reviewsPreview = [],
 }: ProfileLandingProps) {
   // Derived state — drives "Action needed" dots on menu items so the
   // user sees blockers at a glance without having to navigate into each
@@ -375,6 +386,87 @@ export function ProfileLanding({
               + Add photos
             </span>
           </button>
+        )}
+        {/* Recent reviews preview — up to 2 most recent reviews shown
+            inline as social proof. Tap any card to open the full
+            reviews tab. Hides entirely when the user has no reviews
+            (the avgRating stat above already conveys that state). */}
+        {reviewsPreview.length > 0 && (
+          <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                Recent reviews
+              </p>
+              <button
+                type="button"
+                onClick={() => onSelectTab("reviews")}
+                className="text-ds-11 font-semibold active:opacity-70"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                See all →
+              </button>
+            </div>
+            <div className="space-y-2">
+              {reviewsPreview.map((r, i) => {
+                const days = Math.max(
+                  0,
+                  Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000),
+                );
+                const when =
+                  days < 1 ? "today" :
+                  days < 7 ? `${days}d ago` :
+                  days < 30 ? `${Math.floor(days / 7)}w ago` :
+                  days < 365 ? `${Math.floor(days / 30)}mo ago` :
+                  `${Math.floor(days / 365)}y ago`;
+                return (
+                  <button
+                    key={`${r.created_at}-${i}`}
+                    type="button"
+                    onClick={() => onSelectTab("reviews")}
+                    className="w-full text-left rounded-xl p-2.5 active:scale-[0.99] active:opacity-80 transition-all"
+                    style={{
+                      background: "hsla(0, 0%, 100%, 0.55)",
+                      border: "1px solid hsl(var(--olivewood) / 0.10)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            className="w-3 h-3"
+                            style={{
+                              color: n <= r.rating ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
+                              fill: n <= r.rating ? "hsl(var(--burnt-sienna))" : "transparent",
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-ds-11 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {r.reviewerName}
+                      </span>
+                      <span className="text-ds-10 text-muted-foreground shrink-0">· {when}</span>
+                    </div>
+                    {r.feedback?.trim() ? (
+                      <p
+                        className="font-serif italic text-ds-12 leading-snug line-clamp-2"
+                        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                      >
+                        "{r.feedback}"
+                      </p>
+                    ) : (
+                      <p
+                        className="font-serif italic text-ds-11 leading-snug"
+                        style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                      >
+                        {r.jobTitle}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         )}
         {/* Completion meter — quiet horizontal bar at the bottom of the
             hero. Disappears at 100% to remove the nag once the user is

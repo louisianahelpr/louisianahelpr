@@ -83,7 +83,11 @@ export function ProfileEditForm({
             Photo &amp; name
           </p>
           <div className="flex items-center gap-4">
-            <div className="relative group shrink-0">
+            {/* Avatar always shows the actual photo (previously hidden behind
+                a full-coverage Camera overlay at opacity-100 on mobile).
+                Upload trigger moved to a small floating chip at the bottom-
+                right of the avatar so the user always sees their photo. */}
+            <div className="relative shrink-0">
               {profile?.avatar_url && !avatarBroken ? (
                 <img
                   loading="lazy"
@@ -98,8 +102,22 @@ export function ProfileEditForm({
                   {initials}
                 </div>
               )}
-              <label className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                {avatarUploading ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
+              <label
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+                style={{
+                  background: "hsl(var(--bark))",
+                  border: "2px solid hsl(var(--parchment))",
+                  boxShadow:
+                    "0 1px 2px hsl(70 20% 18% / 0.22), " +
+                    "0 4px 10px -2px hsl(var(--bark) / 0.4)",
+                }}
+                aria-label="Change profile photo"
+              >
+                {avatarUploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" style={{ color: "hsl(var(--parchment))" }} />
+                ) : (
+                  <Camera className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} />
+                )}
                 <input type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} disabled={avatarUploading} />
               </label>
             </div>

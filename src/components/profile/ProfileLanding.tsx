@@ -6,6 +6,7 @@ import {
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Heart, Crown,
   ShieldCheck, Trash2,
+  BadgeCheck, ImagePlus,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -133,40 +134,125 @@ export function ProfileLanding({
         >
           <Edit className="w-4 h-4" />
         </button>
-        <div className="flex flex-row items-center gap-3.5 pr-10">
-          {/* Avatar — 70px squircle, left */}
-          <div className="w-[75px] h-[75px] rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-20 font-bold overflow-hidden shrink-0">
-            {profile?.avatar_url && !avatarBroken ? (
-              <img
-                loading="lazy"
-                decoding="async"
-                src={profile.avatar_url}
-                alt=""
-                className="w-full h-full object-cover"
-                onError={() => setAvatarBroken(true)}
-              />
-            ) : initials}
-          </div>
-          {/* Identity + integrated stats, all stacked tight on the right */}
-          <div className="flex-1 min-w-0 text-left">
-            <h1
-              className="font-display italic font-bold truncate leading-tight"
+        <div className="flex flex-row items-start gap-4 pr-10">
+          {/* Avatar — bumped 75px → 92px so it's a real focal point on this
+              applicant-facing page (was a tiny chip next to a wide name).
+              Tier-styled ring uses gold for elite, accent for pro, primary
+              for everyone else. ID-verified checkmark sits on the bottom-
+              right as a trust signal that's visible at a glance. */}
+          <div className="relative shrink-0">
+            <div
+              className="w-[92px] h-[92px] rounded-[26px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden"
               style={{
-                fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.75rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
+                boxShadow:
+                  tier === "elite"
+                    ? "0 0 0 2.5px hsl(var(--gold-warm))"
+                    : tier === "pro"
+                      ? "0 0 0 2.5px hsl(var(--burnt-sienna))"
+                      : "0 0 0 2px hsl(var(--bark) / 0.18)",
               }}
             >
-              {displayName || "Welcome back"}
-            </h1>
+              {profile?.avatar_url && !avatarBroken ? (
+                <img
+                  loading="lazy"
+                  decoding="async"
+                  src={profile.avatar_url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  onError={() => setAvatarBroken(true)}
+                />
+              ) : initials}
+            </div>
+            {profile?.idv_status === "verified" && (
+              <div
+                aria-label="ID verified"
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
+                style={{
+                  background: "hsl(var(--bark))",
+                  border: "2px solid hsl(var(--parchment))",
+                }}
+              >
+                <BadgeCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
+              </div>
+            )}
+          </div>
+          {/* Identity + tier + stats, all stacked tight on the right */}
+          <div className="flex-1 min-w-0 text-left">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1
+                className="font-display italic font-bold leading-tight"
+                style={{
+                  fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.75rem)",
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.025em",
+                }}
+              >
+                {displayName || "Welcome back"}
+              </h1>
+              {/* Subscription tier badge — only shown when tier is not free.
+                  Pro = sienna, Elite = gold-warm. Small enough not to crowd
+                  the name; visible enough to read as a signal. */}
+              {tier === "pro" && (
+                <span
+                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                  style={{
+                    color: "hsl(var(--burnt-sienna))",
+                    background: "hsl(var(--burnt-sienna) / 0.12)",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  Pro
+                </span>
+              )}
+              {tier === "elite" && (
+                <span
+                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                  style={{
+                    color: "hsl(var(--gold-warm))",
+                    background: "hsl(var(--gold-warm) / 0.14)",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  <Crown className="w-2.5 h-2.5" /> Elite
+                </span>
+              )}
+            </div>
             {profile?.location && (
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+              <p className="text-ds-11 text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
                 <MapPin className="w-3 h-3 shrink-0" />
                 <span className="truncate">{profile.location}</span>
+                {profile?.created_at && (
+                  <>
+                    <span className="opacity-50">·</span>
+                    <span className="truncate">Since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+                  </>
+                )}
               </p>
             )}
-            {/* Integrated stats — single inline line directly under location */}
-            <div className="flex items-center gap-3 mt-1.5 text-[11px]">
+            {/* Trust badges — id verified / licensed / insured. Quiet pills
+                so they read as proof, not advertising. Missing items render
+                in muted gray so the user notices the gap. */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              {([
+                { ok: profile?.idv_status === "verified", label: "ID verified" },
+                { ok: (profile as any)?.license_status === "verified", label: "Licensed" },
+                { ok: (profile as any)?.insurance_status === "verified", label: "Insured" },
+              ]).map((b) => (
+                <span
+                  key={b.label}
+                  className={`inline-flex items-center gap-1 text-ds-9 font-sans font-medium px-1.5 py-0.5 rounded-full ${
+                    b.ok
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted/60 text-muted-foreground/70"
+                  }`}
+                >
+                  {b.ok ? <BadgeCheck className="w-2.5 h-2.5" /> : <span className="w-2.5 h-2.5 rounded-full border border-current" />}
+                  {b.label}
+                </span>
+              ))}
+            </div>
+            {/* Integrated stats — single inline line directly under badges */}
+            <div className="flex items-center gap-3 mt-2 text-ds-11">
               <button
                 onClick={() => onSelectTab("reviews")}
                 className="flex items-center gap-1 hover:opacity-70 active:opacity-50 transition-opacity"
@@ -195,12 +281,35 @@ export function ProfileLanding({
             {!profile?.full_name?.trim() && (
               <button
                 onClick={() => onSelectTab("profile")}
-                className="mt-1 text-[11px] font-semibold text-primary hover:underline"
+                className="mt-1.5 text-ds-11 font-semibold text-primary hover:underline"
               >
                 + Add your name
               </button>
             )}
           </div>
+        </div>
+        {/* Bio excerpt — surfaces the user's pitch on the landing page,
+            since this is what applicants see when deciding whether to apply.
+            Empty state nudges the user to write one (it's the single
+            highest-leverage thing a helper can do for visibility). */}
+        <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+          {profile?.bio?.trim() ? (
+            <p
+              className="font-serif italic text-ds-13 leading-snug line-clamp-3"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              {profile.bio}
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onSelectTab("profile")}
+              className="w-full text-left font-serif italic text-ds-13 leading-snug active:opacity-70 transition-opacity"
+              style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+            >
+              + Add a short bio so applicants know who they're hiring.
+            </button>
+          )}
         </div>
       </div>
 

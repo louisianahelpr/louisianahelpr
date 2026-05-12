@@ -271,7 +271,7 @@ const PostJob = () => {
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(dateNeeded + "T00:00:00");
     if (selectedDate < today) { toast.error("Date cannot be in the past"); return; }
-    if (!startTime) { toast.error("Start time is required"); return; }
+    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); return; }
     // special_requirements is optional — no validation needed
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
@@ -512,8 +512,17 @@ const PostJob = () => {
     : [25, 50, 100];
 
   const handlePostJobBack = () => {
-    if (step === "checkout") setStep("form");
-    else navigate("/dashboard");
+    if (step === "checkout") {
+      setStep("form");
+      // Scroll to top so the user lands on Details (not mid-form) to edit.
+      // RAF lets the form re-render before scroll fires, so the target
+      // exists. Smooth scroll matches iOS Settings-app feel.
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   return (

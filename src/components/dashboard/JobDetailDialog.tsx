@@ -464,11 +464,13 @@ const JobDetailDialog = ({
               >
                 ${payout.toFixed(2)}
               </p>
-              {(job.urgent_fee ?? 0) > 0 && (
-                <p className="font-sans font-semibold text-[10px] tracking-[0.04em] mt-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                  incl. ${Number(job.urgent_fee).toFixed(0)} urgent bonus
-                </p>
-              )}
+              {/* Always-visible micro-breakdown so helpers see the math
+                  without needing to tap-expand. Full breakdown still
+                  available below on expand. */}
+              <p className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                ${job.budget.toFixed(0)} budget − {commissionPercent}% fee
+                {(job.urgent_fee ?? 0) > 0 ? ` + $${Number(job.urgent_fee).toFixed(0)} urgent` : ""}
+              </p>
             </div>
             <ChevronDown
               className={`shrink-0 w-4 h-4 transition-transform ${payoutExpanded ? "rotate-180" : ""}`}

@@ -116,7 +116,7 @@ const CommunityVoice = () => {
               className="font-serif italic text-ds-13 sm:text-ds-15"
               style={{ color: "hsl(var(--stormy-sky))" }}
             >
-              + 127 neighbors
+              + 127 happy customers
             </span>
           </div>
         </div>

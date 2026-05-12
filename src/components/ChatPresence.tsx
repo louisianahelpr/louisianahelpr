@@ -18,11 +18,68 @@ export const TypingIndicator = () => (
   </div>
 );
 
-export const ReadReceipt = ({ read, sentByMe }: { read: boolean; sentByMe: boolean }) => {
+/**
+ * Read receipt — Slack-style. Unread shows a single bark checkmark
+ * ("delivered"). Read shows the recipient's avatar (or initials) so the
+ * "seen" moment carries a face, not just a check. Only renders on the
+ * sender's side.
+ */
+export const ReadReceipt = ({
+  read,
+  sentByMe,
+  recipientName,
+  recipientAvatarUrl,
+}: {
+  read: boolean;
+  sentByMe: boolean;
+  /** Required for the read-state initials fallback. */
+  recipientName?: string | null;
+  /** Recipient profile photo — preferred. */
+  recipientAvatarUrl?: string | null;
+}) => {
   if (!sentByMe) return null;
+  if (!read) {
+    return (
+      <span
+        className="text-[0.65rem] font-sans font-semibold ml-1"
+        style={{ color: "hsl(var(--bark) / 0.55)" }}
+        aria-label="Delivered"
+        title="Delivered"
+      >
+        ✓
+      </span>
+    );
+  }
+  const initials = (recipientName ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "?";
   return (
-    <span className="text-[10px] ml-1">
-      {read ? "✓✓" : "✓"}
+    <span
+      className="inline-flex items-center justify-center w-4 h-4 rounded-full ml-1 overflow-hidden"
+      style={{
+        background: "hsl(var(--bark) / 0.18)",
+        border: "0.5px solid hsl(var(--bark) / 0.32)",
+      }}
+      aria-label="Read"
+      title="Read"
+    >
+      {recipientAvatarUrl ? (
+        <img
+          loading="lazy"
+          decoding="async"
+          src={recipientAvatarUrl}
+          alt=""
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span className="text-[0.5rem] font-sans font-bold" style={{ color: "hsl(var(--bark))" }}>
+          {initials}
+        </span>
+      )}
     </span>
   );
 };

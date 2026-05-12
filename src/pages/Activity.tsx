@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -537,6 +539,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     return counts;
   }, [postedJobs]);
 
+  // Pull-to-refresh — must run unconditionally (hook order). Same
+  // gesture pattern as Dashboard.
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
+    onRefresh: async () => { await refresh(); },
+  });
+
   if (loading) {
     // Loading state mirrors the loaded layout: two-box stack on a
     // bg-premium-page shell with skeleton cards inside the bottom box.
@@ -571,6 +579,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
   return (
+    <PullToRefreshWrapper
+      ref={containerRef}
+      pullDistance={pullDistance}
+      refreshing={refreshing}
+      isPulling={isPulling}
+      canTrigger={canTrigger}
+    >
     <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
       <DashboardHeader />
       <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -1002,6 +1017,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         failureReason={idvFailureReason}
       />
     </div>
+    </PullToRefreshWrapper>
   );
 };
 

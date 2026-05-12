@@ -42,6 +42,10 @@ const JobDetailDialog = ({
   const [descExpanded, setDescExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [applicationCount, setApplicationCount] = useState<number | null>(null);
+  // Repeat-customer count — number of completed jobs between this
+  // helper and this poster. Drives the "Worked with you N times"
+  // badge that surfaces emotional re-booking trust.
+  const [repeatJobs, setRepeatJobs] = useState<number>(0);
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
 
   // Reset transient state when the dialog switches to a new job.
@@ -64,6 +68,30 @@ const JobDetailDialog = ({
       .then(({ count }) => { if (!cancelled) setApplicationCount(count ?? 0); });
     return () => { cancelled = true; };
   }, [job?.id]);
+
+  // Fetch how many completed jobs the current helper has done for this
+  // poster. Drives the repeat-customer badge in the poster card —
+  // emotional rebooking signal when the relationship has history.
+  useEffect(() => {
+    if (!job?.customer_id) {
+      setRepeatJobs(0);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const helperId = userRes?.user?.id;
+      if (!helperId || cancelled) return;
+      const { count } = await supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", job.customer_id)
+        .eq("helper_id", helperId)
+        .eq("status", "completed");
+      if (!cancelled) setRepeatJobs(count ?? 0);
+    })();
+    return () => { cancelled = true; };
+  }, [job?.customer_id]);
 
   // Lightbox keyboard navigation: arrows + escape.
   useEffect(() => {
@@ -638,6 +666,15 @@ const JobDetailDialog = ({
                 <span className="inline-flex items-center gap-1">
                   <Star className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} fill="currentColor" />
                   Trusted
+                </span>
+              </>
+            )}
+            {repeatJobs >= 2 && (
+              <>
+                <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+                <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--bark))" }}>
+                  <Users className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  Worked together {repeatJobs}×
                 </span>
               </>
             )}

@@ -155,6 +155,26 @@ const Dashboard = () => {
     return () => { cancelled = true; };
   }, [user?.id]);
 
+  // Profile completion nudge — when the user's profile is < 60%
+  // complete (photo / phone / location / bio / ID / portfolio), show
+  // a gentle banner on the dashboard until they fill it in. Dismissible
+  // per-session so it doesn't follow them around forever.
+  const [completionDismissed, setCompletionDismissed] = useState(false);
+  const completionPct = (() => {
+    if (!profile) return 100;
+    const items = [
+      !!profile.avatar_url,
+      !!(profile as any).phone,
+      !!profile.location && !!(profile as any).zip_code,
+      !!profile.bio && profile.bio.trim().length >= 20,
+      profile.idv_status === "verified" || profile.idv_status === "pending" ||
+        profile.idv_status === "processing" || profile.idv_status === "manual_review",
+      Array.isArray((profile as any).portfolio_urls) && (profile as any).portfolio_urls.length > 0,
+    ];
+    const done = items.filter(Boolean).length;
+    return Math.round((done / items.length) * 100);
+  })();
+
   // Inactive subscriber nudge — if a paid helper hasn't applied to
   // anything in 7+ days, surface a gentle "your sub is paying for
   // itself when you apply" banner. Caps the cost-justification at the
@@ -544,6 +564,52 @@ const Dashboard = () => {
               </button>
             )}
           </motion.div>
+
+          {/* Profile completion nudge — surfaces when profile is < 60%
+              complete. Sits above other banners since posters won't
+              respond well to incomplete-looking applicants. Tapping
+              routes to Edit Profile. */}
+          {profile && completionPct < 60 && !completionDismissed && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
+              style={{
+                background:
+                  "radial-gradient(70% 90% at 100% 0%, hsl(var(--gold-warm) / 0.10) 0%, transparent 55%)",
+                border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+              }}
+            >
+              <div
+                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: "hsl(var(--gold-warm) / 0.18)", color: "hsl(var(--gold-warm))" }}
+              >
+                <span className="font-display italic font-bold tabular-nums text-[0.78rem]">{completionPct}%</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/profile?tab=profile")}
+                className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
+              >
+                <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
+                  Finish your profile to land more jobs.
+                </p>
+                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+                  Posters skip incomplete profiles — finish in under 3 minutes.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCompletionDismissed(true)}
+                aria-label="Dismiss"
+                className="shrink-0 -mt-1 -mr-1 p-1.5 rounded-full active:opacity-70"
+                style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          )}
 
           {/* Inactive subscriber nudge — gentle reminder for paid helpers
               who haven't applied in 7+ days. Dismissible per-session. */}

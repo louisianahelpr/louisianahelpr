@@ -125,13 +125,27 @@ Deno.serve(async (req) => {
 
     // Bulk INSERT instead of awaiting per row. The trigger fan_out_push_on_notification
     // fires per-row and pushes to mobile, so this is also kinder to the cron.
+    // Tiny category emoji map — surfaces a glanceable icon in the push
+    // notification title so users can identify the work type without
+    // reading. Keeps the brand-voiced "Match for you" framing.
+    const categoryEmoji: Record<string, string> = {
+      cleaning: "🧹",
+      yard_work: "🌿",
+      moving: "📦",
+      errands: "🛒",
+      handyman: "🔧",
+      painting: "🎨",
+      delivery: "🚚",
+      pet_care: "🐾",
+      assembly: "🪛",
+      other: "✨",
+    };
+    const emoji = categoryEmoji[job.category] ?? "✨";
     const { error: notifyErr } = await supabase.from("notifications").insert(
       scored.map((h) => ({
         user_id: h.user_id,
-        // Brand-voiced push copy — calm, informative, no emoji shouting.
-        // "Match for you" reads as concierge-style alerting rather than
-        // the previous "🔥 New job match!" which felt notification-spam.
-        title: "Match for you",
+        // Category emoji in the title for faster glance recognition.
+        title: `${emoji} Match for you`,
         message: `${job.title} in ${job.location} · $${job.budget}. Tap to apply before someone else.`,
         type: "job_match",
         link: `/dashboard?quickApply=${job.id}`,

@@ -1067,7 +1067,12 @@ const Messages = () => {
                         <span>
                           {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
                         </span>
-                        <ReadReceipt read={m.read} sentByMe={mine} />
+                        <ReadReceipt
+                          read={m.read}
+                          sentByMe={mine}
+                          recipientName={activeConvo?.otherUserName}
+                          recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}
+                        />
                       </div>
                     </div>
                   );

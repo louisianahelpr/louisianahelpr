@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, MapPin, DollarSign, Clock } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -21,6 +23,7 @@ const statusColors: Record<string, string> = {
 const Schedule = () => {
   usePageTitle("Schedule — Helpr");
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -107,6 +110,17 @@ const Schedule = () => {
               <Clock className="w-4 h-4" /> Set availability
             </Button>
           </div>
+
+          {/* Helper's current weekly availability — shown inline so they
+              don't have to navigate into Availability to see what posters
+              see. Renders an empty "Set hours" CTA if nothing is set yet. */}
+          {user?.id && (
+            <HelperAvailabilityDisplay
+              helperId={user.id}
+              showEmpty
+              onSetUp={() => navigate("/availability")}
+            />
+          )}
 
           <div className="rounded-ds-md liquid-glass p-4">
             <div className="flex items-center justify-between mb-4">

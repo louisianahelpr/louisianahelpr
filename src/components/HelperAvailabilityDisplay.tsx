@@ -12,7 +12,18 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${suffix}`;
 }
 
-export function HelperAvailabilityDisplay({ helperId }: { helperId: string }) {
+interface Props {
+  helperId: string;
+  /**
+   * When true, render a "Not set yet" empty state for the owner to act on.
+   * Default false (used on public user profiles where empty = just hide it).
+   */
+  showEmpty?: boolean;
+  /** Called when the user taps the empty-state CTA. */
+  onSetUp?: () => void;
+}
+
+export function HelperAvailabilityDisplay({ helperId, showEmpty = false, onSetUp }: Props) {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -29,10 +40,37 @@ export function HelperAvailabilityDisplay({ helperId }: { helperId: string }) {
     })();
   }, [helperId]);
 
-  if (!loaded || slots.length === 0) return null;
+  if (!loaded) return null;
 
   const available = slots.filter((s) => s.is_available);
-  if (available.length === 0) return null;
+  const isEmpty = slots.length === 0 || available.length === 0;
+
+  if (isEmpty && !showEmpty) return null;
+
+  if (isEmpty) {
+    return (
+      <div className="rounded-ds-md liquid-glass p-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+          <div className="min-w-0">
+            <p className="text-ds-13 font-semibold text-foreground">Availability not set</p>
+            <p className="text-ds-11 text-muted-foreground truncate">
+              Posters match jobs to your weekly hours.
+            </p>
+          </div>
+        </div>
+        {onSetUp && (
+          <button
+            type="button"
+            onClick={onSetUp}
+            className="shrink-0 text-ds-11 font-semibold text-primary hover:underline active:opacity-70"
+          >
+            Set hours →
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-ds-md liquid-glass p-4 space-y-3">

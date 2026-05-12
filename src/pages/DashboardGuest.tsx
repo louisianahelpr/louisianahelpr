@@ -198,12 +198,12 @@ const DashboardGuest = () => {
   // Pull-to-refresh: re-runs the guestDashboardJobs query so swiping down on
   // the Quiet today / list surface fetches fresh open_jobs_browse rows.
   // Mirrors the pattern used in the authenticated Dashboard at the page root.
-  const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { await refetch(); },
   });
 
   return (
-    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
+    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling} canTrigger={canTrigger}>
     <div
       className="h-[100dvh] max-h-[100dvh] bg-premium-page flex flex-col overflow-hidden animate-in fade-in-0 duration-500"
     >

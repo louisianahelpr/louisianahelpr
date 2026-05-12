@@ -69,5 +69,13 @@ export const usePullToRefresh = ({
     };
   }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
-  return { containerRef, pullDistance, refreshing, isPulling: pulling && pullDistance > 0 };
+  return {
+    containerRef,
+    pullDistance,
+    refreshing,
+    isPulling: pulling && pullDistance > 0,
+    /** True once the user has pulled past the trigger threshold — UI can
+     *  flip its "Pull to refresh" copy to "Release to refresh." */
+    canTrigger: pulling && pullDistance >= threshold,
+  };
 };

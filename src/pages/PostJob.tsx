@@ -579,12 +579,20 @@ const PostJob = () => {
                 </div>
               )}
 
-              {/* Draft Prompt */}
+              {/* Draft Prompt — brand-aligned: liquid-glass surface, eyebrow,
+                  font-display italic title, font-serif italic description. */}
               {showDraftPrompt && (
-                <div className="rounded-ds-md border border-primary/20 bg-primary/5 p-4 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-ds-13 font-semibold text-foreground">You have a saved draft</p>
-                    <p className="text-ds-11 text-muted-foreground">Would you like to continue where you left off?</p>
+                <div className="rounded-2xl liquid-glass p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                      Picking up where you left off
+                    </p>
+                    <p className="font-display italic font-bold mt-1" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                      You have a saved draft
+                    </p>
+                    <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      Pick up where you stopped, or start fresh.
+                    </p>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <Button

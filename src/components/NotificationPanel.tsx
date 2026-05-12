@@ -251,23 +251,53 @@ const NotificationPanel = () => {
                 <button
                   key={n.id}
                   onClick={() => handleClick(n)}
-                  className={`w-full text-left px-4 py-3 border-b border-border hover:bg-secondary/50 transition-colors ${
-                    !n.read ? "bg-primary/5" : ""
-                  }`}
+                  className="w-full text-left px-4 py-3 transition-colors active:opacity-80"
+                  style={{
+                    background: !n.read ? "hsl(var(--burnt-sienna) / 0.06)" : undefined,
+                    borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
+                  }}
                 >
                   <div className="flex gap-3">
-                    <div className="mt-0.5 flex-shrink-0">
+                    <div
+                      className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                      style={{
+                        background: !n.read ? "hsl(var(--burnt-sienna) / 0.12)" : "hsl(var(--bark) / 0.08)",
+                        color: !n.read ? "hsl(var(--burnt-sienna))" : "hsl(var(--bark))",
+                      }}
+                    >
                       {typeIcons[n.type] || typeIcons.info}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className={`text-ds-13 font-medium truncate ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
+                        <p
+                          className="font-display italic font-bold leading-tight truncate"
+                          style={{
+                            fontSize: "0.92rem",
+                            color: !n.read ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
+                            letterSpacing: "-0.012em",
+                          }}
+                        >
                           {n.title}
                         </p>
-                        {!n.read && <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />}
+                        {!n.read && (
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ background: "hsl(var(--burnt-sienna))" }}
+                          />
+                        )}
                       </div>
-                      <p className="text-ds-11 text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                      <p className="text-ds-11 text-muted-foreground/60 mt-1">{timeAgo(n.created_at)}</p>
+                      <p
+                        className="font-serif italic mt-0.5 line-clamp-2"
+                        style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                      >
+                        {n.message}
+                      </p>
+                      <p
+                        className="font-serif italic mt-1"
+                        style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.55)" }}
+                      >
+                        {timeAgo(n.created_at)}
+                      </p>
                     </div>
                   </div>
                 </button>

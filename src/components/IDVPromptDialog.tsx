@@ -146,39 +146,95 @@ export function IDVPromptDialog({
         )}
 
         {!isAdminReview && !isPending && (
-          <div className="space-y-3 py-2">
-            <div className="flex items-start gap-3 p-3 rounded-[12px] bg-muted/40 border border-border">
-              <FileCheck2 className="w-5 h-5 text-primary mt-0.5 shrink-0" aria-hidden="true" />
-              <div className="text-ds-13">
-                <p className="font-medium text-foreground">Photo of your government ID</p>
-                <p className="text-muted-foreground text-ds-11">Driver's license, passport, or state ID</p>
+          <div className="space-y-2 py-1">
+            <div
+              className="flex items-start gap-3 p-3 rounded-ds-md"
+              style={{
+                background: "hsla(0, 0%, 100%, 0.5)",
+                border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+              }}
+            >
+              <div
+                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: "hsl(var(--bark) / 0.12)", color: "hsl(var(--bark))" }}
+              >
+                <FileCheck2 className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p
+                  className="font-display italic font-bold leading-tight"
+                  style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                >
+                  Photo of your government ID
+                </p>
+                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  Driver's license, passport, or state ID
+                </p>
               </div>
             </div>
-            <div className="flex items-start gap-3 p-3 rounded-[12px] bg-muted/40 border border-border">
-              <Camera className="w-5 h-5 text-primary mt-0.5 shrink-0" aria-hidden="true" />
-              <div className="text-ds-13">
-                <p className="font-medium text-foreground">A quick selfie</p>
-                <p className="text-muted-foreground text-ds-11">We compare it to your ID to make sure it's really you</p>
+            <div
+              className="flex items-start gap-3 p-3 rounded-ds-md"
+              style={{
+                background: "hsla(0, 0%, 100%, 0.5)",
+                border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+              }}
+            >
+              <div
+                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: "hsl(var(--bark) / 0.12)", color: "hsl(var(--bark))" }}
+              >
+                <Camera className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p
+                  className="font-display italic font-bold leading-tight"
+                  style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                >
+                  A quick selfie
+                </p>
+                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  We compare it to your ID to make sure it's really you
+                </p>
               </div>
             </div>
-            <p className="text-ds-11 text-muted-foreground px-1">
+            <p
+              className="font-serif italic px-1 pt-1"
+              style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.65)" }}
+            >
               Verification is handled securely by Stripe Identity. Most checks finish in under 2 minutes.
             </p>
           </div>
         )}
 
         {isPending && (
-          <p className="text-ds-11 text-muted-foreground px-1 py-2">
+          <p
+            className="font-serif italic px-1 py-2"
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}
+          >
             You'll get a notification as soon as the review finishes. No need to do anything else right now.
           </p>
         )}
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-ds-md h-11">
+        <DialogFooter className="!gap-2">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-ds-md h-11">
             {isPending || isAdminReview ? "OK" : "Not now"}
           </Button>
           {!isPending && !isAdminReview && (
-            <Button onClick={handleStart} disabled={loading} className="rounded-ds-md h-11">
+            <Button
+              onClick={handleStart}
+              disabled={loading}
+              className="rounded-ds-md h-11"
+              style={{
+                background: "hsl(var(--bark))",
+                backgroundImage: "none",
+                border: "1px solid hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                letterSpacing: "0.01em",
+                boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+              }}
+            >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className="w-4 h-4 mr-2" />}
               Start verification
             </Button>

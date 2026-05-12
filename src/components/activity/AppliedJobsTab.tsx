@@ -732,18 +732,52 @@ export const AppliedJobsTab = ({
               const disputeStatus = jobAny.dispute_status || "open";
               const hasResponded = !!jobAny.dispute_helper_response;
               return (
-                <div className="px-4 py-3 border-t border-border/30 bg-destructive/5 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="px-4 py-3 space-y-2.5"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    borderTop: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                    background: "hsl(var(--burnt-sienna) / 0.06)",
+                  }}
+                >
                   {/* Dispute info */}
-                  <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
-                    <p className="text-ds-11 font-semibold text-destructive flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      {disputeStatus === "escalated" ? "Escalated to Admin" : "Dispute In Progress"}
+                  <div
+                    className="rounded-ds-md p-3"
+                    style={{
+                      background: "hsl(var(--burnt-sienna) / 0.10)",
+                      border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
+                    }}
+                  >
+                    <span
+                      className="font-serif italic uppercase inline-flex items-center gap-1.5"
+                      style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                    >
+                      <AlertTriangle className="w-3 h-3" />
+                      {disputeStatus === "escalated" ? "Admin reviewing" : "Dispute open"}
+                    </span>
+                    <p
+                      className="font-display italic font-bold leading-tight mt-1"
+                      style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                    >
+                      {disputeStatus === "escalated"
+                        ? "An admin is on it."
+                        : "Both sides are talking it out."}
                     </p>
                     {jobAny.dispute_reason && (
-                      <p className="text-ds-11 text-muted-foreground mt-1">Reason: {jobAny.dispute_reason}</p>
+                      <p
+                        className="font-serif italic mt-1.5"
+                        style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                      >
+                        Reason: {jobAny.dispute_reason}
+                      </p>
                     )}
                     {jobAny.disputed_at && (
-                      <p className="text-[10px] text-muted-foreground mt-1">Filed {formatDistanceToNow(new Date(jobAny.disputed_at), { addSuffix: true })}</p>
+                      <p
+                        className="font-serif italic mt-1"
+                        style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}
+                      >
+                        Filed {formatDistanceToNow(new Date(jobAny.disputed_at), { addSuffix: true })}
+                      </p>
                     )}
                   </div>
 

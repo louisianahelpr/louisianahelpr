@@ -710,9 +710,34 @@ const PostJob = () => {
                 {/* Submit — inline at the end of the form on every viewport.
                     Was previously fixed-position on mobile, which overlapped
                     the Budget section + the bottom nav. Now scrolls into view
-                    naturally as the user finishes the form. */}
-                <Button type="submit" className="w-full" size="lg">
-                  Review & Pay{budgetNum > 0 ? ` · $${budgetNum.toFixed(2)}` : ""}
+                    naturally as the user finishes the form. Brand-styled bark
+                    with depth shadow + display-italic price for the eye. */}
+                <Button
+                  type="submit"
+                  className="w-full rounded-ds-md"
+                  size="lg"
+                  style={{
+                    background: "hsl(var(--bark))",
+                    backgroundImage: "none",
+                    border: "1px solid hsl(var(--bark))",
+                    color: "hsl(var(--parchment))",
+                    fontFamily: "Montserrat, system-ui, sans-serif",
+                    fontWeight: 600,
+                    letterSpacing: "0.01em",
+                    boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 10px 24px -8px hsl(var(--bark) / 0.38)",
+                  }}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    Review &amp; pay
+                    {budgetNum > 0 && (
+                      <span
+                        className="font-display italic font-bold tabular-nums"
+                        style={{ fontSize: "1rem", letterSpacing: "-0.01em" }}
+                      >
+                        · ${budgetNum.toFixed(2)}
+                      </span>
+                    )}
+                  </span>
                 </Button>
               </form>
             </>

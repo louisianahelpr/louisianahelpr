@@ -236,10 +236,24 @@ export function CheckoutStep({
       {/* Action Buttons */}
       <div className="space-y-3">
         <Button
-          className="w-full"
+          className="w-full rounded-ds-md"
           size="lg"
           onClick={onSubmit}
           disabled={saving || uploading || !confirmed}
+          style={
+            confirmed && !saving && !uploading
+              ? {
+                  background: "hsl(var(--bark))",
+                  backgroundImage: "none",
+                  border: "1px solid hsl(var(--bark))",
+                  color: "hsl(var(--parchment))",
+                  fontFamily: "Montserrat, system-ui, sans-serif",
+                  fontWeight: 600,
+                  letterSpacing: "0.01em",
+                  boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 10px 24px -8px hsl(var(--bark) / 0.40)",
+                }
+              : undefined
+          }
         >
           {confirmed ? <CreditCard className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
           {uploadProgress
@@ -250,13 +264,24 @@ export function CheckoutStep({
                 ? "Processing…"
                 : !confirmed
                   ? "Confirm details to continue"
-                  : `Pay $${totalCharge.toFixed(2)}`}
+                  : (
+                    <span className="inline-flex items-center gap-2">
+                      Pay
+                      <span
+                        className="font-display italic font-bold tabular-nums"
+                        style={{ fontSize: "1.05rem", letterSpacing: "-0.01em" }}
+                      >
+                        ${totalCharge.toFixed(2)}
+                      </span>
+                    </span>
+                  )}
         </Button>
         <Button
           variant="ghost"
-          className="w-full text-muted-foreground"
+          className="w-full rounded-ds-md"
           onClick={onEdit}
           disabled={saving}
+          style={{ color: "hsl(var(--bark))" }}
         >
           <ChevronLeft className="w-4 h-4 mr-1" /> Back to edit
         </Button>

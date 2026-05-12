@@ -67,54 +67,130 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">{type === "before" ? "Before" : "After"} Photos</DialogTitle>
+        <DialogContent className="!gap-3">
+          <DialogHeader className="!text-left space-y-0">
+            <span
+              className="font-serif italic uppercase inline-flex items-center gap-1.5"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              <Camera className="w-3 h-3" /> Proof of work
+            </span>
+            <DialogTitle
+              className="font-display italic font-bold leading-tight mt-1"
+              style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+            >
+              {type === "before" ? "Before" : "After"} photos
+            </DialogTitle>
+            <p
+              className="font-serif italic mt-1"
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+            >
+              {type === "before"
+                ? "Snap a few shots before you start so everyone has a baseline."
+                : "Show the finished work — required before payment can release."}
+            </p>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {existingUrls.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-ds-11 text-muted-foreground font-medium">Already uploaded</p>
+              <div className="space-y-1.5">
+                <p
+                  className="font-serif italic uppercase"
+                  style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                >
+                  Already uploaded
+                </p>
                 <div className="flex gap-2 flex-wrap">
                   {existingUrls.map((url, i) => (
-                    <img loading="lazy" decoding="async" key={i} src={url} alt={`Job photo ${i + 1}`} className="w-20 h-20 rounded-lg object-cover border border-border" />
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      key={i}
+                      src={url}
+                      alt={`Job photo ${i + 1}`}
+                      className="w-20 h-20 rounded-2xl object-cover"
+                      style={{
+                        border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                        boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06)",
+                      }}
+                    />
                   ))}
                 </div>
               </div>
             )}
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2.5">
               {previews.map((src, i) => (
-                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
+                <div
+                  key={i}
+                  className="relative w-20 h-20 rounded-2xl overflow-hidden group"
+                  style={{
+                    border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                    boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
+                  }}
+                >
                   {src.startsWith("blob:") ? (
                     <img loading="lazy" decoding="async" src={src} alt={`Photo ${i + 1} preview`} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted/40">
-                      <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
+                      <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
                     </div>
                   )}
                   <button
                     type="button"
                     onClick={() => removeFile(i)}
                     aria-label={`Remove photo ${i + 1}`}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 active:scale-90 transition-all"
+                    style={{
+                      background: "hsl(var(--burnt-sienna))",
+                      color: "hsl(var(--parchment))",
+                      boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                    }}
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3 h-3" strokeWidth={2.5} />
                   </button>
                 </div>
               ))}
               {files.length < 5 && (
-                <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                  <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
+                <label
+                  className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
+                  style={{
+                    background: "hsla(0, 0%, 100%, 0.4)",
+                    border: "1.5px dashed hsl(var(--bark) / 0.30)",
+                  }}
+                >
+                  <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                  <span
+                    className="font-sans font-semibold mt-1"
+                    style={{ fontSize: "0.62rem", color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
+                  >
+                    Add photo
+                  </span>
                   <input type="file" accept="image/*" multiple className="hidden" onChange={handleSelect} />
                 </label>
               )}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={upload} disabled={uploading || files.length === 0}>
-              {uploading ? "Uploading…" : "Upload Photos"}
+          <DialogFooter className="!gap-2">
+            <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-ds-md">Cancel</Button>
+            <Button
+              onClick={upload}
+              disabled={uploading || files.length === 0}
+              className="rounded-ds-md"
+              style={
+                !uploading && files.length > 0
+                  ? {
+                      background: "hsl(var(--bark))",
+                      backgroundImage: "none",
+                      border: "1px solid hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      fontFamily: "Montserrat, system-ui, sans-serif",
+                      fontWeight: 600,
+                      letterSpacing: "0.01em",
+                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                    }
+                  : undefined
+              }
+            >
+              {uploading ? "Uploading…" : "Upload"}
             </Button>
           </DialogFooter>
         </DialogContent>

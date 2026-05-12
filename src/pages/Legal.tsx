@@ -38,7 +38,7 @@ const TldrCard = ({ items }: { items: string[] }) => (
         The short version
       </span>
     </div>
-    <ul className="space-y-1.5 text-sm font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
+    <ul className="space-y-1.5 text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
       {items.map((item, i) => (
         <li key={i} className="flex gap-2.5 leading-relaxed">
           <span
@@ -234,7 +234,7 @@ const TermsContent = () => (
     </PolicySection>
 
     <p
-      className="text-center pt-2 pb-4 text-xs font-sans"
+      className="text-center pt-2 pb-4 text-ds-11 font-sans"
       style={{ color: "hsl(var(--olivewood) / 0.65)" }}
     >
       Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
@@ -546,7 +546,7 @@ const CommunityContent = () => (
     </PolicySection>
 
     <p
-      className="text-center pt-2 pb-4 text-xs font-sans"
+      className="text-center pt-2 pb-4 text-ds-11 font-sans"
       style={{ color: "hsl(var(--olivewood) / 0.65)" }}
     >
       Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
@@ -722,7 +722,7 @@ const PrivacyContent = () => (
     </PolicySection>
 
     <p
-      className="text-center pt-2 pb-4 text-xs font-sans"
+      className="text-center pt-2 pb-4 text-ds-11 font-sans"
       style={{ color: "hsl(var(--olivewood) / 0.65)" }}
     >
       Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
@@ -789,13 +789,13 @@ const Legal = () => {
                 backdropFilter: "blur(20px) saturate(170%)",
               }}
             >
-              <TabsTrigger value="terms" className="rounded-xl text-xs font-sans font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger value="terms" className="rounded-ds-md text-ds-11 font-sans font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
                 Terms
               </TabsTrigger>
-              <TabsTrigger value="community" className="rounded-xl text-xs font-sans font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger value="community" className="rounded-ds-md text-ds-11 font-sans font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
                 Community
               </TabsTrigger>
-              <TabsTrigger value="privacy" className="rounded-xl text-xs font-sans font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger value="privacy" className="rounded-ds-md text-ds-11 font-sans font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
                 Privacy
               </TabsTrigger>
             </TabsList>

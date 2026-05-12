@@ -60,7 +60,7 @@ const StepRow = ({
     <div className="flex items-center gap-3 py-1.5">
       {icon}
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium leading-tight ${tone}`}>{label}</p>
+        <p className={`text-ds-13 font-medium leading-tight ${tone}`}>{label}</p>
         <p className={`text-[11px] leading-tight ${subTone}`}>{sub}</p>
       </div>
     </div>
@@ -303,7 +303,7 @@ const AccountPending = () => {
             >
               Check your email
             </h1>
-            <p className="text-xs text-muted-foreground leading-relaxed mb-6">
+            <p className="text-ds-11 text-muted-foreground leading-relaxed mb-6">
               We sent a verification link to{" "}
               <span className="font-medium text-foreground break-all">{userEmail}</span>
             </p>
@@ -316,7 +316,7 @@ const AccountPending = () => {
             >
               {resending ? (<><RefreshCw className="w-4 h-4 animate-spin" /> Sending…</>) : "Resend email"}
             </Button>
-            <p className="text-xs text-muted-foreground mt-3">
+            <p className="text-ds-11 text-muted-foreground mt-3">
               Didn&apos;t get it? Check your spam folder.
             </p>
           </div>
@@ -395,7 +395,7 @@ const AccountPending = () => {
                 disabled={syncing}
                 size="sm"
                 variant="ghost"
-                className="w-full gap-2 rounded-xl text-muted-foreground hover:text-foreground"
+                className="w-full gap-2 rounded-ds-md text-muted-foreground hover:text-foreground"
               >
                 {syncing ? (
                   <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Syncing…</>

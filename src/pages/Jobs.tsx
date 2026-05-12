@@ -170,7 +170,7 @@ const Jobs = () => {
                     <button
                       key={label ?? "all"}
                       onClick={() => setSelectedCategory(isActive ? null : key)}
-                      className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-200 btn-press squircle border ${
+                      className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-ds-11 font-semibold whitespace-nowrap shrink-0 transition-all duration-200 btn-press squircle border ${
                         isActive
                           ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
                           : "bg-white/60 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
@@ -197,10 +197,10 @@ const Jobs = () => {
                 <Search className="w-7 h-7 text-primary" strokeWidth={2.25} />
               </div>
               <div className="space-y-1.5">
-                <p className="text-base font-display font-bold text-foreground">
+                <p className="text-ds-15 font-display font-bold text-foreground">
                   No tasks found in your area yet
                 </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
+                <p className="text-ds-11 text-muted-foreground leading-relaxed">
                   Try adjusting your filters or check back soon — new tasks are posted across Louisiana every day.
                 </p>
               </div>
@@ -224,7 +224,7 @@ const Jobs = () => {
                   style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-foreground line-clamp-1 text-sm">
+                    <h3 className="font-semibold text-foreground line-clamp-1 text-ds-13">
                       {job.title}
                     </h3>
                     {job.is_urgent && (
@@ -234,11 +234,11 @@ const Jobs = () => {
                     )}
                   </div>
 
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-ds-11">
                     {categoryLabels[job.category] || job.category}
                   </Badge>
 
-                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                  <div className="space-y-1.5 text-ds-11 text-muted-foreground">
                     <a
                       href={`https://www.google.com/maps/search/${encodeURIComponent(getCityState(job.location))}`}
                       target="_blank"
@@ -272,11 +272,11 @@ const Jobs = () => {
                   {/* Locked overlay on hover */}
                   <div className="absolute inset-0 rounded-2xl bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                     <Lock className="w-5 h-5 text-primary" />
-                    <p className="text-xs font-medium text-foreground">Sign up to apply</p>
+                    <p className="text-ds-11 font-medium text-foreground">Sign up to apply</p>
                     <Button
                       size="sm"
                       variant="default"
-                      className="text-xs"
+                      className="text-ds-11"
                       onClick={() => navigate("/signup")}
                     >
                       Get Started
@@ -304,8 +304,8 @@ const Jobs = () => {
           <div className="text-center mt-12 space-y-4">
             <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 max-w-lg mx-auto space-y-4">
               <Lock className="w-8 h-8 text-primary mx-auto" />
-              <h3 className="text-lg font-bold text-foreground">Ready to get started?</h3>
-              <p className="text-xs text-muted-foreground">
+              <h3 className="text-ds-17 font-bold text-foreground">Ready to get started?</h3>
+              <p className="text-ds-11 text-muted-foreground">
                 Sign up to apply for jobs, message posters, and start earning — or post your own task and find help today.
               </p>
               <Button

@@ -65,7 +65,7 @@ export const AppleSignInButton = ({
       type="button"
       variant="outline"
       size="lg"
-      className="w-full rounded-xl border-border/70 bg-foreground text-background hover:bg-foreground/90 hover:text-background"
+      className="w-full rounded-ds-md border-border/70 bg-foreground text-background hover:bg-foreground/90 hover:text-background"
       onClick={handleClick}
       disabled={loading}
     >

@@ -130,7 +130,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           variant="ghost"
           size="icon"
           aria-label="Saved searches"
-          className="h-8 w-8 rounded-xl btn-press text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 rounded-ds-md btn-press text-muted-foreground hover:text-foreground"
         >
           <Bookmark className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
         </Button>
@@ -183,12 +183,12 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={60}
-              className="rounded-xl h-11 border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
+              className="rounded-ds-md h-11 border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
             />
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="h-11 w-11 p-0 rounded-xl shrink-0"
+              className="h-11 w-11 p-0 rounded-ds-md shrink-0"
               aria-label="Save filter set"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" strokeWidth={2.25} />}
@@ -249,7 +249,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
             searches.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center gap-2 rounded-xl liquid-glass p-3"
+                className="flex items-center gap-2 rounded-ds-md liquid-glass p-3"
               >
                 <button
                   type="button"
@@ -309,7 +309,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           <Button
             variant="ghost"
             onClick={() => setOpen(false)}
-            className="h-10 rounded-xl"
+            className="h-10 rounded-ds-md"
           >
             Close
           </Button>

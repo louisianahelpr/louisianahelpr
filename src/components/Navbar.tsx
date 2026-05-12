@@ -94,19 +94,19 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
         <div className="hidden lg:flex items-center gap-12">
           <Link
             to="/#how-it-works"
-            className="text-sm font-sans font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+            className="text-ds-13 font-sans font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
           >
             How it works
           </Link>
           <Link
             to="/#open-jobs"
-            className="text-sm font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+            className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
           >
             Jobs
           </Link>
           <Link
             to="/for-business"
-            className="text-sm font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+            className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
           >
             Business
           </Link>
@@ -115,7 +115,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             <Button
               variant="ghost"
               size="sm"
-              className="rounded-xl btn-press"
+              className="rounded-ds-md btn-press"
               onClick={() => navigate("/login")}
               onMouseEnter={() => prefetchRoute("/login")}
               onFocus={() => prefetchRoute("/login")}
@@ -124,7 +124,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             </Button>
             <Button
               size="sm"
-              className="rounded-xl btn-press"
+              className="rounded-ds-md btn-press"
               onClick={() => navigate("/signup")}
               onMouseEnter={() => prefetchRoute("/signup")}
               onFocus={() => prefetchRoute("/signup")}
@@ -142,7 +142,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="hover:bg-muted btn-press rounded-xl h-10 w-10"
+                className="hover:bg-muted btn-press rounded-ds-md h-10 w-10"
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
               >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -170,7 +170,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                   draggable={false}
                 />
                 <span
-                  className="text-2xl font-serif italic tracking-[-0.005em]"
+                  className="text-ds-24 font-serif italic tracking-[-0.005em]"
                   style={{ fontWeight: 500, color: "hsl(var(--ink-deep))" }}
                 >
                   Helpr

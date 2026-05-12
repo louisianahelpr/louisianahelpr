@@ -139,7 +139,7 @@ const NotificationPreferences = () => {
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <span className="text-primary shrink-0">{item.icon}</span>
-            <Label className="text-sm font-medium text-foreground truncate">{item.label}</Label>
+            <Label className="text-ds-13 font-medium text-foreground truncate">{item.label}</Label>
           </div>
           <div className={`flex items-center gap-6 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
             <Switch
@@ -161,7 +161,7 @@ const NotificationPreferences = () => {
       <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-t border-border shrink-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Bell className="w-4 h-4 text-primary shrink-0" />
-          <Label className="text-sm font-medium text-foreground truncate">Push Notifications</Label>
+          <Label className="text-ds-13 font-medium text-foreground truncate">Push Notifications</Label>
         </div>
         <Switch
           checked={prefs.push_enabled}

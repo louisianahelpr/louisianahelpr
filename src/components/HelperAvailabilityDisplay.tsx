@@ -35,10 +35,10 @@ export function HelperAvailabilityDisplay({ helperId }: { helperId: string }) {
   if (available.length === 0) return null;
 
   return (
-    <div className="rounded-xl liquid-glass p-4 space-y-3">
+    <div className="rounded-ds-md liquid-glass p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Clock className="w-4 h-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">Availability</h3>
+        <h3 className="text-ds-13 font-semibold text-foreground">Availability</h3>
       </div>
       <div className="grid grid-cols-7 gap-1">
         {DAYS.map((day, i) => {

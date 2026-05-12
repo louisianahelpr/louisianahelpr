@@ -103,7 +103,7 @@ const JobHistory = () => {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex-1 px-3 py-2 rounded-md text-ds-13 font-medium transition-colors ${
                   tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -118,7 +118,7 @@ const JobHistory = () => {
               <button
                 key={s.key}
                 onClick={() => setStatusFilter(s.key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-ds-11 font-medium transition-colors ${
                   statusFilter === s.key
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -165,7 +165,7 @@ const JobHistory = () => {
                   Nothing here yet.
                 </p>
                 <p
-                  className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                  className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 >
                   Completed and closed jobs will collect in your archive.
@@ -174,28 +174,28 @@ const JobHistory = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">{jobs.length} job{jobs.length !== 1 ? "s" : ""}</p>
+              <p className="text-ds-11 text-muted-foreground">{jobs.length} job{jobs.length !== 1 ? "s" : ""}</p>
               {jobs.map((job) => (
-                <div key={`${job.id}-${job._source}`} className="rounded-xl liquid-glass p-4">
+                <div key={`${job.id}-${job._source}`} className="rounded-ds-md liquid-glass p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3 className="font-semibold text-foreground">{job.title}</h3>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>
+                        <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>
                           {job.status.replace("_", " ")}
                         </span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
+                        <span className="text-ds-11 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
                           {job._source === "posted" ? "Posted" : "Worked"}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-1">
+                      <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground mt-1">
                         <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
                         <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2 line-clamp-1">{job.description}</p>
+                      <p className="text-ds-11 text-muted-foreground mt-2 line-clamp-1">{job.description}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                    <p className="text-ds-11 text-muted-foreground whitespace-nowrap">
                       {new Date(job.created_at).toLocaleDateString()}
                     </p>
                   </div>

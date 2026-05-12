@@ -168,13 +168,13 @@ export function PayoutSetupForm() {
                     </div>
                   )}
                   <div>
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-ds-13 font-medium text-foreground">
                       {m.type === "bank_account"
                         ? `${m.bank_name || "Bank"} ····${m.last4}`
                         : `${m.brand || "Card"} ····${m.last4}`}
                     </p>
                     {m.default_for_currency && (
-                      <span className="text-xs text-primary font-medium flex items-center gap-1">
+                      <span className="text-ds-11 text-primary font-medium flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" /> Default
                       </span>
                     )}
@@ -195,8 +195,8 @@ export function PayoutSetupForm() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-foreground">No payout account connected</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-ds-13 font-medium text-foreground">No payout account connected</p>
+              <p className="text-ds-11 text-muted-foreground mt-1">
                 Set up your payout account through Stripe to receive payments for completed jobs.
               </p>
             </div>
@@ -209,8 +209,8 @@ export function PayoutSetupForm() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-accent-foreground shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-foreground">Verification incomplete</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-ds-13 font-medium text-foreground">Verification incomplete</p>
+              <p className="text-ds-11 text-muted-foreground mt-1">
                 Stripe needs more information to enable payouts. Click below to complete your setup.
               </p>
             </div>
@@ -230,7 +230,7 @@ export function PayoutSetupForm() {
             )}
           </Button>
           {status?.connected && (
-            <Button variant="ghost" size="sm" onClick={handleReset} disabled={resetting} className="w-full text-xs text-muted-foreground">
+            <Button variant="ghost" size="sm" onClick={handleReset} disabled={resetting} className="w-full text-ds-11 text-muted-foreground">
               {resetting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Resetting…</> : "Having issues? Reset & start fresh"}
             </Button>
           )}
@@ -256,13 +256,13 @@ export function PayoutSetupForm() {
                   </div>
                 )}
                 <div>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-ds-13 font-medium text-foreground">
                     {m.type === "bank_account"
                       ? `${m.bank_name || "Bank"} ····${m.last4}`
                       : `${m.brand || "Card"} ····${m.last4}`}
                   </p>
                   {m.default_for_currency && (
-                    <span className="text-xs text-primary font-medium flex items-center gap-1">
+                    <span className="text-ds-11 text-primary font-medium flex items-center gap-1">
                       <CheckCircle className="w-3 h-3" /> Default
                     </span>
                   )}
@@ -294,7 +294,7 @@ export function PayoutSetupForm() {
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-primary shrink-0" />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-ds-11 text-muted-foreground">
                 Payouts will be automatically sent to your default method when jobs are completed.
               </p>
             </div>

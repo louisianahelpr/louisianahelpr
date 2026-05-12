@@ -51,7 +51,7 @@ const Availability = () => {
               size="icon"
               onClick={() => navigate(-1)}
               aria-label="Go back"
-              className="h-10 w-10 shrink-0 rounded-xl -ml-1"
+              className="h-10 w-10 shrink-0 rounded-ds-md -ml-1"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -75,7 +75,7 @@ const Availability = () => {
             Set your weekly hours so posters can match jobs to days you're free.
           </p>
 
-          <div className="flex-1 min-h-0 rounded-xl liquid-glass overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0 rounded-ds-md liquid-glass overflow-hidden flex flex-col">
             {loading || !userId ? (
               <div className="p-4 space-y-3">
                 {Array.from({ length: 7 }).map((_, i) => (

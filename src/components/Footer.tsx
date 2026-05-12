@@ -45,7 +45,7 @@ const Footer = () => (
         <div className="md:col-span-5 space-y-3">
           <Link
             to="/"
-            className="inline-flex items-baseline gap-2 text-2xl font-serif font-extrabold tracking-[-0.025em]"
+            className="inline-flex items-baseline gap-2 text-ds-24 font-serif font-extrabold tracking-[-0.025em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
           >
             Helpr
@@ -53,18 +53,18 @@ const Footer = () => (
                 a second appearance at the bottom of the page, tying the
                 hero seal to the footer wordmark. */}
             <span
-              className="text-base font-serif font-bold tracking-[0.05em]"
+              className="text-ds-15 font-serif font-bold tracking-[0.05em]"
               style={{ color: "hsl(var(--heritage-gold) / 0.7)" }}
               aria-hidden
             >
               · LA
             </span>
           </Link>
-          <p className="text-xs text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">
+          <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">
             Hire a Helpr or find local work — your trusted Louisiana partner for
             everyday tasks.
           </p>
-          <div className="flex flex-col gap-1.5 text-xs text-[hsl(var(--olivewood))]/80 pt-1">
+          <div className="flex flex-col gap-1.5 text-ds-11 text-[hsl(var(--olivewood))]/80 pt-1">
             <a
               href="mailto:admin@louisianahelpr.com"
               className="inline-flex items-center gap-2 hover:text-[hsl(var(--olivewood))] transition-colors w-fit"
@@ -87,7 +87,7 @@ const Footer = () => (
           >
             Company
           </h3>
-          <ul className="space-y-2 text-xs text-[hsl(var(--olivewood))]/85">
+          <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
               <Link to="/for-business" className="hover:text-[hsl(var(--olivewood))] transition-colors">
                 Business
@@ -109,7 +109,7 @@ const Footer = () => (
           >
             Legal
           </h3>
-          <ul className="space-y-2 text-xs text-[hsl(var(--olivewood))]/85">
+          <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
               <Link to="/rules" className="hover:text-[hsl(var(--olivewood))] transition-colors">
                 Rules &amp; Pricing
@@ -172,7 +172,7 @@ const Footer = () => (
       {/* Motto — EB Garamond italic. Print-era flourish that establishes the
           "established institution" feel above the standard copyright row. */}
       <p
-        className="mt-6 text-center font-serif italic text-sm sm:text-base"
+        className="mt-6 text-center font-serif italic text-ds-13 sm:text-ds-15"
         style={{
           color: "hsl(var(--heritage-gold))",
           fontWeight: 400,
@@ -184,10 +184,10 @@ const Footer = () => (
 
       {/* Bottom: copyright */}
       <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 border-t border-[hsl(var(--olivewood))]/15">
-        <p className="text-xs text-[hsl(var(--olivewood))]/70">
+        <p className="text-ds-11 text-[hsl(var(--olivewood))]/70">
           © {new Date().getFullYear()} Helpr LLC. All rights reserved. · Louisiana, USA
         </p>
-        <p className="text-xs text-[hsl(var(--olivewood))]/70 flex items-center gap-1.5">
+        <p className="text-ds-11 text-[hsl(var(--olivewood))]/70 flex items-center gap-1.5">
           Made with{" "}
           <Heart
             className="w-3 h-3"

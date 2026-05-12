@@ -26,7 +26,7 @@ const BackButton = ({ to, className }: BackButtonProps) => {
       size="icon"
       onClick={handleClick}
       aria-label="Go back"
-      className={`h-10 w-10 shrink-0 rounded-xl -ml-2 ${className ?? ""}`}
+      className={`h-10 w-10 shrink-0 rounded-ds-md -ml-2 ${className ?? ""}`}
     >
       <ArrowLeft className="h-5 w-5" />
     </Button>

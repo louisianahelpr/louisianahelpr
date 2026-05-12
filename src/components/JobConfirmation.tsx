@@ -91,23 +91,23 @@ export function JobConfirmation({
 
   return (
     <>
-      <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+      <div className="rounded-ds-md border border-primary/30 bg-primary/5 p-4 space-y-3">
+        <h3 className="text-ds-13 font-semibold text-foreground flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-primary" /> Job Confirmation
         </h3>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           Please confirm this job is still on so both parties know everything is good to go.
           {hoursUntilJob > 0 && ` Job is in ${urgencyText}.`}
         </p>
         <p className="text-[10px] text-muted-foreground italic">
           This is a reminder — if you don't confirm, the job is still scheduled as planned. However, not confirming may signal to the other party that you're uncertain, and repeated no-shows or last-minute cancellations can result in warnings or account restrictions.
         </p>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-ds-11">
           Scheduled: {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
           {hoursUntilJob > 0 && ` · ${urgencyText} away`}
         </p>
 
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-3 text-ds-11">
           <span className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${myConfirmed ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
             {myConfirmed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
             You: {myConfirmed ? "Confirmed ✓" : "Not confirmed"}
@@ -143,17 +143,17 @@ export function JobConfirmation({
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               By confirming, you're letting the other party know this job is still on and you'll be ready on the scheduled date.
             </p>
             <div className="rounded-lg bg-muted/50 p-3 space-y-1">
-              <p className="text-xs text-muted-foreground">📅 Scheduled for</p>
-              <p className="text-sm font-medium text-foreground">
+              <p className="text-ds-11 text-muted-foreground">📅 Scheduled for</p>
+              <p className="text-ds-13 font-medium text-foreground">
                 {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
               </p>
             </div>
             <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
-              <p className="text-xs text-amber-700 flex items-center gap-1.5">
+              <p className="text-ds-11 text-amber-700 flex items-center gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                 No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.
               </p>

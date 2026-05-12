@@ -159,20 +159,20 @@ export function CredentialsTab({ userId }: { userId: string }) {
   const renderStatus = (status: string, reason: string | null) => {
     if (status === "verified")
       return (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+        <span className="inline-flex items-center gap-1 text-ds-11 font-semibold text-primary">
           <BadgeCheck className="w-3.5 h-3.5" /> Verified
         </span>
       );
     if (status === "pending")
       return (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+        <span className="inline-flex items-center gap-1 text-ds-11 font-semibold text-muted-foreground">
           <Clock className="w-3.5 h-3.5" /> Pending review
         </span>
       );
     if (status === "rejected")
       return (
         <div className="space-y-1">
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive">
+          <span className="inline-flex items-center gap-1 text-ds-11 font-semibold text-destructive">
             <AlertTriangle className="w-3.5 h-3.5" /> Rejected
           </span>
           {reason && <p className="text-[11px] text-destructive/80">{reason}</p>}
@@ -185,7 +185,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
     <div className="space-y-5">
       <div className="rounded-2xl liquid-glass p-5 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
@@ -237,12 +237,12 @@ export function CredentialsTab({ userId }: { userId: string }) {
         {licensedOn && (
           <div className="space-y-3">
             {data.license_url ? (
-              <div className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
+              <div className="flex items-center gap-3 rounded-ds-md border border-border bg-secondary/40 p-3">
                 <FileText className="w-5 h-5 text-primary shrink-0" />
                 <button
                   type="button"
                   onClick={() => openDoc(data.license_url!)}
-                  className="flex-1 text-left text-sm text-primary underline truncate"
+                  className="flex-1 text-left text-ds-13 text-primary underline truncate"
                 >
                   View uploaded license
                 </button>
@@ -257,9 +257,9 @@ export function CredentialsTab({ userId }: { userId: string }) {
                 </Button>
               </div>
             ) : (
-              <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-secondary/30 px-4 py-6 cursor-pointer hover:border-primary/40 hover:bg-secondary/50 transition-colors">
+              <label className="flex items-center justify-center gap-2 rounded-ds-md border-2 border-dashed border-border bg-secondary/30 px-4 py-6 cursor-pointer hover:border-primary/40 hover:bg-secondary/50 transition-colors">
                 <Upload className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm font-medium">
+                <span className="text-ds-13 font-medium">
                   {uploading === "license" ? "Uploading..." : "Upload license (image or PDF)"}
                 </span>
                 <Input
@@ -312,12 +312,12 @@ export function CredentialsTab({ userId }: { userId: string }) {
         {insuredOn && (
           <div className="space-y-3">
             {data.insurance_url ? (
-              <div className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
+              <div className="flex items-center gap-3 rounded-ds-md border border-border bg-secondary/40 p-3">
                 <FileText className="w-5 h-5 text-primary shrink-0" />
                 <button
                   type="button"
                   onClick={() => openDoc(data.insurance_url!)}
-                  className="flex-1 text-left text-sm text-primary underline truncate"
+                  className="flex-1 text-left text-ds-13 text-primary underline truncate"
                 >
                   View uploaded insurance certificate
                 </button>
@@ -332,9 +332,9 @@ export function CredentialsTab({ userId }: { userId: string }) {
                 </Button>
               </div>
             ) : (
-              <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-secondary/30 px-4 py-6 cursor-pointer hover:border-primary/40 hover:bg-secondary/50 transition-colors">
+              <label className="flex items-center justify-center gap-2 rounded-ds-md border-2 border-dashed border-border bg-secondary/30 px-4 py-6 cursor-pointer hover:border-primary/40 hover:bg-secondary/50 transition-colors">
                 <Upload className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm font-medium">
+                <span className="text-ds-13 font-medium">
                   {uploading === "insurance" ? "Uploading..." : "Upload insurance (image or PDF)"}
                 </span>
                 <Input

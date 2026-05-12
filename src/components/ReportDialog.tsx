@@ -115,7 +115,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                     type="button"
                     onClick={() => setReason(label)}
                     aria-pressed={active}
-                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all active:scale-[0.97] ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-ds-md text-[12.5px] font-medium transition-all active:scale-[0.97] ${
                       active
                         ? "bg-primary/10 text-primary border border-primary/35 shadow-[0_1px_2px_hsl(var(--primary)/0.10)]"
                         : "bg-white text-foreground border border-border/60 hover:bg-secondary/40 hover:border-border"
@@ -141,7 +141,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               onChange={(e) => setDescription(e.target.value.slice(0, MAX_LENGTH))}
               rows={4}
               required
-              className="rounded-xl border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-[14px] leading-relaxed resize-none"
+              className="rounded-ds-md border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-[14px] leading-relaxed resize-none"
             />
             <div className="flex items-center justify-between text-[11px]">
               <span
@@ -177,7 +177,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             variant="ghost"
             onClick={handleClose}
             disabled={submitting}
-            className="h-10 px-4 rounded-xl"
+            className="h-10 px-4 rounded-ds-md"
           >
             Cancel
           </Button>
@@ -185,7 +185,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="h-10 px-4 rounded-xl"
+            className="h-10 px-4 rounded-ds-md"
           >
             {submitting ? (
               <span className="inline-flex items-center gap-1.5">

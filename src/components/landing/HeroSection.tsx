@@ -212,7 +212,7 @@ const HeroSection = () => {
 
             {/* Subhead — open-air leading, both-sides marketplace explanation */}
             <p
-              className="font-serif italic mt-6 sm:mt-7 max-w-xl text-lg sm:text-xl lg:text-2xl leading-relaxed text-balance"
+              className="font-serif italic mt-6 sm:mt-7 max-w-xl text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
               style={{
                 color: "hsl(var(--stormy-sky))",
                 fontWeight: 600,
@@ -285,7 +285,7 @@ const HeroSection = () => {
                 href="https://apps.apple.com/us/app/helpr/id6754470134"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="liquid-glass inline-flex items-center gap-2 px-3.5 py-2 rounded-xl transition-transform duration-200 hover:-translate-y-0.5"
+                className="liquid-glass inline-flex items-center gap-2 px-3.5 py-2 rounded-ds-md transition-transform duration-200 hover:-translate-y-0.5"
                 style={{ color: "hsl(var(--ink-deep))" }}
                 aria-label="Download Helpr on the App Store"
               >
@@ -312,7 +312,7 @@ const HeroSection = () => {
                 </div>
               </a>
               <span
-                className="liquid-glass inline-flex items-center gap-2 px-3.5 py-2 rounded-xl"
+                className="liquid-glass inline-flex items-center gap-2 px-3.5 py-2 rounded-ds-md"
                 style={{
                   color: "hsl(var(--ink-deep))",
                   opacity: 0.6,

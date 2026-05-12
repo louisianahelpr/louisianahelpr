@@ -166,7 +166,7 @@ const AdminDisputes = () => {
     <div className="space-y-4">
       
       {disputes.map((job) => (
-        <div key={job.id} className="rounded-xl border border-destructive/30 bg-card p-4 space-y-3">
+        <div key={job.id} className="rounded-ds-md border border-destructive/30 bg-card p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -176,13 +176,13 @@ const AdminDisputes = () => {
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">${job.budget}</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-ds-11 text-muted-foreground">${job.budget}</p>
+              <p className="text-ds-11 text-muted-foreground mt-1">
                 Customer: <span className="font-medium text-foreground">{profiles[job.customer_id] || "Unknown"}</span>
                 {job.helper_id && <> · Helpr: <span className="font-medium text-foreground">{profiles[job.helper_id] || "Unknown"}</span></>}
               </p>
               {job.disputed_at && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">
                   Disputed {new Date(job.disputed_at).toLocaleDateString()} by {profiles[job.disputed_by || ""] || "Unknown"}
                 </p>
               )}
@@ -191,14 +191,14 @@ const AdminDisputes = () => {
 
           {job.dispute_reason && (
             <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-              <p className="text-sm text-foreground font-medium">Reason:</p>
-              <p className="text-xs text-muted-foreground">{job.dispute_reason}</p>
+              <p className="text-ds-13 text-foreground font-medium">Reason:</p>
+              <p className="text-ds-11 text-muted-foreground">{job.dispute_reason}</p>
             </div>
           )}
 
           {job.dispute_evidence_urls && job.dispute_evidence_urls.length > 0 && (
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Evidence photos:</p>
+              <p className="text-ds-11 font-medium text-muted-foreground">Evidence photos:</p>
               <div className="flex gap-2 flex-wrap">
                 {job.dispute_evidence_urls.map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors">

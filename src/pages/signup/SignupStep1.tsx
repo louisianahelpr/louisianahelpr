@@ -92,7 +92,7 @@ export function SignupStep1({
             </button>
           </div>
           {confirmPassword && (
-            <p className={`text-xs ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
+            <p className={`text-ds-11 ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
               {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
             </p>
           )}
@@ -108,7 +108,7 @@ export function SignupStep1({
         />
         <label
           htmlFor="policies"
-          className="text-xs leading-relaxed cursor-pointer font-sans"
+          className="text-ds-11 leading-relaxed cursor-pointer font-sans"
           style={{ color: "hsl(var(--olivewood) / 0.75)" }}
         >
           I agree to the{" "}
@@ -132,7 +132,7 @@ export function SignupStep1({
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t border-border/60" />
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
+        <div className="relative flex justify-center text-ds-11 uppercase">
           <span className="bg-card px-2 text-muted-foreground">or</span>
         </div>
       </div>

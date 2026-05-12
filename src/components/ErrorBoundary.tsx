@@ -126,7 +126,7 @@ class ErrorBoundary extends React.Component<Props, State> {
             <h3 className="font-semibold text-foreground">
               {chunkError ? "Update available" : "Something went wrong"}
             </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+            <p className="text-ds-11 text-muted-foreground mt-1 max-w-sm">
               {chunkError
                 ? "A newer version of the app was released. Reload to continue."
                 : this.state.error?.message || "An unexpected error occurred."}

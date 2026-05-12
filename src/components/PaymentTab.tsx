@@ -88,7 +88,7 @@ export function PaymentTab({ earningsJobs, totalEarnings }: PaymentTabProps) {
               </p>
             </div>
           </div>
-          <div className="mt-4 rounded-xl flex items-start gap-2.5 px-3 py-2.5" style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}>
+          <div className="mt-4 rounded-ds-md flex items-start gap-2.5 px-3 py-2.5" style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}>
             <CreditCard className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
             <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
               Payment methods are managed securely through Stripe at checkout.

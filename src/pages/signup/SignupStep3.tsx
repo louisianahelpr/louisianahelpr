@@ -131,7 +131,7 @@ export function SignupStep3(props: SignupStep3Props) {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-            <p className="text-base font-bold text-foreground leading-tight">
+            <p className="text-ds-15 font-bold text-foreground leading-tight">
               Applying for jobs?
             </p>
           </div>
@@ -139,20 +139,20 @@ export function SignupStep3(props: SignupStep3Props) {
             Recommended
           </span>
         </div>
-        <p className="text-sm text-foreground/80 leading-relaxed">
+        <p className="text-ds-13 text-foreground/80 leading-relaxed">
           Complete profiles get <span className="font-semibold">3× more offers</span>. Takes 2 minutes.
         </p>
       </div>
 
       {/* Path A: Posters — compact skip card */}
-      <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground leading-snug min-w-0">
+      <div className="rounded-ds-md border border-border bg-muted/30 px-3 py-2.5 flex items-center justify-between gap-3">
+        <p className="text-ds-11 text-muted-foreground leading-snug min-w-0">
           Just posting jobs? Nothing below is required.
         </p>
         <Button
           variant="outline"
           size="sm"
-          className="h-8 px-3 text-xs shrink-0"
+          className="h-8 px-3 text-ds-11 shrink-0"
           disabled={loading}
           onClick={onSkip}
         >
@@ -165,7 +165,7 @@ export function SignupStep3(props: SignupStep3Props) {
       {/* Skills */}
       <div className="space-y-2">
         <Label htmlFor="skill-search" className={labelCls}>
-          Skills <span className="text-muted-foreground text-xs">(optional)</span>
+          Skills <span className="text-muted-foreground text-ds-11">(optional)</span>
         </Label>
         <Input
           id="skill-search"
@@ -181,17 +181,17 @@ export function SignupStep3(props: SignupStep3Props) {
                 key={s}
                 type="button"
                 onClick={() => toggleSkill(s)}
-                className="px-2.5 py-1 rounded-full text-xs font-medium border bg-primary text-primary-foreground border-primary inline-flex items-center gap-1"
+                className="px-2.5 py-1 rounded-full text-ds-11 font-medium border bg-primary text-primary-foreground border-primary inline-flex items-center gap-1"
               >
                 {s} <X className="w-3 h-3" />
               </button>
             ))}
           </div>
         )}
-        <div className="max-h-32 overflow-y-auto rounded-xl border border-border bg-muted/20 p-2">
+        <div className="max-h-32 overflow-y-auto rounded-ds-md border border-border bg-muted/20 p-2">
           <div className="flex flex-wrap gap-1.5">
             {filteredSkills.length === 0 ? (
-              <p className="text-xs text-muted-foreground px-1 py-1">No matches. Type your own below.</p>
+              <p className="text-ds-11 text-muted-foreground px-1 py-1">No matches. Type your own below.</p>
             ) : (
               filteredSkills.map((skill) => {
                 const isActive = selectedSkills.some((s) => s.toLowerCase() === skill.toLowerCase());
@@ -200,7 +200,7 @@ export function SignupStep3(props: SignupStep3Props) {
                     key={skill}
                     type="button"
                     onClick={() => toggleSkill(skill)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                    className={`px-2.5 py-1 rounded-full text-ds-11 font-medium border transition-colors ${
                       isActive
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-background text-foreground border-border hover:border-primary/50"
@@ -217,7 +217,7 @@ export function SignupStep3(props: SignupStep3Props) {
           <button
             type="button"
             onClick={() => { toggleSkill(skillSearch.trim()); setSkillSearch(""); }}
-            className="text-xs text-primary font-medium hover:underline"
+            className="text-ds-11 text-primary font-medium hover:underline"
           >
             + Add "{skillSearch.trim()}" as a custom skill
           </button>
@@ -226,7 +226,7 @@ export function SignupStep3(props: SignupStep3Props) {
 
       {/* Experience level */}
       <div className="space-y-2">
-        <Label>Experience level <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Label>Experience level <span className="text-muted-foreground text-ds-11">(optional)</span></Label>
         <div className="flex flex-wrap gap-1.5">
           {EXPERIENCE_LEVELS.map((opt) => {
             const isActive = experienceLevel === opt;
@@ -235,7 +235,7 @@ export function SignupStep3(props: SignupStep3Props) {
                 key={opt}
                 type="button"
                 onClick={() => setExperienceLevel(isActive ? "" : opt)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                className={`px-2.5 py-1 rounded-full text-ds-11 font-medium border transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
@@ -250,7 +250,7 @@ export function SignupStep3(props: SignupStep3Props) {
 
       {/* Availability */}
       <div className="space-y-2">
-        <Label>Availability <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Label>Availability <span className="text-muted-foreground text-ds-11">(optional)</span></Label>
         <div className="flex flex-wrap gap-1.5">
           {AVAILABILITY_SLOTS.map((slot) => {
             const isActive = availability.includes(slot);
@@ -261,7 +261,7 @@ export function SignupStep3(props: SignupStep3Props) {
                 onClick={() => {
                   setAvailability(isActive ? availability.filter((a) => a !== slot) : [...availability, slot]);
                 }}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                className={`px-2.5 py-1 rounded-full text-ds-11 font-medium border transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
@@ -276,7 +276,7 @@ export function SignupStep3(props: SignupStep3Props) {
 
       {/* Preferred job radius */}
       <div className="space-y-2">
-        <Label>Preferred job radius <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Label>Preferred job radius <span className="text-muted-foreground text-ds-11">(optional)</span></Label>
         <div className="flex flex-wrap gap-1.5">
           {JOB_RADIUS_OPTIONS.map((opt) => {
             const isActive = jobRadius === opt;
@@ -285,7 +285,7 @@ export function SignupStep3(props: SignupStep3Props) {
                 key={opt}
                 type="button"
                 onClick={() => setJobRadius(isActive ? "" : opt)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                className={`px-2.5 py-1 rounded-full text-ds-11 font-medium border transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
@@ -300,7 +300,7 @@ export function SignupStep3(props: SignupStep3Props) {
 
       {/* Tools / Equipment */}
       <div className="space-y-2">
-        <Label htmlFor="toolsEquipment">Tools / Equipment you have <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Label htmlFor="toolsEquipment">Tools / Equipment you have <span className="text-muted-foreground text-ds-11">(optional)</span></Label>
         <Input
           id="toolsEquipment"
           placeholder="e.g. Lawn mower, power tools, pressure washer"
@@ -315,7 +315,7 @@ export function SignupStep3(props: SignupStep3Props) {
                 key={tool}
                 type="button"
                 onClick={() => setToolsEquipment(isActive ? toolsEquipment.filter((t) => t !== tool) : [...toolsEquipment, tool])}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                className={`px-2.5 py-1 rounded-full text-ds-11 font-medium border transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
@@ -326,12 +326,12 @@ export function SignupStep3(props: SignupStep3Props) {
             );
           })}
         </div>
-        <p className="text-xs text-muted-foreground">Type your own or tap common options above.</p>
+        <p className="text-ds-11 text-muted-foreground">Type your own or tap common options above.</p>
       </div>
 
       {/* Emergency contact */}
       <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
-        <p className="text-xs font-medium text-foreground">Emergency Contact <span className="text-muted-foreground">(optional but recommended)</span></p>
+        <p className="text-ds-11 font-medium text-foreground">Emergency Contact <span className="text-muted-foreground">(optional but recommended)</span></p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <Input aria-label="Emergency contact name" placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} autoComplete="name" />
           <Input type="tel" aria-label="Emergency contact phone number" placeholder="Contact phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} autoComplete="tel" />
@@ -340,7 +340,7 @@ export function SignupStep3(props: SignupStep3Props) {
 
       {/* Extra comments */}
       <div className="space-y-2">
-        <Label htmlFor="extraComments">Anything else you'd like us to know? <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Label htmlFor="extraComments">Anything else you'd like us to know? <span className="text-muted-foreground text-ds-11">(optional)</span></Label>
         <Textarea
           id="extraComments"
           placeholder="Special certifications, languages spoken, why you want to join, or anything else…"
@@ -352,7 +352,7 @@ export function SignupStep3(props: SignupStep3Props) {
 
       {/* How did you hear about us */}
       <div className="space-y-2">
-        <Label htmlFor="hear">How did you hear about us? <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Label htmlFor="hear">How did you hear about us? <span className="text-muted-foreground text-ds-11">(optional)</span></Label>
         <div className="flex flex-wrap gap-1.5">
           {HEAR_ABOUT_OPTIONS.map((opt) => {
             const isActive = hearAboutUs === opt;
@@ -361,7 +361,7 @@ export function SignupStep3(props: SignupStep3Props) {
                 key={opt}
                 type="button"
                 onClick={() => setHearAboutUs(isActive ? "" : opt)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                className={`px-2.5 py-1 rounded-full text-ds-11 font-medium border transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50"
@@ -380,20 +380,20 @@ export function SignupStep3(props: SignupStep3Props) {
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
             <Award className="w-6 h-6 text-primary" strokeWidth={1.75} />
           </div>
-          <h3 className="text-base font-display font-semibold text-foreground">Professional credentials</h3>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <h3 className="text-ds-15 font-display font-semibold text-foreground">Professional credentials</h3>
+          <p className="text-ds-11 text-muted-foreground leading-relaxed">
             Optional — earn a verified badge that helps you get picked first. You can also add these later in Profile → Credentials.
           </p>
         </div>
 
         {/* Licensed toggle */}
-        <div className="rounded-xl liquid-glass p-4 space-y-3">
+        <div className="rounded-ds-md liquid-glass p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-0.5">
-              <Label htmlFor="is-licensed" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <Label htmlFor="is-licensed" className="text-ds-13 font-semibold text-foreground flex items-center gap-1.5">
                 <BadgeCheck className="w-4 h-4 text-primary" /> I am licensed
               </Label>
-              <p className="text-xs text-muted-foreground">Trade, contractor, or professional license.</p>
+              <p className="text-ds-11 text-muted-foreground">Trade, contractor, or professional license.</p>
             </div>
             <Switch
               id="is-licensed"
@@ -416,14 +416,14 @@ export function SignupStep3(props: SignupStep3Props) {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{licenseFile.name}</p>
-                    <p className="text-xs text-muted-foreground">{(licenseFile.size / 1024).toFixed(0)} KB · pending review</p>
+                    <p className="text-ds-13 font-medium text-foreground truncate">{licenseFile.name}</p>
+                    <p className="text-ds-11 text-muted-foreground">{(licenseFile.size / 1024).toFixed(0)} KB · pending review</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => { setLicenseFile(null); setLicensePreview(null); }}
-                  className="text-xs text-destructive hover:underline shrink-0 font-medium"
+                  className="text-ds-11 text-destructive hover:underline shrink-0 font-medium"
                 >
                   Remove
                 </button>
@@ -431,7 +431,7 @@ export function SignupStep3(props: SignupStep3Props) {
             ) : (
               <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
                 <ImagePlus className="w-5 h-5 text-primary" strokeWidth={1.75} />
-                <span className="text-sm font-semibold text-foreground">Upload license <span className="text-destructive">*</span></span>
+                <span className="text-ds-13 font-semibold text-foreground">Upload license <span className="text-destructive">*</span></span>
                 <span className="text-[11px] text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
                 <input
                   type="file"
@@ -445,13 +445,13 @@ export function SignupStep3(props: SignupStep3Props) {
         </div>
 
         {/* Insured toggle */}
-        <div className="rounded-xl liquid-glass p-4 space-y-3">
+        <div className="rounded-ds-md liquid-glass p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-0.5">
-              <Label htmlFor="is-insured" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <Label htmlFor="is-insured" className="text-ds-13 font-semibold text-foreground flex items-center gap-1.5">
                 <Shield className="w-4 h-4 text-primary" /> I am insured
               </Label>
-              <p className="text-xs text-muted-foreground">General liability or professional insurance.</p>
+              <p className="text-ds-11 text-muted-foreground">General liability or professional insurance.</p>
             </div>
             <Switch
               id="is-insured"
@@ -474,14 +474,14 @@ export function SignupStep3(props: SignupStep3Props) {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{insuranceFile.name}</p>
-                    <p className="text-xs text-muted-foreground">{(insuranceFile.size / 1024).toFixed(0)} KB · pending review</p>
+                    <p className="text-ds-13 font-medium text-foreground truncate">{insuranceFile.name}</p>
+                    <p className="text-ds-11 text-muted-foreground">{(insuranceFile.size / 1024).toFixed(0)} KB · pending review</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => { setInsuranceFile(null); setInsurancePreview(null); }}
-                  className="text-xs text-destructive hover:underline shrink-0 font-medium"
+                  className="text-ds-11 text-destructive hover:underline shrink-0 font-medium"
                 >
                   Remove
                 </button>
@@ -489,7 +489,7 @@ export function SignupStep3(props: SignupStep3Props) {
             ) : (
               <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
                 <ImagePlus className="w-5 h-5 text-primary" strokeWidth={1.75} />
-                <span className="text-sm font-semibold text-foreground">Upload insurance <span className="text-destructive">*</span></span>
+                <span className="text-ds-13 font-semibold text-foreground">Upload insurance <span className="text-destructive">*</span></span>
                 <span className="text-[11px] text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
                 <input
                   type="file"
@@ -508,14 +508,14 @@ export function SignupStep3(props: SignupStep3Props) {
       </div>
 
       {/* Portfolio */}
-      <div className="rounded-xl liquid-glass p-5 space-y-4">
+      <div className="rounded-ds-md liquid-glass p-5 space-y-4">
         <div className="text-center space-y-2">
           <FileText className="w-10 h-10 text-primary mx-auto" />
           <h3 className="font-semibold text-foreground">Portfolio (optional)</h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             A few photos of past work — finished lawns, clean driveways, repairs — help posters trust you instantly.
           </p>
-          <p className="text-xs text-primary font-medium mt-1">💎 Portfolio Showcase is a Pro+ subscriber perk — you can upload now, but only Pro/Elite subscribers' portfolios will be visible on their profiles.</p>
+          <p className="text-ds-11 text-primary font-medium mt-1">💎 Portfolio Showcase is a Pro+ subscriber perk — you can upload now, but only Pro/Elite subscribers' portfolios will be visible on their profiles.</p>
         </div>
 
         <div className="flex flex-wrap gap-3">
@@ -554,7 +554,7 @@ export function SignupStep3(props: SignupStep3Props) {
             </label>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           Up to 10 files · Images, PDFs, or documents
         </p>
       </div>
@@ -562,7 +562,7 @@ export function SignupStep3(props: SignupStep3Props) {
       {/* Referral code */}
       <div className="space-y-2">
         <Label htmlFor="referral" className={`${labelCls} flex items-center gap-1.5`}>
-          <Gift className="w-4 h-4 text-primary" /> Referral code <span className="text-muted-foreground text-xs">(optional)</span>
+          <Gift className="w-4 h-4 text-primary" /> Referral code <span className="text-muted-foreground text-ds-11">(optional)</span>
         </Label>
         <Input
           id="referral"
@@ -573,7 +573,7 @@ export function SignupStep3(props: SignupStep3Props) {
           className={`${inputCls} uppercase`}
         />
         {referralCode && (
-          <p className="text-xs text-primary flex items-center gap-1">
+          <p className="text-ds-11 text-primary flex items-center gap-1">
             <Gift className="w-3 h-3" /> You'll earn $5 when you complete your first job — as poster or crew!
           </p>
         )}

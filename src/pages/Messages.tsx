@@ -639,13 +639,13 @@ const Messages = () => {
                         No messages yet.
                       </p>
                       <p
-                        className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                        className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
                         style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                       >
                         Apply to a task or accept a helpr's offer — your conversations will land here.
                       </p>
                     </div>
-                    <Button onClick={() => navigate("/dashboard")} className="rounded-xl btn-press">
+                    <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md btn-press">
                       Browse tasks
                     </Button>
                   </div>
@@ -675,7 +675,7 @@ const Messages = () => {
                         itemClassName="pb-2"
                         renderItem={(c) => (
                           <div
-                            className="w-full text-left p-4 rounded-xl liquid-glass hover:shadow-md transition-shadow flex items-center gap-2"
+                            className="w-full text-left p-4 rounded-ds-md liquid-glass hover:shadow-md transition-shadow flex items-center gap-2"
                           >
                             <button
                               onClick={() => openConvo(c)}
@@ -686,15 +686,15 @@ const Messages = () => {
                                   <div className="flex items-center gap-2">
                                     <p className="font-semibold text-foreground truncate">{c.otherUserName}</p>
                                     {c.unread > 0 && (
-                                      <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                                      <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-ds-11 flex items-center justify-center">
                                         {c.unread}
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-xs text-muted-foreground">{c.jobTitle}</p>
-                                  <p className="text-xs text-muted-foreground truncate mt-1">{c.lastMessage}</p>
+                                  <p className="text-ds-11 text-muted-foreground">{c.jobTitle}</p>
+                                  <p className="text-ds-11 text-muted-foreground truncate mt-1">{c.lastMessage}</p>
                                 </div>
-                                <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
+                                <span className="text-ds-11 text-muted-foreground ml-2 whitespace-nowrap">
                                   {new Date(c.lastAt).toLocaleDateString()}
                                 </span>
                               </div>
@@ -727,7 +727,7 @@ const Messages = () => {
                     );
                   })()}
                   {!showAllConvos && conversations.length > CONVO_LIMIT && (
-                    <button onClick={() => setShowAllConvos(true)} className="w-full text-center py-3 text-sm text-primary font-medium hover:underline">
+                    <button onClick={() => setShowAllConvos(true)} className="w-full text-center py-3 text-ds-13 text-primary font-medium hover:underline">
                       Show all {conversations.length} conversations
                     </button>
                   )}
@@ -754,7 +754,7 @@ const Messages = () => {
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0 self-center">
-                  <span className="text-sm font-bold text-primary">{activeConvo.otherUserName.charAt(0).toUpperCase()}</span>
+                  <span className="text-ds-13 font-bold text-primary">{activeConvo.otherUserName.charAt(0).toUpperCase()}</span>
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden self-center">
                   <p className="font-semibold text-foreground text-[15px] leading-tight truncate flex items-center gap-1.5">
@@ -798,7 +798,7 @@ const Messages = () => {
               <div className="flex-1 overflow-y-auto space-y-3 pt-4 pb-2" ref={chatContainerRef}>
                 {hasMoreMessages && (
                   <div className="text-center py-2">
-                    <button onClick={loadOlderMessages} disabled={loadingMore} className="text-xs text-primary font-medium hover:underline disabled:opacity-50 flex items-center gap-1.5 mx-auto">
+                    <button onClick={loadOlderMessages} disabled={loadingMore} className="text-ds-11 text-primary font-medium hover:underline disabled:opacity-50 flex items-center gap-1.5 mx-auto">
                       {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
                       {loadingMore ? "Loading…" : "Load earlier messages"}
                     </button>
@@ -807,7 +807,7 @@ const Messages = () => {
                 {messages.length === 0 && (
                   <div className="text-center py-12 space-y-2">
                     <MessageSquare className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                    <p className="text-xs text-muted-foreground">No messages yet. Say hello!</p>
+                    <p className="text-ds-11 text-muted-foreground">No messages yet. Say hello!</p>
                   </div>
                 )}
                 {messages.map((m) => {
@@ -815,7 +815,7 @@ const Messages = () => {
                   return (
                     <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                       <div
-                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm group relative space-y-2 ${
+                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 ${
                           mine
                             ? "bg-primary text-primary-foreground rounded-br-md"
                             : "bg-secondary text-secondary-foreground rounded-bl-md"

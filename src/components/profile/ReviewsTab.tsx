@@ -71,7 +71,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
       )}
 
       {loading ? (
-        <p className="font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>Loading reviews…</p>
+        <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>Loading reviews…</p>
       ) : reviews.length === 0 ? (
         <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-4 px-6 py-12">
           <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
@@ -81,7 +81,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
             <p className="font-display italic font-bold" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))" }}>
               No reviews yet
             </p>
-            <p className="font-serif italic text-sm max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-13 max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               Complete a job and your customer's words will land here.
             </p>
           </div>
@@ -89,7 +89,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
       ) : (
         <div className="space-y-3">
           {reviews.map((review, i) => (
-            <div key={i} className="rounded-xl liquid-glass p-4 space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
+            <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-0.5">

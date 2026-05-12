@@ -45,7 +45,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
     return (
       <div className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/30 bg-primary/10">
         <Timer className="w-4 h-4 text-primary shrink-0" />
-        <p className="text-xs font-semibold text-primary">Job time has arrived!</p>
+        <p className="text-ds-11 font-semibold text-primary">Job time has arrived!</p>
       </div>
     );
   }
@@ -69,7 +69,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
     <div className={`flex items-center gap-2 p-2.5 rounded-lg border ${colorClasses}`}>
       <Timer className="w-4 h-4 shrink-0" />
       <div className="min-w-0">
-        <p className="text-xs font-semibold tabular-nums">{label}: {timeStr}</p>
+        <p className="text-ds-11 font-semibold tabular-nums">{label}: {timeStr}</p>
         <p className="text-[10px] opacity-80 mt-0.5">
           {startTime
             ? new Date(jobDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -131,14 +131,14 @@ export const PostedJobsTab = ({
           <Wrench className="w-9 h-9 text-primary/50" strokeWidth={1.5} />
         </div>
         <div className="space-y-1.5">
-          <p className="text-base font-display font-semibold text-foreground">
+          <p className="text-ds-15 font-display font-semibold text-foreground">
             No posts yet in this view
           </p>
-          <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+          <p className="text-ds-11 text-muted-foreground max-w-xs mx-auto leading-relaxed">
             Post your first task and we'll match you with vetted Louisiana helprs nearby.
           </p>
         </div>
-        <Button onClick={() => navigate("/post-job")} className="rounded-xl btn-press">
+        <Button onClick={() => navigate("/post-job")} className="rounded-ds-md btn-press">
           <Wrench className="w-4 h-4 mr-1.5" /> Post a job
         </Button>
       </div>
@@ -171,14 +171,14 @@ export const PostedJobsTab = ({
               <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">
                 <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>{job.title}</h3>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
-                  <span className="flex items-center gap-0.5 font-semibold text-primary text-sm bg-primary/8 px-2 py-0.5 rounded-full"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
+                  <span className="flex items-center gap-0.5 font-semibold text-primary text-ds-13 bg-primary/8 px-2 py-0.5 rounded-full"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
                   
                 </div>
               </div>
 
               {/* Summary */}
               <div className="px-4 py-3 space-y-2.5">
-                <div className="flex items-center gap-2.5 flex-wrap text-xs text-muted-foreground">
+                <div className="flex items-center gap-2.5 flex-wrap text-ds-11 text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3 shrink-0" />
                     {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -213,12 +213,12 @@ export const PostedJobsTab = ({
               {(job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() || job.special_requirements?.trim()) && (
                 <div className="space-y-1.5">
                   {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
-                    <p className={`text-xs text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
+                    <p className={`text-ds-11 text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
                   )}
                   {isExpanded && job.special_requirements?.trim() && (
                     <div className="rounded-lg bg-secondary/30 p-2">
                       <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
-                      <p className="text-xs text-foreground">{job.special_requirements}</p>
+                      <p className="text-ds-11 text-foreground">{job.special_requirements}</p>
                     </div>
                   )}
                   {(job.description.length > 100 || job.special_requirements?.trim()) && (
@@ -239,8 +239,8 @@ export const PostedJobsTab = ({
                     <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
                       {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
                     </div>
-                    <span className="text-xs text-muted-foreground">Offered to</span>
-                    <a href={`/user/${job.helper_id}`} onClick={(e) => e.stopPropagation()} className="text-xs font-medium text-primary hover:underline">
+                    <span className="text-ds-11 text-muted-foreground">Offered to</span>
+                    <a href={`/user/${job.helper_id}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline">
                       {helperNames[job.helper_id] || "Helpr"}
                     </a>
                   </div>
@@ -251,8 +251,8 @@ export const PostedJobsTab = ({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       {(job as any).helper_confirmed_at
-                        ? <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} accepted</span>
-                        : <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to accept</span>
+                        ? <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} accepted</span>
+                        : <span className="text-ds-11 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to accept</span>
                       }
                     </div>
                     {/* Job countdown */}
@@ -261,13 +261,13 @@ export const PostedJobsTab = ({
                       <div className="space-y-1.5">
                         {(job as any).helper_arrived_at && (
                           <div className="space-y-1.5">
-                            <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                            <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
                               <MapPin className="w-3.5 h-3.5 shrink-0" />
                               <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
                               <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
                             {(job as any).poster_confirmed_arrival_at ? (
-                              <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrival confirmed</span>
+                              <span className="text-ds-11 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrival confirmed</span>
                             ) : (
                               <Button size="sm" className="w-full" onClick={() => onConfirmArrival(job.id)}>
                                 <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
@@ -282,16 +282,16 @@ export const PostedJobsTab = ({
 
 
                 {(job.status === "in_progress" || job.status === "revision_requested") && (job as any).poster_confirmed_arrival_at && !(job as any).poster_confirmed_working_at && (
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrival confirmed</span>
+                  <span className="text-ds-11 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrival confirmed</span>
                 )}
 
                 {/* Completion confirmation */}
                 {(job.status === "in_progress" || job.status === "revision_requested") && ((job as any).poster_completed_at || (job as any).helper_completed_at) && (
                   <div className="flex items-center gap-2 flex-wrap">
-                    {(job as any).poster_completed_at && <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ You confirmed</span>}
-                    {(job as any).helper_completed_at && <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>}
-                    {!(job as any).poster_completed_at && <span className="text-xs px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for you</span>}
-                    {!(job as any).helper_completed_at && <span className="text-xs px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"}</span>}
+                    {(job as any).poster_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ You confirmed</span>}
+                    {(job as any).helper_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>}
+                    {!(job as any).poster_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for you</span>}
+                    {!(job as any).helper_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"}</span>}
                   </div>
                 )}
 
@@ -305,11 +305,11 @@ export const PostedJobsTab = ({
                 {/* Revision notice */}
                 {job.status === "revision_requested" && (
                   <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 space-y-1.5">
-                    <p className="text-xs text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
-                    {(job as any).revision_note && <p className="text-xs text-muted-foreground">{(job as any).revision_note}</p>}
+                    <p className="text-ds-11 text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                    {(job as any).revision_note && <p className="text-ds-11 text-muted-foreground">{(job as any).revision_note}</p>}
                     {(job as any).revision_completed_at && (
                       <div className="p-1.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                        <p className="text-xs text-emerald-600 font-medium">✓ Helpr marked revision as fixed</p>
+                        <p className="text-ds-11 text-emerald-600 font-medium">✓ Helpr marked revision as fixed</p>
                         {(job as any).revision_acceptance_deadline && (
                           <DeadlineCountdown
                             deadline={(job as any).revision_acceptance_deadline}
@@ -342,14 +342,14 @@ export const PostedJobsTab = ({
                 if (hasTipped && hasReviewed) {
                   return (
                     <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tipped & Reviewed</span>
-                      <span className="text-xs text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
+                      <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tipped & Reviewed</span>
+                      <span className="text-ds-11 text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
                     </div>
                   );
                 }
                 return (!hasTipped || !hasReviewed) ? (
                   <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-ds-11 text-muted-foreground">
                       {!hasTipped && !hasReviewed ? "Tap to tip & review" : !hasTipped ? "Tap to leave a tip" : "Tap to leave a review"}
                     </span>
                   </div>
@@ -362,7 +362,7 @@ export const PostedJobsTab = ({
                 <div className="px-4 py-3 space-y-3 border-t border-border/30">
                   {(job.photos || []).length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
+                      <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
                       <div className="flex gap-2 overflow-x-auto pb-1">
                         {(job.photos || []).map((url, i) => (
                           <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
@@ -406,7 +406,7 @@ export const PostedJobsTab = ({
                     )}
                     {job.status === "accepted" && (
                       <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground text-center">
+                        <p className="text-ds-11 text-muted-foreground text-center">
                           <Clock className="w-3 h-3 inline mr-1" />
                           Helpr must confirm 24 hours before the job starts — tracking actions unlock then
                         </p>
@@ -423,7 +423,7 @@ export const PostedJobsTab = ({
                       <div className="space-y-2">
                         {/* Confirm Arrival notice */}
                         {(job as any).helper_arrived_at && !(job as any).poster_confirmed_arrival_at && (
-                          <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
                             <MapPin className="w-3.5 h-3.5 shrink-0" />
                             <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
                             <span className="ml-auto text-[10px] text-muted-foreground">{new Date((job as any).helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -464,7 +464,7 @@ export const PostedJobsTab = ({
                         {/* Confirm Working */}
                         {job.status === "in_progress" && !(job as any).poster_confirmed_working_at && (job as any).poster_confirmed_arrival_at && (
                           <div className="space-y-1.5">
-                            <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-600">
+                            <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-600">
                               <Wrench className="w-3.5 h-3.5 shrink-0" />
                               <span className="font-medium">Is the helpr working?</span>
                             </div>
@@ -499,7 +499,7 @@ export const PostedJobsTab = ({
                         </Button>
                         {/* Request Revision — only after helper marks complete (Stage 2) */}
                         {job.status === "in_progress" && !(job as any).poster_completed_at && (job as any).helper_completed_at && (
-                          <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-destructive text-xs" onClick={() => onRevision(job.id)}>
+                          <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-destructive text-ds-11" onClick={() => onRevision(job.id)}>
                             <AlertTriangle className="w-3.5 h-3.5 mr-1" /> Request a revision instead
                           </Button>
                         )}
@@ -586,15 +586,15 @@ export const PostedJobsTab = ({
                           />
                         )}
                         <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-                          <p className="text-xs text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 
+                          <p className="text-ds-11 text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 
                             {disputeStatus === "escalated" ? "Escalated to Admin" : disputeStatus === "resolved" ? "Dispute Resolved" : "Dispute Under Review"}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">Payment is on hold pending resolution.</p>
-                          {(job as any).dispute_reason && <p className="text-xs text-muted-foreground mt-1 italic">"{(job as any).dispute_reason}"</p>}
+                          <p className="text-ds-11 text-muted-foreground mt-1">Payment is on hold pending resolution.</p>
+                          {(job as any).dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1 italic">"{(job as any).dispute_reason}"</p>}
                           {(job as any).dispute_helper_response && (
                             <div className="mt-2 p-2 rounded bg-muted/50">
                               <p className="text-[10px] text-muted-foreground font-medium">Helpr's response:</p>
-                              <p className="text-xs text-foreground mt-0.5">"{(job as any).dispute_helper_response}"</p>
+                              <p className="text-ds-11 text-foreground mt-0.5">"{(job as any).dispute_helper_response}"</p>
                             </div>
                           )}
                           {(job as any).dispute_deadline && disputeStatus !== "resolved" && (
@@ -634,7 +634,7 @@ export const PostedJobsTab = ({
                           </div>
                         )}
                         {isDisputer && disputeStatus === "escalated" && (
-                          <div className="text-xs text-center text-muted-foreground px-2 py-1.5 rounded bg-muted/50">Admin is reviewing this dispute. You'll be notified of the outcome.</div>
+                          <div className="text-ds-11 text-center text-muted-foreground px-2 py-1.5 rounded bg-muted/50">Admin is reviewing this dispute. You'll be notified of the outcome.</div>
                         )}
                         <div className="grid grid-cols-2 gap-2">
                           <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
@@ -670,40 +670,40 @@ export const PostedJobsTab = ({
             <Button variant="ghost" size="sm" onClick={() => setSelectedJob(null)}><ArrowLeft className="w-4 h-4" /></Button>
             <div className="min-w-0 flex-1">
               <h2 className="font-display font-semibold text-foreground truncate">Applicants</h2>
-              <p className="text-xs text-muted-foreground truncate">{selectedJob.title}</p>
+              <p className="text-ds-11 text-muted-foreground truncate">{selectedJob.title}</p>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-4">
             {applications.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-xs text-muted-foreground">No applications yet.</p>
+                <p className="text-ds-11 text-muted-foreground">No applications yet.</p>
               </div>
             ) : (
               <div className="space-y-3 max-w-lg mx-auto">
                 {applications.map((app) => (
-                  <div key={app.id} className="p-4 rounded-xl liquid-glass space-y-3">
+                  <div key={app.id} className="p-4 rounded-ds-md liquid-glass space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{formatName(app.profiles?.full_name, "Helpr")}</a>
-                        {app.profiles?.skills && <p className="text-xs text-muted-foreground mt-0.5">{app.profiles.skills}</p>}
+                        {app.profiles?.skills && <p className="text-ds-11 text-muted-foreground mt-0.5">{app.profiles.skills}</p>}
                         {app.reviewCount !== undefined && app.reviewCount > 0 && (
                           <div className="flex items-center gap-1 mt-1">
                             <Star className="w-3 h-3 fill-accent text-accent" />
-                            <span className="text-xs text-muted-foreground">{app.avgRating?.toFixed(1)} ({app.reviewCount} reviews)</span>
+                            <span className="text-ds-11 text-muted-foreground">{app.avgRating?.toFixed(1)} ({app.reviewCount} reviews)</span>
                           </div>
                         )}
                       </div>
                       {app.status === "pending" && <Button size="sm" onClick={() => onAcceptApplication(app)}>Select</Button>}
-                      {app.status === "accepted" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
-                      {app.status === "rejected" && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
+                      {app.status === "accepted" && <span className="text-ds-11 px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
+                      {app.status === "rejected" && <span className="text-ds-11 px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
                     </div>
 
                     {/* Applicant message */}
                     {app.message && (
                       <div className="rounded-lg bg-primary/5 border border-primary/15 p-3">
                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Their Message</p>
-                        <p className="text-sm text-foreground leading-relaxed">{app.message}</p>
+                        <p className="text-ds-13 text-foreground leading-relaxed">{app.message}</p>
                       </div>
                     )}
 

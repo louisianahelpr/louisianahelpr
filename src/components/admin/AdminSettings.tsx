@@ -190,17 +190,17 @@ const AdminSettings = () => {
       
 
       {/* Split Fee Settings */}
-      <div className="max-w-md rounded-xl liquid-glass p-6 space-y-5">
+      <div className="max-w-md rounded-ds-md liquid-glass p-6 space-y-5">
         <div className="space-y-1">
           <h3 className="font-display font-semibold text-foreground">Split Fee Model</h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             The platform earns from both sides: a service fee from customers and a platform fee from helprs.
           </p>
         </div>
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="custFee">Customer service fee (%)</Label>
-            <p className="text-xs text-muted-foreground">Added as a line item at checkout (e.g. 5% on a $100 job = $5 fee)</p>
+            <p className="text-ds-11 text-muted-foreground">Added as a line item at checkout (e.g. 5% on a $100 job = $5 fee)</p>
             <Input
               id="custFee"
               type="number"
@@ -214,7 +214,7 @@ const AdminSettings = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="helpFee">Helpr platform fee (%)</Label>
-            <p className="text-xs text-muted-foreground">Deducted from the helpr's payout (e.g. 10% on a $100 job = $10 deducted)</p>
+            <p className="text-ds-11 text-muted-foreground">Deducted from the helpr's payout (e.g. 10% on a $100 job = $10 deducted)</p>
             <Input
               id="helpFee"
               type="number"
@@ -227,7 +227,7 @@ const AdminSettings = () => {
             />
           </div>
           <div className="rounded-lg bg-primary/5 p-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               <strong>Total platform take:</strong> {(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}% — 
               On a $100 job: ${((parseFloat(customerFee) || 0)).toFixed(2)} from customer + ${((parseFloat(helperFee) || 0)).toFixed(2)} from helpr = ${((parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)).toFixed(2)} total
             </p>
@@ -239,10 +239,10 @@ const AdminSettings = () => {
       </div>
 
       {/* Social Webhook URL */}
-      <div className="max-w-md rounded-xl liquid-glass p-6 space-y-4">
+      <div className="max-w-md rounded-ds-md liquid-glass p-6 space-y-4">
         <div className="space-y-1">
           <h3 className="font-display font-semibold text-foreground">Social Webhook URL</h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Paste the Make.com webhook URL here. The "Send to Social" button on the Facebook Post Generator will send each post (text + image + timing) to this URL for scheduling.
           </p>
         </div>
@@ -256,7 +256,7 @@ const AdminSettings = () => {
             onChange={(e) => setSocialWebhookUrl(e.target.value)}
             autoComplete="off"
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Payload sent: <code className="text-foreground">{`{ post_text, image_url, timing_priority }`}</code>
           </p>
         </div>
@@ -268,7 +268,7 @@ const AdminSettings = () => {
       {/* Admin Management */}
       <div className="max-w-lg space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+          <h3 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-primary" /> Admin Users
           </h3>
           <Button size="sm" onClick={() => { setShowAddDialog(true); setSearchQuery(""); setSearchResults([]); }}>
@@ -277,21 +277,21 @@ const AdminSettings = () => {
         </div>
 
         {adminsLoading ? (
-          <p className="text-xs text-muted-foreground">Loading admins…</p>
+          <p className="text-ds-11 text-muted-foreground">Loading admins…</p>
         ) : admins.length === 0 ? (
-          <div className="rounded-xl liquid-glass p-6 text-center">
-            <p className="text-xs text-muted-foreground">No admins found</p>
+          <div className="rounded-ds-md liquid-glass p-6 text-center">
+            <p className="text-ds-11 text-muted-foreground">No admins found</p>
           </div>
         ) : (
           <div className="space-y-2">
             {admins.map((admin) => (
-              <div key={admin.role_id} className="rounded-xl liquid-glass p-4 flex items-center justify-between gap-3">
+              <div key={admin.role_id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-foreground text-sm">{admin.name}</p>
-                    <Badge className="bg-primary/10 text-primary text-xs">Admin</Badge>
+                    <p className="font-semibold text-foreground text-ds-13">{admin.name}</p>
+                    <Badge className="bg-primary/10 text-primary text-ds-11">Admin</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{admin.email}</p>
+                  <p className="text-ds-11 text-muted-foreground mt-0.5">{admin.email}</p>
                 </div>
                 <Button
                   variant="ghost"
@@ -310,9 +310,9 @@ const AdminSettings = () => {
       </div>
 
       {/* How fees work */}
-      <div className="max-w-md rounded-xl liquid-glass p-6 space-y-3">
+      <div className="max-w-md rounded-ds-md liquid-glass p-6 space-y-3">
         <h3 className="font-semibold text-foreground">How the split fee model works</h3>
-        <ul className="text-xs text-muted-foreground space-y-1.5 list-disc list-inside">
+        <ul className="text-ds-11 text-muted-foreground space-y-1.5 list-disc list-inside">
           <li>Customer pays: task budget + <strong className="text-foreground">{customerFee}%</strong> service fee + sales tax</li>
           <li>Helpr receives: task budget − <strong className="text-foreground">{helperFee}%</strong> platform fee + urgent bonus</li>
           <li>Platform keeps: service fee from customer + platform fee from helpr</li>
@@ -347,15 +347,15 @@ const AdminSettings = () => {
               </Button>
             </div>
 
-            {searching && <p className="text-xs text-muted-foreground">Searching…</p>}
+            {searching && <p className="text-ds-11 text-muted-foreground">Searching…</p>}
 
             {searchResults.length > 0 && (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {searchResults.map((profile) => (
                   <div key={profile.id} className="rounded-lg border border-border bg-secondary/20 p-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-medium text-foreground text-sm">{formatName(profile.full_name, "—")}</p>
-                      <p className="text-xs text-muted-foreground">{(profile as any).email || "—"}</p>
+                      <p className="font-medium text-foreground text-ds-13">{formatName(profile.full_name, "—")}</p>
+                      <p className="text-ds-11 text-muted-foreground">{(profile as any).email || "—"}</p>
                     </div>
                     <Button
                       size="sm"
@@ -370,7 +370,7 @@ const AdminSettings = () => {
             )}
 
             {!searching && searchResults.length === 0 && searchQuery.trim() && (
-              <p className="text-xs text-muted-foreground text-center py-4">No users found. Try a different search.</p>
+              <p className="text-ds-11 text-muted-foreground text-center py-4">No users found. Try a different search.</p>
             )}
           </div>
         </DialogContent>

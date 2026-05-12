@@ -68,42 +68,42 @@ const AdminExport = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+      <h2 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
         <Download className="w-5 h-5 text-primary" /> Data Export
       </h2>
-      <p className="text-xs text-muted-foreground">Export platform data as CSV files for reporting, accounting, and compliance.</p>
+      <p className="text-ds-11 text-muted-foreground">Export platform data as CSV files for reporting, accounting, and compliance.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl liquid-glass p-5 space-y-3">
+        <div className="rounded-ds-md liquid-glass p-5 space-y-3">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
             <Users className="w-4 h-4 text-primary" />
           </div>
           <h3 className="font-semibold text-foreground">Users</h3>
-          <p className="text-xs text-muted-foreground">All user profiles including status, role, and subscription info.</p>
+          <p className="text-ds-11 text-muted-foreground">All user profiles including status, role, and subscription info.</p>
           <Button size="sm" onClick={exportUsers} disabled={!!exporting}>
             {exporting === "users" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />}
             Export Users
           </Button>
         </div>
 
-        <div className="rounded-xl liquid-glass p-5 space-y-3">
+        <div className="rounded-ds-md liquid-glass p-5 space-y-3">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
             <Briefcase className="w-4 h-4 text-primary" />
           </div>
           <h3 className="font-semibold text-foreground">Jobs</h3>
-          <p className="text-xs text-muted-foreground">All jobs with status, budgets, and assignment details.</p>
+          <p className="text-ds-11 text-muted-foreground">All jobs with status, budgets, and assignment details.</p>
           <Button size="sm" onClick={exportJobs} disabled={!!exporting}>
             {exporting === "jobs" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />}
             Export Jobs
           </Button>
         </div>
 
-        <div className="rounded-xl liquid-glass p-5 space-y-3">
+        <div className="rounded-ds-md liquid-glass p-5 space-y-3">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
             <DollarSign className="w-4 h-4 text-primary" />
           </div>
           <h3 className="font-semibold text-foreground">Earnings</h3>
-          <p className="text-xs text-muted-foreground">Completed jobs with fee breakdowns for accounting.</p>
+          <p className="text-ds-11 text-muted-foreground">Completed jobs with fee breakdowns for accounting.</p>
           <Button size="sm" onClick={exportEarnings} disabled={!!exporting}>
             {exporting === "earnings" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />}
             Export Earnings

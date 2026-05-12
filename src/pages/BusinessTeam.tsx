@@ -123,8 +123,8 @@ const BusinessTeam = () => {
       <div className="min-h-screen flex items-center justify-center px-5">
         <Card className="p-8 max-w-md text-center">
           <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h1 className="text-xl font-bold mb-2">No business account</h1>
-          <p className="text-xs text-muted-foreground mb-6">
+          <h1 className="text-ds-20 font-bold mb-2">No business account</h1>
+          <p className="text-ds-11 text-muted-foreground mb-6">
             You're not part of a business. Sign up as a business to manage a team.
           </p>
           <Button onClick={() => navigate("/for-business")}>Learn more</Button>
@@ -253,13 +253,13 @@ const BusinessTeam = () => {
       <div className="container mx-auto px-5 py-6 max-w-3xl">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-6"
+          className="inline-flex items-center gap-2 text-ds-11 text-muted-foreground hover:text-foreground transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
         <div className="flex items-start gap-4 mb-6">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Building2 className="w-6 h-6" />
           </div>
           <div className="flex-1">
@@ -271,7 +271,7 @@ const BusinessTeam = () => {
             </span>
             <div className="flex flex-wrap items-center gap-2 mt-1">
               <h1 className="font-display italic font-bold leading-tight" style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}>{business.business_name}</h1>
-              <Badge variant="secondary" className="text-xs gap-1">
+              <Badge variant="secondary" className="text-ds-11 gap-1">
                 <Sparkles className="w-3 h-3" /> {currentTierMeta.name} · {currentTierMeta.price}
               </Badge>
             </div>
@@ -292,7 +292,7 @@ const BusinessTeam = () => {
             <h2 className="font-semibold mb-1 flex items-center gap-2">
               <UserPlus className="w-4 h-4" /> Invite a team member
             </h2>
-            <p className="text-xs text-muted-foreground mb-4">
+            <p className="text-ds-11 text-muted-foreground mb-4">
               They'll get full access to post and manage jobs on behalf of {business.business_name}. All jobs are billed to your card on file.
             </p>
             <form onSubmit={handleInvite} className="flex gap-2">
@@ -312,7 +312,7 @@ const BusinessTeam = () => {
               </Button>
             </form>
             {remainingSlots <= 0 && (
-              <p className="text-xs text-destructive mt-2">
+              <p className="text-ds-11 text-destructive mt-2">
                 You've reached your {SEAT_LIMIT}-seat limit. Upgrade your plan below to add more members.
               </p>
             )}
@@ -326,7 +326,7 @@ const BusinessTeam = () => {
                 <h2 className="font-semibold flex items-center gap-2">
                   <Sparkles className="w-4 h-4" /> Seat plan
                 </h2>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-ds-11 text-muted-foreground mt-1">
                   Upgrade or downgrade anytime. Changes apply to your next billing cycle.
                 </p>
               </div>
@@ -357,8 +357,8 @@ const BusinessTeam = () => {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <p className="font-medium text-sm">{tier.name}</p>
-                        <p className="text-xs text-muted-foreground">{tier.seats} seats · {tier.price}</p>
+                        <p className="font-medium text-ds-13">{tier.name}</p>
+                        <p className="text-ds-11 text-muted-foreground">{tier.seats} seats · {tier.price}</p>
                       </div>
                       {isCurrent && (
                         <Badge className="text-[10px] h-5">Current</Badge>
@@ -368,7 +368,7 @@ const BusinessTeam = () => {
                       <Button
                         variant={isUpgrade ? "default" : "outline"}
                         size="sm"
-                        className="w-full h-8 text-xs"
+                        className="w-full h-8 text-ds-11"
                         onClick={() => handleUpgrade(tier.id)}
                         disabled={
                           upgrading !== null ||
@@ -395,7 +395,7 @@ const BusinessTeam = () => {
         )}
 
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-muted-foreground px-1">
+          <h3 className="text-ds-13 font-semibold text-muted-foreground px-1">
             Team ({activeMembers.length})
           </h3>
           {membersLoading ? (
@@ -408,12 +408,12 @@ const BusinessTeam = () => {
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{m.full_name || m.email || "Team member"}</p>
                       {m.role === "owner" && (
-                        <Badge variant="secondary" className="text-xs gap-1">
+                        <Badge variant="secondary" className="text-ds-11 gap-1">
                           <Crown className="w-3 h-3" /> Owner
                         </Badge>
                       )}
                     </div>
-                    {m.email && <p className="text-xs text-muted-foreground">{m.email}</p>}
+                    {m.email && <p className="text-ds-11 text-muted-foreground">{m.email}</p>}
                   </div>
                   {business.is_owner && m.role !== "owner" && (
                     <Button variant="ghost" size="icon" onClick={() => handleRemove(m.id)} aria-label="Remove team member">
@@ -425,7 +425,7 @@ const BusinessTeam = () => {
 
               {pendingMembers.length > 0 && (
                 <>
-                  <h3 className="text-sm font-semibold text-muted-foreground px-1 pt-4">
+                  <h3 className="text-ds-13 font-semibold text-muted-foreground px-1 pt-4">
                     Pending invites ({pendingMembers.length})
                   </h3>
                   {pendingMembers.map((m) => (
@@ -435,7 +435,7 @@ const BusinessTeam = () => {
                           <Mail className="w-4 h-4 text-muted-foreground" />
                           <p className="font-medium">{m.invited_email}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="text-ds-11 text-muted-foreground mt-0.5">
                           Will join when they sign up with this email
                         </p>
                       </div>

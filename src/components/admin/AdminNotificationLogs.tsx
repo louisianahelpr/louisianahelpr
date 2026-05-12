@@ -110,7 +110,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           Every alert sent via in-app or email. Failed deliveries are highlighted in red.
         </p>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
@@ -120,7 +120,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
       </div>
 
       {failureCount > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-ds-md bg-destructive/10 border border-destructive/30 text-destructive text-ds-13">
           <AlertCircle className="w-4 h-4" />
           {failureCount} failed deliver{failureCount === 1 ? "y" : "ies"} on this page
         </div>
@@ -169,8 +169,8 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
 
       <div className="rounded-2xl border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+          <table className="w-full text-ds-13">
+            <thead className="bg-muted/40 text-ds-11 uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="text-left px-4 py-2.5 font-semibold">When</th>
                 <th className="text-left px-4 py-2.5 font-semibold">Channel</th>
@@ -198,14 +198,14 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                     {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}
                   </td>
                   <td className="px-4 py-2.5">
-                    <span className="inline-flex items-center gap-1.5 text-xs">
+                    <span className="inline-flex items-center gap-1.5 text-ds-11">
                       {row.channel === "email"
                         ? <Mail className="w-3.5 h-3.5" />
                         : <Smartphone className="w-3.5 h-3.5" />}
                       {row.channel === "email" ? "Email" : "In-App"}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-xs">
+                  <td className="px-4 py-2.5 text-ds-11">
                     {CATEGORY_LABEL[row.category] ?? row.category}
                   </td>
                   <td className="px-4 py-2.5 max-w-[200px] truncate">
@@ -214,11 +214,11 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   <td className="px-4 py-2.5 max-w-[280px] truncate">
                     <div className="truncate">{row.subject || <span className="text-muted-foreground">—</span>}</div>
                     {row.error_message && (
-                      <div className="text-xs text-destructive truncate mt-0.5">{row.error_message}</div>
+                      <div className="text-ds-11 text-destructive truncate mt-0.5">{row.error_message}</div>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
-                    <Badge variant="outline" className={cn("text-xs capitalize", STATUS_VARIANT[row.status] || "")}>
+                    <Badge variant="outline" className={cn("text-ds-11 capitalize", STATUS_VARIANT[row.status] || "")}>
                       {row.status}
                     </Badge>
                   </td>
@@ -229,7 +229,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center justify-between text-ds-13">
         <span className="text-muted-foreground">
           Page {page + 1} • Showing {filtered.length} of {rows.length} loaded
         </span>

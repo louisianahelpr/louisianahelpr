@@ -80,7 +80,7 @@ export function LogisticsSection({
           <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
             <MapPin className="w-3.5 h-3.5 text-primary" />
           </div>
-          <h2 className="font-display text-base font-semibold">Logistics</h2>
+          <h2 className="font-display text-ds-15 font-semibold">Logistics</h2>
         </div>
         {logisticsComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
       </div>
@@ -94,7 +94,7 @@ export function LogisticsSection({
           <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} inputMode="numeric" autoComplete="postal-code" aria-label="Zip code" className="px-3 text-[14px]" />
         </div>
         {/* Parish is silently looked up from zip for Louisiana sales tax (admin-only). */}
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+        <p className="text-ds-11 text-muted-foreground flex items-center gap-1.5">
           <Shield className="w-3 h-3 shrink-0" />
           Only the city will be visible to applicants until you select a helper.
         </p>
@@ -126,7 +126,7 @@ export function LogisticsSection({
           onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
           className="mt-0.5"
         />
-        <span className="text-xs text-muted-foreground leading-snug">
+        <span className="text-ds-11 text-muted-foreground leading-snug">
           <span className="font-medium text-foreground">Flexible schedule</span> — helpr can start earlier or later on the scheduled day
         </span>
       </label>
@@ -144,7 +144,7 @@ export function LogisticsSection({
       {/* Recurring Job — mutually exclusive with Group job. Recurring
           bills weekly/monthly to one helper; group splits a single
           job across many. The two semantics don't compose. */}
-      <div className={`rounded-xl border p-4 space-y-3 ${isGroupJob ? "border-border/40 bg-muted/20 opacity-60" : "border-border"}`}>
+      <div className={`rounded-ds-md border p-4 space-y-3 ${isGroupJob ? "border-border/40 bg-muted/20 opacity-60" : "border-border"}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Repeat className="w-4 h-4 text-primary" />
@@ -158,7 +158,7 @@ export function LogisticsSection({
           />
         </div>
         {isGroupJob && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Turn off Group job to make this recurring instead.
           </p>
         )}
@@ -185,7 +185,7 @@ export function LogisticsSection({
       </div>
 
       {/* Group Job — mutually exclusive with Recurring (see above). */}
-      <div className={`rounded-xl border p-4 space-y-3 ${isRecurring ? "border-border/40 bg-muted/20 opacity-60" : "border-border"}`}>
+      <div className={`rounded-ds-md border p-4 space-y-3 ${isRecurring ? "border-border/40 bg-muted/20 opacity-60" : "border-border"}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-primary" />
@@ -199,7 +199,7 @@ export function LogisticsSection({
           />
         </div>
         {isRecurring && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Turn off Recurring task to split this across multiple helprs instead.
           </p>
         )}
@@ -216,7 +216,7 @@ export function LogisticsSection({
               className="w-24"
               aria-label="Number of helpers needed"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helpr
             </p>
           </div>

@@ -74,7 +74,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
           <div className="space-y-4">
             {existingUrls.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium">Already uploaded</p>
+                <p className="text-ds-11 text-muted-foreground font-medium">Already uploaded</p>
                 <div className="flex gap-2 flex-wrap">
                   {existingUrls.map((url, i) => (
                     <img loading="lazy" decoding="async" key={i} src={url} alt={`Job photo ${i + 1}`} className="w-20 h-20 rounded-lg object-cover border border-border" />
@@ -150,25 +150,25 @@ export const PhotoProofGroup = ({
   // If no photos at all and can't upload, show a minimal empty state
   if (!hasBefore && !hasAfter && !showBeforeUpload && !showAfterUpload) {
     return (
-      <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">
+      <div className="rounded-ds-md border border-border bg-muted/20 overflow-hidden">
         <div className="px-3 py-2 bg-muted/30 border-b border-border/40 flex items-center gap-1.5">
           <Image className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-xs font-semibold text-foreground">Photo Proof</span>
+          <span className="text-ds-11 font-semibold text-foreground">Photo Proof</span>
         </div>
         <div className="px-3 py-3">
-          <p className="text-xs text-muted-foreground/60 italic text-center">No photos were uploaded for this job</p>
+          <p className="text-ds-11 text-muted-foreground/60 italic text-center">No photos were uploaded for this job</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">
+    <div className="rounded-ds-md border border-border bg-muted/20 overflow-hidden">
       {/* Header */}
       <div className="px-3 py-2 bg-muted/30 border-b border-border/40 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Image className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-xs font-semibold text-foreground">Photo Proof</span>
+          <span className="text-ds-11 font-semibold text-foreground">Photo Proof</span>
         </div>
         {(hasBefore || hasAfter) && (
           <button onClick={() => setViewOpen(true)} className="text-[10px] text-primary hover:underline font-medium">
@@ -191,7 +191,7 @@ export const PhotoProofGroup = ({
                   </a>
                 ))}
                 {beforeUrls.length > 3 && (
-                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground font-medium">
+                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center text-ds-11 text-muted-foreground font-medium">
                     +{beforeUrls.length - 3}
                   </div>
                 )}
@@ -215,7 +215,7 @@ export const PhotoProofGroup = ({
                   </a>
                 ))}
                 {afterUrls.length > 3 && (
-                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground font-medium">
+                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center text-ds-11 text-muted-foreground font-medium">
                     +{afterUrls.length - 3}
                   </div>
                 )}
@@ -231,7 +231,7 @@ export const PhotoProofGroup = ({
 
         {/* Warning for $50+ jobs */}
         {requireAfter && budget >= 50 && !hasAfter && (
-          <p className="text-xs text-destructive flex items-center gap-1 mt-2">
+          <p className="text-ds-11 text-destructive flex items-center gap-1 mt-2">
             <Camera className="w-3 h-3" /> After-photos required for jobs $50+
           </p>
         )}
@@ -246,7 +246,7 @@ export const PhotoProofGroup = ({
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             {hasBefore && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
+                <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
                 <div className="grid grid-cols-3 gap-2">
                   {beforeUrls.map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer">
@@ -258,7 +258,7 @@ export const PhotoProofGroup = ({
             )}
             {hasAfter && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">After</p>
+                <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
                 <div className="grid grid-cols-3 gap-2">
                   {afterUrls.map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer">
@@ -269,7 +269,7 @@ export const PhotoProofGroup = ({
               </div>
             )}
             {!hasBefore && !hasAfter && (
-              <p className="text-xs text-muted-foreground text-center py-6">No photos uploaded yet.</p>
+              <p className="text-ds-11 text-muted-foreground text-center py-6">No photos uploaded yet.</p>
             )}
           </div>
         </DialogContent>

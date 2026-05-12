@@ -41,8 +41,8 @@ const StarRow = ({
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg liquid-glass p-3">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{sublabel}</p>
+        <p className="text-ds-13 font-semibold text-foreground">{label}</p>
+        <p className="text-ds-11 text-muted-foreground">{sublabel}</p>
       </div>
       <div className="flex gap-0.5 shrink-0">
         {[1, 2, 3, 4, 5].map((s) => (
@@ -151,7 +151,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                 key={opt}
                 type="button"
                 onClick={() => toggleQuickOption(opt)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                className={`text-ds-11 px-3 py-1.5 rounded-full border transition-colors ${
                   feedback.includes(opt)
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
@@ -241,12 +241,12 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
   const qualityAvg = avg("quality");
   const communicationAvg = avg("communication");
 
-  if (loaded && reviews.length === 0) return <p className="text-xs text-muted-foreground">No reviews yet.</p>;
+  if (loaded && reviews.length === 0) return <p className="text-ds-11 text-muted-foreground">No reviews yet.</p>;
   if (!loaded && reviews.length === 0) return null;
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl liquid-glass p-4 space-y-3">
+      <div className="rounded-ds-md liquid-glass p-4 space-y-3">
         <div className="flex items-center gap-3">
           <div className="flex">
             {[1, 2, 3, 4, 5].map((s) => (
@@ -256,7 +256,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
               />
             ))}
           </div>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-ds-11 text-muted-foreground">
             {overallAvg.toFixed(1)} ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
           </span>
         </div>
@@ -270,7 +270,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
               <div key={cat.label} className="text-center">
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{cat.label}</p>
                 <div className="flex justify-center mb-0.5"><MiniStars value={cat.v} /></div>
-                <p className="text-xs font-semibold text-foreground">{cat.v > 0 ? cat.v.toFixed(1) : "—"}</p>
+                <p className="text-ds-11 font-semibold text-foreground">{cat.v > 0 ? cat.v.toFixed(1) : "—"}</p>
               </div>
             ))}
           </div>
@@ -286,7 +286,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
                     <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
                   ))}
                 </div>
-                <span className="text-xs text-muted-foreground">by {r.reviewerName || "User"}</span>
+                <span className="text-ds-11 text-muted-foreground">by {r.reviewerName || "User"}</span>
               </div>
               <button
                 onClick={() => setReportReviewId(r.id)}
@@ -315,8 +315,8 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
                 )}
               </div>
             )}
-            {r.feedback && <p className="text-sm text-foreground">{r.feedback}</p>}
-            <p className="text-xs text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</p>
+            {r.feedback && <p className="text-ds-13 text-foreground">{r.feedback}</p>}
+            <p className="text-ds-11 text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</p>
           </div>
         ))}
       </div>

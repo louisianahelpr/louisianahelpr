@@ -318,8 +318,8 @@ const CompleteProfile = () => {
       <div className="min-h-screen flex items-center justify-center bg-premium-page px-5">
         <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-card p-6 text-center shadow-[var(--card-shadow)]">
           <Loader2 className="mx-auto mb-4 h-6 w-6 animate-spin text-primary" />
-          <h1 className="text-xl font-display font-bold text-foreground">Checking your saved profile</h1>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <h1 className="text-ds-20 font-display font-bold text-foreground">Checking your saved profile</h1>
+          <p className="mt-2 text-ds-11 text-muted-foreground">
             Hang tight — we’re making sure your previous submission is loaded before asking for anything again.
           </p>
           <Button
@@ -330,7 +330,7 @@ const CompleteProfile = () => {
               await supabase.auth.signOut();
               navigate("/login", { replace: true });
             }}
-            className="mt-5 w-full rounded-xl"
+            className="mt-5 w-full rounded-ds-md"
           >
             <X className="w-4 h-4 mr-2" /> Sign out
           </Button>
@@ -364,7 +364,7 @@ const CompleteProfile = () => {
             >
               Almost there.
             </h1>
-            <p className="mt-3 font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="mt-3 font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
             <p className="mt-2 text-[0.7rem] font-sans" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
@@ -375,14 +375,14 @@ const CompleteProfile = () => {
           {/* Live "Big 7" checklist — green check when satisfied, red X when missing */}
           <div className="squircle mb-5 rounded-[24px] border border-border/60 bg-card/80 backdrop-blur-md shadow-[var(--card-shadow)] p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-foreground">Verification checklist</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-ds-13 font-semibold text-foreground">Verification checklist</p>
+              <p className="text-ds-11 text-muted-foreground">
                 {checklist.filter((c) => c.done).length}/{checklist.length}
               </p>
             </div>
             <ul className="space-y-1.5">
               {checklist.map((item) => (
-                <li key={item.label} className="flex items-center gap-2.5 text-sm">
+                <li key={item.label} className="flex items-center gap-2.5 text-ds-13">
                   <span
                     className={cn(
                       "flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
@@ -431,7 +431,7 @@ const CompleteProfile = () => {
                   onChange={handleAvatarChange}
                 />
               </label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-ds-11 text-muted-foreground">
                 {avatarPreview
                   ? "Tap to change · JPG, PNG, WebP (5MB max)"
                   : <>Profile photo <span className="text-destructive">*</span> · tap to add</>}
@@ -446,7 +446,7 @@ const CompleteProfile = () => {
                   autoComplete="given-name"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="rounded-xl"
+                  className="rounded-ds-md"
                 />
               </div>
               <div className="space-y-1.5">
@@ -456,7 +456,7 @@ const CompleteProfile = () => {
                   autoComplete="family-name"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="rounded-xl"
+                  className="rounded-ds-md"
                 />
               </div>
             </div>
@@ -475,7 +475,7 @@ const CompleteProfile = () => {
                 placeholder="(225) 555-0123"
                 value={phone}
                 onChange={(e) => setPhone(formatPhone(e.target.value))}
-                className="rounded-xl"
+                className="rounded-ds-md"
               />
             </div>
 
@@ -487,7 +487,7 @@ const CompleteProfile = () => {
                 placeholder="Baton Rouge"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="rounded-xl"
+                className="rounded-ds-md"
               />
             </div>
 
@@ -499,7 +499,7 @@ const CompleteProfile = () => {
                 placeholder="A short intro neighbors will see on your profile (20+ characters)."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="rounded-xl"
+                className="rounded-ds-md"
               />
             </div>
 
@@ -508,7 +508,7 @@ const CompleteProfile = () => {
               <Label>Government-issued ID <span className="text-destructive">*</span></Label>
               <label
                 htmlFor="id-doc"
-                className="flex items-center gap-3 rounded-xl border border-dashed border-border p-3 cursor-pointer hover:bg-muted/40"
+                className="flex items-center gap-3 rounded-ds-md border border-dashed border-border p-3 cursor-pointer hover:bg-muted/40"
               >
                 {idPreview && idPreview.startsWith("blob:") ? (
                   <img loading="lazy" decoding="async" src={idPreview} alt="ID preview" className="w-14 h-14 rounded-md object-cover" />
@@ -517,11 +517,11 @@ const CompleteProfile = () => {
                     <FileText className="w-5 h-5 text-muted-foreground" />
                   </div>
                 )}
-                <div className="text-sm">
+                <div className="text-ds-13">
                   <div className="font-medium">
                     {idFile ? idFile.name : profile?.id_document_url ? "Replace ID" : "Upload your ID"}
                   </div>
-                  <div className="text-muted-foreground text-xs">Image or PDF. Max 5MB.</div>
+                  <div className="text-muted-foreground text-ds-11">Image or PDF. Max 5MB.</div>
                 </div>
                 <input
                   id="id-doc"
@@ -533,7 +533,7 @@ const CompleteProfile = () => {
               </label>
             </div>
 
-            <label className="flex items-start gap-2.5 text-xs cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <label className="flex items-start gap-2.5 text-ds-11 cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
               <Checkbox
                 checked={acceptedPolicies}
                 onCheckedChange={(v) => setAcceptedPolicies(v === true)}
@@ -550,7 +550,7 @@ const CompleteProfile = () => {
             <Button
               type="submit"
               size="lg"
-              className="w-full rounded-xl"
+              className="w-full rounded-ds-md"
               disabled={submitting || !allComplete}
               style={
                 allComplete && !submitting
@@ -580,7 +580,7 @@ const CompleteProfile = () => {
                 await supabase.auth.signOut();
                 navigate("/login", { replace: true });
               }}
-              className="w-full rounded-xl"
+              className="w-full rounded-ds-md"
             >
               <X className="w-4 h-4 mr-2" /> Sign out
             </Button>

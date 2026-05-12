@@ -102,13 +102,13 @@ const Schedule = () => {
       >
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-xs text-muted-foreground">Your calendar and upcoming jobs.</p>
+            <p className="text-ds-11 text-muted-foreground">Your calendar and upcoming jobs.</p>
             <Button variant="outline" size="sm" onClick={() => navigate("/availability")} className="gap-2">
               <Clock className="w-4 h-4" /> Set availability
             </Button>
           </div>
 
-          <div className="rounded-xl liquid-glass p-4">
+          <div className="rounded-ds-md liquid-glass p-4">
             <div className="flex items-center justify-between mb-4">
               <Button variant="ghost" size="icon" onClick={prevMonth} disabled={loading} aria-label="Previous month"><ChevronLeft className="w-4 h-4" /></Button>
               <h2 className="font-display font-semibold text-foreground">
@@ -119,7 +119,7 @@ const Schedule = () => {
 
             <div className="grid grid-cols-7 gap-1 mb-1">
               {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
+                <div key={d} className="text-center text-ds-11 font-medium text-muted-foreground py-1">{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1">
@@ -135,7 +135,7 @@ const Schedule = () => {
                     key={day}
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                     disabled={loading}
-                    className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors ${
+                    className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-ds-13 transition-colors ${
                       isSelected ? "bg-primary text-primary-foreground" :
                       isToday ? "bg-primary/10 text-primary font-bold" :
                       "hover:bg-secondary text-foreground"
@@ -153,7 +153,7 @@ const Schedule = () => {
               })}
             </div>
 
-            <div className="flex gap-4 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+            <div className="flex gap-4 mt-3 pt-3 border-t border-border text-ds-11 text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-primary" /> Jobs scheduled
               </span>
@@ -167,8 +167,8 @@ const Schedule = () => {
             {loading ? (
               <div className="space-y-3">
                 <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
-                <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
-                <div className="h-20 rounded-xl bg-muted/30 animate-pulse" />
+                <div className="h-20 rounded-ds-md bg-muted/30 animate-pulse" />
+                <div className="h-20 rounded-ds-md bg-muted/30 animate-pulse" />
               </div>
             ) : selectedDate ? (
               <div className="space-y-3">
@@ -176,7 +176,7 @@ const Schedule = () => {
                   {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </h3>
                 {selectedJobs.length === 0 ? (
-                  <p className="font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                     Nothing on the calendar for this day.
                   </p>
                 ) : (
@@ -189,7 +189,7 @@ const Schedule = () => {
               <div className="space-y-3">
                 <h3 className="font-display font-semibold text-foreground">Upcoming</h3>
                 {upcomingJobs.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No upcoming jobs scheduled.</p>
+                  <p className="text-ds-11 text-muted-foreground">No upcoming jobs scheduled.</p>
                 ) : (
                   upcomingJobs.map((job) => (
                     <JobScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} />
@@ -205,22 +205,22 @@ const Schedule = () => {
 };
 
 const JobScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
-  <div className={`rounded-xl border p-4 ${statusColors[job.status] || "border-border bg-card"}`}>
+  <div className={`rounded-ds-md border p-4 ${statusColors[job.status] || "border-border bg-card"}`}>
     <div className="flex items-start justify-between gap-3">
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap mb-1">
-          <h4 className="font-semibold text-sm">{job.title}</h4>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-background/50 font-medium">
+          <h4 className="font-semibold text-ds-13">{job.title}</h4>
+          <span className="text-ds-11 px-2 py-0.5 rounded-full bg-background/50 font-medium">
             {isPosted ? "Posted" : "Assigned"}
           </span>
         </div>
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
           <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
           <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
           {job.start_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {job.start_time}</span>}
         </div>
       </div>
-      <span className="text-xs font-medium capitalize">{job.status.replace("_", " ")}</span>
+      <span className="text-ds-11 font-medium capitalize">{job.status.replace("_", " ")}</span>
     </div>
   </div>
 );

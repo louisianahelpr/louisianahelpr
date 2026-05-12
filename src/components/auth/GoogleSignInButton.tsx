@@ -64,7 +64,7 @@ export const GoogleSignInButton = ({
       type="button"
       variant="outline"
       size="lg"
-      className="w-full rounded-xl border-border/70 hover:bg-muted/40"
+      className="w-full rounded-ds-md border-border/70 hover:bg-muted/40"
       onClick={handleClick}
       disabled={loading}
     >

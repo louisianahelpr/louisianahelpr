@@ -59,8 +59,8 @@ export function GroupJobHelpers({
   const filledSlots = helpers.filter((h) => h.status === "accepted").length;
 
   return (
-    <div className="rounded-xl liquid-glass p-4 space-y-3">
-      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+    <div className="rounded-ds-md liquid-glass p-4 space-y-3">
+      <h3 className="text-ds-13 font-semibold text-foreground flex items-center gap-2">
         <Users className="w-4 h-4 text-primary" /> Group Job
       </h3>
       <div className="flex items-center gap-2">
@@ -70,7 +70,7 @@ export function GroupJobHelpers({
             style={{ width: `${(filledSlots / helpersNeeded) * 100}%` }}
           />
         </div>
-        <span className="text-xs font-medium text-foreground">
+        <span className="text-ds-11 font-medium text-foreground">
           {filledSlots}/{helpersNeeded} helprs
         </span>
       </div>
@@ -80,11 +80,11 @@ export function GroupJobHelpers({
           {helpers.map((h) => (
             <div key={h.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-ds-11 font-bold">
                   {(h.helperName || "?")[0].toUpperCase()}
                 </div>
-                <span className="text-sm text-foreground">{h.helperName}</span>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                <span className="text-ds-13 text-foreground">{h.helperName}</span>
+                <span className={`text-ds-11 px-1.5 py-0.5 rounded-full ${
                   h.status === "accepted" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground"
                 }`}>
                   {h.status}
@@ -101,7 +101,7 @@ export function GroupJobHelpers({
       )}
 
       {filledSlots < helpersNeeded && (
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-ds-11 text-muted-foreground text-center">
           {helpersNeeded - filledSlots} more helpr{helpersNeeded - filledSlots > 1 ? "s" : ""} needed
         </p>
       )}

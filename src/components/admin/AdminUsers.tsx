@@ -668,14 +668,14 @@ const AdminUsers = () => {
 
   const statusBadge = (profile: Profile) => {
     const banStatus = (profile as any).ban_status || "active";
-    if (banStatus === "permanently_banned") return <Badge className="bg-destructive/10 text-destructive text-xs">Permanently Banned</Badge>;
-    if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive text-xs">Temp Banned</Badge>;
+    if (banStatus === "permanently_banned") return <Badge className="bg-destructive/10 text-destructive text-ds-11">Permanently Banned</Badge>;
+    if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive text-ds-11">Temp Banned</Badge>;
     // "warned" status is intentionally not surfaced as a status badge — the strike chip
     // ("1st Strike", "Final Warning", etc.) already conveys this without duplication.
-    if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending Email Verification</Badge>;
-    if (profile.approval_status === "approved") return <Badge className="bg-primary/10 text-primary text-xs">Active</Badge>;
-    if (profile.approval_status === "denied") return <Badge className="bg-destructive/10 text-destructive text-xs">Denied</Badge>;
-    return <Badge className="bg-accent/20 text-accent-foreground text-xs">Pending Review</Badge>;
+    if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-accent-foreground text-ds-11">Pending Email Verification</Badge>;
+    if (profile.approval_status === "approved") return <Badge className="bg-primary/10 text-primary text-ds-11">Active</Badge>;
+    if (profile.approval_status === "denied") return <Badge className="bg-destructive/10 text-destructive text-ds-11">Denied</Badge>;
+    return <Badge className="bg-accent/20 text-accent-foreground text-ds-11">Pending Review</Badge>;
   };
 
   // Stripe Identity verification badge — green / yellow / gray.
@@ -713,9 +713,9 @@ const AdminUsers = () => {
         <HoverCardContent side="top" className="w-72 p-3 space-y-2" onClick={(e) => e.stopPropagation()}>
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Recent admin notes ({summary.count})</p>
           {summary.recent.map((n, i) => (
-            <div key={i} className="text-xs space-y-0.5 border-l-2 border-accent/40 pl-2">
+            <div key={i} className="text-ds-11 space-y-0.5 border-l-2 border-accent/40 pl-2">
               <p className="text-foreground line-clamp-3">{n.note}</p>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground text-ds-11">
                 {n.category} · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
               </p>
             </div>
@@ -769,7 +769,7 @@ const AdminUsers = () => {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 min-w-0 px-1 py-1.5 rounded-md text-[10px] sm:text-sm font-medium transition-colors flex items-center justify-center gap-0.5 ${
+            className={`flex-1 min-w-0 px-1 py-1.5 rounded-md text-[10px] sm:text-ds-13 font-medium transition-colors flex items-center justify-center gap-0.5 ${
               tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -799,10 +799,10 @@ const AdminUsers = () => {
           placeholder="Search by name…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="h-9 text-sm flex-1"
+          className="h-9 text-ds-13 flex-1"
         />
         <Select value={sortDir} onValueChange={(v) => setSortDir(v as typeof sortDir)}>
-          <SelectTrigger className="h-9 text-sm sm:w-[220px]">
+          <SelectTrigger className="h-9 text-ds-13 sm:w-[220px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
@@ -825,7 +825,7 @@ const AdminUsers = () => {
       </div>
 
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           {filtered.length} {tabCountLabel[tab]} {filtered.length === 1 ? "user" : "users"}
         </p>
         {searchQuery && (
@@ -839,13 +839,13 @@ const AdminUsers = () => {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-8">No users in this category.</p>
+        <p className="text-ds-11 text-muted-foreground text-center py-8">No users in this category.</p>
       ) : (
         <div className="space-y-2">
           {filtered.map((p) => (
             <div
               key={p.id}
-              className="rounded-xl liquid-glass p-3 cursor-pointer hover:bg-secondary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="rounded-ds-md liquid-glass p-3 cursor-pointer hover:bg-secondary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={() => openProfile(p)}
               role="button"
               tabIndex={0}
@@ -867,7 +867,7 @@ const AdminUsers = () => {
                       {p.avatar_url ? (
                         <img loading="lazy" decoding="async" src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-xs font-medium">
+                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-ds-11 font-medium">
                           {formatName(p.full_name, "?")[0]?.toUpperCase()}
                         </div>
                       )}
@@ -882,7 +882,7 @@ const AdminUsers = () => {
                 })()}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="font-semibold text-foreground text-sm truncate">{formatName(p.full_name, "—")}</p>
+                    <p className="font-semibold text-foreground text-ds-13 truncate">{formatName(p.full_name, "—")}</p>
                     {statusBadge(p)}
                     <NotesIndicator userId={p.user_id} />
                   </div>
@@ -1106,7 +1106,7 @@ const AdminUsers = () => {
       <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
         <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl h-[90vh] overflow-hidden p-3 sm:p-5 flex flex-col gap-0">
           <DialogHeader className="pb-2 mb-2 border-b border-border flex-shrink-0">
-            <DialogTitle className="font-display text-lg sm:text-xl">User Profile</DialogTitle>
+            <DialogTitle className="font-display text-ds-17 sm:text-ds-20">User Profile</DialogTitle>
           </DialogHeader>
           {viewProfile && (
             <div className="flex flex-col flex-1 min-h-0 min-w-0 break-words gap-3">
@@ -1114,16 +1114,16 @@ const AdminUsers = () => {
               <div className="flex gap-3 sm:gap-4">
                 {viewProfile.avatar_url ? (
                   <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                    <img loading="lazy" decoding="async" src={viewProfile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
+                    <img loading="lazy" decoding="async" src={viewProfile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-ds-md object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
                   </a>
                 ) : (
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-2xl font-medium flex-shrink-0">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-ds-md bg-secondary flex items-center justify-center text-muted-foreground text-ds-24 font-medium flex-shrink-0">
                     {formatName(viewProfile.full_name, "?")[0]?.toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="text-base sm:text-lg font-bold text-foreground truncate">{formatName(viewProfile.full_name, "—")}</h3>
+                    <h3 className="text-ds-15 sm:text-ds-17 font-bold text-foreground truncate">{formatName(viewProfile.full_name, "—")}</h3>
                     {statusBadge(viewProfile)}
                     {stripeBadge(viewProfile)}
 
@@ -1134,7 +1134,7 @@ const AdminUsers = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <p className="text-xs sm:text-xs text-muted-foreground truncate">{(viewProfile as any).email || "No email"}</p>
+                    <p className="text-ds-11 sm:text-ds-11 text-muted-foreground truncate">{(viewProfile as any).email || "No email"}</p>
                     <button
                       onClick={() => setEditEmailProfile(viewProfile)}
                       className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
@@ -1199,39 +1199,39 @@ const AdminUsers = () => {
 
               <Tabs defaultValue="actions" className="w-full flex flex-col flex-1 min-h-0">
                 <TabsList className="grid grid-cols-6 w-full flex-shrink-0">
-                  <TabsTrigger value="actions" className="text-[10px] sm:text-sm px-1">Actions</TabsTrigger>
-                  <TabsTrigger value="overview" className="text-[10px] sm:text-sm px-1">Overview</TabsTrigger>
-                  <TabsTrigger value="jobs" className="text-[10px] sm:text-sm px-1">Jobs</TabsTrigger>
-                  <TabsTrigger value="reviews" className="text-[10px] sm:text-sm px-1">Reviews</TabsTrigger>
-                  <TabsTrigger value="documents" className="text-[10px] sm:text-sm px-1">Docs</TabsTrigger>
-                  <TabsTrigger value="emails" className="text-[10px] sm:text-sm px-1">Emails</TabsTrigger>
+                  <TabsTrigger value="actions" className="text-[10px] sm:text-ds-13 px-1">Actions</TabsTrigger>
+                  <TabsTrigger value="overview" className="text-[10px] sm:text-ds-13 px-1">Overview</TabsTrigger>
+                  <TabsTrigger value="jobs" className="text-[10px] sm:text-ds-13 px-1">Jobs</TabsTrigger>
+                  <TabsTrigger value="reviews" className="text-[10px] sm:text-ds-13 px-1">Reviews</TabsTrigger>
+                  <TabsTrigger value="documents" className="text-[10px] sm:text-ds-13 px-1">Docs</TabsTrigger>
+                  <TabsTrigger value="emails" className="text-[10px] sm:text-ds-13 px-1">Emails</TabsTrigger>
                 </TabsList>
 
                 {/* ===== OVERVIEW TAB ===== */}
                 <TabsContent value="overview" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* Bio */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Bio</h4>
-                    <p className={`text-sm leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Bio</h4>
+                    <p className={`text-ds-13 leading-relaxed ${viewProfile.bio ? "text-foreground" : "text-muted-foreground italic"}`}>
                       {viewProfile.bio || "Not provided"}
                     </p>
                   </div>
 
                   {/* Contact & Account */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Contact & Account</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Contact & Account</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 rounded-ds-md bg-secondary/30 border border-border p-4">
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
-                        <p className={`text-sm font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
+                        <p className={`text-ds-13 font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
-                        <p className={`text-sm font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
+                        <p className={`text-ds-13 font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
-                        <p className={`text-sm font-medium ${(viewProfile as any).date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
+                        <p className={`text-ds-13 font-medium ${(viewProfile as any).date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
                           {(viewProfile as any).date_of_birth
                             ? new Date((viewProfile as any).date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
                             : "Not provided"}
@@ -1239,26 +1239,26 @@ const AdminUsers = () => {
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
-                        <p className="text-sm font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                        <p className="text-ds-13 font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>
-                        <p className="text-sm font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
+                        <p className="text-ds-13 font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Skills */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Skills</h4>
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Skills</h4>
                     {viewProfile.skills ? (
                       <div className="flex flex-wrap gap-1.5">
                         {viewProfile.skills.split(",").map((skill, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">{skill.trim()}</Badge>
+                          <Badge key={i} variant="secondary" className="text-ds-11">{skill.trim()}</Badge>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">Not provided</p>
+                      <p className="text-ds-11 text-muted-foreground italic">Not provided</p>
                     )}
                   </div>
 
@@ -1277,12 +1277,12 @@ const AdminUsers = () => {
                     ];
                     return (
                       <div className="space-y-2">
-                        <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Signup Answers</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-xl bg-secondary/30 border border-border p-4">
+                        <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Signup Answers</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-ds-md bg-secondary/30 border border-border p-4">
                           {fields.map((f, i) => (
                             <div key={i}>
                               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
-                              <p className={`text-sm font-medium ${f.value ? "text-foreground" : "text-muted-foreground italic"}`}>{f.value || "Not provided"}</p>
+                              <p className={`text-ds-13 font-medium ${f.value ? "text-foreground" : "text-muted-foreground italic"}`}>{f.value || "Not provided"}</p>
                             </div>
                           ))}
                         </div>
@@ -1293,24 +1293,24 @@ const AdminUsers = () => {
                   {/* Violations History */}
                   {profileViolations.length > 0 && (
                     <div className="space-y-2">
-                      <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
                         <AlertTriangle className="w-4 h-4 text-destructive" /> Violations ({profileViolations.length})
                       </h4>
                       <div className="space-y-2 max-h-48 overflow-y-auto">
                         {profileViolations.map((v: any) => (
                           <div key={v.id} className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                              <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium ${
                                 v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive" :
                                 v.action_taken === "temp_ban" ? "bg-destructive/10 text-destructive" :
                                 "bg-accent/20 text-accent-foreground"
                               }`}>
                                 {v.action_taken === "permanent_ban" ? "Perm Ban" : v.action_taken === "temp_ban" ? "Temp Ban" : "Warning"}
                               </span>
-                              <span className="text-xs text-muted-foreground capitalize">{v.violation_type?.replace(/_/g, " ")}</span>
-                              <span className="text-xs text-muted-foreground ml-auto">{new Date(v.created_at).toLocaleDateString()}</span>
+                              <span className="text-ds-11 text-muted-foreground capitalize">{v.violation_type?.replace(/_/g, " ")}</span>
+                              <span className="text-ds-11 text-muted-foreground ml-auto">{new Date(v.created_at).toLocaleDateString()}</span>
                             </div>
-                            {v.description && <p className="text-xs text-foreground">{v.description}</p>}
+                            {v.description && <p className="text-ds-11 text-foreground">{v.description}</p>}
                           </div>
                         ))}
                       </div>
@@ -1359,7 +1359,7 @@ const AdminUsers = () => {
                         {(() => {
                           const hasStripe = !!(viewProfile as any).stripe_account_id;
                           return (
-                            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium ${
+                            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-ds-11 font-medium ${
                               hasStripe
                                 ? "bg-primary/5 border-primary/20 text-primary"
                                 : "bg-muted/50 border-border text-muted-foreground"
@@ -1376,15 +1376,15 @@ const AdminUsers = () => {
 
                         {/* Summary */}
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="rounded-xl bg-secondary/30 border border-border p-3">
+                          <div className="rounded-ds-md bg-secondary/30 border border-border p-3">
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Earned (Worked)</p>
-                            <p className="text-lg font-semibold text-foreground">${totalEarned.toFixed(2)}</p>
-                            <p className="text-muted-foreground text-xs">{workedCompleted.length} completed</p>
+                            <p className="text-ds-17 font-semibold text-foreground">${totalEarned.toFixed(2)}</p>
+                            <p className="text-muted-foreground text-ds-11">{workedCompleted.length} completed</p>
                           </div>
-                          <div className="rounded-xl bg-secondary/30 border border-border p-3">
+                          <div className="rounded-ds-md bg-secondary/30 border border-border p-3">
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Spent (Posted)</p>
-                            <p className="text-lg font-semibold text-foreground">${totalSpent.toFixed(2)}</p>
-                            <p className="text-muted-foreground text-xs">{postedCompleted.length} completed</p>
+                            <p className="text-ds-17 font-semibold text-foreground">${totalSpent.toFixed(2)}</p>
+                            <p className="text-muted-foreground text-ds-11">{postedCompleted.length} completed</p>
                           </div>
                         </div>
 
@@ -1392,7 +1392,7 @@ const AdminUsers = () => {
                         {/* Filters */}
                         <div className="w-full">
                           <Select value={jobsRole} onValueChange={(v: any) => setJobsRole(v)}>
-                            <SelectTrigger className="h-9 text-xs w-full"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-9 text-ds-11 w-full"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All Jobs</SelectItem>
                               <SelectItem value="worked">Worked (Helpr)</SelectItem>
@@ -1403,7 +1403,7 @@ const AdminUsers = () => {
 
                         {/* List */}
                         {sorted.length === 0 ? (
-                          <p className="text-xs text-muted-foreground italic">No jobs found.</p>
+                          <p className="text-ds-11 text-muted-foreground italic">No jobs found.</p>
                         ) : (
                           <div className="space-y-2">
                             {sorted.map((j: any) => {
@@ -1413,14 +1413,14 @@ const AdminUsers = () => {
                               return (
                                 <div key={j.id} className="p-3 rounded-lg bg-secondary/30 border border-border">
                                   <div className="flex items-start justify-between gap-2 mb-1">
-                                    <p className="text-sm font-medium text-foreground line-clamp-1">{j.title}</p>
+                                    <p className="text-ds-13 font-medium text-foreground line-clamp-1">{j.title}</p>
                                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
                                       j.status === "completed" ? "bg-primary/10 text-primary" :
                                       j.status === "cancelled" ? "bg-destructive/10 text-destructive" :
                                       "bg-muted text-muted-foreground"
                                     }`}>{j.status}</span>
                                   </div>
-                                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                                  <div className="flex items-center justify-between gap-2 text-ds-11 text-muted-foreground">
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <Badge variant="outline" className="text-[10px] h-5">{isHelper ? "Worked" : "Posted"}</Badge>
                                       {j.parish && <span>{j.parish}</span>}
@@ -1433,7 +1433,7 @@ const AdminUsers = () => {
                                         </>
                                       )}
                                     </div>
-                                    <span className="text-sm font-semibold text-foreground">
+                                    <span className="text-ds-13 font-semibold text-foreground">
                                       {isHelper ? "+" : "-"}${earning.toFixed(2)}
                                     </span>
                                   </div>
@@ -1451,18 +1451,18 @@ const AdminUsers = () => {
                 <TabsContent value="reviews" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* Reviews Received */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
                       <Star className="w-4 h-4" /> Reviews Received ({profileReviews.length})
                     </h4>
                     {profileReviews.length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic">No reviews received yet.</p>
+                      <p className="text-ds-11 text-muted-foreground italic">No reviews received yet.</p>
                     ) : (
                       <div className="space-y-2">
                         {profileReviews.map((r, i) => (
                           <div key={i} className="p-3 rounded-lg bg-secondary/30 border border-border">
                             <div className="flex items-start justify-between gap-2 mb-1">
                               <div className="min-w-0">
-                                <p className="text-sm font-medium text-foreground">From {r.reviewer_name}</p>
+                                <p className="text-ds-13 font-medium text-foreground">From {r.reviewer_name}</p>
                                 {r.job_title && <p className="text-[11px] text-muted-foreground line-clamp-1">on "{r.job_title}"</p>}
                               </div>
                               <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -1471,8 +1471,8 @@ const AdminUsers = () => {
                                 ))}
                               </div>
                             </div>
-                            {r.feedback && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
-                            {r.created_at && <p className="text-muted-foreground text-xs mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
+                            {r.feedback && <p className="text-ds-11 text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
+                            {r.created_at && <p className="text-muted-foreground text-ds-11 mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
                           </div>
                         ))}
                       </div>
@@ -1481,18 +1481,18 @@ const AdminUsers = () => {
 
                   {/* Reviews Left */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
                       <Star className="w-4 h-4" /> Reviews Left ({profileReviewsLeft.length})
                     </h4>
                     {profileReviewsLeft.length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic">Hasn't left any reviews yet.</p>
+                      <p className="text-ds-11 text-muted-foreground italic">Hasn't left any reviews yet.</p>
                     ) : (
                       <div className="space-y-2">
                         {profileReviewsLeft.map((r, i) => (
                           <div key={i} className="p-3 rounded-lg bg-secondary/30 border border-border">
                             <div className="flex items-start justify-between gap-2 mb-1">
                               <div className="min-w-0">
-                                <p className="text-sm font-medium text-foreground">For {r.reviewee_name}</p>
+                                <p className="text-ds-13 font-medium text-foreground">For {r.reviewee_name}</p>
                                 {r.job_title && <p className="text-[11px] text-muted-foreground line-clamp-1">on "{r.job_title}"</p>}
                               </div>
                               <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -1501,8 +1501,8 @@ const AdminUsers = () => {
                                 ))}
                               </div>
                             </div>
-                            {r.feedback && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
-                            {r.created_at && <p className="text-muted-foreground text-xs mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
+                            {r.feedback && <p className="text-ds-11 text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
+                            {r.created_at && <p className="text-muted-foreground text-ds-11 mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
                           </div>
                         ))}
                       </div>
@@ -1514,11 +1514,11 @@ const AdminUsers = () => {
                 <TabsContent value="documents" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* ID Document */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
                       <FileText className="w-4 h-4" /> ID Document
                     </h4>
                     {viewProfile.id_document_url ? (
-                      <div className="rounded-xl border border-border overflow-hidden bg-secondary/20">
+                      <div className="rounded-ds-md border border-border overflow-hidden bg-secondary/20">
                         {idDocSignedUrl ? (
                           /\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
                             <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer">
@@ -1528,8 +1528,8 @@ const AdminUsers = () => {
                             <div className="p-4 flex items-center gap-3">
                               <FileText className="w-8 h-8 text-primary" />
                               <div>
-                                <p className="text-sm font-medium text-foreground break-all">{viewProfile.id_document_url.split("/").pop()}</p>
-                                <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
+                                <p className="text-ds-13 font-medium text-foreground break-all">{viewProfile.id_document_url.split("/").pop()}</p>
+                                <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer" className="text-ds-11 text-primary underline">
                                   Open document ↗
                                 </a>
                               </div>
@@ -1537,30 +1537,30 @@ const AdminUsers = () => {
                           )
                         ) : (
                           <div className="p-4 text-center">
-                            <p className="text-xs text-muted-foreground">Loading document…</p>
+                            <p className="text-ds-11 text-muted-foreground">Loading document…</p>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">Not provided</p>
+                      <p className="text-ds-11 text-muted-foreground italic">Not provided</p>
                     )}
                   </div>
 
                   {/* Profile Picture */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Profile Picture</h4>
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Profile Picture</h4>
                     {viewProfile.avatar_url ? (
                       <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="inline-block">
-                        <img loading="lazy" decoding="async" src={viewProfile.avatar_url} alt="Profile" className="w-32 h-32 rounded-xl object-cover border-2 border-border hover:border-primary transition-colors" />
+                        <img loading="lazy" decoding="async" src={viewProfile.avatar_url} alt="Profile" className="w-32 h-32 rounded-ds-md object-cover border-2 border-border hover:border-primary transition-colors" />
                       </a>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">Not provided</p>
+                      <p className="text-ds-11 text-muted-foreground italic">Not provided</p>
                     )}
                   </div>
 
                   {/* Portfolio */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
                       <FileText className="w-4 h-4" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[] || []).length})
                     </h4>
                     {((viewProfile as any).portfolio_urls as string[] || []).length > 0 ? (
@@ -1569,19 +1569,19 @@ const AdminUsers = () => {
                           const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
                           const fileName = url.split("/").pop() || "Document";
                           return isImage ? (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden border border-border hover:border-primary transition-colors block group">
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md overflow-hidden border border-border hover:border-primary transition-colors block group">
                               <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                             </a>
                           ) : (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
                               <FileText className="w-6 h-6 text-muted-foreground mb-1" />
-                              <p className="text-muted-foreground text-xs text-center truncate w-full">{fileName}</p>
+                              <p className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
                             </a>
                           );
                         })}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">Not provided</p>
+                      <p className="text-ds-11 text-muted-foreground italic">Not provided</p>
                     )}
                   </div>
                 </TabsContent>
@@ -1636,10 +1636,10 @@ const AdminUsers = () => {
                   {/* Approval email tracking */}
                   {viewProfile.approval_status === "approved" && (
                     <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
-                      <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                      <p className="text-ds-11 font-medium text-foreground flex items-center gap-1.5">
                         <MailIcon className="w-3.5 h-3.5" /> Approval Email Status
                       </p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between text-ds-11 text-muted-foreground">
                         <span>Emails sent: {(viewProfile as any).approval_email_count || 0} / 3</span>
                         {(viewProfile as any).last_approval_email_at && (
                           <span>Last sent: {new Date((viewProfile as any).last_approval_email_at).toLocaleDateString()}</span>
@@ -1650,17 +1650,17 @@ const AdminUsers = () => {
                         const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
                         return (opens.length > 0 || clicks.length > 0) ? (
                           <div className="flex gap-4 pt-1">
-                            <span className="flex items-center gap-1 text-xs text-primary">
+                            <span className="flex items-center gap-1 text-ds-11 text-primary">
                               <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
                               {opens[0] && <span className="text-muted-foreground ml-1">({new Date(opens[0].created_at).toLocaleDateString()})</span>}
                             </span>
-                            <span className="flex items-center gap-1 text-xs text-primary">
+                            <span className="flex items-center gap-1 text-ds-11 text-primary">
                               <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
                               {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
                             </span>
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
+                          <p className="text-ds-11 text-muted-foreground italic">No opens or clicks tracked yet</p>
                         );
                       })()}
                     </div>
@@ -1669,10 +1669,10 @@ const AdminUsers = () => {
                   {/* Verification email tracking — for unverified pending users */}
                   {viewProfile.approval_status === "pending" && !isVerifiedEmail(viewProfile) && (
                     <div className="rounded-lg bg-accent/5 border border-accent/20 p-3 space-y-2">
-                      <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                      <p className="text-ds-11 font-medium text-foreground flex items-center gap-1.5">
                         <MailIcon className="w-3.5 h-3.5" /> Verification Email Status
                       </p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between text-ds-11 text-muted-foreground">
                         <span>Emails sent: {(viewProfile as any).verification_email_count || 0} / 3</span>
                         {(viewProfile as any).last_verification_email_at && (
                           <span>Last sent: {formatDistanceToNow(new Date((viewProfile as any).last_verification_email_at), { addSuffix: true })}</span>
@@ -1683,15 +1683,15 @@ const AdminUsers = () => {
                         const clicks = emailTracking.filter(t => t.email_type === 'email_verification' && t.event_type === 'click');
                         return (opens.length > 0 || clicks.length > 0) ? (
                           <div className="flex gap-4 pt-1">
-                            <span className="flex items-center gap-1 text-xs text-accent-foreground">
+                            <span className="flex items-center gap-1 text-ds-11 text-accent-foreground">
                               <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
                             </span>
-                            <span className="flex items-center gap-1 text-xs text-accent-foreground">
+                            <span className="flex items-center gap-1 text-ds-11 text-accent-foreground">
                               <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
                             </span>
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
+                          <p className="text-ds-11 text-muted-foreground italic">No opens or clicks tracked yet</p>
                         );
                       })()}
                     </div>
@@ -1700,34 +1700,34 @@ const AdminUsers = () => {
                   {/* Denial email tracking */}
                   {viewProfile.approval_status === "denied" && (
                     <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
-                      <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                      <p className="text-ds-11 font-medium text-foreground flex items-center gap-1.5">
                         <MailIcon className="w-3.5 h-3.5" /> Denial Email Status
                       </p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between text-ds-11 text-muted-foreground">
                         <span>Emails sent: {(viewProfile as any).denial_email_count || 0} / 3</span>
                         {(viewProfile as any).last_denial_email_at && (
                           <span>Last sent: {new Date((viewProfile as any).last_denial_email_at).toLocaleDateString()}</span>
                         )}
                       </div>
                       {(viewProfile as any).denial_reason && (
-                        <p className="text-xs text-muted-foreground">Reason: {(viewProfile as any).denial_reason}</p>
+                        <p className="text-ds-11 text-muted-foreground">Reason: {(viewProfile as any).denial_reason}</p>
                       )}
                       {(() => {
                         const opens = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'open');
                         const clicks = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'click');
                         return (opens.length > 0 || clicks.length > 0) ? (
                           <div className="flex gap-4 pt-1">
-                            <span className="flex items-center gap-1 text-xs text-destructive">
+                            <span className="flex items-center gap-1 text-ds-11 text-destructive">
                               <Eye className="w-3 h-3" /> {opens.length} open{opens.length !== 1 ? 's' : ''}
                               {opens[0] && <span className="text-muted-foreground ml-1">({new Date(opens[0].created_at).toLocaleDateString()})</span>}
                             </span>
-                            <span className="flex items-center gap-1 text-xs text-destructive">
+                            <span className="flex items-center gap-1 text-ds-11 text-destructive">
                               <MousePointerClick className="w-3 h-3" /> {clicks.length} click{clicks.length !== 1 ? 's' : ''}
                               {clicks[0] && <span className="text-muted-foreground ml-1">({new Date(clicks[0].created_at).toLocaleDateString()})</span>}
                             </span>
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground italic">No opens or clicks tracked yet</p>
+                          <p className="text-ds-11 text-muted-foreground italic">No opens or clicks tracked yet</p>
                         );
                       })()}
                     </div>
@@ -1735,7 +1735,7 @@ const AdminUsers = () => {
 
                   {/* Email Send History */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
                       <MailIcon className="w-4 h-4" /> Emails Sent
                       {emailSendStats.length > 0 && (
                         <Badge variant="secondary" className="ml-1 text-[10px]">
@@ -1744,11 +1744,11 @@ const AdminUsers = () => {
                       )}
                     </h4>
                     {emailSendStats.length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic">No emails on record</p>
+                      <p className="text-ds-11 text-muted-foreground italic">No emails on record</p>
                     ) : (
-                      <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden">
+                      <div className="rounded-ds-md border border-border bg-secondary/30 divide-y divide-border overflow-hidden">
                         {emailSendStats.map((s) => (
-                          <div key={s.template_name} className="flex items-center justify-between gap-3 p-3 text-sm">
+                          <div key={s.template_name} className="flex items-center justify-between gap-3 p-3 text-ds-13">
                             <div className="min-w-0 flex-1">
                               <p className="font-medium text-foreground truncate capitalize">
                                 {s.template_name.replace(/[-_]/g, " ")}
@@ -1771,7 +1771,7 @@ const AdminUsers = () => {
                 <TabsContent value="actions" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
                   {/* Primary lifecycle actions */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>
                     <div className="flex gap-2 flex-wrap">
                     {viewProfile.approval_status === "pending" && (
                       <>
@@ -1800,12 +1800,12 @@ const AdminUsers = () => {
                         ? "Stripe payout connected"
                         : "Has opened approval email";
                       return isActive ? (
-                        <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
+                        <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-ds-11 text-primary font-medium">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           {activeLabel}
                         </div>
                       ) : (
-                        <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-muted/50 border border-border text-xs text-muted-foreground font-medium">
+                        <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-muted/50 border border-border text-ds-11 text-muted-foreground font-medium">
                           <Clock className="w-3.5 h-3.5" />
                           Awaiting first login
                         </div>
@@ -1826,7 +1826,7 @@ const AdminUsers = () => {
 
                   {/* Trust & Verification + Support actions */}
                   <div className="space-y-2">
-                    <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide">Admin Tools</h4>
+                    <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Admin Tools</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
                         <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify

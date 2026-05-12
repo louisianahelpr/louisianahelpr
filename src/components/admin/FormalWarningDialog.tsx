@@ -83,18 +83,18 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-5">
         <DialogHeader className="pr-8 space-y-1">
-          <DialogTitle className="font-display flex items-center gap-2 text-base sm:text-lg">
+          <DialogTitle className="font-display flex items-center gap-2 text-ds-15 sm:text-ds-17">
             <MessageSquareWarning className="w-5 h-5 text-accent shrink-0" />
             <span className="truncate">Issue Manual Strike</span>
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-5">
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-ds-11 text-muted-foreground leading-relaxed">
             Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension.
             This logs a strike, emails {formatName(profile?.full_name)}, and adds it to their violation history.
           </p>
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reason category</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Reason category</p>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger>
                 <SelectValue />
@@ -110,7 +110,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
             </Select>
           </div>
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Internal note (sent to user)</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Internal note (sent to user)</p>
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -125,7 +125,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
               className="mt-0.5 shrink-0"
             />
             <div className="space-y-1 min-w-0">
-              <p className="text-xs font-medium text-foreground">Bypass next strike (one-time courtesy)</p>
+              <p className="text-ds-11 font-medium text-foreground">Bypass next strike (one-time courtesy)</p>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 Logs the warning but does NOT escalate to the next tier. Use when you've spoken to them and decided this is a genuine one-time mistake.
               </p>

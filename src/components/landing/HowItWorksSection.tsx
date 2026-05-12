@@ -51,7 +51,7 @@ const HowItWorksSection = () => (
         <h2 className="text-display-xl mt-4 text-balance">
           Three steps. Zero surprises.
         </h2>
-        <p className="subhead-serif text-foreground text-xl sm:text-2xl mt-5 leading-snug text-balance">
+        <p className="subhead-serif text-foreground text-ds-20 sm:text-ds-24 mt-5 leading-snug text-balance">
           Every Helpr job follows the same calm rhythm — post, pick, pay. No
           back-and-forth, no awkward cash handoffs, no guesswork.
         </p>
@@ -83,10 +83,10 @@ const HowItWorksSection = () => (
                   <span className="text-display-eyebrow">{step.accent}</span>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl sm:text-2xl font-display font-semibold text-foreground tracking-tight leading-tight">
+                  <h3 className="text-ds-20 sm:text-ds-24 font-display font-semibold text-foreground tracking-tight leading-tight">
                     {step.title}
                   </h3>
-                  <p className="font-sans text-foreground text-sm sm:text-base leading-relaxed">
+                  <p className="font-sans text-foreground text-ds-13 sm:text-ds-15 leading-relaxed">
                     {step.description}
                   </p>
                 </div>
@@ -118,7 +118,7 @@ const HowItWorksSection = () => (
                       strokeWidth={1.5}
                     />
                     <span
-                      className="text-xs sm:text-sm font-sans font-medium tracking-tight"
+                      className="text-ds-11 sm:text-ds-13 font-sans font-medium tracking-tight"
                       style={{ color: "hsl(var(--olivewood))" }}
                     >
                       {fact.label}

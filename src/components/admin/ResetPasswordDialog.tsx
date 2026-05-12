@@ -65,7 +65,7 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Email a one-time password reset link to{" "}
             <strong className="text-foreground">
               {(profile as { email?: string } | null)?.email || "this user"}

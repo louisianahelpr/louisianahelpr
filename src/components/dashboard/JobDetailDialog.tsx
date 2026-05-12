@@ -198,7 +198,7 @@ const JobDetailDialog = ({
               type="button"
               onClick={() => setLightboxIndex(0)}
               aria-label="View photos"
-              className="relative block w-full aspect-video rounded-xl overflow-hidden group"
+              className="relative block w-full aspect-video rounded-ds-md overflow-hidden group"
               style={{
                 border: "0.5px solid hsl(var(--bark) / 0.22)",
                 boxShadow:
@@ -277,7 +277,7 @@ const JobDetailDialog = ({
             </span>
           )}
           <div
-            className="rounded-xl px-3.5 py-2.5"
+            className="rounded-ds-md px-3.5 py-2.5"
             style={{
               backgroundColor: "hsla(0, 0%, 100%, 0.45)",
               backdropFilter: "blur(18px) saturate(160%)",
@@ -372,7 +372,7 @@ const JobDetailDialog = ({
                 <Wrapper
                   key={label}
                   {...wrapperProps}
-                  className={`relative rounded-xl p-2.5 overflow-hidden ${href ? "transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
+                  className={`relative rounded-ds-md p-2.5 overflow-hidden ${href ? "transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
                   style={{
                     backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "hsla(0, 0%, 100%, 0.45)",
                     backdropFilter: "blur(18px) saturate(160%)",
@@ -426,7 +426,7 @@ const JobDetailDialog = ({
           type="button"
           onClick={() => setPayoutExpanded((v) => !v)}
           aria-expanded={payoutExpanded}
-          className="w-full text-left rounded-xl p-3 transition-shadow hover:shadow-lg relative overflow-hidden"
+          className="w-full text-left rounded-ds-md p-3 transition-shadow hover:shadow-lg relative overflow-hidden"
           style={{
             background:
               "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
@@ -518,7 +518,7 @@ const JobDetailDialog = ({
             inline. Single tile so trust isn't its own loose strip. */}
         <a
           href={`/user/${job.customer_id}`}
-          className="relative block p-2.5 rounded-xl group transition-colors"
+          className="relative block p-2.5 rounded-ds-md group transition-colors"
           style={{
             backgroundColor: "hsla(0, 0%, 100%, 0.55)",
             backdropFilter: "blur(16px) saturate(150%)",
@@ -620,7 +620,7 @@ const JobDetailDialog = ({
             variant="ghost"
             size="icon"
             aria-label="Report this job"
-            className="group rounded-xl h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={() => { onReport(job.id); onClose(); }}
             style={{
               backgroundColor: "hsla(0, 0%, 100%, 0.32)",
@@ -648,7 +648,7 @@ const JobDetailDialog = ({
               variant="ghost"
               size="icon"
               aria-label={isSaved ? "Unsave job" : "Save job"}
-              className="group rounded-xl h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+              className="group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
               onClick={() => onToggleSave(job.id, !isSaved)}
               style={{
                 backgroundColor: isSaved ? "hsl(var(--primary) / 0.12)" : "hsla(0, 0%, 100%, 0.32)",
@@ -678,7 +678,7 @@ const JobDetailDialog = ({
             variant="ghost"
             size="icon"
             aria-label="Ask a question"
-            className="group rounded-xl h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={handleAskQuestion}
             style={{
               backgroundColor: "hsla(0, 0%, 100%, 0.32)",
@@ -704,7 +704,7 @@ const JobDetailDialog = ({
           <Button
             size="lg"
             onClick={() => { onApply(job.id); onClose(); }}
-            className="btn-liquid-fill flex-1 min-w-0 rounded-xl h-11 sm:h-12 px-3 group relative overflow-hidden"
+            className="btn-liquid-fill flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 group relative overflow-hidden"
             style={{
               // Two-stop bark gradient under the glass surface — subtle
               // top-light to bottom-deep wash so the button doesn't read flat.

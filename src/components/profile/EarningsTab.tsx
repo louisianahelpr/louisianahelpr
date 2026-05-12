@@ -261,7 +261,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="text-xs">Earnings tools</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-ds-11">Earnings tools</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setExportDialogOpen(true)}>
               <FileText className="w-4 h-4 mr-2" /> Export for Taxes (PDF)
@@ -383,16 +383,16 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               const instantAvailable = (stripeData.instant_available ?? []).reduce((s, b) => s + b.amount, 0);
               if (instantAvailable <= 0) return null;
               return (
-                <div className="mt-3 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3 flex items-center justify-between gap-3">
+                <div className="mt-3 rounded-ds-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-xs font-semibold text-foreground">Instant cash out</span>
+                      <span className="text-ds-11 font-semibold text-foreground">Instant cash out</span>
                     </div>
-                    <p className="text-base font-bold text-foreground">{formatCents(instantAvailable)}</p>
-                    <p className="text-muted-foreground text-xs">~30 min · 3% + $1 fee</p>
+                    <p className="text-ds-15 font-bold text-foreground">{formatCents(instantAvailable)}</p>
+                    <p className="text-muted-foreground text-ds-11">~30 min · 3% + $1 fee</p>
                   </div>
-                  <Button size="sm" onClick={() => setPayoutDialogOpen(true)} className="h-8 text-xs gap-1.5 shrink-0">
+                  <Button size="sm" onClick={() => setPayoutDialogOpen(true)} className="h-8 text-ds-11 gap-1.5 shrink-0">
                     <Zap className="w-3.5 h-3.5" /> Cash out
                   </Button>
                 </div>
@@ -415,7 +415,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               { icon: Gift, label: "Tips", value: `$${totalTips.toFixed(2)}`, sub: `${tips.length} tips` },
               { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
             ].map(({ icon: Icon, label, value, sub }) => (
-              <div key={label} className="rounded-xl liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
+              <div key={label} className="rounded-ds-md liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
                 <div className="flex items-center gap-1 mb-1">
                   <Icon className="w-3 h-3 text-primary" />
                   <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
@@ -446,12 +446,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 </h3>
               </div>
               <Select value={exportYear} onValueChange={setExportYear}>
-                <SelectTrigger className="h-7 w-[88px] text-xs">
+                <SelectTrigger className="h-7 w-[88px] text-ds-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {payoutYears.map((y) => (
-                    <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>
+                    <SelectItem key={y} value={String(y)} className="text-ds-11">{y}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -463,7 +463,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             ) : (
               <div className="space-y-2">
                 {stripeData.payouts.map((p) => (
-                  <div key={p.id} className="rounded-xl liquid-glass p-3 transition-all hover:-translate-y-0.5">
+                  <div key={p.id} className="rounded-ds-md liquid-glass p-3 transition-all hover:-translate-y-0.5">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -508,7 +508,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 : t.status === "reversed" ? "bg-muted text-muted-foreground"
                 : "bg-accent/20 text-accent-foreground"; // pending
               return (
-                <div key={t.id} className="rounded-xl liquid-glass p-3.5">
+                <div key={t.id} className="rounded-ds-md liquid-glass p-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -584,13 +584,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                   No earnings yet.
                 </p>
                 <p
-                  className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                  className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 >
                   Apply to a task and your earnings will land here.
                 </p>
               </div>
-              <Button onClick={() => navigate("/dashboard")} className="rounded-xl mt-1">Browse tasks</Button>
+              <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md mt-1">Browse tasks</Button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -603,7 +603,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 const jobTips = tips.filter((t) => t.job_id === job.id);
                 const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
                 return (
-                  <div key={job.id} className="rounded-xl liquid-glass p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
+                  <div key={job.id} className="rounded-ds-md liquid-glass p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -622,7 +622,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                             ${payout.toFixed(2)}
                           </p>
                         )}
-                        {tipTotal > 0 && <p className="text-xs text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
+                        {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
                         {job.status === "in_progress" && (
                           <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                             ${job.budget} budget

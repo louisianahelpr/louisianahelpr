@@ -92,7 +92,7 @@ export function DateOfBirthPicker({ value, onChange, id, className }: DateOfBirt
   }, [parts.year, parts.month]);
 
   const triggerCls =
-    "rounded-xl bg-white/60 border-white/70 h-11 text-sm font-sans data-[placeholder]:text-muted-foreground";
+    "rounded-ds-md bg-white/60 border-white/70 h-11 text-ds-13 font-sans data-[placeholder]:text-muted-foreground";
 
   return (
     <div id={id} className={cn("grid grid-cols-[1.4fr_0.9fr_1fr] gap-2", className)}>

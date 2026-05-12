@@ -41,7 +41,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             How long should <span className="font-medium text-foreground">{helperName}</span> have to accept or decline this job?
           </p>
           <div className="space-y-2">
@@ -55,14 +55,14 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               If they don't respond in time, the job will be reopened automatically.
             </p>
           </div>
 
           {/* Optional message with offer */}
           <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+            <div className="flex items-center gap-1.5 text-ds-13 font-medium text-foreground">
               <MessageSquare className="w-4 h-4" />
               Include a message <span className="text-muted-foreground font-normal">(optional)</span>
             </div>
@@ -76,10 +76,10 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
           </div>
 
           <div className="rounded-lg bg-muted/50 border border-border p-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               <span className="font-medium text-foreground">⚠️ Denial policy:</span> Helprs who decline jobs repeatedly will face escalating consequences:
             </p>
-            <ul className="text-xs text-muted-foreground mt-1 space-y-0.5 list-disc pl-4">
+            <ul className="text-ds-11 text-muted-foreground mt-1 space-y-0.5 list-disc pl-4">
               <li>1st & 2nd decline — no penalty</li>
               <li>3rd decline — warning issued</li>
               <li>4th decline — temporary ban</li>

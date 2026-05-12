@@ -46,21 +46,21 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
         onTouchMoveCapture={(event) => event.stopPropagation()}
         className="w-[300px] rounded-2xl p-4 space-y-4 touch-pan-y native-scroll-area"
       >
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
+        <div className="grid grid-cols-2 gap-1 rounded-ds-md bg-secondary p-1">
           {(["start", "end"] as const).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
               className={cn(
-                "h-9 rounded-lg text-sm font-semibold capitalize transition-all",
+                "h-9 rounded-lg text-ds-13 font-semibold capitalize transition-all",
                 tab === t
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
               {t === "start" ? "Start" : "End"}
-              <span className="ml-1.5 text-xs font-normal text-muted-foreground tabular-nums">
+              <span className="ml-1.5 text-ds-11 font-normal text-muted-foreground tabular-nums">
                 {formatTime12(t === "start" ? start : end)}
               </span>
             </button>
@@ -82,7 +82,7 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-[15px] font-semibold"
+          className="w-full h-11 rounded-ds-md bg-primary text-primary-foreground text-[15px] font-semibold"
         >
           Done
         </button>

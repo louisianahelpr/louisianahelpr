@@ -31,7 +31,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
       />
 
       {loading ? (
-        <p className="text-xs text-muted-foreground">Loading…</p>
+        <p className="text-ds-11 text-muted-foreground">Loading…</p>
       ) : (
         <>
           {/* Status overview */}
@@ -87,7 +87,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               </p>
             ) : (
               violations.map((v) => (
-                <div key={v.id} className="rounded-xl liquid-glass p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <div key={v.id} className="rounded-ds-md liquid-glass p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${

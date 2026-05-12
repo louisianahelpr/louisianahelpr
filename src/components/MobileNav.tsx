@@ -240,7 +240,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           )}
           {showBadge && (
             <span
-              className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full text-[10px] flex items-center justify-center font-bold px-1"
+              className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full text-ds-10 flex items-center justify-center font-bold px-1"
               style={{
                 background: "hsl(var(--burnt-sienna))",
                 color: "hsl(var(--parchment))",
@@ -384,7 +384,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 }}
               >
                 <Plus
-                  className="w-7 h-7 transition-transform duration-300 group-hover:rotate-90 group-active:rotate-180"
+                  className="w-7 h-7 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:rotate-90 motion-safe:group-active:rotate-180"
                   strokeWidth={2.75}
                   style={{ color: "hsl(var(--parchment))" }}
                 />
@@ -437,7 +437,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </Button>
             <button
               onClick={() => setGateOpen(false)}
-              className="text-xs text-muted-foreground py-2 hover:text-foreground transition-colors"
+              className="text-ds-11 text-muted-foreground py-2 hover:text-foreground transition-colors"
             >
               Keep browsing
             </button>

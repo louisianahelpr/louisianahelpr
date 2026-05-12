@@ -9,6 +9,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
   ALLOWED_IMAGE_TYPES,
   ALLOWED_DOC_TYPES,
@@ -263,6 +264,7 @@ const Signup = () => {
   };
 
   const createAccountAndFinish = async () => {
+    hapticMedium();
     setLoading(true);
 
     // Rate limiting
@@ -270,6 +272,7 @@ const Signup = () => {
     const elapsed = Date.now() - lastAttempt;
     if (elapsed < SIGNUP_COOLDOWN_MS) {
       const secsLeft = Math.ceil((SIGNUP_COOLDOWN_MS - elapsed) / 1000);
+      hapticError();
       toast.error(`Please wait ${secsLeft} seconds before trying again`);
       setLoading(false);
       return;
@@ -342,9 +345,11 @@ const Signup = () => {
       } catch (e) { report(e, { tags: { source: "Signup.inviteLinking" } }); }
 
       track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim() });
+      hapticSuccess();
       toast.success("Account created! Check your email to verify, then connect your payout account.");
       navigate("/signup-pending");
     } catch (err: any) {
+      hapticError();
       toast.error(err.message || "Signup failed");
     } finally {
       setLoading(false);
@@ -353,8 +358,8 @@ const Signup = () => {
 
   const totalSteps = 3;
   const stepLabels = ["Account", "About you", "Optional"];
-  const inputCls = "rounded-xl bg-white/60 border-white/70";
-  const labelCls = "text-sm font-sans font-medium";
+  const inputCls = "rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15";
+  const labelCls = "text-ds-13 font-sans font-medium";
 
   return (
     <AuthShell eyebrow="Join your Louisiana neighbors" maxWidth="2xl">
@@ -391,14 +396,14 @@ const Signup = () => {
                   const isActive = stepNum === step;
                   return (
                     <div key={label} className="flex-1 flex flex-col items-center gap-1.5">
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold transition-colors ${
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-ds-11 font-semibold transition-colors ${
                         isDone ? "bg-primary text-primary-foreground" :
                         isActive ? "bg-primary/15 text-primary border-2 border-primary" :
                         "bg-muted text-muted-foreground"
                       }`}>
                         {isDone ? <BadgeCheck className="w-3.5 h-3.5" /> : stepNum}
                       </div>
-                      <span className={`text-[10px] font-medium text-center ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                      <span className={`text-ds-10 font-medium text-center ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
                         {label}
                       </span>
                     </div>
@@ -418,7 +423,7 @@ const Signup = () => {
               (window.location.hostname === "localhost" ||
                 window.location.hostname.endsWith(".lovable.app") ||
                 window.location.hostname.endsWith(".lovableproject.com"))) && (
-              <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-xs">
+              <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">
                 <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
                 <span className="text-muted-foreground">Jump to step:</span>
                 {[1, 2, 3].map((n) => (
@@ -426,7 +431,7 @@ const Signup = () => {
                     key={n}
                     type="button"
                     onClick={() => setStep(n)}
-                    className={`w-6 h-6 rounded-md text-[11px] font-semibold transition-colors ${
+                    className={`w-6 h-6 rounded-md text-ds-11 font-semibold transition-colors ${
                       step === n
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted hover:bg-muted/80 text-foreground"
@@ -569,7 +574,7 @@ const Signup = () => {
         )}
           </div>
 
-          <p className="text-center text-xs font-sans mt-6" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-center text-ds-11 font-sans mt-6" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
             Already have an account?{" "}
             <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Sign in</Link>
           </p>

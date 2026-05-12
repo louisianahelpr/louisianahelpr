@@ -209,7 +209,7 @@ export function ProfileLanding({
           handles vertical scroll (scrollable=true on landing),
           so this card just stacks naturally. */}
       <div
-        className="liquid-glass min-h-[60vh]"
+        className="liquid-glass"
         style={{
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
@@ -323,21 +323,32 @@ export function ProfileLanding({
             })()}
           </div>
 
-          {/* Account actions — compact pair */}
-          <div className="pt-1 grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={onRequestDelete}
-              className="rounded-[20px] bg-destructive/10 border border-destructive/40 hover:bg-destructive/15 hover:border-destructive/60 py-3 inline-flex items-center justify-center gap-2 text-ds-13 font-semibold text-destructive shadow-[0_1px_2px_hsl(0_60%_30%/0.06),0_8px_28px_-12px_hsl(0_60%_30%/0.18)] active:opacity-90 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" /> Delete
-            </button>
+          {/* Account actions — iOS Settings-style stacked footer.
+              Sign out is the primary affordance (centered, prominent,
+              brand bark text). Delete account is a small ghost link
+              tucked beneath it in destructive-muted — important enough
+              to find, quiet enough not to compete with sign-out. The
+              old side-by-side equal-weight pair encouraged accidental
+              destructive taps. */}
+          <div className="pt-2 space-y-2">
             <button
               type="button"
               onClick={onRequestLogout}
-              className="rounded-[20px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-3 inline-flex items-center justify-center gap-2 text-ds-13 font-semibold text-foreground hover:bg-secondary/40 active:bg-secondary/60 transition-colors"
+              className="w-full rounded-[20px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary/60 transition-all"
+              style={{
+                color: "hsl(var(--bark))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+              }}
             >
               <LogOut className="w-4 h-4" /> Sign out
+            </button>
+            <button
+              type="button"
+              onClick={onRequestDelete}
+              className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 text-ds-11 font-sans font-medium text-destructive/80 hover:text-destructive active:opacity-70 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Delete account
             </button>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Mail, Loader2 } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
 const ForgotPassword = () => {
   usePageTitle("Reset Password — Helpr");
@@ -19,14 +20,17 @@ const ForgotPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
+    hapticMedium();
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: getPublicResetPasswordUrl(),
     });
     setLoading(false);
     if (error) {
+      hapticError();
       toast.error(error.message);
     } else {
+      hapticSuccess();
       setSent(true);
       toast.success("Check your email for a reset link!");
     }
@@ -53,19 +57,19 @@ const ForgotPassword = () => {
             >
               Check your inbox.
             </h1>
-            <p className="font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               We sent a reset link to{" "}
               <span className="font-semibold not-italic" style={{ color: "hsl(var(--olivewood))" }}>
                 {email}
               </span>
               . It expires in 1 hour.
             </p>
-            <p className="text-xs font-sans" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
               Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.
             </p>
             <Button
               variant="outline"
-              className="w-full rounded-xl"
+              className="w-full rounded-ds-md"
               onClick={() => setSent(false)}
             >
               Use a different email
@@ -85,14 +89,14 @@ const ForgotPassword = () => {
               >
                 We'll send you a link.
               </h1>
-              <p className="font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                 Enter the email tied to your account and check your inbox.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-sans font-medium">Email address</Label>
+                <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email address</Label>
                 <Input
                   id="email"
                   type="email"
@@ -105,12 +109,12 @@ const ForgotPassword = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="rounded-xl bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15"
+                  className="rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15"
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full rounded-xl"
+                className="w-full rounded-ds-md"
                 size="lg"
                 disabled={loading}
                 style={{
@@ -130,7 +134,7 @@ const ForgotPassword = () => {
           </>
         )}
 
-        <p className="text-center text-xs pt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+        <p className="text-center text-ds-11 pt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
           <Link
             to="/login"
             className="font-semibold hover:underline inline-flex items-center gap-1"

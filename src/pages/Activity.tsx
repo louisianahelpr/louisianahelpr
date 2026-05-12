@@ -446,20 +446,20 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // --- Filters ---
   const postedStatusFilters = useMemo(() => [
     { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
-    { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30" },
-    { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+    { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
+    { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
     { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
   ], []);
 
   const appliedStatusFilters = useMemo(() => [
     { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
-    { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30" },
-    { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+    { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
+    { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
     { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
     { key: "not_selected", label: "Not Selected", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ], []);
 
@@ -638,7 +638,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           >
                 <div className="flex flex-col leading-none min-w-0">
                   <span
-                    className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+                    className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
                     style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                   >
                     {tab === "posted" ? "Posted tasks" : "Applied tasks"}
@@ -654,7 +654,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                     {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
                   </h2>
                   <span
-                    className="font-serif italic mt-0.5 text-[0.72rem]"
+                    className="font-serif italic mt-0.5 text-ds-11"
                     style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                   >
                     {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length)}{" "}
@@ -667,7 +667,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                     onClick={() => setSearchOpen(!searchOpen)}
                     aria-label="Search tasks"
                     aria-expanded={searchOpen}
-                    className={`h-8 w-8 rounded-xl flex items-center justify-center btn-press transition ${
+                    className={`h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition ${
                       searchOpen || searchQuery
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -683,7 +683,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                       <button
                         type="button"
                         aria-label="Filter by status"
-                        className={`h-8 w-8 rounded-xl btn-press flex items-center justify-center relative transition ${
+                        className={`h-8 w-8 rounded-ds-md btn-press flex items-center justify-center relative transition ${
                           filterOpen || statusFilter !== (tab === "applied" ? "pending" : "open")
                             ? "bg-primary/10 text-primary"
                             : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -696,7 +696,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                       </button>
                     </PopoverTrigger>
                     <PopoverContent align="end" className="w-56 p-2">
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">Filter by status</p>
+                      <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">Filter by status</p>
                       <div className="grid grid-cols-1 gap-1">
                         {activeStatusFilters.map((f) => {
                           const count = activeCounts[f.key] || 0;
@@ -705,7 +705,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                             <button
                               key={f.key}
                               onClick={() => { setStatusFilter(f.key); setFilterOpen(false); }}
-                              className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition ${
+                              className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-ds-13 font-medium transition ${
                                 isActive
                                   ? "bg-primary text-primary-foreground"
                                   : "text-foreground hover:bg-secondary/60"
@@ -713,7 +713,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                             >
                               <span>{f.label}</span>
                               {count > 0 && (
-                                <span className={`text-[10px] tabular-nums ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                                <span className={`text-ds-10 tabular-nums ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                                   {count}
                                 </span>
                               )}
@@ -742,7 +742,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                   placeholder="Search tasks…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-9 h-10 text-sm rounded-xl border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                  className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
                 />
                 {searchQuery && (
                   <button
@@ -823,13 +823,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                         {title}
                       </p>
                       <p
-                        className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                        className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
                         style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                       >
                         {body}
                       </p>
                     </div>
-                    <Button onClick={() => navigate(ctaTo)} className="rounded-xl">
+                    <Button onClick={() => navigate(ctaTo)} className="rounded-ds-md">
                       {ctaLabel}
                     </Button>
                   </div>

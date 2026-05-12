@@ -54,25 +54,25 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
         <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
           <div className="flex items-center gap-2 min-w-0">
             {title ? (
-              <span className="font-display font-bold text-foreground text-base truncate">{title}</span>
+              <span className="font-display font-bold text-foreground text-ds-15 truncate">{title}</span>
             ) : (
               <HelprMark to="/dashboard" size="md" />
             )}
           </div>
           <div className="flex items-center gap-1 -mr-1">
             {isAdmin && (
-              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="hover:bg-destructive/10 btn-press rounded-xl h-9 w-9" aria-label="Admin panel">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="hover:bg-destructive/10 btn-press rounded-ds-md h-9 w-9" aria-label="Admin panel">
                 <Shield className="w-4 h-4 text-destructive" />
               </Button>
             )}
             <ThemeToggle />
             <NotificationPanel />
             {onMenuClick && (
-              <Button variant="ghost" size="icon" onClick={onMenuClick} className="lg:hidden hover:bg-muted btn-press rounded-xl h-9 w-9" aria-label="Open menu">
+              <Button variant="ghost" size="icon" onClick={onMenuClick} className="lg:hidden hover:bg-muted btn-press rounded-ds-md h-9 w-9" aria-label="Open menu">
                 <Menu className="w-4 h-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9" aria-label="Log out">
+            <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-ds-md h-9 w-9" aria-label="Log out">
               <LogOut className="w-4 h-4" />
             </Button>
           </div>

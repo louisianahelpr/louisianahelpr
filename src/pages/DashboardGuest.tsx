@@ -220,14 +220,14 @@ const DashboardGuest = () => {
               size="sm"
               variant="ghost"
               onClick={() => navigate("/login")}
-              className="text-xs h-11 rounded-xl"
+              className="text-ds-11 h-11 rounded-ds-md"
             >
               Log in
             </Button>
             <Button
               size="sm"
               onClick={() => navigate("/signup")}
-              className="text-xs h-11 rounded-xl"
+              className="text-ds-11 h-11 rounded-ds-md"
             >
               Sign up
             </Button>
@@ -255,7 +255,7 @@ const DashboardGuest = () => {
             }}
           >
             <span
-              className="font-serif italic uppercase text-[0.58rem]"
+              className="font-serif italic uppercase text-ds-9"
               style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
             >
               A first look
@@ -271,7 +271,7 @@ const DashboardGuest = () => {
               Welcome to <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>Helpr</em>.
             </h1>
             <p
-              className="font-serif italic mt-1 text-sm leading-snug"
+              className="font-serif italic mt-1 text-ds-13 leading-snug"
               style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
               Browse what your Louisiana neighbors need. Sign up free to apply or post your own task.
@@ -300,7 +300,7 @@ const DashboardGuest = () => {
             >
               <div className="flex flex-col leading-none min-w-0">
                 <span
-                  className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+                  className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
                   {hasFilters ? "Filtered" : "For you, today"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
@@ -318,7 +318,7 @@ const DashboardGuest = () => {
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {/* List ⇄ Map toggle — compact two-button pill */}
-                <div className="flex items-center gap-0.5 p-0.5 bg-secondary/50 rounded-xl">
+                <div className="flex items-center gap-0.5 p-0.5 bg-secondary/50 rounded-ds-md">
                   <button
                     onClick={() => setView("list")}
                     aria-label="List view"
@@ -349,7 +349,7 @@ const DashboardGuest = () => {
                       onClick={() => { setSearchOpen(!searchOpen); if (filtersOpen) setFiltersOpen(false); }}
                       aria-label="Search jobs"
                       aria-expanded={searchOpen}
-                      className={`h-8 w-8 rounded-xl flex items-center justify-center btn-press transition ${
+                      className={`h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition ${
                         searchOpen || search
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -362,7 +362,7 @@ const DashboardGuest = () => {
                       onClick={() => { setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
                       aria-label={activeFilterCount ? `Filters (${activeFilterCount} active)` : "Filters"}
                       aria-expanded={filtersOpen}
-                      className={`h-8 w-8 rounded-xl flex items-center justify-center btn-press transition relative ${
+                      className={`h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition relative ${
                         filtersOpen || activeFilterCount > 0
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -370,7 +370,7 @@ const DashboardGuest = () => {
                     >
                       <SlidersHorizontal className="w-4 h-4" />
                       {activeFilterCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
                           {activeFilterCount}
                         </span>
                       )}
@@ -395,7 +395,7 @@ const DashboardGuest = () => {
                     placeholder="Search jobs by title, location…"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-10 pr-9 h-10 text-sm rounded-xl border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                    className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
                   />
                   {search && (
                     <button
@@ -453,7 +453,7 @@ const DashboardGuest = () => {
                 className="shrink-0 flex flex-wrap gap-1.5 px-4 py-2.5"
                 style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
               >
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                   {categoryLabels[selectedCategory] ?? selectedCategory}
                   <button
                     type="button"
@@ -526,7 +526,7 @@ const DashboardGuest = () => {
                         No matching jobs right now.
                       </p>
                       <p
-                        className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                        className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
                         style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                       >
                         Try clearing filters or check back later — new tasks land throughout the day.
@@ -536,7 +536,7 @@ const DashboardGuest = () => {
                       <button
                         type="button"
                         onClick={clearAllFilters}
-                        className="mt-1 text-xs font-semibold text-primary hover:underline btn-press"
+                        className="mt-1 text-ds-11 font-semibold text-primary hover:underline btn-press"
                       >
                         Clear filters
                       </button>

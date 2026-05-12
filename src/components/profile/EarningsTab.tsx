@@ -42,19 +42,21 @@ interface PayoutLedgerRow {
   jobs: { title?: string } | null;
 }
 
+// Status pill colors — bark for "in motion/done" states, sienna for
+// "action needed", destructive only for genuine failure.
 const statusColors: Record<string, string> = {
-  open: "bg-primary/10 text-primary",
-  accepted: "bg-accent/20 text-accent-foreground",
-  in_progress: "bg-accent/20 text-accent-foreground",
-  revision_requested: "bg-destructive/10 text-destructive",
-  completed: "bg-secondary text-secondary-foreground",
+  open: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
+  accepted: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
+  in_progress: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
+  revision_requested: "bg-[hsl(var(--gold-warm)/0.16)] text-[hsl(var(--gold-warm))]",
+  completed: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
   cancelled: "bg-destructive/10 text-destructive",
 };
 
 const payoutStatusColors: Record<string, string> = {
-  paid: "bg-primary/10 text-primary",
-  in_transit: "bg-accent/20 text-accent-foreground",
-  pending: "bg-secondary text-secondary-foreground",
+  paid: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
+  in_transit: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
+  pending: "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood))]",
   failed: "bg-destructive/10 text-destructive",
   canceled: "bg-destructive/10 text-destructive",
 };

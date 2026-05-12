@@ -463,17 +463,29 @@ export const AppliedJobsTab = ({
               </div>
             )}
 
-            {/* Pending withdraw — ghost text link, deliberately understated.
-                Tapping opens a confirmation bottom sheet (see end of file). */}
+            {/* Pending withdraw — slightly more discoverable than the
+                previous ghost text. Tucked inside a sienna-tinted pill
+                that reads as "available, low-stakes" without competing
+                with primary actions. */}
             {!isMinimalCard && isPending && (
-              <div className="px-4 py-2 border-t border-border/30 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="px-4 py-2.5 flex items-center justify-end"
+                style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
                   disabled={withdrawingAppId === app.id}
                   onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Task" })}
-                  className="inline-flex items-center gap-1 text-ds-11 font-medium text-muted-foreground hover:text-destructive transition-colors active:opacity-60 px-2 py-1 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 text-[0.72rem] font-sans font-semibold tracking-wide px-2.5 py-1 rounded-full active:opacity-70 transition-opacity disabled:opacity-50"
+                  style={{
+                    color: "hsl(var(--burnt-sienna))",
+                    background: "hsl(var(--burnt-sienna) / 0.08)",
+                    border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                  }}
                 >
-                  <XCircle className="w-3.5 h-3.5" /> {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
+                  <XCircle className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw application"}
                 </button>
               </div>
             )}

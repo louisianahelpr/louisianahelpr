@@ -221,10 +221,20 @@ const SavedHelpers = () => {
                   style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 >
                   {helpers.length === 0
-                    ? "Tap the heart on any helpr's profile to save them for fast rebooking."
+                    ? "After your next job, tap the heart on the helpr's profile — they'll land here for one-tap rebooking."
                     : "Try a different search term — your saved list is intact."}
                 </p>
               </div>
+              {helpers.length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/my-posts")}
+                  className="mt-2 inline-flex items-center gap-1.5 text-[0.78rem] font-sans font-semibold active:opacity-70"
+                  style={{ color: "hsl(var(--bark))" }}
+                >
+                  See your past helpers →
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">

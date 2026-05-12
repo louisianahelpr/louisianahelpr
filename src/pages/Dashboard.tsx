@@ -490,6 +490,37 @@ const Dashboard = () => {
                 </>
               )}
             </p>
+            {/* Stat of the day — rotates one data point under the
+                greeting eyebrow so the card feels alive on every load.
+                Picks deterministically by date so the same user sees
+                the same stat for the day (no flicker). */}
+            {filters.filteredJobs.length > 0 && (() => {
+              const stats: string[] = [];
+              if (recommendedJobs.length > 0) {
+                stats.push(`${recommendedJobs.length} match${recommendedJobs.length === 1 ? "" : "es"} picked just for you today.`);
+              }
+              if (filters.filteredJobs.length >= 5) {
+                stats.push(`${filters.filteredJobs.length} open jobs nearby — busiest day in a while.`);
+              }
+              const recentUrgent = filters.filteredJobs.filter((j) => j.is_urgent).length;
+              if (recentUrgent > 0) {
+                stats.push(`${recentUrgent} urgent job${recentUrgent === 1 ? "" : "s"} in the feed right now.`);
+              }
+              const recentHigh = filters.filteredJobs.filter((j) => j.budget >= 100).length;
+              if (recentHigh > 0) {
+                stats.push(`${recentHigh} job${recentHigh === 1 ? "" : "s"} paying $100+ today.`);
+              }
+              if (stats.length === 0) return null;
+              const dayIdx = Math.floor(Date.now() / 86400000) % stats.length;
+              return (
+                <p
+                  className="mt-2 font-serif italic leading-snug"
+                  style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}
+                >
+                  {stats[dayIdx]}
+                </p>
+              );
+            })()}
             {/* "Watching for" chip — only shown when 0 jobs nearby and
                 the user has an active saved search. Reframes the empty
                 state as intentional rather than confusing. */}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CreditCard, DollarSign, BanknoteIcon, ChevronRight } from "lucide-react";
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -143,9 +144,12 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
               <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                 Total spent
               </p>
-              <p className="font-display italic font-bold tabular-nums leading-none mt-1" style={{ fontSize: "1.6rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-                ${totalSpent.toFixed(2)}
-              </p>
+              <AnimatedCounter
+                value={totalSpent}
+                prefix="$"
+                className="font-display italic font-bold tabular-nums leading-none mt-1 block"
+                style={{ fontSize: "1.6rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+              />
               <p className="font-serif italic mt-1" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}>
                 {spentCount === 0 ? "no jobs yet" : `across ${spentCount} job${spentCount === 1 ? "" : "s"}`}
               </p>
@@ -154,9 +158,12 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
               <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                 Total earned
               </p>
-              <p className="font-display italic font-bold tabular-nums leading-none mt-1" style={{ fontSize: "1.6rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-                ${totalEarnedView.toFixed(2)}
-              </p>
+              <AnimatedCounter
+                value={totalEarnedView}
+                prefix="$"
+                className="font-display italic font-bold tabular-nums leading-none mt-1 block"
+                style={{ fontSize: "1.6rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+              />
               <p className="font-serif italic mt-1" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}>
                 {earnedCount === 0 ? "no jobs yet" : `from ${earnedCount} completed`}
               </p>

@@ -79,6 +79,49 @@ serve(async (req) => {
             subscription_expires_at: expiresAt,
           }).eq("user_id", user.id);
 
+          // Referral upgrade bonus — if this user was referred AND
+          // they just upgraded to a paid tier (pro/elite), award the
+          // referrer an extra $10 credit on top of the standard $5.
+          // Idempotent: skip if a "subscription_bonus" credit already
+          // exists for this referral.
+          if (tier === "pro" || tier === "elite") {
+            const { data: referral } = await supabaseAdmin
+              .from("referrals")
+              .select("id, referrer_id, referral_code_id")
+              .eq("referred_id", user.id)
+              .maybeSingle();
+            if (referral?.referrer_id && referral?.referral_code_id) {
+              const { data: existingBonus } = await supabaseAdmin
+                .from("referral_credits")
+                .select("id")
+                .eq("user_id", referral.referrer_id)
+                .eq("referred_user_id", user.id)
+                .eq("reason", "subscription_bonus")
+                .maybeSingle();
+              if (!existingBonus) {
+                await supabaseAdmin.from("referral_credits").insert({
+                  user_id: referral.referrer_id,
+                  referred_user_id: user.id,
+                  referral_code_id: referral.referral_code_id,
+                  amount: 10,
+                  reason: "subscription_bonus",
+                  redeemed: false,
+                });
+                // Notify the referrer so the upgrade-credit moment isn't
+                // silent. Best-effort — failure here doesn't block the
+                // subscription update.
+                await supabaseAdmin.from("notifications").insert({
+                  user_id: referral.referrer_id,
+                  title: "Bonus credit earned",
+                  message: `Someone you referred upgraded to ${tier.charAt(0).toUpperCase() + tier.slice(1)} — you earned $10.`,
+                  type: "payment",
+                  link: "/profile?tab=referral",
+                  read: false,
+                });
+              }
+            }
+          }
+
           return new Response(JSON.stringify({
             subscribed: true,
             tier,

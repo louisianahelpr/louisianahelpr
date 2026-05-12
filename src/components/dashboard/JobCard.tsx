@@ -68,7 +68,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   return (
     <div
       style={{ animationDelay: entryDelay, animationFillMode: "both" }}
-      className="animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary overflow-hidden"
       onClick={() => onSelect(job)}
       role="button"
       tabIndex={0}
@@ -80,6 +80,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         }
       }}
     >
+      {/* Category rail — vertical color stripe down the left edge of
+          the card. Makes the feed scannable: same category jobs read as
+          a cluster, different categories pop visually. Color comes from
+          the category's `dot` class so it matches the existing icon. */}
+      <span
+        aria-hidden
+        className={`absolute left-0 top-0 bottom-0 w-1 ${catStyle.dot}`}
+      />
       <div className="w-full px-3.5 py-3 flex items-center gap-3">
         {/* Avatar with category icon badge — poster initials in a
             Bark-tinted glass circle, with a small colored circle on

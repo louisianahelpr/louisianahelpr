@@ -81,7 +81,22 @@ const Login = () => {
     void queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     setLoading(false);
     hapticSuccess();
-    toast.success("Welcome back!");
+    // Personalized greeting — fetch the user's first name for a warmer
+    // welcome. Falls back to plain "Welcome back" if the profile isn't
+    // accessible yet (race window during signup confirmation).
+    let firstName = "";
+    try {
+      const userId = data.session?.user?.id;
+      if (userId) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", userId)
+          .maybeSingle();
+        firstName = (prof?.full_name ?? "").trim().split(/\s+/)[0] ?? "";
+      }
+    } catch { /* fall through to generic copy */ }
+    toast.success(firstName ? `Welcome back, ${firstName}.` : "Welcome back.");
     navigate("/dashboard", { replace: true });
   };
 

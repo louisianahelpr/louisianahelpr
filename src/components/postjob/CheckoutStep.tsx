@@ -52,6 +52,7 @@ interface CheckoutStepProps {
   setConfirmed: (v: boolean) => void;
   saving: boolean;
   uploading: boolean;
+  uploadProgress?: { done: number; total: number } | null;
   onEdit: () => void;
   onSubmit: () => void;
 }
@@ -83,6 +84,7 @@ export function CheckoutStep({
   setConfirmed,
   saving,
   uploading,
+  uploadProgress,
   onEdit,
   onSubmit,
 }: CheckoutStepProps) {
@@ -240,7 +242,15 @@ export function CheckoutStep({
           disabled={saving || uploading || !confirmed}
         >
           {confirmed ? <CreditCard className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-          {uploading ? "Uploading photos…" : saving ? "Processing…" : !confirmed ? "Confirm details to continue" : `Pay $${totalCharge.toFixed(2)}`}
+          {uploadProgress
+            ? `Uploading photo ${uploadProgress.done + 1} of ${uploadProgress.total}…`
+            : uploading
+              ? "Uploading photos…"
+              : saving
+                ? "Processing…"
+                : !confirmed
+                  ? "Confirm details to continue"
+                  : `Pay $${totalCharge.toFixed(2)}`}
         </Button>
         <Button
           variant="ghost"

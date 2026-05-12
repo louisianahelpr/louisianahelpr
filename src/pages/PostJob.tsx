@@ -240,19 +240,29 @@ const PostJob = () => {
     setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
   };
 
+  // Tracks upload progress so the submit button can show "Uploading 2/3"
+  // instead of an opaque spinner. Set back to null after upload completes.
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+
   const uploadImages = async (jobId: string): Promise<string[]> => {
     const urls: string[] = [];
-    for (const file of imageFiles) {
+    const total = imageFiles.length;
+    if (total === 0) return urls;
+    setUploadProgress({ done: 0, total });
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
       const ext = file.name.split(".").pop();
       const path = `${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("job-photos").upload(path, file);
       if (error) {
         report(error, { tags: { source: "PostJob.uploadImage" } });
-        continue;
+      } else {
+        const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
+        urls.push(urlData.publicUrl);
       }
-      const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
-      urls.push(urlData.publicUrl);
+      setUploadProgress({ done: i + 1, total });
     }
+    setUploadProgress(null);
     return urls;
   };
 
@@ -730,6 +740,7 @@ const PostJob = () => {
               setConfirmed={setConfirmed}
               saving={saving}
               uploading={uploading}
+              uploadProgress={uploadProgress}
               onEdit={() => setStep("form")}
               onSubmit={handleSubmit}
             />

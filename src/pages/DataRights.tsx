@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Download, Trash2, ShieldOff, Loader2, ArrowLeft } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,14 +86,17 @@ const DataRights = () => {
   };
 
   const handleDelete = async () => {
+    hapticHeavy();
     setDeleting(true);
     try {
       const { error } = await supabase.functions.invoke("delete-own-account");
       if (error) throw error;
+      hapticSuccess();
       toast.success("Your account has been deleted. Goodbye 👋");
       await supabase.auth.signOut();
       window.location.href = "/";
     } catch (err: any) {
+      hapticError();
       toast.error(err?.message ?? "Failed to delete account. Contact support.");
     } finally {
       setDeleting(false);

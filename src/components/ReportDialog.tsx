@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ShieldAlert, AlertTriangle, EyeOff, UserX, UserMinus, MoreHorizontal, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
 const reasons = [
   { label: "Spam or scam", Icon: AlertTriangle },
@@ -35,8 +36,9 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
   const canSubmit = !!reason && trimmedLength >= MIN_LENGTH && !submitting;
 
   const handleSubmit = async () => {
-    if (!reason) { toast.error("Pick a reason first"); return; }
-    if (trimmedLength < MIN_LENGTH) { toast.error(`Add at least ${MIN_LENGTH} characters of detail`); return; }
+    if (!reason) { hapticError(); toast.error("Pick a reason first"); return; }
+    if (trimmedLength < MIN_LENGTH) { hapticError(); toast.error(`Add at least ${MIN_LENGTH} characters of detail`); return; }
+    hapticMedium();
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("You must be logged in"); setSubmitting(false); return; }
@@ -50,8 +52,10 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     });
 
     if (error) {
+      hapticError();
       toast.error("Failed to submit report");
     } else {
+      hapticSuccess();
       toast.success("Report submitted. We'll review it shortly.");
       setReason("");
       setDescription("");

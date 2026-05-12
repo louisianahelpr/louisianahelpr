@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Star, Gift, PartyPopper, Heart, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { fetchReferralData } from "@/hooks/useReferralData";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
 type CompletionPromptsProps = {
   jobId: string;
@@ -71,7 +72,8 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   }, [jobId, userId]);
 
   const submitReview = async () => {
-    if (rating === 0) { toast.error("Please select a rating"); return; }
+    if (rating === 0) { hapticError(); toast.error("Please select a rating"); return; }
+    hapticMedium();
     setSaving(true);
     const { error } = await supabase.from("reviews").insert({
       job_id: jobId, reviewer_id: userId, reviewee_id: revieweeId,
@@ -80,8 +82,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     setSaving(false);
     if (error) {
       if (error.code === "23505") { toast.info("You've already reviewed this job"); setStep("tip"); }
-      else toast.error(error.message);
+      else { hapticError(); toast.error(error.message); }
     } else {
+      hapticSuccess();
       toast.success("Review submitted! Thanks for your feedback.");
 
       // Check for repeat low ratings → auto-flag

@@ -198,12 +198,12 @@ const DashboardGuest = () => {
   // Pull-to-refresh: re-runs the guestDashboardJobs query so swiping down on
   // the Quiet today / list surface fetches fresh open_jobs_browse rows.
   // Mirrors the pattern used in the authenticated Dashboard at the page root.
-  const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { await refetch(); },
   });
 
   return (
-    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
+    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling} canTrigger={canTrigger}>
     <div
       className="h-[100dvh] max-h-[100dvh] bg-premium-page flex flex-col overflow-hidden animate-in fade-in-0 duration-500"
     >
@@ -268,13 +268,13 @@ const DashboardGuest = () => {
                 letterSpacing: "-0.022em",
               }}
             >
-              Welcome to <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>Helpr</em>.
+              Need help, or want to <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>earn</em>?
             </h1>
             <p
               className="font-serif italic mt-1 text-ds-13 leading-snug"
               style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
-              Browse what your Louisiana neighbors need. Sign up free to apply or post your own task.
+              Post a task in a minute, or browse what your Louisiana neighbors need. Free to sign up.
             </p>
           </section>
 

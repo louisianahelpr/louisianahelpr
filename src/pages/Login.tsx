@@ -155,7 +155,7 @@ const Login = () => {
           <div className="flex items-center justify-between">
             <Link
               to="/forgot-password"
-              className="text-ds-11 font-sans tracking-wide hover:opacity-70 transition-opacity"
+              className="text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity"
               style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               Forgot password?
@@ -217,9 +217,9 @@ const Login = () => {
 
       <p className="text-center text-ds-11 font-sans leading-relaxed px-2 mt-6" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
         By signing in you agree to our{" "}
-        <Link to="/terms" className="underline hover:opacity-80 transition-opacity">Terms</Link>
+        <Link to="/terms" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Terms</Link>
         {" · "}
-        <Link to="/privacy" className="underline hover:opacity-80 transition-opacity">Privacy Policy</Link>
+        <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy Policy</Link>
       </p>
     </AuthShell>
   );

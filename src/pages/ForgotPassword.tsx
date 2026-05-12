@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,15 +11,25 @@ import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
+const RESEND_COOLDOWN_S = 60;
+
 const ForgotPassword = () => {
   usePageTitle("Reset Password — Helpr");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  // Resend cooldown — counts down from 60s after each send so users can
+  // re-trigger the email without spam-clicking but also know how long to
+  // wait. Supabase rate-limits server-side anyway; this is just the UX.
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loading) return;
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = window.setTimeout(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearTimeout(t);
+  }, [resendCooldown]);
+
+  const performSend = async () => {
     hapticMedium();
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -29,11 +39,27 @@ const ForgotPassword = () => {
     if (error) {
       hapticError();
       toast.error(error.message);
-    } else {
-      hapticSuccess();
+      return false;
+    }
+    hapticSuccess();
+    setResendCooldown(RESEND_COOLDOWN_S);
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
+    const ok = await performSend();
+    if (ok) {
       setSent(true);
       toast.success("Check your email for a reset link!");
     }
+  };
+
+  const handleResend = async () => {
+    if (loading || resendCooldown > 0) return;
+    const ok = await performSend();
+    if (ok) toast.success("Sent again — check your inbox.");
   };
 
   return (
@@ -67,13 +93,37 @@ const ForgotPassword = () => {
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
               Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.
             </p>
-            <Button
-              variant="outline"
-              className="w-full rounded-ds-md"
-              onClick={() => setSent(false)}
-            >
-              Use a different email
-            </Button>
+            <div className="space-y-2">
+              <Button
+                type="button"
+                className="w-full rounded-ds-md"
+                onClick={handleResend}
+                disabled={loading || resendCooldown > 0}
+                style={{
+                  background: "hsl(var(--bark))",
+                  backgroundImage: "none",
+                  border: "1px solid hsl(var(--bark))",
+                  color: "hsl(var(--parchment))",
+                  fontFamily: "Montserrat, system-ui, sans-serif",
+                  fontWeight: 600,
+                  letterSpacing: "0.01em",
+                  opacity: resendCooldown > 0 ? 0.6 : 1,
+                }}
+              >
+                {loading
+                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</>
+                  : resendCooldown > 0
+                    ? `Resend in ${resendCooldown}s`
+                    : "Resend email"}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full rounded-ds-md"
+                onClick={() => setSent(false)}
+              >
+                Use a different email
+              </Button>
+            </div>
           </div>
         ) : (
           <>

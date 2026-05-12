@@ -240,19 +240,29 @@ const PostJob = () => {
     setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
   };
 
+  // Tracks upload progress so the submit button can show "Uploading 2/3"
+  // instead of an opaque spinner. Set back to null after upload completes.
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+
   const uploadImages = async (jobId: string): Promise<string[]> => {
     const urls: string[] = [];
-    for (const file of imageFiles) {
+    const total = imageFiles.length;
+    if (total === 0) return urls;
+    setUploadProgress({ done: 0, total });
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
       const ext = file.name.split(".").pop();
       const path = `${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("job-photos").upload(path, file);
       if (error) {
         report(error, { tags: { source: "PostJob.uploadImage" } });
-        continue;
+      } else {
+        const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
+        urls.push(urlData.publicUrl);
       }
-      const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
-      urls.push(urlData.publicUrl);
+      setUploadProgress({ done: i + 1, total });
     }
+    setUploadProgress(null);
     return urls;
   };
 
@@ -271,7 +281,7 @@ const PostJob = () => {
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(dateNeeded + "T00:00:00");
     if (selectedDate < today) { toast.error("Date cannot be in the past"); return; }
-    if (!startTime) { toast.error("Start time is required"); return; }
+    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); return; }
     // special_requirements is optional — no validation needed
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
@@ -512,8 +522,17 @@ const PostJob = () => {
     : [25, 50, 100];
 
   const handlePostJobBack = () => {
-    if (step === "checkout") setStep("form");
-    else navigate("/dashboard");
+    if (step === "checkout") {
+      setStep("form");
+      // Scroll to top so the user lands on Details (not mid-form) to edit.
+      // RAF lets the form re-render before scroll fires, so the target
+      // exists. Smooth scroll matches iOS Settings-app feel.
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   return (
@@ -721,6 +740,7 @@ const PostJob = () => {
               setConfirmed={setConfirmed}
               saving={saving}
               uploading={uploading}
+              uploadProgress={uploadProgress}
               onEdit={() => setStep("form")}
               onSubmit={handleSubmit}
             />

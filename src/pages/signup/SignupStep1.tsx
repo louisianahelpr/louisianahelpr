@@ -77,6 +77,27 @@ export function SignupStep1({
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+          {password.length > 0 && (() => {
+            // Real-time checklist mirrors the validation in Signup.tsx so
+            // the user knows exactly what's missing before they tap Continue
+            // (previously they'd hit Continue and get a generic toast).
+            const hasLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            const Check = ({ ok, label }: { ok: boolean; label: string }) => (
+              <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
+                <span aria-hidden>{ok ? "✓" : "○"}</span>
+                {label}
+              </span>
+            );
+            return (
+              <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
+                <Check ok={hasLength} label="8+ chars" />
+                <Check ok={hasUpper} label="Uppercase" />
+                <Check ok={hasNumber} label="Number" />
+              </div>
+            );
+          })()}
         </div>
         <div className="space-y-2">
           <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>

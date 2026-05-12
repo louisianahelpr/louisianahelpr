@@ -17,6 +17,8 @@ interface MenuItem {
   icon: React.ReactNode;
   desc: string;
   href?: string;
+  /** Render a small "Action needed" red dot when true. */
+  needsAction?: boolean;
 }
 
 interface ProfileLandingProps {
@@ -58,6 +60,24 @@ export function ProfileLanding({
   onRequestDelete,
   onRequestLogout,
 }: ProfileLandingProps) {
+  // Derived state — drives "Action needed" dots on menu items so the
+  // user sees blockers at a glance without having to navigate into each
+  // tab to discover them.
+  const tier = (profile?.subscription_tier ?? "free") as string;
+  const stripeNeedsAction =
+    profile?.approval_status === "approved" &&
+    stripeConnectStatus !== null &&
+    !stripeConnectStatus.payouts_enabled;
+  const idvNeedsAction =
+    profile?.idv_status === "not_started" || profile?.idv_status === "failed";
+
+  const subscriptionDesc =
+    tier === "elite"
+      ? "Elite plan — top visibility"
+      : tier === "pro"
+        ? "Pro plan — bump to Elite for max reach"
+        : "Free plan — upgrade for more visibility";
+
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
       title: "Account",
@@ -72,15 +92,15 @@ export function ProfileLanding({
     {
       title: "Money",
       items: [
-        { key: "payment", label: "Payout & Payments", icon: <CreditCard className="w-5 h-5" />, desc: "Bank account, payment methods & summary" },
-        { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: "Manage your Helpr plan" },
+        { key: "payment", label: "Payout & Payments", icon: <CreditCard className="w-5 h-5" />, desc: "Bank account, payment methods & summary", needsAction: stripeNeedsAction },
+        { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc },
         { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits" },
       ],
     },
     {
       title: "Settings & Support",
       items: [
-        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
+        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login", needsAction: idvNeedsAction },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history" },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
         { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
@@ -269,11 +289,26 @@ export function ProfileLanding({
                           />
                         )}
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className="w-10 h-10 rounded-ds-md bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0 transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
-                            {item.icon}
+                          <div className="relative shrink-0">
+                            <div className="w-10 h-10 rounded-ds-md bg-muted/60 text-muted-foreground flex items-center justify-center transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
+                              {item.icon}
+                            </div>
+                            {item.needsAction && (
+                              <span
+                                aria-label="Action needed"
+                                className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-destructive ring-2 ring-white"
+                              />
+                            )}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-ds-13 font-semibold text-foreground leading-tight">{item.label}</p>
+                            <p className="text-ds-13 font-semibold text-foreground leading-tight">
+                              {item.label}
+                              {item.needsAction && (
+                                <span className="ml-2 text-ds-10 font-bold uppercase tracking-wider text-destructive">
+                                  Action needed
+                                </span>
+                              )}
+                            </p>
                             <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">{item.desc}</p>
                           </div>
                         </div>

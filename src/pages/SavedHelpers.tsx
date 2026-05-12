@@ -94,14 +94,26 @@ const SavedHelpers = () => {
     });
   };
 
-  const filtered = helpers.filter((h) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      (h.full_name || "").toLowerCase().includes(q) ||
-      (h.skills || "").toLowerCase().includes(q)
-    );
-  });
+  const filtered = helpers
+    .filter((h) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        (h.full_name || "").toLowerCase().includes(q) ||
+        (h.skills || "").toLowerCase().includes(q)
+      );
+    })
+    // Sort: most-rebooked helpers first (by completed jobs together),
+    // then most-recently-booked. Proven performers surface to the top
+    // so power posters can rebook in one tap.
+    .sort((a, b) => {
+      const aJobs = a.completed_jobs_together ?? 0;
+      const bJobs = b.completed_jobs_together ?? 0;
+      if (bJobs !== aJobs) return bJobs - aJobs;
+      const aLast = a.last_job_at ? new Date(a.last_job_at).getTime() : 0;
+      const bLast = b.last_job_at ? new Date(b.last_job_at).getTime() : 0;
+      return bLast - aLast;
+    });
 
   return (
     <div className="h-[100dvh] bg-premium-page overflow-hidden flex flex-col">

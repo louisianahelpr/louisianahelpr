@@ -36,7 +36,7 @@ const AuthShell = ({
             <div className="mb-5">
               <Link
                 to={isNativePlatform ? "/browse" : "/"}
-                className="inline-flex items-center gap-1.5 text-ds-11 font-sans tracking-wide hover:opacity-80 transition-opacity"
+                className="inline-flex items-center gap-1.5 text-ds-11 font-sans tracking-wide hover:opacity-80 active:opacity-60 active:scale-[0.97] transition-all"
                 style={{ color: "hsl(var(--olivewood) / 0.65)" }}
               >
                 <ArrowLeft className="w-3.5 h-3.5" />

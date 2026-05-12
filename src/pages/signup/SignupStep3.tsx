@@ -597,6 +597,18 @@ export function SignupStep3(props: SignupStep3Props) {
             : <>Create account <ArrowRight className="w-4 h-4 ml-1" /></>}
         </Button>
       </div>
+
+      {/* Secondary skip button — mirrors the top callout but reachable
+          without scrolling back up. Users who've scrolled to the bottom
+          of a long form shouldn't have to hunt for the skip option. */}
+      <button
+        type="button"
+        onClick={onSkip}
+        disabled={loading}
+        className="w-full text-center text-ds-11 font-sans tracking-wide text-muted-foreground hover:text-foreground active:opacity-70 transition-opacity disabled:opacity-50 py-2"
+      >
+        {loading ? "Creating account…" : "Skip for now — I can fill this in later"}
+      </button>
     </div>
   );
 }

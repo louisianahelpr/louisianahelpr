@@ -145,17 +145,23 @@ export function BudgetSection({
               </button>
             </div>
             {customUrgentFee && (
-              <Input
-                type="number"
-                inputMode="numeric"
-                min="5"
-                step="1"
-                value={urgentFee}
-                onChange={(e) => setUrgentFee(e.target.value)}
-                placeholder="Enter amount ($5+)"
-                className="w-32"
-                aria-label="Custom urgent fee amount in dollars"
-              />
+              <div className="flex items-center gap-2 mt-1">
+                <Label htmlFor="custom-urgent-fee" className="text-ds-11 font-sans text-muted-foreground shrink-0">
+                  Custom bonus
+                </Label>
+                <Input
+                  id="custom-urgent-fee"
+                  type="number"
+                  inputMode="numeric"
+                  min="5"
+                  step="1"
+                  value={urgentFee}
+                  onChange={(e) => setUrgentFee(e.target.value)}
+                  placeholder="$25"
+                  className="w-32"
+                  aria-label="Custom urgent fee amount in dollars"
+                />
+              </div>
             )}
           </div>
         )}

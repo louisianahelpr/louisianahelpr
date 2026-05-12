@@ -98,6 +98,11 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
+  // Pagination for the earnings-history list. Power helpers with 100+
+  // completed jobs were rendering them all; this caps the initial render
+  // at PAGE and grows by PAGE on each Load-more tap.
+  const PAGE = 25;
+  const [historyVisible, setHistoryVisible] = useState(PAGE);
 
   // React Query: caches Stripe payout data so re-opening the tab is instant.
   const FALLBACK_STRIPE: StripePayoutData = {
@@ -594,7 +599,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             </div>
           ) : (
             <div className="space-y-3">
-              {earningsJobs.map((job) => {
+              {earningsJobs.slice(0, historyVisible).map((job) => {
                 const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
                 const perHelper = job.budget / helpers;
                 const commissionPercent = (job as any).helper_fee_percent ?? 10;
@@ -633,6 +638,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                   </div>
                 );
               })}
+              {earningsJobs.length > historyVisible && (
+                <Button
+                  variant="outline"
+                  className="w-full rounded-ds-md"
+                  onClick={() => setHistoryVisible((n) => n + PAGE)}
+                >
+                  Load {Math.min(PAGE, earningsJobs.length - historyVisible)} more · {earningsJobs.length - historyVisible} remaining
+                </Button>
+              )}
             </div>
           )}
         </div>

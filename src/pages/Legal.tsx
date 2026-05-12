@@ -781,32 +781,49 @@ const Legal = () => {
           </div>
 
           <Tabs value={tab} onValueChange={setTab} className="w-full">
+            {/* Bumped from h-11 (44px exactly at iOS minimum) to h-12 (48px)
+                for a comfortable tap. Bumped label from text-ds-11 (11px) to
+                text-ds-13 (13px) for legibility on small screens. Active
+                tab gets shadow-md + foreground color; inactive tabs get
+                muted-foreground so the selected state pops. */}
             <TabsList
-              className="grid w-full grid-cols-3 rounded-2xl p-1 h-11"
+              className="grid w-full grid-cols-3 rounded-2xl p-1 h-12"
               style={{
                 background: "hsla(0, 0%, 100%, 0.55)",
                 border: "1px solid hsla(0, 0%, 100%, 0.6)",
                 backdropFilter: "blur(20px) saturate(170%)",
               }}
             >
-              <TabsTrigger value="terms" className="rounded-ds-md text-ds-11 font-sans font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger
+                value="terms"
+                className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
+              >
                 Terms
               </TabsTrigger>
-              <TabsTrigger value="community" className="rounded-ds-md text-ds-11 font-sans font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger
+                value="community"
+                className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
+              >
                 Community
               </TabsTrigger>
-              <TabsTrigger value="privacy" className="rounded-ds-md text-ds-11 font-sans font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger
+                value="privacy"
+                className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
+              >
                 Privacy
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="terms" className="mt-4">
+            {/* Safe-area bottom padding on each tab so the long legal body
+                can scroll fully past the floating dock + FAB on iPhone
+                without clipping the last paragraph. */}
+            <TabsContent value="terms" className="mt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
               <TermsContent />
             </TabsContent>
-            <TabsContent value="community" className="mt-4">
+            <TabsContent value="community" className="mt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
               <CommunityContent />
             </TabsContent>
-            <TabsContent value="privacy" className="mt-4">
+            <TabsContent value="privacy" className="mt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
               <PrivacyContent />
             </TabsContent>
           </Tabs>

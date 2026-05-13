@@ -126,8 +126,11 @@ export function SignupStep3(props: SignupStep3Props) {
 
   return (
     <div className="space-y-4">
-      {/* Path B: Helprs — strongly emphasized */}
-      <div className="rounded-2xl border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 p-4 space-y-2 shadow-sm">
+      {/* Decision card — replaces the previous "Applying for jobs?"
+          banner + separate tiny "Skip" row that competed for attention.
+          One card now holds both paths: the encouragement (apply →
+          fill below) and an equally-prominent Skip for posters. */}
+      <div className="rounded-2xl border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 p-4 space-y-3 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
@@ -140,26 +143,24 @@ export function SignupStep3(props: SignupStep3Props) {
           </span>
         </div>
         <p className="text-ds-13 text-foreground/80 leading-relaxed">
-          Complete profiles get <span className="font-semibold">3× more offers</span>. Takes 2 minutes.
+          Complete profiles get <span className="font-semibold">3× more offers</span>. Takes about 2 minutes — fill in what applies below.
         </p>
-      </div>
-
-      {/* Path A: Posters — compact skip card */}
-      <div className="rounded-ds-md border border-border bg-muted/30 px-3 py-2.5 flex items-center justify-between gap-3">
-        <p className="text-ds-11 text-muted-foreground leading-snug min-w-0">
-          Just posting jobs? Nothing below is required.
-        </p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 px-3 text-ds-11 shrink-0"
-          disabled={loading}
-          onClick={onSkip}
-        >
-          {loading
-            ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Creating…</>
-            : <>Skip <ArrowRight className="w-3.5 h-3.5 ml-1" /></>}
-        </Button>
+        <div className="flex items-center justify-between gap-3 pt-1 border-t border-primary/15">
+          <p className="text-ds-11 text-muted-foreground leading-snug min-w-0">
+            Just posting jobs? Nothing below is required.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 px-3.5 text-ds-11 shrink-0 bg-card"
+            disabled={loading}
+            onClick={onSkip}
+          >
+            {loading
+              ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Creating…</>
+              : <>Skip <ArrowRight className="w-3.5 h-3.5 ml-1" /></>}
+          </Button>
+        </div>
       </div>
 
       {/* Skills */}

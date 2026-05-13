@@ -110,10 +110,13 @@ export function SignupStep2(props: SignupStep2Props) {
       )}
 
       {/* Section 1: Your photo (top of page — most personal first) */}
-      <section className="space-y-4">
-        <div className="flex flex-col items-center gap-2">
-          <Label className="text-ds-13 font-medium">Profile picture <span className="text-destructive text-ds-11">*</span></Label>
-          <label className="cursor-pointer group relative inline-block">
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-display-eyebrow">Your photo</span>
+          <span className="text-destructive text-ds-11">*</span>
+        </div>
+        <div className="flex flex-col items-center gap-2.5">
+          <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform">
             <div className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary/40">
               {avatarPreview && avatarPreview.startsWith("blob:") ? (
                 <img loading="lazy" decoding="async" src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
@@ -121,12 +124,21 @@ export function SignupStep2(props: SignupStep2Props) {
                 <UserRound className="w-10 h-10 text-muted-foreground" strokeWidth={1.5} />
               )}
             </div>
-            <div className="pointer-events-none absolute bottom-0 right-0 w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg ring-2 ring-card z-10">
+            <div
+              className="pointer-events-none absolute -bottom-1 -right-1 w-11 h-11 rounded-full flex items-center justify-center z-10"
+              style={{
+                background: "hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                boxShadow:
+                  "0 0 0 3px hsl(var(--parchment)), " +
+                  "0 6px 18px -4px hsl(var(--bark) / 0.45)",
+              }}
+            >
               <Camera className="w-5 h-5" strokeWidth={2.25} />
             </div>
             <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
           </label>
-          <p className="text-[11px] text-muted-foreground text-center max-w-[260px]">
+          <p className="text-[11px] text-muted-foreground text-center max-w-[260px] leading-relaxed">
             A clear face photo builds trust with neighbors. JPG or PNG, max 5MB.
           </p>
         </div>
@@ -134,6 +146,9 @@ export function SignupStep2(props: SignupStep2Props) {
 
       {/* Section 2: Your name + personal details */}
       <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-display-eyebrow">Your details</span>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="firstName" className={labelCls}>First name <span className="text-destructive">*</span></Label>
@@ -188,17 +203,21 @@ export function SignupStep2(props: SignupStep2Props) {
 
       {/* Section 5: Identity verification */}
       <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-display-eyebrow">Verify your identity</span>
+          <span className="text-destructive text-ds-11">*</span>
+        </div>
         <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card p-5 space-y-4">
           <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-              <ShieldCheck className="w-7 h-7 text-primary" strokeWidth={1.75} />
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+              <ShieldCheck className="w-6 h-6 text-primary" strokeWidth={1.75} />
             </div>
-            <h3 className="text-ds-15 font-display font-semibold text-foreground">Government-issued ID <span className="text-destructive">*</span></h3>
+            <h3 className="text-ds-15 font-display font-semibold text-foreground">Government-issued ID</h3>
             <p className="text-ds-11 text-muted-foreground leading-relaxed">
-              Driver's license, state ID, or passport. Stored encrypted and used for safety, fraud prevention, and compliance. Re-verified by Stripe when you post or apply to your first job.
+              Driver's license, state ID, or passport. Stored encrypted and used for safety, fraud prevention, and compliance.
             </p>
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-primary font-medium pt-1">
-              <Lock className="w-3 h-3" /> Encrypted at rest · Never shared publicly
+              <Lock className="w-3 h-3" /> Encrypted · Never shared publicly
             </div>
           </div>
           {idFile ? (

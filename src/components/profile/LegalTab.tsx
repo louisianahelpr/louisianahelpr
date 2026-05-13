@@ -115,7 +115,15 @@ const Section = ({
 
 export function LegalTab({ onBack }: { onBack: () => void }) {
   return (
-    <div className="space-y-5 pb-24">
+    // Bottom padding bumped from pb-24 (96px) to safe-area-aware 10rem
+    // so the bottom Section ("Operations & Safety") is fully scrollable
+    // above the MobileNav dock + FAB on iPhone. Previously pb-24 left
+    // "Account Health" clipped by the dock and "Operations & Safety"
+    // entirely unreachable.
+    <div
+      className="space-y-5"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 10rem)" }}
+    >
       <ProfileTabHeader
         eyebrow="Documents"
         title="Legal &amp; policies"

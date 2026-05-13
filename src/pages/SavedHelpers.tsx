@@ -221,10 +221,20 @@ const SavedHelpers = () => {
                   style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 >
                   {helpers.length === 0
-                    ? "Tap the heart on any helpr's profile to save them for fast rebooking."
+                    ? "After your next job, tap the heart on the helpr's profile — they'll land here for one-tap rebooking."
                     : "Try a different search term — your saved list is intact."}
                 </p>
               </div>
+              {helpers.length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/my-posts")}
+                  className="mt-2 inline-flex items-center gap-1.5 text-[0.78rem] font-sans font-semibold active:opacity-70"
+                  style={{ color: "hsl(var(--bark))" }}
+                >
+                  See your past helpers →
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -295,6 +305,16 @@ const SavedHelpers = () => {
                         size="sm"
                         onClick={() => navigate(`/post-job?offerTo=${h.helper_id}`)}
                         className="flex-1 rounded-ds-md"
+                        style={{
+                          background: "hsl(var(--bark))",
+                          backgroundImage: "none",
+                          border: "1px solid hsl(var(--bark))",
+                          color: "hsl(var(--parchment))",
+                          fontFamily: "Montserrat, system-ui, sans-serif",
+                          fontWeight: 600,
+                          letterSpacing: "0.01em",
+                          boxShadow: "0 1px 2px hsl(var(--bark) / 0.16), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                        }}
                       >
                         <Send className="w-3.5 h-3.5 mr-1.5" />
                         Offer a job
@@ -315,7 +335,7 @@ const SavedHelpers = () => {
                         className="rounded-ds-md"
                         aria-label="Remove from saved"
                       >
-                        <Heart className="w-3.5 h-3.5 fill-destructive text-destructive" />
+                        <Heart className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
                       </Button>
                     </div>
                   </div>

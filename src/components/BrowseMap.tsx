@@ -12,7 +12,7 @@
 // pays nothing for the map pipeline.
 
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { divIcon, point as leafletPoint } from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,6 +85,43 @@ interface BrowseMapProps {
 const LA_CENTER: [number, number] = [31.0, -92.0];
 const LA_DEFAULT_ZOOM = 7;
 
+// Density-aware tint for the heatmap layer. Lower count → cooler
+// olivewood; higher count → warm burnt-sienna. Caps at 8+ jobs per
+// cluster bucket so a single hot zip doesn't bleach the rest of the
+// state.
+function densityFill(count: number): string {
+  if (count >= 8) return "hsla(15, 55%, 45%, 0.65)"; // burnt-sienna heavy
+  if (count >= 5) return "hsla(15, 50%, 50%, 0.55)";
+  if (count >= 3) return "hsla(25, 55%, 55%, 0.50)";
+  if (count >= 2) return "hsla(38, 55%, 60%, 0.45)"; // gold-warm
+  return "hsla(70, 25%, 50%, 0.40)"; // bark-cool
+}
+
+// Group jobs into ~0.1° lat/lng buckets for a quick density map without
+// pulling in leaflet.heat. Each bucket becomes a CircleMarker sized by
+// job count. Cheap, dependency-free, and still gives the "where's the
+// work" glance pattern.
+function bucketJobs(jobs: MapJob[]): Array<{
+  center: [number, number];
+  count: number;
+}> {
+  const buckets = new Map<string, { lat: number; lng: number; count: number }>();
+  for (const j of jobs) {
+    const lat = Math.round(Number(j.latitude) * 10) / 10;
+    const lng = Math.round(Number(j.longitude) * 10) / 10;
+    const key = `${lat}:${lng}`;
+    const existing = buckets.get(key);
+    if (existing) {
+      existing.count += 1;
+      existing.lat = (existing.lat * (existing.count - 1) + lat) / existing.count;
+      existing.lng = (existing.lng * (existing.count - 1) + lng) / existing.count;
+    } else {
+      buckets.set(key, { lat, lng, count: 1 });
+    }
+  }
+  return [...buckets.values()].map((b) => ({ center: [b.lat, b.lng] as [number, number], count: b.count }));
+}
+
 // Auto-fit the map to whatever pins exist when they load. If only one
 // pin, zoom in to a useful neighborhood-level view instead of a
 // state-wide one.
@@ -105,6 +142,7 @@ function FitToPins({ jobs }: { jobs: MapJob[] }) {
 export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: BrowseMapProps) {
   const [jobs, setJobs] = useState<MapJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"pins" | "heat">("pins");
 
   useEffect(() => {
     let cancelled = false;
@@ -162,19 +200,81 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
 
   if (jobs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 rounded-2xl border border-border bg-card/40 px-6 text-center">
-        <p className="font-display italic text-ds-13 text-foreground">
-          No jobs on the map just yet.
-        </p>
-        <p className="font-serif italic text-ds-11 text-muted-foreground mt-1">
-          New posts appear here as soon as they go live across Louisiana.
-        </p>
+      <div className="flex flex-col items-center justify-center h-96 rounded-2xl liquid-glass px-6 text-center gap-3">
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center"
+          style={{
+            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+            border: "1px solid hsl(var(--olivewood) / 0.10)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+              "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+              "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+          }}
+        >
+          <Loader2 className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+        </div>
+        <div className="space-y-1">
+          <p
+            className="font-display italic font-bold leading-tight"
+            style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          >
+            Empty map for now.
+          </p>
+          <p
+            className="font-serif italic max-w-[260px]"
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            New posts land here the moment they go live across Louisiana.
+          </p>
+        </div>
       </div>
     );
   }
 
+  const heatBuckets = view === "heat" ? bucketJobs(jobs) : [];
+
   return (
-    <div className="rounded-2xl overflow-hidden border border-border" style={{ height: 480 }}>
+    <div className="relative rounded-2xl overflow-hidden border border-border" style={{ height: 480 }}>
+      {/* Pins / Heat toggle — sits over the map, top-right. Heat is a
+          density bucket overlay (no extra dependency) so helpers can
+          spot job hotspots even when individual pins are clustered. */}
+      <div
+        className="absolute top-3 right-3 z-[400] flex items-center gap-0.5 p-0.5 rounded-full"
+        style={{
+          background: "hsla(0, 0%, 100%, 0.85)",
+          border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+          boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+        }}
+      >
+        {([
+          { key: "pins" as const, label: "Pins" },
+          { key: "heat" as const, label: "Heat" },
+        ]).map((opt) => {
+          const active = view === opt.key;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setView(opt.key)}
+              className="px-3 h-7 rounded-full text-[0.7rem] font-sans font-semibold transition-all"
+              style={
+                active
+                  ? {
+                      background: "hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                    }
+                  : { color: "hsl(var(--olivewood) / 0.7)" }
+              }
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
       <MapContainer
         center={LA_CENTER}
         zoom={LA_DEFAULT_ZOOM}
@@ -186,6 +286,29 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitToPins jobs={jobs} />
+        {/* Heat overlay — density-bucketed CircleMarkers sized by job
+            count. Replaces individual pins so hotspots read at a glance. */}
+        {view === "heat" && heatBuckets.map((b, i) => (
+          <CircleMarker
+            key={`heat-${i}`}
+            center={b.center}
+            radius={Math.min(8 + b.count * 4, 36)}
+            pathOptions={{
+              fillColor: densityFill(b.count),
+              fillOpacity: 0.7,
+              color: "transparent",
+              weight: 0,
+            }}
+          >
+            <Popup>
+              <p className="font-display italic font-bold text-ds-13 leading-tight">
+                {b.count} {b.count === 1 ? "job" : "jobs"} here
+              </p>
+              <p className="text-ds-11 text-muted-foreground">Zoom in or switch to Pins to see them individually.</p>
+            </Popup>
+          </CircleMarker>
+        ))}
+        {view === "pins" && (
         <MarkerClusterGroup
           chunkedLoading
           spiderfyOnMaxZoom
@@ -227,6 +350,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
           </Marker>
         ))}
         </MarkerClusterGroup>
+        )}
       </MapContainer>
     </div>
   );

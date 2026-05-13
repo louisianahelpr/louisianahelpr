@@ -228,65 +228,150 @@ const UserProfile = () => {
 
       <main className="container mx-auto px-5 py-6">
         <div className="max-w-lg mx-auto space-y-5">
-          {/* Profile Card */}
-          <div className="rounded-2xl liquid-glass p-6 text-center space-y-3">
-            {profile.avatar_url ? (
-              <img loading="lazy" decoding="async" src={profile.avatar_url} alt={`${displayName} profile picture`} className="w-20 h-20 rounded-full mx-auto object-cover border-2 border-border" />
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-ds-24 font-bold">
-                {initials}
+          {/* Profile Card — brand-aligned hero. Avatar with tier ring,
+              italic display name, italic serif meta and bio. */}
+          <div
+            className="rounded-2xl liquid-glass p-5 text-center space-y-3 relative overflow-hidden"
+            style={{
+              backgroundImage:
+                "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
+                "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
+            }}
+          >
+            {/* Verified Helpr ribbon — visible top-right corner badge
+                for ID-verified helpers. Promotes the trust signal from
+                a small chip to a prominent marker posters see at first
+                glance. Gold-warm so it reads as recognition, not status. */}
+            {isIdVerified && (
+              <div
+                aria-label="Verified Helpr"
+                className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
+                style={{
+                  background: "hsl(var(--gold-warm) / 0.14)",
+                  border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+                    "0 1px 2px hsl(var(--gold-warm) / 0.12), " +
+                    "0 4px 10px -3px hsl(var(--gold-warm) / 0.28)",
+                }}
+              >
+                <ShieldCheck className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.5} />
+                <span
+                  className="font-sans font-bold uppercase tracking-wider"
+                  style={{ fontSize: "0.6rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.16em" }}
+                >
+                  Verified
+                </span>
               </div>
             )}
+            <div className="relative inline-block">
+              {profile.avatar_url ? (
+                <img
+                  loading="lazy"
+                  decoding="async"
+                  src={profile.avatar_url}
+                  alt={`${displayName} profile picture`}
+                  className="w-24 h-24 rounded-[28px] squircle mx-auto object-cover"
+                  style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
+                />
+              ) : (
+                <div
+                  className="w-24 h-24 rounded-[28px] squircle bg-primary/10 text-primary flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold"
+                  style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
+                >
+                  {initials}
+                </div>
+              )}
+              {isIdVerified && (
+                <div
+                  aria-label="ID verified"
+                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{
+                    background: "hsl(var(--bark))",
+                    border: "2px solid hsl(var(--parchment))",
+                  }}
+                >
+                  <ShieldCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
+                </div>
+              )}
+            </div>
             <div>
-              <div className="flex items-center justify-center gap-1.5">
-                <h1 className="text-ds-20 font-display font-bold text-foreground">{displayName}</h1>
-                {isIdVerified && (
-                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider" title="ID Verified">
-                    <ShieldCheck className="w-3.5 h-3.5" /> Verified
-                  </span>
-                )}
-              </div>
+              <h1
+                className="font-display italic font-bold leading-tight"
+                style={{ fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.75rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+              >
+                {displayName}
+              </h1>
+              {profile.location && (
+                <p
+                  className="font-serif italic flex items-center justify-center gap-1 mt-0.5"
+                  style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.75)" }}
+                >
+                  <MapPin className="w-3 h-3" />{profile.location}
+                </p>
+              )}
               {/* Response Metrics inline */}
               {responseMetrics.totalApplications > 0 && (
-                <div className="flex items-center justify-center gap-3 mt-1.5 text-ds-11 text-muted-foreground">
+                <div className="flex items-center justify-center gap-3 mt-2 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                   {responseMetrics.avgResponseHours !== null && (
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {responseMetrics.avgResponseHours < 1
-                        ? `${Math.round(responseMetrics.avgResponseHours * 60)}m`
-                        : responseMetrics.avgResponseHours < 24
-                        ? `${responseMetrics.avgResponseHours.toFixed(1)}h`
-                        : `${Math.round(responseMetrics.avgResponseHours / 24)}d`} avg response
+                      <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {responseMetrics.avgResponseHours < 1
+                          ? `${Math.round(responseMetrics.avgResponseHours * 60)}m`
+                          : responseMetrics.avgResponseHours < 24
+                          ? `${responseMetrics.avgResponseHours.toFixed(1)}h`
+                          : `${Math.round(responseMetrics.avgResponseHours / 24)}d`}
+                      </span>
+                      <span>avg reply</span>
                     </span>
                   )}
                   {responseMetrics.acceptanceRate !== null && (
-                    <span className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" />
-                      {responseMetrics.acceptanceRate.toFixed(0)}% acceptance
-                    </span>
+                    <>
+                      <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+                      <span className="flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
+                          {responseMetrics.acceptanceRate.toFixed(0)}%
+                        </span>
+                        <span>accept rate</span>
+                      </span>
+                    </>
                   )}
                 </div>
               )}
-              <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
-                {profile.location && (
-                  <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{profile.location}</span>
-                )}
-              </div>
               {profile.phone && (
-                <p className="text-ds-11 text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+                <p className="font-serif italic mt-1.5 flex items-center justify-center gap-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                   <Phone className="w-3 h-3" />{profile.phone}
                 </p>
               )}
-              {profile.bio && <p className="text-ds-11 text-muted-foreground mt-2">{profile.bio}</p>}
+              {profile.bio && (
+                <p
+                  className="font-serif italic mt-3 leading-relaxed text-left"
+                  style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep) / 0.88)" }}
+                >
+                  {profile.bio}
+                </p>
+              )}
               {profile.skills && (
-                <div className="flex flex-wrap gap-1.5 justify-center mt-2">
+                <div className="flex flex-wrap gap-1.5 justify-center mt-3">
                   {profile.skills.split(",").map((s, i) => (
-                    <span key={i} className="text-ds-11 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">{s.trim()}</span>
+                    <span
+                      key={i}
+                      className="text-[0.7rem] font-sans font-semibold px-2 py-0.5 rounded-full"
+                      style={{
+                        background: "hsl(var(--bark) / 0.10)",
+                        color: "hsl(var(--bark))",
+                        border: "0.5px solid hsl(var(--bark) / 0.20)",
+                      }}
+                    >
+                      {s.trim()}
+                    </span>
                   ))}
                 </div>
               )}
               <HelperBadges badges={badges} />
-              <div className="pt-1 flex flex-wrap justify-center gap-1.5">
+              <div className="pt-2 flex flex-wrap justify-center gap-1.5">
                 <CredentialBadge credentials={profile as any} size="md" />
                 <BusinessBadge userId={userId!} size="md" />
               </div>

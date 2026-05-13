@@ -181,16 +181,21 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         className="max-w-lg"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2">
-            <Clock className="w-5 h-5 text-muted-foreground" />
-            Cancel Job
+        <DialogHeader className="!text-left space-y-0">
+          <span
+            className="font-serif italic uppercase inline-flex items-center gap-1.5"
+            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          >
+            <Clock className="w-3 h-3" /> Heads up
+          </span>
+          <DialogTitle
+            className="font-display italic font-bold leading-tight mt-1"
+            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+          >
+            Cancel "{jobTitle}"?
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-ds-11 text-muted-foreground">
-            Are you sure you want to cancel <strong className="text-foreground">"{jobTitle}"</strong>?
-          </p>
 
           {/* Full Cancellation Policy */}
           <div className="rounded-ds-md border border-border bg-muted/30 p-4 space-y-3">
@@ -295,12 +300,47 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             )}
           </div>
 
-          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason for cancellation (optional)" rows={2} />
+          <div className="space-y-1.5">
+            <label
+              className="font-serif italic uppercase block"
+              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              Reason — optional
+            </label>
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="What changed? Helps us improve."
+              rows={2}
+              className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.85rem]"
+            />
+          </div>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Keep Job</Button>
-          <Button variant="destructive" onClick={handleCancel} disabled={cancelling}>
-            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel & Pay $${cancellationFee}` : "Cancel Job"}
+        <DialogFooter className="!gap-2">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            className="rounded-ds-md font-sans font-semibold"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Keep the job
+          </Button>
+          <Button
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="rounded-ds-md"
+            style={{
+              background: "hsl(var(--burnt-sienna))",
+              backgroundImage: "none",
+              border: "1px solid hsl(var(--burnt-sienna))",
+              color: "hsl(var(--parchment))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)",
+            }}
+          >
+            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${cancellationFee}` : "Cancel job"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -128,6 +128,9 @@ export function useDashboardData() {
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
       );
+      const avatarMap = new Map<string, string | null>(
+        profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
+      );
 
       // Build poster tier map — only count tier if subscription hasn't expired
       const nowDate = new Date();
@@ -158,6 +161,7 @@ export function useDashboardData() {
           return {
             ...j,
             posterName: nameMap.get(j.customer_id) || "User",
+            posterAvatarUrl: avatarMap.get(j.customer_id) ?? null,
             posterReviewCount: stats?.count ?? 0,
             posterAvgRating: stats?.avg ?? 0,
             posterCompletedJobs: 0,
@@ -165,6 +169,14 @@ export function useDashboardData() {
             isBoosted,
           };
         });
+
+      // Auto-bump: within the existing newest-first order, lift Elite-
+      // posted jobs to the top, then Pro-posted, then everything else.
+      // Stable sort preserves the boosted ordering inside each tier band
+      // (already applied by the SQL ORDER BY boosted_at).
+      const tierWeight = (tier: string | null | undefined) =>
+        tier === "elite" ? 2 : tier === "pro" ? 1 : 0;
+      enriched.sort((a, b) => tierWeight(b.posterSubscriptionTier) - tierWeight(a.posterSubscriptionTier));
 
       return { jobs: enriched, nextOffset: hasMore ? offset + PAGE_SIZE : null };
     },

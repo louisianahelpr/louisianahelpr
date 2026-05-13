@@ -61,21 +61,40 @@ export const PushNotificationPrompt = () => {
   if (!show) return null;
 
   return (
-    <div className="rounded-2xl liquid-glass px-3.5 py-2.5 mb-3 animate-in fade-in slide-in-from-top-1 duration-300">
+    <div
+      className="rounded-2xl liquid-glass px-3.5 py-2.5 mb-3 animate-in fade-in slide-in-from-top-1 duration-300"
+      style={{
+        backgroundImage:
+          "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%)",
+      }}
+    >
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <Bell className="w-4 h-4 text-primary" strokeWidth={2.25} />
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+          style={{
+            background: "hsl(var(--bark) / 0.12)",
+            color: "hsl(var(--bark))",
+            border: "0.5px solid hsl(var(--bark) / 0.22)",
+          }}
+        >
+          <Bell className="w-4 h-4" strokeWidth={2.25} />
         </div>
         <div className="flex-1 min-w-0">
           <p
-            className="font-display italic font-bold text-[0.92rem] leading-tight"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+            className="font-serif italic uppercase"
+            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
-            Enable notifications
+            Stay in the loop
           </p>
           <p
-            className="font-serif italic text-[0.72rem] leading-snug mt-0.5"
-            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            className="font-display italic font-bold leading-tight"
+            style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+          >
+            Turn on notifications.
+          </p>
+          <p
+            className="font-serif italic mt-0.5"
+            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}
           >
             Job matches, messages &amp; updates
           </p>
@@ -84,7 +103,17 @@ export const PushNotificationPrompt = () => {
           <button
             type="button"
             onClick={handleEnable}
-            className="h-8 px-3 rounded-full bg-primary text-primary-foreground text-[12px] font-semibold shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.35)] active:scale-[0.97] transition-transform"
+            className="h-9 px-4 rounded-full text-[0.72rem] font-sans font-semibold active:scale-[0.97] transition-transform"
+            style={{
+              background: "hsl(var(--bark))",
+              color: "hsl(var(--parchment))",
+              border: "1px solid hsl(70 22% 24%)",
+              letterSpacing: "0.01em",
+              boxShadow:
+                "inset 0 1px 0 0 rgba(255,255,255,0.12), " +
+                "0 1px 2px hsl(var(--bark) / 0.18), " +
+                "0 8px 18px -6px hsl(var(--bark) / 0.45)",
+            }}
           >
             Enable
           </button>
@@ -92,7 +121,7 @@ export const PushNotificationPrompt = () => {
             type="button"
             onClick={handleDismiss}
             aria-label="Dismiss"
-            className="h-8 w-8 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-[0.95] transition"
+            className="h-9 w-9 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-[0.95] transition"
           >
             <X className="w-3.5 h-3.5" />
           </button>

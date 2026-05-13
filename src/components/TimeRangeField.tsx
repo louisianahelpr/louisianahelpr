@@ -82,7 +82,16 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="w-full h-11 rounded-ds-md bg-primary text-primary-foreground text-[15px] font-semibold"
+          className="w-full h-11 rounded-ds-md text-[0.92rem]"
+          style={{
+            background: "hsl(var(--bark))",
+            color: "hsl(var(--parchment))",
+            border: "1px solid hsl(var(--bark))",
+            fontFamily: "Montserrat, system-ui, sans-serif",
+            fontWeight: 600,
+            letterSpacing: "0.01em",
+            boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -4px hsl(var(--bark) / 0.30)",
+          }}
         >
           Done
         </button>

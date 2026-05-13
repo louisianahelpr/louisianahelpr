@@ -64,7 +64,16 @@ export const statusBadge: Record<string, string> = {
 };
 
 export type EnrichedApplication = Application & {
-  profiles?: { full_name: string | null; skills: string | null; hourly_rate: number | null; user_id: string } | null;
+  profiles?: {
+    full_name: string | null;
+    skills: string | null;
+    hourly_rate: number | null;
+    user_id: string;
+    avatar_url?: string | null;
+    /** Active subscription tier — drives the gold halo on Pro/Elite
+        applicants so posters spot subscribed helpers at a glance. */
+    subscription_tier?: string | null;
+  } | null;
   reviewCount?: number;
   avgRating?: number;
 };

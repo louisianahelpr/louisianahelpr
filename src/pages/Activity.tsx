@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -277,6 +279,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       if (data?.bothDone) {
         hapticSuccess();
         toast.success("Job completed! Payment released.");
+        // Brand-tinted confetti for the first 3 completed jobs — fades to
+        // silent after to avoid noise on regulars.
+        const { maybeCelebrate } = await import("@/lib/celebrate");
+        void maybeCelebrate("first_complete", { particleCount: 120 });
         await refresh();
         setStatusFilter("completed");
       } else {
@@ -533,6 +539,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     return counts;
   }, [postedJobs]);
 
+  // Pull-to-refresh — must run unconditionally (hook order). Same
+  // gesture pattern as Dashboard.
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
+    onRefresh: async () => { await refresh(); },
+  });
+
   if (loading) {
     // Loading state mirrors the loaded layout: two-box stack on a
     // bg-premium-page shell with skeleton cards inside the bottom box.
@@ -567,6 +579,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
   return (
+    <PullToRefreshWrapper
+      ref={containerRef}
+      pullDistance={pullDistance}
+      refreshing={refreshing}
+      isPulling={isPulling}
+      canTrigger={canTrigger}
+    >
     <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
       <DashboardHeader />
       <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -695,25 +714,73 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                         )}
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent align="end" className="w-56 p-2">
-                      <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">Filter by status</p>
-                      <div className="grid grid-cols-1 gap-1">
+                    <PopoverContent align="end" className="w-60 p-2">
+                      <p
+                        className="font-serif italic uppercase px-2 pt-1 pb-2"
+                        style={{
+                          fontSize: "0.62rem",
+                          color: "hsl(var(--burnt-sienna) / 0.78)",
+                          letterSpacing: "0.18em",
+                        }}
+                      >
+                        Filter by status
+                      </p>
+                      <div className="grid grid-cols-1 gap-0.5">
                         {activeStatusFilters.map((f) => {
                           const count = activeCounts[f.key] || 0;
                           const isActive = statusFilter === f.key;
+                          // Status-color dot — matches the chip-color logic
+                          // each filter ships with so the dropdown reads as
+                          // a legend, not just a flat list.
+                          const dotColor =
+                            f.key === "in_progress"
+                              ? "hsl(var(--burnt-sienna))"
+                              : f.key === "completed"
+                                ? "hsl(var(--bark))"
+                                : f.key === "cancelled"
+                                  ? "hsl(var(--destructive))"
+                                  : f.key === "accepted"
+                                    ? "hsl(var(--bark))"
+                                    : f.key === "direct_offer"
+                                      ? "hsl(var(--gold-warm))"
+                                      : "hsl(var(--olivewood) / 0.5)";
                           return (
                             <button
                               key={f.key}
                               onClick={() => { setStatusFilter(f.key); setFilterOpen(false); }}
-                              className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-ds-13 font-medium transition ${
+                              className="flex items-center justify-between w-full px-2.5 py-2 rounded-ds-md text-ds-13 transition active:scale-[0.99]"
+                              style={
                                 isActive
-                                  ? "bg-primary text-primary-foreground"
-                                  : "text-foreground hover:bg-secondary/60"
-                              }`}
+                                  ? {
+                                      background: "hsl(var(--bark))",
+                                      color: "hsl(var(--parchment))",
+                                      fontWeight: 600,
+                                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                                    }
+                                  : {
+                                      color: "hsl(var(--ink-deep))",
+                                      fontWeight: 500,
+                                    }
+                              }
                             >
-                              <span>{f.label}</span>
+                              <span className="inline-flex items-center gap-2 min-w-0">
+                                <span
+                                  className="shrink-0 w-1.5 h-1.5 rounded-full"
+                                  style={{
+                                    background: isActive ? "hsl(var(--parchment) / 0.85)" : dotColor,
+                                  }}
+                                />
+                                <span className="truncate">{f.label}</span>
+                              </span>
                               {count > 0 && (
-                                <span className={`text-ds-10 tabular-nums ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                                <span
+                                  className="text-[0.7rem] tabular-nums font-sans font-semibold shrink-0 ml-2 px-1.5 py-0.5 rounded-full"
+                                  style={
+                                    isActive
+                                      ? { background: "hsl(var(--parchment) / 0.18)", color: "hsl(var(--parchment))" }
+                                      : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.85)" }
+                                  }
+                                >
                                   {count}
                                 </span>
                               )}
@@ -779,22 +846,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               const ctaTo = isPosted ? "/post-job" : "/dashboard";
               const Icon = isPosted ? Search : Send;
               return (
-                <div className="px-4 pt-4 pb-3 flex">
-                  {/* Empty-state card — sized to its content with a
-                      modest min-height so it doesn't stretch to a giant
-                      blank rectangle on tall screens. The bottom panel
-                      (parent glass card) handles the visual continuity
-                      down to the MobileNav dock area. */}
-                  <div
-                    className="flex-1 flex flex-col items-center text-center gap-4 px-6 py-8 rounded-2xl"
-                    style={{
-                      backgroundColor: "hsl(0, 0%, 100%)",
-                      border: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                      boxShadow:
-                        "0 1px 2px hsl(var(--olivewood) / 0.04), " +
-                        "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
-                    }}
-                  >
+                <div className="px-4 pt-4 pb-3 flex flex-1 min-h-0">
+                  {/* Empty-state card — brand-aligned liquid-glass surface
+                      (was plain bg-white that clashed with the warm parchment
+                      page background), centered in the available scroll area.
+                      Same pattern as Dashboard's empty state from PR #73. */}
+                  <div className="flex-1 liquid-glass min-h-full flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-2xl">
                     <div
                       className="w-20 h-20 rounded-full flex items-center justify-center"
                       style={{
@@ -829,7 +886,21 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                         {body}
                       </p>
                     </div>
-                    <Button onClick={() => navigate(ctaTo)} className="rounded-ds-md">
+                    <Button
+                      onClick={() => navigate(ctaTo)}
+                      className="rounded-full px-6 h-12"
+                      style={{
+                        background: "hsl(var(--bark))",
+                        color: "hsl(var(--parchment))",
+                        border: "1px solid hsl(70 22% 24%)",
+                        fontFamily: "Montserrat, system-ui, sans-serif",
+                        fontWeight: 600,
+                        boxShadow:
+                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
+                          "0 1px 2px hsl(70 20% 18% / 0.18), " +
+                          "0 8px 18px -6px hsl(var(--bark) / 0.45)",
+                      }}
+                    >
                       {ctaLabel}
                     </Button>
                   </div>
@@ -946,6 +1017,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         failureReason={idvFailureReason}
       />
     </div>
+    </PullToRefreshWrapper>
   );
 };
 

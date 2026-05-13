@@ -272,7 +272,7 @@ export const AppliedJobsTab = ({
     return (
           <div
             key={app.id}
-            className={`rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${!isMinimalCard ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
+            className={`rounded-2xl liquid-glass overflow-hidden hover:shadow-md transition-all duration-200 ${!isMinimalCard ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
             onClick={!isMinimalCard ? () => setExpandedJobId(isExpanded ? null : app.job_id) : undefined}
             {...(!isMinimalCard && {
               role: "button",
@@ -286,13 +286,29 @@ export const AppliedJobsTab = ({
               },
             })}
           >
-            {/* Header - matches poster layout */}
-            <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">
-              <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${(categoryColors[job.category || "other"] || categoryColors.other).title}`}>
+            {/* Header — italic display title + payout chip (matches poster
+                surfaces across the app). */}
+            <div
+              className="w-full px-4 py-2.5 flex items-center justify-between text-left"
+              style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+            >
+              <h3
+                className="font-display italic font-bold leading-snug truncate min-w-0"
+                style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
                 {job.title || "Task"}
               </h3>
-              <span className="flex items-center gap-0.5 font-semibold text-primary text-ds-13 bg-primary/8 px-2 py-0.5 rounded-full shrink-0 ml-3" title={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}>
-                <DollarSign className="w-3.5 h-3.5" />{payout.toFixed(2)}
+              <span
+                className="inline-flex items-center gap-0.5 font-display italic font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-full shrink-0 ml-3"
+                title={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
+                style={{
+                  background: "hsl(var(--burnt-sienna) / 0.10)",
+                  color: "hsl(var(--burnt-sienna))",
+                  letterSpacing: "-0.015em",
+                }}
+              >
+                <DollarSign className="w-3.5 h-3.5" strokeWidth={2.25} />
+                {payout.toFixed(2)}
               </span>
             </div>
 
@@ -447,32 +463,71 @@ export const AppliedJobsTab = ({
               </div>
             )}
 
-            {/* Pending withdraw — ghost text link, deliberately understated.
-                Tapping opens a confirmation bottom sheet (see end of file). */}
+            {/* Pending withdraw — slightly more discoverable than the
+                previous ghost text. Tucked inside a sienna-tinted pill
+                that reads as "available, low-stakes" without competing
+                with primary actions. */}
             {!isMinimalCard && isPending && (
-              <div className="px-4 py-2 border-t border-border/30 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="px-4 py-2.5 flex items-center justify-end"
+                style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
                   disabled={withdrawingAppId === app.id}
                   onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Task" })}
-                  className="inline-flex items-center gap-1 text-ds-11 font-medium text-muted-foreground hover:text-destructive transition-colors active:opacity-60 px-2 py-1 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 text-[0.72rem] font-sans font-semibold tracking-wide px-2.5 py-1 rounded-full active:opacity-70 transition-opacity disabled:opacity-50"
+                  style={{
+                    color: "hsl(var(--burnt-sienna))",
+                    background: "hsl(var(--burnt-sienna) / 0.08)",
+                    border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                  }}
                 >
-                  <XCircle className="w-3.5 h-3.5" /> {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
+                  <XCircle className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw application"}
                 </button>
               </div>
             )}
 
             {/* === ACTION SECTIONS === */}
 
-            {/* Offered: accept/decline */}
+            {/* Offered: accept/decline — celebratory framing since this
+                is a poster reaching out directly. Gold-warm accent
+                surfaces the "you were picked" moment without shouting. */}
             {isOffered && (
-              <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="px-4 py-3 space-y-2.5"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  borderTop: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+                  background:
+                    "radial-gradient(80% 100% at 50% 0%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%)",
+                }}
+              >
+                <p
+                  className="font-serif italic uppercase inline-flex items-center gap-1.5"
+                  style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
+                >
+                  <ThumbsUp className="w-3 h-3" /> You were picked
+                </p>
                 {(app as any).offer_message && (
-                  <div className="text-ds-13 bg-primary/5 border border-primary/15 rounded-lg p-3">
-                    <p className="text-ds-11 font-medium text-primary mb-1 flex items-center gap-1">
+                  <div
+                    className="rounded-ds-md p-3"
+                    style={{
+                      background: "hsla(0, 0%, 100%, 0.65)",
+                      border: "0.5px solid hsl(var(--olivewood) / 0.12)",
+                    }}
+                  >
+                    <p
+                      className="font-serif italic uppercase mb-1 inline-flex items-center gap-1"
+                      style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                    >
                       <MessageSquare className="w-3 h-3" /> Message from poster
                     </p>
-                    <p className="text-foreground">{(app as any).offer_message}</p>
+                    <p className="font-serif italic leading-relaxed" style={{ fontSize: "0.88rem", color: "hsl(var(--ink-deep))" }}>
+                      "{(app as any).offer_message}"
+                    </p>
                   </div>
                 )}
                 {/* Job countdown */}
@@ -484,9 +539,36 @@ export const AppliedJobsTab = ({
                     consequenceText="Accept or decline before the deadline"
                   />
                 )}
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onHelperResponse(app, false)}><ThumbsDown className="w-4 h-4 mr-1" /> Decline</Button>
-                  <Button size="sm" className="flex-1" onClick={() => onHelperResponse(app, true)}><ThumbsUp className="w-4 h-4 mr-1" /> Accept Job</Button>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 rounded-ds-md"
+                    onClick={() => onHelperResponse(app, false)}
+                    style={{
+                      color: "hsl(var(--burnt-sienna))",
+                      borderColor: "hsl(var(--burnt-sienna) / 0.30)",
+                    }}
+                  >
+                    <ThumbsDown className="w-4 h-4 mr-1" /> Decline
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 rounded-ds-md"
+                    onClick={() => onHelperResponse(app, true)}
+                    style={{
+                      background: "hsl(var(--bark))",
+                      backgroundImage: "none",
+                      border: "1px solid hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      fontFamily: "Montserrat, system-ui, sans-serif",
+                      fontWeight: 600,
+                      letterSpacing: "0.01em",
+                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                    }}
+                  >
+                    <ThumbsUp className="w-4 h-4 mr-1" /> Accept job
+                  </Button>
                 </div>
               </div>
             )}
@@ -609,11 +691,33 @@ export const AppliedJobsTab = ({
                     const label = completingJobId === app.job_id ? "…" : !hasPhotos ? "Upload before & after photos first" : tooEarly ? `Available in ${minutesLeft} min` : "Mark Complete";
                     return (
                       <>
-                        <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={disabled}>
-                          <CheckCircle2 className="w-4 h-4 mr-1" />{label}
+                        <Button
+                          size="sm"
+                          className="w-full rounded-ds-md"
+                          onClick={() => onComplete(app.job_id)}
+                          disabled={disabled}
+                          style={
+                            !disabled
+                              ? {
+                                  background: "hsl(var(--bark))",
+                                  backgroundImage: "none",
+                                  border: "1px solid hsl(var(--bark))",
+                                  color: "hsl(var(--parchment))",
+                                  fontFamily: "Montserrat, system-ui, sans-serif",
+                                  fontWeight: 600,
+                                  letterSpacing: "0.01em",
+                                  boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                                }
+                              : undefined
+                          }
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" />
+                          {label === "Mark Complete" ? "I'm done — request payout" : label}
                         </Button>
                         {tooEarly && (
-                          <p className="text-[10px] text-muted-foreground text-center">Mark Complete is available 30 minutes after arrival to ensure quality.</p>
+                          <p className="font-serif italic text-center" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                            Available 30 minutes after arrival to ensure quality.
+                          </p>
                         )}
                       </>
                     );
@@ -628,18 +732,52 @@ export const AppliedJobsTab = ({
               const disputeStatus = jobAny.dispute_status || "open";
               const hasResponded = !!jobAny.dispute_helper_response;
               return (
-                <div className="px-4 py-3 border-t border-border/30 bg-destructive/5 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="px-4 py-3 space-y-2.5"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    borderTop: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                    background: "hsl(var(--burnt-sienna) / 0.06)",
+                  }}
+                >
                   {/* Dispute info */}
-                  <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
-                    <p className="text-ds-11 font-semibold text-destructive flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      {disputeStatus === "escalated" ? "Escalated to Admin" : "Dispute In Progress"}
+                  <div
+                    className="rounded-ds-md p-3"
+                    style={{
+                      background: "hsl(var(--burnt-sienna) / 0.10)",
+                      border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
+                    }}
+                  >
+                    <span
+                      className="font-serif italic uppercase inline-flex items-center gap-1.5"
+                      style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                    >
+                      <AlertTriangle className="w-3 h-3" />
+                      {disputeStatus === "escalated" ? "Admin reviewing" : "Dispute open"}
+                    </span>
+                    <p
+                      className="font-display italic font-bold leading-tight mt-1"
+                      style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                    >
+                      {disputeStatus === "escalated"
+                        ? "An admin is on it."
+                        : "Both sides are talking it out."}
                     </p>
                     {jobAny.dispute_reason && (
-                      <p className="text-ds-11 text-muted-foreground mt-1">Reason: {jobAny.dispute_reason}</p>
+                      <p
+                        className="font-serif italic mt-1.5"
+                        style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                      >
+                        Reason: {jobAny.dispute_reason}
+                      </p>
                     )}
                     {jobAny.disputed_at && (
-                      <p className="text-[10px] text-muted-foreground mt-1">Filed {formatDistanceToNow(new Date(jobAny.disputed_at), { addSuffix: true })}</p>
+                      <p
+                        className="font-serif italic mt-1"
+                        style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}
+                      >
+                        Filed {formatDistanceToNow(new Date(jobAny.disputed_at), { addSuffix: true })}
+                      </p>
                     )}
                   </div>
 

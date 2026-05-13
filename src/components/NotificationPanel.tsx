@@ -164,9 +164,12 @@ const NotificationPanel = () => {
       <SheetTrigger asChild>
         <NotificationTrigger unreadCount={unreadCount} />
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-[100dvh]">
-        <SheetHeader className="p-4 pb-3 border-b border-border shrink-0">
-          <SheetTitle className="font-display">Notifications</SheetTitle>
+      <SheetContent
+        className="w-full sm:max-w-md p-0 flex flex-col h-[100dvh]"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <SheetHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
+          <SheetTitle className="font-display italic font-bold" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>Notifications</SheetTitle>
           <div className="flex items-center gap-2 pt-1">
             {pushSupported && !pushEnabled && (
               <Button variant="ghost" size="sm" onClick={enablePush} className="text-ds-11 text-primary h-7 px-2">
@@ -185,9 +188,62 @@ const NotificationPanel = () => {
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
           {notifications.length === 0 ? (
-            <div className="text-center py-16 px-4">
-              <Bell className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-ds-11 text-muted-foreground">No notifications yet</p>
+            // Vertically-centered empty state — frosted bell-in-circle +
+            // display-italic + serif-italic copy, matching the dashboard
+            // empty state so the brand reads consistently. Push-enable CTA
+            // surfaces here when the user hasn't opted in yet, replacing
+            // the small inline "Enable push" header button only when the
+            // empty state is showing.
+            <div className="min-h-full flex flex-col items-center justify-center text-center gap-4 px-6 py-8">
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center"
+                style={{
+                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                  backdropFilter: "blur(16px) saturate(150%)",
+                  WebkitBackdropFilter: "blur(16px) saturate(150%)",
+                  border: "1px solid hsla(0, 0%, 100%, 0.7)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                    "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
+                }}
+              >
+                <Bell className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-display-eyebrow">All caught up</span>
+                <p
+                  className="font-display italic font-bold leading-tight"
+                  style={{
+                    fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Nothing new yet.
+                </p>
+                <p
+                  className="font-serif italic text-ds-13 leading-relaxed max-w-xs mx-auto"
+                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                >
+                  Applications, messages, payouts, and job updates will land here as they happen.
+                </p>
+              </div>
+              {pushSupported && !pushEnabled && (
+                <Button
+                  onClick={enablePush}
+                  className="rounded-ds-md mt-1"
+                  style={{
+                    background: "hsl(var(--bark))",
+                    color: "hsl(var(--parchment))",
+                    border: "1px solid hsl(70 22% 24%)",
+                    fontFamily: "Montserrat, system-ui, sans-serif",
+                    fontWeight: 600,
+                  }}
+                >
+                  <BellRing className="w-4 h-4 mr-2" /> Turn on push notifications
+                </Button>
+              )}
             </div>
           ) : (
             <div>
@@ -195,23 +251,53 @@ const NotificationPanel = () => {
                 <button
                   key={n.id}
                   onClick={() => handleClick(n)}
-                  className={`w-full text-left px-4 py-3 border-b border-border hover:bg-secondary/50 transition-colors ${
-                    !n.read ? "bg-primary/5" : ""
-                  }`}
+                  className="w-full text-left px-4 py-3 transition-colors active:opacity-80"
+                  style={{
+                    background: !n.read ? "hsl(var(--burnt-sienna) / 0.06)" : undefined,
+                    borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
+                  }}
                 >
                   <div className="flex gap-3">
-                    <div className="mt-0.5 flex-shrink-0">
+                    <div
+                      className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                      style={{
+                        background: !n.read ? "hsl(var(--burnt-sienna) / 0.12)" : "hsl(var(--bark) / 0.08)",
+                        color: !n.read ? "hsl(var(--burnt-sienna))" : "hsl(var(--bark))",
+                      }}
+                    >
                       {typeIcons[n.type] || typeIcons.info}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className={`text-ds-13 font-medium truncate ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
+                        <p
+                          className="font-display italic font-bold leading-tight truncate"
+                          style={{
+                            fontSize: "0.92rem",
+                            color: !n.read ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
+                            letterSpacing: "-0.012em",
+                          }}
+                        >
                           {n.title}
                         </p>
-                        {!n.read && <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />}
+                        {!n.read && (
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ background: "hsl(var(--burnt-sienna))" }}
+                          />
+                        )}
                       </div>
-                      <p className="text-ds-11 text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                      <p className="text-ds-11 text-muted-foreground/60 mt-1">{timeAgo(n.created_at)}</p>
+                      <p
+                        className="font-serif italic mt-0.5 line-clamp-2"
+                        style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                      >
+                        {n.message}
+                      </p>
+                      <p
+                        className="font-serif italic mt-1"
+                        style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.55)" }}
+                      >
+                        {timeAgo(n.created_at)}
+                      </p>
                     </div>
                   </div>
                 </button>

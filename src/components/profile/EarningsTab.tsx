@@ -24,6 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
+import ProUpgradeSheet from "@/components/ProUpgradeSheet";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -42,19 +44,21 @@ interface PayoutLedgerRow {
   jobs: { title?: string } | null;
 }
 
+// Status pill colors — bark for "in motion/done" states, sienna for
+// "action needed", destructive only for genuine failure.
 const statusColors: Record<string, string> = {
-  open: "bg-primary/10 text-primary",
-  accepted: "bg-accent/20 text-accent-foreground",
-  in_progress: "bg-accent/20 text-accent-foreground",
-  revision_requested: "bg-destructive/10 text-destructive",
-  completed: "bg-secondary text-secondary-foreground",
+  open: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
+  accepted: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
+  in_progress: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
+  revision_requested: "bg-[hsl(var(--gold-warm)/0.16)] text-[hsl(var(--gold-warm))]",
+  completed: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
   cancelled: "bg-destructive/10 text-destructive",
 };
 
 const payoutStatusColors: Record<string, string> = {
-  paid: "bg-primary/10 text-primary",
-  in_transit: "bg-accent/20 text-accent-foreground",
-  pending: "bg-secondary text-secondary-foreground",
+  paid: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
+  in_transit: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
+  pending: "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood))]",
   failed: "bg-destructive/10 text-destructive",
   canceled: "bg-destructive/10 text-destructive",
 };
@@ -97,7 +101,15 @@ const formatDate = (unixSec: number) =>
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { profile } = useCurrentUser();
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  // Instant Payout is a Pro/Elite perk — free helpers see a paywall when
+  // they tap Cash out. Subscription must be active (not expired) to count.
+  const subTier = (profile?.subscription_tier ?? "free") as string;
+  const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
+  const subActive = subExp ? subExp > new Date() : false;
+  const canUseInstantPayout = subActive && (subTier === "pro" || subTier === "elite" || subTier === "basic");
   // Pagination for the earnings-history list. Power helpers with 100+
   // completed jobs were rendering them all; this caps the initial render
   // at PAGE and grows by PAGE on each Load-more tap.
@@ -393,11 +405,29 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                     <div className="flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-primary" />
                       <span className="text-ds-11 font-semibold text-foreground">Instant cash out</span>
+                      {!canUseInstantPayout && (
+                        <span
+                          className="text-[8.5px] font-bold uppercase tracking-wider px-1 py-0.5 rounded-full"
+                          style={{
+                            background: "hsl(var(--burnt-sienna) / 0.14)",
+                            color: "hsl(var(--burnt-sienna))",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
+                          Pro
+                        </span>
+                      )}
                     </div>
                     <p className="text-ds-15 font-bold text-foreground">{formatCents(instantAvailable)}</p>
-                    <p className="text-muted-foreground text-ds-11">~30 min · 3% + $1 fee</p>
+                    <p className="text-muted-foreground text-ds-11">
+                      {canUseInstantPayout ? "~30 min · 3% + $1 fee" : "Subscribe to unlock instant payouts"}
+                    </p>
                   </div>
-                  <Button size="sm" onClick={() => setPayoutDialogOpen(true)} className="h-8 text-ds-11 gap-1.5 shrink-0">
+                  <Button
+                    size="sm"
+                    onClick={() => canUseInstantPayout ? setPayoutDialogOpen(true) : setUpgradeOpen(true)}
+                    className="h-8 text-ds-11 gap-1.5 shrink-0"
+                  >
                     <Zap className="w-3.5 h-3.5" /> Cash out
                   </Button>
                 </div>
@@ -659,6 +689,21 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <strong className="text-muted-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for helprs who exceed $20,000 in gross payments and 200 transactions in a calendar year. Stripe issues these automatically — no action needed.
         </span>
       </p>
+
+      <ProUpgradeSheet
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        icon={Zap}
+        eyebrow="Subscriber perk"
+        title="Cash out instantly."
+        body="Skip the 1–2 business day wait. Subscribed helpers can route earnings to a debit card in about 30 minutes."
+        perks={[
+          "Instant payouts to debit card (~30 min)",
+          "Stripe's standard 3% + $1 fee applies",
+          "Plus every other subscriber perk on your plan",
+        ]}
+        requiredTier="pro"
+      />
 
       <InstantPayoutDialog
         open={payoutDialogOpen}

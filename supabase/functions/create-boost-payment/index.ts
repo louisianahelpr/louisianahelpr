@@ -58,6 +58,46 @@ serve(async (req) => {
       throw new Error("Job is already boosted");
     }
 
+    // Elite-tier perk: free boost. If the caller has an active Elite
+    // subscription, flip the boost flags directly without redirecting
+    // to Stripe Checkout. Returns a `free: true` payload so the client
+    // can show a success toast instead of redirecting.
+    const { data: posterProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("subscription_tier, subscription_expires_at")
+      .eq("user_id", user.id)
+      .single();
+    const subTier = (posterProfile?.subscription_tier ?? "free") as string;
+    const subExp = posterProfile?.subscription_expires_at
+      ? new Date(posterProfile.subscription_expires_at)
+      : null;
+    const subActive = subExp ? subExp > new Date() : false;
+    if (subActive && subTier === "elite") {
+      const boostExpires = new Date(Date.now() + BOOST_DURATION_HOURS * 60 * 60 * 1000);
+      const { error: boostErr } = await supabaseAdmin
+        .from("jobs")
+        .update({
+          boost_expires_at: boostExpires.toISOString(),
+          boosted_at: new Date().toISOString(),
+        })
+        .eq("id", job_id);
+      if (boostErr) {
+        console.error("[create-boost-payment] elite boost flip failed:", boostErr);
+        throw new Error("Failed to apply elite boost");
+      }
+      return new Response(
+        JSON.stringify({
+          free: true,
+          boost_expires_at: boostExpires.toISOString(),
+          message: "Job boosted — included with Elite",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        },
+      );
+    }
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });

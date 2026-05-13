@@ -6,6 +6,7 @@ import {
   ChevronRight as ChevronRightIcon,
   HelpCircle, Bell, AlertTriangle, Heart, Crown,
   ShieldCheck, Trash2,
+  BadgeCheck, ImagePlus,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -19,6 +20,14 @@ interface MenuItem {
   href?: string;
   /** Render a small "Action needed" red dot when true. */
   needsAction?: boolean;
+}
+
+interface ReviewPreview {
+  rating: number;
+  feedback: string | null;
+  created_at: string;
+  reviewerName: string;
+  jobTitle: string;
 }
 
 interface ProfileLandingProps {
@@ -39,6 +48,8 @@ interface ProfileLandingProps {
   onLoadInlineJobs: () => void;
   onRequestDelete: () => void;
   onRequestLogout: () => void;
+  /** Up to 2 most recent reviews surfaced on the hero card. */
+  reviewsPreview?: ReviewPreview[];
 }
 
 export function ProfileLanding({
@@ -59,6 +70,7 @@ export function ProfileLanding({
   onLoadInlineJobs,
   onRequestDelete,
   onRequestLogout,
+  reviewsPreview = [],
 }: ProfileLandingProps) {
   // Derived state — drives "Action needed" dots on menu items so the
   // user sees blockers at a glance without having to navigate into each
@@ -77,6 +89,30 @@ export function ProfileLanding({
       : tier === "pro"
         ? "Pro plan — bump to Elite for max reach"
         : "Free plan — upgrade for more visibility";
+
+  // ─── Portfolio gallery + completion meter ──────────────────────────
+  // portfolio_urls is on profiles (text[]). Gallery shows up to 6 inline
+  // on the landing; tap navigates into Edit Profile to manage. The
+  // completion meter shares the same 6-item checklist as ProfileEditForm
+  // so the % matches between landing and edit views.
+  const portfolioUrls: string[] = ((profile as any)?.portfolio_urls ?? []) as string[];
+  const completionItems = [
+    { label: "Profile photo", done: !!profile?.avatar_url },
+    { label: "Phone", done: !!(profile as any)?.phone },
+    { label: "Location", done: !!profile?.location && !!(profile as any)?.zip_code },
+    { label: "Bio", done: !!profile?.bio && profile.bio.trim().length >= 20 },
+    {
+      label: "ID verified",
+      done:
+        profile?.idv_status === "verified" ||
+        profile?.idv_status === "pending" ||
+        profile?.idv_status === "processing" ||
+        profile?.idv_status === "manual_review",
+    },
+    { label: "Work photos", done: portfolioUrls.length > 0 },
+  ];
+  const completionDone = completionItems.filter((i) => i.done).length;
+  const completionPct = Math.round((completionDone / completionItems.length) * 100);
 
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
@@ -133,40 +169,125 @@ export function ProfileLanding({
         >
           <Edit className="w-4 h-4" />
         </button>
-        <div className="flex flex-row items-center gap-3.5 pr-10">
-          {/* Avatar — 70px squircle, left */}
-          <div className="w-[75px] h-[75px] rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-20 font-bold overflow-hidden shrink-0">
-            {profile?.avatar_url && !avatarBroken ? (
-              <img
-                loading="lazy"
-                decoding="async"
-                src={profile.avatar_url}
-                alt=""
-                className="w-full h-full object-cover"
-                onError={() => setAvatarBroken(true)}
-              />
-            ) : initials}
-          </div>
-          {/* Identity + integrated stats, all stacked tight on the right */}
-          <div className="flex-1 min-w-0 text-left">
-            <h1
-              className="font-display italic font-bold truncate leading-tight"
+        <div className="flex flex-row items-start gap-4 pr-10">
+          {/* Avatar — bumped 75px → 92px so it's a real focal point on this
+              applicant-facing page (was a tiny chip next to a wide name).
+              Tier-styled ring uses gold for elite, accent for pro, primary
+              for everyone else. ID-verified checkmark sits on the bottom-
+              right as a trust signal that's visible at a glance. */}
+          <div className="relative shrink-0">
+            <div
+              className="w-[92px] h-[92px] rounded-[26px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden"
               style={{
-                fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.75rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
+                boxShadow:
+                  tier === "elite"
+                    ? "0 0 0 2.5px hsl(var(--gold-warm))"
+                    : tier === "pro"
+                      ? "0 0 0 2.5px hsl(var(--burnt-sienna))"
+                      : "0 0 0 2px hsl(var(--bark) / 0.18)",
               }}
             >
-              {displayName || "Welcome back"}
-            </h1>
+              {profile?.avatar_url && !avatarBroken ? (
+                <img
+                  loading="lazy"
+                  decoding="async"
+                  src={profile.avatar_url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  onError={() => setAvatarBroken(true)}
+                />
+              ) : initials}
+            </div>
+            {profile?.idv_status === "verified" && (
+              <div
+                aria-label="ID verified"
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
+                style={{
+                  background: "hsl(var(--bark))",
+                  border: "2px solid hsl(var(--parchment))",
+                }}
+              >
+                <BadgeCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
+              </div>
+            )}
+          </div>
+          {/* Identity + tier + stats, all stacked tight on the right */}
+          <div className="flex-1 min-w-0 text-left">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1
+                className="font-display italic font-bold leading-tight"
+                style={{
+                  fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.75rem)",
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.025em",
+                }}
+              >
+                {displayName || "Welcome back"}
+              </h1>
+              {/* Subscription tier badge — only shown when tier is not free.
+                  Pro = sienna, Elite = gold-warm. Small enough not to crowd
+                  the name; visible enough to read as a signal. */}
+              {tier === "pro" && (
+                <span
+                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                  style={{
+                    color: "hsl(var(--burnt-sienna))",
+                    background: "hsl(var(--burnt-sienna) / 0.12)",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  Pro
+                </span>
+              )}
+              {tier === "elite" && (
+                <span
+                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                  style={{
+                    color: "hsl(var(--gold-warm))",
+                    background: "hsl(var(--gold-warm) / 0.14)",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  <Crown className="w-2.5 h-2.5" /> Elite
+                </span>
+              )}
+            </div>
             {profile?.location && (
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+              <p className="text-ds-11 text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
                 <MapPin className="w-3 h-3 shrink-0" />
                 <span className="truncate">{profile.location}</span>
+                {profile?.created_at && (
+                  <>
+                    <span className="opacity-50">·</span>
+                    <span className="truncate">Since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+                  </>
+                )}
               </p>
             )}
-            {/* Integrated stats — single inline line directly under location */}
-            <div className="flex items-center gap-3 mt-1.5 text-[11px]">
+            {/* Trust badges — id verified / licensed / insured. Quiet pills
+                so they read as proof, not advertising. Missing items render
+                in muted gray so the user notices the gap. */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              {([
+                { ok: profile?.idv_status === "verified", label: "ID verified" },
+                { ok: (profile as any)?.license_status === "verified", label: "Licensed" },
+                { ok: (profile as any)?.insurance_status === "verified", label: "Insured" },
+              ]).map((b) => (
+                <span
+                  key={b.label}
+                  className={`inline-flex items-center gap-1 text-ds-9 font-sans font-medium px-1.5 py-0.5 rounded-full ${
+                    b.ok
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted/60 text-muted-foreground/70"
+                  }`}
+                >
+                  {b.ok ? <BadgeCheck className="w-2.5 h-2.5" /> : <span className="w-2.5 h-2.5 rounded-full border border-current" />}
+                  {b.label}
+                </span>
+              ))}
+            </div>
+            {/* Integrated stats — single inline line directly under badges */}
+            <div className="flex items-center gap-3 mt-2 text-ds-11">
               <button
                 onClick={() => onSelectTab("reviews")}
                 className="flex items-center gap-1 hover:opacity-70 active:opacity-50 transition-opacity"
@@ -195,13 +316,190 @@ export function ProfileLanding({
             {!profile?.full_name?.trim() && (
               <button
                 onClick={() => onSelectTab("profile")}
-                className="mt-1 text-[11px] font-semibold text-primary hover:underline"
+                className="mt-1.5 text-ds-11 font-semibold text-primary hover:underline"
               >
                 + Add your name
               </button>
             )}
           </div>
         </div>
+        {/* Bio excerpt — surfaces the user's pitch on the landing page,
+            since this is what applicants see when deciding whether to apply.
+            Empty state nudges the user to write one (it's the single
+            highest-leverage thing a helper can do for visibility). */}
+        <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+          {profile?.bio?.trim() ? (
+            <p
+              className="font-serif italic text-ds-13 leading-snug line-clamp-3"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              {profile.bio}
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onSelectTab("profile")}
+              className="w-full text-left font-serif italic text-ds-13 leading-snug active:opacity-70 transition-opacity"
+              style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+            >+ Add a short bio so applicants know who they're hiring.</button>
+          )}
+        </div>
+        {/* Work portfolio gallery — up to 6 photos of previous work shown
+            in a horizontal scroll. Applicants browse this to decide who to
+            hire. Tap a photo to open the full-size lightbox. Empty state
+            nudges helpers to upload (biggest single conversion lever). */}
+        {portfolioUrls.length > 0 ? (
+          <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+            <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Recent work
+            </p>
+            <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1">
+              {portfolioUrls.slice(0, 6).map((url, i) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => onSelectTab("profile")}
+                  className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform"
+                  aria-label={`Work sample ${i + 1}`}
+                >
+                  <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onSelectTab("profile")}
+            className="mt-3 pt-3 w-full text-left flex items-center justify-between gap-3 active:opacity-70 transition-opacity"
+            style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
+          >
+            <div className="min-w-0">
+              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                Recent work
+              </p>
+              <p className="font-serif italic text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                Add photos of previous jobs so applicants can see your work.
+              </p>
+            </div>
+            <span className="text-ds-11 font-semibold shrink-0" style={{ color: "hsl(var(--bark))" }}>
+              + Add photos
+            </span>
+          </button>
+        )}
+        {/* Recent reviews preview — up to 2 most recent reviews shown
+            inline as social proof. Tap any card to open the full
+            reviews tab. Hides entirely when the user has no reviews
+            (the avgRating stat above already conveys that state). */}
+        {reviewsPreview.length > 0 && (
+          <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                Recent reviews
+              </p>
+              <button
+                type="button"
+                onClick={() => onSelectTab("reviews")}
+                className="text-ds-11 font-semibold active:opacity-70"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                See all →
+              </button>
+            </div>
+            <div className="space-y-2">
+              {reviewsPreview.map((r, i) => {
+                const days = Math.max(
+                  0,
+                  Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000),
+                );
+                const when =
+                  days < 1 ? "today" :
+                  days < 7 ? `${days}d ago` :
+                  days < 30 ? `${Math.floor(days / 7)}w ago` :
+                  days < 365 ? `${Math.floor(days / 30)}mo ago` :
+                  `${Math.floor(days / 365)}y ago`;
+                return (
+                  <button
+                    key={`${r.created_at}-${i}`}
+                    type="button"
+                    onClick={() => onSelectTab("reviews")}
+                    className="w-full text-left rounded-xl p-2.5 active:scale-[0.99] active:opacity-80 transition-all"
+                    style={{
+                      background: "hsla(0, 0%, 100%, 0.55)",
+                      border: "1px solid hsl(var(--olivewood) / 0.10)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            className="w-3 h-3"
+                            style={{
+                              color: n <= r.rating ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
+                              fill: n <= r.rating ? "hsl(var(--burnt-sienna))" : "transparent",
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-ds-11 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {r.reviewerName}
+                      </span>
+                      <span className="text-ds-10 text-muted-foreground shrink-0">· {when}</span>
+                    </div>
+                    {r.feedback?.trim() ? (
+                      <p
+                        className="font-serif italic text-ds-12 leading-snug line-clamp-2"
+                        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                      >
+                        "{r.feedback}"
+                      </p>
+                    ) : (
+                      <p
+                        className="font-serif italic text-ds-11 leading-snug"
+                        style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                      >
+                        {r.jobTitle}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {/* Completion meter — quiet horizontal bar at the bottom of the
+            hero. Disappears at 100% to remove the nag once the user is
+            fully set up. */}
+        {completionPct < 100 && (
+          <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                {completionPct}% complete
+              </span>
+              <button
+                type="button"
+                onClick={() => onSelectTab("profile")}
+                className="text-ds-11 font-semibold active:opacity-70"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                {completionItems.find((i) => !i.done)?.label} →
+              </button>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${completionPct}%`,
+                  background:
+                    completionPct >= 66
+                      ? "hsl(var(--bark) / 0.85)"
+                      : "hsl(var(--burnt-sienna) / 0.75)",
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom box — menu groups + account actions. Extends
@@ -209,7 +507,7 @@ export function ProfileLanding({
           handles vertical scroll (scrollable=true on landing),
           so this card just stacks naturally. */}
       <div
-        className="liquid-glass min-h-[60vh]"
+        className="liquid-glass"
         style={{
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
@@ -323,21 +621,32 @@ export function ProfileLanding({
             })()}
           </div>
 
-          {/* Account actions — compact pair */}
-          <div className="pt-1 grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={onRequestDelete}
-              className="rounded-[20px] bg-destructive/10 border border-destructive/40 hover:bg-destructive/15 hover:border-destructive/60 py-3 inline-flex items-center justify-center gap-2 text-ds-13 font-semibold text-destructive shadow-[0_1px_2px_hsl(0_60%_30%/0.06),0_8px_28px_-12px_hsl(0_60%_30%/0.18)] active:opacity-90 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" /> Delete
-            </button>
+          {/* Account actions — iOS Settings-style stacked footer.
+              Sign out is the primary affordance (centered, prominent,
+              brand bark text). Delete account is a small ghost link
+              tucked beneath it in destructive-muted — important enough
+              to find, quiet enough not to compete with sign-out. The
+              old side-by-side equal-weight pair encouraged accidental
+              destructive taps. */}
+          <div className="pt-2 space-y-2">
             <button
               type="button"
               onClick={onRequestLogout}
-              className="rounded-[20px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-3 inline-flex items-center justify-center gap-2 text-ds-13 font-semibold text-foreground hover:bg-secondary/40 active:bg-secondary/60 transition-colors"
+              className="w-full rounded-[20px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary/60 transition-all"
+              style={{
+                color: "hsl(var(--bark))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+              }}
             >
               <LogOut className="w-4 h-4" /> Sign out
+            </button>
+            <button
+              type="button"
+              onClick={onRequestDelete}
+              className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 text-ds-11 font-sans font-medium text-destructive/80 hover:text-destructive active:opacity-70 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Delete account
             </button>
           </div>
         </div>

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Crown, CheckCircle, Loader2, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles, Star } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -11,38 +12,59 @@ import { useQueryClient } from "@tanstack/react-query";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-const tierConfig = [
+type TierIconName = "star" | "sparkles" | "crown";
+
+const tierConfig: Array<{
+  id: string;
+  name: string;
+  iconName: TierIconName;
+  forWhom: string;
+  monthly: string;
+  annual: string;
+  oneTime: string;
+  annualSave: string;
+  features: string[];
+}> = [
   {
     id: "basic",
     name: "Basic",
-    badge: "⭐",
+    iconName: "star",
+    forWhom: "For casual side-hustlers",
     monthly: "$5/mo",
     annual: "$50/yr",
     oneTime: "$5 one-time",
     annualSave: "Save 17%",
-    features: ["Helpr Badge", "Search Priority", "5-min Early Access"],
+    features: ["Helpr Badge", "Instant Payouts", "Search Priority", "5-min Early Access"],
   },
   {
     id: "pro",
     name: "Pro",
-    badge: "🔥",
+    iconName: "sparkles",
+    forWhom: "For active helpers landing 2+ jobs/week",
     monthly: "$10/mo",
     annual: "$100/yr",
     oneTime: "$10 one-time",
     annualSave: "Save 17%",
-    features: ["Everything in Basic", "Boosted Visibility", "Portfolio Showcase", "10-min Early Access"],
+    features: ["Everything in Basic", "Instant Payouts", "Portfolio Showcase", "10-min Early Access"],
   },
   {
     id: "elite",
     name: "Elite",
-    badge: "💎",
+    iconName: "crown",
+    forWhom: "For pro contractors who want max reach",
     monthly: "$15/mo",
     annual: "$150/yr",
     oneTime: "$15 one-time",
     annualSave: "Save 17%",
-    features: ["Everything in Pro", "Landing Spotlight", "Auto-Match", "20-min Early Access"],
+    features: ["Everything in Pro", "Free Job Boosts", "Landing Spotlight", "Auto-Match", "20-min Early Access"],
   },
 ];
+
+const TierIcon = ({ name, className, style }: { name: TierIconName; className?: string; style?: React.CSSProperties }) => {
+  if (name === "star") return <Star className={className} style={style} strokeWidth={2} />;
+  if (name === "sparkles") return <Sparkles className={className} style={style} strokeWidth={2} />;
+  return <Crown className={className} style={style} strokeWidth={2} />;
+};
 
 export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Profile | null; user: User | null; onBack: () => void }) => {
   const [loadingPortal, setLoadingPortal] = useState(false);
@@ -73,7 +95,23 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     }
   };
 
+  // Cancellation drag — intercept Manage Subscription with a quick
+  // "why leave" survey before opening the Stripe portal. Surfaces a
+  // brand-friendly retention prompt that's lower-friction than the
+  // default Stripe portal cancellation flow.
+  const [cancelSurveyOpen, setCancelSurveyOpen] = useState(false);
+
   const handleManageSubscription = async () => {
+    // For actively subscribed users, route through the survey first.
+    // Free/expired users go straight to portal (no subscription to manage).
+    if (currentTier && !isExpired) {
+      setCancelSurveyOpen(true);
+      return;
+    }
+    void openStripePortal();
+  };
+
+  const openStripePortal = async () => {
     setLoadingPortal(true);
     try {
       const { data, error } = await supabase.functions.invoke("pro-customer-portal");
@@ -113,6 +151,9 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     return null;
   };
 
+  // Currently-subscribed users get a hero "Your plan" card on top — the
+  // tier cards below reframe as "change to" rather than the main pitch.
+  const activeTierConfig = currentTier && !isExpired ? tierConfig.find((t) => t.id === currentTier.toLowerCase()) : null;
   return (
     <div className="space-y-5 pb-24">
       <ProfileTabHeader
@@ -122,54 +163,190 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         onBack={onBack}
       />
 
-      {/* Billing cycle pills */}
+      {/* Current plan hero — only renders when the user is actively
+          subscribed. Bigger, warmer surface that confirms what they're
+          paying for; tier cards below become "change to" options. */}
+      {activeTierConfig && (
+        <div
+          className="rounded-2xl p-5 relative overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 55%), " +
+              "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.12) 0%, transparent 60%), " +
+              "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.78) 100%)",
+            border: "0.5px solid hsl(var(--bark) / 0.22)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+              "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22), " +
+              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+              "0 14px 30px -8px hsl(var(--olivewood) / 0.14)",
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <span
+              className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
+              style={{
+                background:
+                  activeTierConfig.id === "elite"
+                    ? "hsl(var(--gold-warm) / 0.18)"
+                    : activeTierConfig.id === "pro"
+                      ? "hsl(var(--burnt-sienna) / 0.14)"
+                      : "hsl(var(--bark) / 0.12)",
+                color:
+                  activeTierConfig.id === "elite"
+                    ? "hsl(var(--gold-warm))"
+                    : activeTierConfig.id === "pro"
+                      ? "hsl(var(--burnt-sienna))"
+                      : "hsl(var(--bark))",
+              }}
+            >
+              <TierIcon name={activeTierConfig.iconName} className="w-5 h-5" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <span
+                className="font-serif italic uppercase"
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Your plan
+              </span>
+              <h2
+                className="font-display italic font-bold leading-tight mt-0.5"
+                style={{ fontSize: "1.45rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+              >
+                {activeTierConfig.name}.
+              </h2>
+              {expiresAt && (
+                <p
+                  className="font-serif italic mt-1"
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                >
+                  Renews{" "}
+                  <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                    {expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <Button
+              onClick={handleManageSubscription}
+              disabled={loadingPortal}
+              variant="outline"
+              className="rounded-ds-md"
+            >
+              {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Crown className="w-4 h-4 mr-2" />}
+              Manage
+            </Button>
+            <Button
+              onClick={refreshSubscription}
+              disabled={refreshing}
+              variant="ghost"
+              className="rounded-ds-md font-sans font-semibold"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Billing cycle pills — Annual carries the save badge inline so the
+          cheapest option is the most visually inviting one. */}
       <div className="flex items-center gap-1 rounded-2xl liquid-glass p-1.5">
         {([
           { key: "one_time" as const, label: "Once" },
           { key: "monthly" as const, label: "Monthly" },
-          { key: "annual" as const, label: "Annual" },
+          { key: "annual" as const, label: "Annual", save: "−17%" },
         ]).map((opt) => {
           const active = billingInterval === opt.key;
           return (
             <button
               key={opt.key}
               onClick={() => setBillingInterval(opt.key)}
-              className={`flex-1 px-3 h-9 rounded-ds-md text-ds-13 font-semibold transition-all ${
+              className={`flex-1 px-3 h-9 rounded-ds-md text-ds-13 font-semibold transition-all inline-flex items-center justify-center gap-1.5 ${
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {opt.label}
+              {opt.save && (
+                <span
+                  className={`text-[9px] font-bold tracking-wider px-1 py-0.5 rounded ${
+                    active
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-burnt-sienna-soft"
+                  }`}
+                  style={
+                    !active
+                      ? {
+                          background: "hsl(var(--burnt-sienna) / 0.14)",
+                          color: "hsl(var(--burnt-sienna))",
+                          letterSpacing: "0.06em",
+                        }
+                      : { letterSpacing: "0.06em" }
+                  }
+                >
+                  {opt.save}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      {currentTier && !isExpired && (
-        <div className="flex gap-2">
-          <Button onClick={handleManageSubscription} disabled={loadingPortal} variant="outline" className="flex-1 h-10">
-            {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Crown className="w-4 h-4 mr-2 text-primary" />}
-            Manage subscription
-          </Button>
-          <Button onClick={refreshSubscription} disabled={refreshing} variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="Refresh">
-            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-          </Button>
+      {/* Manage row used to live here — now consolidated into the
+          "Your plan" hero above when actively subscribed. */}
+
+      {/* Lock-in rate pill — only shown when annual is the chosen cycle.
+          Concrete commitment hook: "lock in current pricing for a year". */}
+      {billingInterval === "annual" && (
+        <div
+          className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+          style={{
+            background: "hsl(var(--gold-warm) / 0.10)",
+            border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+          }}
+        >
+          <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
+          <p
+            className="font-serif italic leading-snug"
+            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+              Lock in {new Date().getFullYear()} pricing.
+            </span>{" "}
+            Annual rates are guaranteed for the full year, no matter what we change later.
+          </p>
         </div>
       )}
 
-      {/* Tier cards — compact so all 3 fit in a single viewport on iPhone
-          (no scroll). Editorial sizing kept; just trimmed padding +
-          font-sizes + gaps from the breathable original. */}
+      {/* Tier cards — single-row compact layout so all 3 tiers fit in
+          one iPhone viewport without scrolling, for every billing cycle.
+          Row layout: [icon] [name + forWhom + feature dots] [price + CTA]. */}
       <div className="space-y-2">
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
           const saveBadge = getSaveBadge(tier);
           const isPro = tier.id === "pro";
+          const accent =
+            tier.id === "elite"
+              ? "hsl(var(--gold-warm))"
+              : tier.id === "pro"
+                ? "hsl(var(--burnt-sienna))"
+                : "hsl(var(--bark))";
+          const accentSoft =
+            tier.id === "elite"
+              ? "hsl(var(--gold-warm) / 0.14)"
+              : tier.id === "pro"
+                ? "hsl(var(--burnt-sienna) / 0.12)"
+                : "hsl(var(--bark) / 0.10)";
           return (
             <div
               key={tier.id}
-              className={`relative rounded-2xl p-3.5 ${
+              className={`relative rounded-2xl px-3 py-2.5 ${
                 isPro
                   ? "liquid-glass border-2 border-primary/40 shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.25)]"
                   : "liquid-glass"
@@ -177,66 +354,213 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             >
               {isPro && (
                 <span
-                  className="absolute -top-2 left-4 text-[9px] uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap"
+                  className="absolute -top-2 left-3 text-[9px] uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap"
                   style={{ letterSpacing: "0.18em" }}
                 >
                   Most popular
                 </span>
               )}
 
-              <div className="flex items-start justify-between gap-2.5 mb-2">
+              <div className="flex items-center gap-3">
+                {/* Icon — smaller (w-8) to free vertical space */}
+                <span
+                  className="shrink-0 w-8 h-8 rounded-ds-md flex items-center justify-center"
+                  style={{ background: accentSoft, color: accent }}
+                >
+                  <TierIcon name={tier.iconName} className="w-4 h-4" />
+                </span>
+
+                {/* Name + forWhom on one line + features dot row underneath.
+                    Keeps the card to ~2 lines of text instead of the
+                    previous 5-line bulleted block. */}
                 <div className="min-w-0 flex-1">
-                  <p className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                    {tier.id === "basic" ? "Entry" : tier.id === "pro" ? "Recommended" : "Top tier"}
-                  </p>
-                  <h3 className="font-display italic font-bold leading-tight flex items-center gap-2 flex-wrap" style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-                    <span className="not-italic">{tier.badge}</span> {tier.name}
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <h3
+                      className="font-display italic font-bold leading-none"
+                      style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
+                    >
+                      {tier.name}
+                    </h3>
                     {isActive && (
                       <span className="text-[9px] not-italic font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
                         <CheckCircle className="w-2.5 h-2.5" /> Current
                       </span>
                     )}
-                  </h3>
+                    <span
+                      className="font-serif italic truncate"
+                      style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                    >
+                      {tier.forWhom}
+                    </span>
+                  </div>
+                  {/* Features as inline dots — one line, truncated if
+                      necessary. Drops "Everything in X" prefixes since
+                      the visual stacking already conveys ascending tier. */}
+                  <p
+                    className="font-serif italic mt-0.5 truncate"
+                    style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  >
+                    {tier.features
+                      .filter((f) => !/^Everything in/i.test(f))
+                      .join(" · ")}
+                  </p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.2rem", color: "hsl(var(--primary))", letterSpacing: "-0.02em" }}>
+
+                {/* Price + CTA on the right edge */}
+                <div className="shrink-0 flex flex-col items-end gap-1">
+                  <p
+                    className="font-display italic font-bold tabular-nums leading-none"
+                    style={{ fontSize: "1rem", color: accent, letterSpacing: "-0.02em" }}
+                  >
                     {getPrice(tier)}
                   </p>
                   {saveBadge && (
-                    <span className="inline-block mt-0.5 text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-primary/10 text-primary">
+                    <span
+                      className="text-[8.5px] px-1 py-px rounded-full font-bold"
+                      style={{ background: accentSoft, color: accent, letterSpacing: "0.06em" }}
+                    >
                       {saveBadge}
                     </span>
                   )}
+                  {!isActive && (
+                    <button
+                      onClick={() =>
+                        currentTier && !isExpired
+                          ? handleManageSubscription()
+                          : handleSubscribe(tier.id)
+                      }
+                      disabled={loadingCheckout === tier.id || loadingPortal}
+                      className="inline-flex items-center justify-center gap-1 px-2.5 h-7 rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96] disabled:opacity-60"
+                      style={
+                        isPro
+                          ? {
+                              background: "hsl(var(--bark))",
+                              color: "hsl(var(--parchment))",
+                              border: "1px solid hsl(70 22% 24%)",
+                              boxShadow:
+                                "inset 0 1px 0 0 rgba(255,255,255,0.12), 0 4px 10px -3px hsl(var(--bark) / 0.45)",
+                            }
+                          : {
+                              background: "hsla(0, 0%, 100%, 0.55)",
+                              color: "hsl(var(--ink-deep))",
+                              border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                            }
+                      }
+                    >
+                      {(loadingCheckout === tier.id || loadingPortal) && (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      )}
+                      {currentTier && !isExpired
+                        ? "Change"
+                        : billingInterval === "one_time"
+                          ? "Buy"
+                          : "Subscribe"}
+                    </button>
+                  )}
                 </div>
               </div>
-
-              <ul className="space-y-0.5 mb-2.5">
-                {tier.features.map((f) => (
-                  <li key={f} className="font-serif italic flex items-start gap-1.5" style={{ fontSize: "0.75rem", color: "hsl(var(--ink-deep))" }}>
-                    <CheckCircle className="w-3 h-3 shrink-0 mt-0.5 text-primary" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {!isActive && (
-                <button
-                  onClick={() => currentTier && !isExpired ? handleManageSubscription() : handleSubscribe(tier.id)}
-                  disabled={loadingCheckout === tier.id || loadingPortal}
-                  className={`w-full px-3 h-9 rounded-ds-md font-bold text-ds-11 transition-all flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.97] ${
-                    isPro
-                      ? "bg-gradient-to-b from-primary to-primary/85 text-primary-foreground shadow-[0_4px_14px_-2px_hsl(var(--primary)/0.4),inset_0_1px_0_hsl(var(--primary-foreground)/0.25)] hover:shadow-[0_6px_18px_-2px_hsl(var(--primary)/0.5),inset_0_1px_0_hsl(var(--primary-foreground)/0.25)] border border-primary/40"
-                      : "liquid-glass text-foreground hover:bg-secondary/40 border border-border"
-                  }`}
-                >
-                  {(loadingCheckout === tier.id || loadingPortal) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {currentTier && !isExpired ? "Change to this plan" : billingInterval === "one_time" ? `Buy ${tier.name}` : `Subscribe to ${tier.name}`}
-                </button>
-              )}
             </div>
           );
         })}
       </div>
+
+      {/* Cancellation drag survey — gentle "are you sure" with a stay
+          offer before Stripe portal opens. Reduces churn at the
+          moment of intent, before the user has committed to leaving. */}
+      <Dialog open={cancelSurveyOpen} onOpenChange={setCancelSurveyOpen}>
+        <DialogContent className="!gap-3">
+          <DialogHeader className="!text-left space-y-0">
+            <span
+              className="font-serif italic uppercase inline-flex items-center gap-1.5"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              Before you go
+            </span>
+            <DialogTitle
+              className="font-display italic font-bold leading-tight mt-1"
+              style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+            >
+              Thinking of cancelling?
+            </DialogTitle>
+            <p
+              className="font-serif italic mt-1"
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+            >
+              Quick — what's holding you back? It helps us improve, and we might be able to fix it.
+            </p>
+          </DialogHeader>
+          <div className="space-y-2">
+            {[
+              "Too expensive",
+              "Not enough jobs match me",
+              "Took a break — coming back later",
+              "Different reason — just managing my plan",
+            ].map((reason) => (
+              <button
+                key={reason}
+                type="button"
+                onClick={async () => {
+                  // Log the reason via Slack alert so retention has signal.
+                  // Fire-and-forget; the portal redirect doesn't wait.
+                  try {
+                    const { fireSlackAlert } = await import("@/lib/slackAlerts");
+                    fireSlackAlert({
+                      kind: "custom",
+                      severity: "info",
+                      title: "Subscription cancel-intent",
+                      message: `User indicated reason: ${reason}`,
+                      fields: { tier: currentTier ?? "unknown", reason },
+                    });
+                  } catch { /* analytics is best-effort */ }
+                  setCancelSurveyOpen(false);
+                  void openStripePortal();
+                }}
+                className="w-full text-left px-4 py-3 rounded-ds-md transition-all active:scale-[0.99]"
+                style={{
+                  background: "hsla(0, 0%, 100%, 0.55)",
+                  border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                  color: "hsl(var(--ink-deep))",
+                  fontFamily: "Bodoni Moda, Garamond, serif",
+                  fontStyle: "italic",
+                  fontSize: "0.92rem",
+                }}
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
+          <div
+            className="rounded-ds-md p-3 mt-1"
+            style={{
+              background: "hsl(var(--gold-warm) / 0.10)",
+              border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+            }}
+          >
+            <p
+              className="font-serif italic leading-snug"
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                Reach out before you cancel.
+              </span>{" "}
+              Email{" "}
+              <a
+                href="mailto:hello@louisianahelpr.com?subject=Considering cancelling — can we help?"
+                className="underline"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                hello@louisianahelpr.com
+              </a>{" "}
+              and we'll see what we can do — including discounted retention rates.
+            </p>
+          </div>
+          <DialogFooter className="!gap-2">
+            <Button variant="ghost" onClick={() => setCancelSurveyOpen(false)} className="rounded-ds-md">
+              Never mind
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

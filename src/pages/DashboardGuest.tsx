@@ -84,6 +84,9 @@ const DashboardGuest = () => {
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
       );
+      const avatarMap = new Map<string, string | null>(
+        profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
+      );
       const reviewStatsMap = new Map<string, { count: number; avg: number }>();
       for (const r of reviewsRes.data ?? []) {
         const existing = reviewStatsMap.get(r.reviewee_id);
@@ -104,6 +107,7 @@ const DashboardGuest = () => {
           return {
             ...j,
             posterName: nameMap.get(j.customer_id) || "User",
+            posterAvatarUrl: avatarMap.get(j.customer_id) ?? null,
             posterReviewCount: stats?.count ?? 0,
             posterAvgRating: stats?.avg ?? 0,
             posterCompletedJobs: 0,
@@ -220,7 +224,8 @@ const DashboardGuest = () => {
               size="sm"
               variant="ghost"
               onClick={() => navigate("/login")}
-              className="text-ds-11 h-11 rounded-ds-md"
+              className="text-ds-11 h-11 rounded-ds-md font-sans font-semibold"
+              style={{ color: "hsl(var(--ink-deep))" }}
             >
               Log in
             </Button>
@@ -228,6 +233,16 @@ const DashboardGuest = () => {
               size="sm"
               onClick={() => navigate("/signup")}
               className="text-ds-11 h-11 rounded-ds-md"
+              style={{
+                background: "hsl(var(--bark))",
+                backgroundImage: "none",
+                border: "1px solid hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                letterSpacing: "0.01em",
+                boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -6px hsl(var(--bark) / 0.32)",
+              }}
             >
               Sign up
             </Button>

@@ -153,7 +153,7 @@ export const PostedJobsTab = ({
     return (
             <div
               key={job.id}
-              className={`group rounded-2xl border border-border/50 bg-card overflow-hidden relative shadow-sm hover:shadow-md hover:border-primary/25 transition-all duration-200 ${isFullyCompleted ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
+              className={`group rounded-2xl liquid-glass overflow-hidden relative hover:shadow-md transition-all duration-200 ${isFullyCompleted ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
               onClick={isFullyCompleted ? () => setExpandedJobId(isExpanded ? null : job.id) : undefined}
               {...(isFullyCompleted && {
                 role: "button",
@@ -167,12 +167,31 @@ export const PostedJobsTab = ({
                 },
               })}
             >
-              {/* Top bar */}
-              <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">
-                <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${catStyle.title}`}>{job.title}</h3>
+              {/* Top bar — brand-aligned title + payout chip. Uses
+                  font-display italic to match the rest of the app's job
+                  surfaces (detail dialog, card, profile). */}
+              <div
+                className="w-full px-4 py-2.5 flex items-center justify-between text-left"
+                style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+              >
+                <h3
+                  className="font-display italic font-bold leading-snug truncate min-w-0"
+                  style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                >
+                  {job.title}
+                </h3>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
-                  <span className="flex items-center gap-0.5 font-semibold text-primary text-ds-13 bg-primary/8 px-2 py-0.5 rounded-full"><DollarSign className="w-3.5 h-3.5" />{job.budget}</span>
-                  
+                  <span
+                    className="inline-flex items-center gap-0.5 font-display italic font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-full"
+                    style={{
+                      background: "hsl(var(--burnt-sienna) / 0.10)",
+                      color: "hsl(var(--burnt-sienna))",
+                      letterSpacing: "-0.015em",
+                    }}
+                  >
+                    <DollarSign className="w-3.5 h-3.5" strokeWidth={2.25} />
+                    {job.budget}
+                  </span>
                 </div>
               </div>
 
@@ -397,13 +416,46 @@ export const PostedJobsTab = ({
                 {/* Actions */}
                 <div className="border-t border-border/30 bg-muted/8 px-4 py-3">
                   <div className="space-y-2">
-                    {job.status === "open" && (
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onBoost(job.id)}><Rocket className="w-4 h-4 mr-1" /> Boost</Button>
-                        <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                        <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
-                      </div>
-                    )}
+                    {job.status === "open" && (() => {
+                      // Boost cooldown — show when the job is currently
+                      // boosted so the poster knows the boost is running
+                      // and when they can re-boost (after expiry).
+                      const boostExp = (job as any).boost_expires_at
+                        ? new Date((job as any).boost_expires_at)
+                        : null;
+                      const isBoosted = boostExp && boostExp > new Date();
+                      return (
+                      <>
+                        {isBoosted && (
+                          <div
+                            className="rounded-ds-md px-3 py-2 mb-2 flex items-center gap-2"
+                            style={{
+                              background: "hsl(var(--gold-warm) / 0.10)",
+                              border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+                            }}
+                          >
+                            <Rocket className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
+                            <p
+                              className="font-serif italic leading-snug"
+                              style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                            >
+                              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                                Boosted until {boostExp.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}.
+                              </span>{" "}
+                              Re-boost available after expiry.
+                            </p>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" disabled={!!isBoosted} onClick={() => onBoost(job.id)}>
+                            <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
+                          </Button>
+                          <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                          <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                        </div>
+                      </>
+                      );
+                    })()}
                     {job.status === "accepted" && (
                       <div className="space-y-2">
                         <p className="text-ds-11 text-muted-foreground text-center">
@@ -484,8 +536,28 @@ export const PostedJobsTab = ({
                         )}
                         {/* Approve & Complete (primary) — only after helper marks done */}
                         {(job as any).helper_completed_at && (
-                          <Button size="sm" className="w-full" onClick={() => onComplete(job.id)} disabled={completingJobId === job.id || !!(job as any).poster_completed_at}>
-                            <CheckCircle2 className="w-4 h-4 mr-1" />{completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Approved ✓" : "Approve & Complete"}
+                          <Button
+                            size="sm"
+                            className="w-full rounded-ds-md"
+                            onClick={() => onComplete(job.id)}
+                            disabled={completingJobId === job.id || !!(job as any).poster_completed_at}
+                            style={
+                              !(job as any).poster_completed_at
+                                ? {
+                                    background: "hsl(var(--bark))",
+                                    backgroundImage: "none",
+                                    border: "1px solid hsl(var(--bark))",
+                                    color: "hsl(var(--parchment))",
+                                    fontFamily: "Montserrat, system-ui, sans-serif",
+                                    fontWeight: 600,
+                                    letterSpacing: "0.01em",
+                                    boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                                  }
+                                : undefined
+                            }
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            {completingJobId === job.id ? "…" : (job as any).poster_completed_at ? "Approved ✓" : "Approve & release payment"}
                           </Button>
                         )}
                         {/* Message — primary action while work is in progress */}
@@ -547,9 +619,33 @@ export const PostedJobsTab = ({
                               </Button>
                             )
                           )}
-                          <Button size="sm" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
-                            <RotateCcw className="w-4 h-4 mr-1" /> Rebook
-                          </Button>
+                          {/* Hire again — direct offer to the same helper.
+                              Routes to PostJob with offerTo + rebook query so
+                              the form is prefilled AND the offer goes straight
+                              to them (skipping the open-application queue). */}
+                          {job.helper_id ? (
+                            <Button
+                              size="sm"
+                              className="w-full rounded-ds-md"
+                              onClick={() => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`)}
+                              style={{
+                                background: "hsl(var(--bark))",
+                                backgroundImage: "none",
+                                border: "1px solid hsl(var(--bark))",
+                                color: "hsl(var(--parchment))",
+                                fontFamily: "Montserrat, system-ui, sans-serif",
+                                fontWeight: 600,
+                                letterSpacing: "0.01em",
+                                boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -4px hsl(var(--bark) / 0.30)",
+                              }}
+                            >
+                              <RotateCcw className="w-4 h-4 mr-1" /> Hire {helperName} again
+                            </Button>
+                          ) : (
+                            <Button size="sm" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
+                              <RotateCcw className="w-4 h-4 mr-1" /> Rebook this task
+                            </Button>
+                          )}
                           {!(job as any).poster_completed_at && (
                             <>
                               {(job as any).revision_requested_at ? (
@@ -681,20 +777,115 @@ export const PostedJobsTab = ({
               </div>
             ) : (
               <div className="space-y-3 max-w-lg mx-auto">
-                {applications.map((app) => (
+                {applications.map((app) => {
+                  const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
+                  const isElite = helperTier === "elite";
+                  const isPro = helperTier === "pro";
+                  const haloColor = isElite
+                    ? "hsl(var(--gold-warm))"
+                    : isPro
+                      ? "hsl(var(--burnt-sienna))"
+                      : null;
+                  const helperName = formatName(app.profiles?.full_name, "Helpr");
+                  const helperInitials = helperName
+                    .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+                  return (
                   <div key={app.id} className="p-4 rounded-ds-md liquid-glass space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Avatar with Pro/Elite halo ring — gold for Elite,
+                          sienna for Pro, no ring for free helpers. Makes
+                          subscribed applicants pop in the poster's review. */}
+                      <a
+                        href={`/user/${app.helper_id}`}
+                        className="shrink-0 w-11 h-11 rounded-full overflow-hidden inline-flex items-center justify-center"
+                        style={{
+                          background: "hsl(var(--bark) / 0.12)",
+                          boxShadow: haloColor
+                            ? `0 0 0 2.5px ${haloColor}`
+                            : "0 0 0 1px hsl(var(--olivewood) / 0.18)",
+                        }}
+                      >
+                        {app.profiles?.avatar_url ? (
+                          <img
+                            loading="lazy"
+                            decoding="async"
+                            src={app.profiles.avatar_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="font-display italic font-bold text-[0.85rem]" style={{ color: "hsl(var(--bark))" }}>
+                            {helperInitials}
+                          </span>
+                        )}
+                      </a>
                       <div className="flex-1 min-w-0">
-                        <a href={`/user/${app.helper_id}`} className="font-medium text-primary hover:underline">{formatName(app.profiles?.full_name, "Helpr")}</a>
-                        {app.profiles?.skills && <p className="text-ds-11 text-muted-foreground mt-0.5">{app.profiles.skills}</p>}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <a
+                            href={`/user/${app.helper_id}`}
+                            className="font-display italic font-bold truncate hover:underline"
+                            style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                          >
+                            {helperName}
+                          </a>
+                          {isElite && (
+                            <span
+                              className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                              style={{
+                                background: "hsl(var(--gold-warm) / 0.14)",
+                                color: "hsl(var(--gold-warm))",
+                                letterSpacing: "0.08em",
+                              }}
+                            >
+                              Elite
+                            </span>
+                          )}
+                          {isPro && (
+                            <span
+                              className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                              style={{
+                                background: "hsl(var(--burnt-sienna) / 0.12)",
+                                color: "hsl(var(--burnt-sienna))",
+                                letterSpacing: "0.08em",
+                              }}
+                            >
+                              Pro
+                            </span>
+                          )}
+                        </div>
+                        {app.profiles?.skills && (
+                          <p className="font-serif italic mt-0.5 line-clamp-1" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+                            {app.profiles.skills}
+                          </p>
+                        )}
                         {app.reviewCount !== undefined && app.reviewCount > 0 && (
                           <div className="flex items-center gap-1 mt-1">
-                            <Star className="w-3 h-3 fill-accent text-accent" />
-                            <span className="text-ds-11 text-muted-foreground">{app.avgRating?.toFixed(1)} ({app.reviewCount} reviews)</span>
+                            <Star className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
+                            <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                              {app.avgRating?.toFixed(1)} ({app.reviewCount} review{app.reviewCount === 1 ? "" : "s"})
+                            </span>
                           </div>
                         )}
                       </div>
-                      {app.status === "pending" && <Button size="sm" onClick={() => onAcceptApplication(app)}>Select</Button>}
+                      {app.status === "pending" && (
+                        <Button
+                          size="sm"
+                          className="rounded-ds-md shrink-0"
+                          onClick={() => onAcceptApplication(app)}
+                          style={{
+                            background: "hsl(var(--bark))",
+                            backgroundImage: "none",
+                            border: "1px solid hsl(var(--bark))",
+                            color: "hsl(var(--parchment))",
+                            fontFamily: "Montserrat, system-ui, sans-serif",
+                            fontWeight: 600,
+                            letterSpacing: "0.01em",
+                            boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -4px hsl(var(--bark) / 0.32)",
+                          }}
+                        >
+                          Select
+                        </Button>
+                      )}
                       {app.status === "accepted" && <span className="text-ds-11 px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
                       {app.status === "rejected" && <span className="text-ds-11 px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
                     </div>
@@ -727,7 +918,8 @@ export const PostedJobsTab = ({
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

@@ -268,6 +268,10 @@ const ProfilePage = () => {
     if (tab === "earnings") loadEarnings();
     if (tab === "schedule") loadSchedule();
     if (tab === "reviews") loadReviews();
+    // Landing page surfaces a 2-review preview on the hero card.
+    // Fetch the same data lazily on first landing-tab mount so the
+    // preview appears without making the user open the reviews tab.
+    if (tab === "landing" && reviews.length === 0 && !reviewsLoading) loadReviews();
   }, [tab, user]);
 
   useEffect(() => {
@@ -506,6 +510,7 @@ const ProfilePage = () => {
               onLoadInlineJobs={loadInlineJobs}
               onRequestDelete={() => { setDeleteStep(1); setDeleteConfirmText(""); setShowDeleteAccountDialog(true); }}
               onRequestLogout={() => setShowLogoutDialog(true)}
+              reviewsPreview={reviews.slice(0, 2)}
             />
           )}
 
@@ -534,6 +539,7 @@ const ProfilePage = () => {
               onAvatarUpload={handleAvatarUpload}
               onIdUpload={handleIdUpload}
               onBack={() => setTab("landing")}
+              onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls } as any) : prev)}
             />
           )}
 
@@ -572,7 +578,11 @@ const ProfilePage = () => {
                 meta="Cards, bank accounts, payouts"
                 onBack={() => setTab("landing")}
               />
-              <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
+              <PaymentTab
+                earningsJobs={earningsJobs}
+                totalEarnings={totalEarnings}
+                onSeeEarnings={() => setTab("earnings")}
+              />
             </div>
           )}
 

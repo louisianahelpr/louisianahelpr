@@ -19,9 +19,16 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/50 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // Deeper parchment-tinted backdrop with saturate boost so the
+      // dialog reads as a clear focal point. Heavier blur than the
+      // previous version + warm tint replaces flat black/50.
+      "fixed inset-0 z-50 backdrop-blur-[24px] backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
+    style={{
+      backgroundColor: "hsla(38, 18%, 12%, 0.45)",
+      WebkitBackdropFilter: "blur(24px) saturate(1.5)",
+    }}
     {...props}
   />
 ));

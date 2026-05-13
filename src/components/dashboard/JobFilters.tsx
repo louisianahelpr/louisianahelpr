@@ -300,105 +300,110 @@ const JobFilters = ({
       ? "My hours"
       : "When";
 
-  // Horizontal pill bar — Sort by · Category · Where · When. Click any
-  // pill and a popover drops down with that filter's content. Keeps the
-  // panel compact (single row + transient popover) instead of stacking
-  // multiple expandable sections vertically.
+  // Single horizontal-scroll row of filter pills. Each pill is a popover
+  // trigger; tapping one drops the relevant filter content as a floating
+  // panel instead of expanding the page. Boosted lives in the same row
+  // as a toggle pill. Clear-all tucks in at the end when filters apply.
   return (
-    <div className="px-3 py-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <span
-          className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
-          style={{ color: "hsl(var(--burnt-sienna))" }}
-        >
-          Filters {activeFilterCount > 0 && `· ${activeFilterCount} active`}
-        </span>
-        {hasFilters && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="text-[0.7rem] font-sans font-medium hover:underline transition-opacity"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            <X className="w-3 h-3 inline-block mr-0.5 -mt-px" /> Clear all
-          </button>
-        )}
-      </div>
+    <div className="px-3 py-2.5">
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-3 px-3">
+        <MobileDropdown icon={ArrowUpDown} label={sortLabel} active={sortBy !== "newest"}>
+          {(close) => (
+            <>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
+              <SortContent sortBy={sortBy} setSortBy={setSortBy} onSelect={close} />
+            </>
+          )}
+        </MobileDropdown>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-          <MobileDropdown icon={ArrowUpDown} label={sortLabel} active={sortBy !== "newest"}>
-            {(close) => (
-              <>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
-                <SortContent sortBy={sortBy} setSortBy={setSortBy} onSelect={close} />
-              </>
-            )}
-          </MobileDropdown>
-
-          <MobileDropdown icon={LayoutGrid} label={categoryLabel} active={!!selectedCategory}>
-            {(close) => (
-              <>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Category</p>
-                <CategoryContent
-                  selectedCategory={selectedCategory}
-                  setSelectedCategory={setSelectedCategory}
-                  onSelect={close}
-                />
-              </>
-            )}
-          </MobileDropdown>
-
-          <MobileDropdown icon={MapPin} label={placeBudgetLabel} active={!!locationFilter}>
-            {(close) => (
-              <NearbyContent
-                locationFilter={locationFilter}
-                setLocationFilter={setLocationFilter}
-                status={userLocStatus}
-                message={userLocMessage}
+        <MobileDropdown icon={LayoutGrid} label={categoryLabel} active={!!selectedCategory}>
+          {(close) => (
+            <>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Category</p>
+              <CategoryContent
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
                 onSelect={close}
               />
-            )}
-          </MobileDropdown>
+            </>
+          )}
+        </MobileDropdown>
 
-          <MobileDropdown icon={CalendarRange} label={whenLabel} active={!!expiresWithin || matchAvailability}>
-            {(close) => (
-              <div className="space-y-3">
-                <div>
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Expires within</p>
-                  <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} onSelect={close} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Match my availability</p>
-                  <AvailabilityContent
-                    matchAvailability={matchAvailability}
-                    setMatchAvailability={setMatchAvailability}
-                    hasAvailability={hasAvailability}
-                  />
-                </div>
+        <MobileDropdown icon={MapPin} label={placeBudgetLabel} active={!!locationFilter}>
+          {(close) => (
+            <NearbyContent
+              locationFilter={locationFilter}
+              setLocationFilter={setLocationFilter}
+              status={userLocStatus}
+              message={userLocMessage}
+              onSelect={close}
+            />
+          )}
+        </MobileDropdown>
+
+        <MobileDropdown icon={CalendarRange} label={whenLabel} active={!!expiresWithin || matchAvailability}>
+          {(close) => (
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Expires within</p>
+                <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} onSelect={close} />
               </div>
-            )}
-          </MobileDropdown>
-      </div>
+              <div>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Match my availability</p>
+                <AvailabilityContent
+                  matchAvailability={matchAvailability}
+                  setMatchAvailability={setMatchAvailability}
+                  hasAvailability={hasAvailability}
+                />
+              </div>
+            </div>
+          )}
+        </MobileDropdown>
 
-      <div className="flex items-center gap-1.5">
         <button
           type="button"
           onClick={() => setBoostedOnly(!boostedOnly)}
           aria-pressed={boostedOnly}
-          className={`${chipBase} shrink-0 ${boostedOnly ? chipActive : chipIdle}`}
+          className={`${triggerBase} shrink-0`}
           style={
             boostedOnly
               ? {
-                  background: "linear-gradient(90deg, hsl(var(--gold-warm) / 0.85), hsl(var(--primary)))",
+                  background: "linear-gradient(90deg, hsl(var(--gold-warm) / 0.92), hsl(var(--burnt-sienna)))",
                   borderColor: "hsl(var(--gold-warm) / 0.6)",
                   color: "white",
+                  boxShadow: "0 4px 14px -4px hsl(var(--gold-warm) / 0.45)",
                 }
               : undefined
           }
         >
-          <Rocket className="w-2.5 h-2.5" strokeWidth={2.25} />
-          Boosted only
+          <span className="inline-flex items-center gap-1.5 min-w-0">
+            <Rocket className="w-3 h-3 shrink-0" strokeWidth={2.25} />
+            <span className="truncate">Boosted</span>
+          </span>
         </button>
+
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 h-9 rounded-full text-[0.72rem] font-sans font-semibold tracking-wide active:opacity-70 transition-opacity"
+            style={{
+              color: "hsl(var(--burnt-sienna))",
+              background: "hsl(var(--burnt-sienna) / 0.10)",
+              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+            }}
+          >
+            <X className="w-3 h-3" strokeWidth={2.25} /> Clear
+            {activeFilterCount > 0 && (
+              <span
+                className="ml-0.5 px-1 py-0.5 rounded-full text-[8.5px] font-bold tabular-nums"
+                style={{ background: "hsl(var(--burnt-sienna) / 0.18)" }}
+              >
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

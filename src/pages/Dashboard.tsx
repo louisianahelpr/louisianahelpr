@@ -44,6 +44,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { safeStorage } from "@/lib/safeStorage";
+import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -123,7 +124,7 @@ const Dashboard = () => {
   // get_open_jobs_for_map RPC). Toggle persists for the session only —
   // resetting to "list" on next mount matches user expectation that
   // the default landing surface is the curated feed.
-  const [view, setView] = useState<"list" | "map">("list");
+  const [view, setView] = usePersistedBrowseView("list");
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);

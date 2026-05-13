@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
+import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Briefcase, List, Map as MapIcon, X, SlidersHorizontal } from "lucide-react";
@@ -50,7 +51,7 @@ const DashboardGuest = () => {
   const [boostedOnly, setBoostedOnly] = useState(false);
   // Guests don't have helper availability set up; the JobFilters panel
   // auto-hides the "match my availability" option when hasAvailability=false.
-  const [view, setView] = useState<"list" | "map">("list");
+  const [view, setView] = usePersistedBrowseView("list");
 
   // Public open-jobs feed — no auth required (open_jobs_browse view is RLS-public).
   const { data: jobs = [], isLoading, refetch } = useQuery({
@@ -481,7 +482,14 @@ const DashboardGuest = () => {
                     </div>
                   }
                 >
-                  <BrowseMap onJobAction={requireSignup} ctaLabel="Sign up to apply" />
+                  <BrowseMap
+                    onJobAction={requireSignup}
+                    ctaLabel="Sign up to apply"
+                    emptyStateCta={{
+                      label: "Get pinged when a job lands",
+                      onClick: () => navigate("/signup"),
+                    }}
+                  />
                 </Suspense>
               </div>
             ) : (

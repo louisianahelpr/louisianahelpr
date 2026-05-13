@@ -192,7 +192,10 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96 rounded-2xl border border-border bg-card/40">
+      <div
+        className="flex items-center justify-center h-full w-full rounded-t-2xl border border-b-0 border-border bg-card/40"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+      >
         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
       </div>
     );
@@ -200,7 +203,26 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
 
   if (jobs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 rounded-2xl liquid-glass px-6 text-center gap-3">
+      /* Empty-state surface bleeds beneath the floating dock — the
+         outer rounded-t-2xl + cropped bottom shadow mirror the list
+         empty state on the guest + auth dashboards so both views read
+         as the same continuous panel under the dock's frosted
+         curtain. paddingBottom clears the FAB + tab strip. */
+      <div
+        className="flex flex-col items-center justify-center h-full w-full liquid-glass px-6 text-center gap-3 rounded-t-2xl"
+        style={{
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          borderBottom: "none",
+          boxShadow:
+            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+            "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
+            "1px 0 2px hsl(var(--olivewood) / 0.06), " +
+            "0 -1px 2px hsl(var(--olivewood) / 0.06)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
+          paddingTop: "1.5rem",
+        }}
+      >
         <div
           className="w-14 h-14 rounded-full flex items-center justify-center"
           style={{
@@ -235,7 +257,11 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
   const heatBuckets = view === "heat" ? bucketJobs(jobs) : [];
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-border" style={{ height: 480 }}>
+    /* Populated map: fills the parent's remaining height (h-full inside
+       a flex-1 wrapper) and bleeds under the dock with flat bottom
+       corners. Top corners stay rounded so the panel still reads as a
+       distinct surface above the dock. */
+    <div className="relative h-full w-full rounded-t-2xl overflow-hidden border border-b-0 border-border">
       {/* Pins / Heat toggle — sits over the map, top-right. Heat is a
           density bucket overlay (no extra dependency) so helpers can
           spot job hotspots even when individual pins are clustered. */}

@@ -906,8 +906,8 @@ const Dashboard = () => {
             )}
 
             {view === "map" && (
-              <div className="px-3 pt-2 pb-3">
-                <Suspense fallback={<div className="h-[480px] rounded-2xl bg-muted/30 animate-pulse" />}>
+              <div className="flex-1 min-h-0 px-3 pt-2 pb-0">
+                <Suspense fallback={<div className="h-full w-full rounded-t-2xl bg-muted/30 animate-pulse" />}>
                   <BrowseMap
                     onJobAction={handleApplyRequest}
                     ctaLabel="Apply"

@@ -755,11 +755,15 @@ const Legal = () => {
       <Navbar />
       <div aria-hidden className="h-14" />
 
-      <main className="container mx-auto px-5 pt-1 pb-8">
+      <main className="container mx-auto px-5 pt-4 pb-8">
         <div className="max-w-2xl mx-auto space-y-4">
           <div>
             <div className="flex items-center gap-2">
-              <BackButton to="/profile?tab=legal" />
+              {/* No explicit `to` — BackButton falls back to history.back()
+                  which works for both authenticated users coming from
+                  /profile?tab=legal and unauthenticated visitors coming
+                  from the signup agreement checkbox. */}
+              <BackButton />
               <div className="flex flex-col leading-none">
                 <span
                   className="font-serif italic uppercase text-[0.62rem]"

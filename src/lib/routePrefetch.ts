@@ -12,11 +12,14 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   "/my-posts": () => import("@/pages/Activity"),
   "/my-jobs": () => import("@/pages/Activity"),
   "/messages": () => import("@/pages/Messages"),
-  "/support": () => import("@/pages/Support"),
-  "/schedule": () => import("@/pages/Schedule"),
-  "/availability": () => import("@/pages/Availability"),
-  "/saved-helpers": () => import("@/pages/SavedHelpers"),
-  
+  // /support /schedule /availability /saved-helpers now redirect into
+  // the Profile tab system — prefetch the Profile chunk instead so the
+  // shell is ready when the redirect lands.
+  "/support": () => import("@/pages/Profile"),
+  "/schedule": () => import("@/pages/Profile"),
+  "/availability": () => import("@/pages/Profile"),
+  "/saved-helpers": () => import("@/pages/Profile"),
+
   "/jobs": () => import("@/pages/Jobs"),
   
   "/login": () => import("@/pages/Login"),

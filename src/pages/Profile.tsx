@@ -26,6 +26,7 @@ import { JobListTab } from "@/components/profile/JobListTab";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 const SupportInline = lazy(() => import("@/components/profile/SupportInline").then(m => ({ default: m.SupportInline })));
+const SavedHelpersTab = lazy(() => import("@/components/profile/SavedHelpersTab").then(m => ({ default: m.SavedHelpersTab })));
 const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab").then(m => ({ default: m.SubscriptionTab })));
 const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));
 import { EarningsTab } from "@/components/profile/EarningsTab";
@@ -53,7 +54,7 @@ const TabFallback = () => (
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings" | "credentials";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings" | "credentials" | "saved_helpers";
 
 const ProfilePage = () => {
   usePageTitle("My Profile — Helpr");
@@ -607,6 +608,12 @@ const ProfilePage = () => {
           {tab === "support" && (
             <Suspense fallback={<TabFallback />}>
               <SupportInline userId={user?.id} onBack={() => setTab("landing")} />
+            </Suspense>
+          )}
+
+          {tab === "saved_helpers" && (
+            <Suspense fallback={<TabFallback />}>
+              <SavedHelpersTab onBack={() => setTab("landing")} />
             </Suspense>
           )}
 

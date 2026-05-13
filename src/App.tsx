@@ -35,8 +35,6 @@ const PermissionRationaleDialog = lazy(() =>
 const Index = lazy(() => import("./pages/Index"));
 
 // Lazy load all other pages
-const Schedule = lazy(() => import("./pages/Schedule"));
-const Availability = lazy(() => import("./pages/Availability"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const SignupPending = lazy(() => import("./pages/SignupPending"));
@@ -54,7 +52,6 @@ const UserProfile = lazy(() => import("./pages/UserProfile"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Activity = lazy(() => import("./pages/Activity"));
 const Messages = lazy(() => import("./pages/Messages"));
-const Support = lazy(() => import("./pages/Support"));
 
 const Legal = lazy(() => import("./pages/Legal"));
 const DataRights = lazy(() => import("./pages/DataRights"));
@@ -62,7 +59,6 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
-const SavedHelpers = lazy(() => import("./pages/SavedHelpers"));
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 
@@ -135,7 +131,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-      <Route path="/support" element={<PageTransition><Support /></PageTransition>} />
+      <Route path="/support" element={<Navigate to="/profile?tab=support" replace />} />
       
       <Route path="/legal" element={<PageTransition><Legal /></PageTransition>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
@@ -155,9 +151,14 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           pattern above. */}
       <Route path="/community" element={<Navigate to="/legal?tab=community" replace />} />
       
-      <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
-      <Route path="/availability" element={<ProtectedRoute><Availability /></ProtectedRoute>} />
-      <Route path="/saved-helpers" element={<ProtectedRoute><SavedHelpers /></ProtectedRoute>} />
+      {/* Settings-style pages live inside the Profile shell so the
+          shared back button + safe-area top padding stay consistent.
+          Standalone routes redirect into the Profile tab system so
+          deep links (notifications, push opens, share URLs) still land
+          where the user expects. */}
+      <Route path="/schedule" element={<Navigate to="/profile?tab=schedule" replace />} />
+      <Route path="/availability" element={<Navigate to="/profile?tab=availability" replace />} />
+      <Route path="/saved-helpers" element={<Navigate to="/profile?tab=saved_helpers" replace />} />
       <Route path="/for-business" element={<PageTransition><ForBusiness /></PageTransition>} />
       <Route path="/business/team" element={<ProtectedRoute><BusinessTeam /></ProtectedRoute>} />
       

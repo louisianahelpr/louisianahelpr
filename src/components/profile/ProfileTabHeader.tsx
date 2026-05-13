@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import type { ReactNode } from "react";
 
 interface ProfileTabHeaderProps {
@@ -12,27 +12,7 @@ interface ProfileTabHeaderProps {
 export function ProfileTabHeader({ eyebrow, title, meta, onBack, rightSlot }: ProfileTabHeaderProps) {
   return (
     <div className="flex items-start gap-3 mb-3 shrink-0">
-      <button
-        onClick={onBack}
-        aria-label="Back"
-        className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-[0.94] hover:opacity-80 shrink-0 mt-0.5"
-        style={{
-          // Frosted glass surface with a faint olivewood outline so the
-          // back button reads as a discrete tap target instead of a
-          // floating icon. Bigger 40px hit area than the previous 28px.
-          background: "hsla(0, 0%, 100%, 0.65)",
-          border: "1px solid hsl(var(--olivewood) / 0.18)",
-          color: "hsl(var(--olivewood))",
-          backdropFilter: "blur(10px) saturate(150%)",
-          WebkitBackdropFilter: "blur(10px) saturate(150%)",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-            "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-            "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
-        }}
-      >
-        <ArrowLeft className="w-4 h-4" strokeWidth={2.25} />
-      </button>
+      <BackButton onClick={onBack} />
       <div className="flex flex-col leading-none min-w-0 flex-1">
         {eyebrow && (
           <span

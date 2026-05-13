@@ -1,7 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import HelprMark from "@/components/HelprMark";
 import { formatName } from "@/lib/utils";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
@@ -425,7 +425,11 @@ const ProfilePage = () => {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== "DELETE MY ACCOUNT") return;
+    // The dialog asks the user to type "DELETE" (short, thumb-friendly).
+    // The delete-own-account edge function still validates against the
+    // legacy "DELETE MY ACCOUNT" phrase server-side, so we map here —
+    // server contract is unchanged.
+    if (deleteConfirmText !== "DELETE") return;
     setDeletingAccount(true);
     try {
       const { error } = await supabase.functions.invoke("delete-own-account", {
@@ -669,53 +673,17 @@ const ProfilePage = () => {
       </main>
     </AppShell>
 
-    <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle
-              className="font-display italic font-bold text-center"
-              style={{
-                fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.65rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
-              }}
-            >
-              Log out?
-            </AlertDialogTitle>
-            <AlertDialogDescription
-              className="text-center font-serif italic text-ds-13"
-              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-            >
-              You can sign back in anytime — your account stays intact.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col-reverse sm:flex-col-reverse gap-2 sm:space-x-0">
-            <AlertDialogCancel className="mt-0 rounded-ds-md border-border/60">
-              Stay signed in
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleLogout}
-              className="rounded-ds-md"
-              style={{
-                // Bark (brand olive) — same primary tone used for Sign up
-                // and Continue. Logout is reversible so it doesn't need
-                // the warning sienna reserved for delete-account.
-                background: "hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-                border: "1px solid hsl(70 22% 24%)",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                boxShadow:
-                  "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                  "0 1px 2px hsl(70 20% 18% / 0.22), " +
-                  "0 6px 14px -4px hsl(var(--bark) / 0.4)",
-              }}
-            >
-              Log out
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    <BrandConfirmDialog
+        open={showLogoutDialog}
+        onOpenChange={setShowLogoutDialog}
+        title="Log out?"
+        description="You can sign back in anytime — your account stays intact."
+        primaryLabel="Log out"
+        primaryTone="bark"
+        primaryHaptic="medium"
+        onPrimary={handleLogout}
+        secondaryLabel="Stay signed in"
+      />
 
       <DeleteAccountDialog
         open={showDeleteAccountDialog}

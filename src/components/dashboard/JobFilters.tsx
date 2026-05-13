@@ -51,12 +51,12 @@ const chipIdle =
 const surfaceGradient =
   "bg-background dark:bg-card";
 
-// Dropdown-trigger button used in the filter pill row — full-width
-// inside its grid cell. With the 2-up grid on mobile, labels have
-// enough room for full words so we can step the font size up to
-// match the rest of the dashboard chrome.
+// Dropdown-trigger button used in the filter pill row. Sized to its
+// content so the icon + label both stay visible in the horizontal
+// scroll row instead of getting crushed to icon-only circles when the
+// flex container tries to share width across 5 chips on a narrow phone.
 const triggerBase =
-  "w-full inline-flex items-center justify-between gap-1.5 h-9 px-3 rounded-full text-[12px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap";
+  "inline-flex items-center justify-between gap-1.5 h-9 pl-3 pr-2.5 rounded-full text-[12px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap shrink-0";
 
 const sortOptions = [
   { value: "newest", label: "Newest" },

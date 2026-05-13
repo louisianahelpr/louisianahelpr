@@ -7,12 +7,18 @@ interface PullToRefreshWrapperProps {
   isPulling: boolean;
   /** True when pullDistance has crossed the trigger threshold. */
   canTrigger?: boolean;
+  /** Extra classes appended to the root so callers can scope the wrapper
+   *  (e.g. flex-1 min-h-0 for use as an inner scroll container). */
+  className?: string;
+  /** Inline style overrides — used for things Tailwind can't express
+   *  (custom safe-area padding on the inner scroll, for example). */
+  style?: React.CSSProperties;
   children: React.ReactNode;
 }
 
 const PullToRefreshWrapper = forwardRef<HTMLDivElement, PullToRefreshWrapperProps>(
-  ({ pullDistance, refreshing, isPulling, canTrigger = false, children }, ref) => (
-    <div ref={ref} className="relative overflow-auto">
+  ({ pullDistance, refreshing, isPulling, canTrigger = false, className = "", style, children }, ref) => (
+    <div ref={ref} className={`relative overflow-auto ${className}`} style={style}>
       {(isPulling || refreshing) && (
         <div
           className="flex flex-col items-center justify-center gap-1.5 transition-all duration-200"

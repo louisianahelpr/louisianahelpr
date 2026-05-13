@@ -360,22 +360,31 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </div>
           </div>
 
-          {/* Post FAB — flat deep-olive (bark) puck wrapped in a soft
-              green glow. Earlier sienna 3D dome read as "popping out"
-              (radial top sheen + gradient body); user kept the glow but
-              wanted the dome flattened and the warm color swapped to
-              the brand olive. So: surface is flat solid bark with no
-              inner gradient, but the outer shadow halo is back — now
-              tinted bark instead of sienna so it reads as a green
-              glow grounded to the dock. */}
+          {/* Post FAB — flat deep-olive (bark) puck with a soft static
+              green halo plus a slow pulsing ring behind it to draw the
+              eye to the primary action. Guest gating is handled by the
+              gate sheet on tap, so no lock badge needed on the surface. */}
           {!isPendingApproval && (
             <div className="relative shrink-0 w-14 h-14">
+              {/* Slow pulsing halo — sits behind the button so it draws the
+                  eye without competing with the icon. motion-safe gates it
+                  for users with reduced-motion preferences. */}
+              <span
+                aria-hidden
+                className="absolute inset-0 rounded-full motion-safe:animate-pulse pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(circle, hsl(var(--bark) / 0.38) 0%, hsl(var(--bark) / 0) 72%)",
+                  filter: "blur(8px)",
+                  transform: "scale(1.45)",
+                }}
+              />
               <button
                 onClick={handlePostClick}
                 onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
                 onFocus={() => !isGuest && prefetchRoute("/post-job")}
                 aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
-                className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200 overflow-hidden"
+                className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
                 style={{
                   background: "hsl(var(--bark))",
                   color: "hsl(var(--parchment))",
@@ -384,7 +393,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                     "inset 0 1px 0 0 rgba(255, 255, 255, 0.10), " +
                     "0 1px 2px hsl(70 20% 18% / 0.22), " +
                     "0 8px 18px -6px hsl(var(--bark) / 0.55), " +
-                    "0 18px 36px -12px hsl(var(--bark) / 0.4)",
+                    "0 18px 36px -12px hsl(var(--bark) / 0.4), " +
+                    "0 0 0 6px hsl(var(--bark) / 0.06), " +
+                    "0 0 24px 4px hsl(var(--bark) / 0.22)",
                 }}
               >
                 <Plus
@@ -392,17 +403,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                   strokeWidth={2.75}
                   style={{ color: "hsl(var(--parchment))" }}
                 />
-                {isGuest && (
-                  <span
-                    className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
-                    style={{
-                      background: "hsl(var(--parchment))",
-                      border: "1px solid hsl(var(--bark) / 0.3)",
-                    }}
-                  >
-                    <Lock className="w-2.5 h-2.5" style={{ color: "hsl(var(--bark))" }} strokeWidth={3} />
-                  </span>
-                )}
               </button>
             </div>
           )}

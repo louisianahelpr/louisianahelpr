@@ -3,7 +3,6 @@ import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect, forwardRef } from "react";
-import ThemeToggle from "@/components/ThemeToggle";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import helprLogoSm from "@/assets/helpr-logo-96.webp";
@@ -111,7 +110,6 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             Business
           </Link>
           <div className="flex items-center gap-1">
-            <ThemeToggle />
             <Button
               variant="ghost"
               size="sm"
@@ -136,7 +134,6 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
 
         {/* Mobile toggle */}
         <div className="lg:hidden flex items-center gap-1">
-          <ThemeToggle />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button

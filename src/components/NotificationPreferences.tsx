@@ -157,35 +157,47 @@ const NotificationPreferences = () => {
             </p>
           </div>
         </div>
-        <Switch
-          checked={prefs.push_enabled}
-          onCheckedChange={() => toggle("push_enabled")}
-          disabled={!loaded}
-          aria-label="Push notifications master toggle"
-          className={`shrink-0 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
-        />
+        {/* Master toggle uses the App-column slot width so the toggle
+            visually aligns with the App switches in the rows below.
+            Email-column slot stays empty — push master only gates
+            push, not email. */}
+        <div className={`flex items-center gap-7 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
+          <div className="w-11 flex justify-center">
+            <Switch
+              checked={prefs.push_enabled}
+              onCheckedChange={() => toggle("push_enabled")}
+              disabled={!loaded}
+              aria-label="Push notifications master toggle"
+            />
+          </div>
+          <div className="w-11" aria-hidden />
+        </div>
       </div>
 
-      {/* Column header — App / Email so users know what each switch
-          controls. Sits below the master, above the per-category rows. */}
+      {/* Column header — App / Email column labels positioned to
+          sit directly above the switch columns below. Fixed-width
+          slots keep the labels aligned with their toggles regardless
+          of icon/text rendering quirks across browsers. */}
       <div
-        className="flex items-center justify-end gap-7 px-4 py-1.5 shrink-0"
+        className="flex items-center justify-end px-4 py-1.5 shrink-0"
         style={{
           background: "hsl(var(--ivory-sand) / 0.4)",
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)",
         }}
       >
-        <div
-          className="flex items-center gap-1 font-serif italic uppercase"
-          style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-        >
-          <Smartphone className="w-3 h-3" /> App
-        </div>
-        <div
-          className="flex items-center gap-1 font-serif italic uppercase"
-          style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-        >
-          <Mail className="w-3 h-3" /> Email
+        <div className="flex items-center gap-7">
+          <div
+            className="flex items-center justify-center gap-1 w-11 font-serif italic uppercase"
+            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.16em" }}
+          >
+            <Smartphone className="w-3 h-3" /> App
+          </div>
+          <div
+            className="flex items-center justify-center gap-1 w-11 font-serif italic uppercase"
+            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.16em" }}
+          >
+            <Mail className="w-3 h-3" /> Email
+          </div>
         </div>
       </div>
 
@@ -194,7 +206,7 @@ const NotificationPreferences = () => {
           Sits between the master and the per-category rows so it reads
           as a delivery preference, not a category. */}
       <div
-        className={`flex items-center justify-between px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-60"}`}
+        className={`flex items-center justify-between px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-60"} ${saving ? "opacity-80 cursor-wait" : ""}`}
         style={{
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
@@ -221,13 +233,27 @@ const NotificationPreferences = () => {
             </p>
           </div>
         </div>
-        <Switch
-          checked={prefs.match_digest_mode}
-          onCheckedChange={() => toggle("match_digest_mode")}
-          disabled={!loaded || !prefs.push_enabled}
-          aria-label="Daily match digest"
-          className={`shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
-        />
+        <div className={`flex items-center gap-7 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
+          <div className="w-11 flex justify-center">
+            <Switch
+              checked={prefs.match_digest_mode}
+              onCheckedChange={() => toggle("match_digest_mode")}
+              disabled={!loaded || !prefs.push_enabled}
+              aria-label="Daily match digest"
+            />
+          </div>
+          {/* Email column placeholder — digest is a push-only delivery
+              mode, but the dash keeps the two-column grid visually
+              honest so the row reads as "app only, intentionally". */}
+          <div className="w-11 flex justify-center" aria-hidden>
+            <span
+              className="font-serif"
+              style={{ color: "hsl(var(--olivewood) / 0.35)", fontSize: "0.85rem" }}
+            >
+              —
+            </span>
+          </div>
+        </div>
       </div>
 
       {rows.map((item, idx) => (
@@ -235,7 +261,7 @@ const NotificationPreferences = () => {
           key={item.key}
           className={`flex items-center justify-between px-4 py-2.5 shrink-0 transition-opacity ${
             prefs.push_enabled || prefs[item.emailKey] ? "" : "opacity-60"
-          }`}
+          } ${saving ? "opacity-80 cursor-wait" : ""}`}
           style={{
             borderBottom: idx < rows.length - 1 ? "0.5px solid hsl(var(--olivewood) / 0.08)" : "none",
           }}
@@ -258,31 +284,38 @@ const NotificationPreferences = () => {
             </Label>
           </div>
           <div className={`flex items-center gap-7 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
-            <Switch
-              checked={prefs[item.key] && prefs.push_enabled}
-              onCheckedChange={() => toggle(item.key)}
-              disabled={!loaded || !prefs.push_enabled}
-              aria-label={`${item.label} push`}
-            />
-            <Switch
-              checked={prefs[item.emailKey]}
-              onCheckedChange={() => toggle(item.emailKey)}
-              disabled={!loaded}
-              aria-label={`${item.label} email`}
-            />
+            <div className="w-11 flex justify-center">
+              <Switch
+                checked={prefs[item.key] && prefs.push_enabled}
+                onCheckedChange={() => toggle(item.key)}
+                disabled={!loaded || !prefs.push_enabled}
+                aria-label={`${item.label} push`}
+              />
+            </div>
+            <div className="w-11 flex justify-center">
+              <Switch
+                checked={prefs[item.emailKey]}
+                onCheckedChange={() => toggle(item.emailKey)}
+                disabled={!loaded}
+                aria-label={`${item.label} email`}
+              />
+            </div>
           </div>
         </div>
       ))}
 
       <div
-        className="flex items-start gap-2 px-4 py-2.5 shrink-0"
+        className="flex items-start gap-1.5 px-4 py-2 shrink-0"
         style={{
           background: "hsl(var(--ivory-sand) / 0.4)",
           borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
         }}
       >
-        <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
-        <p className="font-serif italic leading-snug" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+        <Lock className="w-3 h-3 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.45)" }} />
+        <p
+          className="font-serif italic leading-snug"
+          style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.55)" }}
+        >
           Critical security alerts — logins, disputes — can't be turned off.
         </p>
       </div>

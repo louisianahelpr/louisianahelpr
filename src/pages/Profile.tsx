@@ -670,14 +670,49 @@ const ProfilePage = () => {
     </AppShell>
 
     <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Log out?</AlertDialogTitle>
-            <AlertDialogDescription>Are you sure you want to log out of your account?</AlertDialogDescription>
+            <AlertDialogTitle
+              className="font-display italic font-bold text-center"
+              style={{
+                fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.65rem)",
+                color: "hsl(var(--ink-deep))",
+                letterSpacing: "-0.025em",
+              }}
+            >
+              Log out?
+            </AlertDialogTitle>
+            <AlertDialogDescription
+              className="text-center font-serif italic text-ds-13"
+              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            >
+              You can sign back in anytime — your account stays intact.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Log out</AlertDialogAction>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-col-reverse gap-2 sm:space-x-0">
+            <AlertDialogCancel className="mt-0 rounded-ds-md border-border/60">
+              Stay signed in
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="rounded-ds-md"
+              style={{
+                // Bark (brand olive) — same primary tone used for Sign up
+                // and Continue. Logout is reversible so it doesn't need
+                // the warning sienna reserved for delete-account.
+                background: "hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                border: "1px solid hsl(70 22% 24%)",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                boxShadow:
+                  "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
+                  "0 1px 2px hsl(70 20% 18% / 0.22), " +
+                  "0 6px 14px -4px hsl(var(--bark) / 0.4)",
+              }}
+            >
+              Log out
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

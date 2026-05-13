@@ -488,7 +488,7 @@ const ProfilePage = () => {
       <main
         className={tab === "landing"
           ? "container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex flex-col"
-          : "container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"}
+          : "container mx-auto px-5 lg:px-8 xl:px-12 pt-6 lg:pt-8 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"}
       >
         <div className={tab === "landing"
           ? "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col gap-3 lg:gap-4"

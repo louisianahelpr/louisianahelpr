@@ -22,9 +22,15 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
+  const cronSecret = Deno.env.get("CRON_SECRET");
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) && authHeader !== `Bearer ${serviceRoleKey}`)) {
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    }
+
     // 1. Pull every queue row + join the job title/budget/location so
     //    the digest message can be assembled without per-user job
     //    round-trips. Cap at 5,000 rows per run — anything bigger means

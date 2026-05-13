@@ -361,28 +361,35 @@ const Signup = () => {
   const inputCls = "rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15";
   const labelCls = "text-ds-13 font-sans font-medium";
 
+  const stepHeading =
+    step === 1
+      ? { title: "Welcome to the neighborhood.", subtitle: "A few minutes now — then everything's set." }
+      : step === 2
+      ? { title: "Tell us about you.", subtitle: "A photo and a few basics help neighbors trust who they're hiring." }
+      : { title: "Make your profile stand out.", subtitle: "Optional — skip anything that doesn't apply." };
+
   return (
-    <AuthShell eyebrow="Join your Louisiana neighbors" maxWidth="2xl">
-      <div className="text-center mb-5 space-y-2">
-        <span className="text-display-eyebrow">Create account</span>
+    <AuthShell compactHeader maxWidth="2xl">
+      <div className="text-center mb-4 space-y-1.5">
+        <span className="text-display-eyebrow">Step {step} of {totalSteps}</span>
         <h1
-          className="font-display italic font-bold leading-tight mt-2"
+          className="font-display italic font-bold leading-tight mt-1"
           style={{
-            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
+            fontSize: "clamp(1.5rem, 2.2vw + 0.6rem, 2rem)",
             color: "hsl(var(--ink-deep))",
             letterSpacing: "-0.03em",
           }}
         >
-          Welcome to the neighborhood.
+          {stepHeading.title}
         </h1>
         <p
           className="font-serif italic"
           style={{
-            fontSize: "1rem",
+            fontSize: "0.95rem",
             color: "hsl(var(--olivewood) / 0.7)",
           }}
         >
-          A few minutes now — then everything's set.
+          {stepHeading.subtitle}
         </p>
       </div>
       <div className="pb-12">
@@ -445,20 +452,6 @@ const Signup = () => {
                 </Link>
               </div>
             )}
-
-            <div>
-              <span className="text-display-eyebrow">Step {step} of {totalSteps}</span>
-              <h1
-                className="font-display italic font-bold leading-tight mt-1"
-                style={{
-                  fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.025em",
-                }}
-              >
-                {step === 1 ? "Create your account." : step === 2 ? "Tell us about you." : "Make your profile stand out."}
-              </h1>
-            </div>
 
         {/* Step 2: About you + ID */}
         {step === 2 && (

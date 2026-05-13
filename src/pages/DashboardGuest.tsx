@@ -317,7 +317,9 @@ const DashboardGuest = () => {
                   className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
-                  {hasFilters ? "Filtered" : "For you, today"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
+                  {hasFilters
+                    ? `Filtered · ${activeFilterCount} active`
+                    : "For you, today"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
                 </span>
                 <h2
                   className="font-display italic font-bold leading-tight mt-1"

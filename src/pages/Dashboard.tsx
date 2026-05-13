@@ -478,11 +478,16 @@ const Dashboard = () => {
             }}
           >
             <h1
-              className="font-display font-bold leading-tight truncate"
+              className="font-display font-bold truncate"
               style={{
                 fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.025em",
+                // Slightly looser leading + bottom padding to clear the
+                // Beth Ellen script descenders ("y", "g", "p" tails)
+                // from colliding with the date eyebrow below.
+                lineHeight: 1.15,
+                paddingBottom: "0.15em",
               }}
             >
               {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
@@ -568,7 +573,16 @@ const Dashboard = () => {
               complete. Sits above other banners since posters won't
               respond well to incomplete-looking applicants. Tapping
               routes to Edit Profile. */}
-          {profile && completionPct < 60 && !completionDismissed && (
+          {profile && completionPct < 80 && !completionDismissed && (() => {
+            // Color the banner + chip by progress so the user gets visual
+            // momentum as they fill out their profile:
+            //   0–59%   → gold-warm (needs attention)
+            //   60–79%  → bark      (almost there)
+            // The banner hides at 80%; users can finish the last 20% later
+            // from Profile → Edit without being nagged.
+            const closeToDone = completionPct >= 60;
+            const accent = closeToDone ? "var(--bark)" : "var(--gold-warm)";
+            return (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -576,13 +590,13 @@ const Dashboard = () => {
               className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
               style={{
                 background:
-                  "radial-gradient(70% 90% at 100% 0%, hsl(var(--gold-warm) / 0.10) 0%, transparent 55%)",
-                border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+                  `radial-gradient(70% 90% at 100% 0%, hsl(${accent} / 0.10) 0%, transparent 55%)`,
+                border: `0.5px solid hsl(${accent} / 0.32)`,
               }}
             >
               <div
                 className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: "hsl(var(--gold-warm) / 0.18)", color: "hsl(var(--gold-warm))" }}
+                style={{ background: `hsl(${accent} / 0.18)`, color: `hsl(${accent})` }}
               >
                 <span className="font-display italic font-bold tabular-nums text-[0.78rem]">{completionPct}%</span>
               </div>
@@ -608,7 +622,8 @@ const Dashboard = () => {
                 <X className="w-4 h-4" />
               </button>
             </motion.div>
-          )}
+            );
+          })()}
 
           {/* Inactive subscriber nudge — gentle reminder for paid helpers
               who haven't applied in 7+ days. Dismissible per-session. */}
@@ -676,7 +691,9 @@ const Dashboard = () => {
                   className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
-                  {filters.hasFilters ? "Filtered" : "For you, today"}
+                  {filters.hasFilters
+                    ? `Filtered · ${filters.activeFilterCount} active`
+                    : "For you, today"}
                 </span>
                 <h2
                   className="font-display italic font-bold leading-tight mt-1"
@@ -1012,30 +1029,26 @@ const Dashboard = () => {
                       onClick={() => navigate("/post-job")}
                       className="group relative inline-flex items-center gap-2.5 px-6 h-12 rounded-full overflow-hidden transition-transform duration-200 active:scale-[0.96]"
                       style={{
-                        // Flat olive bark — matches the MobileNav FAB so the
-                        // CTA reads as a peer of the bottom dock. Previous
-                        // version used a radial gradient that produced a
-                        // visible horizontal "band" at the gradient stop,
-                        // which looked like a hairline strikethrough on
-                        // some iOS rendering paths. Flat solid bark + soft
-                        // halo eliminates the band entirely.
-                        background: "hsl(var(--bark))",
-                        color: "hsl(var(--parchment))",
-                        border: "1px solid hsl(70 22% 24%)",
+                        // Lighter parchment + sienna outline so this
+                        // in-card CTA reads as a secondary affordance
+                        // and doesn't fight the bark FAB at the bottom
+                        // dock. Same action target, calmer presence.
+                        background: "hsl(var(--parchment))",
+                        color: "hsl(var(--burnt-sienna))",
+                        border: "1px solid hsl(var(--burnt-sienna) / 0.4)",
                         fontFamily: "Montserrat, system-ui, sans-serif",
                         fontWeight: 600,
                         letterSpacing: "0.01em",
                         boxShadow:
-                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                          "0 1px 2px hsl(70 20% 18% / 0.22), " +
-                          "0 8px 18px -6px hsl(var(--bark) / 0.55), " +
-                          "0 18px 36px -12px hsl(var(--bark) / 0.4)",
+                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.6), " +
+                          "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                          "0 6px 14px -6px hsl(var(--burnt-sienna) / 0.18)",
                       }}
                     >
                       <Plus
                         className="w-4 h-4"
                         strokeWidth={2.75}
-                        style={{ color: "hsl(var(--parchment))" }}
+                        style={{ color: "hsl(var(--burnt-sienna))" }}
                       />
                       <span className="text-ds-15">Post the first job</span>
                       <ArrowRight

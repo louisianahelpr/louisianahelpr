@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban } from "lucide-react";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -122,6 +124,14 @@ const Messages = () => {
       }
     });
   }, [userId, cachedUser]);
+
+  // Pull-to-refresh: swiping down on the conversation list re-runs
+  // loadConversations so the user can manually nudge realtime data.
+  // Scoped to the inner list scroll container (not the page root) so
+  // the dock + header don't capture the gesture.
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
+    onRefresh: async () => { if (userId) await loadConversations(userId); },
+  });
 
   const CONVO_LIMIT = 50;
 
@@ -684,11 +694,16 @@ const Messages = () => {
                   </div>
                 </div>
               ) : (
-              <div
-                data-allow-scroll="true"
-                className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2"
+              <PullToRefreshWrapper
+                ref={containerRef}
+                pullDistance={pullDistance}
+                refreshing={refreshing}
+                isPulling={isPulling}
+                canTrigger={canTrigger}
+                className="flex-1 min-h-0 px-3 py-3"
                 style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
               >
+              <div className="space-y-2">
               {loading ? (
                 <div className="space-y-2">
                   {[1, 2, 3, 4].map((i) => (
@@ -852,6 +867,7 @@ const Messages = () => {
                 </div>
               )}
               </div>
+              </PullToRefreshWrapper>
               )}
             </div>
             </>

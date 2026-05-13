@@ -579,13 +579,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
   return (
-    <PullToRefreshWrapper
-      ref={containerRef}
-      pullDistance={pullDistance}
-      refreshing={refreshing}
-      isPulling={isPulling}
-      canTrigger={canTrigger}
-    >
     <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
       <DashboardHeader />
       <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -908,9 +901,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               );
             })()
           ) : (
-          <div
-            data-allow-scroll="true"
-            className="flex-1 min-h-0 overflow-y-auto px-4 pt-3"
+          <PullToRefreshWrapper
+            ref={containerRef}
+            pullDistance={pullDistance}
+            refreshing={refreshing}
+            isPulling={isPulling}
+            canTrigger={canTrigger}
+            className="flex-1 min-h-0 px-4 pt-3"
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
           >
           {tab === "posted" && (
@@ -968,7 +965,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onHelperReview={(jobId, posterId, posterName) => setHelperReviewJob({ jobId, posterId, posterName })}
             />
           )}
-          </div>
+          </PullToRefreshWrapper>
           )}
           </div>
         </div>
@@ -1017,7 +1014,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         failureReason={idvFailureReason}
       />
     </div>
-    </PullToRefreshWrapper>
   );
 };
 

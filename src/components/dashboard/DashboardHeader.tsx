@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut, Shield, Menu } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import NotificationPanel from "@/components/NotificationPanel";
-
-import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import HelprMark from "@/components/HelprMark";
@@ -61,11 +59,10 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
           </div>
           <div className="flex items-center gap-1 -mr-1">
             {isAdmin && (
-              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="hover:bg-destructive/10 btn-press rounded-ds-md h-9 w-9" aria-label="Admin panel">
-                <Shield className="w-4 h-4 text-destructive" />
+              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="btn-press rounded-ds-md h-9 w-9" aria-label="Admin panel" style={{ color: "hsl(var(--olivewood))" }}>
+                <Shield className="w-4 h-4" />
               </Button>
             )}
-            <ThemeToggle />
             <NotificationPanel />
             {onMenuClick && (
               <Button variant="ghost" size="icon" onClick={onMenuClick} className="lg:hidden hover:bg-muted btn-press rounded-ds-md h-9 w-9" aria-label="Open menu">
@@ -79,48 +76,18 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
         </div>
       </header>
 
-      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle
-              className="font-display italic font-bold text-center"
-              style={{
-                fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.65rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
-              }}
-            >
-              See you soon?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-center font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
-              You'll need to sign back in next time. Your posts and messages stay safe.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col-reverse sm:flex-col-reverse gap-2 sm:space-x-0">
-            <AlertDialogCancel className="mt-0 rounded-ds-md border-border/60">
-              Stay logged in
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="rounded-ds-md"
-              style={{
-                background: "hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-                border: "1px solid hsl(70 22% 24%)",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                boxShadow:
-                  "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                  "0 1px 2px hsl(70 20% 18% / 0.18), " +
-                  "0 6px 14px -4px hsl(var(--bark) / 0.4)",
-              }}
-            >
-              {loggingOut ? "Logging out…" : "Log out"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <BrandConfirmDialog
+        open={showLogoutDialog}
+        onOpenChange={setShowLogoutDialog}
+        title="See you soon?"
+        description="You'll need to sign back in next time. Your posts and messages stay safe."
+        primaryLabel={loggingOut ? "Logging out…" : "Log out"}
+        primaryTone="bark"
+        primaryHaptic="medium"
+        primaryDisabled={loggingOut}
+        onPrimary={handleLogout}
+        secondaryLabel="Stay logged in"
+      />
     </>
   );
 };

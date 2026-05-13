@@ -444,7 +444,6 @@ const Dashboard = () => {
   
 
   return (
-    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
     <div
       className="h-[100dvh] bg-premium-page flex flex-col overflow-hidden animate-in fade-in-0 duration-500"
     >
@@ -603,10 +602,10 @@ const Dashboard = () => {
                 type="button"
                 onClick={() => setCompletionDismissed(true)}
                 aria-label="Dismiss"
-                className="shrink-0 -mt-1 -mr-1 p-1.5 rounded-full active:opacity-70"
+                className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
                 style={{ color: "hsl(var(--olivewood) / 0.55)" }}
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </motion.div>
           )}
@@ -638,10 +637,10 @@ const Dashboard = () => {
                 type="button"
                 onClick={() => setInactiveNudge(false)}
                 aria-label="Dismiss"
-                className="shrink-0 -mt-1 -mr-1 p-1.5 rounded-full active:opacity-70"
+                className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
                 style={{ color: "hsl(var(--olivewood) / 0.55)" }}
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </motion.div>
           )}
@@ -653,17 +652,18 @@ const Dashboard = () => {
             className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
             style={{
               // Browse Tasks card extends to the viewport bottom — bottom
-              // corners drop their radius and inset shadow so the panel
-              // reads as continuing under the floating dock instead of
-              // ending at a hard edge above it.
+              // corners drop their radius and the bottom shadows are
+              // cropped so the panel visually bleeds beneath the dock's
+              // frosted curtain instead of ending in a faint shadow line
+              // right above it.
               borderBottomLeftRadius: 0,
               borderBottomRightRadius: 0,
               borderBottom: "none",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-                "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+                "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                "1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                "0 -1px 2px hsl(var(--olivewood) / 0.06)",
             }}
           >
             {/* Header row */}
@@ -900,8 +900,12 @@ const Dashboard = () => {
               </div>
             )}
 
-            <div
-              className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-3 pt-3 pb-0"
+            <PullToRefreshWrapper
+              ref={containerRef}
+              pullDistance={pullDistance}
+              refreshing={refreshing}
+              isPulling={isPulling}
+              className="flex-1 min-h-0 overscroll-contain scrollbar-hide px-3 pt-3 pb-0"
               style={view === "map" ? { display: "none" } : undefined}
             >
               {/* Always-visible elevated content box. Empty state and the
@@ -926,10 +930,10 @@ const Dashboard = () => {
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
             <div className="px-4 pt-4 flex-1 min-h-0 flex">
-              {/* Empty-state liquid-glass card — replaces the previous
-                  flat-white card so the empty state visually belongs with
-                  the warm parchment surface above. Top corners rounded,
-                  bottom flat to merge with the dock. */}
+              {/* Empty-state liquid-glass card — top corners rounded,
+                  bottom flat. Bottom + bottom-spreading drop shadows
+                  removed so the card bleeds beneath the dock's frosted
+                  curtain with no visible shadow line above it. */}
               <div
                 className="liquid-glass flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
                 style={{
@@ -938,8 +942,9 @@ const Dashboard = () => {
                   borderBottom: "none",
                   boxShadow:
                     "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                    "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                    "0 14px 30px -8px hsl(var(--olivewood) / 0.14)",
+                    "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                    "1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                    "0 -1px 2px hsl(var(--olivewood) / 0.06)",
                   paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
                 }}
               >
@@ -1154,7 +1159,7 @@ const Dashboard = () => {
               );
             })()}
               </div>
-            </div>
+            </PullToRefreshWrapper>
           </motion.section>
         </div>
       </main>
@@ -1371,7 +1376,6 @@ const Dashboard = () => {
           screenshots. Desktop surfaces the CTA in the header (md:flex)
           so no desktop replacement is needed. */}
     </div>
-    </PullToRefreshWrapper>
   );
 };
 

@@ -6,17 +6,29 @@
 // container) so the back button, top padding, and dock alignment
 // stay consistent with every other Profile sub-tab.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, Briefcase, Send, Star, Search } from "lucide-react";
+import { Heart, Briefcase, Send, Star, Search, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatName } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
+
+type SavedSort = "rebooked" | "recent";
+
+const sortOptions: { value: SavedSort; label: string }[] = [
+  { value: "rebooked", label: "Most rebooked" },
+  { value: "recent", label: "Most recent" },
+];
 
 interface SavedHelper {
   helper_id: string;
@@ -41,6 +53,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const [helpers, setHelpers] = useState<SavedHelper[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SavedSort>("rebooked");
 
   useEffect(() => {
     if (!user) return;
@@ -100,16 +113,27 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
     });
   };
 
-  const filtered = helpers
-    .filter((h) => {
+  const filtered = useMemo(() => {
+    const matched = helpers.filter((h) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return (
         (h.full_name || "").toLowerCase().includes(q) ||
         (h.skills || "").toLowerCase().includes(q)
       );
-    })
-    .sort((a, b) => {
+    });
+
+    if (sortBy === "recent") {
+      // Most recent activity first — last_job_at is the latest signal we
+      // have. Falls back to saved_at when there's no job history yet.
+      return matched.sort((a, b) => {
+        const aT = (a.last_job_at ? new Date(a.last_job_at) : new Date(a.saved_at)).getTime();
+        const bT = (b.last_job_at ? new Date(b.last_job_at) : new Date(b.saved_at)).getTime();
+        return bT - aT;
+      });
+    }
+    // Most rebooked first (default) — proven performers surface to the top
+    return matched.sort((a, b) => {
       const aJobs = a.completed_jobs_together ?? 0;
       const bJobs = b.completed_jobs_together ?? 0;
       if (bJobs !== aJobs) return bJobs - aJobs;
@@ -117,6 +141,9 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
       const bLast = b.last_job_at ? new Date(b.last_job_at).getTime() : 0;
       return bLast - aLast;
     });
+  }, [helpers, search, sortBy]);
+
+  const activeSortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? sortOptions[0].label;
 
   const metaText = helpers.length > 0
     ? `${helpers.length} ${helpers.length === 1 ? "helpr" : "helprs"} saved · send a direct offer with a 24-hour first-look window.`
@@ -133,16 +160,58 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
 
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 space-y-3">
         {helpers.length > 0 && (
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              type="search"
-              aria-label="Search saved helpers"
-              placeholder="Search by name or skills…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 rounded-ds-md"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="search"
+                aria-label="Search saved helpers"
+                placeholder="Search by name or skills…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 rounded-ds-md"
+              />
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`Sort: ${activeSortLabel}`}
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-ds-md h-10 px-3 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
+                  style={{
+                    background: "hsla(0, 0%, 100%, 0.65)",
+                    border: "1px solid hsl(var(--olivewood) / 0.18)",
+                    color: "hsl(var(--olivewood))",
+                  }}
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{activeSortLabel}</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[min(92vw,220px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5"
+                align="end"
+              >
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-2 pt-1 pb-1.5">
+                  Sort by
+                </p>
+                {sortOptions.map((opt) => {
+                  const active = opt.value === sortBy;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setSortBy(opt.value)}
+                      className={`w-full text-left px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
+                        active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary/70"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </PopoverContent>
+            </Popover>
           </div>
         )}
 

@@ -27,7 +27,7 @@ const RowItem = ({ icon: Icon, title, body, warning }: PolicyRow) => {
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger
-        className={`group w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-colors btn-press ${
+        className={`group w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-ds-md text-left transition-colors btn-press ${
           warning
             ? "hover:bg-destructive/10"
             : "hover:bg-primary/5"
@@ -41,14 +41,14 @@ const RowItem = ({ icon: Icon, title, body, warning }: PolicyRow) => {
           >
             <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
           </span>
-          <span className="text-sm font-semibold text-foreground truncate">{title}</span>
+          <span className="text-ds-13 font-semibold text-foreground truncate">{title}</span>
         </span>
         <ChevronRight
           className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${open ? "rotate-90" : ""}`}
         />
       </CollapsibleTrigger>
       <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-        <div className="px-3 pt-2 pb-3 text-xs text-muted-foreground space-y-1.5 border-l-2 border-border/40 ml-5 my-1">
+        <div className="px-3 pt-2 pb-3 text-ds-11 text-muted-foreground space-y-1.5 border-l-2 border-border/40 ml-5 my-1">
           {body}
         </div>
       </CollapsibleContent>
@@ -86,7 +86,7 @@ const Section = ({
         <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">
           <span className="flex items-center gap-3 min-w-0">
             <span
-              className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${
+              className={`shrink-0 w-9 h-9 rounded-ds-md flex items-center justify-center ${
                 warning ? "bg-destructive/15 text-destructive" : "bg-primary/12 text-primary"
               }`}
             >
@@ -115,7 +115,15 @@ const Section = ({
 
 export function LegalTab({ onBack }: { onBack: () => void }) {
   return (
-    <div className="space-y-5 pb-24">
+    // Bottom padding bumped from pb-24 (96px) to safe-area-aware 10rem
+    // so the bottom Section ("Operations & Safety") is fully scrollable
+    // above the MobileNav dock + FAB on iPhone. Previously pb-24 left
+    // "Account Health" clipped by the dock and "Operations & Safety"
+    // entirely unreachable.
+    <div
+      className="space-y-5"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 10rem)" }}
+    >
       <ProfileTabHeader
         eyebrow="Documents"
         title="Legal &amp; policies"
@@ -140,7 +148,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
               className="block rounded-2xl liquid-glass p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -271,7 +279,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
               <p>• <strong className="text-accent">1st cancellation:</strong> Written warning (Strike 1/2)</p>
               <p>• <strong className="text-accent">2nd cancellation:</strong> Final warning (Strike 2/2)</p>
               <p>• <strong className="text-destructive">3rd cancellation:</strong> Permanent account ban</p>
-              <p className="italic text-xs mt-1">Cancelling jobs with no helpr assigned does not count toward strikes.</p>
+              <p className="italic text-ds-11 mt-1">Cancelling jobs with no helpr assigned does not count toward strikes.</p>
             </>
           }
         />
@@ -285,7 +293,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
               <p>• <strong className="text-accent">1st decline:</strong> Written warning (Strike 1/2)</p>
               <p>• <strong className="text-accent">2nd decline:</strong> Final warning (Strike 2/2)</p>
               <p>• <strong className="text-destructive">3rd decline:</strong> Permanent account ban</p>
-              <p className="italic text-xs mt-1">Withdrawing your application before being selected does not count.</p>
+              <p className="italic text-ds-11 mt-1">Withdrawing your application before being selected does not count.</p>
             </>
           }
         />
@@ -305,7 +313,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
               <p><strong className="text-foreground">1st violation:</strong> Written warning via email and in-app notification.</p>
               <p><strong className="text-foreground">2nd violation:</strong> 7-day account suspension.</p>
               <p><strong className="text-foreground">3rd violation:</strong> Permanent ban from the platform.</p>
-              <p className="italic text-xs mt-1">Severe violations (no-shows, fraud, harassment) skip this ladder and result in an immediate permanent ban.</p>
+              <p className="italic text-ds-11 mt-1">Severe violations (no-shows, fraud, harassment) skip this ladder and result in an immediate permanent ban.</p>
             </>
           }
         />
@@ -343,7 +351,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
               <p className="mb-1">If other users report your account for misconduct:</p>
               <p>• <strong className="text-accent">2 reports:</strong> Account suspension while admins review.</p>
               <p>• <strong className="text-destructive">3rd report:</strong> Permanent ban from the platform.</p>
-              <p className="italic text-xs mt-1">All reports are reviewed by admins. False reports may result in action against the reporter.</p>
+              <p className="italic text-ds-11 mt-1">All reports are reviewed by admins. False reports may result in action against the reporter.</p>
             </>
           }
         />

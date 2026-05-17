@@ -82,7 +82,7 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-2 rounded-xl bg-primary/10 border border-primary/20"
+        className="pointer-events-none absolute inset-x-2 rounded-ds-md bg-primary/10 border border-primary/20"
         style={{ top: ITEM_HEIGHT, height: ITEM_HEIGHT }}
       />
       <div
@@ -95,6 +95,13 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
           scrollPaddingTop: ITEM_HEIGHT,
           scrollPaddingBottom: ITEM_HEIGHT,
           WebkitOverflowScrolling: "touch",
+          // Fade the top + bottom rows so the wheel visibly reads as
+          // "scroll for more" — the dimmed adjacent values no longer
+          // look like stray labels under the selected number.
+          maskImage:
+            "linear-gradient(to bottom, transparent 0%, #000 32%, #000 68%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, transparent 0%, #000 32%, #000 68%, transparent 100%)",
         }}
       >
         <div style={{ height: ITEM_HEIGHT }} aria-hidden />
@@ -142,7 +149,7 @@ export function TimePickerWheel({ value, onChange, disabled, className }: TimePi
           onChange={(v) => update("hour", v)}
           disabled={disabled}
         />
-        <div className="flex items-center text-2xl font-semibold text-muted-foreground">:</div>
+        <div className="flex items-center text-ds-24 font-semibold text-muted-foreground">:</div>
         <Wheel
           ariaLabel="Minute"
           options={MINUTE_OPTIONS}
@@ -162,7 +169,7 @@ export function TimePickerWheel({ value, onChange, disabled, className }: TimePi
               disabled={disabled}
               onClick={() => update("period", p)}
               className={cn(
-                "h-11 rounded-xl text-[15px] font-semibold tracking-tight transition-all",
+                "h-11 rounded-ds-md text-[15px] font-semibold tracking-tight transition-all",
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",

@@ -3,13 +3,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import {
   Users, Briefcase, Settings, BarChart3, ClipboardCheck,
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, TrendingDown, Activity,
   X, Banknote, MapPin, Award, ChevronRight, ShieldCheck,
-  Shield, LogOut, ArrowLeft, Mail, Building2,
+  Shield, LogOut, ArrowLeft, Mail, Building2, Landmark,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";
@@ -113,6 +113,7 @@ interface Stats {
   lateCancellationRevenue: number;
   newUsers7d: number; newUsersPrev7d: number;
   revenue30d: number; revenuePrev30d: number;
+  feesThisQuarter: number;
 }
 
 const Admin = () => {
@@ -133,6 +134,7 @@ const Admin = () => {
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
     disputedJobs: 0, activeSubscriptions: 0, lateCancellationRevenue: 0,
     newUsers7d: 0, newUsersPrev7d: 0, revenue30d: 0, revenuePrev30d: 0,
+    feesThisQuarter: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -201,11 +203,15 @@ const Admin = () => {
     const d14 = new Date(now.getTime() - 14 * 86400000).toISOString();
     const d30 = new Date(now.getTime() - 30 * 86400000).toISOString();
     const d60 = new Date(now.getTime() - 60 * 86400000).toISOString();
+    // Start of the current calendar quarter — used by the tax-reserve
+    // tracker so the admin can see fee revenue accrued toward the next
+    // estimated-tax payment.
+    const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1).toISOString();
 
     const [
       profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes,
       paymentsRes, subsRes, lateCancelRes,
-      newUsers7Res, newUsersPrev7Res, rev30Res, revPrev30Res,
+      newUsers7Res, newUsersPrev7Res, rev30Res, revPrev30Res, quarterRes,
     ] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending").eq("email_verified", true),
@@ -231,6 +237,12 @@ const Admin = () => {
         .in("payment_status", ["escrow", "payout_pending", "released"])
         .neq("status", "cancelled" as any)
         .gte("updated_at", d60).lt("updated_at", d30),
+      // Platform-fee revenue accrued this calendar quarter — feeds the
+      // tax-reserve tracker's "this quarter" figure.
+      supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
+        .in("payment_status", ["escrow", "payout_pending", "released"])
+        .neq("status", "cancelled" as any)
+        .gte("updated_at", quarterStart),
     ]);
     const paymentRows = paymentsRes.data || [];
     const cancelledPaidRows = lateCancelRes.data || [];
@@ -256,6 +268,7 @@ const Admin = () => {
       newUsersPrev7d: newUsersPrev7Res.count || 0,
       revenue30d: sumFees(rev30Res.data),
       revenuePrev30d: sumFees(revPrev30Res.data),
+      feesThisQuarter: sumFees(quarterRes.data),
     });
     setStatsLoading(false);
   };
@@ -382,7 +395,7 @@ const Admin = () => {
 
                 <ThemeToggle />
                 <NotificationPanel />
-                <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-xl h-9 w-9" aria-label="Log out">
+                <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-ds-md h-9 w-9" aria-label="Log out">
                   <LogOut className="w-4 h-4" />
                 </Button>
               </div>
@@ -398,7 +411,7 @@ const Admin = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleViewChange("home")}
-                  className="h-10 w-10 rounded-xl -ml-2 hover:bg-secondary/60 shrink-0 mt-0.5"
+                  className="h-10 w-10 rounded-ds-md -ml-2 hover:bg-secondary/60 shrink-0 mt-0.5"
                   aria-label="Back to admin dashboard"
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -432,20 +445,17 @@ const Admin = () => {
           </main>
         </div>
 
-        <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Log out?</AlertDialogTitle>
-              <AlertDialogDescription>Are you sure you want to log out of your account?</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={async () => { await supabase.auth.signOut(); navigate("/"); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Log out
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <BrandConfirmDialog
+          open={showLogoutDialog}
+          onOpenChange={setShowLogoutDialog}
+          title="See you soon?"
+          description="You'll need to sign back in next time. Your posts and messages stay safe."
+          primaryLabel="Log out"
+          primaryTone="bark"
+          primaryHaptic="medium"
+          onPrimary={async () => { await supabase.auth.signOut(); navigate("/"); }}
+          secondaryLabel="Stay logged in"
+        />
       </div>
     </SidebarProvider>
   );
@@ -459,7 +469,7 @@ const AdminBadgeToggle = () => {
       type="button"
       onClick={toggleSidebar}
       aria-label="Toggle admin menu"
-      className="flex items-center gap-1.5 px-2 h-9 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 mr-1 btn-press"
+      className="flex items-center gap-1.5 px-2 h-9 rounded-ds-md bg-destructive/10 text-destructive hover:bg-destructive/20 mr-1 btn-press"
     >
       <Shield className="w-3.5 h-3.5" />
       <span className="text-[11px] font-bold uppercase tracking-wide">Admin</span>
@@ -499,7 +509,7 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="rounded-xl liquid-glass p-4 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+      className="rounded-ds-md liquid-glass p-4 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
     >
       <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center", accentClasses)}>
@@ -507,7 +517,7 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
         </div>
         {trend && (
           <span className={cn(
-            "text-xs sm:text-[11px] font-semibold px-2 py-1 rounded-md flex items-center gap-0.5",
+            "text-ds-11 sm:text-[11px] font-semibold px-2 py-1 rounded-md flex items-center gap-0.5",
             trend.up ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
           )}>
             {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -515,8 +525,8 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
           </span>
         )}
       </div>
-      <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{value}</p>
-      <p className="text-xs sm:text-xs text-muted-foreground mt-1 sm:mt-1.5 leading-tight">{label}</p>
+      <p className="text-ds-20 sm:text-ds-24 font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      <p className="text-ds-11 sm:text-ds-11 text-muted-foreground mt-1 sm:mt-1.5 leading-tight">{label}</p>
     </button>
   );
 };
@@ -527,22 +537,168 @@ const PriorityAlert = ({ label, count, color, onClick }: {
   <button
     onClick={onClick}
     className={cn(
-      "flex items-center gap-2.5 rounded-xl border p-2.5 sm:p-3.5 text-left transition-all w-full hover:shadow-sm",
+      "flex items-center gap-2.5 rounded-ds-md border p-2.5 sm:p-3.5 text-left transition-all w-full hover:shadow-sm",
       color === "destructive"
         ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
         : "border-accent/30 bg-accent/5 hover:bg-accent/10"
     )}
   >
     <span className={cn(
-      "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold tabular-nums shrink-0",
+      "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-ds-11 sm:text-ds-13 font-bold tabular-nums shrink-0",
       color === "destructive" ? "bg-destructive/15 text-destructive" : "bg-accent/15 text-accent-foreground"
     )}>
       {count}
     </span>
-    <span className="text-xs sm:text-sm font-semibold text-foreground flex-1 leading-tight">{label}</span>
+    <span className="text-ds-11 sm:text-ds-13 font-semibold text-foreground flex-1 leading-tight">{label}</span>
     <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
   </button>
 );
+
+// IRS estimated-tax quarterly due dates (standard schedule). Returns the
+// next deadline after `now` so the admin always sees the upcoming one.
+const nextEstimatedTaxDate = (now: Date): Date => {
+  const y = now.getFullYear();
+  const dates = [
+    new Date(y, 3, 15),       // Apr 15 — Q1
+    new Date(y, 5, 15),       // Jun 15 — Q2
+    new Date(y, 8, 15),       // Sep 15 — Q3
+    new Date(y + 1, 0, 15),   // Jan 15 next year — Q4
+  ];
+  return dates.find((d) => d > now) ?? dates[0];
+};
+
+const RESERVE_RATE_KEY = "helpr.admin.taxReserveRate";
+const RESERVE_RATE_OPTIONS = [0.2, 0.25, 0.3, 0.35];
+
+/**
+ * Tax-reserve tracker — surfaces roughly how much of the platform-fee
+ * revenue should be parked for income tax so the owner isn't surprised
+ * by an April bill. It does NOT move money; it's a running "set aside
+ * about $X" figure plus the next quarterly-estimate due date.
+ *
+ * The reserve is computed off GROSS platform fees (a deliberately
+ * conservative basis — actual taxable profit is lower after Stripe
+ * fees + hosting + other deductible expenses, so over-reserving is the
+ * safe direction to err). The rate is admin-adjustable and persisted
+ * to localStorage.
+ */
+const TaxReserveCard = ({
+  totalFees,
+  feesThisQuarter,
+  statsLoading,
+}: {
+  totalFees: number;
+  feesThisQuarter: number;
+  statsLoading: boolean;
+}) => {
+  const [rate, setRate] = useState(0.3);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(RESERVE_RATE_KEY);
+      const parsed = stored ? parseFloat(stored) : NaN;
+      if (RESERVE_RATE_OPTIONS.includes(parsed)) setRate(parsed);
+    } catch {
+      // private mode / quota — fall back to the 30% default
+    }
+  }, []);
+
+  const setRatePersisted = (next: number) => {
+    setRate(next);
+    try { window.localStorage.setItem(RESERVE_RATE_KEY, String(next)); } catch { /* ignore */ }
+  };
+
+  const reserveAllTime = totalFees * rate;
+  const reserveThisQuarter = feesThisQuarter * rate;
+  const dueDate = nextEstimatedTaxDate(new Date());
+  const dueLabel = dueDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const money = (n: number) =>
+    n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+  return (
+    <div
+      className="rounded-ds-md liquid-glass p-4 sm:p-5 space-y-4"
+      style={{
+        backgroundImage:
+          "radial-gradient(80% 90% at 100% 0%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%)",
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center bg-accent/10 text-accent-foreground shrink-0">
+            <Landmark className="w-4 h-4 sm:w-5 sm:h-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+              Tax reserve
+            </p>
+            <p className="text-ds-11 text-muted-foreground leading-tight">
+              Set aside for income tax — not a payment
+            </p>
+          </div>
+        </div>
+        {/* Reserve-rate selector — conservative default 30%. */}
+        <div className="flex items-center gap-1 shrink-0">
+          {RESERVE_RATE_OPTIONS.map((opt) => {
+            const active = opt === rate;
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setRatePersisted(opt)}
+                className={cn(
+                  "px-1.5 h-6 rounded-md text-[10px] font-semibold tabular-nums transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {Math.round(opt * 100)}%
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Big all-time reserve figure */}
+      <div>
+        <p className="text-ds-24 sm:text-[1.75rem] font-bold tabular-nums leading-none" style={{ color: "hsl(var(--ink-deep))" }}>
+          {statsLoading ? "—" : money(reserveAllTime)}
+        </p>
+        <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
+          {Math.round(rate * 100)}% of {statsLoading ? "—" : money(totalFees)} all-time platform fees.
+          A conservative estimate on gross revenue — actual tax owed is lower after expenses.
+        </p>
+      </div>
+
+      {/* This-quarter row + next due date */}
+      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/50">
+        <div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">This quarter</p>
+          <p className="text-ds-15 font-bold tabular-nums mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
+            {statsLoading ? "—" : money(reserveThisQuarter)}
+          </p>
+          <p className="text-[10px] text-muted-foreground leading-tight">
+            on {statsLoading ? "—" : money(feesThisQuarter)} in fees
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Next estimate due</p>
+          <p className="text-ds-15 font-bold mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
+            {dueLabel}
+          </p>
+          <p className="text-[10px] text-muted-foreground leading-tight">
+            IRS quarterly estimated tax
+          </p>
+        </div>
+      </div>
+
+      <p className="text-[10px] text-muted-foreground leading-snug italic">
+        Park this in a separate account as you earn it and pay quarterly estimates — confirm the exact rate with your CPA.
+      </p>
+    </div>
+  );
+};
 
 const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
@@ -623,7 +779,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
         <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" />
-            <p className="text-[10px] sm:text-xs font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
+            <p className="text-[10px] sm:text-ds-11 font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
           </div>
           <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
             {stats.pendingApprovals > 0 && (
@@ -644,7 +800,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
 
       {/* Financial Health — full width */}
       <div className="space-y-2 sm:space-y-3">
-        <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
+        <p className="text-[10px] sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
         <div className="grid grid-cols-2 gap-4 sm:gap-4">
           <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
@@ -654,6 +810,17 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
             <KpiCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} accent="destructive" onClick={() => onNavigate("analytics")} />
           )}
         </div>
+      </div>
+
+      {/* Tax obligations — running reserve estimate so the platform-fee
+          income tax never lands as an April surprise. */}
+      <div className="space-y-2 sm:space-y-3">
+        <p className="text-[10px] sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Tax Obligations</p>
+        <TaxReserveCard
+          totalFees={stats.totalFees}
+          feesThisQuarter={stats.feesThisQuarter}
+          statsLoading={statsLoading}
+        />
       </div>
     </div>
   );

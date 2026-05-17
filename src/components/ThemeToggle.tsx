@@ -23,7 +23,7 @@ const ThemeToggle = () => {
       onClick={() => setDark((d) => !d)}
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
-      className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-xl h-9 w-9"
+      className="hover:bg-accent/20 hover:text-accent-foreground btn-press rounded-ds-md h-9 w-9"
     >
       {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
     </Button>

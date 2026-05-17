@@ -110,10 +110,10 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
   if (users.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+    <div className="rounded-ds-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
       <div className="flex items-center gap-2">
         <ShieldAlert className="w-4 h-4 text-amber-700 dark:text-amber-300" />
-        <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+        <p className="text-ds-11 font-semibold text-amber-900 dark:text-amber-200">
           Auto-restricted ({users.length}) — review and reverse if mistaken
         </p>
       </div>
@@ -131,7 +131,7 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
               key={u.user_id}
               className="shrink-0 min-w-[220px] rounded-lg bg-background border border-amber-500/30 p-2.5 space-y-1.5"
             >
-              <p className="text-xs font-semibold truncate">
+              <p className="text-ds-11 font-semibold truncate">
                 {formatName(u.full_name, u.email || "User")}
               </p>
               <p className="text-[10px] text-muted-foreground">

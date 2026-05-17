@@ -1,5 +1,111 @@
 # TODO
 
+## Where We Left Off — 2026-05-11 (long session — CodeQL + refactors + iOS polish)
+
+### Production state at end of session
+
+- ✅ **All builds green on main.** PR #56 unblocked `npm install` everywhere
+  (downgraded `react-leaflet@5` → `^4.2.1` + `react-leaflet-cluster@4` → `^3.1.1`)
+  and inlined the Facebook icon SVG that lucide-react 1.x removed from Footer.
+- ✅ **27 CodeQL alerts closed** in PRs #41 + #54-superseded-by-#56:
+  12 XSS (`<img>` sites guarded with inline `startsWith("blob:")`),
+  13 info-exposure (`err.message` stripped from edge function 500 responses
+  in 11 functions), and 13 workflow-permissions blocks added.
+- ✅ **Sentry: 0 unresolved issues** (verified mid-session).
+- ✅ **Supabase advisors:** 0 ERROR, 30 perf WARN (all `multiple_permissive_policies`
+  on known tables), 69 security WARN (all intentional SECURITY DEFINER fns
+  + HIBP password-protection requires Pro).
+- ✅ **PR #41/49/56 merged** to main.
+- 🟡 **PR #60 open** — bundle of iOS polish (status-bar overlay fix + welcome
+  card shrink + FAB redesign + full JobFilters parity on `/browse`) + perf
+  audit doc + pre-render scaffold. Waiting on Vercel build rate-limit reset
+  to finish CI checks.
+
+### iOS native — Build #20 status
+
+- TestFlight Build #18 was rejected (ITMS-90032) on the alt-icon
+  declarations. Stripped in commit `d6be7b4`.
+- Build #19 (CFBundleVersion 2032) shipped to TestFlight successfully.
+- Build #20 (CFBundleVersion 2033) archived + uploaded to ASC mid-session.
+  Status when last checked: in ASC processing. **Has the security fixes
+  but NOT the polish items from PR #60** — those need a Build #21 dispatch
+  after PR #60 merges.
+
+### Real cowork-actionable items
+
+1. **🚨 P0 — 3 cron functions still 500-ing.** `auto-release-payment`,
+   `void-cancelled-payments`, `process-scheduled-payouts` have been
+   returning 500 on every pg_cron tick (every ~30 min) for days. I
+   redeployed each with `console.error("[fn-name] fatal:", error)` so the
+   actual error message lands in Function Logs. **Check Supabase Studio
+   → Edge Functions → Logs UI** for those 3 functions and post the
+   first `fatal:` line. The root cause is invisible from the supabase
+   MCP — only the Studio UI shows the deno log output.
+   Once we have the error message, the fix is probably small (likely
+   missing env var post-JWT-rotation, or a Stripe API version mismatch).
+
+2. **Cut iOS Build #21** after PR #60 merges. Goes via the
+   `ios-beta.yml` workflow with `build_number_floor=2034`. Brings:
+   - The status-bar overlay fix (no more double padding above headers)
+   - The welcome card / FAB / filters polish on `/browse`
+   - All the iOS PWA / a11y groundwork
+
+3. **`db-smoke.yml` workflow** still has a pre-existing migration
+   duplicate-key issue (`schema_migrations_pkey` on version
+   `20260505234500`). Surfaced on every PR that touches `.github/workflows/db-smoke.yml`.
+   Adding top-level `permissions:` to that file was deliberately skipped
+   in PR #60 because the touch triggers the broken workflow. Fix the
+   migration duplicate first, then add permissions in a follow-up.
+   CodeQL alert #5 stays open until.
+
+4. **Alt-icon Xcode wiring** still pending on Mac (per earlier session).
+   `public/app-icon-alt.svg` + `Info.plist` declarations exist (currently
+   stripped) + `scripts/generate-ios-icons.mjs` exists. Cowork needs to:
+   `node scripts/generate-ios-icons.mjs` → drag `ios/App/App/AlternateIcons/`
+   into Xcode as folder reference → re-add `CFBundleAlternateIcons` to
+   Info.plist. Once that lands, flip `APP_ICON_PICKER_ENABLED=true` in
+   `src/lib/featureFlags.ts` and the dormant picker UI in
+   `src/components/profile/AppIconPicker.tsx` activates.
+
+5. **Static pre-render of landing page** — single biggest remaining perf
+   win (real-user mobile FCP is 10.98s vs <3s target). Scaffold at
+   `scripts/prerender.mjs` is ready; enable per `docs/PERF_AUDIT_TODO.md`
+   instructions. Requires `npm install --save-dev puppeteer` first.
+
+6. **Vercel rate-limit headache.** Free tier caps daily builds; today's
+   PR sprawl burned through it. Going forward I'll batch fixes into single
+   PRs (matches Lexi's explicit feedback). If recurring, $20/mo Pro tier
+   removes the cap.
+
+### Refactor progress
+
+- `Profile.tsx` 1,319 → 681 lines (-48%). 5 components extracted into
+  `src/components/profile/`: DeleteAccountDialog, SecurityTab,
+  JobListTab, ProfileEditForm, ProfileLanding.
+- `PostJob.tsx` 1,172 → 731 lines (-37.6%). 4 components extracted into
+  `src/components/postjob/`: CheckoutStep, LogisticsSection,
+  BudgetSection, DetailsSection.
+- Next targets per the older roadmap (low-priority, opportunistic):
+  `Dashboard.tsx` (~1,015 lines), `Stripe webhook` (699 lines / 11 cases).
+
+### Sentry rules — fully live
+
+All 9 alert rules (P0 schema drift, P0 notifications check, P0 invalid
+job state, P0 payout-without-ledger, P0 chat-push-trigger, P1 edge-fn
+5xx burst, P1 Stripe Connect spike, WARN webhook signature, WARN
+rate-limit) created via Sentry API. Lexi can revoke the sntryu_ token
+at https://sentry.io/settings/account/api/auth-tokens/ — it's no longer
+needed.
+
+### Supabase GitHub secrets — all 3 set
+
+`SUPABASE_PROJECT_REF` + `SUPABASE_ACCESS_TOKEN` + `SUPABASE_DB_PASSWORD`
+are configured. `db-deploy.yml` and `db-drift-detect.yml` will now run
+end-to-end on their nightly schedules (the latter has been skip-warning
+for ~a week before this).
+
+---
+
 ## Supabase branching hygiene (Cowork — Free plan, 200 hrs/mo)
 
 If you spin up a preview branch with `supabase branches create <name>`:

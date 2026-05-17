@@ -14,9 +14,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, Plus, ArrowRight, List, Map as MapIcon } from "lucide-react";
+import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, List, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
@@ -44,6 +46,8 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { safeStorage } from "@/lib/safeStorage";
+import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
+import { getProfileCompletion } from "@/lib/profileCompletion";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -123,7 +127,7 @@ const Dashboard = () => {
   // get_open_jobs_for_map RPC). Toggle persists for the session only —
   // resetting to "list" on next mount matches user expectation that
   // the default landing surface is the curated feed.
-  const [view, setView] = useState<"list" | "map">("list");
+  const [view, setView] = usePersistedBrowseView("list");
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
@@ -133,6 +137,70 @@ const Dashboard = () => {
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+  // Top saved search (most-recently-created) — surfaced on the greeting
+  // when there are 0 jobs nearby, so the empty state feels intentional
+  // ("we're watching for X") rather than confusing.
+  const [topSavedSearch, setTopSavedSearch] = useState<{ name: string } | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("saved_searches")
+        .select("name")
+        .eq("user_id", user.id)
+        .eq("notify_enabled", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) setTopSavedSearch({ name: data.name });
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  // Profile completion nudge — gentle banner shown until the user
+  // finishes the post-signup profile enhancements (ZIP / ID
+  // verification / work photos). Uses the shared getProfileCompletion
+  // helper. Dismissible per-session so it doesn't follow them around.
+  const [completionDismissed, setCompletionDismissed] = useState(false);
+  const completionPct = profile
+    ? getProfileCompletion({
+        zipCode: (profile as any).zip_code,
+        idvStatus: profile.idv_status,
+        portfolioCount: Array.isArray((profile as any).portfolio_urls)
+          ? (profile as any).portfolio_urls.length
+          : 0,
+      }).pct
+    : 100;
+
+  // Inactive subscriber nudge — if a paid helper hasn't applied to
+  // anything in 7+ days, surface a gentle "your sub is paying for
+  // itself when you apply" banner. Caps the cost-justification at the
+  // moment the user is checking the feed.
+  const [inactiveNudge, setInactiveNudge] = useState(false);
+  useEffect(() => {
+    if (!user || !profile) return;
+    const subTier = (profile.subscription_tier ?? "free") as string;
+    const subExp = profile.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
+    const subActive = subExp ? subExp > new Date() : false;
+    if (!subActive || subTier === "free") return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("applications")
+        .select("created_at")
+        .eq("helper_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const last = data?.created_at ? new Date(data.created_at).getTime() : 0;
+      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+      if (!last || Date.now() - last > sevenDaysMs) setInactiveNudge(true);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, profile?.subscription_tier, profile?.subscription_expires_at]);
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");
@@ -310,7 +378,7 @@ const Dashboard = () => {
           <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
             <XCircle className="w-8 h-8 text-destructive" />
           </div>
-          <h1 className="text-page-title text-foreground text-2xl">
+          <h1 className="text-page-title text-foreground text-ds-24">
             Account {banStatus === "permanently_banned" ? "Permanently Banned" : "Temporarily Suspended"}
           </h1>
           <p className="text-muted-foreground">
@@ -340,16 +408,16 @@ const Dashboard = () => {
             {approvalStatus === "pending" ? (
               <>
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><Clock className="w-8 h-8 text-primary" /></div>
-                <h1 className="text-page-title text-foreground text-2xl">Profile under review</h1>
+                <h1 className="text-page-title text-foreground text-ds-24">Profile under review</h1>
                 <p className="text-muted-foreground">Thanks for signing up, {firstName}! Your profile is being reviewed.</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">
                   We'll let you know as soon as you're approved. This screen updates automatically.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-                  <Button onClick={handleCheckStatus} className="rounded-xl btn-press">
+                  <Button onClick={handleCheckStatus} className="rounded-ds-md btn-press">
                     Check status
                   </Button>
-                  <Button variant="outline" onClick={handleSignOut} className="rounded-xl">
+                  <Button variant="outline" onClick={handleSignOut} className="rounded-ds-md">
                     Sign out
                   </Button>
                 </div>
@@ -357,10 +425,10 @@ const Dashboard = () => {
             ) : (
               <>
                 <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto"><XCircle className="w-8 h-8 text-destructive" /></div>
-                <h1 className="text-page-title text-foreground text-2xl">Profile not approved</h1>
+                <h1 className="text-page-title text-foreground text-ds-24">Profile not approved</h1>
                 <p className="text-muted-foreground">Unfortunately, your profile was not approved. Please contact support.</p>
                 <div className="flex items-center justify-center gap-2 pt-2">
-                  <Button variant="outline" onClick={handleSignOut} className="rounded-xl">
+                  <Button variant="outline" onClick={handleSignOut} className="rounded-ds-md">
                     Sign out
                   </Button>
                 </div>
@@ -375,7 +443,6 @@ const Dashboard = () => {
   
 
   return (
-    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
     <div
       className="h-[100dvh] bg-premium-page flex flex-col overflow-hidden animate-in fade-in-0 duration-500"
     >
@@ -410,11 +477,16 @@ const Dashboard = () => {
             }}
           >
             <h1
-              className="font-display font-bold leading-tight truncate"
+              className="font-display font-bold truncate"
               style={{
                 fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.025em",
+                // Slightly looser leading + bottom padding to clear the
+                // Beth Ellen script descenders ("y", "g", "p" tails)
+                // from colliding with the date eyebrow below.
+                lineHeight: 1.15,
+                paddingBottom: "0.15em",
               }}
             >
               {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
@@ -428,12 +500,164 @@ const Dashboard = () => {
                 color: "hsl(var(--olivewood) / 0.55)",
               }}
             >
-              {new Date().toLocaleDateString("en-US", { weekday: "long" })}
-              {" · "}
-              {filters.filteredJobs.length} {filters.filteredJobs.length === 1 ? "job" : "jobs"} nearby
-              {recommendedJobs.length > 0 && ` · ${recommendedJobs.length} picked for you`}
+              {/* Full date so the eyebrow is informative even when no jobs
+                  are nearby (avoids triple "0 jobs" redundancy across the
+                  greeting eyebrow, Browse-Tasks header, and empty-state
+                  card on quiet days). Job count only appears when > 0. */}
+              {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              {filters.filteredJobs.length > 0 && (
+                <>
+                  {" · "}
+                  {filters.filteredJobs.length} {filters.filteredJobs.length === 1 ? "job" : "jobs"} nearby
+                  {recommendedJobs.length > 0 && ` · ${recommendedJobs.length} picked for you`}
+                </>
+              )}
             </p>
+            {/* Stat of the day — rotates one data point under the
+                greeting eyebrow so the card feels alive on every load.
+                Picks deterministically by date so the same user sees
+                the same stat for the day (no flicker). */}
+            {filters.filteredJobs.length > 0 && (() => {
+              const stats: string[] = [];
+              if (recommendedJobs.length > 0) {
+                stats.push(`${recommendedJobs.length} match${recommendedJobs.length === 1 ? "" : "es"} picked just for you today.`);
+              }
+              if (filters.filteredJobs.length >= 5) {
+                stats.push(`${filters.filteredJobs.length} open jobs nearby — busiest day in a while.`);
+              }
+              const recentUrgent = filters.filteredJobs.filter((j) => j.is_urgent).length;
+              if (recentUrgent > 0) {
+                stats.push(`${recentUrgent} urgent job${recentUrgent === 1 ? "" : "s"} in the feed right now.`);
+              }
+              const recentHigh = filters.filteredJobs.filter((j) => j.budget >= 100).length;
+              if (recentHigh > 0) {
+                stats.push(`${recentHigh} job${recentHigh === 1 ? "" : "s"} paying $100+ today.`);
+              }
+              if (stats.length === 0) return null;
+              const dayIdx = Math.floor(Date.now() / 86400000) % stats.length;
+              return (
+                <p
+                  className="mt-2 font-serif italic leading-snug"
+                  style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}
+                >
+                  {stats[dayIdx]}
+                </p>
+              );
+            })()}
+            {/* "Watching for" chip — only shown when 0 jobs nearby and
+                the user has an active saved search. Reframes the empty
+                state as intentional rather than confusing. */}
+            {filters.filteredJobs.length === 0 && topSavedSearch && (
+              <button
+                type="button"
+                onClick={() => navigate("/profile?tab=notifications")}
+                className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full active:opacity-70 transition-opacity"
+                style={{
+                  background: "hsl(var(--burnt-sienna) / 0.10)",
+                  border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
+                }}
+              >
+                <Search className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
+                <span
+                  className="text-[0.7rem] font-sans font-semibold tracking-wide truncate max-w-[200px]"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                >
+                  Watching for: {topSavedSearch.name}
+                </span>
+              </button>
+            )}
           </motion.div>
+
+          {/* Profile completion nudge — surfaces when profile is < 60%
+              complete. Sits above other banners since posters won't
+              respond well to incomplete-looking applicants. Tapping
+              routes to Edit Profile. */}
+          {profile && completionPct < 80 && !completionDismissed && (() => {
+            // Color the banner + chip by progress so the user gets visual
+            // momentum as they fill out their profile:
+            //   0–59%   → gold-warm (needs attention)
+            //   60–79%  → bark      (almost there)
+            // The banner hides at 80%; users can finish the last 20% later
+            // from Profile → Edit without being nagged.
+            const closeToDone = completionPct >= 60;
+            const accent = closeToDone ? "var(--bark)" : "var(--gold-warm)";
+            return (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
+              style={{
+                background:
+                  `radial-gradient(70% 90% at 100% 0%, hsl(${accent} / 0.10) 0%, transparent 55%)`,
+                border: `0.5px solid hsl(${accent} / 0.32)`,
+              }}
+            >
+              <div
+                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: `hsl(${accent} / 0.18)`, color: `hsl(${accent})` }}
+              >
+                <span className="font-display italic font-bold tabular-nums text-[0.78rem]">{completionPct}%</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/profile?tab=profile")}
+                className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
+              >
+                <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
+                  Finish your profile to land more jobs.
+                </p>
+                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+                  Posters skip incomplete profiles — finish in under 3 minutes.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCompletionDismissed(true)}
+                aria-label="Dismiss"
+                className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
+                style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+            );
+          })()}
+
+          {/* Inactive subscriber nudge — gentle reminder for paid helpers
+              who haven't applied in 7+ days. Dismissible per-session. */}
+          {inactiveNudge && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
+              style={{
+                background:
+                  "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 55%)",
+                border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
+              }}
+            >
+              <Star className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} fill="currentColor" />
+              <div className="flex-1 min-w-0">
+                <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
+                  Your subscription pays for itself when you apply.
+                </p>
+                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+                  Plenty of work nearby — see what's open below.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInactiveNudge(false)}
+                aria-label="Dismiss"
+                className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
+                style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
 
           <motion.section
             initial={{ opacity: 0, y: 16 }}
@@ -442,17 +666,18 @@ const Dashboard = () => {
             className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
             style={{
               // Browse Tasks card extends to the viewport bottom — bottom
-              // corners drop their radius and inset shadow so the panel
-              // reads as continuing under the floating dock instead of
-              // ending at a hard edge above it.
+              // corners drop their radius and the bottom shadows are
+              // cropped so the panel visually bleeds beneath the dock's
+              // frosted curtain instead of ending in a faint shadow line
+              // right above it.
               borderBottomLeftRadius: 0,
               borderBottomRightRadius: 0,
               borderBottom: "none",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-                "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+                "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                "1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                "0 -1px 2px hsl(var(--olivewood) / 0.06)",
             }}
           >
             {/* Header row */}
@@ -465,7 +690,9 @@ const Dashboard = () => {
                   className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
-                  {filters.hasFilters ? "Filtered" : "For you, today"}
+                  {filters.hasFilters
+                    ? `Filtered · ${filters.activeFilterCount} active`
+                    : "For you, today"}
                 </span>
                 <h2
                   className="font-display italic font-bold leading-tight mt-1"
@@ -477,61 +704,80 @@ const Dashboard = () => {
                 >
                   {filters.hasFilters ? "Filtered Results" : "Browse Tasks"}
                 </h2>
-                <span
-                  className="font-serif italic mt-0.5 text-[0.72rem]"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                >
-                  {filters.filteredJobs.length}{" "}
-                  {filters.filteredJobs.length === 1 ? "job" : "jobs"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                {filters.hasFilters && (
-                  <Button variant="ghost" size="sm" onClick={filters.clearFilters} className="text-xs text-muted-foreground hover:text-destructive h-8 rounded-xl btn-press">
-                    <X className="w-3 h-3 mr-1" /> Clear
-                  </Button>
+                {/* Subtitle hidden when 0 jobs — the empty-state card
+                    below already says "Nothing nearby just yet" in a much
+                    more prominent way. Showing "0 jobs" here too is
+                    redundant noise. */}
+                {filters.filteredJobs.length > 0 && (
+                  <span
+                    className="font-serif italic mt-0.5 text-ds-11"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    {filters.filteredJobs.length}{" "}
+                    {filters.filteredJobs.length === 1 ? "job" : "jobs"}
+                  </span>
                 )}
-                {user && (
-                  <SavedSearches
-                    userId={user.id}
-                    currentFilters={{
-                      selectedCategory: filters.selectedCategory,
-                      maxBudget: filters.maxBudget,
-                      locationFilter: filters.locationFilter,
-                    }}
-                    onApplySearch={(s) => {
-                      filters.setSelectedCategory(s.category);
-                      filters.setMaxBudget(s.max_budget ? String(s.max_budget) : "");
-                      filters.setLocationFilter(s.location_keyword || "");
-                    }}
-                  />
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
-                  className={`h-8 w-8 rounded-xl btn-press ${filters.searchOpen || filters.searchQuery ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                  aria-label="Search jobs"
-                  aria-expanded={filters.searchOpen}
-                >
-                  <Search className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
-                  className={`h-8 w-8 rounded-xl btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                  aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
-                  aria-expanded={filters.filtersOpen}
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                  {filters.activeFilterCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
-                      {filters.activeFilterCount}
-                    </span>
-                  )}
-                </Button>
               </div>
+              {(() => {
+                // When there are zero open jobs AND no active filters, the
+                // toolbar (saved-searches / search / filters) has nothing
+                // useful to do. Dim it (opacity 50%, no pointer events) so
+                // the eye doesn't get pulled to dead controls on an empty
+                // screen. Still rendered for layout continuity.
+                const isEmptyAndUnfiltered = filters.filteredJobs.length === 0 && !filters.hasFilters;
+                return (
+                  <div
+                    className={`flex items-center gap-1 transition-opacity ${isEmptyAndUnfiltered ? "opacity-40 pointer-events-none" : ""}`}
+                    aria-hidden={isEmptyAndUnfiltered ? "true" : undefined}
+                  >
+                    {filters.hasFilters && (
+                      <Button variant="ghost" size="sm" onClick={filters.clearFilters} className="text-ds-11 text-muted-foreground hover:text-destructive h-8 rounded-ds-md btn-press">
+                        <X className="w-3 h-3 mr-1" /> Clear
+                      </Button>
+                    )}
+                    {user && (
+                      <SavedSearches
+                        userId={user.id}
+                        currentFilters={{
+                          selectedCategory: filters.selectedCategory,
+                          maxBudget: filters.maxBudget,
+                          locationFilter: filters.locationFilter,
+                        }}
+                        onApplySearch={(s) => {
+                          filters.setSelectedCategory(s.category);
+                          filters.setMaxBudget(s.max_budget ? String(s.max_budget) : "");
+                          filters.setLocationFilter(s.location_keyword || "");
+                        }}
+                      />
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
+                      className={`h-8 w-8 rounded-ds-md btn-press ${filters.searchOpen || filters.searchQuery ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                      aria-label="Search jobs"
+                      aria-expanded={filters.searchOpen}
+                    >
+                      <Search className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
+                      className={`h-8 w-8 rounded-ds-md btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                      aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
+                      aria-expanded={filters.filtersOpen}
+                    >
+                      <SlidersHorizontal className="w-4 h-4" />
+                      {filters.activeFilterCount > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
+                          {filters.activeFilterCount}
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Expandable search bar */}
@@ -551,7 +797,7 @@ const Dashboard = () => {
                       placeholder="Search tasks…"
                       value={filters.searchQuery}
                       onChange={(e) => filters.setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-9 h-10 text-sm rounded-xl border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                      className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
                     />
                     {filters.searchQuery && (
                       <button onClick={() => filters.setSearchQuery("")} className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press">
@@ -597,13 +843,13 @@ const Dashboard = () => {
             {!filters.filtersOpen && (filters.selectedCategory || filters.locationFilter || filters.maxBudget || filters.expiresWithin || filters.matchAvailability) && (
               <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30">
                 {filters.selectedCategory && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                     {categoryLabels[filters.selectedCategory]}
                     <button onClick={() => filters.setSelectedCategory(null)} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {filters.locationFilter && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                     <MapPin className="w-3 h-3" />
                     {filters.locationFilter.startsWith("nearby:")
                       ? `Within ${filters.locationFilter.slice(7)} mi`
@@ -612,19 +858,19 @@ const Dashboard = () => {
                   </span>
                 )}
                 {filters.maxBudget && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                     ≤ ${filters.maxBudget}
                     <button onClick={() => filters.setMaxBudget("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {filters.expiresWithin && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                     {filters.expiresWithin}
                     <button onClick={() => filters.setExpiresWithin("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {filters.matchAvailability && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/10 text-primary text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
                     <Clock className="w-3 h-3" /> My hours
                     <button onClick={() => filters.setMatchAvailability(false)} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
                   </span>
@@ -632,34 +878,35 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* List ⇄ Map toggle. Same pattern as guest /browse but
-                wired to apply directly via handleApplyRequest, no
-                signup redirect. Lives outside the elevated content box
-                so the toggle reads as a peer of the box. */}
-            <div className="px-3 pt-3 pb-1">
-              <div className="flex gap-1 p-1 bg-muted/40 rounded-xl border border-border w-full max-w-xs mx-auto">
-                <button
-                  onClick={() => setView("list")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-medium transition-colors ${
-                    view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <List className="w-3.5 h-3.5" /> List
-                </button>
-                <button
-                  onClick={() => setView("map")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-medium transition-colors ${
-                    view === "map" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <MapIcon className="w-3.5 h-3.5" /> Map
-                </button>
+            {/* List ⇄ Map toggle — hidden when 0 jobs because the map
+                would show an empty Louisiana with no pins, making the
+                toggle a UI-noise tax. Re-appears the moment jobs land. */}
+            {filters.filteredJobs.length > 0 && (
+              <div className="px-3 pt-3 pb-1">
+                <div className="flex gap-1 p-1 bg-muted/40 rounded-ds-md border border-border w-full max-w-xs mx-auto">
+                  <button
+                    onClick={() => setView("list")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-ds-11 font-medium transition-colors ${
+                      view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <List className="w-3.5 h-3.5" /> List
+                  </button>
+                  <button
+                    onClick={() => setView("map")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-ds-11 font-medium transition-colors ${
+                      view === "map" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <MapIcon className="w-3.5 h-3.5" /> Map
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {view === "map" && (
-              <div className="px-3 pt-2 pb-3">
-                <Suspense fallback={<div className="h-[480px] rounded-2xl bg-muted/30 animate-pulse" />}>
+              <div className="flex-1 min-h-0 px-3 pt-2 pb-0">
+                <Suspense fallback={<div className="h-full w-full rounded-t-2xl bg-muted/30 animate-pulse" />}>
                   <BrowseMap
                     onJobAction={handleApplyRequest}
                     ctaLabel="Apply"
@@ -669,8 +916,12 @@ const Dashboard = () => {
               </div>
             )}
 
-            <div
-              className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-3 pt-3 pb-0"
+            <PullToRefreshWrapper
+              ref={containerRef}
+              pullDistance={pullDistance}
+              refreshing={refreshing}
+              isPulling={isPulling}
+              className="flex-1 min-h-0 overscroll-contain scrollbar-hide px-3 pt-3 pb-0"
               style={view === "map" ? { display: "none" } : undefined}
             >
               {/* Always-visible elevated content box. Empty state and the
@@ -695,115 +946,41 @@ const Dashboard = () => {
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
             <div className="px-4 pt-4 flex-1 min-h-0 flex">
-              {/* Empty-state white card — extends to the bottom of the
-                  screen, top corners rounded, bottom corners flat to merge
-                  with the dock. Same pattern as Posts/Jobs/Messages. */}
-              <div
-                className="flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
-                style={{
-                  backgroundColor: "hsl(0, 0%, 100%)",
-                  borderLeft: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                  borderRight: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                  borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                  boxShadow:
-                    "0 1px 2px hsl(var(--olivewood) / 0.04), " +
-                    "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
-                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
-                }}
-              >
-                  {/* Frosted glass circle — wraps the search icon so it
-                      reads as a clear focal point against the now-textured
-                      paper-mesh background. */}
-                  <div
-                    className="w-20 h-20 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                      backdropFilter: "blur(16px) saturate(150%)",
-                      WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                      border: "1px solid hsla(0, 0%, 100%, 0.7)",
-                      boxShadow:
-                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                        "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                        "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                    }}
-                  >
-                    <Search className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="text-display-eyebrow">
-                      {filters.hasFilters ? "No matches" : "Quiet right now"}
-                    </span>
-                    <p
-                      className="font-display italic font-bold leading-tight"
-                      style={{
-                        fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                        color: "hsl(var(--ink-deep))",
-                        letterSpacing: "-0.02em",
-                      }}
-                    >
-                      {filters.hasFilters ? "No jobs match your filters." : "Nothing nearby just yet."}
-                    </p>
-                    <p
-                      className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
-                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                    >
-                      {filters.hasFilters
-                        ? filters.boostedOnly
-                          ? "No boosted jobs right now — try clearing the filter to see all open work."
-                          : "Try widening your parish, raising your budget, or clearing a filter."
-                        : "New jobs are posted every day across Louisiana. Check back soon."}
-                    </p>
-                  </div>
-                  {filters.hasFilters ? (
-                    <Button variant="outline" onClick={filters.clearFilters} className="rounded-xl">
+              <EmptyState
+                icon={Search}
+                eyebrow={filters.hasFilters ? "No matches" : "All quiet — for now"}
+                title={filters.hasFilters ? "No jobs match your filters." : "Nothing today, neighbor."}
+                body={
+                  filters.hasFilters
+                    ? filters.boostedOnly
+                      ? "No boosted jobs right now — try clearing the filter to see all open work."
+                      : "Try widening your parish, raising your budget, or clearing a filter."
+                    : (() => {
+                        // Rotating friendly tip — picks one of 4 every hour so
+                        // the empty state feels alive on repeat visits instead
+                        // of static. Deterministic per hour keeps it from
+                        // flickering on every render.
+                        const tips = [
+                          "New jobs post throughout the day. Helprs often check in around lunch and after work.",
+                          "Most posts go up on weekday evenings. Pull down to refresh anytime.",
+                          "Saved a search? Helpr will ping you the moment a matching job hits the board.",
+                          "Quiet days happen. The neighborhood circles back — usually before sundown.",
+                        ];
+                        return tips[new Date().getHours() % tips.length];
+                      })()
+                }
+                action={
+                  filters.hasFilters ? (
+                    <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
                       Clear filters
                     </Button>
                   ) : (
-                    <button
-                      onClick={() => navigate("/post-job")}
-                      className="group relative inline-flex items-center gap-2.5 px-6 h-12 rounded-full overflow-hidden transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.96] z-10"
-                      style={{
-                        // Mesh gradient — radial highlight at upper-left
-                        // gives the button volume; falls off to a deeper
-                        // Bark at the lower-right edge for depth.
-                        background:
-                          "radial-gradient(120% 120% at 25% 20%, hsl(70 22% 44%) 0%, hsl(70 20% 33%) 55%, hsl(70 22% 24%) 100%)",
-                        color: "hsl(var(--parchment))",
-                        border: "1px solid hsl(70 20% 33%)",
-                        fontFamily: "Montserrat, system-ui, sans-serif",
-                        fontWeight: 600,
-                        letterSpacing: "0.01em",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.35), " +
-                          "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.15), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.1), " +
-                          "0 10px 26px -6px hsl(var(--bark) / 0.55), " +
-                          "0 22px 44px -10px hsl(var(--bark) / 0.4)",
-                      }}
-                    >
-                      {/* Soft sweep — single restrained shimmer crosses
-                          the button on hover. */}
-                      <span
-                        aria-hidden
-                        className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[900ms] ease-out pointer-events-none"
-                        style={{
-                          background:
-                            "linear-gradient(90deg, transparent 0%, hsla(0, 0%, 100%, 0.22) 50%, transparent 100%)",
-                        }}
-                      />
-                      <Plus
-                        className="w-4 h-4 relative z-10"
-                        strokeWidth={2.75}
-                        style={{ color: "hsl(var(--parchment))" }}
-                      />
-                      <span className="relative z-10 text-[0.92rem]">Post the first job</span>
-                      <ArrowRight
-                        className="w-4 h-4 relative z-10 transition-transform duration-300 group-hover:translate-x-1"
-                        strokeWidth={2.5}
-                      />
-                    </button>
-                  )}
-              </div>
+                    <BarkPillButton onClick={() => navigate("/post-job")}>
+                      Post the first job
+                    </BarkPillButton>
+                  )
+                }
+              />
             </div>
             ) : (() => {
               const visibleJobs = filters.filteredJobs
@@ -893,7 +1070,7 @@ const Dashboard = () => {
                   {hasNextPage && (
                     <div ref={loadMoreRef} className="px-4 py-4 flex justify-center">
                       {isFetchingNextPage ? (
-                        <span className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                        <span className="text-ds-11 text-muted-foreground inline-flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
                           Loading more jobs…
                         </span>
@@ -902,7 +1079,7 @@ const Dashboard = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => fetchNextPage()}
-                          className="text-xs text-muted-foreground hover:text-foreground rounded-xl btn-press"
+                          className="text-ds-11 text-muted-foreground hover:text-foreground rounded-ds-md btn-press"
                         >
                           Load more
                         </Button>
@@ -918,7 +1095,7 @@ const Dashboard = () => {
               );
             })()}
               </div>
-            </div>
+            </PullToRefreshWrapper>
           </motion.section>
         </div>
       </main>
@@ -944,77 +1121,132 @@ const Dashboard = () => {
 
 
       <AlertDialog open={!!confirmApplyJobId} onOpenChange={(open) => { if (!open) setConfirmApplyJobId(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Application</AlertDialogTitle>
+        <AlertDialogContent className="!gap-3">
+          <AlertDialogHeader className="!text-left space-y-0">
+            <span
+              className="font-serif italic uppercase"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              You're applying
+            </span>
+            <AlertDialogTitle
+              className="font-display italic font-bold leading-tight mt-1"
+              style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+            >
+              {confirmApplyJob ? `"${confirmApplyJob.title}"` : "Apply for this task"}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              {confirmApplyJob
-                ? <div className="space-y-3">
-                    <p>Are you sure you want to apply for <span className="font-semibold text-foreground">"{confirmApplyJob.title}"</span>?</p>
-                    <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-1.5 text-sm">
-                      {(() => {
-                        const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
-                        const perHelper = confirmApplyJob.budget / helpers;
-                        const commission = perHelper * platformFee / 100;
-                        const payout = perHelper - commission + (confirmApplyJob.urgent_fee ?? 0);
-                        return (
-                          <>
-                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Earnings Breakdown</p>
-                             <div className="flex justify-between text-xs text-muted-foreground">
-                               <span>Job Budget{helpers > 1 ? ` (÷${helpers} helprs)` : ""}</span>
-                               <span className="text-foreground font-medium">${perHelper.toFixed(2)}</span>
-                             </div>
-                             <div className="flex justify-between text-xs text-muted-foreground">
-                               <span>Platform Fee ({platformFee}%)</span>
-                               <span className="text-destructive/70">−${commission.toFixed(2)}</span>
-                             </div>
-                            {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
-                              <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Urgent bonus</span>
-                                <span className="text-accent">+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
-                              </div>
-                            )}
-                            <div className="h-px bg-border my-1" />
+              {confirmApplyJob ? (
+                <div className="mt-3">
+                  {(() => {
+                    const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
+                    const perHelper = confirmApplyJob.budget / helpers;
+                    const commission = perHelper * platformFee / 100;
+                    const payout = perHelper - commission + (confirmApplyJob.urgent_fee ?? 0);
+                    return (
+                      <div
+                        className="rounded-ds-md p-3"
+                        style={{
+                          background:
+                            "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
+                            "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.74) 100%)",
+                          border: "0.5px solid hsl(var(--bark) / 0.22)",
+                          boxShadow:
+                            "inset 0 1px 1px 0 rgba(255,255,255,0.6), " +
+                            "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22)",
+                        }}
+                      >
+                        <p
+                          className="font-serif italic uppercase mb-1.5"
+                          style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                        >
+                          You earn
+                        </p>
+                        <div className="space-y-1 text-[0.78rem]">
+                          <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
+                            <span className="font-serif italic">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
+                            <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${perHelper.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
+                            <span className="font-serif italic">− {platformFee}% platform fee</span>
+                            <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${commission.toFixed(2)}</span>
+                          </div>
+                          {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
                             <div className="flex justify-between">
-                              <span className="font-semibold text-foreground text-sm">Your Payout</span>
-                              <span className="font-bold text-primary text-sm">${payout.toFixed(2)}</span>
+                              <span className="font-serif italic" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus</span>
+                              <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
                             </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                : <p>Are you sure you want to apply for this task?</p>}
+                          )}
+                          <div
+                            className="flex justify-between pt-1.5 mt-1.5 items-baseline"
+                            style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
+                          >
+                            <span className="font-display italic font-bold" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}>Take-home</span>
+                            <span
+                              className="font-display italic font-bold tabular-nums"
+                              style={{ fontSize: "1.15rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+                            >
+                              ${payout.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <p className="font-serif italic mt-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  Are you sure you want to apply for this task?
+                </p>
+              )}
             </AlertDialogDescription>
-            <div className="space-y-1.5 mt-2">
-              <label htmlFor="apply-message" className="text-xs text-muted-foreground">Add a message (optional)</label>
+            <div className="space-y-1.5 mt-3">
+              <label
+                htmlFor="apply-message"
+                className="font-serif italic uppercase block"
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Your pitch — optional
+              </label>
               <Textarea
                 id="apply-message"
                 value={applyMessage}
                 onChange={(e) => setApplyMessage(e.target.value)}
                 placeholder="Introduce yourself or share relevant experience…"
                 rows={3}
-                className="text-sm"
+                className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
               />
             </div>
             {/* File attachments */}
             <div className="space-y-1.5 mt-2">
-              <label className="text-xs text-muted-foreground">Attach certs or previous work (optional)</label>
+              <label
+                className="font-serif italic uppercase block"
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Certs or previous work — optional
+              </label>
               <div className="space-y-1.5">
                 {applyFiles.map((file, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs bg-secondary/30 rounded-lg px-2.5 py-1.5">
-                    <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="truncate flex-1">{file.name}</span>
-                    <span className="text-muted-foreground shrink-0">{(file.size / 1024).toFixed(0)}KB</span>
-                    <button type="button" onClick={() => setApplyFiles(f => f.filter((_, idx) => idx !== i))} className="text-destructive hover:text-destructive/80">
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-[0.72rem] rounded-ds-md px-2.5 py-1.5"
+                    style={{ background: "hsl(var(--bark) / 0.08)", border: "0.5px solid hsl(var(--bark) / 0.18)" }}
+                  >
+                    <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
+                    <span className="truncate flex-1 font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>{file.name}</span>
+                    <span className="font-sans tabular-nums shrink-0" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>{(file.size / 1024).toFixed(0)}KB</span>
+                    <button type="button" onClick={() => setApplyFiles(f => f.filter((_, idx) => idx !== i))} style={{ color: "hsl(var(--burnt-sienna))" }} className="active:opacity-70">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
                 {applyFiles.length < 5 && (
-                  <label className="flex items-center gap-2 text-xs text-primary cursor-pointer hover:underline">
-                    <Paperclip className="w-3.5 h-3.5" />
-                    <span>Add file</span>
+                  <label
+                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-sans font-semibold cursor-pointer active:opacity-70"
+                    style={{ color: "hsl(var(--bark))" }}
+                  >
+                    <Paperclip className="w-3.5 h-3.5" strokeWidth={2.25} />
+                    <span>{applyFiles.length === 0 ? "Add a file" : "Add another"}</span>
                     <input
                       type="file"
                       className="hidden"
@@ -1033,10 +1265,24 @@ const Dashboard = () => {
               </div>
             </div>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={applyLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleApplyConfirm} disabled={applyLoading}>
-              {applyLoading ? "Applying…" : "Yes, Apply"}
+          <AlertDialogFooter className="!gap-2">
+            <AlertDialogCancel disabled={applyLoading} className="rounded-ds-md">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleApplyConfirm}
+              disabled={applyLoading}
+              className="rounded-ds-md"
+              style={{
+                background: "hsl(var(--bark))",
+                backgroundImage: "none",
+                border: "1px solid hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                letterSpacing: "0.01em",
+                boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+              }}
+            >
+              {applyLoading ? "Applying…" : "Apply now"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1045,48 +1291,27 @@ const Dashboard = () => {
       <AlertDialog open={!!confirmDismissJobId} onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg rounded-lg p-4 sm:p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-base sm:text-lg">Not Interested?</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm">
+            <AlertDialogTitle className="text-ds-15 sm:text-ds-17">Not Interested?</AlertDialogTitle>
+            <AlertDialogDescription className="text-ds-13">
               {confirmDismissJob
                 ? <>Remove <span className="font-semibold text-foreground">"{confirmDismissJob.title}"</span> from your feed? You won't see it again.</>
                 : "Remove this job from your feed?"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row justify-end gap-2 sm:gap-2">
-            <AlertDialogCancel className="mt-0 h-9 px-3 text-sm">Keep It</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDismissConfirm} className="h-9 px-3 text-sm bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
+            <AlertDialogCancel className="mt-0 h-9 px-3 text-ds-13">Keep It</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDismissConfirm} className="h-9 px-3 text-ds-13 bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />
 
-      {/* Floating "Post a Request" — mobile-only FAB pinned bottom-right
-          above the MobileNav. Persistent across scroll so the primary
-          action is always one thumb-tap away. iOS users expect this
-          pattern; without it they have to scroll to the top to find
-          a CTA. md:hidden because the desktop dashboard surfaces the
-          CTA in the header. */}
-      <button
-        onClick={() => navigate("/post-job")}
-        className="md:hidden fixed bottom-24 right-4 z-30 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-[0.92] hover:-translate-y-0.5"
-        style={{
-          background:
-            "radial-gradient(120% 120% at 25% 20%, hsl(70 22% 44%) 0%, hsl(70 20% 33%) 55%, hsl(70 22% 24%) 100%)",
-          color: "hsl(var(--parchment))",
-          border: "1px solid hsl(70 20% 33%)",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.35), " +
-            "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.15), " +
-            "0 6px 14px hsl(var(--bark) / 0.45), " +
-            "0 14px 28px -8px hsl(var(--bark) / 0.4)",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        }}
-        aria-label="Post a Request"
-      >
-        <Plus className="w-6 h-6" strokeWidth={2.5} />
-      </button>
+      {/* Floating-FAB removed — MobileNav already renders a Post FAB at the
+          right edge of the bottom dock. Two FABs at the same screen corner
+          was the "stacked plus buttons" bug visible in TestFlight build
+          screenshots. Desktop surfaces the CTA in the header (md:flex)
+          so no desktop replacement is needed. */}
     </div>
-    </PullToRefreshWrapper>
   );
 };
 

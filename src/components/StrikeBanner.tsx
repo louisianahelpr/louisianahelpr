@@ -40,12 +40,12 @@ export default function StrikeBanner() {
     if (until > new Date()) {
       return (
         <div className="sticky top-0 z-40 w-full bg-destructive text-destructive-foreground border-b border-destructive/40">
-          <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-sm">
+          <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-ds-13">
             <ShieldAlert className="w-4 h-4 shrink-0" />
             <span className="flex-1">
               <strong>Account suspended</strong> until {until.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}. You cannot post or accept jobs.
             </span>
-            <Link to="/profile?tab=warnings" className="underline text-xs whitespace-nowrap">Details</Link>
+            <Link to="/profile?tab=warnings" className="underline text-ds-11 whitespace-nowrap">Details</Link>
           </div>
         </div>
       );
@@ -55,12 +55,12 @@ export default function StrikeBanner() {
   if (status.ban_status === "final_warning") {
     return (
       <div className="sticky top-0 z-40 w-full bg-accent text-accent-foreground border-b border-accent/60">
-        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-sm">
+        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-ds-13">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span className="flex-1">
             <strong>Final warning:</strong> One more violation will result in a 7-day suspension.
           </span>
-          <Link to="/profile?tab=warnings" className="underline text-xs whitespace-nowrap">Review</Link>
+          <Link to="/profile?tab=warnings" className="underline text-ds-11 whitespace-nowrap">Review</Link>
         </div>
       </div>
     );

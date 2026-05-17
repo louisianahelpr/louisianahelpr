@@ -3,12 +3,9 @@ import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect, forwardRef } from "react";
-import ThemeToggle from "@/components/ThemeToggle";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { prefetchRoute } from "@/lib/routePrefetch";
-import helprLogoSm from "@/assets/helpr-logo-96.webp";
-import helprLogoMd from "@/assets/helpr-logo-256.webp";
-const helprLogoSrc = helprLogoSm;
+import HelprMark from "@/components/HelprMark";
 import { cn } from "@/lib/utils";
 
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
@@ -57,36 +54,15 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           paddingRight: "max(1rem, env(safe-area-inset-right))",
         }}
       >
-        <Link
-          to="/"
-          className="flex items-center gap-2 group"
-          onClick={(e) => {
-            if (window.location.pathname === "/") {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }
-          }}
-        >
-          <img loading="lazy" decoding="async"
-            src={helprLogoSrc}
-            srcSet={`${helprLogoSm} 96w, ${helprLogoMd} 256w`}
-            sizes="28px"
-            alt="Helpr"
-            className="h-7 w-auto select-none transition-transform duration-200 group-hover:scale-105"
-            style={{ filter: "drop-shadow(0 1px 1px rgba(46, 47, 34, 0.18)) drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1))" }}
-            draggable={false}
-          />
-          <span
-            className="text-[1.6rem] font-serif italic tracking-[-0.005em] leading-none"
-            style={{
-              fontWeight: 500,
-              color: "hsl(var(--ink-deep))",
-              textShadow: "0 1px 0 rgba(255,255,255,0.5)",
-            }}
-          >
-            Helpr
-          </span>
-        </Link>
+        {/* Use the shared HelprMark so the public Navbar wordmark
+            ("Helpr · LA") matches the authenticated DashboardHeader
+            and the signup AuthShell. Single source of truth, single
+            on-brand presentation. */}
+        <HelprMark to="/" size="md" />
+        {/* Smooth-scroll-to-top behavior on the marketing root used to
+            live inline on this Link; HelprMark handles routing but if
+            we want the same behavior in the future, replace with a
+            local onClick wrapper. */}
 
         {/* Desktop nav links — Charcoal default, Heritage Gold on hover.
             Single state now that the page has a solid surface behind the
@@ -94,28 +70,27 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
         <div className="hidden lg:flex items-center gap-12">
           <Link
             to="/#how-it-works"
-            className="text-sm font-sans font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+            className="text-ds-13 font-sans font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
           >
             How it works
           </Link>
           <Link
             to="/#open-jobs"
-            className="text-sm font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+            className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
           >
             Jobs
           </Link>
           <Link
             to="/for-business"
-            className="text-sm font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+            className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
           >
             Business
           </Link>
           <div className="flex items-center gap-1">
-            <ThemeToggle />
             <Button
               variant="ghost"
               size="sm"
-              className="rounded-xl btn-press"
+              className="rounded-ds-md btn-press"
               onClick={() => navigate("/login")}
               onMouseEnter={() => prefetchRoute("/login")}
               onFocus={() => prefetchRoute("/login")}
@@ -124,7 +99,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             </Button>
             <Button
               size="sm"
-              className="rounded-xl btn-press"
+              className="rounded-ds-md btn-press"
               onClick={() => navigate("/signup")}
               onMouseEnter={() => prefetchRoute("/signup")}
               onFocus={() => prefetchRoute("/signup")}
@@ -136,13 +111,12 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
 
         {/* Mobile toggle */}
         <div className="lg:hidden flex items-center gap-1">
-          <ThemeToggle />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="hover:bg-muted btn-press rounded-xl h-10 w-10"
+                className="hover:bg-muted btn-press rounded-ds-md h-10 w-10"
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
               >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -162,19 +136,9 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                   borderBottom: "1px solid hsl(var(--burnt-sienna) / 0.4)",
                 }}
               >
-                <img loading="lazy" decoding="async"
-                  src={helprLogoMd}
-                  alt="Helpr"
-                  className="h-7 w-auto select-none"
-                  style={{ filter: "drop-shadow(0 1px 1px rgba(46, 47, 34, 0.18)) drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1))" }}
-                  draggable={false}
-                />
-                <span
-                  className="text-2xl font-serif italic tracking-[-0.005em]"
-                  style={{ fontWeight: 500, color: "hsl(var(--ink-deep))" }}
-                >
-                  Helpr
-                </span>
+                {/* HelprMark again — to=null since we're inside a Sheet
+                    and a Link would close the menu via navigation. */}
+                <HelprMark to={null} size="md" />
               </div>
               <Link
                 to="/#how-it-works"

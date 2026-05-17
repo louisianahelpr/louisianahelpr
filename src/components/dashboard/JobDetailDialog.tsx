@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  MapPin, Calendar, DollarSign, Clock, Star, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, ChevronDown, Rocket, Zap, ChevronLeft, ChevronRight, X, ShieldCheck, Lock,
+  MapPin, Calendar, DollarSign, Clock, Star, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, ChevronDown, Rocket, Zap, ChevronLeft, ChevronRight, X, Lock, Crown, Sparkles,
 } from "lucide-react";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { categoryLabels, categoryColors, categoryIcons } from "@/components/activity/activityConstants";
@@ -41,7 +41,11 @@ const JobDetailDialog = ({
   const [payoutExpanded, setPayoutExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [, setApplicationCount] = useState<number | null>(null);
+  const [applicationCount, setApplicationCount] = useState<number | null>(null);
+  // Repeat-customer count — number of completed jobs between this
+  // helper and this poster. Drives the "Worked with you N times"
+  // badge that surfaces emotional re-booking trust.
+  const [repeatJobs, setRepeatJobs] = useState<number>(0);
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
 
   // Reset transient state when the dialog switches to a new job.
@@ -64,6 +68,30 @@ const JobDetailDialog = ({
       .then(({ count }) => { if (!cancelled) setApplicationCount(count ?? 0); });
     return () => { cancelled = true; };
   }, [job?.id]);
+
+  // Fetch how many completed jobs the current helper has done for this
+  // poster. Drives the repeat-customer badge in the poster card —
+  // emotional rebooking signal when the relationship has history.
+  useEffect(() => {
+    if (!job?.customer_id) {
+      setRepeatJobs(0);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const helperId = userRes?.user?.id;
+      if (!helperId || cancelled) return;
+      const { count } = await supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", job.customer_id)
+        .eq("helper_id", helperId)
+        .eq("status", "completed");
+      if (!cancelled) setRepeatJobs(count ?? 0);
+    })();
+    return () => { cancelled = true; };
+  }, [job?.customer_id]);
 
   // Lightbox keyboard navigation: arrows + escape.
   useEffect(() => {
@@ -198,7 +226,7 @@ const JobDetailDialog = ({
               type="button"
               onClick={() => setLightboxIndex(0)}
               aria-label="View photos"
-              className="relative block w-full aspect-video rounded-xl overflow-hidden group"
+              className="relative block w-full aspect-video rounded-ds-md overflow-hidden group"
               style={{
                 border: "0.5px solid hsl(var(--bark) / 0.22)",
                 boxShadow:
@@ -277,7 +305,7 @@ const JobDetailDialog = ({
             </span>
           )}
           <div
-            className="rounded-xl px-3.5 py-2.5"
+            className="rounded-ds-md px-3.5 py-2.5"
             style={{
               backgroundColor: "hsla(0, 0%, 100%, 0.45)",
               backdropFilter: "blur(18px) saturate(160%)",
@@ -372,7 +400,7 @@ const JobDetailDialog = ({
                 <Wrapper
                   key={label}
                   {...wrapperProps}
-                  className={`relative rounded-xl p-2.5 overflow-hidden ${href ? "transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
+                  className={`relative rounded-ds-md p-2.5 overflow-hidden ${href ? "transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
                   style={{
                     backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "hsla(0, 0%, 100%, 0.45)",
                     backdropFilter: "blur(18px) saturate(160%)",
@@ -426,7 +454,7 @@ const JobDetailDialog = ({
           type="button"
           onClick={() => setPayoutExpanded((v) => !v)}
           aria-expanded={payoutExpanded}
-          className="w-full text-left rounded-xl p-3 transition-shadow hover:shadow-lg relative overflow-hidden"
+          className="w-full text-left rounded-ds-md p-3 transition-shadow hover:shadow-lg relative overflow-hidden"
           style={{
             background:
               "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
@@ -464,11 +492,13 @@ const JobDetailDialog = ({
               >
                 ${payout.toFixed(2)}
               </p>
-              {(job.urgent_fee ?? 0) > 0 && (
-                <p className="font-sans font-semibold text-[10px] tracking-[0.04em] mt-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                  incl. ${Number(job.urgent_fee).toFixed(0)} urgent bonus
-                </p>
-              )}
+              {/* Always-visible micro-breakdown so helpers see the math
+                  without needing to tap-expand. Full breakdown still
+                  available below on expand. */}
+              <p className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                ${job.budget.toFixed(0)} budget − {commissionPercent}% fee
+                {(job.urgent_fee ?? 0) > 0 ? ` + $${Number(job.urgent_fee).toFixed(0)} urgent` : ""}
+              </p>
             </div>
             <ChevronDown
               className={`shrink-0 w-4 h-4 transition-transform ${payoutExpanded ? "rotate-180" : ""}`}
@@ -518,7 +548,7 @@ const JobDetailDialog = ({
             inline. Single tile so trust isn't its own loose strip. */}
         <a
           href={`/user/${job.customer_id}`}
-          className="relative block p-2.5 rounded-xl group transition-colors"
+          className="relative block p-2.5 rounded-ds-md group transition-colors"
           style={{
             backgroundColor: "hsla(0, 0%, 100%, 0.55)",
             backdropFilter: "blur(16px) saturate(150%)",
@@ -531,7 +561,7 @@ const JobDetailDialog = ({
         >
           <div className="flex items-center gap-2.5">
             <div
-              className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-sans font-semibold text-[0.75rem] tracking-[0.06em] uppercase"
+              className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-sans font-semibold text-[0.75rem] tracking-[0.06em] uppercase overflow-hidden"
               style={{
                 backgroundColor: "hsl(var(--bark) / 0.12)",
                 border: "1px solid hsl(var(--bark) / 0.22)",
@@ -539,7 +569,17 @@ const JobDetailDialog = ({
                 boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)",
               }}
             >
-              {posterInitials}
+              {(job as any).posterAvatarUrl ? (
+                <img
+                  loading="lazy"
+                  decoding="async"
+                  src={(job as any).posterAvatarUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                posterInitials
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p
@@ -586,7 +626,10 @@ const JobDetailDialog = ({
             />
           </div>
 
-          {/* Trust signal row — centered along the bottom of the poster card */}
+          {/* Trust signal row — only show truthful platform/poster facts.
+              Helpr escrow is always true (platform guarantee). Pro/Elite
+              tier badge only renders when the poster actually has one.
+              Repeat-poster badge shows when they've posted multiple jobs. */}
           <div
             className="flex items-center justify-center gap-3 mt-2 pt-2 text-[10px] font-sans font-semibold uppercase"
             style={{
@@ -596,21 +639,72 @@ const JobDetailDialog = ({
             }}
           >
             <span className="inline-flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} />
-              Verified ID
-            </span>
-            <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-            <span className="inline-flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} />
-              Replies ~2h
-            </span>
-            <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-            <span className="inline-flex items-center gap-1">
               <Lock className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} />
-              Escrow
+              Helpr Escrow
             </span>
+            {job.posterSubscriptionTier === "elite" && (
+              <>
+                <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+                <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--gold-warm))" }}>
+                  <Crown className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  Elite Poster
+                </span>
+              </>
+            )}
+            {job.posterSubscriptionTier === "pro" && (
+              <>
+                <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+                <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  Pro Poster
+                </span>
+              </>
+            )}
+            {(job.posterReviewCount ?? 0) >= 3 && (
+              <>
+                <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+                <span className="inline-flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} fill="currentColor" />
+                  Trusted
+                </span>
+              </>
+            )}
+            {repeatJobs >= 2 && (
+              <>
+                <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+                <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--bark))" }}>
+                  <Users className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  Worked together {repeatJobs}×
+                </span>
+              </>
+            )}
           </div>
         </a>
+
+        {/* Applicant queue + Apply social proof — surfaces "X helpers
+            already applied — you'd be #(X+1) in line" only when there
+            are existing applicants, so it functions as light urgency
+            without crying wolf on fresh posts. */}
+        {applicationCount !== null && applicationCount > 0 && (
+          <div
+            className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.08)",
+              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+            }}
+          >
+            <Users className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
+            <p
+              className="font-serif italic leading-snug"
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                {applicationCount} helpr{applicationCount === 1 ? "" : "s"} already applied.
+              </span>{" "}
+              You'd be #{applicationCount + 1} in line.
+            </p>
+          </div>
+        )}
 
         {/* Footer actions — Flag · Save · Message · Apply.
             Each secondary icon button gets a hover-scale + glow ring effect
@@ -620,7 +714,7 @@ const JobDetailDialog = ({
             variant="ghost"
             size="icon"
             aria-label="Report this job"
-            className="group rounded-xl h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={() => { onReport(job.id); onClose(); }}
             style={{
               backgroundColor: "hsla(0, 0%, 100%, 0.32)",
@@ -648,7 +742,7 @@ const JobDetailDialog = ({
               variant="ghost"
               size="icon"
               aria-label={isSaved ? "Unsave job" : "Save job"}
-              className="group rounded-xl h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+              className="group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
               onClick={() => onToggleSave(job.id, !isSaved)}
               style={{
                 backgroundColor: isSaved ? "hsl(var(--primary) / 0.12)" : "hsla(0, 0%, 100%, 0.32)",
@@ -678,7 +772,7 @@ const JobDetailDialog = ({
             variant="ghost"
             size="icon"
             aria-label="Ask a question"
-            className="group rounded-xl h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={handleAskQuestion}
             style={{
               backgroundColor: "hsla(0, 0%, 100%, 0.32)",
@@ -704,7 +798,7 @@ const JobDetailDialog = ({
           <Button
             size="lg"
             onClick={() => { onApply(job.id); onClose(); }}
-            className="btn-liquid-fill flex-1 min-w-0 rounded-xl h-11 sm:h-12 px-3 group relative overflow-hidden"
+            className="btn-liquid-fill flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 group relative overflow-hidden"
             style={{
               // Two-stop bark gradient under the glass surface — subtle
               // top-light to bottom-deep wash so the button doesn't read flat.
@@ -722,13 +816,19 @@ const JobDetailDialog = ({
             }}
           >
             <span
-              className="relative z-10 inline-flex items-center gap-1.5 min-w-0 truncate"
+              className="relative z-10 inline-flex items-center justify-center gap-2 min-w-0"
               style={{
                 color: "white",
                 textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)",
               }}
             >
-              <span className="truncate">Apply for this task</span>
+              <span className="truncate">Apply</span>
+              <span
+                className="font-display italic font-bold tabular-nums shrink-0"
+                style={{ fontSize: "0.95rem", letterSpacing: "-0.01em" }}
+              >
+                · earn ${payout.toFixed(0)}
+              </span>
               <ChevronRight
                 className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
                 strokeWidth={2.5}

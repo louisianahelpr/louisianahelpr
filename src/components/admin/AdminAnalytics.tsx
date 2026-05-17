@@ -44,7 +44,7 @@ const TIER_COLORS: Record<string, string> = {
   free: "hsl(var(--muted))",
 };
 
-const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--muted))", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#06b6d4"];
+const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--muted))", "#f59e0b", "hsl(var(--burnt-sienna))", "#ec4899", "#14b8a6", "#f97316", "#06b6d4"];
 
 const AdminAnalytics = () => {
   const [loading, setLoading] = useState(true);
@@ -360,10 +360,10 @@ const AdminAnalytics = () => {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setDrillDown(null)} className="text-xs text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={() => setDrillDown(null)} className="text-ds-11 text-muted-foreground">
             ← Back to Analytics
           </Button>
-          <h2 className="text-xl font-display font-bold text-foreground">
+          <h2 className="text-ds-20 font-display font-bold text-foreground">
             {drillDown === "users" ? "All Users" :
              drillDown === "subscriptions" ? "Subscriber Breakdown" :
              drillDown === "jobs" ? "All Jobs" :
@@ -375,7 +375,7 @@ const AdminAnalytics = () => {
         </div>
 
         {drillLoading ? (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground py-8 justify-center">
+          <div className="flex items-center gap-2 text-ds-11 text-muted-foreground py-8 justify-center">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading…
           </div>
         ) : drillDown === "users" ? (
@@ -432,28 +432,28 @@ const AdminAnalytics = () => {
 
       {/* Tips */}
       {totalTips > 0 && (
-        <div className="rounded-xl liquid-glass p-4 flex items-center gap-3">
+        <div className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">
           <Star className="w-4 h-4 text-accent" />
           <div>
-            <p className="text-sm font-semibold text-foreground">Tips Collected: ${totalTips.toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground">{tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").length} paid tips</p>
+            <p className="text-ds-13 font-semibold text-foreground">Tips Collected: ${totalTips.toFixed(2)}</p>
+            <p className="text-ds-11 text-muted-foreground">{tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").length} paid tips</p>
           </div>
         </div>
       )}
 
       {lateCancelRevenue > 0 && (
-        <div className="rounded-xl liquid-glass p-5">
+        <div className="rounded-ds-md liquid-glass p-5">
           <div className="flex items-center gap-2 mb-2">
             <XCircle className="w-4 h-4 text-destructive" />
-            <h3 className="text-sm font-semibold text-foreground">Late Cancellation Revenue</h3>
+            <h3 className="text-ds-13 font-semibold text-foreground">Late Cancellation Revenue</h3>
           </div>
-          <p className="text-2xl font-bold text-foreground">${lateCancelRevenue.toFixed(2)}</p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-ds-24 font-bold text-foreground">${lateCancelRevenue.toFixed(2)}</p>
+          <p className="text-ds-11 text-muted-foreground mt-1">
             Platform fees retained from {lateCancelledPaidJobs.length} late-cancelled {lateCancelledPaidJobs.length === 1 ? "job" : "jobs"} with captured payments
           </p>
           <div className="mt-3 space-y-1.5">
             {lateCancelledPaidJobs.map(j => (
-              <div key={j.id} className="flex items-center justify-between text-xs bg-muted/30 rounded-lg px-3 py-2">
+              <div key={j.id} className="flex items-center justify-between text-ds-11 bg-muted/30 rounded-lg px-3 py-2">
                 <span className="text-foreground font-medium truncate mr-2">{j.title}</span>
                 <span className="text-muted-foreground shrink-0">${((j.customer_fee_amount || 0) + (j.platform_fee_amount || 0)).toFixed(2)} retained</span>
               </div>
@@ -464,14 +464,14 @@ const AdminAnalytics = () => {
 
       {/* ── Row 2: Subscription Revenue ── */}
       <div className="grid sm:grid-cols-2 gap-4">
-        <button onClick={() => openDrillDown("subscriptions")} className="rounded-xl liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
+        <button onClick={() => openDrillDown("subscriptions")} className="rounded-ds-md liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <h3 className="text-ds-13 font-semibold text-foreground flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" /> Subscription Revenue
             </h3>
-            <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">Details →</span>
+            <span className="text-ds-11 text-primary opacity-0 group-hover:opacity-100 transition-opacity">Details →</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">${totalSubRevenue.toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+          <p className="text-ds-24 font-bold text-foreground">${totalSubRevenue.toFixed(2)}<span className="text-ds-13 font-normal text-muted-foreground">/mo</span></p>
           <div className="grid grid-cols-4 gap-2 mt-4">
             {[
               { label: "Elite", count: subElite, color: "bg-accent/20 text-accent-foreground" },
@@ -480,21 +480,21 @@ const AdminAnalytics = () => {
               { label: "Free", count: subFree, color: "bg-muted text-muted-foreground" },
             ].map(t => (
               <div key={t.label} className="text-center">
-                <p className="text-lg font-bold text-foreground">{t.count}</p>
+                <p className="text-ds-17 font-bold text-foreground">{t.count}</p>
                 <Badge className={`text-[10px] ${t.color}`}>{t.label}</Badge>
               </div>
             ))}
           </div>
           {helpers.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-3">
+            <p className="text-ds-11 text-muted-foreground mt-3">
               {((helpers.length - subFree) / helpers.length * 100).toFixed(0)}% of helpers subscribed
             </p>
           )}
         </button>
 
         {/* Subscription pie chart */}
-        <div className="rounded-xl liquid-glass p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+        <div className="rounded-ds-md liquid-glass p-5">
+          <h3 className="text-ds-13 font-semibold text-foreground mb-3 flex items-center gap-2">
             <PieChart className="w-4 h-4 text-primary" /> Subscriber Distribution
           </h3>
           {subPieData.length > 0 ? (
@@ -504,14 +504,14 @@ const AdminAnalytics = () => {
               </Suspense>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground text-center py-8">No subscribers yet</p>
+            <p className="text-ds-11 text-muted-foreground text-center py-8">No subscribers yet</p>
           )}
         </div>
       </div>
 
       {/* ── Row 3: Revenue Trend Chart ── */}
-      <div className="rounded-xl liquid-glass p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="rounded-ds-md liquid-glass p-5">
+        <h3 className="text-ds-13 font-semibold text-foreground mb-4 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-primary" /> Revenue &amp; Growth — Last 6 Months
         </h3>
         <div className="h-[250px]">
@@ -555,57 +555,57 @@ const AdminAnalytics = () => {
       {/* ── Row 5: Payout Pipeline & Category Breakdown ── */}
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Payout pipeline */}
-        <button onClick={() => openDrillDown("payouts")} className="rounded-xl liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
-          <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <button onClick={() => openDrillDown("payouts")} className="rounded-ds-md liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
+          <h3 className="text-ds-13 font-semibold text-foreground mb-4 flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" /> Payout Pipeline
-            <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Details →</span>
+            <span className="text-ds-11 text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Details →</span>
           </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-500" />
-                <span className="text-xs text-muted-foreground">In Escrow</span>
+                <span className="text-ds-11 text-muted-foreground">In Escrow</span>
               </div>
               <div className="text-right">
-                <span className="text-sm font-semibold text-foreground">${escrowTotal.toFixed(2)}</span>
-                <span className="text-xs text-muted-foreground ml-2">({escrowJobs.length} jobs)</span>
+                <span className="text-ds-13 font-semibold text-foreground">${escrowTotal.toFixed(2)}</span>
+                <span className="text-ds-11 text-muted-foreground ml-2">({escrowJobs.length} jobs)</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="text-xs text-muted-foreground">Payout Pending</span>
+                <span className="text-ds-11 text-muted-foreground">Payout Pending</span>
               </div>
               <div className="text-right">
-                <span className="text-sm font-semibold text-foreground">${pendingPayoutTotal.toFixed(2)}</span>
-                <span className="text-xs text-muted-foreground ml-2">({pendingPayouts.length} jobs)</span>
+                <span className="text-ds-13 font-semibold text-foreground">${pendingPayoutTotal.toFixed(2)}</span>
+                <span className="text-ds-11 text-muted-foreground ml-2">({pendingPayouts.length} jobs)</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-xs text-muted-foreground">Released</span>
+                <span className="text-ds-11 text-muted-foreground">Released</span>
               </div>
               <div className="text-right">
-                <span className="text-sm font-semibold text-foreground">{releasedPayouts.length} jobs</span>
+                <span className="text-ds-13 font-semibold text-foreground">{releasedPayouts.length} jobs</span>
               </div>
             </div>
           </div>
         </button>
 
         {/* Category breakdown */}
-        <button onClick={() => openDrillDown("categories")} className="rounded-xl liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
-          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+        <button onClick={() => openDrillDown("categories")} className="rounded-ds-md liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
+          <h3 className="text-ds-13 font-semibold text-foreground mb-3 flex items-center gap-2">
             <PieChart className="w-4 h-4 text-primary" /> Top Categories
-            <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Details →</span>
+            <span className="text-ds-11 text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Details →</span>
           </h3>
           <div className="space-y-2">
             {categoryData.slice(0, 5).map((cat, i) => (
               <div key={cat.name} className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                <span className="text-sm text-foreground capitalize flex-1">{cat.name}</span>
-                <span className="text-xs text-muted-foreground">{cat.count} jobs</span>
-                <span className="text-xs font-semibold text-foreground">${cat.revenue.toFixed(0)}</span>
+                <span className="text-ds-13 text-foreground capitalize flex-1">{cat.name}</span>
+                <span className="text-ds-11 text-muted-foreground">{cat.count} jobs</span>
+                <span className="text-ds-11 font-semibold text-foreground">${cat.revenue.toFixed(0)}</span>
               </div>
             ))}
           </div>
@@ -614,8 +614,8 @@ const AdminAnalytics = () => {
 
       {/* ── Row 6: User Status & Quick Stats ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="rounded-xl liquid-glass p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-3">User Status</h3>
+        <div className="rounded-ds-md liquid-glass p-5">
+          <h3 className="text-ds-13 font-semibold text-foreground mb-3">User Status</h3>
           <div className="space-y-2">
             <StatusRow icon={CheckCircle} label="Approved" count={approvedUsers} color="text-primary" />
             <StatusRow icon={Clock} label="Pending Approval" count={pendingUsers} color="text-amber-500" />
@@ -623,8 +623,8 @@ const AdminAnalytics = () => {
           </div>
         </div>
 
-        <div className="rounded-xl liquid-glass p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Job Completion Funnel</h3>
+        <div className="rounded-ds-md liquid-glass p-5">
+          <h3 className="text-ds-13 font-semibold text-foreground mb-3">Job Completion Funnel</h3>
           <div className="space-y-2">
             <StatusRow icon={Briefcase} label="Posted" count={allJobs.length} color="text-muted-foreground" />
             <StatusRow icon={Activity} label="In Progress" count={activeJobs.length} color="text-primary" />
@@ -634,10 +634,10 @@ const AdminAnalytics = () => {
           </div>
         </div>
 
-        <div className="rounded-xl liquid-glass p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Monthly Recurring Revenue</h3>
+        <div className="rounded-ds-md liquid-glass p-5">
+          <h3 className="text-ds-13 font-semibold text-foreground mb-3">Monthly Recurring Revenue</h3>
           <p className="text-3xl font-bold text-foreground">${totalSubRevenue.toFixed(2)}</p>
-          <p className="text-xs text-muted-foreground mt-1">Projected annual: ${(totalSubRevenue * 12).toFixed(2)}</p>
+          <p className="text-ds-11 text-muted-foreground mt-1">Projected annual: ${(totalSubRevenue * 12).toFixed(2)}</p>
           <div className="mt-4 space-y-1.5">
             <MRRRow tier="Elite" count={subElite} amount={subElite * 24.99} />
             <MRRRow tier="Pro" count={subPro} amount={subPro * 14.99} />
@@ -656,8 +656,8 @@ const AdminAnalytics = () => {
       <CohortRetentionCard cohorts={cohortRetention} monthLabel={monthLabel} />
 
       {/* ── Row 7: Monthly Jobs Bar Chart ── */}
-      <div className="rounded-xl liquid-glass p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="rounded-ds-md liquid-glass p-5">
+        <h3 className="text-ds-13 font-semibold text-foreground mb-4 flex items-center gap-2">
           <Briefcase className="w-4 h-4 text-primary" /> Jobs per Month
         </h3>
         <div className="h-[200px]">
@@ -678,16 +678,16 @@ const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onClick }:
   <button
     onClick={onClick}
     disabled={!onClick}
-    className={`rounded-xl border bg-card p-5 text-left transition-all group ${
+    className={`rounded-ds-md border bg-card p-5 text-left transition-all group ${
       onClick ? "hover:bg-secondary/30 hover:border-primary/30 cursor-pointer" : ""
     } ${warning ? "border-amber-500/30" : "border-border"}`}
   >
     <div className="flex items-center justify-between mb-3">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-ds-11 text-muted-foreground">{label}</span>
       <Icon className={`w-5 h-5 ${accent ? "text-primary" : warning ? "text-amber-500" : "text-primary"} group-hover:scale-110 transition-transform`} />
     </div>
-    <p className={`text-2xl font-bold ${accent ? "text-primary" : "text-foreground"}`}>{value}</p>
-    <p className="text-xs text-muted-foreground mt-1">{sub}</p>
+    <p className={`text-ds-24 font-bold ${accent ? "text-primary" : "text-foreground"}`}>{value}</p>
+    <p className="text-ds-11 text-muted-foreground mt-1">{sub}</p>
     {onClick && <p className="text-[10px] text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to view details →</p>}
   </button>
 );
@@ -696,14 +696,14 @@ const StatusRow = ({ icon: Icon, label, count, color }: { icon: any; label: stri
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-2">
       <Icon className={`w-3.5 h-3.5 ${color}`} />
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-ds-11 text-muted-foreground">{label}</span>
     </div>
-    <span className="text-sm font-semibold text-foreground">{count}</span>
+    <span className="text-ds-13 font-semibold text-foreground">{count}</span>
   </div>
 );
 
 const MRRRow = ({ tier, count, amount }: { tier: string; count: number; amount: number }) => (
-  <div className="flex items-center justify-between text-sm">
+  <div className="flex items-center justify-between text-ds-13">
     <span className="text-muted-foreground">{tier} × {count}</span>
     <span className="font-semibold text-foreground">${amount.toFixed(2)}</span>
   </div>
@@ -720,9 +720,9 @@ const CohortRetentionCard = ({
   cohorts: { date: Date; total: number; active: number }[];
   monthLabel: (d: Date) => string;
 }) => (
-  <div className="rounded-xl liquid-glass p-5">
-    <h3 className="text-sm font-semibold text-foreground">Cohort retention</h3>
-    <p className="text-xs text-muted-foreground mb-4">
+  <div className="rounded-ds-md liquid-glass p-5">
+    <h3 className="text-ds-13 font-semibold text-foreground">Cohort retention</h3>
+    <p className="text-ds-11 text-muted-foreground mb-4">
       Of users who signed up in each month, how many had any job activity in the last 30 days.
     </p>
     <div className="space-y-2">
@@ -741,7 +741,7 @@ const CohortRetentionCard = ({
           : pct >= 20 ? "bg-amber-500/70"
           : "bg-destructive/70";
         return (
-          <div key={c.date.toISOString()} className="grid grid-cols-12 gap-2 items-center text-xs">
+          <div key={c.date.toISOString()} className="grid grid-cols-12 gap-2 items-center text-ds-11">
             <div className="col-span-3 text-foreground">{monthLabel(c.date)}</div>
             <div className="col-span-2 text-right tabular-nums text-foreground">{c.total}</div>
             <div className="col-span-2 text-right tabular-nums text-muted-foreground">
@@ -775,16 +775,16 @@ const FunnelCard = ({
   // visually narrows. Empty cohort renders as a flat empty bar instead of NaN.
   const max = Math.max(stages[0]?.count ?? 0, 1);
   return (
-    <div className="rounded-xl liquid-glass p-5">
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      <p className="text-xs text-muted-foreground mb-4">{subtitle}</p>
+    <div className="rounded-ds-md liquid-glass p-5">
+      <h3 className="text-ds-13 font-semibold text-foreground">{title}</h3>
+      <p className="text-ds-11 text-muted-foreground mb-4">{subtitle}</p>
       <div className="space-y-2.5">
         {stages.map((s, i) => {
           const widthPct = Math.max(2, Math.round((s.count / max) * 100));
           const convPct = i === 0 ? null : s.of > 0 ? Math.round((s.count / s.of) * 100) : 0;
           return (
             <div key={s.label}>
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between text-ds-11">
                 <span className="text-muted-foreground">{s.label}</span>
                 <span className="font-mono tabular-nums text-foreground">
                   {s.count}
@@ -827,7 +827,7 @@ const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleByUser: M
           const count = users.filter(u => s === "all" || u.approval_status === s).length;
           return (
             <button key={s} onClick={() => setStatusFilter(s)}
-              className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${statusFilter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`flex-1 px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${statusFilter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
               {s} ({count})
             </button>
           );
@@ -835,11 +835,11 @@ const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleByUser: M
       </div>
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(u => (
-          <div key={u.id} className="rounded-xl liquid-glass p-4">
+          <div key={u.id} className="rounded-ds-md liquid-glass p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-semibold text-foreground text-sm">{formatName(u.full_name, "—")}</p>
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-0.5">
+                <p className="font-semibold text-foreground text-ds-13">{formatName(u.full_name, "—")}</p>
+                <div className="flex flex-wrap gap-2 text-ds-11 text-muted-foreground mt-0.5">
                   {u.email && <span>{u.email}</span>}
                   {u.location && <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{u.location}</span>}
                 </div>
@@ -848,7 +848,7 @@ const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleByUser: M
                 {u.subscription_tier && (
                   <Badge className="text-[10px] bg-primary/10 text-primary capitalize">{u.subscription_tier}</Badge>
                 )}
-                <Badge className={`text-xs capitalize ${statusColor(u.approval_status)}`}>{u.approval_status}</Badge>
+                <Badge className={`text-ds-11 capitalize ${statusColor(u.approval_status)}`}>{u.approval_status}</Badge>
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground mt-2">Joined {new Date(u.created_at).toLocaleDateString()} · {roleByUser.get(u.user_id) ?? "—"}</p>
@@ -876,7 +876,7 @@ const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
           const count = users.filter(u => t === "all" || (t === "free" ? !u.subscription_tier : u.subscription_tier === t)).length;
           return (
             <button key={t} onClick={() => setTierFilter(t)}
-              className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${tierFilter === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`flex-1 px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${tierFilter === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
               {t} ({count})
             </button>
           );
@@ -884,12 +884,12 @@ const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
       </div>
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(u => (
-          <div key={u.id} className="rounded-xl liquid-glass p-4 flex items-center justify-between">
+          <div key={u.id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
             <div>
-              <p className="font-semibold text-foreground text-sm">{formatName(u.full_name, "—")}</p>
-              <p className="text-xs text-muted-foreground">{u.email} · {u.location || "No location"}</p>
+              <p className="font-semibold text-foreground text-ds-13">{formatName(u.full_name, "—")}</p>
+              <p className="text-ds-11 text-muted-foreground">{u.email} · {u.location || "No location"}</p>
             </div>
-            <Badge className={`capitalize text-xs ${
+            <Badge className={`capitalize text-ds-11 ${
               u.subscription_tier === "elite" ? "bg-accent/20 text-accent-foreground" :
               u.subscription_tier === "pro" ? "bg-primary/10 text-primary" :
               u.subscription_tier === "basic" ? "bg-secondary text-secondary-foreground" :
@@ -914,12 +914,12 @@ const CategoriesDrillDown = ({ data }: { data: { name: string; count: number; re
     </div>
     <div className="space-y-2">
       {data.map((cat, i) => (
-        <div key={cat.name} className="rounded-xl liquid-glass p-4 flex items-center justify-between">
+        <div key={cat.name} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-            <span className="text-sm font-medium text-foreground capitalize">{cat.name}</span>
+            <span className="text-ds-13 font-medium text-foreground capitalize">{cat.name}</span>
           </div>
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-4 text-ds-13">
             <span className="text-muted-foreground">{cat.count} jobs</span>
             <span className="font-semibold text-foreground">${cat.revenue.toFixed(2)} revenue</span>
           </div>
@@ -955,33 +955,33 @@ const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
       <div className="flex gap-1 flex-wrap bg-secondary/50 rounded-lg p-1">
         {statuses.map(s => (
           <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {s === "all" ? `All (${jobs.length})` : `${statusLabel[s] || s} (${jobs.filter(j => j.payment_status === s).length})`}
           </button>
         ))}
       </div>
 
-      <div className="rounded-xl liquid-glass p-4 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">Total for filter ({filtered.length} jobs)</span>
-        <span className="text-lg font-bold text-foreground">
+      <div className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
+        <span className="text-ds-11 text-muted-foreground">Total for filter ({filtered.length} jobs)</span>
+        <span className="text-ds-17 font-bold text-foreground">
           ${filtered.reduce((s, j) => s + (j.budget || 0), 0).toFixed(2)}
         </span>
       </div>
 
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(j => (
-          <div key={j.id} className="rounded-xl liquid-glass p-4">
+          <div key={j.id} className="rounded-ds-md liquid-glass p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-semibold text-foreground text-sm truncate">{j.title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{j.location} · {new Date(j.date_needed).toLocaleDateString()}</p>
+                <p className="font-semibold text-foreground text-ds-13 truncate">{j.title}</p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">{j.location} · {new Date(j.date_needed).toLocaleDateString()}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <div className={`w-2 h-2 rounded-full ${statusDot[j.payment_status || ""] || "bg-muted"}`} />
-                <span className="text-xs text-muted-foreground capitalize">{statusLabel[j.payment_status || ""] || j.payment_status}</span>
+                <span className="text-ds-11 text-muted-foreground capitalize">{statusLabel[j.payment_status || ""] || j.payment_status}</span>
               </div>
             </div>
-            <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+            <div className="flex gap-4 mt-2 text-ds-11 text-muted-foreground">
               <span>Budget: ${j.budget}</span>
               <span>Fee: ${j.platform_fee_amount || 0}</span>
               <span>Payout: ${j.budget - (j.platform_fee_amount || 0)}</span>
@@ -1014,37 +1014,37 @@ const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[]; showFi
       <div className="flex gap-1 flex-wrap bg-secondary/50 rounded-lg p-1">
         {statusOptions.map(s => (
           <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {s === "all" ? `All (${jobs.length})` : `${s.replace("_", " ")} (${jobs.filter(j => j.status === s).length})`}
           </button>
         ))}
       </div>
 
       {showFinancials && (
-        <div className="rounded-xl liquid-glass p-4 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{showFees ? "Total Fees" : "Total Revenue"} ({filtered.length} jobs)</span>
-          <span className="text-lg font-bold text-foreground">${total.toFixed(2)}</span>
+        <div className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
+          <span className="text-ds-11 text-muted-foreground">{showFees ? "Total Fees" : "Total Revenue"} ({filtered.length} jobs)</span>
+          <span className="text-ds-17 font-bold text-foreground">${total.toFixed(2)}</span>
         </div>
       )}
 
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(j => (
-          <div key={j.id} className="rounded-xl liquid-glass p-4">
+          <div key={j.id} className="rounded-ds-md liquid-glass p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-semibold text-foreground text-sm truncate">{j.title}</p>
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-0.5">
+                <p className="font-semibold text-foreground text-ds-13 truncate">{j.title}</p>
+                <div className="flex flex-wrap gap-2 text-ds-11 text-muted-foreground mt-0.5">
                   <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{j.location}</span>
                   <span className="capitalize">{j.category?.replace("_", " ")}</span>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
-                <Badge className={`text-xs capitalize ${statusColor[j.status] || ""}`}>{j.status.replace("_", " ")}</Badge>
-                <span className="text-sm font-semibold text-foreground">${j.budget}</span>
+                <Badge className={`text-ds-11 capitalize ${statusColor[j.status] || ""}`}>{j.status.replace("_", " ")}</Badge>
+                <span className="text-ds-13 font-semibold text-foreground">${j.budget}</span>
               </div>
             </div>
             {showFinancials && (
-              <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+              <div className="flex gap-4 mt-2 text-ds-11 text-muted-foreground">
                 <span>Budget: ${j.budget}</span>
                 <span>Fee: ${j.platform_fee_amount || 0}</span>
                 <span>Payout: ${j.budget - (j.platform_fee_amount || 0)}</span>

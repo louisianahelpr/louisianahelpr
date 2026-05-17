@@ -234,10 +234,21 @@ export function JobTracking({
   if (!helperId) return null;
 
   return (
-    <div className="rounded-xl liquid-glass p-4 space-y-4">
-      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-        <Navigation className="w-4 h-4 text-primary" /> Live Job Tracking
-      </h3>
+    <div className="rounded-2xl liquid-glass p-4 space-y-4">
+      <div>
+        <span
+          className="font-serif italic uppercase inline-flex items-center gap-1.5"
+          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+        >
+          <Navigation className="w-3 h-3" /> Live
+        </span>
+        <h3
+          className="font-display italic font-bold leading-tight mt-1"
+          style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+        >
+          Job tracking
+        </h3>
+      </div>
 
       {/* Progress timeline */}
       {(() => {
@@ -255,19 +266,31 @@ export function JobTracking({
               return (
                 <div key={s.key} className="flex-1 flex flex-col items-center gap-1">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                    style={
                       isCurrent
-                        ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
+                        ? {
+                            background: "hsl(var(--bark))",
+                            color: "hsl(var(--parchment))",
+                            boxShadow: "0 0 0 2px hsl(var(--bark) / 0.30), 0 0 0 4px hsl(var(--parchment))",
+                          }
                         : isActive
-                        ? "bg-primary/20 text-primary"
-                        : "bg-secondary text-muted-foreground"
-                    }`}
+                          ? { background: "hsl(var(--bark) / 0.18)", color: "hsl(var(--bark))" }
+                          : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.55)" }
+                    }
                   >
                     <Icon className="w-4 h-4" />
                   </div>
-                  <span className={`text-[10px] font-medium text-center leading-tight ${
-                    isCurrent ? "text-primary" : isActive ? "text-foreground" : "text-muted-foreground"
-                  }`}>
+                  <span
+                    className="text-[10px] font-sans font-semibold text-center leading-tight"
+                    style={{
+                      color: isCurrent
+                        ? "hsl(var(--bark))"
+                        : isActive
+                          ? "hsl(var(--ink-deep))"
+                          : "hsl(var(--olivewood) / 0.6)",
+                    }}
+                  >
                     {s.label}
                   </span>
                   {subtext && (
@@ -281,16 +304,19 @@ export function JobTracking({
       })()}
 
       {/* Progress bar */}
-      <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "hsl(var(--olivewood) / 0.10)" }}>
         <div
-          className="h-full bg-primary rounded-full transition-all duration-500"
-          style={{ width: `${((currentStatusIdx + 1) / STATUSES.length) * 100}%` }}
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${((currentStatusIdx + 1) / STATUSES.length) * 100}%`,
+            background: "hsl(var(--bark) / 0.85)",
+          }}
         />
       </div>
 
       {/* ETA */}
       {tracking?.eta_minutes && tracking.status === "on_the_way" && (
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-ds-11 text-muted-foreground text-center">
           ETA: ~{tracking.eta_minutes} min
         </p>
       )}
@@ -326,7 +352,7 @@ export function JobTracking({
           } else {
             return (
               <div className="pt-2 border-t border-border">
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-ds-11 text-muted-foreground text-center">
                   Confirm the job below to unlock the next step
                 </p>
               </div>
@@ -345,7 +371,7 @@ export function JobTracking({
         return (
           <div className="pt-2 border-t border-border space-y-2">
             {isLocked && lockMessage && (
-              <p className="text-xs text-muted-foreground text-center">{lockMessage}</p>
+              <p className="text-ds-11 text-muted-foreground text-center">{lockMessage}</p>
             )}
             <Button
               size="sm"

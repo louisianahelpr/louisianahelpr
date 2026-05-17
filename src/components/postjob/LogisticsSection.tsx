@@ -1,12 +1,26 @@
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { DatePickerField } from "@/components/DatePickerField";
+import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MapPin, Shield, Repeat, Users, CheckCircle2 } from "lucide-react";
+
+// Rough count of how many times a recurring job will run between the
+// start date and the end date at the chosen interval. Used to preview
+// the commitment + total cost before the poster pays.
+function estimateOccurrences(start: string, end: string, interval: string): number {
+  if (!start || !end) return 0;
+  const s = new Date(start);
+  const e = new Date(end);
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()) || e < s) return 0;
+  const stepDays =
+    interval === "daily" ? 1 : interval === "weekly" ? 7 : interval === "biweekly" ? 14 : 30;
+  const days = Math.round((e.getTime() - s.getTime()) / 86_400_000);
+  return Math.floor(days / stepDays) + 1;
+}
 
 interface LogisticsSectionProps {
   streetAddress: string;
@@ -47,7 +61,7 @@ export function LogisticsSection({
   city,
   setCity,
   addrState,
-  setAddrState,
+  // setAddrState intentionally not destructured — State is locked to LA.
   zipCode,
   setZipCode,
   dateNeeded,
@@ -75,26 +89,52 @@ export function LogisticsSection({
 }: LogisticsSectionProps) {
   return (
     <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-            <MapPin className="w-3.5 h-3.5 text-primary" />
+      {/* Brand-aligned section header — eyebrow + font-display italic title. */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <MapPin className="w-4 h-4 text-primary" />
           </div>
-          <h2 className="font-display text-base font-semibold">Logistics</h2>
+          <div className="leading-none min-w-0">
+            <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              When &amp; where
+            </p>
+            <h2 className="font-display italic font-bold mt-1" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+              Logistics
+            </h2>
+          </div>
         </div>
-        {logisticsComplete && <CheckCircle2 className="w-4 h-4 text-primary" />}
+        {logisticsComplete && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
       </div>
 
       <div className="space-y-3">
         <Label>Location <span className="text-destructive">*</span></Label>
         <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} autoComplete="street-address" aria-label="Street address" />
         <div className="grid grid-cols-3 gap-2.5">
-          <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" required maxLength={100} autoComplete="address-level2" aria-label="City" className="px-3 text-[14px]" />
-          <Input id="state" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" required maxLength={50} autoComplete="address-level1" aria-label="State" className="px-3 text-[14px]" />
+          {/* City is the only address part shown publicly on job cards.
+              CityAutocomplete suggests canonical Louisiana city names so
+              card display + filtering stay consistent; free-typed
+              values are still accepted and title-cased. */}
+          <CityAutocomplete
+            id="city"
+            value={city}
+            onChange={setCity}
+            className="px-3 text-[14px]"
+          />
+          {/* State is locked to LA — Helpr only operates in Louisiana,
+              so this is a fixed field rather than a free input. */}
+          <Input
+            id="state"
+            value={addrState || "LA"}
+            readOnly
+            tabIndex={-1}
+            aria-label="State (Louisiana)"
+            className="px-3 text-[14px] bg-muted/50 text-muted-foreground cursor-default"
+          />
           <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} inputMode="numeric" autoComplete="postal-code" aria-label="Zip code" className="px-3 text-[14px]" />
         </div>
         {/* Parish is silently looked up from zip for Louisiana sales tax (admin-only). */}
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+        <p className="text-ds-11 text-muted-foreground flex items-center gap-1.5">
           <Shield className="w-3 h-3 shrink-0" />
           Only the city will be visible to applicants until you select a helper.
         </p>
@@ -126,85 +166,140 @@ export function LogisticsSection({
           onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
           className="mt-0.5"
         />
-        <span className="text-xs text-muted-foreground leading-snug">
+        <span className="text-ds-11 text-muted-foreground leading-snug">
           <span className="font-medium text-foreground">Flexible schedule</span> — helpr can start earlier or later on the scheduled day
         </span>
       </label>
 
       <div className="space-y-3">
         <Label htmlFor="hours">Estimated hours <span className="text-destructive">*</span></Label>
-        <Input id="hours" type="number" inputMode="decimal" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="2" required />
+        {/* Quick-pick chips for the common durations — faster than the
+            number stepper and steers posters away from odd values. The
+            input stays for anything custom. */}
+        <div className="flex flex-wrap gap-2">
+          {["1", "2", "3", "4", "6", "8"].map((h) => {
+            const active = estimatedHours === h;
+            return (
+              <button
+                key={h}
+                type="button"
+                onClick={() => setEstimatedHours(h)}
+                aria-pressed={active}
+                className={`min-h-9 px-3.5 rounded-full text-ds-13 font-semibold tabular-nums transition-all border ${
+                  active
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-transparent text-foreground border-border hover:border-primary/50 hover:bg-primary/5"
+                }`}
+              >
+                {h}h
+              </button>
+            );
+          })}
+        </div>
+        <Input id="hours" type="number" inputMode="decimal" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="Or enter a custom number of hours" required />
       </div>
 
       <div className="space-y-2.5">
-        <Label htmlFor="requirements">Special requirements</Label>
-        <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Any tools needed, access instructions, etc. (optional)" rows={2} maxLength={500} />
+        <Label htmlFor="requirements">Access &amp; parking notes</Label>
+        <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Gate codes, where to park, which door, pets on site… (optional)" rows={2} maxLength={500} />
       </div>
 
-      {/* Recurring Job — mutually exclusive with Group job. Recurring
-          bills weekly/monthly to one helper; group splits a single
-          job across many. The two semantics don't compose. */}
-      <div className={`rounded-xl border p-4 space-y-3 ${isGroupJob ? "border-border/40 bg-muted/20 opacity-60" : "border-border"}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Repeat className="w-4 h-4 text-primary" />
-            <Label htmlFor="recurring" className={isGroupJob ? "cursor-not-allowed" : "cursor-pointer"}>Recurring task</Label>
-          </div>
-          <Switch
-            id="recurring"
-            checked={isRecurring}
-            disabled={isGroupJob}
-            onCheckedChange={setIsRecurring}
-          />
+      {/* Job type — One-time / Recurring / Group are mutually
+          exclusive (recurring bills repeatedly to one helper; group
+          splits one job across many), so a single 3-way segmented
+          control makes that obvious up front instead of two toggles
+          that quietly disable each other. */}
+      <div className="space-y-3">
+        <Label>Job type</Label>
+        <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl border border-input bg-background/70">
+          {([
+            { key: "once", label: "One-time" },
+            { key: "recurring", label: "Recurring" },
+            { key: "group", label: "Group" },
+          ] as const).map((opt) => {
+            const active =
+              (opt.key === "once" && !isRecurring && !isGroupJob) ||
+              (opt.key === "recurring" && isRecurring) ||
+              (opt.key === "group" && isGroupJob);
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                  setIsRecurring(opt.key === "recurring");
+                  setIsGroupJob(opt.key === "group");
+                }}
+                className={`h-10 rounded-ds-md text-ds-13 font-semibold tracking-tight transition-all ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
-        {isGroupJob && (
-          <p className="text-xs text-muted-foreground">
-            Turn off Group job to make this recurring instead.
-          </p>
-        )}
-        {isRecurring && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <div className="space-y-2.5">
-              <Label>Frequency</Label>
-              <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="biweekly">Every 2 weeks</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2.5">
-              <Label>Until</Label>
-              <Input type="date" value={recurrenceEndDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} min={dateNeeded} />
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Group Job — mutually exclusive with Recurring (see above). */}
-      <div className={`rounded-xl border p-4 space-y-3 ${isRecurring ? "border-border/40 bg-muted/20 opacity-60" : "border-border"}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" />
-            <Label htmlFor="group" className={isRecurring ? "cursor-not-allowed" : "cursor-pointer"}>Group job (multiple helprs)</Label>
-          </div>
-          <Switch
-            id="group"
-            checked={isGroupJob}
-            disabled={isRecurring}
-            onCheckedChange={setIsGroupJob}
-          />
-        </div>
         {isRecurring && (
-          <p className="text-xs text-muted-foreground">
-            Turn off Recurring task to split this across multiple helprs instead.
-          </p>
+          <div className="rounded-ds-md border border-border p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Repeat className="w-4 h-4 text-primary" />
+              <span className="text-ds-13 font-semibold text-foreground">Recurring task</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2.5">
+                <Label>Frequency</Label>
+                <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="biweekly">Every 2 weeks</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2.5">
+                <Label>Until</Label>
+                {/* DatePickerField (same as "Date needed") instead of a raw
+                    <input type="date"> — the native control rendered as a
+                    blank, oversized white box on iOS with no placeholder. */}
+                <DatePickerField
+                  value={recurrenceEndDate}
+                  onChange={setRecurrenceEndDate}
+                  min={dateNeeded || new Date().toISOString().split("T")[0]}
+                  placeholder="Choose an end date"
+                />
+              </div>
+            </div>
+            {/* Schedule preview — surfaces the real commitment + cost
+                before the poster pays, instead of after. */}
+            {(() => {
+              const occ = estimateOccurrences(dateNeeded, recurrenceEndDate, recurrenceInterval);
+              if (occ <= 0) return null;
+              return (
+                <div className="flex items-center gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
+                  <Repeat className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={2} />
+                  <p className="text-ds-11 text-muted-foreground">
+                    About <span className="font-semibold text-primary">{occ} visit{occ === 1 ? "" : "s"}</span>
+                    {budgetNum > 0 && (
+                      <> — roughly <span className="font-semibold text-primary">${(occ * budgetNum).toFixed(2)}</span> total at this budget</>
+                    )}
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
         )}
+
         {isGroupJob && (
-          <div className="space-y-2 pt-1">
+          <div className="rounded-ds-md border border-border p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              <span className="text-ds-13 font-semibold text-foreground">Group job</span>
+            </div>
             <Label>How many helprs needed?</Label>
             <Input
               type="number"
@@ -216,7 +311,7 @@ export function LogisticsSection({
               className="w-24"
               aria-label="Number of helpers needed"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helpr
             </p>
           </div>

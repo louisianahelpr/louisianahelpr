@@ -120,12 +120,12 @@ export default function BusinessVerificationCard() {
   return (
     <Card className="p-5 space-y-4">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
           <Building2 className="w-5 h-5" />
         </div>
         <div className="flex-1">
           <h2 className="font-semibold">Business verification</h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Upload one document to earn the <strong>Verified Business</strong> badge for your owner
             account and every active team member.
           </p>
@@ -134,7 +134,7 @@ export default function BusinessVerificationCard() {
       </div>
 
       {data.verification_status === "verified" && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm flex items-center gap-2">
+        <div className="rounded-ds-md border border-primary/30 bg-primary/5 p-3 text-ds-13 flex items-center gap-2">
           <BadgeCheck className="w-4 h-4 text-primary shrink-0" />
           <span>
             Verified! The badge is live on your team profiles and job posts.
@@ -143,11 +143,11 @@ export default function BusinessVerificationCard() {
       )}
 
       {data.verification_status === "rejected" && data.verification_rejection_reason && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm flex items-start gap-2">
+        <div className="rounded-ds-md border border-destructive/30 bg-destructive/5 p-3 text-ds-13 flex items-start gap-2">
           <ShieldAlert className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
           <div>
             <p className="font-medium text-destructive">Document rejected</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-ds-11 text-muted-foreground mt-0.5">
               {data.verification_rejection_reason}
             </p>
           </div>
@@ -155,20 +155,20 @@ export default function BusinessVerificationCard() {
       )}
 
       {!data.is_owner ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           Only the business owner can upload or replace the verification document.
         </p>
       ) : (
         <div className="space-y-3">
           <div>
-            <Label className="text-xs font-semibold">Document type</Label>
+            <Label className="text-ds-11 font-semibold">Document type</Label>
             <div className="grid sm:grid-cols-3 gap-2 mt-1.5">
               {(Object.keys(docLabels) as DocType[]).map((type) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setDocType(type)}
-                  className={`text-left rounded-lg border p-2.5 text-xs transition-colors ${
+                  className={`text-left rounded-lg border p-2.5 text-ds-11 transition-colors ${
                     docType === type
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border hover:border-primary/40"
@@ -181,7 +181,7 @@ export default function BusinessVerificationCard() {
           </div>
 
           {data.verification_document_url && (
-            <div className="rounded-lg border border-border bg-secondary/40 p-3 flex items-center gap-2 text-xs">
+            <div className="rounded-lg border border-border bg-secondary/40 p-3 flex items-center gap-2 text-ds-11">
               <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="text-muted-foreground truncate flex-1">
                 Current: {data.verification_document_type ? docLabels[data.verification_document_type] : "Document"} on file

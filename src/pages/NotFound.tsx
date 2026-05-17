@@ -57,7 +57,7 @@ const NotFound = () => {
             >
               404
             </h1>
-            <p className="font-serif italic text-lg" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="font-serif italic text-ds-17" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
               This page doesn't exist or has been moved.
             </p>
           </div>
@@ -65,7 +65,7 @@ const NotFound = () => {
           <div className="flex flex-wrap justify-center gap-3">
             <Button
               variant="outline"
-              className="rounded-xl"
+              className="rounded-ds-md"
               onClick={() => window.history.back()}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -73,7 +73,7 @@ const NotFound = () => {
             </Button>
             <Button
               asChild
-              className="rounded-xl"
+              className="rounded-ds-md"
               style={{
                 background: "hsl(var(--bark))",
                 backgroundImage: "none",

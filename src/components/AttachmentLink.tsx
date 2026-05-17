@@ -69,7 +69,7 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
     <button
       type="button"
       onClick={handleOpen}
-      className={`flex items-center gap-1.5 text-xs text-primary hover:underline bg-secondary/30 rounded-lg px-2.5 py-1.5 ${className ?? ""}`}
+      className={`flex items-center gap-1.5 text-ds-11 text-primary hover:underline bg-secondary/30 rounded-lg px-2.5 py-1.5 ${className ?? ""}`}
     >
       <FileText className="w-3.5 h-3.5" />
       <span className="truncate max-w-[120px]">{filename.length > 20 ? filename.slice(-20) : filename}</span>

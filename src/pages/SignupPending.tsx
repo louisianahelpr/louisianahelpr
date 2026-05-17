@@ -31,7 +31,7 @@ const SignupPending = () => {
 
   const stepIcon = (Icon: typeof MailCheck) => (
     <div
-      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+      className="w-9 h-9 rounded-ds-md flex items-center justify-center flex-shrink-0 mt-0.5"
       style={{ background: "hsl(var(--bark) / 0.1)" }}
     >
       <Icon className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
@@ -60,7 +60,7 @@ const SignupPending = () => {
           >
             Check your inbox.
           </h1>
-          <p className="font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
             We've sent a verification link to your email. Click it to confirm your account.
           </p>
         </div>
@@ -76,8 +76,8 @@ const SignupPending = () => {
           <div className="flex items-start gap-3">
             {stepIcon(MailCheck)}
             <div>
-              <p className="text-sm font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Verify your email</p>
-              <p className="text-xs font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Verify your email</p>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                 Click the link in your inbox to confirm your email address.
               </p>
             </div>
@@ -86,8 +86,8 @@ const SignupPending = () => {
           <div className="flex items-start gap-3">
             {stepIcon(Clock)}
             <div>
-              <p className="text-sm font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Profile under review</p>
-              <p className="text-xs font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Profile under review</p>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                 Our team will review your profile and ID. This usually takes 24–48 hours.
               </p>
             </div>
@@ -96,8 +96,8 @@ const SignupPending = () => {
           <div className="flex items-start gap-3">
             {stepIcon(ShieldCheck)}
             <div>
-              <p className="text-sm font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Get approved</p>
-              <p className="text-xs font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Get approved</p>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                 Once approved, you'll have full access to post and accept jobs.
               </p>
             </div>
@@ -108,7 +108,7 @@ const SignupPending = () => {
           {!showResend ? (
             <button
               onClick={() => setShowResend(true)}
-              className="text-sm font-medium hover:underline flex items-center gap-1.5 mx-auto"
+              className="text-ds-13 font-medium hover:underline flex items-center gap-1.5 mx-auto"
               style={{ color: "hsl(var(--bark))" }}
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -116,7 +116,7 @@ const SignupPending = () => {
             </button>
           ) : (
             <div className="space-y-3">
-              <p className="text-xs font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                 Enter your email to resend the verification link:
               </p>
               <input
@@ -130,14 +130,14 @@ const SignupPending = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-xl bg-white/60 border border-white/70 px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                className="w-full rounded-ds-md bg-white/60 border border-white/70 px-3 py-2 text-ds-13 focus:outline-none focus:ring-2"
                 style={{ ['--tw-ring-color' as any]: "hsl(var(--bark) / 0.3)" }}
               />
               <Button
                 onClick={handleResend}
                 disabled={resending}
                 size="sm"
-                className="w-full rounded-xl"
+                className="w-full rounded-ds-md"
                 style={{
                   background: "hsl(var(--bark))",
                   backgroundImage: "none",
@@ -154,7 +154,7 @@ const SignupPending = () => {
         </div>
       </div>
 
-      <p className="text-center text-xs font-sans pt-5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+      <p className="text-center text-ds-11 font-sans pt-5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
         Already verified?{" "}
         <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
           Sign in

@@ -71,12 +71,12 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Send {formatName(profile?.full_name)} a friendly email asking for a clearer ID photo.
             Their IDV status will be set to <strong className="text-foreground">action needed</strong>.
           </p>
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Note (optional)</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Note (optional)</p>
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}

@@ -40,63 +40,121 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Gift className="w-5 h-5 text-primary" /> Send a Tip
+      <DialogContent className="!gap-4">
+        <DialogHeader className="!text-left space-y-0">
+          <span
+            className="font-serif italic uppercase inline-flex items-center gap-1.5"
+            style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
+          >
+            <Gift className="w-3 h-3" /> A little extra
+          </span>
+          <DialogTitle
+            className="font-display italic font-bold leading-tight mt-1"
+            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+          >
+            Send a tip{helperName ? ` to ${helperName}` : ""}.
           </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <p className="text-xs text-muted-foreground">
-            Show your appreciation{helperName ? ` to ${helperName}` : ""} with a tip!
+          <p
+            className="font-serif italic mt-1"
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            Pure thanks — goes straight to the helpr, no platform cut.
           </p>
-
-          {/* Custom amount — primary option */}
-          <div className="space-y-2">
-            <label htmlFor="tip-dialog-amount" className="text-sm font-medium text-foreground">Enter tip amount</label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
-                <Input
-                  id="tip-dialog-amount"
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  min="1"
-                  className="pl-7 text-lg font-semibold h-12"
-                />
-              </div>
-              <Button
-                className="h-12 px-6"
-                onClick={() => handleSend(parseFloat(amount))}
-                disabled={sending || !amount}
-              >
-                {sending ? "..." : "Send Tip"}
-              </Button>
+        </DialogHeader>
+        <div className="space-y-4">
+          {/* Suggested amounts — celebratory tier-styled pills first
+              since most people pick from quick-picks rather than typing. */}
+          <div>
+            <p
+              className="font-serif italic uppercase mb-2"
+              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              Quick pick
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {SUGGESTED_AMOUNTS.map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  className="h-14 rounded-2xl font-display italic font-bold tabular-nums transition-all active:scale-[0.97] disabled:opacity-60"
+                  style={{
+                    fontSize: "1.15rem",
+                    background:
+                      "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
+                      "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.74) 100%)",
+                    border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.02em",
+                    boxShadow:
+                      "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
+                      "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22), " +
+                      "0 1px 2px hsl(var(--gold-warm) / 0.12), " +
+                      "0 6px 14px -4px hsl(var(--gold-warm) / 0.28)",
+                  }}
+                  onClick={() => handleSend(amt)}
+                  disabled={sending}
+                >
+                  ${amt}
+                </button>
+              ))}
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">or quick pick</span>
-            <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
+            <span
+              className="font-serif italic uppercase"
+              style={{ fontSize: "0.6rem", color: "hsl(var(--olivewood) / 0.55)", letterSpacing: "0.18em" }}
+            >
+              or custom
+            </span>
+            <div className="h-px flex-1" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
           </div>
 
-          {/* Suggested amounts */}
-          <div className="grid grid-cols-3 gap-3">
-            {SUGGESTED_AMOUNTS.map((amt) => (
-              <Button
-                key={amt}
-                variant="outline"
-                className="text-lg font-bold h-14 hover:bg-primary hover:text-primary-foreground transition-colors"
-                onClick={() => handleSend(amt)}
-                disabled={sending}
+          {/* Custom amount */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <span
+                className="absolute left-3 top-1/2 -translate-y-1/2 font-display italic font-bold"
+                style={{ fontSize: "1.05rem", color: "hsl(var(--olivewood) / 0.55)" }}
               >
-                ${amt}
-              </Button>
-            ))}
+                $
+              </span>
+              <Input
+                id="tip-dialog-amount"
+                type="number"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                min="1"
+                className="pl-8 h-12 rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40"
+                style={{
+                  fontSize: "1.05rem",
+                  fontFamily: "Bodoni Moda, Garamond, serif",
+                  fontStyle: "italic",
+                  fontWeight: 700,
+                  color: "hsl(var(--ink-deep))",
+                }}
+              />
+            </div>
+            <Button
+              className="h-12 px-5 rounded-ds-md"
+              onClick={() => handleSend(parseFloat(amount))}
+              disabled={sending || !amount}
+              style={{
+                background: "hsl(var(--bark))",
+                backgroundImage: "none",
+                border: "1px solid hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                letterSpacing: "0.01em",
+                boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+              }}
+            >
+              {sending ? "…" : "Send tip"}
+            </Button>
           </div>
         </div>
       </DialogContent>

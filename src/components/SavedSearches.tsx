@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Bell, BellOff, Bookmark, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
 interface SavedSearch {
   id: string;
@@ -58,6 +59,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
   const handleSave = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
+      hapticError();
       toast.error("Give your search a name");
       return;
     }
@@ -66,9 +68,11 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
       !currentFilters.maxBudget &&
       !currentFilters.locationFilter
     ) {
+      hapticError();
       toast.error("Set at least one filter before saving");
       return;
     }
+    hapticMedium();
     setSaving(true);
     const { error } = await supabase.from("saved_searches").insert({
       user_id: userId,
@@ -80,20 +84,24 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
     });
     setSaving(false);
     if (error) {
+      hapticError();
       toast.error(error.message);
       return;
     }
+    hapticSuccess();
     toast.success("Search saved — you'll be notified of matching jobs");
     setName("");
     load();
   };
 
   const toggleNotify = async (s: SavedSearch) => {
+    hapticLight();
     const { error } = await supabase
       .from("saved_searches")
       .update({ notify_enabled: !s.notify_enabled })
       .eq("id", s.id);
     if (error) {
+      hapticError();
       toast.error(error.message);
       return;
     }
@@ -103,12 +111,15 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
   };
 
   const remove = async (id: string) => {
+    hapticMedium();
     const { error } = await supabase.from("saved_searches").delete().eq("id", id);
     if (error) {
+      hapticError();
       toast.error(error.message);
       return;
     }
     setSearches((prev) => prev.filter((x) => x.id !== id));
+    hapticSuccess();
     toast.success("Search deleted");
   };
 
@@ -119,7 +130,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           variant="ghost"
           size="icon"
           aria-label="Saved searches"
-          className="h-8 w-8 rounded-xl btn-press text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 rounded-ds-md btn-press text-muted-foreground hover:text-foreground"
         >
           <Bookmark className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
         </Button>
@@ -172,13 +183,21 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={60}
-              className="rounded-xl h-11 border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
+              className="rounded-ds-md h-11 border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
             />
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="h-11 w-11 p-0 rounded-xl shrink-0"
+              className="h-11 w-11 p-0 rounded-ds-md shrink-0"
               aria-label="Save filter set"
+              style={{
+                background: "hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                border: "1px solid hsl(70 22% 24%)",
+                boxShadow:
+                  "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
+                  "0 1px 2px hsl(70 20% 18% / 0.18)",
+              }}
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" strokeWidth={2.25} />}
             </Button>
@@ -238,7 +257,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
             searches.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center gap-2 rounded-xl liquid-glass p-3"
+                className="flex items-center gap-2 rounded-ds-md liquid-glass p-3"
               >
                 <button
                   type="button"
@@ -298,7 +317,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           <Button
             variant="ghost"
             onClick={() => setOpen(false)}
-            className="h-10 rounded-xl"
+            className="h-10 rounded-ds-md"
           >
             Close
           </Button>

@@ -181,27 +181,32 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         className="max-w-lg"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2">
-            <Clock className="w-5 h-5 text-muted-foreground" />
-            Cancel Job
+        <DialogHeader className="!text-left space-y-0">
+          <span
+            className="font-serif italic uppercase inline-flex items-center gap-1.5"
+            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          >
+            <Clock className="w-3 h-3" /> Heads up
+          </span>
+          <DialogTitle
+            className="font-display italic font-bold leading-tight mt-1"
+            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+          >
+            Cancel "{jobTitle}"?
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">
-            Are you sure you want to cancel <strong className="text-foreground">"{jobTitle}"</strong>?
-          </p>
 
           {/* Full Cancellation Policy */}
-          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Full Cancellation Policy</p>
+          <div className="rounded-ds-md border border-border bg-muted/30 p-4 space-y-3">
+            <p className="text-ds-11 font-semibold text-foreground uppercase tracking-wide">Full Cancellation Policy</p>
 
             {/* Step 1: Before helpr selected */}
             <div className={`flex items-start gap-2.5 p-3 rounded-lg border transition-all ${!hasHelper ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" : "bg-muted/20 border-border opacity-50"}`}>
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className="text-xs font-semibold text-foreground">Before a helpr is selected</p>
+                  <p className="text-ds-11 font-semibold text-foreground">Before a helpr is selected</p>
                   {!hasHelper && <span className="text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5">Cancel anytime with no fee. You&apos;ll receive a full refund.</p>
@@ -220,7 +225,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${hasHelper ? "bg-accent text-accent-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>2</div>
                 <div className="flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-xs font-semibold text-foreground">After a helpr is selected</p>
+                    <p className="text-ds-11 font-semibold text-foreground">After a helpr is selected</p>
                     {hasHelper && <span className="text-[10px] font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -245,15 +250,15 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               {hasHelper && cancellationFee > 0 && (
                 <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-ds-11">
                     <span className="text-muted-foreground">Cancellation fee ({cancellationFeePercent}% of ${jobBudget.toFixed(2)})</span>
                     <span className="font-semibold text-foreground">${cancellationFee.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-ds-11">
                     <span className="text-muted-foreground">Platform fee (10%)</span>
                     <span className="text-muted-foreground">−${platformCut.toFixed(2)}</span>
                   </div>
-                  <div className="border-t border-border pt-1.5 flex justify-between text-xs">
+                  <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">
                     <span className="text-muted-foreground">{helperName || "Helpr"} receives</span>
                     <span className="font-semibold text-primary">${helperPayout.toFixed(2)}</span>
                   </div>
@@ -272,11 +277,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           </div>
 
           {/* Strike system — always visible */}
-          <div className={`rounded-xl border p-4 space-y-3 ${hasHelper ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
-            <p className={`text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive" : "text-muted-foreground"}`}>
+          <div className={`rounded-ds-md border p-4 space-y-3 ${hasHelper ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
+            <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive" : "text-muted-foreground"}`}>
               <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies when helpr is selected)
             </p>
-            <div className="space-y-2 text-xs text-muted-foreground">
+            <div className="space-y-2 text-ds-11 text-muted-foreground">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
                 <p><strong className="text-foreground">1st strike:</strong> Written warning on your account. Admins notified.</p>
@@ -295,12 +300,47 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             )}
           </div>
 
-          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason for cancellation (optional)" rows={2} />
+          <div className="space-y-1.5">
+            <label
+              className="font-serif italic uppercase block"
+              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              Reason — optional
+            </label>
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="What changed? Helps us improve."
+              rows={2}
+              className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.85rem]"
+            />
+          </div>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Keep Job</Button>
-          <Button variant="destructive" onClick={handleCancel} disabled={cancelling}>
-            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel & Pay $${cancellationFee}` : "Cancel Job"}
+        <DialogFooter className="!gap-2">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            className="rounded-ds-md font-sans font-semibold"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Keep the job
+          </Button>
+          <Button
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="rounded-ds-md"
+            style={{
+              background: "hsl(var(--burnt-sienna))",
+              backgroundImage: "none",
+              border: "1px solid hsl(var(--burnt-sienna))",
+              color: "hsl(var(--parchment))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)",
+            }}
+          >
+            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${cancellationFee}` : "Cancel job"}
           </Button>
         </DialogFooter>
       </DialogContent>

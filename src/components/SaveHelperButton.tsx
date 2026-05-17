@@ -82,7 +82,7 @@ export const SaveHelperButton = ({
         variant="ghost"
         size={variant === "icon" ? "icon" : "sm"}
         disabled
-        className={`rounded-xl ${className}`}
+        className={`rounded-ds-md ${className}`}
         aria-label="Loading saved status"
       >
         <Loader2 className="w-4 h-4 animate-spin" />
@@ -98,7 +98,7 @@ export const SaveHelperButton = ({
         size="sm"
         onClick={toggle}
         disabled={working}
-        className={`rounded-xl ${className}`}
+        className={`rounded-ds-md ${className}`}
       >
         {working ? (
           <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
@@ -119,7 +119,7 @@ export const SaveHelperButton = ({
       size="icon"
       onClick={toggle}
       disabled={working}
-      className={`rounded-xl h-9 w-9 shrink-0 ${className}`}
+      className={`rounded-ds-md h-9 w-9 shrink-0 ${className}`}
       aria-label={saved ? "Unsave helpr" : "Save helpr"}
       title={saved ? "Saved — tap to remove" : "Save this helpr"}
     >

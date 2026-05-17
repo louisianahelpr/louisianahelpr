@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -6,7 +8,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { checkProximity } from "@/lib/locationUtils";
-import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { toast } from "sonner";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -277,6 +280,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       if (data?.bothDone) {
         hapticSuccess();
         toast.success("Job completed! Payment released.");
+        // Brand-tinted confetti for the first 3 completed jobs — fades to
+        // silent after to avoid noise on regulars.
+        const { maybeCelebrate } = await import("@/lib/celebrate");
+        void maybeCelebrate("first_complete", { particleCount: 120 });
         await refresh();
         setStatusFilter("completed");
       } else {
@@ -446,20 +453,20 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // --- Filters ---
   const postedStatusFilters = useMemo(() => [
     { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
-    { key: "direct_offer", label: "Direct Offers", color: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
-    { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+    { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
+    { key: "offered", label: "Awaiting Response", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
     { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
   ], []);
 
   const appliedStatusFilters = useMemo(() => [
     { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
-    { key: "direct_offer", label: "Direct Offers", color: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
-    { key: "offered", label: "Offered", color: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+    { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
+    { key: "offered", label: "Awaiting Response", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
     { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30" },
+    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
     { key: "not_selected", label: "Not Selected", color: "bg-destructive/15 text-destructive border-destructive/30" },
   ], []);
 
@@ -532,6 +539,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     });
     return counts;
   }, [postedJobs]);
+
+  // Pull-to-refresh — must run unconditionally (hook order). Same
+  // gesture pattern as Dashboard.
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
+    onRefresh: async () => { await refresh(); },
+  });
 
   if (loading) {
     // Loading state mirrors the loaded layout: two-box stack on a
@@ -609,8 +622,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               >
                 {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length)}{" "}
                 {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length) === 1 ? "task" : "tasks"}
-                {" · "}
-                {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
               </p>
             </div>
           </div>
@@ -638,7 +649,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           >
                 <div className="flex flex-col leading-none min-w-0">
                   <span
-                    className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+                    className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
                     style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                   >
                     {tab === "posted" ? "Posted tasks" : "Applied tasks"}
@@ -653,13 +664,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                   >
                     {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
                   </h2>
-                  <span
-                    className="font-serif italic mt-0.5 text-[0.72rem]"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                  >
-                    {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length)}{" "}
-                    {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length) === 1 ? "task" : "tasks"}
-                  </span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
@@ -667,7 +671,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                     onClick={() => setSearchOpen(!searchOpen)}
                     aria-label="Search tasks"
                     aria-expanded={searchOpen}
-                    className={`h-8 w-8 rounded-xl flex items-center justify-center btn-press transition ${
+                    className={`h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition ${
                       searchOpen || searchQuery
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -683,7 +687,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                       <button
                         type="button"
                         aria-label="Filter by status"
-                        className={`h-8 w-8 rounded-xl btn-press flex items-center justify-center relative transition ${
+                        className={`h-8 w-8 rounded-ds-md btn-press flex items-center justify-center relative transition ${
                           filterOpen || statusFilter !== (tab === "applied" ? "pending" : "open")
                             ? "bg-primary/10 text-primary"
                             : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -695,25 +699,73 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                         )}
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent align="end" className="w-56 p-2">
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">Filter by status</p>
-                      <div className="grid grid-cols-1 gap-1">
+                    <PopoverContent align="end" className="w-60 p-2">
+                      <p
+                        className="font-serif italic uppercase px-2 pt-1 pb-2"
+                        style={{
+                          fontSize: "0.62rem",
+                          color: "hsl(var(--burnt-sienna) / 0.78)",
+                          letterSpacing: "0.18em",
+                        }}
+                      >
+                        Filter by status
+                      </p>
+                      <div className="grid grid-cols-1 gap-0.5">
                         {activeStatusFilters.map((f) => {
                           const count = activeCounts[f.key] || 0;
                           const isActive = statusFilter === f.key;
+                          // Status-color dot — matches the chip-color logic
+                          // each filter ships with so the dropdown reads as
+                          // a legend, not just a flat list.
+                          const dotColor =
+                            f.key === "in_progress"
+                              ? "hsl(var(--burnt-sienna))"
+                              : f.key === "completed"
+                                ? "hsl(var(--bark))"
+                                : f.key === "cancelled"
+                                  ? "hsl(var(--destructive))"
+                                  : f.key === "accepted"
+                                    ? "hsl(var(--bark))"
+                                    : f.key === "direct_offer"
+                                      ? "hsl(var(--gold-warm))"
+                                      : "hsl(var(--olivewood) / 0.5)";
                           return (
                             <button
                               key={f.key}
                               onClick={() => { setStatusFilter(f.key); setFilterOpen(false); }}
-                              className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition ${
+                              className="flex items-center justify-between w-full px-2.5 py-2 rounded-ds-md text-ds-13 transition active:scale-[0.99]"
+                              style={
                                 isActive
-                                  ? "bg-primary text-primary-foreground"
-                                  : "text-foreground hover:bg-secondary/60"
-                              }`}
+                                  ? {
+                                      background: "hsl(var(--bark))",
+                                      color: "hsl(var(--parchment))",
+                                      fontWeight: 600,
+                                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                                    }
+                                  : {
+                                      color: "hsl(var(--ink-deep))",
+                                      fontWeight: 500,
+                                    }
+                              }
                             >
-                              <span>{f.label}</span>
+                              <span className="inline-flex items-center gap-2 min-w-0">
+                                <span
+                                  className="shrink-0 w-1.5 h-1.5 rounded-full"
+                                  style={{
+                                    background: isActive ? "hsl(var(--parchment) / 0.85)" : dotColor,
+                                  }}
+                                />
+                                <span className="truncate">{f.label}</span>
+                              </span>
                               {count > 0 && (
-                                <span className={`text-[10px] tabular-nums ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                                <span
+                                  className="text-[0.7rem] tabular-nums font-sans font-semibold shrink-0 ml-2 px-1.5 py-0.5 rounded-full"
+                                  style={
+                                    isActive
+                                      ? { background: "hsl(var(--parchment) / 0.18)", color: "hsl(var(--parchment))" }
+                                      : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.85)" }
+                                  }
+                                >
                                   {count}
                                 </span>
                               )}
@@ -742,7 +794,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                   placeholder="Search tasks…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-9 h-10 text-sm rounded-xl border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                  className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
                 />
                 {searchQuery && (
                   <button
@@ -758,11 +810,18 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             </div>
           )}
 
+          <PullToRefreshWrapper
+            ref={containerRef}
+            pullDistance={pullDistance}
+            refreshing={refreshing}
+            isPulling={isPulling}
+            canTrigger={canTrigger}
+            className="flex-1 min-h-0 px-4 pt-3 pb-0"
+          >
           {(tab === "posted" && filteredPostedJobs.length === 0) || (tab === "applied" && filteredAppliedApps.length === 0) ? (
-            // Empty state — same pattern as the home page's empty state:
-            // content centered directly on the panel's glass surface,
-            // no inner white card so the bottom box reads as a single
-            // distinct surface separate from the top box above it.
+            // Empty state — a liquid-glass card that fills the panel and
+            // bleeds beneath the dock (flat bottom, no hard edge), matching
+            // the Dashboard / Messages empty-state pattern.
             (() => {
               const isPosted = tab === "posted";
               const totalCount = isPosted ? postedJobs.length : appliedApps.length;
@@ -779,69 +838,23 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               const ctaTo = isPosted ? "/post-job" : "/dashboard";
               const Icon = isPosted ? Search : Send;
               return (
-                <div className="px-4 pt-4 pb-3 flex">
-                  {/* Empty-state card — sized to its content with a
-                      modest min-height so it doesn't stretch to a giant
-                      blank rectangle on tall screens. The bottom panel
-                      (parent glass card) handles the visual continuity
-                      down to the MobileNav dock area. */}
-                  <div
-                    className="flex-1 flex flex-col items-center text-center gap-4 px-6 py-8 rounded-2xl"
-                    style={{
-                      backgroundColor: "hsl(0, 0%, 100%)",
-                      border: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                      boxShadow:
-                        "0 1px 2px hsl(var(--olivewood) / 0.04), " +
-                        "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
-                    }}
-                  >
-                    <div
-                      className="w-20 h-20 rounded-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                        backdropFilter: "blur(16px) saturate(150%)",
-                        WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                        border: "1px solid hsl(var(--olivewood) / 0.10)",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                          "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                      }}
-                    >
-                      <Icon className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <span className="text-display-eyebrow">{eyebrow}</span>
-                      <p
-                        className="font-display italic font-bold leading-tight"
-                        style={{
-                          fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                          color: "hsl(var(--ink-deep))",
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
-                        {title}
-                      </p>
-                      <p
-                        className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
-                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                      >
-                        {body}
-                      </p>
-                    </div>
-                    <Button onClick={() => navigate(ctaTo)} className="rounded-xl">
-                      {ctaLabel}
-                    </Button>
-                  </div>
+                <div className="flex-1 min-h-full flex">
+                  <EmptyState
+                    icon={Icon}
+                    eyebrow={eyebrow}
+                    title={title}
+                    body={body}
+                    action={
+                      <BarkPillButton onClick={() => navigate(ctaTo)}>
+                        {ctaLabel}
+                      </BarkPillButton>
+                    }
+                  />
                 </div>
               );
             })()
           ) : (
-          <div
-            data-allow-scroll="true"
-            className="flex-1 min-h-0 overflow-y-auto px-4 pt-3"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
-          >
+            <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
           {tab === "posted" && (
             <PostedJobsTab
               jobs={filteredPostedJobs}
@@ -897,8 +910,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onHelperReview={(jobId, posterId, posterName) => setHelperReviewJob({ jobId, posterId, posterName })}
             />
           )}
-          </div>
+            </div>
           )}
+          </PullToRefreshWrapper>
           </div>
         </div>
       </main>

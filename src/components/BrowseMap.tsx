@@ -11,15 +11,20 @@
 // loaded only on the /browse?view=map surface so the rest of the app
 // pays nothing for the map pipeline.
 
-import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { divIcon, point as leafletPoint } from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Crosshair, BellRing } from "lucide-react";
 import "leaflet/dist/leaflet.css";
+
+// Above this many open jobs, default to Heat view so the user sees
+// hotspots at a glance instead of a soup of clustered pins. The user
+// can still flip back to Pins via the top-right toggle.
+const HEAT_AUTO_THRESHOLD = 50;
 
 // Fix Leaflet's default-icon-not-found problem when bundlers can't
 // resolve the asset paths. We use a small inline div-icon instead so
@@ -79,11 +84,54 @@ interface BrowseMapProps {
    * Dashboard apply path). When undefined (guest), every pin is shown.
    */
   currentUserId?: string;
+  /**
+   * Optional CTA rendered in the empty-state ("no jobs on the map
+   * today"). Used by the guest dashboard to nudge sign-up so users
+   * still convert when the marketplace happens to be quiet.
+   */
+  emptyStateCta?: { label: string; onClick: () => void };
 }
 
 // Louisiana center fallback (state geographic mean, near Marksville).
 const LA_CENTER: [number, number] = [31.0, -92.0];
 const LA_DEFAULT_ZOOM = 7;
+
+// Density-aware tint for the heatmap layer. Lower count → cooler
+// olivewood; higher count → warm burnt-sienna. Caps at 8+ jobs per
+// cluster bucket so a single hot zip doesn't bleach the rest of the
+// state.
+function densityFill(count: number): string {
+  if (count >= 8) return "hsla(15, 55%, 45%, 0.65)"; // burnt-sienna heavy
+  if (count >= 5) return "hsla(15, 50%, 50%, 0.55)";
+  if (count >= 3) return "hsla(25, 55%, 55%, 0.50)";
+  if (count >= 2) return "hsla(38, 55%, 60%, 0.45)"; // gold-warm
+  return "hsla(70, 25%, 50%, 0.40)"; // bark-cool
+}
+
+// Group jobs into ~0.1° lat/lng buckets for a quick density map without
+// pulling in leaflet.heat. Each bucket becomes a CircleMarker sized by
+// job count. Cheap, dependency-free, and still gives the "where's the
+// work" glance pattern.
+function bucketJobs(jobs: MapJob[]): Array<{
+  center: [number, number];
+  count: number;
+}> {
+  const buckets = new Map<string, { lat: number; lng: number; count: number }>();
+  for (const j of jobs) {
+    const lat = Math.round(Number(j.latitude) * 10) / 10;
+    const lng = Math.round(Number(j.longitude) * 10) / 10;
+    const key = `${lat}:${lng}`;
+    const existing = buckets.get(key);
+    if (existing) {
+      existing.count += 1;
+      existing.lat = (existing.lat * (existing.count - 1) + lat) / existing.count;
+      existing.lng = (existing.lng * (existing.count - 1) + lng) / existing.count;
+    } else {
+      buckets.set(key, { lat, lng, count: 1 });
+    }
+  }
+  return [...buckets.values()].map((b) => ({ center: [b.lat, b.lng] as [number, number], count: b.count }));
+}
 
 // Auto-fit the map to whatever pins exist when they load. If only one
 // pin, zoom in to a useful neighborhood-level view instead of a
@@ -102,9 +150,88 @@ function FitToPins({ jobs }: { jobs: MapJob[] }) {
   return null;
 }
 
-export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: BrowseMapProps) {
+// Heat-bucket layer rendered as a child of MapContainer so it can grab
+// useMap() and flyTo when a bucket is tapped. Lifted out of the main
+// render so the click handler has clean access to the map instance.
+function HeatLayer({ buckets }: { buckets: Array<{ center: [number, number]; count: number }> }) {
+  const map = useMap();
+  return (
+    <>
+      {buckets.map((b, i) => (
+        <CircleMarker
+          key={`heat-${i}`}
+          center={b.center}
+          radius={Math.min(8 + b.count * 4, 36)}
+          pathOptions={{
+            fillColor: densityFill(b.count),
+            fillOpacity: 0.7,
+            color: "transparent",
+            weight: 0,
+          }}
+          eventHandlers={{
+            // Tap-to-zoom: pan to the bucket center and step in two
+            // zoom levels (capped at maxZoom 16). Faster than opening
+            // the popup and reading "Zoom in to see them individually".
+            click: () => {
+              const targetZoom = Math.min((map.getZoom() ?? 7) + 2, 16);
+              map.flyTo(b.center, targetZoom, { duration: 0.45 });
+            },
+          }}
+        >
+          <Popup>
+            <p className="font-display italic font-bold text-ds-13 leading-tight">
+              {b.count} {b.count === 1 ? "job" : "jobs"} here
+            </p>
+            <p className="text-ds-11 text-muted-foreground">Tap the bubble to zoom in.</p>
+          </Popup>
+        </CircleMarker>
+      ))}
+    </>
+  );
+}
+
+// Floating "recenter" control — sits over the map, bottom-right above
+// the dock clearance. flyTo with the initial Louisiana frame so users
+// who have panned/zoomed deep can get back to the statewide view in
+// one tap.
+function RecenterControl({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMap();
+  return (
+    <button
+      type="button"
+      onClick={() => map.flyTo(center, zoom, { duration: 0.45 })}
+      aria-label="Recenter map"
+      className="absolute z-[400] w-10 h-10 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"
+      style={{
+        // Sit clear of the floating dock + FAB at the bottom of the
+        // screen. The parent map div bleeds beneath the dock so the
+        // button needs to anchor above it.
+        right: "0.75rem",
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 0.75rem)",
+        background: "hsla(0, 0%, 100%, 0.85)",
+        border: "1px solid hsl(var(--olivewood) / 0.22)",
+        color: "hsl(var(--olivewood))",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        boxShadow:
+          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+          "0 4px 14px -4px hsl(var(--olivewood) / 0.22)",
+      }}
+    >
+      <Crosshair className="w-4 h-4" strokeWidth={2.25} />
+    </button>
+  );
+}
+
+export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta }: BrowseMapProps) {
   const [jobs, setJobs] = useState<MapJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"pins" | "heat">("pins");
+  const [tilesLoading, setTilesLoading] = useState(true);
+  // Track whether we've already auto-switched to Heat for this session
+  // so the auto-switch fires once on first load only — manual flips
+  // back to Pins after that are respected.
+  const heatAutoApplied = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,11 +251,18 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
         // filter "my own posts" client-side — that's fine since
         // handleApplyRequest in Dashboard already bails out with a
         // "you can't apply to your own post" toast on attempt.
-        setJobs(
-          rows.filter(
-            (j) => j.latitude !== null && j.longitude !== null && !Number.isNaN(Number(j.latitude)),
-          ),
+        const cleaned = rows.filter(
+          (j) => j.latitude !== null && j.longitude !== null && !Number.isNaN(Number(j.latitude)),
         );
+        setJobs(cleaned);
+        // Auto-switch to Heat when there are enough pins that the
+        // individual markers would just read as cluster soup. Runs
+        // exactly once per mount so a user who manually flips back to
+        // Pins stays there.
+        if (!heatAutoApplied.current && cleaned.length >= HEAT_AUTO_THRESHOLD) {
+          setView("heat");
+          heatAutoApplied.current = true;
+        }
         setLoading(false);
       });
     return () => {
@@ -154,7 +288,10 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96 rounded-2xl border border-border bg-card/40">
+      <div
+        className="flex items-center justify-center h-full w-full rounded-t-2xl border border-b-0 border-border bg-card/40"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+      >
         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
       </div>
     );
@@ -162,19 +299,138 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
 
   if (jobs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 rounded-2xl border border-border bg-card/40 px-6 text-center">
-        <p className="font-display italic text-sm text-foreground">
-          No jobs on the map just yet.
-        </p>
-        <p className="font-serif italic text-xs text-muted-foreground mt-1">
-          New posts appear here as soon as they go live across Louisiana.
-        </p>
+      /* Empty-state surface bleeds beneath the floating dock — the
+         outer rounded-t-2xl + cropped bottom shadow mirror the list
+         empty state on the guest + auth dashboards so both views read
+         as the same continuous panel under the dock's frosted
+         curtain. paddingBottom clears the FAB + tab strip. */
+      <div
+        className="flex flex-col items-center justify-center h-full w-full liquid-glass px-6 text-center gap-3 rounded-t-2xl"
+        style={{
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          borderBottom: "none",
+          boxShadow:
+            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+            "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
+            "1px 0 2px hsl(var(--olivewood) / 0.06), " +
+            "0 -1px 2px hsl(var(--olivewood) / 0.06)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
+          paddingTop: "1.5rem",
+        }}
+      >
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center"
+          style={{
+            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+            border: "1px solid hsl(var(--olivewood) / 0.10)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+              "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+              "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+          }}
+        >
+          <Loader2 className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+        </div>
+        <div className="space-y-1">
+          <p
+            className="font-display italic font-bold leading-tight"
+            style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          >
+            Empty map for now.
+          </p>
+          <p
+            className="font-serif italic max-w-[260px]"
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            New posts land here the moment they go live across Louisiana.
+          </p>
+        </div>
+        {/* Optional CTA — passed by the guest dashboard so the empty
+            map still nudges signup ("get pinged when one lands") rather
+            than dead-ending the user. */}
+        {emptyStateCta && (
+          <Button
+            onClick={emptyStateCta.onClick}
+            className="rounded-ds-md mt-1"
+            style={{
+              background: "hsl(var(--bark))",
+              color: "hsl(var(--parchment))",
+              border: "1px solid hsl(70 22% 24%)",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+            }}
+          >
+            <BellRing className="w-4 h-4 mr-2" /> {emptyStateCta.label}
+          </Button>
+        )}
       </div>
     );
   }
 
+  const heatBuckets = view === "heat" ? bucketJobs(jobs) : [];
+
   return (
-    <div className="rounded-2xl overflow-hidden border border-border" style={{ height: 480 }}>
+    /* Populated map: fills the parent's remaining height (h-full inside
+       a flex-1 wrapper) and bleeds under the dock with flat bottom
+       corners. Top corners stay rounded so the panel still reads as a
+       distinct surface above the dock. */
+    <div className="relative h-full w-full rounded-t-2xl overflow-hidden border border-b-0 border-border">
+      {/* Pins / Heat toggle — sits over the map, top-right. Heat is a
+          density bucket overlay (no extra dependency) so helpers can
+          spot job hotspots even when individual pins are clustered. */}
+      <div
+        className="absolute top-3 right-3 z-[400] flex items-center gap-0.5 p-0.5 rounded-full"
+        style={{
+          background: "hsla(0, 0%, 100%, 0.85)",
+          border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+          boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+        }}
+      >
+        {([
+          { key: "pins" as const, label: "Pins" },
+          { key: "heat" as const, label: "Heat" },
+        ]).map((opt) => {
+          const active = view === opt.key;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setView(opt.key)}
+              className="px-3 h-7 rounded-full text-[0.7rem] font-sans font-semibold transition-all"
+              style={
+                active
+                  ? {
+                      background: "hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                    }
+                  : { color: "hsl(var(--olivewood) / 0.7)" }
+              }
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      {/* Subtle tile-load overlay — fades out once the OSM tiles
+          report `load` so the first paint is a soft transition rather
+          than a flash of half-rendered tiles. Pointer events bypass so
+          users can still pan even while it fades. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 z-[300] flex items-center justify-center pointer-events-none transition-opacity duration-500"
+        style={{
+          opacity: tilesLoading ? 1 : 0,
+          background: "hsla(38, 18%, 97%, 0.55)",
+          backdropFilter: "blur(2px)",
+          WebkitBackdropFilter: "blur(2px)",
+        }}
+      >
+        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+      </div>
       <MapContainer
         center={LA_CENTER}
         zoom={LA_DEFAULT_ZOOM}
@@ -184,8 +440,19 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          eventHandlers={{
+            // `load` fires when all currently-visible tiles are loaded.
+            // `loading` fires when fresh tiles start fetching (e.g.
+            // after the user pans into uncached area). Re-show the
+            // overlay briefly so the user knows something's happening.
+            load: () => setTilesLoading(false),
+            loading: () => setTilesLoading(true),
+          }}
         />
         <FitToPins jobs={jobs} />
+        <RecenterControl center={LA_CENTER} zoom={LA_DEFAULT_ZOOM} />
+        {view === "heat" && <HeatLayer buckets={heatBuckets} />}
+        {view === "pins" && (
         <MarkerClusterGroup
           chunkedLoading
           spiderfyOnMaxZoom
@@ -200,14 +467,14 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
           >
             <Popup>
               <div className="space-y-1.5 min-w-[180px]">
-                <p className="font-display font-bold text-sm leading-tight">
+                <p className="font-display font-bold text-ds-13 leading-tight">
                   {job.title}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">
                   {labels[job.category as keyof typeof labels] ?? job.category}
                   {job.parish ? ` · ${job.parish}` : ""}
                 </p>
-                <p className="font-mono text-sm font-semibold">${Number(job.budget).toFixed(2)}</p>
+                <p className="font-mono text-ds-13 font-semibold">${Number(job.budget).toFixed(2)}</p>
                 {job.is_urgent && (
                   <p className="text-[10px] uppercase tracking-wide text-destructive font-bold">
                     Urgent
@@ -217,7 +484,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
                   <Button
                     size="sm"
                     onClick={() => onJobAction(job.id)}
-                    className="w-full mt-1.5 h-8 text-xs"
+                    className="w-full mt-1.5 h-8 text-ds-11"
                   >
                     {ctaLabel}
                   </Button>
@@ -227,6 +494,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId }: Bro
           </Marker>
         ))}
         </MarkerClusterGroup>
+        )}
       </MapContainer>
     </div>
   );

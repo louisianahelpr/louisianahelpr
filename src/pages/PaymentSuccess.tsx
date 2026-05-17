@@ -57,7 +57,7 @@ const PaymentSuccess = () => {
           }}
         >
           <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-          <p className="text-xs font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
+          <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
             Your payment has been securely processed. The helpr will be paid once both you and the helpr confirm the job is complete.
           </p>
         </div>
@@ -71,7 +71,7 @@ const PaymentSuccess = () => {
               return (
                 <li key={step.label} className="flex items-start gap-3">
                   <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                    className="w-8 h-8 rounded-ds-md flex items-center justify-center shrink-0 mt-0.5"
                     style={{
                       background: isFirst ? "hsl(var(--bark) / 0.12)" : "hsl(var(--olivewood) / 0.08)",
                       border: `1px solid ${isFirst ? "hsl(var(--bark) / 0.25)" : "hsl(var(--olivewood) / 0.15)"}`,
@@ -84,7 +84,7 @@ const PaymentSuccess = () => {
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+                    <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
                       {step.label}
                       {isFirst && (
                         <span
@@ -95,7 +95,7 @@ const PaymentSuccess = () => {
                         </span>
                       )}
                     </p>
-                    <p className="font-serif italic text-xs mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
+                    <p className="font-serif italic text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
                       {step.caption}
                     </p>
                   </div>
@@ -111,7 +111,7 @@ const PaymentSuccess = () => {
         <Button
           size="lg"
           onClick={() => navigate("/dashboard")}
-          className="w-full rounded-xl"
+          className="w-full rounded-ds-md"
           style={{
             background: "hsl(var(--bark))",
             backgroundImage: "none",

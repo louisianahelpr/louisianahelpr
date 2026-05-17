@@ -115,7 +115,7 @@ const WelcomeScreen = ({ scale = 1 }: { scale?: number }) => (
     <StatusBar scale={scale} />
     <div className="flex-1 flex flex-col items-center justify-center px-3 text-center gap-1.5">
       <div
-        className="rounded-xl flex items-center justify-center"
+        className="rounded-ds-md flex items-center justify-center"
         style={{
           width: `${44 * scale}px`,
           height: `${44 * scale}px`,
@@ -279,7 +279,7 @@ const DashboardScreen = ({ scale = 1 }: { scale?: number }) => {
         </div>
         {/* Live banner */}
         <div
-          className="rounded-xl flex items-center justify-between"
+          className="rounded-ds-md flex items-center justify-between"
           style={{
             padding: `${0.5 * scale}rem`,
             backgroundColor: "rgba(255, 255, 255, 0.55)",

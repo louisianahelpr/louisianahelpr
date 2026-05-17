@@ -91,7 +91,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
         </DialogHeader>
         <div className="space-y-4">
           <div className="rounded-lg bg-muted/50 border border-border p-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               Current email:{" "}
               <strong className="text-foreground">
                 {(profile as { email?: string } | null)?.email || "—"}
@@ -100,7 +100,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">New Email</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">New Email</p>
             <Input
               type="email"
               value={email1}
@@ -109,7 +109,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
             />
           </div>
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Confirm New Email</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Confirm New Email</p>
             <Input
               type="email"
               value={email2}
@@ -117,15 +117,15 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
               placeholder="Re-enter new email"
             />
             {email2 && email1 !== email2 && (
-              <p className="text-xs text-destructive">Emails don't match</p>
+              <p className="text-ds-11 text-destructive">Emails don't match</p>
             )}
             {email2 && email1 === email2 && email1.length > 0 && (
-              <p className="text-xs text-primary">✓ Emails match</p>
+              <p className="text-ds-11 text-primary">✓ Emails match</p>
             )}
           </div>
 
           <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               ⚠️ This will immediately update the user's login email. They'll be notified of the change.
             </p>
           </div>

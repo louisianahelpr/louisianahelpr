@@ -122,17 +122,17 @@ const AdminParishTaxRates = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+        <h2 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
           <MapPin className="w-5 h-5 text-primary" /> Parish Tax Rates
         </h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-ds-11 text-muted-foreground mt-0.5">
           Update sales tax rates per parish without touching code. Used for taxable services (cleaning, yard work, handyman, etc.).
         </p>
       </div>
 
       {/* Add new parish */}
-      <div className="rounded-xl liquid-glass p-4 space-y-3">
-        <p className="text-sm font-semibold text-foreground">Add new parish</p>
+      <div className="rounded-ds-md liquid-glass p-4 space-y-3">
+        <p className="text-ds-13 font-semibold text-foreground">Add new parish</p>
         <div className="flex gap-2 flex-wrap">
           <Input
             aria-label="Parish name"
@@ -170,9 +170,9 @@ const AdminParishTaxRates = () => {
       </div>
 
       {loading ? (
-        <p className="text-xs text-muted-foreground">Loading parishes…</p>
+        <p className="text-ds-11 text-muted-foreground">Loading parishes…</p>
       ) : filtered.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-8">No parishes match.</p>
+        <p className="text-ds-11 text-muted-foreground text-center py-8">No parishes match.</p>
       ) : (
         <div className="space-y-2">
           {filtered.map((rate) => {
@@ -183,7 +183,7 @@ const AdminParishTaxRates = () => {
             const isDirty = !!edit && (edit.state_rate !== "" || edit.local_rate !== "");
 
             return (
-              <div key={rate.id} className="rounded-xl liquid-glass p-4 space-y-3">
+              <div key={rate.id} className="rounded-ds-md liquid-glass p-4 space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="font-semibold text-foreground">{rate.parish_name} Parish</p>
                   <Badge className="bg-primary/10 text-primary">

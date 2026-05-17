@@ -43,7 +43,7 @@ const ForBusiness = () => {
               <span style={{ color: "hsl(var(--burnt-sienna))" }}>Louisiana businesses.</span>
             </h1>
 
-            <p className="subhead-serif text-foreground text-lg lg:text-xl leading-relaxed max-w-xl">
+            <p className="subhead-serif text-foreground text-ds-17 lg:text-ds-20 leading-relaxed max-w-xl">
               The simplest way to find, hire, and pay local pros for your business tasks.
             </p>
 
@@ -61,23 +61,23 @@ const ForBusiness = () => {
                   className="liquid-glass flex items-start gap-3 px-4 py-3"
                 >
                   <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    className="w-9 h-9 rounded-ds-md flex items-center justify-center shrink-0"
                     style={{ background: "hsl(var(--bark) / 0.1)" }}
                   >
                     <row.icon className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
                   </div>
-                  <p className="text-sm font-sans pt-1.5 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>{row.text}</p>
+                  <p className="text-ds-13 font-sans pt-1.5 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>{row.text}</p>
                 </div>
               ))}
             </div>
 
             {/* Built for */}
             <div className="liquid-glass p-5">
-              <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "hsl(var(--ink-deep))" }}>
+              <p className="text-ds-13 font-semibold mb-3 flex items-center gap-2" style={{ color: "hsl(var(--ink-deep))" }}>
                 <span className="w-1 h-4 rounded-full" style={{ background: "hsl(var(--burnt-sienna))" }} />
                 Built for
               </p>
-              <ul className="text-xs text-muted-foreground grid sm:grid-cols-2 gap-x-4 gap-y-1.5">
+              <ul className="text-ds-11 text-muted-foreground grid sm:grid-cols-2 gap-x-4 gap-y-1.5">
                 <li>
                   <span className="text-foreground font-medium">
                     Property managers
@@ -142,13 +142,13 @@ const ForBusiness = () => {
                   >
                     Up and running in minutes.
                   </h2>
-                  <p className="text-xs font-sans mb-5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <p className="text-ds-11 font-sans mb-5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                     Sign up, invite your team, start posting. No sales calls.
                   </p>
 
                   <Button
                     size="xl"
-                    className="group w-full rounded-xl"
+                    className="group w-full rounded-ds-md"
                     onClick={() => {
                       window.location.href = "/signup?type=business";
                     }}
@@ -167,7 +167,7 @@ const ForBusiness = () => {
                     <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
                   </Button>
 
-                  <p className="text-xs mt-3" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <p className="text-ds-11 mt-3" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                     Already have an account?{" "}
                     <a
                       href="/login"
@@ -180,7 +180,7 @@ const ForBusiness = () => {
                 </div>
 
                 <div className="mt-6 pt-5 border-t" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
-                  <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "hsl(var(--ink-deep))" }}>
+                  <p className="text-ds-13 font-semibold mb-3 flex items-center gap-2" style={{ color: "hsl(var(--ink-deep))" }}>
                     <span className="w-1 h-4 rounded-full" style={{ background: "hsl(var(--burnt-sienna))" }} />
                     Team seats
                   </p>
@@ -193,7 +193,7 @@ const ForBusiness = () => {
                     ].map((tier) => (
                       <div
                         key={tier.name}
-                        className={`flex items-center justify-between text-xs rounded-lg px-3 py-2 transition-colors ${
+                        className={`flex items-center justify-between text-ds-11 rounded-lg px-3 py-2 transition-colors ${
                           tier.featured
                             ? "border border-primary/40 bg-primary/10"
                             : "border border-border/50 bg-background/50 hover:border-border"

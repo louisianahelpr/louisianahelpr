@@ -44,7 +44,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
     return (
       <div className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/30 bg-primary/10">
         <Timer className="w-4 h-4 text-primary shrink-0" />
-        <p className="text-xs font-semibold text-primary">Job time has arrived!</p>
+        <p className="text-ds-11 font-semibold text-primary">Job time has arrived!</p>
       </div>
     );
   }
@@ -68,7 +68,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
     <div className={`flex items-center gap-2 p-2.5 rounded-lg border ${colorClasses}`}>
       <Timer className="w-4 h-4 shrink-0" />
       <div className="min-w-0">
-        <p className="text-xs font-semibold tabular-nums">{label}: {timeStr}</p>
+        <p className="text-ds-11 font-semibold tabular-nums">{label}: {timeStr}</p>
         <p className="text-[10px] opacity-80 mt-0.5">
           {startTime
             ? new Date(jobDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -220,13 +220,13 @@ export const AppliedJobsTab = ({
               Nothing in this view yet.
             </p>
             <p
-              className="font-serif italic text-sm leading-relaxed"
+              className="font-serif italic text-ds-13 leading-relaxed"
               style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
               Browse open tasks near you and apply — your applications will land here.
             </p>
           </div>
-          <Button onClick={() => navigate("/dashboard")} className="rounded-xl btn-press">
+          <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md btn-press">
             <Send className="w-4 h-4 mr-1.5" /> Browse tasks
           </Button>
         </div>
@@ -272,7 +272,7 @@ export const AppliedJobsTab = ({
     return (
           <div
             key={app.id}
-            className={`rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${!isMinimalCard ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
+            className={`rounded-2xl liquid-glass overflow-hidden hover:shadow-md transition-all duration-200 ${!isMinimalCard ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
             onClick={!isMinimalCard ? () => setExpandedJobId(isExpanded ? null : app.job_id) : undefined}
             {...(!isMinimalCard && {
               role: "button",
@@ -286,19 +286,35 @@ export const AppliedJobsTab = ({
               },
             })}
           >
-            {/* Header - matches poster layout */}
-            <div className="w-full px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-muted/20 to-transparent flex items-center justify-between text-left">
-              <h3 className={`font-medium text-[15px] leading-snug truncate min-w-0 ${(categoryColors[job.category || "other"] || categoryColors.other).title}`}>
+            {/* Header — italic display title + payout chip (matches poster
+                surfaces across the app). */}
+            <div
+              className="w-full px-4 py-2.5 flex items-center justify-between text-left"
+              style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+            >
+              <h3
+                className="font-display italic font-bold leading-snug truncate min-w-0"
+                style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
                 {job.title || "Task"}
               </h3>
-              <span className="flex items-center gap-0.5 font-semibold text-primary text-sm bg-primary/8 px-2 py-0.5 rounded-full shrink-0 ml-3" title={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}>
-                <DollarSign className="w-3.5 h-3.5" />{payout.toFixed(2)}
+              <span
+                className="inline-flex items-center gap-0.5 font-display italic font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-full shrink-0 ml-3"
+                title={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
+                style={{
+                  background: "hsl(var(--burnt-sienna) / 0.10)",
+                  color: "hsl(var(--burnt-sienna))",
+                  letterSpacing: "-0.015em",
+                }}
+              >
+                <DollarSign className="w-3.5 h-3.5" strokeWidth={2.25} />
+                {payout.toFixed(2)}
               </span>
             </div>
 
             {/* Summary info line */}
             <div className="px-4 py-3 space-y-2.5">
-              <div className="flex items-center gap-2.5 flex-wrap text-xs text-muted-foreground">
+              <div className="flex items-center gap-2.5 flex-wrap text-ds-11 text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3 h-3 shrink-0" />
                   {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -330,13 +346,13 @@ export const AppliedJobsTab = ({
               {/* Description preview — collapsed to keep cards compact.
                   Full details live on the job page (chevron link below). */}
               {!isMinimalCard && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
+                <p className="text-ds-11 text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
               )}
               {!isMinimalCard && (
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); navigate(`/dashboard?job=${job.id}`); }}
-                  className="inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline active:opacity-70"
+                  className="inline-flex items-center gap-0.5 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
                 >
                   View details <ChevronRight className="w-3 h-3" />
                 </button>
@@ -344,12 +360,12 @@ export const AppliedJobsTab = ({
 
               {/* Poster name */}
               {!isMinimalCard && app.posterName && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">
                   Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
                 </p>
               )}
               {isMinimalCard && (
-                <p className="text-xs text-muted-foreground/70 italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
+                <p className="text-ds-11 text-muted-foreground/70 italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
               )}
             </div>
 
@@ -387,19 +403,19 @@ export const AppliedJobsTab = ({
                         onChange={(e) => setEditMessageText(e.target.value)}
                         placeholder="Introduce yourself or share relevant experience…"
                         rows={3}
-                        className="text-xs"
+                        className="text-ds-11"
                       />
                       <div className="flex items-center gap-1.5 justify-end">
-                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditingMessageAppId(null)} disabled={savingMessage}>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-ds-11" onClick={() => setEditingMessageAppId(null)} disabled={savingMessage}>
                           <X className="w-3 h-3 mr-0.5" /> Cancel
                         </Button>
-                        <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handleSaveMessage(app.id)} disabled={savingMessage}>
+                        <Button size="sm" className="h-7 px-2 text-ds-11" onClick={() => handleSaveMessage(app.id)} disabled={savingMessage}>
                           <Check className="w-3 h-3 mr-0.5" /> {savingMessage ? "Saving…" : "Save"}
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-foreground">{app.message || <span className="text-muted-foreground italic">No message — tap the pencil to add one</span>}</p>
+                    <p className="text-ds-11 text-foreground">{app.message || <span className="text-muted-foreground italic">No message — tap the pencil to add one</span>}</p>
                   )}
                 </div>
 
@@ -411,7 +427,7 @@ export const AppliedJobsTab = ({
                     let filename = last;
                     try { filename = decodeURIComponent(last); } catch {}
                     return (
-                      <div key={i} className="flex items-center gap-2 text-xs bg-secondary/30 rounded-lg px-2.5 py-1.5">
+                      <div key={i} className="flex items-center gap-2 text-ds-11 bg-secondary/30 rounded-lg px-2.5 py-1.5">
                         <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
                         <span className="truncate flex-1 text-foreground">
                           {filename.length > 30 ? filename.slice(-30) : filename}
@@ -424,7 +440,7 @@ export const AppliedJobsTab = ({
                     );
                   })}
                   {(app.attachment_urls || []).length < 5 && (
-                    <label className="flex items-center gap-2 text-xs text-primary cursor-pointer hover:underline" onClick={(e) => e.stopPropagation()}>
+                    <label className="flex items-center gap-2 text-ds-11 text-primary cursor-pointer hover:underline" onClick={(e) => e.stopPropagation()}>
                       <Paperclip className="w-3.5 h-3.5" />
                       <span>{uploadingAttachment === app.id ? "Uploading…" : "Add cert or work sample"}</span>
                       <input
@@ -441,38 +457,77 @@ export const AppliedJobsTab = ({
                     </label>
                   )}
                   {(app.attachment_urls || []).length === 0 && !uploadingAttachment && (
-                    <p className="text-muted-foreground text-xs">No attachments yet</p>
+                    <p className="text-muted-foreground text-ds-11">No attachments yet</p>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Pending withdraw — ghost text link, deliberately understated.
-                Tapping opens a confirmation bottom sheet (see end of file). */}
+            {/* Pending withdraw — slightly more discoverable than the
+                previous ghost text. Tucked inside a sienna-tinted pill
+                that reads as "available, low-stakes" without competing
+                with primary actions. */}
             {!isMinimalCard && isPending && (
-              <div className="px-4 py-2 border-t border-border/30 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="px-4 py-2.5 flex items-center justify-end"
+                style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
                   disabled={withdrawingAppId === app.id}
                   onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Task" })}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors active:opacity-60 px-2 py-1 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 text-[0.72rem] font-sans font-semibold tracking-wide px-2.5 py-1 rounded-full active:opacity-70 transition-opacity disabled:opacity-50"
+                  style={{
+                    color: "hsl(var(--burnt-sienna))",
+                    background: "hsl(var(--burnt-sienna) / 0.08)",
+                    border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                  }}
                 >
-                  <XCircle className="w-3.5 h-3.5" /> {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
+                  <XCircle className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw application"}
                 </button>
               </div>
             )}
 
             {/* === ACTION SECTIONS === */}
 
-            {/* Offered: accept/decline */}
+            {/* Offered: accept/decline — celebratory framing since this
+                is a poster reaching out directly. Gold-warm accent
+                surfaces the "you were picked" moment without shouting. */}
             {isOffered && (
-              <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="px-4 py-3 space-y-2.5"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  borderTop: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+                  background:
+                    "radial-gradient(80% 100% at 50% 0%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%)",
+                }}
+              >
+                <p
+                  className="font-serif italic uppercase inline-flex items-center gap-1.5"
+                  style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
+                >
+                  <ThumbsUp className="w-3 h-3" /> You were picked
+                </p>
                 {(app as any).offer_message && (
-                  <div className="text-sm bg-primary/5 border border-primary/15 rounded-lg p-3">
-                    <p className="text-xs font-medium text-primary mb-1 flex items-center gap-1">
+                  <div
+                    className="rounded-ds-md p-3"
+                    style={{
+                      background: "hsla(0, 0%, 100%, 0.65)",
+                      border: "0.5px solid hsl(var(--olivewood) / 0.12)",
+                    }}
+                  >
+                    <p
+                      className="font-serif italic uppercase mb-1 inline-flex items-center gap-1"
+                      style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                    >
                       <MessageSquare className="w-3 h-3" /> Message from poster
                     </p>
-                    <p className="text-foreground">{(app as any).offer_message}</p>
+                    <p className="font-serif italic leading-relaxed" style={{ fontSize: "0.88rem", color: "hsl(var(--ink-deep))" }}>
+                      "{(app as any).offer_message}"
+                    </p>
                   </div>
                 )}
                 {/* Job countdown */}
@@ -484,9 +539,36 @@ export const AppliedJobsTab = ({
                     consequenceText="Accept or decline before the deadline"
                   />
                 )}
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onHelperResponse(app, false)}><ThumbsDown className="w-4 h-4 mr-1" /> Decline</Button>
-                  <Button size="sm" className="flex-1" onClick={() => onHelperResponse(app, true)}><ThumbsUp className="w-4 h-4 mr-1" /> Accept Job</Button>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 rounded-ds-md"
+                    onClick={() => onHelperResponse(app, false)}
+                    style={{
+                      color: "hsl(var(--burnt-sienna))",
+                      borderColor: "hsl(var(--burnt-sienna) / 0.30)",
+                    }}
+                  >
+                    <ThumbsDown className="w-4 h-4 mr-1" /> Decline
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 rounded-ds-md"
+                    onClick={() => onHelperResponse(app, true)}
+                    style={{
+                      background: "hsl(var(--bark))",
+                      backgroundImage: "none",
+                      border: "1px solid hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      fontFamily: "Montserrat, system-ui, sans-serif",
+                      fontWeight: 600,
+                      letterSpacing: "0.01em",
+                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                    }}
+                  >
+                    <ThumbsUp className="w-4 h-4 mr-1" /> Accept job
+                  </Button>
                 </div>
               </div>
             )}
@@ -513,14 +595,14 @@ export const AppliedJobsTab = ({
 
                 {/* Completion status — right after tracker */}
                 {jobAny.helper_completed_at && !jobAny.poster_completed_at && !jobAny.revision_requested_at && (
-                  <div className="rounded-xl border border-primary/20 bg-primary/5 overflow-hidden">
+                  <div className="rounded-ds-md border border-primary/20 bg-primary/5 overflow-hidden">
                     <div className="flex items-center gap-2 px-3 py-2">
                       <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                      <span className="text-sm font-semibold text-primary">Marked Complete</span>
+                      <span className="text-ds-13 font-semibold text-primary">Marked Complete</span>
                     </div>
                     <div className="px-3 pb-2.5 space-y-1">
-                      <p className="text-xs text-muted-foreground">Waiting for the poster to:</p>
-                      <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5">
+                      <p className="text-ds-11 text-muted-foreground">Waiting for the poster to:</p>
+                      <ul className="text-ds-11 text-muted-foreground list-disc pl-4 space-y-0.5">
                         <li><span className="text-foreground font-medium">Approve & complete</span> the job</li>
                         <li>Or <span className="text-foreground font-medium">request a revision</span></li>
                       </ul>
@@ -541,7 +623,7 @@ export const AppliedJobsTab = ({
                 {jobAny.helper_completed_at && jobAny.poster_completed_at && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
                     <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                    <span className="text-sm font-medium text-primary">Job complete ✓</span>
+                    <span className="text-ds-13 font-medium text-primary">Job complete ✓</span>
                   </div>
                 )}
 
@@ -552,8 +634,8 @@ export const AppliedJobsTab = ({
                   <div className="space-y-2">
                     {jobAny.revision_note && (
                       <div className="p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-                        <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
-                        <p className="text-xs text-muted-foreground mt-1">{jobAny.revision_note}</p>
+                        <p className="text-ds-11 font-semibold text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                        <p className="text-ds-11 text-muted-foreground mt-1">{jobAny.revision_note}</p>
                       </div>
                     )}
                     {jobAny.revision_deadline && !jobAny.revision_completed_at && (
@@ -566,7 +648,7 @@ export const AppliedJobsTab = ({
                     )}
                     {jobAny.revision_completed_at ? (
                       <div className="space-y-2">
-                        <div className="text-xs text-center px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium">✓ Marked as fixed — waiting for poster</div>
+                        <div className="text-ds-11 text-center px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium">✓ Marked as fixed — waiting for poster</div>
                         {jobAny.revision_acceptance_deadline && (
                           <DeadlineCountdown
                             deadline={jobAny.revision_acceptance_deadline}
@@ -609,11 +691,33 @@ export const AppliedJobsTab = ({
                     const label = completingJobId === app.job_id ? "…" : !hasPhotos ? "Upload before & after photos first" : tooEarly ? `Available in ${minutesLeft} min` : "Mark Complete";
                     return (
                       <>
-                        <Button size="sm" className="w-full" onClick={() => onComplete(app.job_id)} disabled={disabled}>
-                          <CheckCircle2 className="w-4 h-4 mr-1" />{label}
+                        <Button
+                          size="sm"
+                          className="w-full rounded-ds-md"
+                          onClick={() => onComplete(app.job_id)}
+                          disabled={disabled}
+                          style={
+                            !disabled
+                              ? {
+                                  background: "hsl(var(--bark))",
+                                  backgroundImage: "none",
+                                  border: "1px solid hsl(var(--bark))",
+                                  color: "hsl(var(--parchment))",
+                                  fontFamily: "Montserrat, system-ui, sans-serif",
+                                  fontWeight: 600,
+                                  letterSpacing: "0.01em",
+                                  boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                                }
+                              : undefined
+                          }
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" />
+                          {label === "Mark Complete" ? "I'm done — request payout" : label}
                         </Button>
                         {tooEarly && (
-                          <p className="text-[10px] text-muted-foreground text-center">Mark Complete is available 30 minutes after arrival to ensure quality.</p>
+                          <p className="font-serif italic text-center" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                            Available 30 minutes after arrival to ensure quality.
+                          </p>
                         )}
                       </>
                     );
@@ -628,18 +732,52 @@ export const AppliedJobsTab = ({
               const disputeStatus = jobAny.dispute_status || "open";
               const hasResponded = !!jobAny.dispute_helper_response;
               return (
-                <div className="px-4 py-3 border-t border-border/30 bg-destructive/5 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="px-4 py-3 space-y-2.5"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    borderTop: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                    background: "hsl(var(--burnt-sienna) / 0.06)",
+                  }}
+                >
                   {/* Dispute info */}
-                  <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
-                    <p className="text-xs font-semibold text-destructive flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      {disputeStatus === "escalated" ? "Escalated to Admin" : "Dispute In Progress"}
+                  <div
+                    className="rounded-ds-md p-3"
+                    style={{
+                      background: "hsl(var(--burnt-sienna) / 0.10)",
+                      border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
+                    }}
+                  >
+                    <span
+                      className="font-serif italic uppercase inline-flex items-center gap-1.5"
+                      style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                    >
+                      <AlertTriangle className="w-3 h-3" />
+                      {disputeStatus === "escalated" ? "Admin reviewing" : "Dispute open"}
+                    </span>
+                    <p
+                      className="font-display italic font-bold leading-tight mt-1"
+                      style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                    >
+                      {disputeStatus === "escalated"
+                        ? "An admin is on it."
+                        : "Both sides are talking it out."}
                     </p>
                     {jobAny.dispute_reason && (
-                      <p className="text-xs text-muted-foreground mt-1">Reason: {jobAny.dispute_reason}</p>
+                      <p
+                        className="font-serif italic mt-1.5"
+                        style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                      >
+                        Reason: {jobAny.dispute_reason}
+                      </p>
                     )}
                     {jobAny.disputed_at && (
-                      <p className="text-[10px] text-muted-foreground mt-1">Filed {formatDistanceToNow(new Date(jobAny.disputed_at), { addSuffix: true })}</p>
+                      <p
+                        className="font-serif italic mt-1"
+                        style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}
+                      >
+                        Filed {formatDistanceToNow(new Date(jobAny.disputed_at), { addSuffix: true })}
+                      </p>
                     )}
                   </div>
 
@@ -669,7 +807,7 @@ export const AppliedJobsTab = ({
                   {hasResponded && (
                     <div className="p-2 rounded-lg bg-primary/5 border border-primary/20">
                       <p className="text-[10px] text-muted-foreground font-medium">Your response:</p>
-                      <p className="text-xs text-foreground mt-0.5">"{jobAny.dispute_helper_response}"</p>
+                      <p className="text-ds-11 text-foreground mt-0.5">"{jobAny.dispute_helper_response}"</p>
                     </div>
                   )}
 
@@ -685,7 +823,7 @@ export const AppliedJobsTab = ({
                             onChange={(e) => setDisputeResponse(e.target.value)}
                             rows={3}
                             maxLength={500}
-                            className="text-xs"
+                            className="text-ds-11"
                           />
                           <div className="flex gap-2">
                             <Button size="sm" className="flex-1" disabled={!disputeResponse.trim() || submittingResponse} onClick={async () => {
@@ -749,8 +887,8 @@ export const AppliedJobsTab = ({
             {/* Fully done (reviewed) - collapsible */}
             {isFullyDone && (
               <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
-                <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Reviewed ✓</span>
-                <span className="text-xs text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
+                <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Reviewed ✓</span>
+                <span className="text-ds-11 text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
               </div>
             )}
             {isFullyDone && isExpanded && (
@@ -778,13 +916,13 @@ export const AppliedJobsTab = ({
                   </div>
                 )}
                 {job.is_recurring && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                     <RefreshCw className="w-3 h-3 text-primary" />
                     <span>{job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}{job.recurrence_end_date && ` until ${new Date(job.recurrence_end_date).toLocaleDateString()}`}</span>
                   </div>
                 )}
                 {job.is_group_job && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                     <Users className="w-3 h-3 text-primary" />
                     <span>{job.helpers_needed ? `${job.helpers_needed} helprs needed` : "Group task"}</span>
                   </div>
@@ -815,10 +953,10 @@ export const AppliedJobsTab = ({
           {/* Drag-handle affordance */}
           <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />
           <SheetHeader className="text-center">
-            <SheetTitle className="font-display text-2xl font-bold tracking-tight">
+            <SheetTitle className="font-display text-ds-24 font-bold tracking-tight">
               Withdraw Application?
             </SheetTitle>
-            <SheetDescription className="text-xs text-muted-foreground leading-relaxed">
+            <SheetDescription className="text-ds-11 text-muted-foreground leading-relaxed">
               Withdrawing will remove you from consideration for{" "}
               <span className="font-medium text-foreground">"{withdrawTarget?.jobTitle}"</span>.
               You can re-apply later if the position is still open.
@@ -829,7 +967,7 @@ export const AppliedJobsTab = ({
             <Button
               size="lg"
               variant="destructive"
-              className="w-full rounded-xl text-[15px] font-semibold"
+              className="w-full rounded-ds-md text-[15px] font-semibold"
               disabled={!!withdrawingAppId}
               onClick={confirmWithdraw}
             >
@@ -838,7 +976,7 @@ export const AppliedJobsTab = ({
             <Button
               size="lg"
               variant="ghost"
-              className="w-full rounded-xl text-[15px] font-medium text-muted-foreground hover:text-foreground"
+              className="w-full rounded-ds-md text-[15px] font-medium text-muted-foreground hover:text-foreground"
               disabled={!!withdrawingAppId}
               onClick={() => setWithdrawTarget(null)}
             >

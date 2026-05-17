@@ -101,11 +101,11 @@ const AdminSupport = () => {
       </div>
 
       {isInitialLoading ? (
-        <p className="text-muted-foreground text-xs py-8 text-center">Loading tickets…</p>
+        <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading tickets…</p>
       ) : tickets.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Mail className="w-8 h-8 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">No {filter !== "all" ? filter : ""} support tickets.</p>
+          <p className="text-ds-13">No {filter !== "all" ? filter : ""} support tickets.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -113,7 +113,7 @@ const AdminSupport = () => {
             const cat = categoryFromReason(ticket.reason);
             const subject = subjectFromReason(ticket.reason);
             return (
-              <div key={ticket.id} className="rounded-xl liquid-glass p-4 space-y-3">
+              <div key={ticket.id} className="rounded-ds-md liquid-glass p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -121,10 +121,10 @@ const AdminSupport = () => {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">{subject || "No subject"}</p>
+                        <p className="text-ds-13 font-semibold text-foreground">{subject || "No subject"}</p>
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">{cat.label}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-ds-11 text-muted-foreground">
                         {ticket.reporter_name}
                         {ticket.reporter_email && <span className="text-muted-foreground/60"> · {ticket.reporter_email}</span>}
                         {" · "}
@@ -138,7 +138,7 @@ const AdminSupport = () => {
                 </div>
 
                 {ticket.description && (
-                  <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 whitespace-pre-wrap">{ticket.description}</p>
+                  <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-lg p-3 whitespace-pre-wrap">{ticket.description}</p>
                 )}
 
                 {ticket.status === "pending" && (

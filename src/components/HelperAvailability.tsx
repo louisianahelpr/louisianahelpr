@@ -71,6 +71,46 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
     );
   };
 
+  // Bulk shortcuts — saves users from setting each day individually.
+  // "Weekdays 9–5" is the most common helper schedule; "Weekends off"
+  // is one tap for that adjustment; "Copy Mon to all" repeats whatever
+  // window the user already set for Monday across every other day.
+  const applyWeekdays9to5 = () => {
+    setSlots((prev) =>
+      prev.map((s) => {
+        const isWeekday = s.day_of_week >= 1 && s.day_of_week <= 5;
+        return {
+          ...s,
+          is_available: isWeekday,
+          start_time: isWeekday ? "09:00" : s.start_time,
+          end_time: isWeekday ? "17:00" : s.end_time,
+        };
+      }),
+    );
+    toast.success("Weekdays 9–5 set");
+  };
+  const applyWeekendsOff = () => {
+    setSlots((prev) =>
+      prev.map((s) =>
+        s.day_of_week === 0 || s.day_of_week === 6 ? { ...s, is_available: false } : s,
+      ),
+    );
+    toast.success("Weekends marked off");
+  };
+  const copyMondayToAll = () => {
+    const monday = slots.find((s) => s.day_of_week === 1);
+    if (!monday) return;
+    setSlots((prev) =>
+      prev.map((s) => ({
+        ...s,
+        is_available: monday.is_available,
+        start_time: monday.start_time,
+        end_time: monday.end_time,
+      })),
+    );
+    toast.success("Monday copied to every day");
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -101,7 +141,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
     }
   };
 
-  if (!loaded) return <p className="text-xs text-muted-foreground p-3">Loading availability...</p>;
+  if (!loaded) return <p className="text-ds-11 text-muted-foreground p-3">Loading availability...</p>;
 
   if (compact) {
     return (
@@ -149,7 +189,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                       className="h-8 px-2 rounded-lg text-[11px] gap-1.5"
                     />
                   ) : (
-                    <span className="text-xs font-medium text-muted-foreground">Unavailable</span>
+                    <span className="text-ds-11 font-medium text-muted-foreground">Unavailable</span>
                   )}
                 </div>
               </div>
@@ -161,7 +201,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             onClick={handleSave}
             disabled={saving}
             size="lg"
-            className="w-full h-9 rounded-lg text-sm font-semibold"
+            className="w-full h-9 rounded-lg text-ds-13 font-semibold"
           >
             {saving ? "Saving..." : "Save Availability"}
           </Button>
@@ -172,6 +212,37 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
 
   return (
     <div className="space-y-4">
+      {/* Bulk shortcuts — three one-tap presets so users don't have to
+          set every day individually. Horizontal scroll on narrow phones
+          so the pills never wrap awkwardly. */}
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
+        <span
+          className="shrink-0 font-serif italic uppercase text-[0.62rem]"
+          style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+        >
+          Quick set:
+        </span>
+        {[
+          { label: "Weekdays 9–5", onClick: applyWeekdays9to5 },
+          { label: "Weekends off", onClick: applyWeekendsOff },
+          { label: "Copy Mon to all", onClick: copyMondayToAll },
+        ].map((preset) => (
+          <button
+            key={preset.label}
+            type="button"
+            onClick={preset.onClick}
+            className="shrink-0 inline-flex items-center rounded-full px-3 h-7 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
+            style={{
+              background: "hsla(0, 0%, 100%, 0.65)",
+              border: "1px solid hsl(var(--olivewood) / 0.18)",
+              color: "hsl(var(--olivewood))",
+            }}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-2">
         {DAYS.map((day, i) => {
           const slot = slots[i];
@@ -213,8 +284,18 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     }}
                   />
                 ) : (
-                  <span className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-                    Off
+                  /* "Day off" pill — explicit chip rather than fading
+                      italic text so the off state reads as intentional,
+                      not forgotten. */
+                  <span
+                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.7rem] font-sans font-semibold uppercase tracking-wider"
+                    style={{
+                      background: "hsl(var(--olivewood) / 0.10)",
+                      color: "hsl(var(--olivewood) / 0.75)",
+                      border: "1px solid hsl(var(--olivewood) / 0.18)",
+                    }}
+                  >
+                    Day off
                   </span>
                 )}
               </div>

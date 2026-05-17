@@ -66,34 +66,58 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
   };
 
   return (
-    <div className="rounded-lg border border-dashed border-border bg-muted/30">
+    // Brand-aligned: liquid-glass surface (was dashed border + bg-muted/30),
+    // Sparkles icon in a sienna-tinted circle, font-display italic title +
+    // eyebrow. Reads as a premium value-add instead of a developer-debug
+    // widget.
+    <div className="rounded-2xl liquid-glass overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 w-full text-left px-3 py-2.5"
+        className="flex items-center gap-3 w-full text-left px-4 py-3 active:scale-[0.99] transition-transform"
+        aria-expanded={open}
       >
-        <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground flex-1">
-          <span className="font-medium text-foreground">Try the AI Job Builder</span> — describe your task and let AI fill the form
+        <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}>
+          <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            Faster start
+          </p>
+          <p className="font-display italic font-bold mt-0.5" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+            Try the AI Job Builder
+          </p>
+          <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            Describe your task and let AI fill the form.
+          </p>
+        </div>
+        <span className="text-ds-11 font-sans font-semibold shrink-0" style={{ color: "hsl(var(--bark))" }}>
+          {open ? "Hide" : "Try it"}
         </span>
-        <span className="text-xs text-muted-foreground">{open ? "Hide" : "Show"}</span>
       </button>
       {open && (
-        <div className="space-y-2 p-3 pt-0 border-t border-dashed border-border">
+        <div className="space-y-2 px-4 pb-4">
+          <div className="h-px bg-border/50" />
           <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g. I need help moving furniture from my apartment to a new house across town."
             rows={3}
-            className="text-sm"
+            className="text-ds-13 mt-2"
           />
           <Button
             type="button"
             onClick={generate}
             disabled={loading}
             size="sm"
-            variant="outline"
-            className="w-full"
+            className="w-full rounded-ds-md"
+            style={{
+              background: "hsl(var(--bark))",
+              color: "hsl(var(--parchment))",
+              border: "1px solid hsl(70 22% 24%)",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+            }}
           >
             {loading ? (
               <>

@@ -90,7 +90,7 @@ const AdminFraudDashboard = () => {
     off_platform_contact: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
     fast_completion: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
     high_dispute_rate: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-    referral_abuse: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    referral_abuse: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
     application_spam: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     review_manipulation: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
     message_flooding: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
@@ -98,7 +98,7 @@ const AdminFraudDashboard = () => {
     burst_job_posting: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
     multi_reporter_flag: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
     rapid_cancellation_pattern: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
-    duplicate_content_posting: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
+    duplicate_content_posting: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   };
 
   return (
@@ -118,25 +118,25 @@ const AdminFraudDashboard = () => {
       </div>
 
       {isInitialLoading ? (
-        <p className="text-xs text-muted-foreground">Loading flags…</p>
+        <p className="text-ds-11 text-muted-foreground">Loading flags…</p>
       ) : flags.length === 0 ? (
-        <div className="rounded-xl liquid-glass p-8 text-center">
+        <div className="rounded-ds-md liquid-glass p-8 text-center">
           <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">{showResolved ? "No resolved flags" : "No unresolved fraud flags — looking good!"}</p>
+          <p className="text-ds-11 text-muted-foreground">{showResolved ? "No resolved flags" : "No unresolved fraud flags — looking good!"}</p>
         </div>
       ) : (
         <div className="space-y-2">
           {flags.map(flag => (
-            <div key={flag.id} className="rounded-xl liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div key={flag.id} className="rounded-ds-md liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-sm text-foreground">{flag.user_name}</span>
+                  <span className="font-semibold text-ds-13 text-foreground">{flag.user_name}</span>
                   <Badge className={flagColor[flag.flag_type] || "bg-muted text-muted-foreground"}>
                     {flag.flag_type.replace(/_/g, " ")}
                   </Badge>
                 </div>
                 {flag.details && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">{flag.details}</p>
+                  <p className="text-ds-11 text-muted-foreground line-clamp-2">{flag.details}</p>
                 )}
                 <p className="text-[11px] text-muted-foreground">
                   {formatDistanceToNow(new Date(flag.created_at), { addSuffix: true })}

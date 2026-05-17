@@ -9,6 +9,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
   ALLOWED_IMAGE_TYPES,
   ALLOWED_DOC_TYPES,
@@ -147,8 +148,8 @@ const Signup = () => {
   };
 
 
-  // Step 1 = About you + ID
-  const validateStep1 = async () => {
+  // Validates the "About you + ID" content (rendered as UI step 2).
+  const validateAboutYouStep = async () => {
     if (isBusinessSignup && !companyName.trim()) { toast.error("Company name is required"); return false; }
     if (!avatarFile) { toast.error("Profile picture is required"); return false; }
     if (!firstName.trim()) { toast.error("First name is required"); return false; }
@@ -176,8 +177,8 @@ const Signup = () => {
     return true;
   };
 
-  // Step 2 = Account credentials + agreements
-  const validateStep2 = async () => {
+  // Validates the "Account credentials + agreements" content (UI step 1).
+  const validateAccountStep = async () => {
     if (!email.trim()) { toast.error("Email is required"); return false; }
     if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
     if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
@@ -263,6 +264,7 @@ const Signup = () => {
   };
 
   const createAccountAndFinish = async () => {
+    hapticMedium();
     setLoading(true);
 
     // Rate limiting
@@ -270,6 +272,7 @@ const Signup = () => {
     const elapsed = Date.now() - lastAttempt;
     if (elapsed < SIGNUP_COOLDOWN_MS) {
       const secsLeft = Math.ceil((SIGNUP_COOLDOWN_MS - elapsed) / 1000);
+      hapticError();
       toast.error(`Please wait ${secsLeft} seconds before trying again`);
       setLoading(false);
       return;
@@ -342,9 +345,11 @@ const Signup = () => {
       } catch (e) { report(e, { tags: { source: "Signup.inviteLinking" } }); }
 
       track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim() });
+      hapticSuccess();
       toast.success("Account created! Check your email to verify, then connect your payout account.");
       navigate("/signup-pending");
     } catch (err: any) {
+      hapticError();
       toast.error(err.message || "Signup failed");
     } finally {
       setLoading(false);
@@ -353,31 +358,38 @@ const Signup = () => {
 
   const totalSteps = 3;
   const stepLabels = ["Account", "About you", "Optional"];
-  const inputCls = "rounded-xl bg-white/60 border-white/70";
-  const labelCls = "text-sm font-sans font-medium";
+  const inputCls = "rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15";
+  const labelCls = "text-ds-13 font-sans font-medium";
+
+  const stepHeading =
+    step === 1
+      ? { title: "Welcome to the neighborhood.", subtitle: "A few minutes now — then everything's set." }
+      : step === 2
+      ? { title: "Tell us about you.", subtitle: "A photo and a few basics help neighbors trust who they're hiring." }
+      : { title: "Make your profile stand out.", subtitle: "Optional — skip anything that doesn't apply." };
 
   return (
-    <AuthShell eyebrow="Join your Louisiana neighbors" maxWidth="2xl">
-      <div className="text-center mb-5 space-y-2">
-        <span className="text-display-eyebrow">Create account</span>
+    <AuthShell compactHeader maxWidth="2xl">
+      <div className="text-center mb-4 space-y-1.5">
+        <span className="text-display-eyebrow">Step {step} of {totalSteps}</span>
         <h1
-          className="font-display italic font-bold leading-tight mt-2"
+          className="font-display italic font-bold leading-tight mt-1"
           style={{
-            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
+            fontSize: "clamp(1.5rem, 2.2vw + 0.6rem, 2rem)",
             color: "hsl(var(--ink-deep))",
             letterSpacing: "-0.03em",
           }}
         >
-          Welcome to the neighborhood.
+          {stepHeading.title}
         </h1>
         <p
           className="font-serif italic"
           style={{
-            fontSize: "1rem",
+            fontSize: "0.95rem",
             color: "hsl(var(--olivewood) / 0.7)",
           }}
         >
-          A few minutes now — then everything's set.
+          {stepHeading.subtitle}
         </p>
       </div>
       <div className="pb-12">
@@ -391,14 +403,14 @@ const Signup = () => {
                   const isActive = stepNum === step;
                   return (
                     <div key={label} className="flex-1 flex flex-col items-center gap-1.5">
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold transition-colors ${
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-ds-11 font-semibold transition-colors ${
                         isDone ? "bg-primary text-primary-foreground" :
                         isActive ? "bg-primary/15 text-primary border-2 border-primary" :
                         "bg-muted text-muted-foreground"
                       }`}>
                         {isDone ? <BadgeCheck className="w-3.5 h-3.5" /> : stepNum}
                       </div>
-                      <span className={`text-[10px] font-medium text-center ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                      <span className={`text-ds-10 font-medium text-center ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
                         {label}
                       </span>
                     </div>
@@ -418,7 +430,7 @@ const Signup = () => {
               (window.location.hostname === "localhost" ||
                 window.location.hostname.endsWith(".lovable.app") ||
                 window.location.hostname.endsWith(".lovableproject.com"))) && (
-              <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-xs">
+              <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">
                 <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
                 <span className="text-muted-foreground">Jump to step:</span>
                 {[1, 2, 3].map((n) => (
@@ -426,7 +438,7 @@ const Signup = () => {
                     key={n}
                     type="button"
                     onClick={() => setStep(n)}
-                    className={`w-6 h-6 rounded-md text-[11px] font-semibold transition-colors ${
+                    className={`w-6 h-6 rounded-md text-ds-11 font-semibold transition-colors ${
                       step === n
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted hover:bg-muted/80 text-foreground"
@@ -440,20 +452,6 @@ const Signup = () => {
                 </Link>
               </div>
             )}
-
-            <div>
-              <span className="text-display-eyebrow">Step {step} of {totalSteps}</span>
-              <h1
-                className="font-display italic font-bold leading-tight mt-1"
-                style={{
-                  fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.025em",
-                }}
-              >
-                {step === 1 ? "Create your account." : step === 2 ? "Tell us about you." : "Make your profile stand out."}
-              </h1>
-            </div>
 
         {/* Step 2: About you + ID */}
         {step === 2 && (
@@ -485,7 +483,7 @@ const Signup = () => {
             labelCls={labelCls}
             onBack={() => setStep(1)}
             onContinue={async () => {
-              if (!(await validateStep1())) return;
+              if (!(await validateAboutYouStep())) return;
               setStep(3);
             }}
           />
@@ -509,7 +507,7 @@ const Signup = () => {
             inputCls={inputCls}
             labelCls={labelCls}
             onContinue={async () => {
-              if (!(await validateStep2())) return;
+              if (!(await validateAccountStep())) return;
               setStep(2);
             }}
           />
@@ -569,7 +567,7 @@ const Signup = () => {
         )}
           </div>
 
-          <p className="text-center text-xs font-sans mt-6" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-center text-ds-11 font-sans mt-6" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
             Already have an account?{" "}
             <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Sign in</Link>
           </p>

@@ -24,6 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
+import ProUpgradeSheet from "@/components/ProUpgradeSheet";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -42,19 +44,21 @@ interface PayoutLedgerRow {
   jobs: { title?: string } | null;
 }
 
+// Status pill colors — bark for "in motion/done" states, sienna for
+// "action needed", destructive only for genuine failure.
 const statusColors: Record<string, string> = {
-  open: "bg-primary/10 text-primary",
-  accepted: "bg-accent/20 text-accent-foreground",
-  in_progress: "bg-accent/20 text-accent-foreground",
-  revision_requested: "bg-destructive/10 text-destructive",
-  completed: "bg-secondary text-secondary-foreground",
+  open: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
+  accepted: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
+  in_progress: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
+  revision_requested: "bg-[hsl(var(--gold-warm)/0.16)] text-[hsl(var(--gold-warm))]",
+  completed: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
   cancelled: "bg-destructive/10 text-destructive",
 };
 
 const payoutStatusColors: Record<string, string> = {
-  paid: "bg-primary/10 text-primary",
-  in_transit: "bg-accent/20 text-accent-foreground",
-  pending: "bg-secondary text-secondary-foreground",
+  paid: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
+  in_transit: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
+  pending: "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood))]",
   failed: "bg-destructive/10 text-destructive",
   canceled: "bg-destructive/10 text-destructive",
 };
@@ -97,7 +101,20 @@ const formatDate = (unixSec: number) =>
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { profile } = useCurrentUser();
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  // Instant Payout is a Pro/Elite perk — free helpers see a paywall when
+  // they tap Cash out. Subscription must be active (not expired) to count.
+  const subTier = (profile?.subscription_tier ?? "free") as string;
+  const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
+  const subActive = subExp ? subExp > new Date() : false;
+  const canUseInstantPayout = subActive && (subTier === "pro" || subTier === "elite" || subTier === "basic");
+  // Pagination for the earnings-history list. Power helpers with 100+
+  // completed jobs were rendering them all; this caps the initial render
+  // at PAGE and grows by PAGE on each Load-more tap.
+  const PAGE = 25;
+  const [historyVisible, setHistoryVisible] = useState(PAGE);
 
   // React Query: caches Stripe payout data so re-opening the tab is instant.
   const FALLBACK_STRIPE: StripePayoutData = {
@@ -261,7 +278,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="text-xs">Earnings tools</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-ds-11">Earnings tools</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setExportDialogOpen(true)}>
               <FileText className="w-4 h-4 mr-2" /> Export for Taxes (PDF)
@@ -290,9 +307,18 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       <section className="space-y-3">
         {/* Wallet card (Available + Pending side-by-side) */}
         {stripeLoading ? (
-          <div className="rounded-2xl liquid-glass p-4 flex items-center gap-3">
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">Loading live payout data…</p>
+          <div className="rounded-2xl liquid-glass p-5 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <div className="h-3 w-20 rounded bg-muted/40 animate-pulse" />
+                <div className="h-7 w-24 rounded bg-muted/40 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-20 rounded bg-muted/40 animate-pulse" />
+                <div className="h-7 w-24 rounded bg-muted/40 animate-pulse" />
+              </div>
+            </div>
+            <div className="h-9 w-full rounded-md bg-muted/30 animate-pulse" />
           </div>
         ) : !stripeData?.connected ? (
           <div className="rounded-2xl liquid-glass p-5 space-y-3">
@@ -374,16 +400,34 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               const instantAvailable = (stripeData.instant_available ?? []).reduce((s, b) => s + b.amount, 0);
               if (instantAvailable <= 0) return null;
               return (
-                <div className="mt-3 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3 flex items-center justify-between gap-3">
+                <div className="mt-3 rounded-ds-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-xs font-semibold text-foreground">Instant cash out</span>
+                      <span className="text-ds-11 font-semibold text-foreground">Instant cash out</span>
+                      {!canUseInstantPayout && (
+                        <span
+                          className="text-[8.5px] font-bold uppercase tracking-wider px-1 py-0.5 rounded-full"
+                          style={{
+                            background: "hsl(var(--burnt-sienna) / 0.14)",
+                            color: "hsl(var(--burnt-sienna))",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
+                          Pro
+                        </span>
+                      )}
                     </div>
-                    <p className="text-base font-bold text-foreground">{formatCents(instantAvailable)}</p>
-                    <p className="text-muted-foreground text-xs">~30 min · 3% + $1 fee</p>
+                    <p className="text-ds-15 font-bold text-foreground">{formatCents(instantAvailable)}</p>
+                    <p className="text-muted-foreground text-ds-11">
+                      {canUseInstantPayout ? "~30 min · 3% + $1 fee" : "Subscribe to unlock instant payouts"}
+                    </p>
                   </div>
-                  <Button size="sm" onClick={() => setPayoutDialogOpen(true)} className="h-8 text-xs gap-1.5 shrink-0">
+                  <Button
+                    size="sm"
+                    onClick={() => canUseInstantPayout ? setPayoutDialogOpen(true) : setUpgradeOpen(true)}
+                    className="h-8 text-ds-11 gap-1.5 shrink-0"
+                  >
                     <Zap className="w-3.5 h-3.5" /> Cash out
                   </Button>
                 </div>
@@ -406,7 +450,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               { icon: Gift, label: "Tips", value: `$${totalTips.toFixed(2)}`, sub: `${tips.length} tips` },
               { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
             ].map(({ icon: Icon, label, value, sub }) => (
-              <div key={label} className="rounded-xl liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
+              <div key={label} className="rounded-ds-md liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
                 <div className="flex items-center gap-1 mb-1">
                   <Icon className="w-3 h-3 text-primary" />
                   <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
@@ -437,12 +481,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 </h3>
               </div>
               <Select value={exportYear} onValueChange={setExportYear}>
-                <SelectTrigger className="h-7 w-[88px] text-xs">
+                <SelectTrigger className="h-7 w-[88px] text-ds-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {payoutYears.map((y) => (
-                    <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>
+                    <SelectItem key={y} value={String(y)} className="text-ds-11">{y}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -454,7 +498,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             ) : (
               <div className="space-y-2">
                 {stripeData.payouts.map((p) => (
-                  <div key={p.id} className="rounded-xl liquid-glass p-3 transition-all hover:-translate-y-0.5">
+                  <div key={p.id} className="rounded-ds-md liquid-glass p-3 transition-all hover:-translate-y-0.5">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -499,7 +543,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 : t.status === "reversed" ? "bg-muted text-muted-foreground"
                 : "bg-accent/20 text-accent-foreground"; // pending
               return (
-                <div key={t.id} className="rounded-xl liquid-glass p-3.5">
+                <div key={t.id} className="rounded-ds-md liquid-glass p-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -575,17 +619,17 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                   No earnings yet.
                 </p>
                 <p
-                  className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
+                  className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 >
                   Apply to a task and your earnings will land here.
                 </p>
               </div>
-              <Button onClick={() => navigate("/dashboard")} className="rounded-xl mt-1">Browse tasks</Button>
+              <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md mt-1">Browse tasks</Button>
             </div>
           ) : (
             <div className="space-y-3">
-              {earningsJobs.map((job) => {
+              {earningsJobs.slice(0, historyVisible).map((job) => {
                 const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
                 const perHelper = job.budget / helpers;
                 const commissionPercent = (job as any).helper_fee_percent ?? 10;
@@ -594,7 +638,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 const jobTips = tips.filter((t) => t.job_id === job.id);
                 const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
                 return (
-                  <div key={job.id} className="rounded-xl liquid-glass p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
+                  <div key={job.id} className="rounded-ds-md liquid-glass p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -613,7 +657,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                             ${payout.toFixed(2)}
                           </p>
                         )}
-                        {tipTotal > 0 && <p className="text-xs text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
+                        {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
                         {job.status === "in_progress" && (
                           <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                             ${job.budget} budget
@@ -624,6 +668,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                   </div>
                 );
               })}
+              {earningsJobs.length > historyVisible && (
+                <Button
+                  variant="outline"
+                  className="w-full rounded-ds-md"
+                  onClick={() => setHistoryVisible((n) => n + PAGE)}
+                >
+                  Load {Math.min(PAGE, earningsJobs.length - historyVisible)} more · {earningsJobs.length - historyVisible} remaining
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -636,6 +689,21 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <strong className="text-muted-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for helprs who exceed $20,000 in gross payments and 200 transactions in a calendar year. Stripe issues these automatically — no action needed.
         </span>
       </p>
+
+      <ProUpgradeSheet
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        icon={Zap}
+        eyebrow="Subscriber perk"
+        title="Cash out instantly."
+        body="Skip the 1–2 business day wait. Subscribed helpers can route earnings to a debit card in about 30 minutes."
+        perks={[
+          "Instant payouts to debit card (~30 min)",
+          "Stripe's standard 3% + $1 fee applies",
+          "Plus every other subscriber perk on your plan",
+        ]}
+        requiredTier="pro"
+      />
 
       <InstantPayoutDialog
         open={payoutDialogOpen}

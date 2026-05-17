@@ -258,14 +258,14 @@ const AdminHealth = () => {
           to in-app only and gets missed in real time. Surfacing as a
           loud red banner so it can't be ignored during launch. */}
       {adminPushTokenCount === 0 && (
-        <div className="rounded-xl border-2 border-destructive/40 bg-destructive/10 p-4">
+        <div className="rounded-ds-md border-2 border-destructive/40 bg-destructive/10 p-4">
           <div className="flex items-start gap-3">
             <Activity className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1 space-y-1">
-              <p className="text-sm font-bold text-foreground">
+              <p className="text-ds-13 font-bold text-foreground">
                 ⚠️ No admin has registered a push token
               </p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-ds-11 text-muted-foreground leading-relaxed">
                 Every admin notification (fraud flags, auto-restrict reverses,
                 dispute escalations, stuck-payment alerts) fans through{" "}
                 <code className="text-[10px] bg-muted px-1 rounded">push_tokens</code>.
@@ -279,7 +279,7 @@ const AdminHealth = () => {
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+        <h2 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
           <Activity className="w-5 h-5 text-primary" /> System Health
         </h2>
         <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey })} disabled={isFetching}>
@@ -289,44 +289,44 @@ const AdminHealth = () => {
 
       {/* Status overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div className="rounded-xl liquid-glass p-5 space-y-2">
+        <div className="rounded-ds-md liquid-glass p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+            <span className="text-ds-13 font-medium text-muted-foreground flex items-center gap-1.5">
               <Database className="w-4 h-4" /> Backend Functions
             </span>
             {statusBadge[healthStatus]}
           </div>
         </div>
 
-        <div className="rounded-xl liquid-glass p-5 space-y-2">
-          <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+        <div className="rounded-ds-md liquid-glass p-5 space-y-2">
+          <span className="text-ds-13 font-medium text-muted-foreground flex items-center gap-1.5">
             <Mail className="w-4 h-4" /> Emails (24h)
           </span>
-          <div className="flex gap-3 text-sm">
+          <div className="flex gap-3 text-ds-13">
             <span className="text-green-600 font-semibold">{emailStats.sent} sent</span>
             <span className="text-red-600 font-semibold">{emailStats.failed} failed</span>
             <span className="text-yellow-600 font-semibold">{emailStats.suppressed} suppressed</span>
           </div>
         </div>
 
-        <div className="rounded-xl liquid-glass p-5 space-y-2">
-          <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+        <div className="rounded-ds-md liquid-glass p-5 space-y-2">
+          <span className="text-ds-13 font-medium text-muted-foreground flex items-center gap-1.5">
             <ShieldAlert className="w-4 h-4" /> Fraud Flags
           </span>
-          <p className={`text-lg font-bold ${fraudCount > 0 ? "text-destructive" : "text-foreground"}`}>
+          <p className={`text-ds-17 font-bold ${fraudCount > 0 ? "text-destructive" : "text-foreground"}`}>
             {fraudCount} unresolved
           </p>
         </div>
       </div>
 
       {/* Sentry test — admin-only sanity check */}
-      <div className="rounded-xl liquid-glass p-5 space-y-3">
+      <div className="rounded-ds-md liquid-glass p-5 space-y-3">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h3 className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+            <h3 className="font-semibold text-foreground text-ds-13 flex items-center gap-1.5">
               <Bug className="w-4 h-4" /> Sentry Smoke Test
             </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-md">
+            <p className="text-ds-11 text-muted-foreground mt-1 max-w-md">
               Fires a test exception to confirm Sentry, PostHog, and error_logs are receiving events.
               Should appear in Sentry within ~30 seconds.
             </p>
@@ -362,35 +362,35 @@ const AdminHealth = () => {
       </div>
 
       {/* Job activity (7 days) */}
-      <div className="rounded-xl liquid-glass p-5 space-y-3">
-        <h3 className="font-semibold text-foreground text-sm">Job Activity (Last 7 Days)</h3>
+      <div className="rounded-ds-md liquid-glass p-5 space-y-3">
+        <h3 className="font-semibold text-foreground text-ds-13">Job Activity (Last 7 Days)</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">{recentJobs.open}</p>
-            <p className="text-xs text-muted-foreground">New Jobs</p>
+            <p className="text-ds-24 font-bold text-foreground">{recentJobs.open}</p>
+            <p className="text-ds-11 text-muted-foreground">New Jobs</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">{recentJobs.completed}</p>
-            <p className="text-xs text-muted-foreground">Completed</p>
+            <p className="text-ds-24 font-bold text-green-600">{recentJobs.completed}</p>
+            <p className="text-ds-11 text-muted-foreground">Completed</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-red-600">{recentJobs.disputed}</p>
-            <p className="text-xs text-muted-foreground">Disputed</p>
+            <p className="text-ds-24 font-bold text-red-600">{recentJobs.disputed}</p>
+            <p className="text-ds-11 text-muted-foreground">Disputed</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-yellow-600">{recentJobs.cancelled}</p>
-            <p className="text-xs text-muted-foreground">Cancelled</p>
+            <p className="text-ds-24 font-bold text-yellow-600">{recentJobs.cancelled}</p>
+            <p className="text-ds-11 text-muted-foreground">Cancelled</p>
           </div>
         </div>
       </div>
 
       {/* Marketplace pulse: parish-level supply/demand + responsiveness */}
-      <div className="rounded-xl liquid-glass p-5 space-y-4">
+      <div className="rounded-ds-md liquid-glass p-5 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h3 className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+          <h3 className="font-semibold text-foreground text-ds-13 flex items-center gap-1.5">
             <MapPin className="w-4 h-4" /> Marketplace Pulse
           </h3>
-          <div className="flex gap-3 text-xs">
+          <div className="flex gap-3 text-ds-11">
             <span className="flex items-center gap-1 text-muted-foreground">
               <Zap className="w-3 h-3" /> Median first-app:
               <span className="text-foreground font-semibold">{formatDelay(medianTimeToFirstAppMin)}</span>
@@ -404,7 +404,7 @@ const AdminHealth = () => {
         </div>
 
         {parishStats.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No open jobs and no helpers with parish prefs yet.</p>
+          <p className="text-ds-11 text-muted-foreground">No open jobs and no helpers with parish prefs yet.</p>
         ) : (
           <div className="space-y-1.5">
             <div className="grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2">
@@ -422,7 +422,7 @@ const AdminHealth = () => {
                 : undersupplied ? "text-amber-600 font-semibold"
                 : "text-foreground";
               return (
-                <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-lg liquid-glass p-2 text-sm">
+                <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-lg liquid-glass p-2 text-ds-13">
                   <div className="col-span-4 truncate text-foreground">{p.parish}</div>
                   <div className="col-span-3 text-right tabular-nums">{p.openJobs}</div>
                   <div className="col-span-3 text-right tabular-nums">{p.activeHelpers}</div>
@@ -437,30 +437,30 @@ const AdminHealth = () => {
       </div>
 
       {/* Push notifications */}
-      <div className="rounded-xl liquid-glass p-5 space-y-4">
+      <div className="rounded-ds-md liquid-glass p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <h3 className="text-ds-13 font-semibold text-foreground flex items-center gap-2">
             <Bell className="w-4 h-4 text-primary" /> Push notifications
           </h3>
         </div>
 
         {/* Token stats */}
-        <div className="grid grid-cols-3 gap-2 text-sm">
+        <div className="grid grid-cols-3 gap-2 text-ds-13">
           <div className="rounded-lg bg-background/50 border border-border/40 p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total tokens</div>
-            <div className="text-2xl font-semibold tabular-nums">{pushStats.total}</div>
+            <div className="text-ds-24 font-semibold tabular-nums">{pushStats.total}</div>
           </div>
           <div className="rounded-lg bg-background/50 border border-border/40 p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">iOS</div>
-            <div className="text-2xl font-semibold tabular-nums">{pushStats.ios}</div>
+            <div className="text-ds-24 font-semibold tabular-nums">{pushStats.ios}</div>
           </div>
           <div className="rounded-lg bg-background/50 border border-border/40 p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Android</div>
-            <div className="text-2xl font-semibold tabular-nums">{pushStats.android}</div>
+            <div className="text-ds-24 font-semibold tabular-nums">{pushStats.android}</div>
           </div>
         </div>
         {pushStats.latestAt && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Last token registered{" "}
             <span className="text-foreground font-medium">
               {new Date(pushStats.latestAt).toLocaleString()}
@@ -468,14 +468,14 @@ const AdminHealth = () => {
           </p>
         )}
         {pushStats.total === 0 && (
-          <p className="text-xs text-muted-foreground italic">
+          <p className="text-ds-11 text-muted-foreground italic">
             No devices registered yet. Have a user open the iOS/Android app, sign in,
             and tap Allow on the push permission prompt — token will register on next launch.
           </p>
         )}
 
         <div className="border-t border-border/40 pt-3">
-          <p className="text-xs text-muted-foreground mb-2">
+          <p className="text-ds-11 text-muted-foreground mb-2">
             Send a real push to every device registered against your admin user. Verifies
             APNs / FCM credentials + entitlements + device-token registration end-to-end.
           </p>

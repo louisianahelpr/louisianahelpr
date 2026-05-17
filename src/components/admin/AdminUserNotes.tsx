@@ -190,16 +190,16 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
           onChange={(e) => setNewNote(e.target.value)}
           placeholder="Add an internal note about this user (only admins can see this)…"
           rows={3}
-          className="text-sm resize-none"
+          className="text-ds-13 resize-none"
         />
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={newCategory} onValueChange={setNewCategory}>
-            <SelectTrigger className="h-8 w-[140px] text-xs">
+            <SelectTrigger className="h-8 w-[140px] text-ds-11">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {CATEGORIES.map((c) => (
-                <SelectItem key={c.value} value={c.value} className="text-xs">
+                <SelectItem key={c.value} value={c.value} className="text-ds-11">
                   {c.label}
                 </SelectItem>
               ))}
@@ -223,7 +223,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
 
       {/* Notes list */}
       {isInitialLoading ? (
-        <p className="text-xs text-muted-foreground py-2">Loading notes…</p>
+        <p className="text-ds-11 text-muted-foreground py-2">Loading notes…</p>
       ) : notes.length === 0 ? null : (
         <div className="space-y-2">
           {notes.map((n) => {
@@ -288,16 +288,16 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                       value={editingText}
                       onChange={(e) => setEditingText(e.target.value)}
                       rows={3}
-                      className="text-sm resize-none"
+                      className="text-ds-13 resize-none"
                     />
                     <div className="flex items-center gap-2">
                       <Select value={editingCategory} onValueChange={setEditingCategory}>
-                        <SelectTrigger className="h-7 w-[130px] text-xs">
+                        <SelectTrigger className="h-7 w-[130px] text-ds-11">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {CATEGORIES.map((c) => (
-                            <SelectItem key={c.value} value={c.value} className="text-xs">
+                            <SelectItem key={c.value} value={c.value} className="text-ds-11">
                               {c.label}
                             </SelectItem>
                           ))}
@@ -314,7 +314,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                  <p className="text-ds-13 text-foreground whitespace-pre-wrap break-words leading-relaxed">
                     {n.note}
                   </p>
                 )}
@@ -333,7 +333,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           {deleteNote && (
-            <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-foreground whitespace-pre-wrap break-words max-h-40 overflow-auto">
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 text-ds-13 text-foreground whitespace-pre-wrap break-words max-h-40 overflow-auto">
               {deleteNote.note}
             </div>
           )}

@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import AuthShell from "@/components/auth/AuthShell";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
 const LOGIN_TIMEOUT_MS = 15000;
 
@@ -44,16 +45,19 @@ const Login = () => {
 
     if (lockedUntil && Date.now() < lockedUntil) {
       const secondsLeft = Math.ceil((lockedUntil - Date.now()) / 1000);
+      hapticError();
       toast.error(`Too many attempts. Try again in ${secondsLeft}s`);
       return;
     }
 
+    hapticMedium();
     setLoading(true);
     const { data, error } = await signInWithTimeout(email, password).catch((error: Error) => ({ data: { session: null }, error }));
     if (error) {
       setLoading(false);
       const newAttempts = loginAttempts + 1;
       setLoginAttempts(newAttempts);
+      hapticError();
       if (newAttempts >= 5) {
         setLockedUntil(Date.now() + 60000);
         setLoginAttempts(0);
@@ -69,13 +73,30 @@ const Login = () => {
     if (sessionUser && !sessionUser.email_confirmed_at) {
       await supabase.auth.signOut();
       setLoading(false);
+      hapticError();
       toast.error("Please verify your email before logging in. Check your inbox for a verification link.");
       return;
     }
 
     void queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     setLoading(false);
-    toast.success("Welcome back!");
+    hapticSuccess();
+    // Personalized greeting — fetch the user's first name for a warmer
+    // welcome. Falls back to plain "Welcome back" if the profile isn't
+    // accessible yet (race window during signup confirmation).
+    let firstName = "";
+    try {
+      const userId = data.session?.user?.id;
+      if (userId) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", userId)
+          .maybeSingle();
+        firstName = (prof?.full_name ?? "").trim().split(/\s+/)[0] ?? "";
+      }
+    } catch { /* fall through to generic copy */ }
+    toast.success(firstName ? `Welcome back, ${firstName}.` : "Welcome back.");
     navigate("/dashboard", { replace: true });
   };
 
@@ -107,7 +128,7 @@ const Login = () => {
       <div className="liquid-glass px-6 sm:px-8 py-6 sm:py-7 space-y-5">
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-sans font-medium">Email</Label>
+            <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
             <Input
               id="email"
               type="email"
@@ -120,11 +141,11 @@ const Login = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="rounded-xl bg-white/60 border-white/70"
+              className="rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-sans font-medium">Password</Label>
+            <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -134,7 +155,7 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="pr-10 rounded-xl bg-white/60 border-white/70"
+                className="pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15"
               />
               <button
                 type="button"
@@ -149,7 +170,7 @@ const Login = () => {
           <div className="flex items-center justify-between">
             <Link
               to="/forgot-password"
-              className="text-xs font-sans tracking-wide hover:opacity-70 transition-opacity"
+              className="text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity"
               style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               Forgot password?
@@ -157,7 +178,7 @@ const Login = () => {
           </div>
           <Button
             type="submit"
-            className="w-full rounded-xl"
+            className="w-full rounded-ds-md"
             size="lg"
             disabled={loading}
             style={{
@@ -181,7 +202,7 @@ const Login = () => {
           </div>
           <div className="relative flex justify-center">
             <span
-              className="px-3 text-[0.7rem] tracking-[0.2em] uppercase font-serif italic"
+              className="px-3 text-ds-11 tracking-[0.2em] uppercase font-serif italic"
               style={{
                 background: "hsla(0, 0%, 100%, 0.42)",
                 color: "hsl(var(--burnt-sienna) / 0.7)",
@@ -197,7 +218,7 @@ const Login = () => {
           <AppleSignInButton label="Sign in with Apple" />
         </div>
 
-        <p className="text-center text-xs font-sans pt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+        <p className="text-center text-ds-11 font-sans pt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
           New to Helpr?{" "}
           <Link
             to="/signup"
@@ -209,11 +230,11 @@ const Login = () => {
         </p>
       </div>
 
-      <p className="text-center text-xs font-sans leading-relaxed px-2 mt-6" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+      <p className="text-center text-ds-11 font-sans leading-relaxed px-2 mt-6" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
         By signing in you agree to our{" "}
-        <Link to="/terms" className="underline hover:opacity-80 transition-opacity">Terms</Link>
+        <Link to="/terms" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Terms</Link>
         {" · "}
-        <Link to="/privacy" className="underline hover:opacity-80 transition-opacity">Privacy Policy</Link>
+        <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy Policy</Link>
       </p>
     </AuthShell>
   );

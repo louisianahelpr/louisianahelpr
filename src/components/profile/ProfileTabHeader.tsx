@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import type { ReactNode } from "react";
 
 interface ProfileTabHeaderProps {
@@ -11,14 +11,8 @@ interface ProfileTabHeaderProps {
 
 export function ProfileTabHeader({ eyebrow, title, meta, onBack, rightSlot }: ProfileTabHeaderProps) {
   return (
-    <div className="flex items-start gap-2 mb-3 shrink-0">
-      <button
-        onClick={onBack}
-        aria-label="Back"
-        className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
+    <div className="flex items-start gap-3 mb-3 shrink-0">
+      <BackButton onClick={onBack} />
       <div className="flex flex-col leading-none min-w-0 flex-1">
         {eyebrow && (
           <span

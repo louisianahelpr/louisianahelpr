@@ -63,7 +63,7 @@ const AdminAuditLog = () => {
     ban_user: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
     resolve_fraud_flag: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     update_settings: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-    resolve_dispute: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    resolve_dispute: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
     job_status_override: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
     job_admin_refund: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
     job_admin_refund_partial: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
@@ -110,7 +110,7 @@ const AdminAuditLog = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+        <h2 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
           <FileText className="w-5 h-5 text-primary" /> Audit Log
         </h2>
         <Button variant="outline" size="sm" onClick={exportCSV} disabled={entries.length === 0}>
@@ -119,10 +119,10 @@ const AdminAuditLog = () => {
       </div>
 
       {isInitialLoading ? (
-        <p className="text-xs text-muted-foreground">Loading audit log…</p>
+        <p className="text-ds-11 text-muted-foreground">Loading audit log…</p>
       ) : entries.length === 0 ? (
-        <div className="rounded-xl liquid-glass p-8 text-center">
-          <p className="text-xs text-muted-foreground">No audit entries yet</p>
+        <div className="rounded-ds-md liquid-glass p-8 text-center">
+          <p className="text-ds-11 text-muted-foreground">No audit entries yet</p>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -132,16 +132,16 @@ const AdminAuditLog = () => {
               <div key={entry.id} className="rounded-lg liquid-glass p-3 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm text-foreground">{entry.admin_name}</span>
+                    <span className="font-medium text-ds-13 text-foreground">{entry.admin_name}</span>
                     <Badge className={actionColor[entry.action] || "bg-muted text-muted-foreground"}>
                       {entry.action.replace(/_/g, " ")}
                     </Badge>
                     {entry.target_type && (
-                      <span className="text-xs text-muted-foreground">→ {entry.target_type}</span>
+                      <span className="text-ds-11 text-muted-foreground">→ {entry.target_type}</span>
                     )}
                   </div>
                   {summary && (
-                    <p className="text-xs text-foreground/80 mt-1 break-words">{summary}</p>
+                    <p className="text-ds-11 text-foreground/80 mt-1 break-words">{summary}</p>
                   )}
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}

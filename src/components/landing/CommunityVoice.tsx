@@ -113,10 +113,10 @@ const CommunityVoice = () => {
               ))}
             </div>
             <span
-              className="font-serif italic text-sm sm:text-base"
+              className="font-serif italic text-ds-13 sm:text-ds-15"
               style={{ color: "hsl(var(--stormy-sky))" }}
             >
-              + 127 neighbors
+              + 127 happy customers
             </span>
           </div>
         </div>
@@ -129,7 +129,7 @@ const CommunityVoice = () => {
           <div className="mb-6 lg:mb-8">
             <span className="text-display-eyebrow">Common questions</span>
             <h2
-              className="font-display font-bold italic mt-2 text-balance text-xl sm:text-2xl lg:text-[1.625rem] tracking-[-0.02em]"
+              className="font-display font-bold italic mt-2 text-balance text-ds-20 sm:text-ds-24 lg:text-[1.625rem] tracking-[-0.02em]"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Honest answers, no fine print.
@@ -146,7 +146,7 @@ const CommunityVoice = () => {
                 <details className="faq-item">
                   <summary>
                     <span
-                      className="font-display font-semibold text-base sm:text-lg tracking-tight"
+                      className="font-display font-semibold text-ds-15 sm:text-ds-17 tracking-tight"
                       style={{ color: "hsl(var(--olivewood))" }}
                     >
                       {faq.q}
@@ -154,7 +154,7 @@ const CommunityVoice = () => {
                   </summary>
                   <div className="faq-answer">
                     <p
-                      className="font-sans text-sm leading-relaxed max-w-2xl"
+                      className="font-sans text-ds-13 leading-relaxed max-w-2xl"
                       style={{
                         color: "hsl(var(--olivewood))",
                         opacity: 0.85,
@@ -172,7 +172,7 @@ const CommunityVoice = () => {
               engaged scroller without competing with the hero buttons or
               adding a heavy "card" section. */}
           <p
-            className="mt-6 sm:mt-7 text-center md:text-left font-serif italic text-base sm:text-lg observe-fade-up"
+            className="mt-6 sm:mt-7 text-center md:text-left font-serif italic text-ds-15 sm:text-ds-17 observe-fade-up"
             style={{
               color: "hsl(var(--stormy-sky))",
               transitionDelay: "550ms",

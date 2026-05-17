@@ -84,19 +84,19 @@ const AdminCredentialQueue = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+        <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center">
           <ShieldCheck className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-xl font-display font-bold text-foreground">Credential verification queue</h2>
-          <p className="text-xs text-muted-foreground">
+          <h2 className="text-ds-20 font-display font-bold text-foreground">Credential verification queue</h2>
+          <p className="text-ds-11 text-muted-foreground">
             Review uploaded license and insurance documents. Approving turns the badge live on the user's profile.
           </p>
         </div>
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl liquid-glass p-10 text-center text-xs text-muted-foreground">
+        <div className="rounded-2xl liquid-glass p-10 text-center text-ds-11 text-muted-foreground">
           No pending credentials. 🎉
         </div>
       ) : (
@@ -104,7 +104,7 @@ const AdminCredentialQueue = () => {
           {rows.map((r) => (
             <div key={r.user_id} className="rounded-2xl liquid-glass p-4 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden text-ds-13 font-bold">
                   {r.avatar_url ? (
                     <img loading="lazy" decoding="async" src={r.avatar_url} alt={r.full_name || ""} className="w-full h-full object-cover" />
                   ) : (
@@ -112,8 +112,8 @@ const AdminCredentialQueue = () => {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground truncate">{r.full_name || "Unnamed"}</p>
-                  <p className="text-xs text-muted-foreground truncate">{r.email}</p>
+                  <p className="font-semibold text-ds-13 text-foreground truncate">{r.full_name || "Unnamed"}</p>
+                  <p className="text-ds-11 text-muted-foreground truncate">{r.email}</p>
                 </div>
                 <p className="text-[11px] text-muted-foreground shrink-0">
                   {new Date(r.submitted_at).toLocaleDateString()}
@@ -123,9 +123,9 @@ const AdminCredentialQueue = () => {
               <div className="grid sm:grid-cols-2 gap-3">
                 {/* License */}
                 {r.license_status === "pending" && r.license_url && (
-                  <div className="rounded-xl border border-border bg-secondary/40 p-3 space-y-2">
+                  <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">License</p>
+                      <p className="text-ds-11 font-semibold uppercase tracking-wider text-muted-foreground">License</p>
                       <SignedOpenLink path={r.license_url} />
                     </div>
                     <DocPreview path={r.license_url} />
@@ -156,9 +156,9 @@ const AdminCredentialQueue = () => {
 
                 {/* Insurance */}
                 {r.insurance_status === "pending" && r.insurance_url && (
-                  <div className="rounded-xl border border-border bg-secondary/40 p-3 space-y-2">
+                  <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Insurance</p>
+                      <p className="text-ds-11 font-semibold uppercase tracking-wider text-muted-foreground">Insurance</p>
                       <SignedOpenLink path={r.insurance_url} />
                     </div>
                     <DocPreview path={r.insurance_url} />
@@ -281,7 +281,7 @@ function DocPreview({ path }: { path: string }) {
 
   if (error) {
     return (
-      <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
+      <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-ds-11 text-destructive">
         <FileText className="w-4 h-4" /> Couldn't load preview — open via the link above.
       </div>
     );
@@ -289,7 +289,7 @@ function DocPreview({ path }: { path: string }) {
 
   if (isPdf) {
     return (
-      <div className="flex items-center gap-2 rounded-lg bg-background/60 p-3 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-lg bg-background/60 p-3 text-ds-11 text-muted-foreground">
         <FileText className="w-4 h-4" /> PDF document — open to review
       </div>
     );
@@ -297,7 +297,7 @@ function DocPreview({ path }: { path: string }) {
 
   if (!signedUrl) {
     return (
-      <div className="flex items-center justify-center rounded-lg bg-background/60 p-6 text-xs text-muted-foreground">
+      <div className="flex items-center justify-center rounded-lg bg-background/60 p-6 text-ds-11 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin" />
       </div>
     );

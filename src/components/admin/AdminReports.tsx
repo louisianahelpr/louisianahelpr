@@ -163,21 +163,21 @@ const AdminReports = () => {
       </div>
 
       {isInitialLoading ? (
-        <p className="text-muted-foreground text-xs py-8 text-center">Loading reports…</p>
+        <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading reports…</p>
       ) : reports.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">No {filter !== "all" ? filter : ""} reports found.</p>
+          <p className="text-ds-13">No {filter !== "all" ? filter : ""} reports found.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {reports.map(report => (
-            <div key={report.id} className="rounded-xl liquid-glass p-4 space-y-3">
+            <div key={report.id} className="rounded-ds-md liquid-glass p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
                   {typeIcon(report.reported_type)}
                   <div>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-ds-13 font-semibold text-foreground">
                       <button
                         onClick={() => navigate(`/user/${report.reported_id}`)}
                         className="hover:text-primary underline-offset-2 hover:underline transition-colors"
@@ -186,7 +186,7 @@ const AdminReports = () => {
                       </button>
                       <span className="text-muted-foreground font-normal"> — {report.reason}</span>
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-ds-11 text-muted-foreground">
                       Reported by{" "}
                       <button
                         onClick={() => navigate(`/user/${report.reporter_id}`)}
@@ -218,7 +218,7 @@ const AdminReports = () => {
               </div>
 
               {report.description && (
-                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">{report.description}</p>
+                <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-lg p-3">{report.description}</p>
               )}
 
               <div className="flex flex-wrap gap-2 pt-1">
@@ -277,7 +277,7 @@ const AdminReports = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-11 text-muted-foreground">
               This will send an in-app notification to {messageTarget?.name}.
             </p>
             <Textarea

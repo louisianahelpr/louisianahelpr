@@ -159,12 +159,12 @@ const AdminBroadcasts = () => {
           pending_push_fan_out_at is set and push_fanned_out_at is not.
           Survives tab close: pg_cron runs the fan-out regardless. */}
       {pending && (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-center justify-between gap-3">
+        <div className="rounded-ds-md border border-amber-500/40 bg-amber-500/10 p-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+            <p className="text-ds-13 font-semibold text-amber-900 dark:text-amber-200">
               Push fires in ~{secondsLeft}s
             </p>
-            <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+            <p className="text-ds-11 text-amber-800/80 dark:text-amber-300/80">
               Banner is already visible to users. Cancel within the window
               to retract the broadcast and skip the push.
             </p>
@@ -187,7 +187,7 @@ const AdminBroadcasts = () => {
       </div>
 
       {showForm && (
-        <div className="rounded-xl liquid-glass p-4 space-y-3">
+        <div className="rounded-ds-md liquid-glass p-4 space-y-3">
           <div className="space-y-2">
             <Label>Title</Label>
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Scheduled Maintenance" maxLength={100} />
@@ -235,16 +235,16 @@ const AdminBroadcasts = () => {
       )}
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground text-xs">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground text-ds-11">Loading...</div>
       ) : broadcasts.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground text-xs">No broadcasts yet</div>
+        <div className="text-center py-8 text-muted-foreground text-ds-11">No broadcasts yet</div>
       ) : (
         <div className="space-y-2">
           {broadcasts.map(b => (
-            <div key={b.id} className="rounded-xl liquid-glass px-4 py-3 flex items-start justify-between gap-3">
+            <div key={b.id} className="rounded-ds-md liquid-glass px-4 py-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-semibold text-foreground">{b.title}</p>
+                  <p className="text-ds-13 font-semibold text-foreground">{b.title}</p>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${typeBadge[b.type] || typeBadge.info}`}>
                     {b.type}
                   </span>
@@ -261,7 +261,7 @@ const AdminBroadcasts = () => {
                     <Badge variant="outline" className="text-[10px]">Scheduled</Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{b.message}</p>
+                <p className="text-ds-11 text-muted-foreground mt-1">{b.message}</p>
                 <p className="text-[10px] text-muted-foreground/60 mt-1">
                   Expires: {new Date(b.expires_at).toLocaleString()}
                 </p>

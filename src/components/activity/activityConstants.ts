@@ -24,21 +24,30 @@ export const categoryLabels: Record<string, string> = {
 export const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));
 
 /**
- * Category palette — muted, editorial. Branded toward warm/earthy by:
- * - dropping vivid -500 dots to deeper -700 shades (closer to bark/sienna depth)
- * - swapping a couple of brand-clashing hues for warmer kin:
- *   pet_care rose → amber-warm, painting pink → fuchsia (stays muted), errands amber → yellow-700,
- *   moving violet → purple-700 (slightly warmer), assembly teal → cyan-700.
- * Title (filter chip) color stays at -700, dot uses -700 with /85 opacity for restraint.
+ * Category palette — muted, editorial. Warm-brand only (no purple, violet,
+ * or indigo per repo-wide brand cleanup). Each category gets a distinct
+ * -50/-700 pair so chips read at a glance.
+ *
+ * Mapping rationale:
+ *   cleaning   → sky      (clean, cool)
+ *   yard_work  → emerald  (outdoors, green)
+ *   moving     → fuchsia  (warm magenta, distinct from errands' amber)
+ *   errands    → amber    (gold, energetic)
+ *   handyman   → orange   (tools, warm)
+ *   painting   → pink     (creative, soft)
+ *   delivery   → cyan     (transport, cool blue-green — replaces indigo)
+ *   pet_care   → rose     (warmth, affection)
+ *   assembly   → teal     (precision, calm)
+ *   other      → slate    (neutral default)
  */
 export const categoryColors: Record<string, { badge: string; title: string; dot: string }> = {
   cleaning: { badge: "bg-sky-50 text-sky-700 border-sky-200/60", title: "text-sky-700", dot: "bg-sky-700/65" },
   yard_work: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200/60", title: "text-emerald-700", dot: "bg-emerald-700/65" },
-  moving: { badge: "bg-violet-50 text-violet-700 border-violet-200/60", title: "text-violet-700", dot: "bg-violet-700/65" },
+  moving: { badge: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200/60", title: "text-fuchsia-700", dot: "bg-fuchsia-700/65" },
   errands: { badge: "bg-amber-50 text-amber-700 border-amber-200/60", title: "text-amber-700", dot: "bg-amber-700/65" },
   handyman: { badge: "bg-orange-50 text-orange-700 border-orange-200/60", title: "text-orange-700", dot: "bg-orange-700/65" },
   painting: { badge: "bg-pink-50 text-pink-700 border-pink-200/60", title: "text-pink-700", dot: "bg-pink-700/65" },
-  delivery: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200/60", title: "text-indigo-700", dot: "bg-indigo-700/65" },
+  delivery: { badge: "bg-cyan-50 text-cyan-700 border-cyan-200/60", title: "text-cyan-700", dot: "bg-cyan-700/65" },
   pet_care: { badge: "bg-rose-50 text-rose-700 border-rose-200/60", title: "text-rose-700", dot: "bg-rose-700/65" },
   assembly: { badge: "bg-teal-50 text-teal-700 border-teal-200/60", title: "text-teal-700", dot: "bg-teal-700/65" },
   other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700", dot: "bg-slate-600/65" },
@@ -55,7 +64,16 @@ export const statusBadge: Record<string, string> = {
 };
 
 export type EnrichedApplication = Application & {
-  profiles?: { full_name: string | null; skills: string | null; hourly_rate: number | null; user_id: string } | null;
+  profiles?: {
+    full_name: string | null;
+    skills: string | null;
+    hourly_rate: number | null;
+    user_id: string;
+    avatar_url?: string | null;
+    /** Active subscription tier — drives the gold halo on Pro/Elite
+        applicants so posters spot subscribed helpers at a glance. */
+    subscription_tier?: string | null;
+  } | null;
   reviewCount?: number;
   avgRating?: number;
 };

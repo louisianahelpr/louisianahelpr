@@ -2,8 +2,7 @@
 //
 // Extracted from src/pages/Signup.tsx. Owns no state of its own; every
 // field is a controlled input bound to props lifted into the parent.
-// Validation lives in the parent (validateStep2 — yes the legacy naming
-// is inverted; cleaning that up is a separate cut).
+// Validation lives in the parent (validateAccountStep).
 //
 // Reusable input/label class constants are passed in so the parent stays
 // the single source of truth for form styling.
@@ -77,6 +76,27 @@ export function SignupStep1({
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+          {password.length > 0 && (() => {
+            // Real-time checklist mirrors the validation in Signup.tsx so
+            // the user knows exactly what's missing before they tap Continue
+            // (previously they'd hit Continue and get a generic toast).
+            const hasLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            const Check = ({ ok, label }: { ok: boolean; label: string }) => (
+              <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
+                <span aria-hidden>{ok ? "✓" : "○"}</span>
+                {label}
+              </span>
+            );
+            return (
+              <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
+                <Check ok={hasLength} label="8+ chars" />
+                <Check ok={hasUpper} label="Uppercase" />
+                <Check ok={hasNumber} label="Number" />
+              </div>
+            );
+          })()}
         </div>
         <div className="space-y-2">
           <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
@@ -92,38 +112,51 @@ export function SignupStep1({
             </button>
           </div>
           {confirmPassword && (
-            <p className={`text-xs ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
+            <p className={`text-ds-11 ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
               {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
             </p>
           )}
         </div>
       </section>
 
-      <div className="flex items-start gap-2.5 px-1">
+      <label
+        htmlFor="policies"
+        className="flex items-start gap-3 px-3 py-3 rounded-ds-md cursor-pointer hover:bg-white/30 transition-colors"
+        style={{ border: "1px solid hsl(var(--olivewood) / 0.12)" }}
+      >
         <Checkbox
           id="policies"
           checked={acceptedPolicies}
           onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
-          className="h-3.5 w-3.5 mt-[3px] [&_svg]:h-3 [&_svg]:w-3"
+          className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
-        <label
-          htmlFor="policies"
-          className="text-xs leading-relaxed cursor-pointer font-sans"
-          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+        <span
+          className="text-ds-11 leading-relaxed font-sans"
+          style={{ color: "hsl(var(--olivewood) / 0.78)" }}
         >
           I agree to the{" "}
           <Link to="/rules" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>,{" "}
           <Link to="/terms" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Terms of Service</Link>, and{" "}
           <Link to="/privacy" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy Policy</Link>.
           I understand the cancellation, no-show, and dispute policies.
-        </label>
-      </div>
+        </span>
+      </label>
 
       <Button
-        className="w-full"
+        className="w-full rounded-ds-md"
         size="lg"
         onClick={onContinue}
         disabled={!acceptedPolicies}
+        style={{
+          background: "hsl(var(--bark))",
+          backgroundImage: "none",
+          border: "1px solid hsl(var(--bark))",
+          color: "hsl(var(--parchment))",
+          fontFamily: "Montserrat, system-ui, sans-serif",
+          fontWeight: 600,
+          letterSpacing: "0.01em",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px rgba(0,0,0,0.1)",
+        }}
       >
         Continue <ArrowRight className="w-4 h-4 ml-1" />
       </Button>
@@ -132,7 +165,7 @@ export function SignupStep1({
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t border-border/60" />
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
+        <div className="relative flex justify-center text-ds-11 uppercase">
           <span className="bg-card px-2 text-muted-foreground">or</span>
         </div>
       </div>

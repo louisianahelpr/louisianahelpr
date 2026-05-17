@@ -15,6 +15,7 @@ import { lookupParishByZip } from "@/lib/parishLookup";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hapticSuccess } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
 import { AiJobBuilder, type AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
@@ -53,6 +54,7 @@ const PostJob = () => {
   const navigate = useNavigate();
   usePageTitle("Post a Task — Helpr");
   const { business } = useMyBusiness();
+  const { profile } = useCurrentUser();
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
@@ -70,7 +72,10 @@ const PostJob = () => {
   const [zipCode, setZipCode] = useState("");
   const [parish, setParish] = useState<string | null>(null);
   const [dateNeeded, setDateNeeded] = useState("");
-  const [startTime, setStartTime] = useState("");
+  // Default to 9:00 AM — a sane working-hours start. Midnight (the old
+  // empty-string default rendering as 12:00 AM) was almost never the
+  // intended task time. The poster can still change it on the wheel.
+  const [startTime, setStartTime] = useState("09:00");
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");
@@ -153,6 +158,18 @@ const PostJob = () => {
       setDraftLoaded(true);
     }
   }, [searchParams, hasDraft, draftLoaded]);
+
+  // Smart defaults — prefill the state to LA (every Helpr job is in
+  // Louisiana) and the city from the poster's saved profile location.
+  // Functional setState guards (prev || ...) mean this never clobbers
+  // anything the user already typed or a loaded draft/rebook value.
+  useEffect(() => {
+    if (!profile) return;
+    if (searchParams.get("rebook")) return; // rebook fills its own location
+    setAddrState((prev) => prev || "LA");
+    const loc = (profile.location || "").trim();
+    if (loc) setCity((prev) => prev || loc.split(",")[0].trim());
+  }, [profile, searchParams]);
 
   // Direct Offer: ?offerTo=<helperId> pre-targets the post to a saved helpr
   useEffect(() => {
@@ -240,19 +257,29 @@ const PostJob = () => {
     setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
   };
 
+  // Tracks upload progress so the submit button can show "Uploading 2/3"
+  // instead of an opaque spinner. Set back to null after upload completes.
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+
   const uploadImages = async (jobId: string): Promise<string[]> => {
     const urls: string[] = [];
-    for (const file of imageFiles) {
+    const total = imageFiles.length;
+    if (total === 0) return urls;
+    setUploadProgress({ done: 0, total });
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
       const ext = file.name.split(".").pop();
       const path = `${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("job-photos").upload(path, file);
       if (error) {
         report(error, { tags: { source: "PostJob.uploadImage" } });
-        continue;
+      } else {
+        const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
+        urls.push(urlData.publicUrl);
       }
-      const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
-      urls.push(urlData.publicUrl);
+      setUploadProgress({ done: i + 1, total });
     }
+    setUploadProgress(null);
     return urls;
   };
 
@@ -271,7 +298,7 @@ const PostJob = () => {
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(dateNeeded + "T00:00:00");
     if (selectedDate < today) { toast.error("Date cannot be in the past"); return; }
-    if (!startTime) { toast.error("Start time is required"); return; }
+    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); return; }
     // special_requirements is optional — no validation needed
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
@@ -499,7 +526,6 @@ const PostJob = () => {
   const detailsComplete = !!(title.trim() && description.trim() && category);
   const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && estimatedHours && parseFloat(estimatedHours) >= 0.5);
   const budgetComplete = !!(budget && parseFloat(budget) >= 5);
-  void [detailsComplete, logisticsComplete, budgetComplete];
 
   // Budget presets derived from category suggested range
   const suggested = category && categoryPricing[category] ? categoryPricing[category] : null;
@@ -512,8 +538,17 @@ const PostJob = () => {
     : [25, 50, 100];
 
   const handlePostJobBack = () => {
-    if (step === "checkout") setStep("form");
-    else navigate("/dashboard");
+    if (step === "checkout") {
+      setStep("form");
+      // Scroll to top so the user lands on Details (not mid-form) to edit.
+      // RAF lets the form re-render before scroll fires, so the target
+      // exists. Smooth scroll matches iOS Settings-app feel.
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   return (
@@ -532,15 +567,15 @@ const PostJob = () => {
           {step === "form" && (
             <>
               {offerToHelperId && (
-                <div className="rounded-xl border-2 border-primary/40 bg-primary/5 p-4 flex items-center gap-3">
+                <div className="rounded-ds-md border-2 border-primary/40 bg-primary/5 p-4 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
                     <UserCheck className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-ds-13 font-semibold text-foreground">
                       Direct offer to {offerToHelperName || "your saved helpr"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-ds-11 text-muted-foreground">
                       They'll have 24 hours to accept before this task opens to all helprs.
                     </p>
                   </div>
@@ -552,7 +587,7 @@ const PostJob = () => {
                       setOfferToHelperId(null);
                       setOfferToHelperName("");
                     }}
-                    className="rounded-xl h-8 w-8 shrink-0"
+                    className="rounded-ds-md h-8 w-8 shrink-0"
                     aria-label="Cancel direct offer"
                   >
                     <X className="w-4 h-4" />
@@ -560,12 +595,20 @@ const PostJob = () => {
                 </div>
               )}
 
-              {/* Draft Prompt */}
+              {/* Draft Prompt — brand-aligned: liquid-glass surface, eyebrow,
+                  font-display italic title, font-serif italic description. */}
               {showDraftPrompt && (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">You have a saved draft</p>
-                    <p className="text-xs text-muted-foreground">Would you like to continue where you left off?</p>
+                <div className="rounded-2xl liquid-glass p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                      Picking up where you left off
+                    </p>
+                    <p className="font-display italic font-bold mt-1" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                      You have a saved draft
+                    </p>
+                    <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      Pick up where you stopped, or start fresh.
+                    </p>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <Button
@@ -614,6 +657,38 @@ const PostJob = () => {
                 locationContext={`${city}, ${addrState}`.trim().replace(/^,\s*/, "")}
                 onGenerated={applyAiJob}
               />
+
+              {/* Section progress — orients the poster on the 3-part
+                  form. Each segment fills bark once its section's
+                  required fields are satisfied. */}
+              <div className="flex items-end gap-2">
+                {[
+                  { label: "Details", done: detailsComplete },
+                  { label: "Logistics", done: logisticsComplete },
+                  { label: "Budget", done: budgetComplete },
+                ].map((s) => (
+                  <div key={s.label} className="flex-1 space-y-1">
+                    <div
+                      className="h-1.5 rounded-full transition-colors duration-300"
+                      style={{
+                        background: s.done
+                          ? "hsl(var(--bark))"
+                          : "hsl(var(--olivewood) / 0.15)",
+                      }}
+                    />
+                    <span
+                      className="block text-[0.62rem] font-sans font-semibold uppercase tracking-wider transition-colors"
+                      style={{
+                        color: s.done
+                          ? "hsl(var(--bark))"
+                          : "hsl(var(--olivewood) / 0.5)",
+                      }}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
 
               <form onSubmit={handleReview} className="space-y-5">
                 {/* SECTION 1: DETAILS */}
@@ -680,13 +755,49 @@ const PostJob = () => {
                   budgetComplete={budgetComplete}
                 />
 
-                {/* Submit — inline at the end of the form on every viewport.
-                    Was previously fixed-position on mobile, which overlapped
-                    the Budget section + the bottom nav. Now scrolls into view
-                    naturally as the user finishes the form. */}
-                <Button type="submit" className="w-full" size="lg">
-                  Review & Pay{budgetNum > 0 ? ` · $${budgetNum.toFixed(2)}` : ""}
-                </Button>
+                {/* Submit — sticky so it stays reachable while the
+                    poster scrolls the long form. The sticky bottom
+                    offset clears the floating MobileNav dock; a
+                    parchment gradient backdrop keeps form content
+                    legible as it scrolls behind. position:sticky
+                    reserves flow space so it never overlaps the Budget
+                    section the way the old fixed button did. */}
+                <div
+                  className="sticky z-20 -mx-5 px-5 pt-3 pb-1"
+                  style={{
+                    bottom: "calc(env(safe-area-inset-bottom, 0px) + 84px)",
+                    background:
+                      "linear-gradient(to top, hsla(38, 18%, 97%, 0.96) 55%, hsla(38, 18%, 97%, 0))",
+                  }}
+                >
+                  <Button
+                    type="submit"
+                    className="w-full rounded-ds-md"
+                    size="lg"
+                    style={{
+                      background: "hsl(var(--bark))",
+                      backgroundImage: "none",
+                      border: "1px solid hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      fontFamily: "Montserrat, system-ui, sans-serif",
+                      fontWeight: 600,
+                      letterSpacing: "0.01em",
+                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 10px 24px -8px hsl(var(--bark) / 0.38)",
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      Review &amp; pay
+                      {budgetNum > 0 && (
+                        <span
+                          className="font-display italic font-bold tabular-nums"
+                          style={{ fontSize: "1rem", letterSpacing: "-0.01em" }}
+                        >
+                          · ${budgetNum.toFixed(2)}
+                        </span>
+                      )}
+                    </span>
+                  </Button>
+                </div>
               </form>
             </>
           )}
@@ -721,6 +832,7 @@ const PostJob = () => {
               setConfirmed={setConfirmed}
               saving={saving}
               uploading={uploading}
+              uploadProgress={uploadProgress}
               onEdit={() => setStep("form")}
               onSubmit={handleSubmit}
             />

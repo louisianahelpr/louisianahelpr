@@ -75,7 +75,7 @@ const BroadcastBanner = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className={`rounded-xl border ${style.border} ${style.bg} px-4 py-3 relative`}
+            className={`rounded-ds-md border ${style.border} ${style.bg} px-4 py-3 relative`}
           >
             <button
               onClick={() => dismiss(b.id)}
@@ -87,8 +87,8 @@ const BroadcastBanner = () => {
             <div className="flex items-start gap-3 pr-6">
               <div className="mt-0.5 shrink-0">{style.icon}</div>
               <div>
-                <p className="text-sm font-semibold text-foreground">{b.title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{b.message}</p>
+                <p className="text-ds-13 font-semibold text-foreground">{b.title}</p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">{b.message}</p>
               </div>
             </div>
           </motion.div>

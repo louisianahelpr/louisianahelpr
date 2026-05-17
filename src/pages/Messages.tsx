@@ -6,22 +6,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban } from "lucide-react";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
+import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { scanMessage } from "@/lib/messageScanner";
@@ -52,8 +48,16 @@ type Message = {
 type Conversation = {
   otherUserId: string;
   otherUserName: string;
+  otherUserAvatarUrl?: string | null;
   jobTitle: string;
   jobId: string;
+  /** Job status — surfaced as a chip in the chat header so participants
+      see at a glance whether they're discussing an open posting, an
+      awarded job, or a completed one. */
+  jobStatus?: string | null;
+  /** True when the current user posted the job — drives poster-specific
+      quick reply set in the chat composer. */
+  viewerIsPoster?: boolean;
   lastMessage: string;
   lastAt: string;
   unread: number;
@@ -114,6 +118,14 @@ const Messages = () => {
     });
   }, [userId, cachedUser]);
 
+  // Pull-to-refresh: swiping down on the conversation list re-runs
+  // loadConversations so the user can manually nudge realtime data.
+  // Scoped to the inner list scroll container (not the page root) so
+  // the dock + header don't capture the gesture.
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
+    onRefresh: async () => { if (userId) await loadConversations(userId); },
+  });
+
   const CONVO_LIMIT = 50;
 
   const loadConversations = async (uid: string) => {
@@ -155,17 +167,23 @@ const Messages = () => {
 
     const [profilesRes, jobsRes] = await Promise.all([
       supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
-      supabase.from("jobs").select("id, title").in("id", jobIds),
+      supabase.from("jobs").select("id, title, status, customer_id").in("id", jobIds),
     ]);
 
     const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
-    const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
+    const avatarMap = new Map<string, string | null>(profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || []);
+    const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id }]) || []);
 
     const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => ({
       otherUserId: v.otherUserId,
       otherUserName: profileMap.get(v.otherUserId) || "User",
-      jobTitle: jobMap.get(v.jobId) || "Job",
+      otherUserAvatarUrl: avatarMap.get(v.otherUserId) ?? null,
+      jobTitle: jobMap.get(v.jobId)?.title || "Job",
       jobId: v.jobId,
+      jobStatus: jobMap.get(v.jobId)?.status ?? null,
+      // Track whether the current user is the poster on this job so the
+      // chat can render poster-specific quick replies (vs helper-specific).
+      viewerIsPoster: jobMap.get(v.jobId)?.customer_id === uid,
       lastMessage: v.messages[0].content,
       lastAt: v.messages[0].created_at,
       unread: v.messages.filter((m) => m.receiver_id === uid && !m.read).length,
@@ -186,14 +204,17 @@ const Messages = () => {
         // No existing conversation — create a placeholder so user can start messaging
         const [profileRes, jobRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
-          supabase.from("jobs").select("id, title").eq("id", deepLinkJobId).maybeSingle(),
+          supabase.from("jobs").select("id, title, status, customer_id").eq("id", deepLinkJobId).maybeSingle(),
         ]);
         const name = profileRes.data?.[0]?.full_name || "User";
         const placeholder: Conversation = {
           otherUserId: deepLinkUserId,
           otherUserName: formatName(name),
+          otherUserAvatarUrl: profileRes.data?.[0]?.avatar_url ?? null,
           jobTitle: jobRes.data?.title || "Job",
           jobId: deepLinkJobId,
+          jobStatus: jobRes.data?.status ?? null,
+          viewerIsPoster: jobRes.data?.customer_id === uid,
           lastMessage: "",
           lastAt: new Date().toISOString(),
           unread: 0,
@@ -425,6 +446,7 @@ const Messages = () => {
 
   const deleteConversation = async (convo: Conversation) => {
     if (!userId) return;
+    hapticHeavy();
     // RLS only allows deleting own sent messages — so only delete those
     const { error } = await supabase
       .from("messages")
@@ -434,21 +456,26 @@ const Messages = () => {
       .eq("receiver_id", convo.otherUserId);
 
     if (error) {
+      hapticError();
       toast.error("Failed to delete conversation");
     } else {
       // Remove from local list — the other person's messages still exist for them
       setConversations((prev) => prev.filter((c) => !(c.jobId === convo.jobId && c.otherUserId === convo.otherUserId)));
+      hapticSuccess();
       toast.success("Your messages in this conversation have been deleted");
     }
     setDeleteConvoConfirm(null);
   };
 
   const deleteMessage = async (messageId: string) => {
+    hapticHeavy();
     const { error } = await supabase.from("messages").delete().eq("id", messageId);
     if (error) {
+      hapticError();
       toast.error("Failed to delete message");
     } else {
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      hapticSuccess();
       toast.success("Message deleted");
     }
     setDeleteMessageConfirm(null);
@@ -462,12 +489,13 @@ const Messages = () => {
       const caption = parts.slice(1).join("\n").trim();
       return (
         <div className="space-y-1">
-          <img loading="lazy" decoding="async"
+          <img
+            loading="lazy"
+            decoding="async"
             src={url}
             alt="Shared photo"
             className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
             onClick={() => window.open(url, "_blank")}
-            loading="lazy"
           />
           {caption && <p>{caption}</p>}
         </div>
@@ -575,80 +603,33 @@ const Messages = () => {
                   >
                     All threads
                   </h2>
-                  <span
-                    className="font-serif italic mt-0.5 text-[0.72rem]"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                  >
-                    {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
-                  </span>
                 </div>
               </div>
               {!loading && conversations.length === 0 ? (
-                // Empty state — content centered directly on the panel's
-                // glass surface, no inner white card. Mirrors the home
-                // page's empty-state pattern.
                 <div className="px-3 pt-4 flex-1 min-h-0 flex">
-                  {/* Empty-state card — own white box that stretches to
-                      the bottom of the screen. Bottom corners flat so it
-                      merges with the dock area. */}
-                  <div
-                    className="flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
-                    style={{
-                      backgroundColor: "hsl(0, 0%, 100%)",
-                      borderLeft: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                      borderRight: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                      borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                      boxShadow:
-                        "0 1px 2px hsl(var(--olivewood) / 0.04), " +
-                        "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
-                      paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
-                    }}
-                  >
-                    <div
-                      className="w-20 h-20 rounded-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                        backdropFilter: "blur(16px) saturate(150%)",
-                        WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                        border: "1px solid hsl(var(--olivewood) / 0.10)",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                          "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                      }}
-                    >
-                      <MessageSquare className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <span className="text-display-eyebrow">Quiet for now</span>
-                      <p
-                        className="font-display italic font-bold leading-tight"
-                        style={{
-                          fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                          color: "hsl(var(--ink-deep))",
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
-                        No messages yet.
-                      </p>
-                      <p
-                        className="font-serif italic text-sm leading-relaxed max-w-sm mx-auto"
-                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                      >
-                        Apply to a task or accept a helpr's offer — your conversations will land here.
-                      </p>
-                    </div>
-                    <Button onClick={() => navigate("/dashboard")} className="rounded-xl btn-press">
-                      Browse tasks
-                    </Button>
-                  </div>
+                  <EmptyState
+                    icon={MessageSquare}
+                    eyebrow="Quiet for now"
+                    title="No messages yet."
+                    body="Apply to a task or accept a helpr's offer — your conversations will land here."
+                    action={
+                      <BarkPillButton onClick={() => navigate("/dashboard")}>
+                        Browse tasks
+                      </BarkPillButton>
+                    }
+                  />
                 </div>
               ) : (
-              <div
-                data-allow-scroll="true"
-                className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2"
+              <PullToRefreshWrapper
+                ref={containerRef}
+                pullDistance={pullDistance}
+                refreshing={refreshing}
+                isPulling={isPulling}
+                canTrigger={canTrigger}
+                className="flex-1 min-h-0 px-3 py-3"
                 style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
               >
+              <div className="space-y-2">
               {loading ? (
                 <div className="space-y-2">
                   {[1, 2, 3, 4].map((i) => (
@@ -666,29 +647,113 @@ const Messages = () => {
                         estimateSize={104}
                         overscan={6}
                         itemClassName="pb-2"
-                        renderItem={(c) => (
+                        renderItem={(c) => {
+                          // Relative time so the list reads as "active",
+                          // not as a stack of full dates.
+                          const ageMs = Date.now() - new Date(c.lastAt).getTime();
+                          const ageMin = Math.floor(ageMs / 60000);
+                          const ageHr = Math.floor(ageMin / 60);
+                          const ageDay = Math.floor(ageHr / 24);
+                          const when =
+                            ageMin < 1 ? "now" :
+                            ageMin < 60 ? `${ageMin}m` :
+                            ageHr < 24 ? `${ageHr}h` :
+                            ageDay < 7 ? `${ageDay}d` :
+                            new Date(c.lastAt).toLocaleDateString([], { month: "short", day: "numeric" });
+                          // Status chip — short label so it fits inline
+                          // next to the job title. Same color logic as
+                          // the chat-header status pill.
+                          const statusChip = c.jobStatus && (() => {
+                            const s = c.jobStatus;
+                            if (s === "open") return { label: "Open", color: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.12)" };
+                            if (s === "assigned" || s === "in_progress") return { label: "Awarded", color: "hsl(var(--burnt-sienna))", bg: "hsl(var(--burnt-sienna) / 0.12)" };
+                            if (s === "completed") return { label: "Done", color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.10)" };
+                            if (s === "cancelled") return { label: "Cancelled", color: "hsl(var(--destructive))", bg: "hsl(var(--destructive) / 0.10)" };
+                            return null;
+                          })();
+                          return (
                           <div
-                            className="w-full text-left p-4 rounded-xl liquid-glass hover:shadow-md transition-shadow flex items-center gap-2"
+                            className="w-full text-left p-3 rounded-ds-md liquid-glass hover:shadow-md transition-shadow flex items-center gap-2.5"
                           >
+                            {/* Avatar — uses real photo when available, falls
+                                back to bark-tinted initials circle. */}
+                            <div
+                              className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center overflow-hidden self-center"
+                              style={{
+                                background: "hsl(var(--bark) / 0.12)",
+                                border: "1px solid hsl(var(--bark) / 0.22)",
+                              }}
+                            >
+                              {c.otherUserAvatarUrl ? (
+                                <img
+                                  loading="lazy"
+                                  decoding="async"
+                                  src={c.otherUserAvatarUrl}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--bark))" }}>
+                                  {c.otherUserName.charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
                             <button
                               onClick={() => openConvo(c)}
-                              className="flex-1 min-w-0 text-left"
+                              className="flex-1 min-w-0 text-left self-center"
                             >
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-semibold text-foreground truncate">{c.otherUserName}</p>
+                                  <div className="flex items-center gap-1.5">
+                                    <p
+                                      className="font-display italic font-bold truncate"
+                                      style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                                    >
+                                      {c.otherUserName}
+                                    </p>
                                     {c.unread > 0 && (
-                                      <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                                      <span
+                                        className="shrink-0 px-1.5 h-4 min-w-[1rem] rounded-full text-[0.65rem] font-bold flex items-center justify-center"
+                                        style={{
+                                          background: "hsl(var(--burnt-sienna))",
+                                          color: "hsl(var(--parchment))",
+                                        }}
+                                      >
                                         {c.unread}
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-xs text-muted-foreground">{c.jobTitle}</p>
-                                  <p className="text-xs text-muted-foreground truncate mt-1">{c.lastMessage}</p>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <p
+                                      className="text-[0.7rem] truncate font-serif italic"
+                                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                                    >
+                                      {c.jobTitle}
+                                    </p>
+                                    {statusChip && (
+                                      <span
+                                        className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                                        style={{ color: statusChip.color, backgroundColor: statusChip.bg, letterSpacing: "0.08em" }}
+                                      >
+                                        {statusChip.label}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p
+                                    className="text-[0.78rem] truncate mt-0.5"
+                                    style={{
+                                      color: c.unread > 0 ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.75)",
+                                      fontWeight: c.unread > 0 ? 600 : 400,
+                                    }}
+                                  >
+                                    {c.lastMessage || "—"}
+                                  </p>
                                 </div>
-                                <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
-                                  {new Date(c.lastAt).toLocaleDateString()}
+                                <span
+                                  className="text-[0.7rem] shrink-0 self-start whitespace-nowrap"
+                                  style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                                >
+                                  {when}
                                 </span>
                               </div>
                             </button>
@@ -715,18 +780,20 @@ const Messages = () => {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                        )}
+                          );
+                        }}
                       />
                     );
                   })()}
                   {!showAllConvos && conversations.length > CONVO_LIMIT && (
-                    <button onClick={() => setShowAllConvos(true)} className="w-full text-center py-3 text-sm text-primary font-medium hover:underline">
+                    <button onClick={() => setShowAllConvos(true)} className="w-full text-center py-3 text-ds-13 text-primary font-medium hover:underline">
                       Show all {conversations.length} conversations
                     </button>
                   )}
                 </div>
               )}
               </div>
+              </PullToRefreshWrapper>
               )}
             </div>
             </>
@@ -735,7 +802,11 @@ const Messages = () => {
               className="flex flex-col h-[calc(100dvh-4rem)] transition-[padding] duration-150"
               style={{ paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : "env(safe-area-inset-bottom)" }}
             >
-              {/* Chat header — compact, vertically centered */}
+              {/* Chat header — compact, vertically centered. Avatar uses
+                  the other user's photo when available, name is brand-
+                  display italic, and a small status chip surfaces where
+                  the job currently stands so both sides have shared
+                  context without scrolling back. */}
               <div className="flex items-center gap-2.5 px-1 py-2 -mx-4 px-4 border-b border-border bg-card">
                 <Button
                   variant="ghost"
@@ -746,15 +817,61 @@ const Messages = () => {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
-                <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0 self-center">
-                  <span className="text-sm font-bold text-primary">{activeConvo.otherUserName.charAt(0).toUpperCase()}</span>
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 self-center overflow-hidden"
+                  style={{
+                    backgroundColor: "hsl(var(--bark) / 0.12)",
+                    border: "1px solid hsl(var(--bark) / 0.22)",
+                  }}
+                >
+                  {activeConvo.otherUserAvatarUrl ? (
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={activeConvo.otherUserAvatarUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--bark))" }}>
+                      {activeConvo.otherUserName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden self-center">
-                  <p className="font-semibold text-foreground text-[15px] leading-tight truncate flex items-center gap-1.5">
+                  <p
+                    className="font-display italic font-bold leading-tight truncate flex items-center gap-1.5"
+                    style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                  >
                     <span className="truncate">{activeConvo.otherUserName}</span>
                     <OnlineIndicator isOnline={isOtherOnline} />
                   </p>
-                  <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">{activeConvo.jobTitle}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <p className="text-[11px] truncate leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      {activeConvo.jobTitle}
+                    </p>
+                    {activeConvo.jobStatus && (() => {
+                      const status = activeConvo.jobStatus;
+                      const chip: { label: string; color: string; bg: string } =
+                        status === "open"
+                          ? { label: "Open", color: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.12)" }
+                          : status === "assigned" || status === "in_progress"
+                            ? { label: "Awarded", color: "hsl(var(--burnt-sienna))", bg: "hsl(var(--burnt-sienna) / 0.12)" }
+                            : status === "completed"
+                              ? { label: "Completed", color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.1)" }
+                              : status === "cancelled"
+                                ? { label: "Cancelled", color: "hsl(var(--destructive))", bg: "hsl(var(--destructive) / 0.1)" }
+                                : { label: status, color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.1)" };
+                      return (
+                        <span
+                          className="text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                          style={{ color: chip.color, backgroundColor: chip.bg, letterSpacing: "0.08em" }}
+                        >
+                          {chip.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -791,16 +908,41 @@ const Messages = () => {
               <div className="flex-1 overflow-y-auto space-y-3 pt-4 pb-2" ref={chatContainerRef}>
                 {hasMoreMessages && (
                   <div className="text-center py-2">
-                    <button onClick={loadOlderMessages} disabled={loadingMore} className="text-xs text-primary font-medium hover:underline disabled:opacity-50 flex items-center gap-1.5 mx-auto">
+                    <button onClick={loadOlderMessages} disabled={loadingMore} className="text-ds-11 text-primary font-medium hover:underline disabled:opacity-50 flex items-center gap-1.5 mx-auto">
                       {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
                       {loadingMore ? "Loading…" : "Load earlier messages"}
                     </button>
                   </div>
                 )}
                 {messages.length === 0 && (
-                  <div className="text-center py-12 space-y-2">
-                    <MessageSquare className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-                    <p className="text-xs text-muted-foreground">No messages yet. Say hello!</p>
+                  <div className="flex flex-col items-center text-center py-14 gap-3">
+                    <div
+                      className="w-14 h-14 rounded-full flex items-center justify-center"
+                      style={{
+                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                        border: "1px solid hsl(var(--olivewood) / 0.10)",
+                        boxShadow:
+                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                          "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+                      }}
+                    >
+                      <MessageSquare className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                    </div>
+                    <div className="space-y-1">
+                      <p
+                        className="font-display italic font-bold"
+                        style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                      >
+                        Say hello.
+                      </p>
+                      <p
+                        className="font-serif italic text-[0.82rem] max-w-[260px]"
+                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      >
+                        Send the first message to get the job moving.
+                      </p>
+                    </div>
                   </div>
                 )}
                 {messages.map((m) => {
@@ -808,11 +950,29 @@ const Messages = () => {
                   return (
                     <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                       <div
-                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm group relative space-y-2 ${
-                          mine
-                            ? "bg-primary text-primary-foreground rounded-br-md"
-                            : "bg-secondary text-secondary-foreground rounded-bl-md"
+                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 ${
+                          mine ? "rounded-br-md" : "rounded-bl-md"
                         }`}
+                        style={mine ? {
+                          // "Mine" bubble — bark with subtle inner highlight + soft shadow
+                          // for a tactile, brand-aligned feel (vs. flat primary fill).
+                          background: "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.92) 100%)",
+                          color: "hsl(var(--parchment))",
+                          boxShadow:
+                            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), " +
+                            "0 1px 2px hsl(var(--bark) / 0.18), " +
+                            "0 6px 14px -6px hsl(var(--bark) / 0.32)",
+                        } : {
+                          // "Theirs" bubble — translucent parchment with a hairline border
+                          // so it reads as an inbound card without looking gray-on-gray.
+                          backgroundColor: "hsla(0, 0%, 100%, 0.78)",
+                          color: "hsl(var(--ink-deep))",
+                          border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+                          boxShadow:
+                            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
+                            "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                            "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
+                        }}
                       >
                         {m.attachment_url && m.attachment_mime && (
                           <MessageAttachment
@@ -849,7 +1009,12 @@ const Messages = () => {
                         <span>
                           {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
                         </span>
-                        <ReadReceipt read={m.read} sentByMe={mine} />
+                        <ReadReceipt
+                          read={m.read}
+                          sentByMe={mine}
+                          recipientName={activeConvo?.otherUserName}
+                          recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}
+                        />
                       </div>
                     </div>
                   );
@@ -860,7 +1025,10 @@ const Messages = () => {
 
               {/* Quick replies — populate the input instead of sending instantly */}
               <div className="pt-1">
-                <QuickReplies onSelect={(msg) => setDraft(msg)} />
+                <QuickReplies
+                  onSelect={(msg) => setDraft(msg)}
+                  audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
+                />
               </div>
 
               {/* Rich message input */}
@@ -909,40 +1077,30 @@ const Messages = () => {
       )}
 
       {/* Delete conversation confirmation */}
-      <AlertDialog open={!!deleteConvoConfirm} onOpenChange={() => setDeleteConvoConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will delete your sent messages in this conversation with {deleteConvoConfirm?.otherUserName}. Messages you received will still be visible to the other person. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteConvoConfirm && deleteConversation(deleteConvoConfirm)}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <BrandConfirmDialog
+        open={!!deleteConvoConfirm}
+        onOpenChange={(o) => { if (!o) setDeleteConvoConfirm(null); }}
+        title="Delete conversation?"
+        description={`This deletes your sent messages in this conversation with ${deleteConvoConfirm?.otherUserName ?? "this person"}. Messages you received stay visible to them. This can't be undone.`}
+        primaryLabel="Delete"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => deleteConvoConfirm && deleteConversation(deleteConvoConfirm)}
+        secondaryLabel="Cancel"
+      />
 
       {/* Delete message confirmation */}
-      <AlertDialog open={!!deleteMessageConfirm} onOpenChange={() => setDeleteMessageConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete message?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This message will be permanently deleted. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteMessageConfirm && deleteMessage(deleteMessageConfirm)}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <BrandConfirmDialog
+        open={!!deleteMessageConfirm}
+        onOpenChange={(o) => { if (!o) setDeleteMessageConfirm(null); }}
+        title="Delete message?"
+        description="This message will be permanently deleted. This can't be undone."
+        primaryLabel="Delete"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => deleteMessageConfirm && deleteMessage(deleteMessageConfirm)}
+        secondaryLabel="Cancel"
+      />
     </div>
   );
 };

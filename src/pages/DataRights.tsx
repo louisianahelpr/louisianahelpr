@@ -19,23 +19,15 @@ import { toast } from "sonner";
 import { Download, Trash2, ShieldOff, Loader2, ArrowLeft } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { safeStorage } from "@/lib/safeStorage";
 
 const DataRights = () => {
   usePageTitle("Your Data Rights — Helpr");
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [doNotSell, setDoNotSell] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -85,14 +77,17 @@ const DataRights = () => {
   };
 
   const handleDelete = async () => {
+    hapticHeavy();
     setDeleting(true);
     try {
       const { error } = await supabase.functions.invoke("delete-own-account");
       if (error) throw error;
+      hapticSuccess();
       toast.success("Your account has been deleted. Goodbye 👋");
       await supabase.auth.signOut();
       window.location.href = "/";
     } catch (err: any) {
+      hapticError();
       toast.error(err?.message ?? "Failed to delete account. Contact support.");
     } finally {
       setDeleting(false);
@@ -113,7 +108,7 @@ const DataRights = () => {
         meta="Export, correct, or delete your information at any time"
       />
       <main className="container mx-auto px-5 py-6 max-w-2xl space-y-6">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
           Use the controls below to exercise them. For all other privacy questions email{" "}
           <a href="mailto:privacy@louisianahelpr.com" className="text-primary underline">privacy@louisianahelpr.com</a>.
@@ -124,8 +119,8 @@ const DataRights = () => {
           <div className="flex items-start gap-3">
             <Download className="w-5 h-5 text-primary mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">
-              <h2 className="font-display font-semibold text-lg">Download your data</h2>
-              <p className="text-xs text-muted-foreground mt-1">
+              <h2 className="font-display font-semibold text-ds-17">Download your data</h2>
+              <p className="text-ds-11 text-muted-foreground mt-1">
                 Get a complete copy of your Helpr data — profile, posted jobs, applications, and reviews — as a single JSON file.
               </p>
             </div>
@@ -140,8 +135,8 @@ const DataRights = () => {
           <div className="flex items-start gap-3">
             <ShieldOff className="w-5 h-5 text-primary mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">
-              <h2 className="font-display font-semibold text-lg">Do not sell or share my personal information</h2>
-              <p className="text-xs text-muted-foreground mt-1">
+              <h2 className="font-display font-semibold text-ds-17">Do not sell or share my personal information</h2>
+              <p className="text-ds-11 text-muted-foreground mt-1">
                 Helpr does not sell your data. This toggle additionally opts you out of any cross-context behavioral
                 advertising that may be enabled in the future.
               </p>
@@ -155,38 +150,38 @@ const DataRights = () => {
           <div className="flex items-start gap-3">
             <Trash2 className="w-5 h-5 text-destructive mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">
-              <h2 className="font-display font-semibold text-lg">Delete my account</h2>
-              <p className="text-xs text-muted-foreground mt-1">
+              <h2 className="font-display font-semibold text-ds-17">Delete my account</h2>
+              <p className="text-ds-11 text-muted-foreground mt-1">
                 Permanently removes your profile, posted jobs, applications, messages, and personal information.
                 Financial records (completed payouts, tax records) are retained as required by IRS regulations.
                 <strong className="text-foreground"> This cannot be undone.</strong>
               </p>
             </div>
           </div>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="lg" className="w-full sm:w-auto">Delete my account</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-2xl">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Permanently delete your account?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This removes everything in your account that's not legally required for tax/audit purposes.
-                  You'll be signed out immediately and cannot sign back in with this email.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  {deleting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting…</> : "Yes, delete my account"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            variant="destructive"
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            Delete my account
+          </Button>
+          <BrandConfirmDialog
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+            title="Permanently delete your account?"
+            description="This removes everything in your account that's not legally required for tax/audit purposes. You'll be signed out immediately and cannot sign back in with this email."
+            primaryLabel={deleting ? "Deleting…" : "Yes, delete my account"}
+            primaryTone="sienna"
+            primaryHaptic="error"
+            primaryDisabled={deleting}
+            onPrimary={(e) => { e.preventDefault(); handleDelete(); }}
+            secondaryLabel="Cancel"
+          />
         </section>
 
         <div className="text-center pt-4">
-          <Link to="/privacy" className="text-xs text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+          <Link to="/privacy" className="text-ds-11 text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
             <ArrowLeft className="w-4 h-4" /> Back to Privacy Policy
           </Link>
         </div>

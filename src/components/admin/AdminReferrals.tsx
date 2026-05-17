@@ -117,7 +117,7 @@ const AdminReferrals = () => {
   );
 
   if (isInitialLoading) {
-    return <div className="text-center py-12 text-xs text-muted-foreground">Loading referral data…</div>;
+    return <div className="text-center py-12 text-ds-11 text-muted-foreground">Loading referral data…</div>;
   }
 
   const tabs = [
@@ -137,12 +137,12 @@ const AdminReferrals = () => {
           { label: "Total Earned", value: `$${totalEarned.toFixed(2)}`, icon: DollarSign },
           { label: "Cashed Out", value: `$${totalCashedOut.toFixed(2)}`, icon: Banknote },
         ].map(stat => (
-          <div key={stat.label} className="rounded-xl liquid-glass p-4">
+          <div key={stat.label} className="rounded-ds-md liquid-glass p-4">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">{stat.label}</span>
+              <span className="text-ds-11 text-muted-foreground">{stat.label}</span>
               <stat.icon className="w-4 h-4 text-primary opacity-60" />
             </div>
-            <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+            <p className="text-ds-24 font-bold text-foreground">{stat.value}</p>
           </div>
         ))}
       </div>
@@ -153,7 +153,7 @@ const AdminReferrals = () => {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`px-4 py-2 text-ds-13 font-medium transition-colors border-b-2 -mb-px ${
               tab === t.id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -182,9 +182,9 @@ const AdminReferrals = () => {
       {/* Overview */}
       {tab === "overview" && (
         <div className="space-y-4">
-          <div className="rounded-xl liquid-glass p-5 space-y-2">
-            <h3 className="text-sm font-semibold text-foreground">Program Summary</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="rounded-ds-md liquid-glass p-5 space-y-2">
+            <h3 className="text-ds-13 font-semibold text-foreground">Program Summary</h3>
+            <div className="grid grid-cols-2 gap-4 text-ds-13">
               <div>
                 <p className="text-muted-foreground">Users with codes</p>
                 <p className="font-semibold text-foreground">{codes.length}</p>
@@ -215,13 +215,13 @@ const AdminReferrals = () => {
           </div>
 
           {/* Recent activity */}
-          <div className="rounded-xl liquid-glass p-5 space-y-3">
-            <h3 className="text-sm font-semibold text-foreground">Recent Credits</h3>
+          <div className="rounded-ds-md liquid-glass p-5 space-y-3">
+            <h3 className="text-ds-13 font-semibold text-foreground">Recent Credits</h3>
             {credits.slice(0, 5).map(c => (
-              <div key={c.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
+              <div key={c.id} className="flex items-center justify-between text-ds-13 py-2 border-b border-border last:border-0">
                 <div>
                   <p className="font-medium text-foreground">{c.userName}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-ds-11 text-muted-foreground">
                     {c.reason === "referrer_bonus" ? "Referral bonus" : "First job bonus"} · {new Date(c.created_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -234,7 +234,7 @@ const AdminReferrals = () => {
               </div>
             ))}
             {credits.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-4">No credits awarded yet</p>
+              <p className="text-ds-11 text-muted-foreground text-center py-4">No credits awarded yet</p>
             )}
           </div>
         </div>
@@ -244,13 +244,13 @@ const AdminReferrals = () => {
       {tab === "codes" && (
         <div className="space-y-2">
           {filteredCodes.map(c => (
-            <div key={c.id} className="rounded-xl liquid-glass p-4 flex items-center justify-between">
+            <div key={c.id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">{c.userName}</p>
-                <p className="text-xs text-muted-foreground">Created {new Date(c.created_at).toLocaleDateString()}</p>
+                <p className="text-ds-13 font-medium text-foreground">{c.userName}</p>
+                <p className="text-ds-11 text-muted-foreground">Created {new Date(c.created_at).toLocaleDateString()}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-bold text-primary tracking-widest">{c.code}</span>
+                <span className="font-mono text-ds-13 font-bold text-primary tracking-widest">{c.code}</span>
                 <button
                   onClick={() => { navigator.clipboard.writeText(c.code); toast.success("Code copied"); }}
                   className="p-1 rounded hover:bg-secondary/50 transition-colors"
@@ -261,7 +261,7 @@ const AdminReferrals = () => {
             </div>
           ))}
           {filteredCodes.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-8">No referral codes found</p>
+            <p className="text-ds-11 text-muted-foreground text-center py-8">No referral codes found</p>
           )}
         </div>
       )}
@@ -270,15 +270,15 @@ const AdminReferrals = () => {
       {tab === "referrals" && (
         <div className="space-y-2">
           {filteredReferrals.map(r => (
-            <div key={r.id} className="rounded-xl liquid-glass p-4">
+            <div key={r.id} className="rounded-ds-md liquid-glass p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-ds-13 font-medium text-foreground">
                     <span className="text-primary">{r.referrerName}</span>
                     <span className="text-muted-foreground mx-2">→</span>
                     <span>{r.referredName}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-ds-11 text-muted-foreground mt-0.5">
                     Referred on {new Date(r.created_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -291,7 +291,7 @@ const AdminReferrals = () => {
             </div>
           ))}
           {filteredReferrals.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-8">No referrals found</p>
+            <p className="text-ds-11 text-muted-foreground text-center py-8">No referrals found</p>
           )}
         </div>
       )}
@@ -300,15 +300,15 @@ const AdminReferrals = () => {
       {tab === "credits" && (
         <div className="space-y-2">
           {filteredCredits.map(c => (
-            <div key={c.id} className="rounded-xl liquid-glass p-4 flex items-center justify-between">
+            <div key={c.id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">{c.userName}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-ds-13 font-medium text-foreground">{c.userName}</p>
+                <p className="text-ds-11 text-muted-foreground">
                   {c.reason === "referrer_bonus" ? "Referral bonus" : "First job bonus"} · {new Date(c.created_at).toLocaleDateString()}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-primary">+${Number(c.amount).toFixed(2)}</p>
+                <p className="text-ds-13 font-bold text-primary">+${Number(c.amount).toFixed(2)}</p>
                 <Badge variant={c.redeemed ? "secondary" : "default"} className="text-[10px]">
                   {c.redeemed ? "Cashed out" : "Available"}
                 </Badge>
@@ -316,7 +316,7 @@ const AdminReferrals = () => {
             </div>
           ))}
           {filteredCredits.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-8">No credits found</p>
+            <p className="text-ds-11 text-muted-foreground text-center py-8">No credits found</p>
           )}
         </div>
       )}

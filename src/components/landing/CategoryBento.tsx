@@ -56,7 +56,7 @@ const CategoryBento = ({ onSelect }: CategoryBentoProps) => {
               type="button"
               onClick={onSelect}
               aria-hidden={i >= categories.length}
-              className="liquid-glass inline-flex items-center gap-2.5 px-5 py-3 rounded-full text-sm sm:text-base font-sans font-medium tracking-tight whitespace-nowrap shrink-0 transition-transform duration-200 hover:-translate-y-0.5"
+              className="liquid-glass inline-flex items-center gap-2.5 px-5 py-3 rounded-full text-ds-13 sm:text-ds-15 font-sans font-medium tracking-tight whitespace-nowrap shrink-0 transition-transform duration-200 hover:-translate-y-0.5"
               style={{ color: "hsl(var(--olivewood))" }}
             >
               <Icon
@@ -66,7 +66,7 @@ const CategoryBento = ({ onSelect }: CategoryBentoProps) => {
               />
               {c.label}
               <span
-                className="text-xs sm:text-[13px] font-normal"
+                className="text-ds-11 sm:text-[13px] font-normal"
                 style={{ color: "hsl(var(--stormy-sky))" }}
               >
                 · {c.nearby} nearby

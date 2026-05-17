@@ -119,22 +119,59 @@ class ErrorBoundary extends React.Component<Props, State> {
 
       return (
         <div className="min-h-[300px] flex flex-col items-center justify-center gap-4 p-8 text-center">
-          <div className="rounded-full bg-destructive/10 p-3">
-            <AlertTriangle className="h-6 w-6 text-destructive" />
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center"
+            style={{
+              background: chunkError ? "hsl(var(--bark) / 0.12)" : "hsl(var(--burnt-sienna) / 0.12)",
+              color: chunkError ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
+              border: `0.5px solid ${chunkError ? "hsl(var(--bark) / 0.22)" : "hsl(var(--burnt-sienna) / 0.24)"}`,
+              boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 6px 18px -6px hsl(var(--olivewood) / 0.20)",
+            }}
+          >
+            {chunkError ? (
+              <RefreshCw className="h-6 w-6" strokeWidth={1.75} />
+            ) : (
+              <AlertTriangle className="h-6 w-6" strokeWidth={1.75} />
+            )}
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground">
-              {chunkError ? "Update available" : "Something went wrong"}
+          <div className="space-y-1.5">
+            <span
+              className="font-serif italic uppercase block"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              {chunkError ? "Fresh paint" : "A hiccup"}
+            </span>
+            <h3
+              className="font-display italic font-bold leading-tight"
+              style={{ fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+            >
+              {chunkError ? "Update ready." : "Something went sideways."}
             </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+            <p
+              className="font-serif italic leading-relaxed max-w-sm mx-auto"
+              style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.75)" }}
+            >
               {chunkError
-                ? "A newer version of the app was released. Reload to continue."
-                : this.state.error?.message || "An unexpected error occurred."}
+                ? "A newer version of the app was just released. Reload to pick it up."
+                : this.state.error?.message || "Something unexpected happened. Give it another shot."}
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={this.handleReset}>
+          <Button
+            onClick={this.handleReset}
+            className="rounded-ds-md"
+            style={{
+              background: "hsl(var(--bark))",
+              backgroundImage: "none",
+              border: "1px solid hsl(var(--bark))",
+              color: "hsl(var(--parchment))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+            }}
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
-            {chunkError ? "Reload" : "Try Again"}
+            {chunkError ? "Reload" : "Try again"}
           </Button>
         </div>
       );

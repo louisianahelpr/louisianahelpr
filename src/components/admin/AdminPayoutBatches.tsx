@@ -127,10 +127,10 @@ const AdminPayoutBatches = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+          <h2 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-primary" /> Payout Batches
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-ds-11 text-muted-foreground mt-0.5">
             Helprs with completed jobs awaiting payout. Trigger Stripe transfers in bulk per helpr.
           </p>
         </div>
@@ -141,27 +141,27 @@ const AdminPayoutBatches = () => {
 
       {batches.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="rounded-xl liquid-glass p-4">
+          <div className="rounded-ds-md liquid-glass p-4">
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Helprs awaiting</p>
-            <p className="text-2xl font-bold text-foreground mt-1">{batches.length}</p>
+            <p className="text-ds-24 font-bold text-foreground mt-1">{batches.length}</p>
           </div>
-          <div className="rounded-xl liquid-glass p-4">
+          <div className="rounded-ds-md liquid-glass p-4">
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total jobs</p>
-            <p className="text-2xl font-bold text-foreground mt-1">{totalJobs}</p>
+            <p className="text-ds-24 font-bold text-foreground mt-1">{totalJobs}</p>
           </div>
-          <div className="rounded-xl border border-border bg-primary/5 p-4 col-span-2 md:col-span-1">
+          <div className="rounded-ds-md border border-border bg-primary/5 p-4 col-span-2 md:col-span-1">
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total queued</p>
-            <p className="text-2xl font-bold text-primary mt-1">${grandTotal.toFixed(2)}</p>
+            <p className="text-ds-24 font-bold text-primary mt-1">${grandTotal.toFixed(2)}</p>
           </div>
         </div>
       )}
 
       {isInitialLoading ? (
-        <p className="text-xs text-muted-foreground">Loading payout batches…</p>
+        <p className="text-ds-11 text-muted-foreground">Loading payout batches…</p>
       ) : batches.length === 0 ? (
-        <div className="rounded-xl liquid-glass p-8 text-center">
+        <div className="rounded-ds-md liquid-glass p-8 text-center">
           <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">All payouts are settled. Nothing to send.</p>
+          <p className="text-ds-11 text-muted-foreground">All payouts are settled. Nothing to send.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -169,10 +169,10 @@ const AdminPayoutBatches = () => {
             const ageDays = Math.floor((Date.now() - new Date(batch.oldest_completed_at).getTime()) / 86_400_000);
             const isStale = ageDays >= 3;
             return (
-              <div key={batch.helper_id} className="rounded-xl liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div key={batch.helper_id} className="rounded-ds-md liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm text-foreground truncate">{batch.helper_name}</span>
+                    <span className="font-semibold text-ds-13 text-foreground truncate">{batch.helper_name}</span>
                     <Badge variant="secondary" className="text-[10px]">
                       {batch.job_count} job{batch.job_count > 1 ? "s" : ""}
                     </Badge>
@@ -187,13 +187,13 @@ const AdminPayoutBatches = () => {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">{batch.helper_email}</p>
+                  <p className="text-ds-11 text-muted-foreground">{batch.helper_email}</p>
                   <p className="text-[11px] text-muted-foreground">
                     Oldest job: {formatDistanceToNow(new Date(batch.oldest_completed_at), { addSuffix: true })}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-lg font-bold text-primary">${Number(batch.total_payout).toFixed(2)}</p>
+                  <p className="text-ds-17 font-bold text-primary">${Number(batch.total_payout).toFixed(2)}</p>
                   <Button
                     size="sm"
                     className="mt-1"
@@ -215,7 +215,7 @@ const AdminPayoutBatches = () => {
         <div className="space-y-3 pt-4 border-t border-border/50">
           <div className="flex items-center gap-2">
             <ListChecks className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Recent transfers</h3>
+            <h3 className="text-ds-13 font-semibold text-foreground">Recent transfers</h3>
             <Badge variant="secondary" className="text-[10px]">last {ledger.length}</Badge>
           </div>
           <p className="text-[11px] text-muted-foreground">
@@ -234,7 +234,7 @@ const AdminPayoutBatches = () => {
                 <div key={t.id} className="rounded-lg liquid-glass p-3 flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm text-foreground truncate">{helperName}</span>
+                      <span className="font-medium text-ds-13 text-foreground truncate">{helperName}</span>
                       <Badge className={`${tone} text-[10px] capitalize`}>{t.status}</Badge>
                       {t.initiated_by && t.initiated_by !== "system" && (
                         <Badge variant="outline" className="text-[10px] capitalize">{t.initiated_by}</Badge>
@@ -256,7 +256,7 @@ const AdminPayoutBatches = () => {
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-semibold text-foreground tabular-nums">${amount}</p>
+                    <p className="text-ds-13 font-semibold text-foreground tabular-nums">${amount}</p>
                     {Number(fee) > 0 && (
                       <p className="text-[10px] text-muted-foreground">fee ${fee}</p>
                     )}

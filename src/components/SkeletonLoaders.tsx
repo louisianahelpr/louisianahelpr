@@ -16,7 +16,7 @@ export const JobCardSkeleton = () => (
         </div>
         <Skeleton className="h-4 w-3/4 rounded" />
       </div>
-      <Skeleton className="h-9 w-14 rounded-xl" />
+      <Skeleton className="h-9 w-14 rounded-ds-md" />
     </div>
     {/* Metadata grid */}
     <div className="px-4 pb-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
@@ -38,7 +38,7 @@ export const ConversationSkeleton = () => (
   // avatar circle on the left, name + job + last-message lines on the
   // right. Matches the brand's liquid-glass material so the loading
   // state doesn't clash with the loaded UI.
-  <div className="rounded-xl skeleton-glass p-3 flex items-center gap-3">
+  <div className="rounded-ds-md skeleton-glass p-3 flex items-center gap-3">
     <Skeleton className="w-10 h-10 rounded-full shrink-0" />
     <div className="flex-1 space-y-1.5 min-w-0">
       <div className="flex items-center justify-between gap-2">
@@ -63,7 +63,7 @@ export const ProfileCardSkeleton = () => (
 export const StatsSkeleton = () => (
   <div className="grid grid-cols-3 gap-3">
     {[1, 2, 3].map((i) => (
-      <div key={i} className="rounded-xl skeleton-glass p-3 text-center space-y-2">
+      <div key={i} className="rounded-ds-md skeleton-glass p-3 text-center space-y-2">
         <Skeleton className="h-8 w-12 mx-auto" />
         <Skeleton className="h-3 w-16 mx-auto" />
       </div>
@@ -74,7 +74,7 @@ export const StatsSkeleton = () => (
 export const ActivityCardSkeleton = () => (
   // Glass-tinted skeleton shaped like a real activity card. Matches the
   // brand's liquid-glass material instead of the previous bordered card.
-  <div className="rounded-xl skeleton-glass p-4 space-y-3">
+  <div className="rounded-ds-md skeleton-glass p-4 space-y-3">
     <div className="flex items-center justify-between">
       <div className="space-y-2 flex-1">
         <Skeleton className="h-5 w-40 rounded" />
@@ -138,7 +138,7 @@ export const IdentityHeroSkeleton = () => (
  */
 export const MenuGroupCardSkeleton = () => (
   <div className="rounded-[24px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] min-h-[78px] p-3 flex flex-col items-center justify-center gap-2">
-    <Skeleton className="w-9 h-9 rounded-xl" />
+    <Skeleton className="w-9 h-9 rounded-ds-md" />
     <Skeleton className="h-3 w-12 rounded-md" />
   </div>
 );

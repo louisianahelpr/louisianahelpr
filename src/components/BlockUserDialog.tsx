@@ -98,44 +98,73 @@ export function BlockUserDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={(o) => !o && !submitting && onClose()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-destructive" />
+      <AlertDialogContent className="!gap-3">
+        <AlertDialogHeader className="!text-left space-y-0">
+          <span
+            className="font-serif italic uppercase inline-flex items-center gap-1.5"
+            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          >
+            <ShieldAlert className="w-3 h-3" /> Safety
+          </span>
+          <AlertDialogTitle
+            className="font-display italic font-bold leading-tight mt-1"
+            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+          >
             Block {blockedUserName}?
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
-            <div className="space-y-3 text-sm">
-              <p>Once blocked:</p>
-              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+            <div className="space-y-3 mt-2">
+              <ul
+                className="font-serif italic space-y-1 list-disc pl-5 leading-relaxed"
+                style={{ fontSize: "0.84rem", color: "hsl(var(--olivewood) / 0.85)" }}
+              >
                 <li>You won&apos;t see their messages, applications, or profile.</li>
                 <li>They won&apos;t be able to apply to your jobs or message you.</li>
                 <li>They won&apos;t be notified that you blocked them.</li>
                 {activeJobCount !== null && activeJobCount > 0 && (
-                  <li className="text-destructive font-medium">
+                  <li className="not-italic font-sans font-medium" style={{ color: "hsl(var(--burnt-sienna))" }}>
                     {activeJobCount} active job{activeJobCount === 1 ? "" : "s"} between you will be cancelled and refunded.
                   </li>
                 )}
               </ul>
-              <Textarea
-                aria-label="Block reason (optional, admin-only)"
-                placeholder="Reason (optional, only visible to admins)"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={2}
-              />
+              <div className="space-y-1.5">
+                <label
+                  className="font-serif italic uppercase block"
+                  style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                >
+                  Reason — optional, admin-only
+                </label>
+                <Textarea
+                  aria-label="Block reason (optional, admin-only)"
+                  placeholder="Anything our trust team should know?"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={2}
+                  className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.85rem]"
+                />
+              </div>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="!gap-2">
+          <AlertDialogCancel disabled={submitting} className="rounded-ds-md">Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
               handleBlock();
             }}
             disabled={submitting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="rounded-ds-md"
+            style={{
+              background: "hsl(var(--burnt-sienna))",
+              backgroundImage: "none",
+              border: "1px solid hsl(var(--burnt-sienna))",
+              color: "hsl(var(--parchment))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)",
+            }}
           >
             {submitting ? (
               <>

@@ -68,10 +68,10 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+        <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
           <History className="w-3.5 h-3.5" /> Verification History
         </h4>
-        <p className="text-xs text-muted-foreground">Loading…</p>
+        <p className="text-ds-11 text-muted-foreground">Loading…</p>
       </div>
     );
   }
@@ -79,17 +79,17 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
   if (rows.length === 0) {
     return (
       <div className="space-y-2">
-        <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+        <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
           <History className="w-3.5 h-3.5" /> Verification History
         </h4>
-        <p className="text-xs text-muted-foreground">No changes logged yet.</p>
+        <p className="text-ds-11 text-muted-foreground">No changes logged yet.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-2">
-      <h4 className="text-xs sm:text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+      <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
         <History className="w-3.5 h-3.5" /> Verification History
         <span className="ml-1 text-[10px] font-normal text-muted-foreground">
           (last {rows.length})
@@ -102,7 +102,7 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
             : "system";
           const isSystem = !r.changed_by;
           return (
-            <div key={r.id} className="rounded-lg border border-border/50 bg-card/40 p-2 text-xs">
+            <div key={r.id} className="rounded-lg border border-border/50 bg-card/40 p-2 text-ds-11">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="font-medium text-foreground">
                   {FIELD_LABEL[r.field] ?? r.field}

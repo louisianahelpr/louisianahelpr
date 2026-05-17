@@ -81,7 +81,7 @@ const AccountBanned = () => {
           >
             {headline}.
           </h1>
-          <p className="font-serif italic text-sm" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
             {subline}
           </p>
         </div>
@@ -102,7 +102,7 @@ const AccountBanned = () => {
               >
                 Suspended until
               </p>
-              <p className="text-sm font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+              <p className="text-ds-13 font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
                 {formattedUntil}
               </p>
             </div>
@@ -116,7 +116,7 @@ const AccountBanned = () => {
           >
             Think this is a mistake?
           </h2>
-          <p className="text-xs font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
             If you believe your account was suspended in error, contact our support team with your account email and we'll review your case.
           </p>
         </div>
@@ -124,7 +124,7 @@ const AccountBanned = () => {
         <div className="flex flex-col gap-3">
           <a href="mailto:admin@louisianahelpr.com?subject=Account%20Suspension%20Appeal">
             <Button
-              className="w-full rounded-xl"
+              className="w-full rounded-ds-md"
               size="lg"
               style={{
                 background: "hsl(var(--bark))",
@@ -140,13 +140,13 @@ const AccountBanned = () => {
             </Button>
           </a>
           <Link to="/rules">
-            <Button variant="ghost" className="w-full rounded-xl" size="sm">
+            <Button variant="ghost" className="w-full rounded-ds-md" size="sm">
               Review Platform Rules
             </Button>
           </Link>
         </div>
 
-        <p className="text-xs font-sans" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+        <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
           Need help? Email us at{" "}
           <a
             href="mailto:admin@louisianahelpr.com"

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
   DollarSign, LogOut, MapPin,
   CreditCard, Shield,
@@ -7,7 +6,7 @@ import {
   ChevronRight as ChevronRightIcon, ChevronDown,
   HelpCircle, Bell, AlertTriangle, Heart, Crown,
   ShieldCheck, Trash2,
-  BadgeCheck, ImagePlus,
+  BadgeCheck, ImagePlus, Camera,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -81,6 +80,28 @@ export function ProfileLanding({
   // user sees blockers at a glance without having to navigate into each
   // tab to discover them.
   const tier = (profile?.subscription_tier ?? "free") as string;
+  const hasPhoto = !!profile?.avatar_url && !avatarBroken;
+
+  // Tenure label — "New member" for accounts under 30 days old (so a
+  // brand-new account doesn't read the slightly-odd "Since May 2026"),
+  // switching to "Since <Month Year>" once there's real history.
+  const memberSinceLabel = (() => {
+    if (!profile?.created_at) return null;
+    const created = new Date(profile.created_at);
+    const ageDays = (Date.now() - created.getTime()) / 86_400_000;
+    if (ageDays < 30) return "New member";
+    return `Since ${created.toLocaleDateString("en-US", { month: "short", year: "numeric" })}`;
+  })();
+
+  // Earned trust badges only — showing empty "you don't have this"
+  // pills on a fresh profile reads as a deficiency list. The
+  // unverified items are still nudged via the completion meter +
+  // Credentials tab.
+  const earnedBadges = ([
+    { ok: profile?.idv_status === "verified", label: "ID verified" },
+    { ok: (profile as any)?.license_status === "verified", label: "Licensed" },
+    { ok: (profile as any)?.insurance_status === "verified", label: "Insured" },
+  ]).filter((b) => b.ok);
   const stripeNeedsAction =
     profile?.approval_status === "approved" &&
     stripeConnectStatus !== null &&
@@ -184,8 +205,16 @@ export function ProfileLanding({
               for everyone else. ID-verified checkmark sits on the bottom-
               right as a trust signal that's visible at a glance. */}
           <div className="relative shrink-0">
-            <div
-              className="w-[92px] h-[92px] rounded-[26px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden"
+            {/* Avatar taps through to Edit Profile. When there's no
+                photo it carries a camera badge — profile photo is
+                required at signup, so a missing one only happens on
+                seeded / legacy accounts, but the nudge still helps
+                them. */}
+            <button
+              type="button"
+              onClick={() => onSelectTab("profile")}
+              aria-label={hasPhoto ? "Edit profile" : "Add a profile photo"}
+              className="w-[92px] h-[92px] rounded-[26px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden active:scale-[0.98] transition-transform"
               style={{
                 boxShadow:
                   tier === "elite"
@@ -195,27 +224,39 @@ export function ProfileLanding({
                       : "0 0 0 2px hsl(var(--bark) / 0.18)",
               }}
             >
-              {profile?.avatar_url && !avatarBroken ? (
+              {hasPhoto ? (
                 <img
                   loading="lazy"
                   decoding="async"
-                  src={profile.avatar_url}
+                  src={profile!.avatar_url as string}
                   alt=""
                   className="w-full h-full object-cover"
                   onError={() => setAvatarBroken(true)}
                 />
               ) : initials}
-            </div>
-            {profile?.idv_status === "verified" && (
+            </button>
+            {hasPhoto && profile?.idv_status === "verified" && (
               <div
                 aria-label="ID verified"
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center pointer-events-none"
                 style={{
                   background: "hsl(var(--bark))",
                   border: "2px solid hsl(var(--parchment))",
                 }}
               >
                 <BadgeCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
+              </div>
+            )}
+            {!hasPhoto && (
+              <div
+                aria-hidden
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center pointer-events-none"
+                style={{
+                  background: "hsl(var(--bark))",
+                  border: "2px solid hsl(var(--parchment))",
+                }}
+              >
+                <Camera className="w-3.5 h-3.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.25} />
               </div>
             )}
           </div>
@@ -264,45 +305,50 @@ export function ProfileLanding({
               <p className="text-ds-11 text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
                 <MapPin className="w-3 h-3 shrink-0" />
                 <span className="truncate">{profile.location}</span>
-                {profile?.created_at && (
+                {memberSinceLabel && (
                   <>
                     <span className="opacity-50">·</span>
-                    <span className="truncate">Since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+                    <span className="truncate">{memberSinceLabel}</span>
                   </>
                 )}
               </p>
             )}
-            {/* Trust badges — id verified / licensed / insured. Quiet pills
-                so they read as proof, not advertising. Missing items render
-                in muted gray so the user notices the gap. */}
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              {([
-                { ok: profile?.idv_status === "verified", label: "ID verified" },
-                { ok: (profile as any)?.license_status === "verified", label: "Licensed" },
-                { ok: (profile as any)?.insurance_status === "verified", label: "Insured" },
-              ]).map((b) => (
-                <span
-                  key={b.label}
-                  className={`inline-flex items-center gap-1 text-ds-9 font-sans font-medium px-1.5 py-0.5 rounded-full ${
-                    b.ok
-                      ? "bg-primary/10 text-primary"
-                      : "bg-muted/60 text-muted-foreground/70"
-                  }`}
-                >
-                  {b.ok ? <BadgeCheck className="w-2.5 h-2.5" /> : <span className="w-2.5 h-2.5 rounded-full border border-current" />}
-                  {b.label}
-                </span>
-              ))}
-            </div>
+            {/* Trust badges — only the EARNED ones render, so the row
+                reads as proof, not a checklist of gaps. Unearned items
+                are nudged via the completion meter + Credentials tab. */}
+            {earnedBadges.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {earnedBadges.map((b) => (
+                  <span
+                    key={b.label}
+                    className="inline-flex items-center gap-1 text-ds-9 font-sans font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary"
+                  >
+                    <BadgeCheck className="w-2.5 h-2.5" />
+                    {b.label}
+                  </span>
+                ))}
+              </div>
+            )}
             {/* Integrated stats — single inline line directly under badges */}
             <div className="flex items-center gap-3 mt-2 text-ds-11">
               <button
                 onClick={() => onSelectTab("reviews")}
                 className="flex items-center gap-1 hover:opacity-70 active:opacity-50 transition-opacity"
               >
-                <Star className="w-3 h-3 text-primary fill-primary" />
-                <span className="font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "5.0"}</span>
-                <span className="text-muted-foreground">({reviewCount})</span>
+                <Star
+                  className="w-3 h-3 text-primary"
+                  fill={reviewCount > 0 ? "currentColor" : "none"}
+                />
+                {/* "New" until the first review lands — a 5.0 with 0
+                    reviews is a default, not an earned rating. */}
+                {reviewCount > 0 ? (
+                  <>
+                    <span className="font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "5.0"}</span>
+                    <span className="text-muted-foreground">({reviewCount})</span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">New</span>
+                )}
               </button>
               <span className="w-px h-3 bg-border/60" />
               <button
@@ -526,22 +572,25 @@ export function ProfileLanding({
         }}
       >
         <div className="px-4 pt-3 pb-4 space-y-3">
-          {/* Payout Banner */}
+          {/* Payout banner — slim single-row alert. It used to be a
+              big bordered card + full-width solid button that dominated
+              the page; the MONEY tab chip now also carries a blocker
+              dot, so this can inform without shouting. The whole row
+              taps through to Payment Settings. */}
           {profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
-            <div className="rounded-[24px] border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-ds-13 font-semibold text-foreground">Set up your payout account</p>
-                  <p className="text-ds-11 text-muted-foreground mt-1">
-                    Add a bank account in Payment Settings to accept jobs and receive payments.
-                  </p>
-                </div>
-              </div>
-              <Button onClick={() => onSelectTab("payment")} className="w-full" size="sm">
-                <CreditCard className="w-4 h-4 mr-2" /> Go to Payment Settings
-              </Button>
-            </div>
+            <button
+              type="button"
+              onClick={() => onSelectTab("payment")}
+              className="w-full flex items-center gap-2.5 rounded-ds-md border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-left active:scale-[0.99] transition-all"
+            >
+              <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+              <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
+                <span className="font-semibold">Set up your payout account</span> to accept jobs and get paid.
+              </p>
+              <span className="shrink-0 text-ds-11 font-semibold text-destructive inline-flex items-center gap-0.5">
+                Set up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
+              </span>
+            </button>
           )}
 
           {/* Category buttons replace the old always-expanded long list. */}

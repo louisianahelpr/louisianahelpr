@@ -530,7 +530,7 @@ const DashboardGuest = () => {
                       }}
                     >
                       <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center"
+                        className="w-20 h-20 rounded-full flex items-center justify-center"
                         style={{
                           backgroundColor: "hsla(0, 0%, 100%, 0.7)",
                           backdropFilter: "blur(16px) saturate(150%)",
@@ -542,7 +542,7 @@ const DashboardGuest = () => {
                             "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
                         }}
                       >
-                        <Briefcase className="w-7 h-7" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+                        <Briefcase className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
                       </div>
                       <div className="space-y-1.5">
                         <span className="text-display-eyebrow">Quiet today</span>

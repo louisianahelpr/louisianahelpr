@@ -601,12 +601,6 @@ const Messages = () => {
                   >
                     All threads
                   </h2>
-                  <span
-                    className="font-serif italic mt-0.5 text-[0.72rem]"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                  >
-                    {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
-                  </span>
                 </div>
               </div>
               {!loading && conversations.length === 0 ? (
@@ -664,24 +658,23 @@ const Messages = () => {
                         Apply to a task or accept a helpr's offer — your conversations will land here.
                       </p>
                     </div>
-                    <button
+                    <Button
                       onClick={() => navigate("/dashboard")}
-                      className="group relative inline-flex items-center gap-2.5 px-6 h-12 rounded-full overflow-hidden transition-transform duration-200 active:scale-[0.96]"
+                      className="rounded-full px-6 h-12"
                       style={{
                         background: "hsl(var(--bark))",
                         color: "hsl(var(--parchment))",
                         border: "1px solid hsl(70 22% 24%)",
                         fontFamily: "Montserrat, system-ui, sans-serif",
                         fontWeight: 600,
-                        letterSpacing: "0.01em",
                         boxShadow:
                           "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                          "0 1px 2px hsl(70 20% 18% / 0.22), " +
-                          "0 8px 18px -6px hsl(var(--bark) / 0.55)",
+                          "0 1px 2px hsl(70 20% 18% / 0.18), " +
+                          "0 8px 18px -6px hsl(var(--bark) / 0.45)",
                       }}
                     >
                       Browse tasks
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (

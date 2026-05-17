@@ -665,13 +665,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                   >
                     {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
                   </h2>
-                  <span
-                    className="font-serif italic mt-0.5 text-ds-11"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                  >
-                    {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length)}{" "}
-                    {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length) === 1 ? "task" : "tasks"}
-                  </span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button

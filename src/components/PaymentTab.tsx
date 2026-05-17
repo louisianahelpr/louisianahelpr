@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CreditCard, DollarSign, BanknoteIcon, ChevronRight } from "lucide-react";
+import { CreditCard, ChevronRight } from "lucide-react";
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { toast } from "sonner";
@@ -67,21 +67,16 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
 
   return (
     <div className="space-y-5">
+      {/* Section headers are quiet eyebrow labels (matching the Edit
+          Profile sections) rather than icon-circle + eyebrow + bold
+          h2 stacks — the page had three competing title treatments
+          and read as cluttered. The tab header ("Payment settings")
+          is the one real title now. */}
       {isHelper && (
         <section className="space-y-2">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <BanknoteIcon className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                Stripe Connect
-              </p>
-              <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-                Payout account
-              </h2>
-            </div>
-          </div>
+          <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            Payout account
+          </p>
           <div className="rounded-2xl liquid-glass p-5">
             <PayoutSetupForm />
           </div>
@@ -89,19 +84,9 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
       )}
 
       <section className="space-y-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <DollarSign className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              Lifetime totals
-            </p>
-            <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-              Payment summary
-            </h2>
-          </div>
-        </div>
+        <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+          Payment summary
+        </p>
         <div className="rounded-2xl liquid-glass p-5">
           {/* Scope toggle — lifetime vs this month. Inline so the
               switch is right next to the numbers it reframes. */}

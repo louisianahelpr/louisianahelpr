@@ -75,7 +75,7 @@ export function DatePickerField({
             setOpen(false);
           }}
           disabled={(d) => d < minDate}
-          initialFocus
+          autoFocus
           className={cn("p-3 pointer-events-auto")}
         />
       </PopoverContent>

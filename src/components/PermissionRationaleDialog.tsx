@@ -5,7 +5,7 @@
  * Garamond italic body) matches PageHeader / hero cards.
  */
 import { useEffect, useState } from "react";
-import { Bell, Camera, Image as ImageIcon, MapPin, Users, ShieldCheck } from "lucide-react";
+import { Bell, Camera, Image as ImageIcon, MapPin, Users, ShieldCheck, type LucideIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,7 @@ import {
   type PermissionKind,
 } from "@/hooks/usePermissionRationale";
 
-const ICON_FOR_KIND: Record<PermissionKind, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+const ICON_FOR_KIND: Record<PermissionKind, LucideIcon> = {
   notifications: Bell,
   camera: Camera,
   photos: ImageIcon,

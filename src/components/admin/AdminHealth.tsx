@@ -74,6 +74,7 @@ const AdminHealth = () => {
       emailStats: { total: 0, sent: 0, failed: 0, suppressed: 0 },
       pushStats: { total: 0, ios: 0, android: 0, latestAt: null },
       fraudCount: 0,
+      adminPushTokenCount: 0,
       recentJobs: { open: 0, completed: 0, disputed: 0, cancelled: 0 },
       healthStatus: "unknown",
       parishStats: [],

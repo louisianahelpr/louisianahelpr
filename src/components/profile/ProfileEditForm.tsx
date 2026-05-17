@@ -38,6 +38,9 @@ interface ProfileEditFormProps {
   /** Called after portfolio upload/remove with the full new URL list so
    *  the parent can sync its profile state without a refetch. */
   onPortfolioChange?: (urls: string[]) => void;
+  /** Opens the Support tab — first/last name are locked after signup,
+   *  so a name change has to go through support. */
+  onContactSupport?: () => void;
 }
 
 export function ProfileEditForm({
@@ -64,6 +67,7 @@ export function ProfileEditForm({
   onIdUpload,
   onBack,
   onPortfolioChange,
+  onContactSupport,
 }: ProfileEditFormProps) {
   const idStatus = (profile as any)?.idv_status as string | null;
   const hasId = !!(profile as any)?.id_document_url;
@@ -296,7 +300,21 @@ export function ProfileEditForm({
                 {`${firstName} ${lastName}`.trim() || "Your name"}
               </p>
               <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-                Tap the photo to change. Your name is locked after signup.
+                Tap the photo to change. Your name is locked after signup
+                {onContactSupport ? (
+                  <>
+                    {" — "}
+                    <button
+                      type="button"
+                      onClick={onContactSupport}
+                      className="not-italic font-sans font-semibold underline active:opacity-70"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      contact support
+                    </button>
+                    {" to change it."}
+                  </>
+                ) : "."}
               </p>
             </div>
           </div>
@@ -419,6 +437,7 @@ export function ProfileEditForm({
           </div>
           <p className="font-serif italic leading-snug -mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
             Show off recent jobs — applicants see these when deciding to apply.
+            {" "}<span className="not-italic font-sans font-medium" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>Photos save automatically.</span>
           </p>
           <div className="grid grid-cols-3 gap-2">
             {portfolioUrls.map((url, i) => (

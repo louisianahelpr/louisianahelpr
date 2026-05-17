@@ -14,6 +14,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, List, Map as MapIcon } from "lucide-react";
@@ -944,103 +946,41 @@ const Dashboard = () => {
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
             <div className="px-4 pt-4 flex-1 min-h-0 flex">
-              {/* Empty-state liquid-glass card — top corners rounded,
-                  bottom flat. Bottom + bottom-spreading drop shadows
-                  removed so the card bleeds beneath the dock's frosted
-                  curtain with no visible shadow line above it. */}
-              <div
-                className="liquid-glass flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
-                style={{
-                  borderBottomLeftRadius: 0,
-                  borderBottomRightRadius: 0,
-                  borderBottom: "none",
-                  boxShadow:
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                    "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
-                    "1px 0 2px hsl(var(--olivewood) / 0.06), " +
-                    "0 -1px 2px hsl(var(--olivewood) / 0.06)",
-                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
-                }}
-              >
-                  {/* Frosted glass circle — wraps the search icon so it
-                      reads as a clear focal point against the now-textured
-                      paper-mesh background. */}
-                  <div
-                    className="w-20 h-20 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                      backdropFilter: "blur(16px) saturate(150%)",
-                      WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                      border: "1px solid hsla(0, 0%, 100%, 0.7)",
-                      boxShadow:
-                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                        "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                        "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                    }}
-                  >
-                    <Search className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="text-display-eyebrow">
-                      {filters.hasFilters ? "No matches" : "All quiet — for now"}
-                    </span>
-                    <p
-                      className="font-display italic font-bold leading-tight"
-                      style={{
-                        fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                        color: "hsl(var(--ink-deep))",
-                        letterSpacing: "-0.02em",
-                      }}
-                    >
-                      {filters.hasFilters ? "No jobs match your filters." : "Nothing today, neighbor."}
-                    </p>
-                    <p
-                      className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                    >
-                      {filters.hasFilters
-                        ? filters.boostedOnly
-                          ? "No boosted jobs right now — try clearing the filter to see all open work."
-                          : "Try widening your parish, raising your budget, or clearing a filter."
-                        : (() => {
-                            // Rotating friendly tip — picks one of 4 every
-                            // hour so the empty state feels alive on repeat
-                            // visits instead of static. Deterministic per
-                            // hour keeps it from flickering on every render.
-                            const tips = [
-                              "New jobs post throughout the day. Helprs often check in around lunch and after work.",
-                              "Most posts go up on weekday evenings. Pull down to refresh anytime.",
-                              "Saved a search? Helpr will ping you the moment a matching job hits the board.",
-                              "Quiet days happen. The neighborhood circles back — usually before sundown.",
-                            ];
-                            return tips[new Date().getHours() % tips.length];
-                          })()}
-                    </p>
-                  </div>
-                  {filters.hasFilters ? (
+              <EmptyState
+                icon={Search}
+                eyebrow={filters.hasFilters ? "No matches" : "All quiet — for now"}
+                title={filters.hasFilters ? "No jobs match your filters." : "Nothing today, neighbor."}
+                body={
+                  filters.hasFilters
+                    ? filters.boostedOnly
+                      ? "No boosted jobs right now — try clearing the filter to see all open work."
+                      : "Try widening your parish, raising your budget, or clearing a filter."
+                    : (() => {
+                        // Rotating friendly tip — picks one of 4 every hour so
+                        // the empty state feels alive on repeat visits instead
+                        // of static. Deterministic per hour keeps it from
+                        // flickering on every render.
+                        const tips = [
+                          "New jobs post throughout the day. Helprs often check in around lunch and after work.",
+                          "Most posts go up on weekday evenings. Pull down to refresh anytime.",
+                          "Saved a search? Helpr will ping you the moment a matching job hits the board.",
+                          "Quiet days happen. The neighborhood circles back — usually before sundown.",
+                        ];
+                        return tips[new Date().getHours() % tips.length];
+                      })()
+                }
+                action={
+                  filters.hasFilters ? (
                     <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
                       Clear filters
                     </Button>
                   ) : (
-                    <Button
-                      onClick={() => navigate("/post-job")}
-                      className="rounded-full px-6 h-12"
-                      style={{
-                        background: "hsl(var(--bark))",
-                        color: "hsl(var(--parchment))",
-                        border: "1px solid hsl(70 22% 24%)",
-                        fontFamily: "Montserrat, system-ui, sans-serif",
-                        fontWeight: 600,
-                        boxShadow:
-                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                          "0 1px 2px hsl(70 20% 18% / 0.18), " +
-                          "0 8px 18px -6px hsl(var(--bark) / 0.45)",
-                      }}
-                    >
+                    <BarkPillButton onClick={() => navigate("/post-job")}>
                       Post the first job
-                    </Button>
-                  )}
-              </div>
+                    </BarkPillButton>
+                  )
+                }
+              />
             </div>
             ) : (() => {
               const visibleJobs = filters.filteredJobs

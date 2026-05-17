@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Briefcase, List, Map as MapIcon, X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import JobCard from "@/components/dashboard/JobCard";
 
@@ -515,64 +516,23 @@ const DashboardGuest = () => {
                   // bleeds beneath the dock (flat bottom, no hard edge),
                   // matching the Dashboard / Messages empty-state pattern.
                   <div className="flex-1 min-h-full flex">
-                    <div
-                      className="liquid-glass flex-1 flex flex-col items-center text-center justify-center px-6 py-8 gap-3 rounded-t-2xl"
-                      style={{
-                        borderBottomLeftRadius: 0,
-                        borderBottomRightRadius: 0,
-                        borderBottom: "none",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                          "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
-                          "1px 0 2px hsl(var(--olivewood) / 0.06), " +
-                          "0 -1px 2px hsl(var(--olivewood) / 0.06)",
-                        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
-                      }}
-                    >
-                      <div
-                        className="w-20 h-20 rounded-full flex items-center justify-center"
-                        style={{
-                          backgroundColor: "hsla(0, 0%, 100%, 0.7)",
-                          backdropFilter: "blur(16px) saturate(150%)",
-                          WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                          border: "1px solid hsl(var(--olivewood) / 0.12)",
-                          boxShadow:
-                            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                            "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                            "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                        }}
-                      >
-                        <Briefcase className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <span className="text-display-eyebrow">Quiet today</span>
-                        <p
-                          className="font-display italic font-bold leading-tight"
-                          style={{
-                            fontSize: "clamp(1.05rem, 1.5vw + 0.4rem, 1.35rem)",
-                            color: "hsl(var(--ink-deep))",
-                            letterSpacing: "-0.02em",
-                          }}
-                        >
-                          No matching jobs right now.
-                        </p>
-                        <p
-                          className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                        >
-                          Try clearing filters or check back later — new tasks land throughout the day.
-                        </p>
-                      </div>
-                      {hasFilters && (
-                        <button
-                          type="button"
-                          onClick={clearAllFilters}
-                          className="mt-1 text-ds-11 font-semibold text-primary hover:underline btn-press"
-                        >
-                          Clear filters
-                        </button>
-                      )}
-                    </div>
+                    <EmptyState
+                      icon={Briefcase}
+                      eyebrow="Quiet today"
+                      title="No matching jobs right now."
+                      body="Try clearing filters or check back later — new tasks land throughout the day."
+                      action={
+                        hasFilters && (
+                          <button
+                            type="button"
+                            onClick={clearAllFilters}
+                            className="text-ds-11 font-semibold text-primary hover:underline btn-press"
+                          >
+                            Clear filters
+                          </button>
+                        )
+                      }
+                    />
                   </div>
                 ) : (
                   <div

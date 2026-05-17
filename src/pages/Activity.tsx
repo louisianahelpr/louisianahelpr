@@ -8,7 +8,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { checkProximity } from "@/lib/locationUtils";
-import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { toast } from "sonner";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -838,75 +839,17 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               const Icon = isPosted ? Search : Send;
               return (
                 <div className="flex-1 min-h-full flex">
-                  {/* Empty-state card — top corners rounded, bottom flat so
-                      it bleeds beneath the dock with no hard edge. Matches
-                      the Dashboard / Messages empty-state pattern. */}
-                  <div
-                    className="flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
-                    style={{
-                      borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 0,
-                      borderBottom: "none",
-                      boxShadow:
-                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                        "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
-                        "1px 0 2px hsl(var(--olivewood) / 0.06), " +
-                        "0 -1px 2px hsl(var(--olivewood) / 0.06)",
-                      paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
-                    }}
-                  >
-                    <div
-                      className="w-20 h-20 rounded-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                        backdropFilter: "blur(16px) saturate(150%)",
-                        WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                        border: "1px solid hsl(var(--olivewood) / 0.10)",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                          "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                      }}
-                    >
-                      <Icon className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <span className="text-display-eyebrow">{eyebrow}</span>
-                      <p
-                        className="font-display italic font-bold leading-tight"
-                        style={{
-                          fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                          color: "hsl(var(--ink-deep))",
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
-                        {title}
-                      </p>
-                      <p
-                        className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                      >
-                        {body}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => navigate(ctaTo)}
-                      className="rounded-full px-6 h-12"
-                      style={{
-                        background: "hsl(var(--bark))",
-                        color: "hsl(var(--parchment))",
-                        border: "1px solid hsl(70 22% 24%)",
-                        fontFamily: "Montserrat, system-ui, sans-serif",
-                        fontWeight: 600,
-                        boxShadow:
-                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                          "0 1px 2px hsl(70 20% 18% / 0.18), " +
-                          "0 8px 18px -6px hsl(var(--bark) / 0.45)",
-                      }}
-                    >
-                      {ctaLabel}
-                    </Button>
-                  </div>
+                  <EmptyState
+                    icon={Icon}
+                    eyebrow={eyebrow}
+                    title={title}
+                    body={body}
+                    action={
+                      <BarkPillButton onClick={() => navigate(ctaTo)}>
+                        {ctaLabel}
+                      </BarkPillButton>
+                    }
+                  />
                 </div>
               );
             })()

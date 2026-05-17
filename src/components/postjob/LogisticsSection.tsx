@@ -1,5 +1,6 @@
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { DatePickerField } from "@/components/DatePickerField";
+import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -110,25 +111,14 @@ export function LogisticsSection({
         <Label>Location <span className="text-destructive">*</span></Label>
         <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} autoComplete="street-address" aria-label="Street address" />
         <div className="grid grid-cols-3 gap-2.5">
-          {/* City is the only address part shown publicly on job cards,
-              so title-case it on blur for clean, consistent display. */}
-          <Input
+          {/* City is the only address part shown publicly on job cards.
+              CityAutocomplete suggests canonical Louisiana city names so
+              card display + filtering stay consistent; free-typed
+              values are still accepted and title-cased. */}
+          <CityAutocomplete
             id="city"
             value={city}
-            onChange={(e) => setCity(e.target.value)}
-            onBlur={(e) =>
-              setCity(
-                e.target.value
-                  .trim()
-                  .toLowerCase()
-                  .replace(/\b\w/g, (ch) => ch.toUpperCase()),
-              )
-            }
-            placeholder="City"
-            required
-            maxLength={100}
-            autoComplete="address-level2"
-            aria-label="City"
+            onChange={setCity}
             className="px-3 text-[14px]"
           />
           {/* State is locked to LA — Helpr only operates in Louisiana,

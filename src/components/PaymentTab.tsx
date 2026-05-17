@@ -32,19 +32,20 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
     }
   }, [searchParams]);
 
-  const isHelper = true;
   // Lifetime totals — completed jobs only so cancelled/expired don't
   // inflate the headline numbers.
   const completedJobs = earningsJobs.filter((j) => j.status === "completed");
   const lifetimeSpent = completedJobs.reduce((s, j) => s + j.budget, 0);
   const lifetimeEarned = totalEarnings;
-  // This-month slice — bucketed by completed_at (falls back to created_at
-  // for older rows that don't have a completion timestamp).
+  // This-month slice — bucketed by completion timestamp (poster confirmation,
+  // falling back to the helper's, then created_at for older rows that
+  // predate completion timestamps).
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   const monthCompleted = completedJobs.filter((j) => {
-    const t = (j as any).completed_at
-      ? new Date((j as any).completed_at).getTime()
+    const completedAt = j.poster_completed_at ?? j.helper_completed_at;
+    const t = completedAt
+      ? new Date(completedAt).getTime()
       : new Date(j.created_at).getTime();
     return t >= monthStart;
   });
@@ -76,16 +77,14 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
           h2 stacks — the page had three competing title treatments
           and read as cluttered. The tab header ("Payment settings")
           is the one real title now. */}
-      {isHelper && (
-        <section className="space-y-2">
-          <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-            Payout account
-          </p>
-          <div className="rounded-2xl liquid-glass p-5">
-            <PayoutSetupForm />
-          </div>
-        </section>
-      )}
+      <section className="space-y-2">
+        <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+          Payout account
+        </p>
+        <div className="rounded-2xl liquid-glass p-5">
+          <PayoutSetupForm />
+        </div>
+      </section>
 
       <section className="space-y-2">
         <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>

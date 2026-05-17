@@ -2,8 +2,7 @@
 //
 // Extracted from src/pages/Signup.tsx. Owns no state of its own; every
 // field is a controlled input bound to props lifted into the parent.
-// Validation lives in the parent (validateStep2 — yes the legacy naming
-// is inverted; cleaning that up is a separate cut).
+// Validation lives in the parent (validateAccountStep).
 //
 // Reusable input/label class constants are passed in so the parent stays
 // the single source of truth for form styling.

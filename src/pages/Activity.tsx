@@ -621,8 +621,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               >
                 {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length)}{" "}
                 {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length) === 1 ? "task" : "tasks"}
-                {" · "}
-                {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
               </p>
             </div>
           </div>
@@ -811,10 +809,18 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             </div>
           )}
 
+          <PullToRefreshWrapper
+            ref={containerRef}
+            pullDistance={pullDistance}
+            refreshing={refreshing}
+            isPulling={isPulling}
+            canTrigger={canTrigger}
+            className="flex-1 min-h-0 px-4 pt-3 pb-0"
+          >
           {(tab === "posted" && filteredPostedJobs.length === 0) || (tab === "applied" && filteredAppliedApps.length === 0) ? (
-            // Empty state — a liquid-glass card that fills the bottom box
-            // and bleeds beneath the dock (flat bottom, no hard edge),
-            // matching the Dashboard / Messages empty-state pattern.
+            // Empty state — a liquid-glass card that fills the panel and
+            // bleeds beneath the dock (flat bottom, no hard edge), matching
+            // the Dashboard / Messages empty-state pattern.
             (() => {
               const isPosted = tab === "posted";
               const totalCount = isPosted ? postedJobs.length : appliedApps.length;
@@ -831,7 +837,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               const ctaTo = isPosted ? "/post-job" : "/dashboard";
               const Icon = isPosted ? Search : Send;
               return (
-                <div className="px-4 pt-4 flex flex-1 min-h-0">
+                <div className="flex-1 min-h-full flex">
                   {/* Empty-state card — top corners rounded, bottom flat so
                       it bleeds beneath the dock with no hard edge. Matches
                       the Dashboard / Messages empty-state pattern. */}
@@ -905,15 +911,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               );
             })()
           ) : (
-          <PullToRefreshWrapper
-            ref={containerRef}
-            pullDistance={pullDistance}
-            refreshing={refreshing}
-            isPulling={isPulling}
-            canTrigger={canTrigger}
-            className="flex-1 min-h-0 px-4 pt-3"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
-          >
+            <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
           {tab === "posted" && (
             <PostedJobsTab
               jobs={filteredPostedJobs}
@@ -969,8 +967,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onHelperReview={(jobId, posterId, posterName) => setHelperReviewJob({ jobId, posterId, posterName })}
             />
           )}
-          </PullToRefreshWrapper>
+            </div>
           )}
+          </PullToRefreshWrapper>
           </div>
         </div>
       </main>

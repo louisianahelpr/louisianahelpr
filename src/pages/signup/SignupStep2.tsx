@@ -5,9 +5,7 @@
 // into the parent. File handlers (avatar + ID) are passed in as
 // callbacks so the validateFile / state-setter wiring stays in one place.
 //
-// Note the legacy validation naming inversion: parent's validateStep1
-// validates THIS step (UI step 2), and validateStep2 validates Step 1.
-// Renaming is a follow-up — left alone here to keep this PR low-risk.
+// Validation lives in the parent (validateAboutYouStep).
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

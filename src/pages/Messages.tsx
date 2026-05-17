@@ -619,8 +619,9 @@ const Messages = () => {
                       borderBottom: "none",
                       boxShadow:
                         "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                        "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                        "0 14px 30px -8px hsl(var(--olivewood) / 0.14)",
+                        "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                        "1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                        "0 -1px 2px hsl(var(--olivewood) / 0.06)",
                       paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
                     }}
                   >

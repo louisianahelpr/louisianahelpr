@@ -598,7 +598,7 @@ const ProfilePage = () => {
               <ProfileTabHeader
                 eyebrow="Money"
                 title="Payment settings"
-                meta="Cards, bank accounts, payouts"
+                meta="Payouts & earnings"
                 onBack={() => setTab("landing")}
               />
               <PaymentTab

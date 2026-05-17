@@ -219,53 +219,35 @@ export function PayoutSetupForm() {
         </button>
       )}
       {!status?.connected && (
-        <div
-          className="rounded-ds-md p-4"
-          style={{
-            background: "hsl(var(--burnt-sienna) / 0.08)",
-            border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-            boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
-            <div>
-              <p
-                className="font-display italic font-bold leading-tight"
-                style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-              >
-                Connect to start earning
-              </p>
-              <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
-                Set up your payout account through Stripe so completed jobs pay out straight to your bank.
-              </p>
-            </div>
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+          <div>
+            <p
+              className="font-display italic font-bold leading-tight"
+              style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            >
+              Connect to start earning
+            </p>
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+              Set up your payout account through Stripe so completed jobs pay out straight to your bank.
+            </p>
           </div>
         </div>
       )}
 
       {needsMoreInfo && (
-        <div
-          className="rounded-ds-md p-4"
-          style={{
-            background: "hsl(var(--gold-warm) / 0.10)",
-            border: "0.5px solid hsl(var(--gold-warm) / 0.34)",
-            boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(38 60% 32%)" }} />
-            <div>
-              <p
-                className="font-display italic font-bold leading-tight"
-                style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-              >
-                One more step
-              </p>
-              <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
-                Stripe needs a few more details before payouts can run. Pick up where you left off below.
-              </p>
-            </div>
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(38 60% 32%)" }} />
+          <div>
+            <p
+              className="font-display italic font-bold leading-tight"
+              style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            >
+              One more step
+            </p>
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+              Stripe needs a few more details before payouts can run. Pick up where you left off below.
+            </p>
           </div>
         </div>
       )}

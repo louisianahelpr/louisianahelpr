@@ -226,7 +226,7 @@ export function DetailsSection({
                 boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
               }}
             >
-              {(/^blob:/i.test(src) || /^data:image\//i.test(src)) ? (
+              {/^blob:/i.test(src) ? (
                 <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>

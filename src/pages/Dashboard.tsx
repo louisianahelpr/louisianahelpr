@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, Plus, ArrowRight, List, Map as MapIcon } from "lucide-react";
+import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, List, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
@@ -1022,37 +1022,23 @@ const Dashboard = () => {
                       Clear filters
                     </Button>
                   ) : (
-                    <button
+                    <Button
                       onClick={() => navigate("/post-job")}
-                      className="group relative inline-flex items-center gap-2.5 px-6 h-12 rounded-full overflow-hidden transition-transform duration-200 active:scale-[0.96]"
+                      className="rounded-full px-6 h-12"
                       style={{
-                        // Lighter parchment + sienna outline so this
-                        // in-card CTA reads as a secondary affordance
-                        // and doesn't fight the bark FAB at the bottom
-                        // dock. Same action target, calmer presence.
-                        background: "hsl(var(--parchment))",
-                        color: "hsl(var(--burnt-sienna))",
-                        border: "1px solid hsl(var(--burnt-sienna) / 0.4)",
+                        background: "hsl(var(--bark))",
+                        color: "hsl(var(--parchment))",
+                        border: "1px solid hsl(70 22% 24%)",
                         fontFamily: "Montserrat, system-ui, sans-serif",
                         fontWeight: 600,
-                        letterSpacing: "0.01em",
                         boxShadow:
-                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.6), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                          "0 6px 14px -6px hsl(var(--burnt-sienna) / 0.18)",
+                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
+                          "0 1px 2px hsl(70 20% 18% / 0.18), " +
+                          "0 8px 18px -6px hsl(var(--bark) / 0.45)",
                       }}
                     >
-                      <Plus
-                        className="w-4 h-4"
-                        strokeWidth={2.75}
-                        style={{ color: "hsl(var(--burnt-sienna))" }}
-                      />
-                      <span className="text-ds-15">Post the first job</span>
-                      <ArrowRight
-                        className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
-                        strokeWidth={2.5}
-                      />
-                    </button>
+                      Post the first job
+                    </Button>
                   )}
               </div>
             </div>

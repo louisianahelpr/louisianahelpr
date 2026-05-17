@@ -15,16 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { scanMessage } from "@/lib/messageScanner";
@@ -1151,40 +1142,30 @@ const Messages = () => {
       )}
 
       {/* Delete conversation confirmation */}
-      <AlertDialog open={!!deleteConvoConfirm} onOpenChange={() => setDeleteConvoConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will delete your sent messages in this conversation with {deleteConvoConfirm?.otherUserName}. Messages you received will still be visible to the other person. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteConvoConfirm && deleteConversation(deleteConvoConfirm)}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <BrandConfirmDialog
+        open={!!deleteConvoConfirm}
+        onOpenChange={(o) => { if (!o) setDeleteConvoConfirm(null); }}
+        title="Delete conversation?"
+        description={`This deletes your sent messages in this conversation with ${deleteConvoConfirm?.otherUserName ?? "this person"}. Messages you received stay visible to them. This can't be undone.`}
+        primaryLabel="Delete"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => deleteConvoConfirm && deleteConversation(deleteConvoConfirm)}
+        secondaryLabel="Cancel"
+      />
 
       {/* Delete message confirmation */}
-      <AlertDialog open={!!deleteMessageConfirm} onOpenChange={() => setDeleteMessageConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete message?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This message will be permanently deleted. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteMessageConfirm && deleteMessage(deleteMessageConfirm)}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <BrandConfirmDialog
+        open={!!deleteMessageConfirm}
+        onOpenChange={(o) => { if (!o) setDeleteMessageConfirm(null); }}
+        title="Delete message?"
+        description="This message will be permanently deleted. This can't be undone."
+        primaryLabel="Delete"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => deleteMessageConfirm && deleteMessage(deleteMessageConfirm)}
+        secondaryLabel="Cancel"
+      />
     </div>
   );
 };

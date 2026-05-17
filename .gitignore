@@ -23,7 +23,11 @@ supabase/.temp/
 
 # Claude Code agent worktrees / scratch directory at repo root.
 # Cowork sessions create these; they're per-machine and shouldn't be tracked.
-.claude/
+# The SessionStart hook + shared settings ARE tracked so Claude Code on the
+# web can install dependencies at session start.
+.claude/*
+!.claude/hooks/
+!.claude/settings.json
 
 # Environment variables (never commit secrets)
 .env

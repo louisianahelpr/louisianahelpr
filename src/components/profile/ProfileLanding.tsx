@@ -502,21 +502,19 @@ export function ProfileLanding({
         )}
       </div>
 
-      {/* Bottom box — menu groups + account actions. Extends
-          to viewport bottom with flat bottom corners. AppShell
-          handles vertical scroll (scrollable=true on landing),
-          so this card just stacks naturally. */}
+      {/* Bottom box — menu groups + account actions. A normal,
+          fully-rounded card with a soft contained shadow. (It used to
+          carry the flat-bottom "bleed under the dock" treatment, but
+          this content is short and the landing tab scrolls naturally,
+          so that just produced a hard cut-off edge below Delete
+          account instead of a finished card.) */}
       <div
         className="liquid-glass"
         style={{
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          borderBottom: "none",
           boxShadow:
             "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
             "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-            "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-            "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+            "0 12px 28px -10px hsl(var(--olivewood) / 0.14)",
         }}
       >
         <div className="px-4 pt-3 pb-4 space-y-3">
@@ -621,14 +619,15 @@ export function ProfileLanding({
             })()}
           </div>
 
-          {/* Account actions — iOS Settings-style stacked footer.
-              Sign out is the primary affordance (centered, prominent,
-              brand bark text). Delete account is a small ghost link
-              tucked beneath it in destructive-muted — important enough
-              to find, quiet enough not to compete with sign-out. The
-              old side-by-side equal-weight pair encouraged accidental
-              destructive taps. */}
-          <div className="pt-2 space-y-2">
+          {/* Account actions — two stacked buttons of the same shape so
+              the footer reads as a finished pair, not a button + a
+              naked link. Sign out is the solid white card (primary
+              affordance, brand bark text). Delete account is the same
+              pill outlined in burnt-sienna — the brand's destructive
+              tone, matching the Delete-account confirmation dialog —
+              transparent so it stays clearly secondary without looking
+              unfinished. */}
+          <div className="pt-2 space-y-2.5">
             <button
               type="button"
               onClick={onRequestLogout}
@@ -644,9 +643,16 @@ export function ProfileLanding({
             <button
               type="button"
               onClick={onRequestDelete}
-              className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 text-ds-11 font-sans font-medium text-destructive/80 hover:text-destructive active:opacity-70 transition-colors"
+              className="w-full rounded-[20px] py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
+              style={{
+                background: "transparent",
+                border: "1px solid hsl(var(--burnt-sienna) / 0.32)",
+                color: "hsl(var(--burnt-sienna))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+              }}
             >
-              <Trash2 className="w-3.5 h-3.5" /> Delete account
+              <Trash2 className="w-4 h-4" /> Delete account
             </button>
           </div>
         </div>

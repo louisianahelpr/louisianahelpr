@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Briefcase, List, Map as MapIcon, X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import JobCard from "@/components/dashboard/JobCard";
 
@@ -209,12 +210,13 @@ const DashboardGuest = () => {
   });
 
   return (
-    <div
-      className="h-[100dvh] max-h-[100dvh] bg-premium-page flex flex-col overflow-hidden animate-in fade-in-0 duration-500"
-    >
-      {/* Header — matches DashboardHeader's frosted-glass treatment, with
-          guest-only Log in / Sign up actions in place of the menu/notif/etc. */}
-      <header
+    <PageScaffold
+      maxWidth="narrow"
+      className="animate-in fade-in-0 duration-500"
+      header={
+        /* Header — matches DashboardHeader's frosted-glass treatment, with
+           guest-only Log in / Sign up actions in place of the menu/notif/etc. */
+        <header
         className="sticky top-0 z-50 border-b border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur-[12px] backdrop-saturate-150 shadow-[0_4px_20px_-8px_hsl(0_0%_0%/0.08)] shrink-0"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)", WebkitBackdropFilter: "blur(12px) saturate(1.5)" }}
       >
@@ -250,26 +252,9 @@ const DashboardGuest = () => {
           </div>
         </div>
       </header>
-
-      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div className="w-full max-w-3xl lg:max-w-5xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden">
-
-          {/* Greeting card — editorial liquid-glass surface mirroring the
-              authenticated dashboard's "Good morning, X" pane. */}
-          <section
-            className="liquid-glass shrink-0 px-4 py-3 lg:px-5 lg:py-4 relative overflow-hidden"
-            style={{
-              backgroundImage:
-                "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
-                "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                "0 6px 14px -6px hsl(var(--olivewood) / 0.1), " +
-                "0 14px 24px -10px hsl(var(--olivewood) / 0.12)",
-            }}
-          >
+      }
+      titleCard={
+        <>
             <span
               className="font-serif italic uppercase text-ds-9"
               style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
@@ -292,23 +277,9 @@ const DashboardGuest = () => {
             >
               Post a task in a minute, or browse what your Louisiana neighbors need. Free to sign up.
             </p>
-          </section>
-
-          {/* Browse Tasks card — extends to the viewport bottom (flat
-              bottom corners) so it reads as continuing under the dock. */}
-          <section
-            className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
-            style={{
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              borderBottom: "none",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-                "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
-            }}
-          >
+        </>
+      }
+    >
             {/* Header row — title block + view toggle + search button. */}
             <div
               className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
@@ -557,10 +528,7 @@ const DashboardGuest = () => {
                 )}
               </PullToRefreshWrapper>
             )}
-          </section>
-        </div>
-      </main>
-    </div>
+    </PageScaffold>
   );
 };
 

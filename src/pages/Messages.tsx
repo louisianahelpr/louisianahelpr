@@ -18,6 +18,7 @@ import {
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
+import { PageScaffold } from "@/components/ui/PageScaffold";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { scanMessage } from "@/lib/messageScanner";
@@ -519,29 +520,11 @@ const Messages = () => {
   };
 
   return (
-    <div className={`${activeConvo ? 'min-h-screen' : 'h-[100dvh] max-h-[100dvh]'} flex flex-col bg-premium-page overflow-hidden`}>
-      <DashboardHeader />
-
-      <main className={`container mx-auto px-5 lg:px-8 xl:px-12 ${activeConvo ? 'pt-0' : 'pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden'}`}>
-        <div className={`w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto ${activeConvo ? '' : 'flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden'}`}>
-          {!activeConvo ? (
-            <>
-            {/* Top box — page title block on its own glass panel.
-                Mirrors the dashboard greeting card. */}
-            <div
-              className="liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden"
-              style={{
-                backgroundImage:
-                  "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
-                  "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
-                boxShadow:
-                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                  "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
-                  "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                  "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
-                  "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
-              }}
-            >
+    <>
+      {!activeConvo ? (
+        <PageScaffold
+          header={<DashboardHeader />}
+          titleCard={
               <div className="flex flex-col leading-none">
                 <h1
                   className="font-display font-bold leading-tight"
@@ -564,22 +547,8 @@ const Messages = () => {
                   {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
                 </p>
               </div>
-            </div>
-
-            {/* Bottom box — thread list, extends to viewport bottom. */}
-            <div
-              className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
-              style={{
-                borderBottomLeftRadius: 0,
-                borderBottomRightRadius: 0,
-                borderBottom: "none",
-                boxShadow:
-                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                  "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                  "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-                  "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
-              }}
-            >
+          }
+        >
               {/* Inner header — eyebrow + title row mirroring the
                   Posts/Jobs bottom-box header pattern. */}
               <div
@@ -795,9 +764,12 @@ const Messages = () => {
               </div>
               </PullToRefreshWrapper>
               )}
-            </div>
-            </>
-          ) : (
+        </PageScaffold>
+      ) : (
+        <div className="min-h-screen flex flex-col bg-premium-page overflow-hidden">
+          <DashboardHeader />
+          <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-0">
+            <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto">
             <div
               className="flex flex-col h-[calc(100dvh-4rem)] transition-[padding] duration-150"
               style={{ paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : "env(safe-area-inset-bottom)" }}
@@ -1046,9 +1018,10 @@ const Messages = () => {
                 />
               </div>
             </div>
-          )}
+            </div>
+          </main>
         </div>
-      </main>
+      )}
 
       {reportTarget && (
         <ReportDialog
@@ -1101,7 +1074,7 @@ const Messages = () => {
         onPrimary={() => deleteMessageConfirm && deleteMessage(deleteMessageConfirm)}
         secondaryLabel="Cancel"
       />
-    </div>
+    </>
   );
 };
 

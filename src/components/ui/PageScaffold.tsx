@@ -1,0 +1,152 @@
+import type { CSSProperties, ReactNode } from "react";
+import { motion } from "framer-motion";
+
+/**
+ * PageScaffold — the shared "two-card" page shell used by Dashboard,
+ * Messages, Activity (My Posts / My Jobs), and the guest dashboard.
+ *
+ * Renders the full-height page shell (header → main → centered column)
+ * with a frosted title card on top and a panel below that drops its
+ * bottom radius + border so it bleeds beneath the floating dock with no
+ * hard edge. Callers supply only the card bodies — the liquid-glass
+ * styling lives here instead of being copy-pasted per screen.
+ */
+
+interface PageScaffoldProps {
+  /** Sticky page header — <DashboardHeader /> on signed-in pages, a
+   *  bespoke guest header on DashboardGuest. */
+  header: ReactNode;
+  /** Body of the top title card (greeting / page-title block). */
+  titleCard: ReactNode;
+  /** Body of the bottom panel — the card that bleeds beneath the dock. */
+  children: ReactNode;
+  /** Banners rendered above the title card (Dashboard's broadcast banner
+   *  + push-permission prompt). */
+  aboveTitle?: ReactNode;
+  /** Nudges/banners rendered between the title card and the panel. */
+  beforePanel?: ReactNode;
+  /** Centered-column max width. "wide" runs out to 2xl:max-w-7xl (the
+   *  signed-in pages); "narrow" stops at lg:max-w-5xl (guest dashboard). */
+  maxWidth?: "wide" | "narrow";
+  /** Panel drop-shadow weight. "raised" is the standalone elevation used
+   *  by Messages / Activity / guest; "flat" is the lighter shadow used
+   *  when the panel nests its own elevated content box (Dashboard). */
+  panelElevation?: "raised" | "flat";
+  /** Stagger the title card + panel in with framer-motion (Dashboard). */
+  animate?: boolean;
+  /** Extra classes appended to the scaffold root (e.g. a CSS mount fade). */
+  className?: string;
+}
+
+const TITLE_CARD_CLASS =
+  "liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden";
+
+const TITLE_CARD_STYLE: CSSProperties = {
+  // Soft copper glow upper-right + faint verdigris lower-left so the card
+  // reads as a textured pane rather than a flat panel.
+  backgroundImage:
+    "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
+    "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
+  boxShadow:
+    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+    "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
+    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+    "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
+    "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
+};
+
+const PANEL_CLASS = "liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col";
+
+const PANEL_SHADOW: Record<NonNullable<PageScaffoldProps["panelElevation"]>, string> = {
+  raised:
+    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+    "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+    "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
+    "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+  flat:
+    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+    "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
+    "1px 0 2px hsl(var(--olivewood) / 0.06), " +
+    "0 -1px 2px hsl(var(--olivewood) / 0.06)",
+};
+
+export function PageScaffold({
+  header,
+  titleCard,
+  children,
+  aboveTitle,
+  beforePanel,
+  maxWidth = "wide",
+  panelElevation = "raised",
+  animate = false,
+  className,
+}: PageScaffoldProps) {
+  const columnWidth =
+    maxWidth === "narrow"
+      ? "max-w-3xl lg:max-w-5xl"
+      : "max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl";
+
+  const panelStyle: CSSProperties = {
+    // Bottom corners flat + bottom border dropped so the panel bleeds
+    // beneath the floating dock instead of ending in a hard edge.
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottom: "none",
+    boxShadow: PANEL_SHADOW[panelElevation],
+  };
+
+  const titleEl = animate ? (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className={TITLE_CARD_CLASS}
+      style={TITLE_CARD_STYLE}
+    >
+      {titleCard}
+    </motion.div>
+  ) : (
+    <div className={TITLE_CARD_CLASS} style={TITLE_CARD_STYLE}>
+      {titleCard}
+    </div>
+  );
+
+  const panelEl = animate ? (
+    <motion.section
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
+      className={PANEL_CLASS}
+      style={panelStyle}
+    >
+      {children}
+    </motion.section>
+  ) : (
+    <section className={PANEL_CLASS} style={panelStyle}>
+      {children}
+    </section>
+  );
+
+  return (
+    <div
+      className={
+        "h-[100dvh] max-h-[100dvh] bg-premium-page flex flex-col overflow-hidden" +
+        (className ? ` ${className}` : "")
+      }
+    >
+      {header}
+      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div
+          className={`w-full ${columnWidth} mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden`}
+        >
+          {aboveTitle}
+          {titleEl}
+          {beforePanel}
+          {panelEl}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default PageScaffold;

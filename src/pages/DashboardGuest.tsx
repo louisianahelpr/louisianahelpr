@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Briefcase, List, Map as MapIcon, X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import JobCard from "@/components/dashboard/JobCard";
@@ -56,10 +57,10 @@ const DashboardGuest = () => {
   const [view, setView] = usePersistedBrowseView("list");
 
   // Public open-jobs feed — no auth required (open_jobs_browse view is RLS-public).
-  const { data: jobs = [], isLoading, refetch } = useQuery({
+  const { data: jobs = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["guestDashboardJobs"],
     queryFn: async (): Promise<EnrichedJob[]> => {
-      const { data: rawJobs } = await supabase
+      const { data: rawJobs, error } = await supabase
         .from("open_jobs_browse")
         .select(
           "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status",
@@ -68,6 +69,7 @@ const DashboardGuest = () => {
         .order("boosted_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(40);
+      if (error) throw error;
 
       const rows = (rawJobs ?? []) as any[];
       if (rows.length === 0) return [];
@@ -483,10 +485,16 @@ const DashboardGuest = () => {
                     ))}
                   </div>
                 ) : filteredJobs.length === 0 ? (
-                  // Empty state — a liquid-glass card that fills the panel and
-                  // bleeds beneath the dock (flat bottom, no hard edge),
-                  // matching the Dashboard / Messages empty-state pattern.
+                  // Empty / error state — a liquid-glass card that fills the
+                  // panel and bleeds beneath the dock (flat bottom, no hard
+                  // edge), matching the Dashboard / Messages pattern.
                   <div className="flex-1 min-h-full flex">
+                    {isError ? (
+                    <ErrorState
+                      title="We couldn't load nearby jobs."
+                      onRetry={() => refetch()}
+                    />
+                    ) : (
                     <EmptyState
                       icon={Briefcase}
                       eyebrow="Quiet today"
@@ -504,6 +512,7 @@ const DashboardGuest = () => {
                         )
                       }
                     />
+                    )}
                   </div>
                 ) : (
                   <div

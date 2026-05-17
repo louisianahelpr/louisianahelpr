@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { checkProximity } from "@/lib/locationUtils";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { toast } from "sonner";
@@ -54,7 +55,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   }, [searchParams]);
 
   const {
-    loading, postedJobs, appliedApps, applicantCounts,
+    loading, loadError, postedJobs, appliedApps, applicantCounts,
     startRequestedJobIds, helperNames, completedJobMeta,
     helperReviewedJobIds, refresh,
   } = useActivityData(user);
@@ -783,6 +784,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             // bleeds beneath the dock (flat bottom, no hard edge), matching
             // the Dashboard / Messages empty-state pattern.
             (() => {
+              // A failed fetch leaves both lists empty — show a recoverable
+              // ErrorState rather than a misleading "nothing posted yet".
+              if (loadError && postedJobs.length === 0 && appliedApps.length === 0) {
+                return (
+                  <div className="flex-1 min-h-full flex">
+                    <ErrorState onRetry={refresh} />
+                  </div>
+                );
+              }
               const isPosted = tab === "posted";
               const totalCount = isPosted ? postedJobs.length : appliedApps.length;
               const eyebrow = totalCount === 0 ? "Nothing yet" : "No matches";

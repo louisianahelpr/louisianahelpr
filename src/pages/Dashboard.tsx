@@ -15,6 +15,7 @@ import { useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,7 +89,7 @@ const Dashboard = () => {
 
   const {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
-    helperAvailability, recommendedJobs, refresh,
+    helperAvailability, recommendedJobs, refresh, loadError,
     fetchNextPage, hasNextPage, isFetchingNextPage,
   } = useDashboardData();
 
@@ -914,7 +915,14 @@ const Dashboard = () => {
                 }}
               >
             {/* Job list */}
-            {filters.filteredJobs.length === 0 ? (
+            {loadError && allJobs.length === 0 ? (
+            <div className="px-4 pt-4 flex-1 min-h-0 flex">
+              <ErrorState
+                title="We couldn't load nearby jobs."
+                onRetry={refresh}
+              />
+            </div>
+            ) : filters.filteredJobs.length === 0 ? (
             <div className="px-4 pt-4 flex-1 min-h-0 flex">
               <EmptyState
                 icon={Search}

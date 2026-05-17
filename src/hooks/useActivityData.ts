@@ -35,6 +35,11 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
     supabase.from("jobs").select("*").eq("offered_to_helper_id", userId).eq("direct_offer_status", "pending").order("created_at", { ascending: false }),
   ]);
 
+  // Surface a failed primary fetch so the screen can show an ErrorState
+  // instead of a misleading "nothing here yet" empty state.
+  const primaryError = postedRes.error || appsRes.error || directOffersRes.error;
+  if (primaryError) throw primaryError;
+
   const startRequestedJobIds = new Set<string>();
   const postedJobs: Job[] = (postedRes.data as any) || [];
   const applicantCounts: Record<string, number> = {};
@@ -145,7 +150,7 @@ export function useActivityData(user: SupaUser | null) {
   const queryClient = useQueryClient();
   const userId = user?.id;
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: userId ? queryKeys.activity(userId) : ["activity", "anon"],
     queryFn: () => fetchActivityData(userId!),
     enabled: !!userId,
@@ -177,6 +182,7 @@ export function useActivityData(user: SupaUser | null) {
   const merged = data ?? EMPTY;
   return {
     loading: isLoading,
+    loadError: isError,
     postedJobs: merged.postedJobs,
     appliedApps: merged.appliedApps,
     applicantCounts: merged.applicantCounts,

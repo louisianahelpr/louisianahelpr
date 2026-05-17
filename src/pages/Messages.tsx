@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { toast } from "sonner";
@@ -78,6 +79,7 @@ const Messages = () => {
   const [activeConvo, setActiveConvo] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showAllConvos, setShowAllConvos] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "message" | "user"; id: string } | null>(null);
   const [blockTarget, setBlockTarget] = useState<{ id: string; name: string } | null>(null);
@@ -141,12 +143,17 @@ const Messages = () => {
     const { getBlockedUserIds } = await import("@/lib/userBlocks");
     const blockedSet = await getBlockedUserIds(uid);
 
-    const { data: msgs } = await supabase
+    const { data: msgs, error: msgsError } = await supabase
       .from("messages")
       .select("*")
       .or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
       .order("created_at", { ascending: false })
       .limit(200);
+
+    // Surface a failed fetch as a recoverable ErrorState rather than
+    // letting it fall through to the "No messages yet" empty state.
+    if (msgsError) { setLoadError(true); setLoading(false); return; }
+    setLoadError(false);
 
     if (!msgs || msgs.length === 0) { setLoading(false); return; }
 
@@ -574,7 +581,14 @@ const Messages = () => {
                   </h2>
                 </div>
               </div>
-              {!loading && conversations.length === 0 ? (
+              {!loading && loadError && conversations.length === 0 ? (
+                <div className="px-3 pt-4 flex-1 min-h-0 flex">
+                  <ErrorState
+                    title="We couldn't load your messages."
+                    onRetry={() => { if (userId) loadConversations(userId); }}
+                  />
+                </div>
+              ) : !loading && conversations.length === 0 ? (
                 <div className="px-3 pt-4 flex-1 min-h-0 flex">
                   <EmptyState
                     icon={MessageSquare}

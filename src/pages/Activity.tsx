@@ -819,10 +819,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           )}
 
           {(tab === "posted" && filteredPostedJobs.length === 0) || (tab === "applied" && filteredAppliedApps.length === 0) ? (
-            // Empty state — same pattern as the home page's empty state:
-            // content centered directly on the panel's glass surface,
-            // no inner white card so the bottom box reads as a single
-            // distinct surface separate from the top box above it.
+            // Empty state — a liquid-glass card that fills the bottom box
+            // and bleeds beneath the dock (flat bottom, no hard edge),
+            // matching the Dashboard / Messages empty-state pattern.
             (() => {
               const isPosted = tab === "posted";
               const totalCount = isPosted ? postedJobs.length : appliedApps.length;
@@ -839,12 +838,24 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               const ctaTo = isPosted ? "/post-job" : "/dashboard";
               const Icon = isPosted ? Search : Send;
               return (
-                <div className="px-4 pt-4 pb-3 flex flex-1 min-h-0">
-                  {/* Empty-state card — brand-aligned liquid-glass surface
-                      (was plain bg-white that clashed with the warm parchment
-                      page background), centered in the available scroll area.
-                      Same pattern as Dashboard's empty state from PR #73. */}
-                  <div className="flex-1 liquid-glass min-h-full flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-2xl">
+                <div className="px-4 pt-4 flex flex-1 min-h-0">
+                  {/* Empty-state card — top corners rounded, bottom flat so
+                      it bleeds beneath the dock with no hard edge. Matches
+                      the Dashboard / Messages empty-state pattern. */}
+                  <div
+                    className="flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
+                    style={{
+                      borderBottomLeftRadius: 0,
+                      borderBottomRightRadius: 0,
+                      borderBottom: "none",
+                      boxShadow:
+                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                        "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                        "1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                        "0 -1px 2px hsl(var(--olivewood) / 0.06)",
+                      paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
+                    }}
+                  >
                     <div
                       className="w-20 h-20 rounded-full flex items-center justify-center"
                       style={{

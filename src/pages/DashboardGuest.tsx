@@ -499,28 +499,34 @@ const DashboardGuest = () => {
                 refreshing={refreshing}
                 isPulling={isPulling}
                 canTrigger={canTrigger}
-                className="flex-1 min-h-0 px-4 pt-3"
-                style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+                className="flex-1 min-h-0 px-4 pt-3 pb-0"
               >
                 {isLoading ? (
-                  <div className="space-y-3">
+                  <div
+                    className="space-y-3"
+                    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+                  >
                     {Array.from({ length: 4 }).map((_, i) => (
                       <Skeleton key={i} className="h-44 w-full rounded-2xl" />
                     ))}
                   </div>
                 ) : filteredJobs.length === 0 ? (
-                  // Empty state lives on its own frosted card so it reads as a
-                  // discrete surface instead of floating against the parent.
-                  // min-h-full + flex centering on the outer wrapper keeps the
-                  // card vertically centered in the scroll viewport.
-                  <div className="min-h-full flex items-center justify-center py-6">
+                  // Empty state — a liquid-glass card that fills the panel and
+                  // bleeds beneath the dock (flat bottom, no hard edge),
+                  // matching the Dashboard / Messages empty-state pattern.
+                  <div className="flex-1 min-h-full flex">
                     <div
-                      className="liquid-glass w-full max-w-md mx-auto flex flex-col items-center text-center px-6 py-8 gap-3"
+                      className="liquid-glass flex-1 flex flex-col items-center text-center justify-center px-6 py-8 gap-3 rounded-t-2xl"
                       style={{
+                        borderBottomLeftRadius: 0,
+                        borderBottomRightRadius: 0,
+                        borderBottom: "none",
                         boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                          "0 12px 28px -10px hsl(var(--olivewood) / 0.16)",
+                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+                          "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                          "1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                          "0 -1px 2px hsl(var(--olivewood) / 0.06)",
+                        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
                       }}
                     >
                       <div
@@ -569,7 +575,10 @@ const DashboardGuest = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3 animate-in fade-in-0 duration-500">
+                  <div
+                    className="space-y-3 animate-in fade-in-0 duration-500"
+                    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+                  >
                     {filteredJobs.map((job, idx) => (
                       <JobCard
                         key={job.id}

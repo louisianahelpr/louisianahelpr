@@ -74,6 +74,7 @@ export function useDashboardData() {
   const {
     data: pagesData,
     isLoading: jobsLoading,
+    isError: jobsError,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -87,7 +88,7 @@ export function useDashboardData() {
 
       // Phase 1: jobs page. Range is inclusive on both ends, so request
       // PAGE_SIZE + 1 rows to know whether another page exists without a count.
-      const { data: rawJobsRes } = await supabase
+      const { data: rawJobsRes, error: rawJobsError } = await supabase
         .from("open_jobs_browse")
         .select(
           // NOTE: open_jobs_browse view does NOT expose latitude/longitude
@@ -101,6 +102,9 @@ export function useDashboardData() {
         .order("boosted_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .range(offset, offset + PAGE_SIZE);
+      // Throw so React Query flips to its error state — the dashboard
+      // shows a recoverable ErrorState instead of a blank "all quiet" feed.
+      if (rawJobsError) throw rawJobsError;
 
       const rawAll = ((rawJobsRes ?? []) as any[]).filter((j) => !blockedUserIds.has(j.customer_id));
       const hasMore = rawAll.length > PAGE_SIZE;
@@ -253,6 +257,8 @@ export function useDashboardData() {
     helperAvailability: ctx?.helperAvailability ?? [],
     recommendedJobs,
     refresh,
+    // True once the open-jobs feed fetch has failed (first page).
+    loadError: jobsError,
     // Pagination controls consumed by the dashboard scroll sentinel
     fetchNextPage,
     hasNextPage: !!hasNextPage,

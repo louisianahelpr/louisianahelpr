@@ -15,7 +15,9 @@ import { useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
+import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, List, Map as MapIcon } from "lucide-react";
@@ -87,7 +89,7 @@ const Dashboard = () => {
 
   const {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
-    helperAvailability, recommendedJobs, refresh,
+    helperAvailability, recommendedJobs, refresh, loadError,
     fetchNextPage, hasNextPage, isFetchingNextPage,
   } = useDashboardData();
 
@@ -443,39 +445,25 @@ const Dashboard = () => {
   
 
   return (
-    <div
-      className="h-[100dvh] bg-premium-page flex flex-col overflow-hidden animate-in fade-in-0 duration-500"
-    >
-      <DashboardHeader />
-      <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
-
-      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden">
-
+    <>
+    <PageScaffold
+      animate
+      panelElevation="flat"
+      className="animate-in fade-in-0 duration-500"
+      header={
+        <>
+          <DashboardHeader />
+          <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
+        </>
+      }
+      aboveTitle={
+        <>
           <BroadcastBanner />
           <PushNotificationPrompt />
-
-
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden"
-            style={{
-              // Material depth — soft copper glow in the upper-right and
-              // a faint verdigris cast in the lower-left so the wide
-              // greeting card reads as a textured pane rather than flat.
-              backgroundImage:
-                "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
-                "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
-                "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
-            }}
-          >
+        </>
+      }
+      titleCard={
+        <>
             <h1
               className="font-display font-bold truncate"
               style={{
@@ -566,8 +554,10 @@ const Dashboard = () => {
                 </span>
               </button>
             )}
-          </motion.div>
-
+        </>
+      }
+      beforePanel={
+        <>
           {/* Profile completion nudge — surfaces when profile is < 60%
               complete. Sits above other banners since posters won't
               respond well to incomplete-looking applicants. Tapping
@@ -658,28 +648,9 @@ const Dashboard = () => {
               </button>
             </motion.div>
           )}
-
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
-            className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
-            style={{
-              // Browse Tasks card extends to the viewport bottom — bottom
-              // corners drop their radius and the bottom shadows are
-              // cropped so the panel visually bleeds beneath the dock's
-              // frosted curtain instead of ending in a faint shadow line
-              // right above it.
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              borderBottom: "none",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
-                "1px 0 2px hsl(var(--olivewood) / 0.06), " +
-                "0 -1px 2px hsl(var(--olivewood) / 0.06)",
-            }}
-          >
+        </>
+      }
+    >
             {/* Header row */}
             <div
               className="shrink-0 flex items-center justify-between px-4 py-3"
@@ -944,7 +915,14 @@ const Dashboard = () => {
                 }}
               >
             {/* Job list */}
-            {filters.filteredJobs.length === 0 ? (
+            {loadError && allJobs.length === 0 ? (
+            <div className="px-4 pt-4 flex-1 min-h-0 flex">
+              <ErrorState
+                title="We couldn't load nearby jobs."
+                onRetry={refresh}
+              />
+            </div>
+            ) : filters.filteredJobs.length === 0 ? (
             <div className="px-4 pt-4 flex-1 min-h-0 flex">
               <EmptyState
                 icon={Search}
@@ -1096,9 +1074,7 @@ const Dashboard = () => {
             })()}
               </div>
             </PullToRefreshWrapper>
-          </motion.section>
-        </div>
-      </main>
+    </PageScaffold>
 
       <JobDetailDialog
         job={detailJob}
@@ -1311,7 +1287,7 @@ const Dashboard = () => {
           was the "stacked plus buttons" bug visible in TestFlight build
           screenshots. Desktop surfaces the CTA in the header (md:flex)
           so no desktop replacement is needed. */}
-    </div>
+    </>
   );
 };
 

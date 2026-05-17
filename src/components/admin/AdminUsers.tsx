@@ -162,7 +162,7 @@ const AdminUsers = () => {
       .in("reviewee_id", userIds);
     if (!data) return;
     const agg: Record<string, { sum: number; count: number }> = {};
-    for (const r of data as any[]) {
+    for (const r of data) {
       if (!agg[r.reviewee_id]) agg[r.reviewee_id] = { sum: 0, count: 0 };
       agg[r.reviewee_id].sum += Number(r.rating) || 0;
       agg[r.reviewee_id].count += 1;
@@ -183,7 +183,7 @@ const AdminUsers = () => {
       .eq("status", "completed");
     if (!data) return;
     const counts: Record<string, number> = {};
-    for (const j of data as any[]) {
+    for (const j of data) {
       if (j.helper_id && userIds.includes(j.helper_id)) counts[j.helper_id] = (counts[j.helper_id] || 0) + 1;
       if (j.customer_id && userIds.includes(j.customer_id)) counts[j.customer_id] = (counts[j.customer_id] || 0) + 1;
     }
@@ -207,10 +207,10 @@ const AdminUsers = () => {
         .is("dispute_resolved_at", null),
     ]);
     const counts: Record<string, number> = {};
-    (reportsRes.data as any[] | null)?.forEach((r) => {
+    (reportsRes.data)?.forEach((r) => {
       counts[r.reported_id] = (counts[r.reported_id] || 0) + 1;
     });
-    (disputesRes.data as any[] | null)?.forEach((j) => {
+    (disputesRes.data)?.forEach((j) => {
       if (j.customer_id && userIds.includes(j.customer_id)) counts[j.customer_id] = (counts[j.customer_id] || 0) + 1;
       if (j.helper_id && userIds.includes(j.helper_id)) counts[j.helper_id] = (counts[j.helper_id] || 0) + 1;
     });
@@ -227,7 +227,7 @@ const AdminUsers = () => {
       .in("payment_status", ["escrow", "payout_pending", "released"]);
     if (!data) return;
     const totals: Record<string, number> = {};
-    for (const j of data as any[]) {
+    for (const j of data) {
       const budget = Number(j.budget) || 0;
       if (j.helper_id && userIds.includes(j.helper_id)) {
         const fee = (Number(j.helper_fee_percent) || 10) / 100;
@@ -248,7 +248,7 @@ const AdminUsers = () => {
       .in("user_id", userIds);
     if (!data) return;
     const counts: Record<string, number> = {};
-    for (const row of data as any[]) {
+    for (const row of data) {
       counts[row.user_id] = (counts[row.user_id] || 0) + 1;
     }
     setStrikesSummary(counts);
@@ -268,12 +268,12 @@ const AdminUsers = () => {
       const cur = summary[uid];
       if (!cur || new Date(at) > new Date(cur.at)) summary[uid] = { label, at };
     };
-    (jobsRes.data as any[] | null)?.forEach((j) => consider(j.customer_id, "Posted Job", j.created_at));
-    (appsRes.data as any[] | null)?.forEach((a) => consider(a.helper_id, "Applied to Job", a.created_at));
-    (loginRes.data as any[] | null)?.forEach((l: any) => consider(l.user_id, "Logged In", l.created_at));
+    (jobsRes.data)?.forEach((j) => consider(j.customer_id, "Posted Job", j.created_at));
+    (appsRes.data)?.forEach((a) => consider(a.helper_id, "Applied to Job", a.created_at));
+    (loginRes.data)?.forEach((l) => consider(l.user_id, "Logged In", l.created_at));
     // Track most-recent login separately for the user list row
     const logins: Record<string, string> = {};
-    (loginRes.data as any[] | null)?.forEach((l: any) => {
+    (loginRes.data)?.forEach((l) => {
       if (!logins[l.user_id] || new Date(l.created_at) > new Date(logins[l.user_id])) {
         logins[l.user_id] = l.created_at;
       }
@@ -281,8 +281,8 @@ const AdminUsers = () => {
     setLastLoginSummary(logins);
     // Also surface failed ID upload from profiles
     profiles.forEach((p) => {
-      if ((p as any).idv_status === "failed" && (p as any).idv_attempted_at) {
-        consider(p.user_id, "Failed ID Upload", (p as any).idv_attempted_at);
+      if (p.idv_status === "failed" && p.idv_attempted_at) {
+        consider(p.user_id, "Failed ID Upload", p.idv_attempted_at);
       }
     });
     setActivitySummary(summary);
@@ -296,7 +296,7 @@ const AdminUsers = () => {
       .order("created_at", { ascending: false });
     if (!data) return;
     const summary: Record<string, { count: number; recent: { note: string; created_at: string; category: string }[] }> = {};
-    for (const row of data as any[]) {
+    for (const row of data) {
       if (!summary[row.user_id]) summary[row.user_id] = { count: 0, recent: [] };
       summary[row.user_id].count += 1;
       if (summary[row.user_id].recent.length < 2) {
@@ -466,7 +466,7 @@ const AdminUsers = () => {
       if (error) throw error;
 
       await supabase.from("profiles").update({
-        approval_email_count: ((profile as any).approval_email_count || 0) + 1,
+        approval_email_count: (profile.approval_email_count || 0) + 1,
         last_approval_email_at: new Date().toISOString(),
       }).eq("id", profile.id);
 
@@ -493,13 +493,13 @@ const AdminUsers = () => {
     setResending(profile.id);
     try {
       const { error } = await supabase.functions.invoke("send-account-status-email", {
-        body: { userId: profile.user_id, status: "denied", reason: (profile as any).denial_reason || "" },
+        body: { userId: profile.user_id, status: "denied", reason: profile.denial_reason || "" },
       });
       if (error) throw error;
 
       // Update count
       await supabase.from("profiles").update({
-        denial_email_count: ((profile as any).denial_email_count || 0) + 1,
+        denial_email_count: (profile.denial_email_count || 0) + 1,
         last_denial_email_at: new Date().toISOString(),
       }).eq("id", profile.id);
 
@@ -559,7 +559,7 @@ const AdminUsers = () => {
   const viewHistoryFor = (profile: Profile) => {
     // Notify the Admin page to switch to notification logs filtered for this user
     window.dispatchEvent(new CustomEvent("admin:view-user-history", {
-      detail: { userId: profile.user_id, email: (profile as any).email },
+      detail: { userId: profile.user_id, email: profile.email },
     }));
     setViewProfile(null);
   };
@@ -567,7 +567,7 @@ const AdminUsers = () => {
   // A user only counts as "Pending Review" once their email is verified.
   // Unverified-email users sit in a separate "Awaiting Email" bucket so admins
   // aren't bothered until the user has actually confirmed their email.
-  const isVerifiedEmail = (p: Profile) => !!(p as any).email_verified;
+  const isVerifiedEmail = (p: Profile) => !!p.email_verified;
   const isPendingReview = (p: Profile) => p.approval_status === "pending" && isVerifiedEmail(p);
   const isAwaitingEmail = (p: Profile) => p.approval_status === "pending" && !isVerifiedEmail(p);
 
@@ -575,7 +575,7 @@ const AdminUsers = () => {
   // non-verified outcome (manual_review / failed) — these are the ones that
   // need an explicit Override & Approve.
   const wasFlaggedByStripe = (p: Profile) => {
-    const s = (p as any).idv_status;
+    const s = p.idv_status;
     return s === "manual_review" || s === "failed";
   };
 
@@ -583,14 +583,14 @@ const AdminUsers = () => {
     // Tab filter
     if (tab === "pending" && !isPendingReview(p)) return false;
     else if (tab === "awaiting_email" && !isAwaitingEmail(p)) return false;
-    else if (tab === "approved" && !(p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || ""))) return false;
+    else if (tab === "approved" && !(p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes(p.ban_status || ""))) return false;
     else if (tab === "denied" && (p.approval_status !== "denied" || (p as { role?: string }).role === "customer")) return false;
-    else if (tab === "banned" && !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "")) return false;
+    else if (tab === "banned" && !["temp_banned", "permanently_banned"].includes(p.ban_status || "")) return false;
 
     // Search by name (also matches email for convenience)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const hay = `${p.full_name || ""} ${(p as any).email || ""}`.toLowerCase();
+      const hay = `${p.full_name || ""} ${p.email || ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
 
@@ -663,11 +663,11 @@ const AdminUsers = () => {
   const pendingCount = profiles.filter((p) => isPendingReview(p)).length;
   const awaitingEmailCount = profiles.filter((p) => isAwaitingEmail(p)).length;
   const bannedCount = profiles.filter(
-    (p) => ["temp_banned", "permanently_banned"].includes((p as any).ban_status || "") && isUnseen(p),
+    (p) => ["temp_banned", "permanently_banned"].includes(p.ban_status || "") && isUnseen(p),
   ).length;
 
   const statusBadge = (profile: Profile) => {
-    const banStatus = (profile as any).ban_status || "active";
+    const banStatus = profile.ban_status || "active";
     if (banStatus === "permanently_banned") return <Badge className="bg-destructive/10 text-destructive text-ds-11">Permanently Banned</Badge>;
     if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive text-ds-11">Temp Banned</Badge>;
     // "warned" status is intentionally not surfaced as a status badge — the strike chip
@@ -681,8 +681,8 @@ const AdminUsers = () => {
   // Stripe Identity verification badge — green / yellow / gray.
   // Shown for all users since IDV is required before accepting any job.
   const stripeBadge = (profile: Profile) => {
-    const s = (profile as any).idv_status;
-    if (s === "verified" || s === "approved" || (profile as any).legacy_manual_review) {
+    const s = profile.idv_status;
+    if (s === "verified" || s === "approved" || profile.legacy_manual_review) {
       return <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />Stripe Verified</Badge>;
     }
     if (s === "manual_review" || s === "failed" || s === "requires_input" || s === "action_needed") {
@@ -730,7 +730,7 @@ const AdminUsers = () => {
   const approvedCount = profiles.filter(
     (p) =>
       p.approval_status === "approved" &&
-      !["temp_banned", "permanently_banned"].includes((p as any).ban_status || "") &&
+      !["temp_banned", "permanently_banned"].includes(p.ban_status || "") &&
       isUnseen(p),
   ).length;
   // Unified user model: no helper-vs-customer distinction in the count.
@@ -760,7 +760,7 @@ const AdminUsers = () => {
     all: "total",
   };
 
-  const viewBanStatus = (viewProfile as any)?.ban_status || "active";
+  const viewBanStatus = viewProfile?.ban_status || "active";
 
   return (
     <div className="space-y-3">
@@ -910,8 +910,8 @@ const AdminUsers = () => {
 
                   {/* Denial reason — surfaced prominently for denied users */}
                   {p.approval_status === "denied" && (
-                    <p className="text-[11px] font-medium text-destructive truncate mt-1" title={(p as any).denial_reason || "No reason on file"}>
-                      Denied: {(p as any).denial_reason || "No reason on file"}
+                    <p className="text-[11px] font-medium text-destructive truncate mt-1" title={p.denial_reason || "No reason on file"}>
+                      Denied: {p.denial_reason || "No reason on file"}
                     </p>
                   )}
 
@@ -925,11 +925,11 @@ const AdminUsers = () => {
                     const lastLogin = lastLoginSummary[p.user_id];
                     const isApproved = p.approval_status === "approved";
                     const neverLoggedIn = isApproved && !lastLogin;
-                    const hasIdv = (p as any).idv_status === "verified";
-                    const hasStripe = !!(p as any).stripe_account_id;
+                    const hasIdv = p.idv_status === "verified";
+                    const hasStripe = !!p.stripe_account_id;
                     // Same legacy-role pattern as deniedCount above.
                     const isHelper = (p as { role?: string }).role !== "customer";
-                    const parish = (p as any).parish;
+                    const parish = p.parish;
 
                     const chip = (key: string, content: React.ReactNode, tone = "bg-secondary/40 text-muted-foreground") => (
                       <span key={key} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10.5px] font-medium ${tone}`}>
@@ -1051,18 +1051,18 @@ const AdminUsers = () => {
                           let lastAt: string | null = null;
                           let label = "";
                           if (status === "pending" && !isVerifiedEmail(p)) {
-                            count = (p as any).verification_email_count || 0;
-                            lastAt = (p as any).last_verification_email_at;
+                            count = p.verification_email_count || 0;
+                            lastAt = p.last_verification_email_at;
                             label = "Verify";
                           } else if (status === "approved") {
                             // Hide if user is already actively logged in — no need to track welcome nudges
                             if (lastLogin) return null;
-                            count = (p as any).approval_email_count || 0;
-                            lastAt = (p as any).last_approval_email_at;
+                            count = p.approval_email_count || 0;
+                            lastAt = p.last_approval_email_at;
                             label = "Welcome";
                           } else if (status === "denied") {
-                            count = (p as any).denial_email_count || 0;
-                            lastAt = (p as any).last_denial_email_at;
+                            count = p.denial_email_count || 0;
+                            lastAt = p.last_denial_email_at;
                             label = "Denial";
                           } else {
                             return null;
@@ -1127,14 +1127,14 @@ const AdminUsers = () => {
                     {statusBadge(viewProfile)}
                     {stripeBadge(viewProfile)}
 
-                    {((viewProfile as any).application_count || 1) > 1 && (
+                    {(viewProfile.application_count || 1) > 1 && (
                       <Badge variant="outline" className="text-[10px] bg-accent/10 text-accent-foreground border-accent/30">
-                        Applied {(viewProfile as any).application_count}x
+                        Applied {viewProfile.application_count}x
                       </Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <p className="text-ds-11 sm:text-ds-11 text-muted-foreground truncate">{(viewProfile as any).email || "No email"}</p>
+                    <p className="text-ds-11 sm:text-ds-11 text-muted-foreground truncate">{viewProfile.email || "No email"}</p>
                     <button
                       onClick={() => setEditEmailProfile(viewProfile)}
                       className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
@@ -1150,7 +1150,7 @@ const AdminUsers = () => {
                         variant="outline"
                         className="h-8"
                         onClick={async () => {
-                          const currentCount = (viewProfile as any).application_count || 1;
+                          const currentCount = viewProfile.application_count || 1;
                           await supabase.from("profiles").update({
                             approval_status: "pending",
                             denial_reason: null,
@@ -1164,7 +1164,7 @@ const AdminUsers = () => {
                         <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Move to Pending
                       </Button>
                       {(() => {
-                        const sent = (viewProfile as any).denial_email_count || 0;
+                        const sent = viewProfile.denial_email_count || 0;
                         const maxReached = sent >= 3;
                         return (
                           <>
@@ -1176,7 +1176,7 @@ const AdminUsers = () => {
                               onClick={async () => {
                                 await resendDenialEmail(viewProfile);
                                 // refresh local view state count
-                                setViewProfile({ ...(viewProfile as any), denial_email_count: sent + 1, last_denial_email_at: new Date().toISOString() });
+                                setViewProfile({ ...viewProfile, denial_email_count: sent + 1, last_denial_email_at: new Date().toISOString() });
                               }}
                               title={maxReached ? "Max 3 reminder emails reached" : "Send denial reminder email"}
                             >
@@ -1231,9 +1231,9 @@ const AdminUsers = () => {
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
-                        <p className={`text-ds-13 font-medium ${(viewProfile as any).date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
-                          {(viewProfile as any).date_of_birth
-                            ? new Date((viewProfile as any).date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                        <p className={`text-ds-13 font-medium ${viewProfile.date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
+                          {viewProfile.date_of_birth
+                            ? new Date(viewProfile.date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
                             : "Not provided"}
                         </p>
                       </div>
@@ -1264,7 +1264,7 @@ const AdminUsers = () => {
 
                   {/* Signup Answers */}
                   {(() => {
-                    const p = viewProfile as any;
+                    const p = viewProfile;
                     const fields = [
                       { label: "Experience Level", value: p.experience_level },
                       { label: "Availability", value: p.availability },
@@ -1357,7 +1357,7 @@ const AdminUsers = () => {
                       <>
                         {/* Stripe payout connection status */}
                         {(() => {
-                          const hasStripe = !!(viewProfile as any).stripe_account_id;
+                          const hasStripe = !!viewProfile.stripe_account_id;
                           return (
                             <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-ds-11 font-medium ${
                               hasStripe
@@ -1561,11 +1561,11 @@ const AdminUsers = () => {
                   {/* Portfolio */}
                   <div className="space-y-2">
                     <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-                      <FileText className="w-4 h-4" /> Portfolio & Documents ({((viewProfile as any).portfolio_urls as string[] || []).length})
+                      <FileText className="w-4 h-4" /> Portfolio & Documents ({(viewProfile.portfolio_urls || []).length})
                     </h4>
-                    {((viewProfile as any).portfolio_urls as string[] || []).length > 0 ? (
+                    {(viewProfile.portfolio_urls || []).length > 0 ? (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                        {((viewProfile as any).portfolio_urls as string[]).map((url: string, i: number) => {
+                        {(viewProfile.portfolio_urls || []).map((url: string, i: number) => {
                           const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
                           const fileName = url.split("/").pop() || "Document";
                           return isImage ? (
@@ -1599,7 +1599,7 @@ const AdminUsers = () => {
                       <MailIcon className="w-4 h-4 mr-1" />
                       {resending === viewProfile.id
                         ? "Sending…"
-                        : `Resend Verification${((viewProfile as any).verification_email_count || 0) > 0 ? ` (${(viewProfile as any).verification_email_count}/3)` : ""}`}
+                        : `Resend Verification${(viewProfile.verification_email_count || 0) > 0 ? ` (${viewProfile.verification_email_count}/3)` : ""}`}
                     </Button>
                   )}
                   {/* Resend Denial Email */}
@@ -1613,12 +1613,12 @@ const AdminUsers = () => {
                     const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
                     const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
                     const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
-                    const idvVerified = (viewProfile as any).idv_status === 'verified';
-                    const hasStripe = !!(viewProfile as any).stripe_account_id;
+                    const idvVerified = viewProfile.idv_status === 'verified';
+                    const hasStripe = !!viewProfile.stripe_account_id;
                     const hasOpenedEmail = opens.length > 0 || clicks.length > 0;
                     const isActive = hasLoggedIn || idvVerified || hasStripe || hasOpenedEmail;
                     if (isActive) return null;
-                    const sent = (viewProfile as any).approval_email_count || 0;
+                    const sent = viewProfile.approval_email_count || 0;
                     const maxReached = sent >= 3;
                     return (
                       <Button
@@ -1640,9 +1640,9 @@ const AdminUsers = () => {
                         <MailIcon className="w-3.5 h-3.5" /> Approval Email Status
                       </p>
                       <div className="flex items-center justify-between text-ds-11 text-muted-foreground">
-                        <span>Emails sent: {(viewProfile as any).approval_email_count || 0} / 3</span>
-                        {(viewProfile as any).last_approval_email_at && (
-                          <span>Last sent: {new Date((viewProfile as any).last_approval_email_at).toLocaleDateString()}</span>
+                        <span>Emails sent: {viewProfile.approval_email_count || 0} / 3</span>
+                        {viewProfile.last_approval_email_at && (
+                          <span>Last sent: {new Date(viewProfile.last_approval_email_at).toLocaleDateString()}</span>
                         )}
                       </div>
                       {(() => {
@@ -1673,9 +1673,9 @@ const AdminUsers = () => {
                         <MailIcon className="w-3.5 h-3.5" /> Verification Email Status
                       </p>
                       <div className="flex items-center justify-between text-ds-11 text-muted-foreground">
-                        <span>Emails sent: {(viewProfile as any).verification_email_count || 0} / 3</span>
-                        {(viewProfile as any).last_verification_email_at && (
-                          <span>Last sent: {formatDistanceToNow(new Date((viewProfile as any).last_verification_email_at), { addSuffix: true })}</span>
+                        <span>Emails sent: {viewProfile.verification_email_count || 0} / 3</span>
+                        {viewProfile.last_verification_email_at && (
+                          <span>Last sent: {formatDistanceToNow(new Date(viewProfile.last_verification_email_at), { addSuffix: true })}</span>
                         )}
                       </div>
                       {(() => {
@@ -1704,13 +1704,13 @@ const AdminUsers = () => {
                         <MailIcon className="w-3.5 h-3.5" /> Denial Email Status
                       </p>
                       <div className="flex items-center justify-between text-ds-11 text-muted-foreground">
-                        <span>Emails sent: {(viewProfile as any).denial_email_count || 0} / 3</span>
-                        {(viewProfile as any).last_denial_email_at && (
-                          <span>Last sent: {new Date((viewProfile as any).last_denial_email_at).toLocaleDateString()}</span>
+                        <span>Emails sent: {viewProfile.denial_email_count || 0} / 3</span>
+                        {viewProfile.last_denial_email_at && (
+                          <span>Last sent: {new Date(viewProfile.last_denial_email_at).toLocaleDateString()}</span>
                         )}
                       </div>
-                      {(viewProfile as any).denial_reason && (
-                        <p className="text-ds-11 text-muted-foreground">Reason: {(viewProfile as any).denial_reason}</p>
+                      {viewProfile.denial_reason && (
+                        <p className="text-ds-11 text-muted-foreground">Reason: {viewProfile.denial_reason}</p>
                       )}
                       {(() => {
                         const opens = emailTracking.filter(t => t.email_type === 'account_denied' && t.event_type === 'open');
@@ -1788,8 +1788,8 @@ const AdminUsers = () => {
                       const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
                       const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
                       const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
-                      const idvVerified = (viewProfile as any).idv_status === 'verified';
-                      const hasStripe = !!(viewProfile as any).stripe_account_id;
+                      const idvVerified = viewProfile.idv_status === 'verified';
+                      const hasStripe = !!viewProfile.stripe_account_id;
                       const hasOpenedEmail = opens.length > 0 || clicks.length > 0;
                       const isActive = hasLoggedIn || idvVerified || hasStripe || hasOpenedEmail;
                       const activeLabel = idvVerified

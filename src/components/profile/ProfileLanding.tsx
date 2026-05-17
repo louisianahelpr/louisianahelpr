@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DollarSign, LogOut, MapPin,
   CreditCard, Shield,
   Star, Edit, CalendarDays, Clock, Gavel,
-  ChevronRight as ChevronRightIcon,
+  ChevronRight as ChevronRightIcon, ChevronDown,
   HelpCircle, Bell, AlertTriangle, Heart, Crown,
   ShieldCheck, Trash2,
   BadgeCheck, ImagePlus,
@@ -72,6 +73,10 @@ export function ProfileLanding({
   onRequestLogout,
   reviewsPreview = [],
 }: ProfileLandingProps) {
+  // Recent work + reviews collapse into one disclosure so the hero
+  // stays compact — they can make the card very tall on an
+  // established profile.
+  const [showcaseOpen, setShowcaseOpen] = useState(false);
   // Derived state — drives "Action needed" dots on menu items so the
   // user sees blockers at a glance without having to navigate into each
   // tab to discover them.
@@ -347,128 +352,129 @@ export function ProfileLanding({
             >+ Add a short bio so applicants know who they're hiring.</button>
           )}
         </div>
-        {/* Work portfolio gallery — up to 6 photos of previous work shown
-            in a horizontal scroll. Applicants browse this to decide who to
-            hire. Tap a photo to open the full-size lightbox. Empty state
-            nudges helpers to upload (biggest single conversion lever). */}
-        {portfolioUrls.length > 0 ? (
+        {/* Work & reviews — collapsed into one disclosure so the hero
+            stays short. Renders only when there's something to show;
+            an empty portfolio is nudged by the completion meter below
+            (its checklist already includes "Work photos"), so the
+            standalone empty-state nudge was removed as redundant. */}
+        {(portfolioUrls.length > 0 || reviewsPreview.length > 0) && (
           <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-            <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              Recent work
-            </p>
-            <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1">
-              {portfolioUrls.slice(0, 6).map((url, i) => (
-                <button
-                  key={url}
-                  type="button"
-                  onClick={() => onSelectTab("profile")}
-                  className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform"
-                  aria-label={`Work sample ${i + 1}`}
-                >
-                  <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onSelectTab("profile")}
-            className="mt-3 pt-3 w-full text-left flex items-center justify-between gap-3 active:opacity-70 transition-opacity"
-            style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
-          >
-            <div className="min-w-0">
-              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                Recent work
-              </p>
-              <p className="font-serif italic text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                Add photos of previous jobs so applicants can see your work.
-              </p>
-            </div>
-            <span className="text-ds-11 font-semibold shrink-0" style={{ color: "hsl(var(--bark))" }}>
-              + Add photos
-            </span>
-          </button>
-        )}
-        {/* Recent reviews preview — up to 2 most recent reviews shown
-            inline as social proof. Tap any card to open the full
-            reviews tab. Hides entirely when the user has no reviews
-            (the avgRating stat above already conveys that state). */}
-        {reviewsPreview.length > 0 && (
-          <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                Recent reviews
-              </p>
-              <button
-                type="button"
-                onClick={() => onSelectTab("reviews")}
-                className="text-ds-11 font-semibold active:opacity-70"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                See all →
-              </button>
-            </div>
-            <div className="space-y-2">
-              {reviewsPreview.map((r, i) => {
-                const days = Math.max(
-                  0,
-                  Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000),
-                );
-                const when =
-                  days < 1 ? "today" :
-                  days < 7 ? `${days}d ago` :
-                  days < 30 ? `${Math.floor(days / 7)}w ago` :
-                  days < 365 ? `${Math.floor(days / 30)}mo ago` :
-                  `${Math.floor(days / 365)}y ago`;
-                return (
-                  <button
-                    key={`${r.created_at}-${i}`}
-                    type="button"
-                    onClick={() => onSelectTab("reviews")}
-                    className="w-full text-left rounded-xl p-2.5 active:scale-[0.99] active:opacity-80 transition-all"
-                    style={{
-                      background: "hsla(0, 0%, 100%, 0.55)",
-                      border: "1px solid hsl(var(--olivewood) / 0.10)",
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <Star
-                            key={n}
-                            className="w-3 h-3"
-                            style={{
-                              color: n <= r.rating ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
-                              fill: n <= r.rating ? "hsl(var(--burnt-sienna))" : "transparent",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-ds-11 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
-                        {r.reviewerName}
-                      </span>
-                      <span className="text-ds-10 text-muted-foreground shrink-0">· {when}</span>
+            <button
+              type="button"
+              onClick={() => setShowcaseOpen((o) => !o)}
+              aria-expanded={showcaseOpen}
+              className="w-full flex items-center justify-between gap-2 active:opacity-70 transition-opacity"
+            >
+              <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                Work &amp; reviews
+              </span>
+              <span className="inline-flex items-center gap-1 text-ds-11 font-semibold" style={{ color: "hsl(var(--bark))" }}>
+                {showcaseOpen ? "Hide" : "View"}
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showcaseOpen ? "rotate-180" : ""}`} />
+              </span>
+            </button>
+
+            {showcaseOpen && (
+              <div className="mt-3 space-y-3">
+                {portfolioUrls.length > 0 && (
+                  <div>
+                    <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                      Recent work
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1">
+                      {portfolioUrls.slice(0, 6).map((url, i) => (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() => onSelectTab("profile")}
+                          className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform"
+                          aria-label={`Work sample ${i + 1}`}
+                        >
+                          <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
                     </div>
-                    {r.feedback?.trim() ? (
-                      <p
-                        className="font-serif italic text-ds-12 leading-snug line-clamp-2"
-                        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                      >
-                        "{r.feedback}"
+                  </div>
+                )}
+                {reviewsPreview.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                        Recent reviews
                       </p>
-                    ) : (
-                      <p
-                        className="font-serif italic text-ds-11 leading-snug"
-                        style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                      <button
+                        type="button"
+                        onClick={() => onSelectTab("reviews")}
+                        className="text-ds-11 font-semibold active:opacity-70"
+                        style={{ color: "hsl(var(--bark))" }}
                       >
-                        {r.jobTitle}
-                      </p>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                        See all →
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {reviewsPreview.map((r, i) => {
+                        const days = Math.max(
+                          0,
+                          Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000),
+                        );
+                        const when =
+                          days < 1 ? "today" :
+                          days < 7 ? `${days}d ago` :
+                          days < 30 ? `${Math.floor(days / 7)}w ago` :
+                          days < 365 ? `${Math.floor(days / 30)}mo ago` :
+                          `${Math.floor(days / 365)}y ago`;
+                        return (
+                          <button
+                            key={`${r.created_at}-${i}`}
+                            type="button"
+                            onClick={() => onSelectTab("reviews")}
+                            className="w-full text-left rounded-xl p-2.5 active:scale-[0.99] active:opacity-80 transition-all"
+                            style={{
+                              background: "hsla(0, 0%, 100%, 0.55)",
+                              border: "1px solid hsl(var(--olivewood) / 0.10)",
+                            }}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-0.5">
+                                {[1, 2, 3, 4, 5].map((n) => (
+                                  <Star
+                                    key={n}
+                                    className="w-3 h-3"
+                                    style={{
+                                      color: n <= r.rating ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
+                                      fill: n <= r.rating ? "hsl(var(--burnt-sienna))" : "transparent",
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-ds-11 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
+                                {r.reviewerName}
+                              </span>
+                              <span className="text-ds-10 text-muted-foreground shrink-0">· {when}</span>
+                            </div>
+                            {r.feedback?.trim() ? (
+                              <p
+                                className="font-serif italic text-ds-12 leading-snug line-clamp-2"
+                                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                              >
+                                "{r.feedback}"
+                              </p>
+                            ) : (
+                              <p
+                                className="font-serif italic text-ds-11 leading-snug"
+                                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                              >
+                                {r.jobTitle}
+                              </p>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
         {/* Completion meter — compact single row (bar + inline

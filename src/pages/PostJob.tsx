@@ -72,7 +72,10 @@ const PostJob = () => {
   const [zipCode, setZipCode] = useState("");
   const [parish, setParish] = useState<string | null>(null);
   const [dateNeeded, setDateNeeded] = useState("");
-  const [startTime, setStartTime] = useState("");
+  // Default to 9:00 AM — a sane working-hours start. Midnight (the old
+  // empty-string default rendering as 12:00 AM) was almost never the
+  // intended task time. The poster can still change it on the wheel.
+  const [startTime, setStartTime] = useState("09:00");
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");

@@ -16,6 +16,8 @@ import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { lookupParishByZip } from "@/lib/parishLookup";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 
 // Lazy-loaded tab components — keeps Profile.tsx initial bundle under 200KB.
 // Each tab is only fetched the first time the user clicks it.
@@ -60,7 +62,7 @@ const ProfilePage = () => {
   usePageTitle("My Profile — Helpr");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user: cachedUser, profile: cachedProfile, isLoading: authLoading } = useCurrentUser();
+  const { user: cachedUser, profile: cachedProfile, isLoading: authLoading, refresh: refreshCurrentUser } = useCurrentUser();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -275,6 +277,17 @@ const ProfilePage = () => {
     if (tab === "landing" && reviews.length === 0 && !reviewsLoading) loadReviews();
   }, [tab, user]);
 
+  // Pull-to-refresh for the Profile landing — re-syncs the profile,
+  // Stripe-connect status, helper stats, and review preview. Scoped to
+  // the landing's scroll surface via PullToRefreshWrapper below.
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
+    onRefresh: async () => {
+      await refreshCurrentUser();
+      if (user) await loadStats(user.id);
+      await loadReviews();
+    },
+  });
+
   useEffect(() => {
     if (profile?.approval_status === "approved" && !stripeConnectStatus) {
       checkStripeConnect();
@@ -482,21 +495,22 @@ const ProfilePage = () => {
     <>
     <AppShell
       header={<DashboardHeader />}
-      scrollable={tab === "landing"}
-      contentClassName={tab === "landing" ? undefined : "overflow-hidden"}
+      scrollable={false}
+      contentClassName="overflow-hidden"
       className="bg-premium-page"
     >
-      <main
-        className={tab === "landing"
-          ? "container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex flex-col"
-          : "container mx-auto px-5 lg:px-8 xl:px-12 pt-8 lg:pt-10 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"}
-      >
-        <div className={tab === "landing"
-          ? "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col gap-3 lg:gap-4"
-          : "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]"}>
-
-          {/* LANDING VIEW — two-box layout matching Dashboard / Activity / Messages */}
-          {tab === "landing" && (
+      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+        {tab === "landing" ? (
+          /* Landing scrolls inside a PullToRefreshWrapper so swiping
+             down re-syncs the profile, Stripe status, stats + reviews. */
+          <PullToRefreshWrapper
+            ref={containerRef}
+            pullDistance={pullDistance}
+            refreshing={refreshing}
+            isPulling={isPulling}
+            canTrigger={canTrigger}
+            className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]"
+          >
             <ProfileLanding
               profile={profile}
               displayName={displayName}
@@ -517,7 +531,10 @@ const ProfilePage = () => {
               onRequestLogout={() => setShowLogoutDialog(true)}
               reviewsPreview={reviews.slice(0, 2)}
             />
-          )}
+          </PullToRefreshWrapper>
+        ) : (
+          /* Non-landing tabs — own inner scroll surface. */
+          <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pt-8 lg:pt-10 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]">
 
           {/* PROFILE TAB */}
           {tab === "profile" && (
@@ -676,7 +693,8 @@ const ProfilePage = () => {
               </Suspense>
             </div>
           )}
-        </div>
+          </div>
+        )}
       </main>
     </AppShell>
 

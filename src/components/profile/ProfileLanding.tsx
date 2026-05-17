@@ -162,14 +162,17 @@ export function ProfileLanding({
             "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
         }}
       >
+        {/* Labeled "Edit" pill — a bare pencil circle was easy to miss;
+            the text makes the affordance obvious. */}
         <button
           onClick={() => onSelectTab("profile")}
           aria-label="Edit profile"
-          className="absolute top-2.5 right-2.5 w-9 h-9 rounded-full bg-secondary/60 hover:bg-secondary active:scale-95 flex items-center justify-center text-foreground/70 hover:text-foreground transition-all"
+          className="absolute top-2.5 right-2.5 h-8 pl-2 pr-2.5 rounded-full bg-secondary/60 hover:bg-secondary active:scale-95 inline-flex items-center gap-1 text-foreground/75 hover:text-foreground transition-all"
         >
-          <Edit className="w-4 h-4" />
+          <Edit className="w-3.5 h-3.5" />
+          <span className="text-ds-11 font-sans font-semibold">Edit</span>
         </button>
-        <div className="flex flex-row items-start gap-4 pr-10">
+        <div className="flex flex-row items-start gap-4 pr-[72px]">
           {/* Avatar — bumped 75px → 92px so it's a real focal point on this
               applicant-facing page (was a tiny chip next to a wide name).
               Tier-styled ring uses gold for elite, accent for pro, primary

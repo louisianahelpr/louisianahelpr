@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ImagePlus, X, Briefcase, CheckCircle2 } from "lucide-react";
+import { ImagePlus, X, Briefcase, CheckCircle2, Check } from "lucide-react";
 import { categoryIcons, categoryColors } from "@/components/activity/activityConstants";
 
 export const categories = [
@@ -76,11 +76,13 @@ export function DetailsSection({
 
       <div className="space-y-2.5">
         <Label>Category <span className="text-destructive">*</span></Label>
-        {/* Visual chip grid — icon + label per category. Active chip
-            gets the category's brand color as a glass-pill ring so the
-            picked category reads at a glance instead of as a dropdown
-            row. Much more inviting first-impression on a post flow. */}
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        {/* Compact horizontal chips — icon + label on one row, two
+            columns. Cuts the category block from ~4 stacked rows of
+            tall cards (~400px) to ~5 short rows (~240px) so the form
+            doesn't bury the Photos + later sections under one picker.
+            Active chip keeps the brand-color ring + adds a check so
+            the selection reads instantly. */}
+        <div className="grid grid-cols-2 gap-2">
           {categories.map((c) => {
             const Icon = categoryIcons[c.value] ?? Briefcase;
             const colors = categoryColors[c.value];
@@ -91,7 +93,7 @@ export function DetailsSection({
                 type="button"
                 onClick={() => setCategory(c.value)}
                 aria-pressed={active}
-                className="flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-2xl transition-all active:scale-[0.97]"
+                className="flex items-center gap-2.5 p-2 rounded-xl transition-all active:scale-[0.97]"
                 style={
                   active
                     ? {
@@ -110,24 +112,31 @@ export function DetailsSection({
                 }
               >
                 <span
-                  className={`w-9 h-9 rounded-full flex items-center justify-center ${colors?.dot ?? ""}`}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${colors?.dot ?? ""}`}
                   style={
                     !colors?.dot
                       ? { background: "hsl(var(--olivewood) / 0.12)" }
                       : undefined
                   }
                 >
-                  <Icon className="w-4 h-4 text-white/90" strokeWidth={2.25} />
+                  <Icon className="w-3.5 h-3.5 text-white/90" strokeWidth={2.25} />
                 </span>
                 <span
-                  className="font-sans font-semibold text-center leading-tight"
+                  className="font-sans font-semibold leading-tight truncate"
                   style={{
-                    fontSize: "0.7rem",
+                    fontSize: "0.78rem",
                     color: active ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.85)",
                   }}
                 >
                   {c.label}
                 </span>
+                {active && (
+                  <Check
+                    className="w-3.5 h-3.5 ml-auto shrink-0"
+                    style={{ color: "hsl(var(--bark))" }}
+                    strokeWidth={3}
+                  />
+                )}
               </button>
             );
           })}

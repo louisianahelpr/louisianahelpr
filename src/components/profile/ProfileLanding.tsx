@@ -468,25 +468,16 @@ export function ProfileLanding({
             </div>
           </div>
         )}
-        {/* Completion meter — quiet horizontal bar at the bottom of the
-            hero. Disappears at 100% to remove the nag once the user is
-            fully set up. */}
+        {/* Completion meter — compact single row (bar + inline
+            "NN% · next step" link) instead of the old eyebrow-row +
+            bar two-row block, so the content-dense hero gets one row
+            shorter. Auto-hides at 100%. */}
         {completionPct < 100 && (
-          <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                {completionPct}% complete
-              </span>
-              <button
-                type="button"
-                onClick={() => onSelectTab("profile")}
-                className="text-ds-11 font-semibold active:opacity-70"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                {completionItems.find((i) => !i.done)?.label} →
-              </button>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+          <div
+            className="mt-3 pt-3 flex items-center gap-3"
+            style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
+          >
+            <div className="h-1.5 flex-1 rounded-full bg-muted/60 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
@@ -498,6 +489,14 @@ export function ProfileLanding({
                 }}
               />
             </div>
+            <button
+              type="button"
+              onClick={() => onSelectTab("profile")}
+              className="shrink-0 text-ds-11 font-semibold active:opacity-70 whitespace-nowrap"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              {completionPct}% · {completionItems.find((i) => !i.done)?.label} →
+            </button>
           </div>
         )}
       </div>
@@ -542,20 +541,30 @@ export function ProfileLanding({
               {menuGroups.map((group) => {
                 const isActive = activeMenuGroup === group.title;
                 const GroupIcon = group.title === "Account" ? Edit : group.title === "Money" ? DollarSign : HelpCircle;
+                // Bubble a blocker dot onto the tab chip when any item
+                // inside the group needs action — so the user spots it
+                // without opening every tab.
+                const groupNeedsAction = group.items.some((i) => i.needsAction);
 
                 return (
                   <button
                     key={group.title}
                     type="button"
                     onClick={() => setActiveMenuGroup(isActive ? null : group.title)}
-                    className={`min-h-[78px] rounded-[20px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] px-2 py-2.5 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${isActive ? "ring-2 ring-primary/30 text-primary" : "text-foreground hover:bg-secondary/40"}`}
+                    className={`relative min-h-[78px] rounded-[20px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] px-2 py-2.5 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${isActive ? "ring-2 ring-primary/30 text-primary" : "text-foreground hover:bg-secondary/40"}`}
                     aria-expanded={isActive}
                   >
+                    {groupNeedsAction && (
+                      <span
+                        aria-label="Action needed"
+                        className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-destructive ring-2 ring-white"
+                      />
+                    )}
                     <span className={`w-9 h-9 rounded-ds-md flex items-center justify-center ${isActive ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"}`}>
                       <GroupIcon className="w-4.5 h-4.5" />
                     </span>
                     <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] leading-tight text-center">
-                      {group.title === "Settings & Support" ? "Support" : group.title}
+                      {group.title === "Settings & Support" ? "Settings" : group.title}
                     </span>
                   </button>
                 );
@@ -565,9 +574,25 @@ export function ProfileLanding({
             {activeMenuGroup && (() => {
               const group = menuGroups.find((menuGroup) => menuGroup.title === activeMenuGroup);
               if (!group) return null;
+              // Caret connector — a white diamond pointing up from the
+              // expanded list to whichever tab chip is active, so the
+              // list visibly belongs to the lit-up tab. The px nudge
+              // corrects for the grid's gap-2.5 (≈3.3px per column).
+              const activeIndex = menuGroups.findIndex((g) => g.title === activeMenuGroup);
 
               return (
                 <div>
+                  <div className="relative h-2" aria-hidden>
+                    <div
+                      className="absolute w-3 h-3 rotate-45 bg-white"
+                      style={{
+                        left: `calc(${(activeIndex + 0.5) * 33.333}% + ${(activeIndex - 1) * 3.33}px)`,
+                        bottom: "-2px",
+                        transform: "translateX(-50%) rotate(45deg)",
+                        boxShadow: "-1.5px -1.5px 2px hsl(160 10% 12% / 0.05)",
+                      }}
+                    />
+                  </div>
                   <div className="rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
                     {group.items.map((item, idx) => (
                       <button
@@ -619,19 +644,18 @@ export function ProfileLanding({
             })()}
           </div>
 
-          {/* Account actions — two stacked buttons of the same shape so
-              the footer reads as a finished pair, not a button + a
-              naked link. Sign out is the solid white card (primary
-              affordance, brand bark text). Delete account is the same
-              pill outlined in burnt-sienna — the brand's destructive
-              tone, matching the Delete-account confirmation dialog —
-              transparent so it stays clearly secondary without looking
-              unfinished. */}
+          {/* Account actions — two stacked pills of the same shape so
+              the footer reads as a finished pair. Both are restrained
+              (sign-out + delete are low-frequency actions that
+              shouldn't out-shout the settings list above): Sign out is
+              a soft muted fill in brand bark, Delete account is the
+              same pill outlined in burnt-sienna — the brand's
+              destructive tone, matching the Delete-account dialog. */}
           <div className="pt-2 space-y-2.5">
             <button
               type="button"
               onClick={onRequestLogout}
-              className="w-full rounded-[20px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary/60 transition-all"
+              className="w-full rounded-[20px] bg-secondary/60 py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary transition-all"
               style={{
                 color: "hsl(var(--bark))",
                 fontFamily: "Montserrat, system-ui, sans-serif",

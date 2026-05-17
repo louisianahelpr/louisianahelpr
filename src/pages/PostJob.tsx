@@ -15,6 +15,7 @@ import { lookupParishByZip } from "@/lib/parishLookup";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hapticSuccess } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
 import { AiJobBuilder, type AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
@@ -53,6 +54,7 @@ const PostJob = () => {
   const navigate = useNavigate();
   usePageTitle("Post a Task — Helpr");
   const { business } = useMyBusiness();
+  const { profile } = useCurrentUser();
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
@@ -70,7 +72,10 @@ const PostJob = () => {
   const [zipCode, setZipCode] = useState("");
   const [parish, setParish] = useState<string | null>(null);
   const [dateNeeded, setDateNeeded] = useState("");
-  const [startTime, setStartTime] = useState("");
+  // Default to 9:00 AM — a sane working-hours start. Midnight (the old
+  // empty-string default rendering as 12:00 AM) was almost never the
+  // intended task time. The poster can still change it on the wheel.
+  const [startTime, setStartTime] = useState("09:00");
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");
@@ -153,6 +158,18 @@ const PostJob = () => {
       setDraftLoaded(true);
     }
   }, [searchParams, hasDraft, draftLoaded]);
+
+  // Smart defaults — prefill the state to LA (every Helpr job is in
+  // Louisiana) and the city from the poster's saved profile location.
+  // Functional setState guards (prev || ...) mean this never clobbers
+  // anything the user already typed or a loaded draft/rebook value.
+  useEffect(() => {
+    if (!profile) return;
+    if (searchParams.get("rebook")) return; // rebook fills its own location
+    setAddrState((prev) => prev || "LA");
+    const loc = (profile.location || "").trim();
+    if (loc) setCity((prev) => prev || loc.split(",")[0].trim());
+  }, [profile, searchParams]);
 
   // Direct Offer: ?offerTo=<helperId> pre-targets the post to a saved helpr
   useEffect(() => {
@@ -509,7 +526,6 @@ const PostJob = () => {
   const detailsComplete = !!(title.trim() && description.trim() && category);
   const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && estimatedHours && parseFloat(estimatedHours) >= 0.5);
   const budgetComplete = !!(budget && parseFloat(budget) >= 5);
-  void [detailsComplete, logisticsComplete, budgetComplete];
 
   // Budget presets derived from category suggested range
   const suggested = category && categoryPricing[category] ? categoryPricing[category] : null;
@@ -642,6 +658,38 @@ const PostJob = () => {
                 onGenerated={applyAiJob}
               />
 
+              {/* Section progress — orients the poster on the 3-part
+                  form. Each segment fills bark once its section's
+                  required fields are satisfied. */}
+              <div className="flex items-end gap-2">
+                {[
+                  { label: "Details", done: detailsComplete },
+                  { label: "Logistics", done: logisticsComplete },
+                  { label: "Budget", done: budgetComplete },
+                ].map((s) => (
+                  <div key={s.label} className="flex-1 space-y-1">
+                    <div
+                      className="h-1.5 rounded-full transition-colors duration-300"
+                      style={{
+                        background: s.done
+                          ? "hsl(var(--bark))"
+                          : "hsl(var(--olivewood) / 0.15)",
+                      }}
+                    />
+                    <span
+                      className="block text-[0.62rem] font-sans font-semibold uppercase tracking-wider transition-colors"
+                      style={{
+                        color: s.done
+                          ? "hsl(var(--bark))"
+                          : "hsl(var(--olivewood) / 0.5)",
+                      }}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
               <form onSubmit={handleReview} className="space-y-5">
                 {/* SECTION 1: DETAILS */}
                 <DetailsSection
@@ -707,38 +755,49 @@ const PostJob = () => {
                   budgetComplete={budgetComplete}
                 />
 
-                {/* Submit — inline at the end of the form on every viewport.
-                    Was previously fixed-position on mobile, which overlapped
-                    the Budget section + the bottom nav. Now scrolls into view
-                    naturally as the user finishes the form. Brand-styled bark
-                    with depth shadow + display-italic price for the eye. */}
-                <Button
-                  type="submit"
-                  className="w-full rounded-ds-md"
-                  size="lg"
+                {/* Submit — sticky so it stays reachable while the
+                    poster scrolls the long form. The sticky bottom
+                    offset clears the floating MobileNav dock; a
+                    parchment gradient backdrop keeps form content
+                    legible as it scrolls behind. position:sticky
+                    reserves flow space so it never overlaps the Budget
+                    section the way the old fixed button did. */}
+                <div
+                  className="sticky z-20 -mx-5 px-5 pt-3 pb-1"
                   style={{
-                    background: "hsl(var(--bark))",
-                    backgroundImage: "none",
-                    border: "1px solid hsl(var(--bark))",
-                    color: "hsl(var(--parchment))",
-                    fontFamily: "Montserrat, system-ui, sans-serif",
-                    fontWeight: 600,
-                    letterSpacing: "0.01em",
-                    boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 10px 24px -8px hsl(var(--bark) / 0.38)",
+                    bottom: "calc(env(safe-area-inset-bottom, 0px) + 84px)",
+                    background:
+                      "linear-gradient(to top, hsla(38, 18%, 97%, 0.96) 55%, hsla(38, 18%, 97%, 0))",
                   }}
                 >
-                  <span className="inline-flex items-center gap-2">
-                    Review &amp; pay
-                    {budgetNum > 0 && (
-                      <span
-                        className="font-display italic font-bold tabular-nums"
-                        style={{ fontSize: "1rem", letterSpacing: "-0.01em" }}
-                      >
-                        · ${budgetNum.toFixed(2)}
-                      </span>
-                    )}
-                  </span>
-                </Button>
+                  <Button
+                    type="submit"
+                    className="w-full rounded-ds-md"
+                    size="lg"
+                    style={{
+                      background: "hsl(var(--bark))",
+                      backgroundImage: "none",
+                      border: "1px solid hsl(var(--bark))",
+                      color: "hsl(var(--parchment))",
+                      fontFamily: "Montserrat, system-ui, sans-serif",
+                      fontWeight: 600,
+                      letterSpacing: "0.01em",
+                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 10px 24px -8px hsl(var(--bark) / 0.38)",
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      Review &amp; pay
+                      {budgetNum > 0 && (
+                        <span
+                          className="font-display italic font-bold tabular-nums"
+                          style={{ fontSize: "1rem", letterSpacing: "-0.01em" }}
+                        >
+                          · ${budgetNum.toFixed(2)}
+                        </span>
+                      )}
+                    </span>
+                  </Button>
+                </div>
               </form>
             </>
           )}

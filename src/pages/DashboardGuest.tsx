@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from "react";
+import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Briefcase, List, Map as MapIcon, X, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import JobCard from "@/components/dashboard/JobCard";
 
@@ -50,7 +52,7 @@ const DashboardGuest = () => {
   const [boostedOnly, setBoostedOnly] = useState(false);
   // Guests don't have helper availability set up; the JobFilters panel
   // auto-hides the "match my availability" option when hasAvailability=false.
-  const [view, setView] = useState<"list" | "map">("list");
+  const [view, setView] = usePersistedBrowseView("list");
 
   // Public open-jobs feed — no auth required (open_jobs_browse view is RLS-public).
   const { data: jobs = [], isLoading, refetch } = useQuery({
@@ -207,7 +209,6 @@ const DashboardGuest = () => {
   });
 
   return (
-    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling} canTrigger={canTrigger}>
     <div
       className="h-[100dvh] max-h-[100dvh] bg-premium-page flex flex-col overflow-hidden animate-in fade-in-0 duration-500"
     >
@@ -318,7 +319,9 @@ const DashboardGuest = () => {
                   className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
-                  {hasFilters ? "Filtered" : "For you, today"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
+                  {hasFilters
+                    ? `Filtered · ${activeFilterCount} active`
+                    : "For you, today"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
                 </span>
                 <h2
                   className="font-display italic font-bold leading-tight mt-1"
@@ -332,31 +335,18 @@ const DashboardGuest = () => {
                 </h2>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {/* List ⇄ Map toggle — compact two-button pill */}
-                <div className="flex items-center gap-0.5 p-0.5 bg-secondary/50 rounded-ds-md">
-                  <button
-                    onClick={() => setView("list")}
-                    aria-label="List view"
-                    className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
-                      view === "list"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <List className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setView("map")}
-                    aria-label="Map view"
-                    className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
-                      view === "map"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <MapIcon className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                {/* List ⇄ Map toggle — single icon that flips to the
+                    opposite view on tap. Collapses the previous two-button
+                    pill into one tap target so the header reads as three
+                    equally-weighted icon buttons (view / search / filter). */}
+                <button
+                  type="button"
+                  onClick={() => setView(view === "list" ? "map" : "list")}
+                  aria-label={view === "list" ? "Switch to map view" : "Switch to list view"}
+                  className="h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                >
+                  {view === "list" ? <MapIcon className="w-4 h-4" /> : <List className="w-4 h-4" />}
+                </button>
                 {view === "list" && (
                   <>
                     <button
@@ -493,72 +483,62 @@ const DashboardGuest = () => {
                     </div>
                   }
                 >
-                  <BrowseMap onJobAction={requireSignup} ctaLabel="Sign up to apply" />
+                  <BrowseMap
+                    onJobAction={requireSignup}
+                    ctaLabel="Sign up to apply"
+                    emptyStateCta={{
+                      label: "Get pinged when a job lands",
+                      onClick: () => navigate("/signup"),
+                    }}
+                  />
                 </Suspense>
               </div>
             ) : (
-              <div
-                data-allow-scroll="true"
-                className="flex-1 min-h-0 overflow-y-auto px-4 pt-3"
-                style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+              <PullToRefreshWrapper
+                ref={containerRef}
+                pullDistance={pullDistance}
+                refreshing={refreshing}
+                isPulling={isPulling}
+                canTrigger={canTrigger}
+                className="flex-1 min-h-0 px-4 pt-3 pb-0"
               >
                 {isLoading ? (
-                  <div className="space-y-3">
+                  <div
+                    className="space-y-3"
+                    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+                  >
                     {Array.from({ length: 4 }).map((_, i) => (
                       <Skeleton key={i} className="h-44 w-full rounded-2xl" />
                     ))}
                   </div>
                 ) : filteredJobs.length === 0 ? (
-                  // min-h-full + flex centering pins the empty state to the
-                  // middle of the scroll viewport instead of letting it
-                  // hug the top with a tall dead-zone underneath.
-                  <div className="min-h-full flex flex-col items-center justify-center text-center px-6 gap-3 py-10">
-                    <div
-                      className="w-16 h-16 rounded-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                        backdropFilter: "blur(16px) saturate(150%)",
-                        WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                        border: "1px solid hsl(var(--olivewood) / 0.10)",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                          "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                      }}
-                    >
-                      <Briefcase className="w-7 h-7" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <span className="text-display-eyebrow">Quiet today</span>
-                      <p
-                        className="font-display italic font-bold leading-tight"
-                        style={{
-                          fontSize: "clamp(1.05rem, 1.5vw + 0.4rem, 1.35rem)",
-                          color: "hsl(var(--ink-deep))",
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
-                        No matching jobs right now.
-                      </p>
-                      <p
-                        className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                      >
-                        Try clearing filters or check back later — new tasks land throughout the day.
-                      </p>
-                    </div>
-                    {hasFilters && (
-                      <button
-                        type="button"
-                        onClick={clearAllFilters}
-                        className="mt-1 text-ds-11 font-semibold text-primary hover:underline btn-press"
-                      >
-                        Clear filters
-                      </button>
-                    )}
+                  // Empty state — a liquid-glass card that fills the panel and
+                  // bleeds beneath the dock (flat bottom, no hard edge),
+                  // matching the Dashboard / Messages empty-state pattern.
+                  <div className="flex-1 min-h-full flex">
+                    <EmptyState
+                      icon={Briefcase}
+                      eyebrow="Quiet today"
+                      title="No matching jobs right now."
+                      body="Try clearing filters or check back later — new tasks land throughout the day."
+                      action={
+                        hasFilters && (
+                          <button
+                            type="button"
+                            onClick={clearAllFilters}
+                            className="text-ds-11 font-semibold text-primary hover:underline btn-press"
+                          >
+                            Clear filters
+                          </button>
+                        )
+                      }
+                    />
                   </div>
                 ) : (
-                  <div className="space-y-3 animate-in fade-in-0 duration-500">
+                  <div
+                    className="space-y-3 animate-in fade-in-0 duration-500"
+                    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+                  >
                     {filteredJobs.map((job, idx) => (
                       <JobCard
                         key={job.id}
@@ -575,13 +555,12 @@ const DashboardGuest = () => {
                     ))}
                   </div>
                 )}
-              </div>
+              </PullToRefreshWrapper>
             )}
           </section>
         </div>
       </main>
     </div>
-    </PullToRefreshWrapper>
   );
 };
 

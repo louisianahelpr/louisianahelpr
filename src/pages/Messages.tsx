@@ -7,22 +7,17 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban } from "lucide-react";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { scanMessage } from "@/lib/messageScanner";
@@ -122,6 +117,14 @@ const Messages = () => {
       }
     });
   }, [userId, cachedUser]);
+
+  // Pull-to-refresh: swiping down on the conversation list re-runs
+  // loadConversations so the user can manually nudge realtime data.
+  // Scoped to the inner list scroll container (not the page root) so
+  // the dock + header don't capture the gesture.
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
+    onRefresh: async () => { if (userId) await loadConversations(userId); },
+  });
 
   const CONVO_LIMIT = 50;
 
@@ -600,95 +603,33 @@ const Messages = () => {
                   >
                     All threads
                   </h2>
-                  <span
-                    className="font-serif italic mt-0.5 text-[0.72rem]"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                  >
-                    {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
-                  </span>
                 </div>
               </div>
               {!loading && conversations.length === 0 ? (
-                // Empty state — content centered directly on the panel's
-                // glass surface, no inner white card. Mirrors the home
-                // page's empty-state pattern.
                 <div className="px-3 pt-4 flex-1 min-h-0 flex">
-                  {/* Empty-state card — liquid-glass (was flat white,
-                      which clashed with the warm parchment surface above
-                      it). Bottom corners flat so it merges with the dock. */}
-                  <div
-                    className="flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
-                    style={{
-                      borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 0,
-                      borderBottom: "none",
-                      boxShadow:
-                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                        "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                        "0 14px 30px -8px hsl(var(--olivewood) / 0.14)",
-                      paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
-                    }}
-                  >
-                    <div
-                      className="w-20 h-20 rounded-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                        backdropFilter: "blur(16px) saturate(150%)",
-                        WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                        border: "1px solid hsl(var(--olivewood) / 0.10)",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                          "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                      }}
-                    >
-                      <MessageSquare className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <span className="text-display-eyebrow">Quiet for now</span>
-                      <p
-                        className="font-display italic font-bold leading-tight"
-                        style={{
-                          fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                          color: "hsl(var(--ink-deep))",
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
-                        No messages yet.
-                      </p>
-                      <p
-                        className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                      >
-                        Apply to a task or accept a helpr's offer — your conversations will land here.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => navigate("/dashboard")}
-                      className="group relative inline-flex items-center gap-2.5 px-6 h-12 rounded-full overflow-hidden transition-transform duration-200 active:scale-[0.96]"
-                      style={{
-                        background: "hsl(var(--bark))",
-                        color: "hsl(var(--parchment))",
-                        border: "1px solid hsl(70 22% 24%)",
-                        fontFamily: "Montserrat, system-ui, sans-serif",
-                        fontWeight: 600,
-                        letterSpacing: "0.01em",
-                        boxShadow:
-                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                          "0 1px 2px hsl(70 20% 18% / 0.22), " +
-                          "0 8px 18px -6px hsl(var(--bark) / 0.55)",
-                      }}
-                    >
-                      Browse tasks
-                    </button>
-                  </div>
+                  <EmptyState
+                    icon={MessageSquare}
+                    eyebrow="Quiet for now"
+                    title="No messages yet."
+                    body="Apply to a task or accept a helpr's offer — your conversations will land here."
+                    action={
+                      <BarkPillButton onClick={() => navigate("/dashboard")}>
+                        Browse tasks
+                      </BarkPillButton>
+                    }
+                  />
                 </div>
               ) : (
-              <div
-                data-allow-scroll="true"
-                className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2"
+              <PullToRefreshWrapper
+                ref={containerRef}
+                pullDistance={pullDistance}
+                refreshing={refreshing}
+                isPulling={isPulling}
+                canTrigger={canTrigger}
+                className="flex-1 min-h-0 px-3 py-3"
                 style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
               >
+              <div className="space-y-2">
               {loading ? (
                 <div className="space-y-2">
                   {[1, 2, 3, 4].map((i) => (
@@ -852,6 +793,7 @@ const Messages = () => {
                 </div>
               )}
               </div>
+              </PullToRefreshWrapper>
               )}
             </div>
             </>
@@ -1135,40 +1077,30 @@ const Messages = () => {
       )}
 
       {/* Delete conversation confirmation */}
-      <AlertDialog open={!!deleteConvoConfirm} onOpenChange={() => setDeleteConvoConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will delete your sent messages in this conversation with {deleteConvoConfirm?.otherUserName}. Messages you received will still be visible to the other person. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteConvoConfirm && deleteConversation(deleteConvoConfirm)}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <BrandConfirmDialog
+        open={!!deleteConvoConfirm}
+        onOpenChange={(o) => { if (!o) setDeleteConvoConfirm(null); }}
+        title="Delete conversation?"
+        description={`This deletes your sent messages in this conversation with ${deleteConvoConfirm?.otherUserName ?? "this person"}. Messages you received stay visible to them. This can't be undone.`}
+        primaryLabel="Delete"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => deleteConvoConfirm && deleteConversation(deleteConvoConfirm)}
+        secondaryLabel="Cancel"
+      />
 
       {/* Delete message confirmation */}
-      <AlertDialog open={!!deleteMessageConfirm} onOpenChange={() => setDeleteMessageConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete message?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This message will be permanently deleted. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteMessageConfirm && deleteMessage(deleteMessageConfirm)}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <BrandConfirmDialog
+        open={!!deleteMessageConfirm}
+        onOpenChange={(o) => { if (!o) setDeleteMessageConfirm(null); }}
+        title="Delete message?"
+        description="This message will be permanently deleted. This can't be undone."
+        primaryLabel="Delete"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => deleteMessageConfirm && deleteMessage(deleteMessageConfirm)}
+        secondaryLabel="Cancel"
+      />
     </div>
   );
 };

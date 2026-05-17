@@ -52,18 +52,48 @@ interface SheetContentProps
     VariantProps<typeof sheetVariants> {}
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
-  ({ side = "right", className, children, ...props }, ref) => (
-    <SheetPortal>
-      <SheetOverlay />
-      <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-        {children}
-        <SheetPrimitive.Close className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-md opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-secondary hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
-      </SheetPrimitive.Content>
-    </SheetPortal>
-  ),
+  ({ side = "right", className, children, ...props }, ref) => {
+    // For side="right" / "left" / "top" the sheet reaches the top of
+    // the viewport so the close button needs to clear the iOS safe-area
+    // inset (notch / Dynamic Island) — otherwise it ends up under the
+    // status bar and effectively un-tappable. Bottom sheets start
+    // mid-screen so safe-area-top is irrelevant; keep the close
+    // anchored at a flat top-4 for those. Right side also bumps by
+    // safe-area-right so landscape notches don't clip it either.
+    const closeTop =
+      side === "bottom"
+        ? "1rem"
+        : "calc(env(safe-area-inset-top, 0px) + 1rem)";
+    const closeRight = "calc(env(safe-area-inset-right, 0px) + 1rem)";
+
+    return (
+      <SheetPortal>
+        <SheetOverlay />
+        <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
+          {children}
+          <SheetPrimitive.Close
+            className="absolute inline-flex h-10 w-10 items-center justify-center rounded-full opacity-90 ring-offset-background transition-all hover:opacity-100 active:scale-[0.94] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+            style={{
+              top: closeTop,
+              right: closeRight,
+              background: "hsla(0, 0%, 100%, 0.65)",
+              border: "1px solid hsl(var(--olivewood) / 0.18)",
+              color: "hsl(var(--olivewood))",
+              backdropFilter: "blur(10px) saturate(150%)",
+              WebkitBackdropFilter: "blur(10px) saturate(150%)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
+            }}
+          >
+            <X className="h-4 w-4" strokeWidth={2.25} />
+            <span className="sr-only">Close</span>
+          </SheetPrimitive.Close>
+        </SheetPrimitive.Content>
+      </SheetPortal>
+    );
+  },
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 

@@ -1,7 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import HelprMark from "@/components/HelprMark";
 import { formatName } from "@/lib/utils";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
@@ -16,6 +16,8 @@ import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { lookupParishByZip } from "@/lib/parishLookup";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 
 // Lazy-loaded tab components — keeps Profile.tsx initial bundle under 200KB.
 // Each tab is only fetched the first time the user clicks it.
@@ -26,6 +28,7 @@ import { JobListTab } from "@/components/profile/JobListTab";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 const SupportInline = lazy(() => import("@/components/profile/SupportInline").then(m => ({ default: m.SupportInline })));
+const SavedHelpersTab = lazy(() => import("@/components/profile/SavedHelpersTab").then(m => ({ default: m.SavedHelpersTab })));
 const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab").then(m => ({ default: m.SubscriptionTab })));
 const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));
 import { EarningsTab } from "@/components/profile/EarningsTab";
@@ -53,13 +56,13 @@ const TabFallback = () => (
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings" | "credentials";
+type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings" | "credentials" | "saved_helpers";
 
 const ProfilePage = () => {
   usePageTitle("My Profile — Helpr");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user: cachedUser, profile: cachedProfile, isLoading: authLoading } = useCurrentUser();
+  const { user: cachedUser, profile: cachedProfile, isLoading: authLoading, refresh: refreshCurrentUser } = useCurrentUser();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -274,6 +277,17 @@ const ProfilePage = () => {
     if (tab === "landing" && reviews.length === 0 && !reviewsLoading) loadReviews();
   }, [tab, user]);
 
+  // Pull-to-refresh for the Profile landing — re-syncs the profile,
+  // Stripe-connect status, helper stats, and review preview. Scoped to
+  // the landing's scroll surface via PullToRefreshWrapper below.
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
+    onRefresh: async () => {
+      await refreshCurrentUser();
+      if (user) await loadStats(user.id);
+      await loadReviews();
+    },
+  });
+
   useEffect(() => {
     if (profile?.approval_status === "approved" && !stripeConnectStatus) {
       checkStripeConnect();
@@ -425,7 +439,11 @@ const ProfilePage = () => {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== "DELETE MY ACCOUNT") return;
+    // The dialog asks the user to type "DELETE" (short, thumb-friendly).
+    // The delete-own-account edge function still validates against the
+    // legacy "DELETE MY ACCOUNT" phrase server-side, so we map here —
+    // server contract is unchanged.
+    if (deleteConfirmText !== "DELETE") return;
     setDeletingAccount(true);
     try {
       const { error } = await supabase.functions.invoke("delete-own-account", {
@@ -477,21 +495,22 @@ const ProfilePage = () => {
     <>
     <AppShell
       header={<DashboardHeader />}
-      scrollable={tab === "landing"}
-      contentClassName={tab === "landing" ? undefined : "overflow-hidden"}
+      scrollable={false}
+      contentClassName="overflow-hidden"
       className="bg-premium-page"
     >
-      <main
-        className={tab === "landing"
-          ? "container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex flex-col"
-          : "container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"}
-      >
-        <div className={tab === "landing"
-          ? "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col gap-3 lg:gap-4"
-          : "w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]"}>
-
-          {/* LANDING VIEW — two-box layout matching Dashboard / Activity / Messages */}
-          {tab === "landing" && (
+      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+        {tab === "landing" ? (
+          /* Landing scrolls inside a PullToRefreshWrapper so swiping
+             down re-syncs the profile, Stripe status, stats + reviews. */
+          <PullToRefreshWrapper
+            ref={containerRef}
+            pullDistance={pullDistance}
+            refreshing={refreshing}
+            isPulling={isPulling}
+            canTrigger={canTrigger}
+            className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]"
+          >
             <ProfileLanding
               profile={profile}
               displayName={displayName}
@@ -512,7 +531,10 @@ const ProfilePage = () => {
               onRequestLogout={() => setShowLogoutDialog(true)}
               reviewsPreview={reviews.slice(0, 2)}
             />
-          )}
+          </PullToRefreshWrapper>
+        ) : (
+          /* Non-landing tabs — own inner scroll surface. */
+          <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pt-8 lg:pt-10 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]">
 
           {/* PROFILE TAB */}
           {tab === "profile" && (
@@ -540,6 +562,7 @@ const ProfilePage = () => {
               onIdUpload={handleIdUpload}
               onBack={() => setTab("landing")}
               onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls } as any) : prev)}
+              onContactSupport={() => setTab("support")}
             />
           )}
 
@@ -575,7 +598,7 @@ const ProfilePage = () => {
               <ProfileTabHeader
                 eyebrow="Money"
                 title="Payment settings"
-                meta="Cards, bank accounts, payouts"
+                meta="Payouts & earnings"
                 onBack={() => setTab("landing")}
               />
               <PaymentTab
@@ -603,6 +626,12 @@ const ProfilePage = () => {
           {tab === "support" && (
             <Suspense fallback={<TabFallback />}>
               <SupportInline userId={user?.id} onBack={() => setTab("landing")} />
+            </Suspense>
+          )}
+
+          {tab === "saved_helpers" && (
+            <Suspense fallback={<TabFallback />}>
+              <SavedHelpersTab onBack={() => setTab("landing")} />
             </Suspense>
           )}
 
@@ -665,22 +694,22 @@ const ProfilePage = () => {
               </Suspense>
             </div>
           )}
-        </div>
+          </div>
+        )}
       </main>
     </AppShell>
 
-    <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Log out?</AlertDialogTitle>
-            <AlertDialogDescription>Are you sure you want to log out of your account?</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Log out</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    <BrandConfirmDialog
+        open={showLogoutDialog}
+        onOpenChange={setShowLogoutDialog}
+        title="Log out?"
+        description="You can sign back in anytime — your account stays intact."
+        primaryLabel="Log out"
+        primaryTone="bark"
+        primaryHaptic="medium"
+        onPrimary={handleLogout}
+        secondaryLabel="Stay signed in"
+      />
 
       <DeleteAccountDialog
         open={showDeleteAccountDialog}

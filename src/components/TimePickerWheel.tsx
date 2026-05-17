@@ -95,6 +95,13 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
           scrollPaddingTop: ITEM_HEIGHT,
           scrollPaddingBottom: ITEM_HEIGHT,
           WebkitOverflowScrolling: "touch",
+          // Fade the top + bottom rows so the wheel visibly reads as
+          // "scroll for more" — the dimmed adjacent values no longer
+          // look like stray labels under the selected number.
+          maskImage:
+            "linear-gradient(to bottom, transparent 0%, #000 32%, #000 68%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, transparent 0%, #000 32%, #000 68%, transparent 100%)",
         }}
       >
         <div style={{ height: ITEM_HEIGHT }} aria-hidden />

@@ -2,8 +2,7 @@
 //
 // Extracted from src/pages/Signup.tsx. Owns no state of its own; every
 // field is a controlled input bound to props lifted into the parent.
-// Validation lives in the parent (validateStep2 — yes the legacy naming
-// is inverted; cleaning that up is a separate cut).
+// Validation lives in the parent (validateAccountStep).
 //
 // Reusable input/label class constants are passed in so the parent stays
 // the single source of truth for form styling.
@@ -120,25 +119,28 @@ export function SignupStep1({
         </div>
       </section>
 
-      <div className="flex items-start gap-2.5 px-1">
+      <label
+        htmlFor="policies"
+        className="flex items-start gap-3 px-3 py-3 rounded-ds-md cursor-pointer hover:bg-white/30 transition-colors"
+        style={{ border: "1px solid hsl(var(--olivewood) / 0.12)" }}
+      >
         <Checkbox
           id="policies"
           checked={acceptedPolicies}
           onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
-          className="h-3.5 w-3.5 mt-[3px] [&_svg]:h-3 [&_svg]:w-3"
+          className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
-        <label
-          htmlFor="policies"
-          className="text-ds-11 leading-relaxed cursor-pointer font-sans"
-          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+        <span
+          className="text-ds-11 leading-relaxed font-sans"
+          style={{ color: "hsl(var(--olivewood) / 0.78)" }}
         >
           I agree to the{" "}
           <Link to="/rules" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>,{" "}
           <Link to="/terms" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Terms of Service</Link>, and{" "}
           <Link to="/privacy" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy Policy</Link>.
           I understand the cancellation, no-show, and dispute policies.
-        </label>
-      </div>
+        </span>
+      </label>
 
       <Button
         className="w-full rounded-ds-md"

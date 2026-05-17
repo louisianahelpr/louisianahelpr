@@ -1,9 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Shield, Upload, Loader2, Camera, ImagePlus, X } from "lucide-react";
+import { Upload, Loader2, Camera, ImagePlus, X, Check, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getProfileCompletion } from "@/lib/profileCompletion";
+import { lookupParishByZip } from "@/lib/parishLookup";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -36,6 +38,9 @@ interface ProfileEditFormProps {
   /** Called after portfolio upload/remove with the full new URL list so
    *  the parent can sync its profile state without a refetch. */
   onPortfolioChange?: (urls: string[]) => void;
+  /** Opens the Support tab — first/last name are locked after signup,
+   *  so a name change has to go through support. */
+  onContactSupport?: () => void;
 }
 
 export function ProfileEditForm({
@@ -62,6 +67,7 @@ export function ProfileEditForm({
   onIdUpload,
   onBack,
   onPortfolioChange,
+  onContactSupport,
 }: ProfileEditFormProps) {
   const idStatus = (profile as any)?.idv_status as string | null;
   const hasId = !!(profile as any)?.id_document_url;
@@ -73,6 +79,32 @@ export function ProfileEditForm({
     ? { label: "Action needed", cls: "bg-destructive/10 text-destructive" }
     : { label: "Not uploaded", cls: "bg-muted text-muted-foreground" };
   const bioOk = bio.trim().length >= 20;
+
+  // Dirty check — the Save bar drives only the text fields (avatar /
+  // ID / portfolio persist on their own). Disabled when nothing in
+  // this set has diverged from the saved profile.
+  const dirty =
+    phone !== (profile?.phone ?? "") ||
+    location !== (profile?.location ?? "") ||
+    zipCode !== (((profile as any)?.zip_code as string | null) ?? "") ||
+    bio !== (profile?.bio ?? "");
+
+  // Resolve parish from ZIP for an inline confirmation under the field
+  // (it's the value used for Louisiana sales tax). Mirrors the silent
+  // lookup the Profile page already runs.
+  const [resolvedParish, setResolvedParish] = useState<string | null>(
+    ((profile as any)?.parish as string | null) ?? null,
+  );
+  useEffect(() => {
+    const cleaned = zipCode.replace(/\D/g, "");
+    if (cleaned.length !== 5) {
+      setResolvedParish(null);
+      return;
+    }
+    let cancelled = false;
+    lookupParishByZip(cleaned).then((p) => { if (!cancelled) setResolvedParish(p); });
+    return () => { cancelled = true; };
+  }, [zipCode]);
 
   // ─── Work portfolio (profiles.portfolio_urls) ──────────────────────
   // Helpers upload up to 6 photos of previous work; applicants see these
@@ -149,18 +181,15 @@ export function ProfileEditForm({
   };
 
   // ─── Profile completion meter ──────────────────────────────────────
-  // Counts the 6 things that meaningfully populate the applicant-facing
-  // card. Re-rendered as the user fills them out.
-  const completionItems = [
-    { label: "Profile photo", done: !!profile?.avatar_url },
-    { label: "Phone", done: !!phone.trim() },
-    { label: "Location", done: !!location.trim() && !!zipCode.trim() },
-    { label: "Bio", done: bioOk },
-    { label: "ID verified", done: idStatus === "verified" || idStatus === "pending" || idStatus === "processing" || idStatus === "manual_review" },
-    { label: "Work photos", done: portfolioUrls.length > 0 },
-  ];
-  const completionDone = completionItems.filter((i) => i.done).length;
-  const completionPct = Math.round((completionDone / completionItems.length) * 100);
+  // Shared getProfileCompletion helper — tracks only post-signup
+  // enhancements (signup already requires photo / phone / bio / etc).
+  // Fed the live form values so the meter updates as the user edits.
+  const completion = getProfileCompletion({
+    zipCode,
+    idvStatus: idStatus,
+    portfolioCount: portfolioUrls.length,
+  });
+  const completionPct = completion.pct;
 
   return (
     // Bottom padding clears the new sticky save bar (16+44+16 = 76px) plus
@@ -173,9 +202,9 @@ export function ProfileEditForm({
         onBack={onBack}
       />
 
-      {/* Completion meter — shows the user exactly what's left to make the
-          profile applicant-ready. 6 items: photo / phone / location / bio
-          / ID / work photos. Tints based on progress. */}
+      {/* Completion meter — the 3 post-signup enhancements (ZIP / ID
+          verified / work photos) via the shared getProfileCompletion
+          helper. Tints based on progress. */}
       <div className="rounded-2xl liquid-glass p-4 space-y-2">
         <div className="flex items-center justify-between">
           <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
@@ -210,7 +239,7 @@ export function ProfileEditForm({
           <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
             Next:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-              {completionItems.find((i) => !i.done)?.label}
+              {completion.nextLabel}
             </span>
             {" — "}
             complete profiles get more offers.
@@ -230,17 +259,20 @@ export function ProfileEditForm({
                 Upload trigger moved to a small floating chip at the bottom-
                 right of the avatar so the user always sees their photo. */}
             <div className="relative shrink-0">
+              {/* Squircle (rounded-[22px]) to match the avatar on the
+                  Profile landing hero — a circle here was inconsistent
+                  with the brand's squircle treatment everywhere else. */}
               {profile?.avatar_url && !avatarBroken ? (
                 <img
                   loading="lazy"
                   decoding="async"
                   src={profile.avatar_url}
                   alt=""
-                  className="w-20 h-20 rounded-full object-cover border-2 border-primary/20"
+                  className="w-20 h-20 rounded-[22px] squircle object-cover border-2 border-primary/20"
                   onError={() => setAvatarBroken(true)}
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
+                <div className="w-20 h-20 rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
                   {initials}
                 </div>
               )}
@@ -268,7 +300,21 @@ export function ProfileEditForm({
                 {`${firstName} ${lastName}`.trim() || "Your name"}
               </p>
               <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-                Tap the photo to change. Your name is locked after signup.
+                Tap the photo to change. Your name is locked after signup
+                {onContactSupport ? (
+                  <>
+                    {" — "}
+                    <button
+                      type="button"
+                      onClick={onContactSupport}
+                      className="not-italic font-sans font-semibold underline active:opacity-70"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      contact support
+                    </button>
+                    {" to change it."}
+                  </>
+                ) : "."}
               </p>
             </div>
           </div>
@@ -303,6 +349,15 @@ export function ProfileEditForm({
                 />
               </div>
             </div>
+            {/* Parish confirmation — reassures the user the ZIP
+                registered (and catches a wrong one). Parish drives
+                Louisiana sales tax. */}
+            {resolvedParish && (
+              <p className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                <MapPin className="w-3 h-3 shrink-0" />
+                Parish · <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{resolvedParish}</span>
+              </p>
+            )}
           </div>
         </div>
 
@@ -310,9 +365,20 @@ export function ProfileEditForm({
         <div className="rounded-2xl liquid-glass p-5 space-y-3">
           <div className="flex items-center justify-between">
             <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              About your work
+              About you
             </p>
-            <span className={`text-ds-11 font-medium ${bioOk ? "text-green-600 dark:text-green-500" : "text-muted-foreground"}`}>{bio.trim().length}/20</span>
+            {/* "20" is a MINIMUM, not a cap — showing "108/20" once the
+                user is past it reads like an over-limit error. So:
+                "X/20" while short of the minimum, a check once met. */}
+            {bioOk ? (
+              <span className="text-ds-11 font-medium text-green-600 dark:text-green-500 inline-flex items-center gap-1">
+                <Check className="w-3 h-3" strokeWidth={3} /> Looks good
+              </span>
+            ) : (
+              <span className="text-ds-11 font-medium text-muted-foreground tabular-nums">
+                {bio.trim().length}/20 min
+              </span>
+            )}
           </div>
           <Textarea
             id="bio"
@@ -326,25 +392,20 @@ export function ProfileEditForm({
           </p>
         </div>
 
-        {/* ID Verification section */}
+        {/* ID Verification section — header simplified to the same
+            eyebrow-only pattern the other sections use (it used to
+            carry an icon circle + separate title, which read as a
+            different design). Status badge sits on the right. */}
         <div className="rounded-2xl liquid-glass p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Shield className="w-4 h-4 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                Trust
-              </p>
-              <h2 className="font-display italic font-bold leading-tight flex items-center gap-2 flex-wrap" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-                ID verification
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
-              </h2>
-            </div>
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              ID verification
+            </p>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
           </div>
           <div className="flex items-center gap-3">
             <p className="font-serif italic leading-snug flex-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-              Upload a government-issued ID. Encrypted in transit and reviewed by Helpr.
+              Upload a government-issued ID. Encrypted in transit, used only for identity verification and fraud prevention.
             </p>
             <label className="shrink-0">
               <span className="inline-flex items-center gap-1.5 text-ds-11 font-semibold px-3 h-9 rounded-ds-md bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 active:scale-[0.98] transition-all">
@@ -376,6 +437,7 @@ export function ProfileEditForm({
           </div>
           <p className="font-serif italic leading-snug -mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
             Show off recent jobs — applicants see these when deciding to apply.
+            {" "}<span className="not-italic font-sans font-medium" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>Photos save automatically.</span>
           </p>
           <div className="grid grid-cols-3 gap-2">
             {portfolioUrls.map((url, i) => (
@@ -461,24 +523,32 @@ export function ProfileEditForm({
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={(e) => onSave(e as unknown as React.FormEvent)}
-            disabled={saving || justSaved}
-            className="flex-[2] h-11 rounded-ds-md inline-flex items-center justify-center gap-2 text-ds-13 font-bold transition-all active:scale-[0.98] disabled:active:scale-100"
-            style={{
-              background: saving ? "hsl(var(--muted))" : "hsl(var(--bark))",
-              color: saving ? "hsl(var(--muted-foreground))" : "hsl(var(--parchment))",
-              border: "1px solid hsl(70 22% 24%)",
-              boxShadow:
-                "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                "0 1px 2px hsl(70 20% 18% / 0.18), " +
-                "0 6px 14px -4px hsl(var(--bark) / 0.4)",
-              cursor: saving ? "not-allowed" : "pointer",
-            }}
-          >
-            {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? "✓ Saved" : "Save changes"}
-          </button>
+          {(() => {
+            // Save is muted + disabled when nothing's changed, so the
+            // bar reflects state instead of always inviting a tap.
+            const idle = !dirty && !saving && !justSaved;
+            return (
+              <button
+                type="button"
+                onClick={(e) => onSave(e as unknown as React.FormEvent)}
+                disabled={saving || justSaved || !dirty}
+                className="flex-[2] h-11 rounded-ds-md inline-flex items-center justify-center gap-2 text-ds-13 font-bold transition-all active:scale-[0.98] disabled:active:scale-100"
+                style={{
+                  background: saving || idle ? "hsl(var(--muted))" : "hsl(var(--bark))",
+                  color: saving || idle ? "hsl(var(--muted-foreground))" : "hsl(var(--parchment))",
+                  border: "1px solid hsl(70 22% 24%)",
+                  boxShadow: idle
+                    ? "none"
+                    : "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
+                      "0 1px 2px hsl(70 20% 18% / 0.18), " +
+                      "0 6px 14px -4px hsl(var(--bark) / 0.4)",
+                  cursor: saving || idle ? "not-allowed" : "pointer",
+                }}
+              >
+                {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? "✓ Saved" : idle ? "Up to date" : "Save changes"}
+              </button>
+            );
+          })()}
         </div>
       </div>
     </div>

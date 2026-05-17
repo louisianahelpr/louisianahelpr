@@ -63,7 +63,14 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
         <div
           ref={ref}
           className={cn(
-            "flex-1 min-h-0",
+            // flex flex-col so child <main>'s `flex-1 min-h-0` actually
+            // resolves to a definite height. Without this the height
+            // chain stops here and downstream `h-full` / `overflow-y-auto`
+            // containers can't establish a scrollable viewport, which is
+            // why non-landing Profile tabs (Schedule / Reviews /
+            // Availability / Saved Helprs) appeared frozen — there was
+            // overflow but no scroll surface to handle it.
+            "flex-1 min-h-0 flex flex-col",
             scrollable ? "overflow-y-auto no-scrollbar" : "overflow-hidden",
             contentClassName,
           )}

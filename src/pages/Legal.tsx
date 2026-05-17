@@ -1,15 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
   Receipt, Database, Eye, Lock, Trash2, Cookie, FileText, Users, Crown,
   Wallet, Building2, Siren, ListChecks, Briefcase, Handshake,
-  ShieldAlert, ShieldCheck,
+  ShieldAlert, ShieldCheck, Search, X,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BackButton from "@/components/BackButton";
-import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
+import { PolicyRowItem, PolicySection, PolicySearchContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 type TabKey = "terms" | "community" | "privacy";
@@ -25,8 +26,16 @@ const TldrCard = ({ items }: { items: string[] }) => (
   <div
     className="rounded-2xl p-5 space-y-3"
     style={{
-      background: "hsl(var(--bark) / 0.06)",
-      border: "1px solid hsl(var(--bark) / 0.18)",
+      // Bumped contrast vs the cream PolicySection surface below so
+      // the TLDR reads as a discrete summary card, not another row.
+      // Slightly tinted bark backdrop + inset highlight + bottom shadow
+      // gives the card a soft lift over the page.
+      background: "hsl(var(--bark) / 0.10)",
+      border: "1px solid hsl(var(--bark) / 0.28)",
+      boxShadow:
+        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+        "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+        "0 8px 18px -8px hsl(var(--olivewood) / 0.12)",
     }}
   >
     <div className="flex items-center gap-2">
@@ -557,12 +566,43 @@ const CommunityContent = () => (
 /* ───────────────────────  PRIVACY  ─────────────────────── */
 const PrivacyContent = () => (
   <div className="space-y-3">
+    {/* "We never sell your data" promoted to a top-of-tab callout —
+        it's the single highest-trust question users have about a
+        marketplace handling their ID + location, so it earns its own
+        surface above the TLDR rather than sitting as bullet #3. */}
+    <div
+      className="rounded-2xl p-4 flex items-start gap-3"
+      style={{
+        background: "hsl(var(--bark) / 0.08)",
+        border: "1px solid hsl(var(--bark) / 0.30)",
+        boxShadow:
+          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+          "0 6px 14px -6px hsl(var(--bark) / 0.22)",
+      }}
+    >
+      <div
+        className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+        style={{ background: "hsl(var(--bark) / 0.15)", color: "hsl(var(--bark))" }}
+      >
+        <ShieldCheck className="w-4 h-4" strokeWidth={2.25} />
+      </div>
+      <div className="min-w-0">
+        <p
+          className="font-display italic font-bold leading-tight"
+          style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+        >
+          We never sell your data.
+        </p>
+        <p className="font-serif italic mt-1 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          Other users only see your first name, photo, and ratings. ID documents stay encrypted and are accessed only during verification.
+        </p>
+      </div>
+    </div>
+
     <TldrCard
       items={[
         "We collect only what we need to match jobs and process payments — name, email, phone, ID, location, usage data.",
         "Stripe handles payments. We never store full card numbers.",
-        "We never sell your data. Other users only see your first name, photo, and ratings.",
-        "ID documents are encrypted and accessed only during verification.",
         "You can request deletion or a data export at any time via support — we respond within 30 days.",
       ]}
     />
@@ -735,6 +775,7 @@ const Legal = () => {
   const [params, setParams] = useSearchParams();
   const tabParam = (params.get("tab") || "terms") as TabKey;
   const tab: TabKey = VALID_TABS.includes(tabParam) ? tabParam : "terms";
+  const [query, setQuery] = useState("");
 
   usePageTitle(PAGE_TITLES[tab]);
 
@@ -755,78 +796,134 @@ const Legal = () => {
       <Navbar />
       <div aria-hidden className="h-14" />
 
-      <main className="container mx-auto px-5 pt-1 pb-8">
+      <main className="container mx-auto px-5 pt-4 pb-8">
         <div className="max-w-2xl mx-auto space-y-4">
           <div>
-            <div className="flex items-center gap-2">
-              <BackButton to="/profile?tab=legal" />
-              <div className="flex flex-col leading-none">
+            <div className="flex items-start gap-3">
+              {/* No explicit `to` — BackButton falls back to history.back()
+                  which works for both authenticated users coming from
+                  /profile?tab=legal and unauthenticated visitors coming
+                  from the signup agreement checkbox. */}
+              <BackButton />
+              <div className="flex flex-col leading-none min-w-0 flex-1">
                 <span
                   className="font-serif italic uppercase text-[0.62rem]"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
                 >
                   Compliance & disclosures
                 </span>
-                <h1
-                  className="font-display italic font-bold leading-tight mt-1"
-                  style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.4rem, 2rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-                >
-                  Legal
-                </h1>
-                <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                  Last updated · March 2026
-                </span>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <h1
+                    className="font-display italic font-bold leading-tight"
+                    style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.4rem, 2rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+                  >
+                    Legal
+                  </h1>
+                  {/* "Last updated" chip — promoted from a fading-italic
+                      subtitle to a tabular-nums chip so users can quickly
+                      verify they're reading the current revision. Used
+                      a lot when posters reference a clause to a helpr. */}
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.66rem] font-sans font-semibold tabular-nums uppercase tracking-wider"
+                    style={{
+                      background: "hsl(var(--bark) / 0.10)",
+                      color: "hsl(var(--bark))",
+                      border: "1px solid hsl(var(--bark) / 0.22)",
+                    }}
+                  >
+                    Updated · Mar 2026
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          <Tabs value={tab} onValueChange={setTab} className="w-full">
-            {/* Bumped from h-11 (44px exactly at iOS minimum) to h-12 (48px)
-                for a comfortable tap. Bumped label from text-ds-11 (11px) to
-                text-ds-13 (13px) for legibility on small screens. Active
-                tab gets shadow-md + foreground color; inactive tabs get
-                muted-foreground so the selected state pops. */}
-            <TabsList
-              className="grid w-full grid-cols-3 rounded-2xl p-1 h-12"
-              style={{
-                background: "hsla(0, 0%, 100%, 0.55)",
-                border: "1px solid hsla(0, 0%, 100%, 0.6)",
-                backdropFilter: "blur(20px) saturate(170%)",
-              }}
-            >
-              <TabsTrigger
-                value="terms"
-                className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
+          <PolicySearchContext.Provider value={query}>
+            <Tabs value={tab} onValueChange={setTab} className="w-full">
+              {/* Sticky tabs + search — stay pinned at the top of the
+                  scroll area (just below the fixed Navbar) so the user
+                  can switch between Terms / Community / Privacy and
+                  filter without losing their place in long policy docs.
+                  The frosted-blur background bleeds the page warmth
+                  through so it doesn't read as a hard band. */}
+              <div
+                className="sticky z-30 -mx-5 px-5 pt-2 pb-3 space-y-2.5"
+                style={{
+                  top: "calc(3.5rem + env(safe-area-inset-top, 0px))",
+                  background:
+                    "linear-gradient(to bottom, hsla(38, 18%, 97%, 0.92), hsla(38, 18%, 97%, 0.78))",
+                  backdropFilter: "blur(14px) saturate(150%)",
+                  WebkitBackdropFilter: "blur(14px) saturate(150%)",
+                }}
               >
-                Terms
-              </TabsTrigger>
-              <TabsTrigger
-                value="community"
-                className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
-              >
-                Community
-              </TabsTrigger>
-              <TabsTrigger
-                value="privacy"
-                className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
-              >
-                Privacy
-              </TabsTrigger>
-            </TabsList>
+                <TabsList
+                  className="grid w-full grid-cols-3 rounded-2xl p-1 h-12"
+                  style={{
+                    background: "hsla(0, 0%, 100%, 0.55)",
+                    border: "1px solid hsla(0, 0%, 100%, 0.6)",
+                    backdropFilter: "blur(20px) saturate(170%)",
+                  }}
+                >
+                  <TabsTrigger
+                    value="terms"
+                    className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
+                  >
+                    Terms
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="community"
+                    className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
+                  >
+                    Community
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="privacy"
+                    className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
+                  >
+                    Privacy
+                  </TabsTrigger>
+                </TabsList>
 
-            {/* Safe-area bottom padding on each tab so the long legal body
-                can scroll fully past the floating dock + FAB on iPhone
-                without clipping the last paragraph. */}
-            <TabsContent value="terms" className="mt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
-              <TermsContent />
-            </TabsContent>
-            <TabsContent value="community" className="mt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
-              <CommunityContent />
-            </TabsContent>
-            <TabsContent value="privacy" className="mt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
-              <PrivacyContent />
-            </TabsContent>
-          </Tabs>
+                {/* In-page search across this tab's section titles +
+                    item labels. Auto-expands matching sections via the
+                    PolicySearchContext provider. */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    aria-label={`Search ${tab}`}
+                    placeholder={`Search ${tab}…`}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="pl-9 pr-9 h-10 rounded-ds-md bg-white/70 border-border/60"
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery("")}
+                      aria-label="Clear search"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 active:scale-[0.94] transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Safe-area bottom padding on each tab so the long legal body
+                  can scroll fully past the floating dock + FAB on iPhone
+                  without clipping the last paragraph. */}
+              <TabsContent value="terms" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
+                <TermsContent />
+              </TabsContent>
+              <TabsContent value="community" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
+                <CommunityContent />
+              </TabsContent>
+              <TabsContent value="privacy" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
+                <PrivacyContent />
+              </TabsContent>
+            </Tabs>
+          </PolicySearchContext.Provider>
         </div>
       </main>
     </div>

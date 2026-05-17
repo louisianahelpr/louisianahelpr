@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { MapPin, DollarSign, Clock, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { MapPin, DollarSign, Clock, ChevronLeft, ChevronRight, CalendarDays, Search, Plus } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 import type { Database } from "@/integrations/supabase/types";
@@ -39,8 +40,16 @@ interface ScheduleTabProps {
 }
 
 export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: ScheduleTabProps) {
+  const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  // True when the user has navigated away from the current month — used
+  // to surface a "Today" reset button only when it's actually useful.
+  const todayDate = new Date();
+  const viewingDifferentMonth =
+    currentMonth.getFullYear() !== todayDate.getFullYear() ||
+    currentMonth.getMonth() !== todayDate.getMonth();
 
   const allJobs = [...postedJobs, ...assignedJobs];
   const jobsByDate = new Map<string, Job[]>();
@@ -96,9 +105,28 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
           <div className="rounded-2xl liquid-glass p-5">
             <div className="flex items-center justify-between mb-4">
               <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} aria-label="Previous month"><ChevronLeft className="w-4 h-4" /></Button>
-              <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-              </h2>
+              <div className="flex flex-col items-center gap-1">
+                <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                  {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                </h2>
+                {/* "Today" reset surfaces only when the user has flipped
+                    away from the current month — saves cognitive load
+                    when it isn't useful. */}
+                {viewingDifferentMonth && (
+                  <button
+                    type="button"
+                    onClick={() => { setCurrentMonth(new Date()); setSelectedDate(null); }}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.66rem] font-sans font-semibold tracking-wide active:scale-[0.96] transition-transform"
+                    style={{
+                      background: "hsl(var(--bark) / 0.10)",
+                      color: "hsl(var(--bark))",
+                      border: "1px solid hsl(var(--bark) / 0.22)",
+                    }}
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
               <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} aria-label="Next month"><ChevronRight className="w-4 h-4" /></Button>
             </div>
             <div className="grid grid-cols-7 gap-1 mb-1">
@@ -121,7 +149,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                     className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-ds-13 transition-colors ${
                       isSelected ? "bg-primary text-primary-foreground" :
-                      isToday ? "bg-primary/10 text-primary font-bold" :
+                      isToday ? "text-primary font-bold ring-2 ring-primary/70 ring-inset bg-primary/8" :
                       "hover:bg-secondary text-foreground"
                     }`}
                   >
@@ -132,6 +160,19 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                   </button>
                 );
               })}
+            </div>
+            {/* Legend — quick decoder so users intuit the bark dot
+                without trial-and-error. Two micro-chips inline, italic
+                serif to match the rest of the chrome. */}
+            <div className="mt-3 pt-3 flex items-center gap-4 font-serif italic text-[0.7rem]" style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood) / 0.7)" }}>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded ring-2 ring-primary/70 ring-inset bg-primary/8" aria-hidden />
+                Today
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden />
+                Has a job
+              </span>
             </div>
           </div>
 
@@ -204,6 +245,34 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                     <p className="font-serif italic max-w-[260px]" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                       No upcoming jobs yet — book one and it'll show up here.
                     </p>
+                  </div>
+                  {/* Actionable empty state — Browse for helprs looking
+                      to apply, Post for posters. Both routes are dock
+                      destinations so users get back into the flow
+                      without hunting through the bottom nav. */}
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-ds-md"
+                      onClick={() => navigate("/dashboard")}
+                    >
+                      <Search className="w-3.5 h-3.5 mr-1.5" /> Browse open jobs
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="rounded-ds-md"
+                      onClick={() => navigate("/post-job")}
+                      style={{
+                        background: "hsl(var(--bark))",
+                        color: "hsl(var(--parchment))",
+                        border: "1px solid hsl(70 22% 24%)",
+                        fontFamily: "Montserrat, system-ui, sans-serif",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1.5" /> Post a task
+                    </Button>
                   </div>
                 </div>
               ) : (

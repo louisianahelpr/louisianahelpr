@@ -1,12 +1,13 @@
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { getProfileCompletion } from "@/lib/profileCompletion";
 import {
   DollarSign, LogOut, MapPin,
   CreditCard, Shield,
   Star, Edit, CalendarDays, Clock, Gavel,
-  ChevronRight as ChevronRightIcon,
+  ChevronRight as ChevronRightIcon, ChevronDown,
   HelpCircle, Bell, AlertTriangle, Heart, Crown,
   ShieldCheck, Trash2,
-  BadgeCheck, ImagePlus,
+  BadgeCheck, ImagePlus, Camera,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -72,10 +73,36 @@ export function ProfileLanding({
   onRequestLogout,
   reviewsPreview = [],
 }: ProfileLandingProps) {
+  // Recent work + reviews collapse into one disclosure so the hero
+  // stays compact — they can make the card very tall on an
+  // established profile.
+  const [showcaseOpen, setShowcaseOpen] = useState(false);
   // Derived state — drives "Action needed" dots on menu items so the
   // user sees blockers at a glance without having to navigate into each
   // tab to discover them.
   const tier = (profile?.subscription_tier ?? "free") as string;
+  const hasPhoto = !!profile?.avatar_url && !avatarBroken;
+
+  // Tenure label — "New member" for accounts under 30 days old (so a
+  // brand-new account doesn't read the slightly-odd "Since May 2026"),
+  // switching to "Since <Month Year>" once there's real history.
+  const memberSinceLabel = (() => {
+    if (!profile?.created_at) return null;
+    const created = new Date(profile.created_at);
+    const ageDays = (Date.now() - created.getTime()) / 86_400_000;
+    if (ageDays < 30) return "New member";
+    return `Since ${created.toLocaleDateString("en-US", { month: "short", year: "numeric" })}`;
+  })();
+
+  // Earned trust badges only — showing empty "you don't have this"
+  // pills on a fresh profile reads as a deficiency list. The
+  // unverified items are still nudged via the completion meter +
+  // Credentials tab.
+  const earnedBadges = ([
+    { ok: profile?.idv_status === "verified", label: "ID verified" },
+    { ok: (profile as any)?.license_status === "verified", label: "Licensed" },
+    { ok: (profile as any)?.insurance_status === "verified", label: "Insured" },
+  ]).filter((b) => b.ok);
   const stripeNeedsAction =
     profile?.approval_status === "approved" &&
     stripeConnectStatus !== null &&
@@ -93,26 +120,16 @@ export function ProfileLanding({
   // ─── Portfolio gallery + completion meter ──────────────────────────
   // portfolio_urls is on profiles (text[]). Gallery shows up to 6 inline
   // on the landing; tap navigates into Edit Profile to manage. The
-  // completion meter shares the same 6-item checklist as ProfileEditForm
-  // so the % matches between landing and edit views.
+  // completion meter uses the shared getProfileCompletion helper, which
+  // tracks only post-signup enhancements (signup already requires
+  // photo / name / phone / bio / city / ID doc).
   const portfolioUrls: string[] = ((profile as any)?.portfolio_urls ?? []) as string[];
-  const completionItems = [
-    { label: "Profile photo", done: !!profile?.avatar_url },
-    { label: "Phone", done: !!(profile as any)?.phone },
-    { label: "Location", done: !!profile?.location && !!(profile as any)?.zip_code },
-    { label: "Bio", done: !!profile?.bio && profile.bio.trim().length >= 20 },
-    {
-      label: "ID verified",
-      done:
-        profile?.idv_status === "verified" ||
-        profile?.idv_status === "pending" ||
-        profile?.idv_status === "processing" ||
-        profile?.idv_status === "manual_review",
-    },
-    { label: "Work photos", done: portfolioUrls.length > 0 },
-  ];
-  const completionDone = completionItems.filter((i) => i.done).length;
-  const completionPct = Math.round((completionDone / completionItems.length) * 100);
+  const completion = getProfileCompletion({
+    zipCode: (profile as any)?.zip_code,
+    idvStatus: profile?.idv_status,
+    portfolioCount: portfolioUrls.length,
+  });
+  const completionPct = completion.pct;
 
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
@@ -121,7 +138,7 @@ export function ProfileLanding({
         { key: "credentials", label: "Licensed & Insured", icon: <ShieldCheck className="w-5 h-5" />, desc: "Add your license and insurance" },
         { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar and upcoming jobs" },
         { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Set your weekly working hours" },
-        { key: "landing", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", href: "/saved-helpers" },
+        { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer" },
         { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
       ],
     },
@@ -162,22 +179,33 @@ export function ProfileLanding({
             "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
         }}
       >
+        {/* Labeled "Edit" pill — a bare pencil circle was easy to miss;
+            the text makes the affordance obvious. */}
         <button
           onClick={() => onSelectTab("profile")}
           aria-label="Edit profile"
-          className="absolute top-2.5 right-2.5 w-9 h-9 rounded-full bg-secondary/60 hover:bg-secondary active:scale-95 flex items-center justify-center text-foreground/70 hover:text-foreground transition-all"
+          className="absolute top-2.5 right-2.5 h-8 pl-2 pr-2.5 rounded-full bg-secondary/60 hover:bg-secondary active:scale-95 inline-flex items-center gap-1 text-foreground/75 hover:text-foreground transition-all"
         >
-          <Edit className="w-4 h-4" />
+          <Edit className="w-3.5 h-3.5" />
+          <span className="text-ds-11 font-sans font-semibold">Edit</span>
         </button>
-        <div className="flex flex-row items-start gap-4 pr-10">
+        <div className="flex flex-row items-start gap-4 pr-[72px]">
           {/* Avatar — bumped 75px → 92px so it's a real focal point on this
               applicant-facing page (was a tiny chip next to a wide name).
               Tier-styled ring uses gold for elite, accent for pro, primary
               for everyone else. ID-verified checkmark sits on the bottom-
               right as a trust signal that's visible at a glance. */}
           <div className="relative shrink-0">
-            <div
-              className="w-[92px] h-[92px] rounded-[26px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden"
+            {/* Avatar taps through to Edit Profile. When there's no
+                photo it carries a camera badge — profile photo is
+                required at signup, so a missing one only happens on
+                seeded / legacy accounts, but the nudge still helps
+                them. */}
+            <button
+              type="button"
+              onClick={() => onSelectTab("profile")}
+              aria-label={hasPhoto ? "Edit profile" : "Add a profile photo"}
+              className="w-[92px] h-[92px] rounded-[26px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden active:scale-[0.98] transition-transform"
               style={{
                 boxShadow:
                   tier === "elite"
@@ -187,27 +215,39 @@ export function ProfileLanding({
                       : "0 0 0 2px hsl(var(--bark) / 0.18)",
               }}
             >
-              {profile?.avatar_url && !avatarBroken ? (
+              {hasPhoto ? (
                 <img
                   loading="lazy"
                   decoding="async"
-                  src={profile.avatar_url}
+                  src={profile!.avatar_url as string}
                   alt=""
                   className="w-full h-full object-cover"
                   onError={() => setAvatarBroken(true)}
                 />
               ) : initials}
-            </div>
-            {profile?.idv_status === "verified" && (
+            </button>
+            {hasPhoto && profile?.idv_status === "verified" && (
               <div
                 aria-label="ID verified"
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center pointer-events-none"
                 style={{
                   background: "hsl(var(--bark))",
                   border: "2px solid hsl(var(--parchment))",
                 }}
               >
                 <BadgeCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
+              </div>
+            )}
+            {!hasPhoto && (
+              <div
+                aria-hidden
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center pointer-events-none"
+                style={{
+                  background: "hsl(var(--bark))",
+                  border: "2px solid hsl(var(--parchment))",
+                }}
+              >
+                <Camera className="w-3.5 h-3.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.25} />
               </div>
             )}
           </div>
@@ -256,45 +296,50 @@ export function ProfileLanding({
               <p className="text-ds-11 text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
                 <MapPin className="w-3 h-3 shrink-0" />
                 <span className="truncate">{profile.location}</span>
-                {profile?.created_at && (
+                {memberSinceLabel && (
                   <>
                     <span className="opacity-50">·</span>
-                    <span className="truncate">Since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+                    <span className="truncate">{memberSinceLabel}</span>
                   </>
                 )}
               </p>
             )}
-            {/* Trust badges — id verified / licensed / insured. Quiet pills
-                so they read as proof, not advertising. Missing items render
-                in muted gray so the user notices the gap. */}
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              {([
-                { ok: profile?.idv_status === "verified", label: "ID verified" },
-                { ok: (profile as any)?.license_status === "verified", label: "Licensed" },
-                { ok: (profile as any)?.insurance_status === "verified", label: "Insured" },
-              ]).map((b) => (
-                <span
-                  key={b.label}
-                  className={`inline-flex items-center gap-1 text-ds-9 font-sans font-medium px-1.5 py-0.5 rounded-full ${
-                    b.ok
-                      ? "bg-primary/10 text-primary"
-                      : "bg-muted/60 text-muted-foreground/70"
-                  }`}
-                >
-                  {b.ok ? <BadgeCheck className="w-2.5 h-2.5" /> : <span className="w-2.5 h-2.5 rounded-full border border-current" />}
-                  {b.label}
-                </span>
-              ))}
-            </div>
+            {/* Trust badges — only the EARNED ones render, so the row
+                reads as proof, not a checklist of gaps. Unearned items
+                are nudged via the completion meter + Credentials tab. */}
+            {earnedBadges.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {earnedBadges.map((b) => (
+                  <span
+                    key={b.label}
+                    className="inline-flex items-center gap-1 text-ds-9 font-sans font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary"
+                  >
+                    <BadgeCheck className="w-2.5 h-2.5" />
+                    {b.label}
+                  </span>
+                ))}
+              </div>
+            )}
             {/* Integrated stats — single inline line directly under badges */}
             <div className="flex items-center gap-3 mt-2 text-ds-11">
               <button
                 onClick={() => onSelectTab("reviews")}
                 className="flex items-center gap-1 hover:opacity-70 active:opacity-50 transition-opacity"
               >
-                <Star className="w-3 h-3 text-primary fill-primary" />
-                <span className="font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "5.0"}</span>
-                <span className="text-muted-foreground">({reviewCount})</span>
+                <Star
+                  className="w-3 h-3 text-primary"
+                  fill={reviewCount > 0 ? "currentColor" : "none"}
+                />
+                {/* "New" until the first review lands — a 5.0 with 0
+                    reviews is a default, not an earned rating. */}
+                {reviewCount > 0 ? (
+                  <>
+                    <span className="font-bold text-foreground">{avgRating ? avgRating.toFixed(1) : "5.0"}</span>
+                    <span className="text-muted-foreground">({reviewCount})</span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">New</span>
+                )}
               </button>
               <span className="w-px h-3 bg-border/60" />
               <button
@@ -344,149 +389,141 @@ export function ProfileLanding({
             >+ Add a short bio so applicants know who they're hiring.</button>
           )}
         </div>
-        {/* Work portfolio gallery — up to 6 photos of previous work shown
-            in a horizontal scroll. Applicants browse this to decide who to
-            hire. Tap a photo to open the full-size lightbox. Empty state
-            nudges helpers to upload (biggest single conversion lever). */}
-        {portfolioUrls.length > 0 ? (
+        {/* Work & reviews — collapsed into one disclosure so the hero
+            stays short. Renders only when there's something to show;
+            an empty portfolio is nudged by the completion meter below
+            (its checklist already includes "Work photos"), so the
+            standalone empty-state nudge was removed as redundant. */}
+        {(portfolioUrls.length > 0 || reviewsPreview.length > 0) && (
           <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-            <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              Recent work
-            </p>
-            <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1">
-              {portfolioUrls.slice(0, 6).map((url, i) => (
-                <button
-                  key={url}
-                  type="button"
-                  onClick={() => onSelectTab("profile")}
-                  className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform"
-                  aria-label={`Work sample ${i + 1}`}
-                >
-                  <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowcaseOpen((o) => !o)}
+              aria-expanded={showcaseOpen}
+              className="w-full flex items-center justify-between gap-2 active:opacity-70 transition-opacity"
+            >
+              <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                Work &amp; reviews
+              </span>
+              <span className="inline-flex items-center gap-1 text-ds-11 font-semibold" style={{ color: "hsl(var(--bark))" }}>
+                {showcaseOpen ? "Hide" : "View"}
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showcaseOpen ? "rotate-180" : ""}`} />
+              </span>
+            </button>
+
+            {showcaseOpen && (
+              <div className="mt-3 space-y-3">
+                {portfolioUrls.length > 0 && (
+                  <div>
+                    <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                      Recent work
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1">
+                      {portfolioUrls.slice(0, 6).map((url, i) => (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() => onSelectTab("profile")}
+                          className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform"
+                          aria-label={`Work sample ${i + 1}`}
+                        >
+                          <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {reviewsPreview.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                        Recent reviews
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => onSelectTab("reviews")}
+                        className="text-ds-11 font-semibold active:opacity-70"
+                        style={{ color: "hsl(var(--bark))" }}
+                      >
+                        See all →
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {reviewsPreview.map((r, i) => {
+                        const days = Math.max(
+                          0,
+                          Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000),
+                        );
+                        const when =
+                          days < 1 ? "today" :
+                          days < 7 ? `${days}d ago` :
+                          days < 30 ? `${Math.floor(days / 7)}w ago` :
+                          days < 365 ? `${Math.floor(days / 30)}mo ago` :
+                          `${Math.floor(days / 365)}y ago`;
+                        return (
+                          <button
+                            key={`${r.created_at}-${i}`}
+                            type="button"
+                            onClick={() => onSelectTab("reviews")}
+                            className="w-full text-left rounded-xl p-2.5 active:scale-[0.99] active:opacity-80 transition-all"
+                            style={{
+                              background: "hsla(0, 0%, 100%, 0.55)",
+                              border: "1px solid hsl(var(--olivewood) / 0.10)",
+                            }}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-0.5">
+                                {[1, 2, 3, 4, 5].map((n) => (
+                                  <Star
+                                    key={n}
+                                    className="w-3 h-3"
+                                    style={{
+                                      color: n <= r.rating ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
+                                      fill: n <= r.rating ? "hsl(var(--burnt-sienna))" : "transparent",
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-ds-11 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
+                                {r.reviewerName}
+                              </span>
+                              <span className="text-ds-10 text-muted-foreground shrink-0">· {when}</span>
+                            </div>
+                            {r.feedback?.trim() ? (
+                              <p
+                                className="font-serif italic text-ds-12 leading-snug line-clamp-2"
+                                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                              >
+                                "{r.feedback}"
+                              </p>
+                            ) : (
+                              <p
+                                className="font-serif italic text-ds-11 leading-snug"
+                                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                              >
+                                {r.jobTitle}
+                              </p>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onSelectTab("profile")}
-            className="mt-3 pt-3 w-full text-left flex items-center justify-between gap-3 active:opacity-70 transition-opacity"
+        )}
+        {/* Completion meter — compact single row (bar + inline
+            "NN% · next step" link) instead of the old eyebrow-row +
+            bar two-row block, so the content-dense hero gets one row
+            shorter. Auto-hides at 100%. */}
+        {completionPct < 100 && (
+          <div
+            className="mt-3 pt-3 flex items-center gap-3"
             style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
           >
-            <div className="min-w-0">
-              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                Recent work
-              </p>
-              <p className="font-serif italic text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                Add photos of previous jobs so applicants can see your work.
-              </p>
-            </div>
-            <span className="text-ds-11 font-semibold shrink-0" style={{ color: "hsl(var(--bark))" }}>
-              + Add photos
-            </span>
-          </button>
-        )}
-        {/* Recent reviews preview — up to 2 most recent reviews shown
-            inline as social proof. Tap any card to open the full
-            reviews tab. Hides entirely when the user has no reviews
-            (the avgRating stat above already conveys that state). */}
-        {reviewsPreview.length > 0 && (
-          <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                Recent reviews
-              </p>
-              <button
-                type="button"
-                onClick={() => onSelectTab("reviews")}
-                className="text-ds-11 font-semibold active:opacity-70"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                See all →
-              </button>
-            </div>
-            <div className="space-y-2">
-              {reviewsPreview.map((r, i) => {
-                const days = Math.max(
-                  0,
-                  Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000),
-                );
-                const when =
-                  days < 1 ? "today" :
-                  days < 7 ? `${days}d ago` :
-                  days < 30 ? `${Math.floor(days / 7)}w ago` :
-                  days < 365 ? `${Math.floor(days / 30)}mo ago` :
-                  `${Math.floor(days / 365)}y ago`;
-                return (
-                  <button
-                    key={`${r.created_at}-${i}`}
-                    type="button"
-                    onClick={() => onSelectTab("reviews")}
-                    className="w-full text-left rounded-xl p-2.5 active:scale-[0.99] active:opacity-80 transition-all"
-                    style={{
-                      background: "hsla(0, 0%, 100%, 0.55)",
-                      border: "1px solid hsl(var(--olivewood) / 0.10)",
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <Star
-                            key={n}
-                            className="w-3 h-3"
-                            style={{
-                              color: n <= r.rating ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
-                              fill: n <= r.rating ? "hsl(var(--burnt-sienna))" : "transparent",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-ds-11 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
-                        {r.reviewerName}
-                      </span>
-                      <span className="text-ds-10 text-muted-foreground shrink-0">· {when}</span>
-                    </div>
-                    {r.feedback?.trim() ? (
-                      <p
-                        className="font-serif italic text-ds-12 leading-snug line-clamp-2"
-                        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                      >
-                        "{r.feedback}"
-                      </p>
-                    ) : (
-                      <p
-                        className="font-serif italic text-ds-11 leading-snug"
-                        style={{ color: "hsl(var(--olivewood) / 0.6)" }}
-                      >
-                        {r.jobTitle}
-                      </p>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        {/* Completion meter — quiet horizontal bar at the bottom of the
-            hero. Disappears at 100% to remove the nag once the user is
-            fully set up. */}
-        {completionPct < 100 && (
-          <div className="mt-3 pt-3" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                {completionPct}% complete
-              </span>
-              <button
-                type="button"
-                onClick={() => onSelectTab("profile")}
-                className="text-ds-11 font-semibold active:opacity-70"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                {completionItems.find((i) => !i.done)?.label} →
-              </button>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+            <div className="h-1.5 flex-1 rounded-full bg-muted/60 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
@@ -498,44 +535,53 @@ export function ProfileLanding({
                 }}
               />
             </div>
+            <button
+              type="button"
+              onClick={() => onSelectTab("profile")}
+              className="shrink-0 text-ds-11 font-semibold active:opacity-70 whitespace-nowrap"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              {completionPct}% · {completion.nextLabel} →
+            </button>
           </div>
         )}
       </div>
 
-      {/* Bottom box — menu groups + account actions. Extends
-          to viewport bottom with flat bottom corners. AppShell
-          handles vertical scroll (scrollable=true on landing),
-          so this card just stacks naturally. */}
+      {/* Bottom box — menu groups + account actions. A normal,
+          fully-rounded card with a soft contained shadow. (It used to
+          carry the flat-bottom "bleed under the dock" treatment, but
+          this content is short and the landing tab scrolls naturally,
+          so that just produced a hard cut-off edge below Delete
+          account instead of a finished card.) */}
       <div
         className="liquid-glass"
         style={{
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          borderBottom: "none",
           boxShadow:
             "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
             "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-            "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-            "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+            "0 12px 28px -10px hsl(var(--olivewood) / 0.14)",
         }}
       >
         <div className="px-4 pt-3 pb-4 space-y-3">
-          {/* Payout Banner */}
+          {/* Payout banner — slim single-row alert. It used to be a
+              big bordered card + full-width solid button that dominated
+              the page; the MONEY tab chip now also carries a blocker
+              dot, so this can inform without shouting. The whole row
+              taps through to Payment Settings. */}
           {profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
-            <div className="rounded-[24px] border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-ds-13 font-semibold text-foreground">Set up your payout account</p>
-                  <p className="text-ds-11 text-muted-foreground mt-1">
-                    Add a bank account in Payment Settings to accept jobs and receive payments.
-                  </p>
-                </div>
-              </div>
-              <Button onClick={() => onSelectTab("payment")} className="w-full" size="sm">
-                <CreditCard className="w-4 h-4 mr-2" /> Go to Payment Settings
-              </Button>
-            </div>
+            <button
+              type="button"
+              onClick={() => onSelectTab("payment")}
+              className="w-full flex items-center gap-2.5 rounded-ds-md border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-left active:scale-[0.99] transition-all"
+            >
+              <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+              <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
+                <span className="font-semibold">Set up your payout account</span> to accept jobs and get paid.
+              </p>
+              <span className="shrink-0 text-ds-11 font-semibold text-destructive inline-flex items-center gap-0.5">
+                Set up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
+              </span>
+            </button>
           )}
 
           {/* Category buttons replace the old always-expanded long list. */}
@@ -544,20 +590,30 @@ export function ProfileLanding({
               {menuGroups.map((group) => {
                 const isActive = activeMenuGroup === group.title;
                 const GroupIcon = group.title === "Account" ? Edit : group.title === "Money" ? DollarSign : HelpCircle;
+                // Bubble a blocker dot onto the tab chip when any item
+                // inside the group needs action — so the user spots it
+                // without opening every tab.
+                const groupNeedsAction = group.items.some((i) => i.needsAction);
 
                 return (
                   <button
                     key={group.title}
                     type="button"
                     onClick={() => setActiveMenuGroup(isActive ? null : group.title)}
-                    className={`min-h-[78px] rounded-[20px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] px-2 py-2.5 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${isActive ? "ring-2 ring-primary/30 text-primary" : "text-foreground hover:bg-secondary/40"}`}
+                    className={`relative min-h-[78px] rounded-[20px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] px-2 py-2.5 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${isActive ? "ring-2 ring-primary/30 text-primary" : "text-foreground hover:bg-secondary/40"}`}
                     aria-expanded={isActive}
                   >
+                    {groupNeedsAction && (
+                      <span
+                        aria-label="Action needed"
+                        className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-destructive ring-2 ring-white"
+                      />
+                    )}
                     <span className={`w-9 h-9 rounded-ds-md flex items-center justify-center ${isActive ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"}`}>
                       <GroupIcon className="w-4.5 h-4.5" />
                     </span>
                     <span className="text-[10.5px] font-bold uppercase tracking-[0.05em] leading-tight text-center">
-                      {group.title === "Settings & Support" ? "Support" : group.title}
+                      {group.title === "Settings & Support" ? "Settings" : group.title}
                     </span>
                   </button>
                 );
@@ -567,9 +623,25 @@ export function ProfileLanding({
             {activeMenuGroup && (() => {
               const group = menuGroups.find((menuGroup) => menuGroup.title === activeMenuGroup);
               if (!group) return null;
+              // Caret connector — a white diamond pointing up from the
+              // expanded list to whichever tab chip is active, so the
+              // list visibly belongs to the lit-up tab. The px nudge
+              // corrects for the grid's gap-2.5 (≈3.3px per column).
+              const activeIndex = menuGroups.findIndex((g) => g.title === activeMenuGroup);
 
               return (
                 <div>
+                  <div className="relative h-2" aria-hidden>
+                    <div
+                      className="absolute w-3 h-3 rotate-45 bg-white"
+                      style={{
+                        left: `calc(${(activeIndex + 0.5) * 33.333}% + ${(activeIndex - 1) * 3.33}px)`,
+                        bottom: "-2px",
+                        transform: "translateX(-50%) rotate(45deg)",
+                        boxShadow: "-1.5px -1.5px 2px hsl(160 10% 12% / 0.05)",
+                      }}
+                    />
+                  </div>
                   <div className="rounded-[24px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
                     {group.items.map((item, idx) => (
                       <button
@@ -621,18 +693,18 @@ export function ProfileLanding({
             })()}
           </div>
 
-          {/* Account actions — iOS Settings-style stacked footer.
-              Sign out is the primary affordance (centered, prominent,
-              brand bark text). Delete account is a small ghost link
-              tucked beneath it in destructive-muted — important enough
-              to find, quiet enough not to compete with sign-out. The
-              old side-by-side equal-weight pair encouraged accidental
-              destructive taps. */}
-          <div className="pt-2 space-y-2">
+          {/* Account actions — two stacked pills of the same shape so
+              the footer reads as a finished pair. Both are restrained
+              (sign-out + delete are low-frequency actions that
+              shouldn't out-shout the settings list above): Sign out is
+              a soft muted fill in brand bark, Delete account is the
+              same pill outlined in burnt-sienna — the brand's
+              destructive tone, matching the Delete-account dialog. */}
+          <div className="pt-2 space-y-2.5">
             <button
               type="button"
               onClick={onRequestLogout}
-              className="w-full rounded-[20px] bg-white shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary/60 transition-all"
+              className="w-full rounded-[20px] bg-secondary/60 py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary transition-all"
               style={{
                 color: "hsl(var(--bark))",
                 fontFamily: "Montserrat, system-ui, sans-serif",
@@ -644,9 +716,16 @@ export function ProfileLanding({
             <button
               type="button"
               onClick={onRequestDelete}
-              className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 text-ds-11 font-sans font-medium text-destructive/80 hover:text-destructive active:opacity-70 transition-colors"
+              className="w-full rounded-[20px] py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
+              style={{
+                background: "transparent",
+                border: "1px solid hsl(var(--burnt-sienna) / 0.32)",
+                color: "hsl(var(--burnt-sienna))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+              }}
             >
-              <Trash2 className="w-3.5 h-3.5" /> Delete account
+              <Trash2 className="w-4 h-4" /> Delete account
             </button>
           </div>
         </div>

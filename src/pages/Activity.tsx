@@ -8,7 +8,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { checkProximity } from "@/lib/locationUtils";
-import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { toast } from "sonner";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -579,13 +580,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
   return (
-    <PullToRefreshWrapper
-      ref={containerRef}
-      pullDistance={pullDistance}
-      refreshing={refreshing}
-      isPulling={isPulling}
-      canTrigger={canTrigger}
-    >
     <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
       <DashboardHeader />
       <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -628,8 +622,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               >
                 {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length)}{" "}
                 {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length) === 1 ? "task" : "tasks"}
-                {" · "}
-                {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
               </p>
             </div>
           </div>
@@ -672,13 +664,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                   >
                     {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
                   </h2>
-                  <span
-                    className="font-serif italic mt-0.5 text-ds-11"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                  >
-                    {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length)}{" "}
-                    {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length) === 1 ? "task" : "tasks"}
-                  </span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
@@ -825,11 +810,18 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             </div>
           )}
 
+          <PullToRefreshWrapper
+            ref={containerRef}
+            pullDistance={pullDistance}
+            refreshing={refreshing}
+            isPulling={isPulling}
+            canTrigger={canTrigger}
+            className="flex-1 min-h-0 px-4 pt-3 pb-0"
+          >
           {(tab === "posted" && filteredPostedJobs.length === 0) || (tab === "applied" && filteredAppliedApps.length === 0) ? (
-            // Empty state — same pattern as the home page's empty state:
-            // content centered directly on the panel's glass surface,
-            // no inner white card so the bottom box reads as a single
-            // distinct surface separate from the top box above it.
+            // Empty state — a liquid-glass card that fills the panel and
+            // bleeds beneath the dock (flat bottom, no hard edge), matching
+            // the Dashboard / Messages empty-state pattern.
             (() => {
               const isPosted = tab === "posted";
               const totalCount = isPosted ? postedJobs.length : appliedApps.length;
@@ -846,73 +838,23 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               const ctaTo = isPosted ? "/post-job" : "/dashboard";
               const Icon = isPosted ? Search : Send;
               return (
-                <div className="px-4 pt-4 pb-3 flex flex-1 min-h-0">
-                  {/* Empty-state card — brand-aligned liquid-glass surface
-                      (was plain bg-white that clashed with the warm parchment
-                      page background), centered in the available scroll area.
-                      Same pattern as Dashboard's empty state from PR #73. */}
-                  <div className="flex-1 liquid-glass min-h-full flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-2xl">
-                    <div
-                      className="w-20 h-20 rounded-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                        backdropFilter: "blur(16px) saturate(150%)",
-                        WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                        border: "1px solid hsl(var(--olivewood) / 0.10)",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                          "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                      }}
-                    >
-                      <Icon className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <span className="text-display-eyebrow">{eyebrow}</span>
-                      <p
-                        className="font-display italic font-bold leading-tight"
-                        style={{
-                          fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                          color: "hsl(var(--ink-deep))",
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
-                        {title}
-                      </p>
-                      <p
-                        className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                      >
-                        {body}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => navigate(ctaTo)}
-                      className="rounded-full px-6 h-12"
-                      style={{
-                        background: "hsl(var(--bark))",
-                        color: "hsl(var(--parchment))",
-                        border: "1px solid hsl(70 22% 24%)",
-                        fontFamily: "Montserrat, system-ui, sans-serif",
-                        fontWeight: 600,
-                        boxShadow:
-                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                          "0 1px 2px hsl(70 20% 18% / 0.18), " +
-                          "0 8px 18px -6px hsl(var(--bark) / 0.45)",
-                      }}
-                    >
-                      {ctaLabel}
-                    </Button>
-                  </div>
+                <div className="flex-1 min-h-full flex">
+                  <EmptyState
+                    icon={Icon}
+                    eyebrow={eyebrow}
+                    title={title}
+                    body={body}
+                    action={
+                      <BarkPillButton onClick={() => navigate(ctaTo)}>
+                        {ctaLabel}
+                      </BarkPillButton>
+                    }
+                  />
                 </div>
               );
             })()
           ) : (
-          <div
-            data-allow-scroll="true"
-            className="flex-1 min-h-0 overflow-y-auto px-4 pt-3"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
-          >
+            <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
           {tab === "posted" && (
             <PostedJobsTab
               jobs={filteredPostedJobs}
@@ -968,8 +910,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onHelperReview={(jobId, posterId, posterName) => setHelperReviewJob({ jobId, posterId, posterName })}
             />
           )}
-          </div>
+            </div>
           )}
+          </PullToRefreshWrapper>
           </div>
         </div>
       </main>
@@ -1017,7 +960,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         failureReason={idvFailureReason}
       />
     </div>
-    </PullToRefreshWrapper>
   );
 };
 

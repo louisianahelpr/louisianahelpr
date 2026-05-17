@@ -20,23 +20,14 @@ import { Download, Trash2, ShieldOff, Loader2, ArrowLeft } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { safeStorage } from "@/lib/safeStorage";
 
 const DataRights = () => {
   usePageTitle("Your Data Rights — Helpr");
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [doNotSell, setDoNotSell] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -167,26 +158,26 @@ const DataRights = () => {
               </p>
             </div>
           </div>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="lg" className="w-full sm:w-auto">Delete my account</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-2xl">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Permanently delete your account?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This removes everything in your account that's not legally required for tax/audit purposes.
-                  You'll be signed out immediately and cannot sign back in with this email.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  {deleting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting…</> : "Yes, delete my account"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            variant="destructive"
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            Delete my account
+          </Button>
+          <BrandConfirmDialog
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+            title="Permanently delete your account?"
+            description="This removes everything in your account that's not legally required for tax/audit purposes. You'll be signed out immediately and cannot sign back in with this email."
+            primaryLabel={deleting ? "Deleting…" : "Yes, delete my account"}
+            primaryTone="sienna"
+            primaryHaptic="error"
+            primaryDisabled={deleting}
+            onPrimary={(e) => { e.preventDefault(); handleDelete(); }}
+            secondaryLabel="Cancel"
+          />
         </section>
 
         <div className="text-center pt-4">

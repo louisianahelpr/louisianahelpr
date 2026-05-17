@@ -361,7 +361,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 </span>
               )}
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 {/* Icon — smaller (w-8) to free vertical space */}
                 <span
                   className="shrink-0 w-8 h-8 rounded-ds-md flex items-center justify-center"
@@ -370,9 +370,11 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   <TierIcon name={tier.iconName} className="w-4 h-4" />
                 </span>
 
-                {/* Name + forWhom on one line + features dot row underneath.
-                    Keeps the card to ~2 lines of text instead of the
-                    previous 5-line bulleted block. */}
+                {/* Name + forWhom row, then a checkmark feature list
+                    showing every perk for the tier. Inline-wrap so even
+                    Elite's 5 features fit in 2 short lines on a 320pt
+                    viewport — the user explicitly asked to see all
+                    features without scrolling. */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <h3
@@ -393,17 +395,42 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       {tier.forWhom}
                     </span>
                   </div>
-                  {/* Features as inline dots — one line, truncated if
-                      necessary. Drops "Everything in X" prefixes since
-                      the visual stacking already conveys ascending tier. */}
-                  <p
-                    className="font-serif italic mt-0.5 truncate"
-                    style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.78)" }}
-                  >
+                  {/* Includes-prior-tier reminder rendered as a tiny
+                      eyebrow line so we don't dilute the feature list
+                      with "Everything in Basic" sitting next to actual
+                      perks. */}
+                  {(() => {
+                    const inclusive = tier.features.find((f) => /^Everything in/i.test(f));
+                    if (!inclusive) return null;
+                    return (
+                      <p
+                        className="font-serif italic mt-1 leading-none"
+                        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.04em" }}
+                      >
+                        + {inclusive}
+                      </p>
+                    );
+                  })()}
+                  {/* Actual perks as a checkmark inline-flex list — wraps
+                      naturally and each feature is visible. */}
+                  <ul className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
                     {tier.features
                       .filter((f) => !/^Everything in/i.test(f))
-                      .join(" · ")}
-                  </p>
+                      .map((feature) => (
+                        <li
+                          key={feature}
+                          className="inline-flex items-center gap-1 font-sans"
+                          style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                        >
+                          <CheckCircle
+                            className="w-2.5 h-2.5 shrink-0"
+                            style={{ color: accent }}
+                            strokeWidth={2.5}
+                          />
+                          {feature}
+                        </li>
+                      ))}
+                  </ul>
                 </div>
 
                 {/* Price + CTA on the right edge */}

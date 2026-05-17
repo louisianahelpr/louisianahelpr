@@ -14,9 +14,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, Plus, ArrowRight, List, Map as MapIcon } from "lucide-react";
+import { Clock, XCircle, MapPin, Star, X, Search, SlidersHorizontal, Paperclip, FileText, Trash2, List, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
@@ -44,6 +46,8 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { safeStorage } from "@/lib/safeStorage";
+import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
+import { getProfileCompletion } from "@/lib/profileCompletion";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -123,7 +127,7 @@ const Dashboard = () => {
   // get_open_jobs_for_map RPC). Toggle persists for the session only —
   // resetting to "list" on next mount matches user expectation that
   // the default landing surface is the curated feed.
-  const [view, setView] = useState<"list" | "map">("list");
+  const [view, setView] = usePersistedBrowseView("list");
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
@@ -155,25 +159,20 @@ const Dashboard = () => {
     return () => { cancelled = true; };
   }, [user?.id]);
 
-  // Profile completion nudge — when the user's profile is < 60%
-  // complete (photo / phone / location / bio / ID / portfolio), show
-  // a gentle banner on the dashboard until they fill it in. Dismissible
-  // per-session so it doesn't follow them around forever.
+  // Profile completion nudge — gentle banner shown until the user
+  // finishes the post-signup profile enhancements (ZIP / ID
+  // verification / work photos). Uses the shared getProfileCompletion
+  // helper. Dismissible per-session so it doesn't follow them around.
   const [completionDismissed, setCompletionDismissed] = useState(false);
-  const completionPct = (() => {
-    if (!profile) return 100;
-    const items = [
-      !!profile.avatar_url,
-      !!(profile as any).phone,
-      !!profile.location && !!(profile as any).zip_code,
-      !!profile.bio && profile.bio.trim().length >= 20,
-      profile.idv_status === "verified" || profile.idv_status === "pending" ||
-        profile.idv_status === "processing" || profile.idv_status === "manual_review",
-      Array.isArray((profile as any).portfolio_urls) && (profile as any).portfolio_urls.length > 0,
-    ];
-    const done = items.filter(Boolean).length;
-    return Math.round((done / items.length) * 100);
-  })();
+  const completionPct = profile
+    ? getProfileCompletion({
+        zipCode: (profile as any).zip_code,
+        idvStatus: profile.idv_status,
+        portfolioCount: Array.isArray((profile as any).portfolio_urls)
+          ? (profile as any).portfolio_urls.length
+          : 0,
+      }).pct
+    : 100;
 
   // Inactive subscriber nudge — if a paid helper hasn't applied to
   // anything in 7+ days, surface a gentle "your sub is paying for
@@ -444,7 +443,6 @@ const Dashboard = () => {
   
 
   return (
-    <PullToRefreshWrapper ref={containerRef} pullDistance={pullDistance} refreshing={refreshing} isPulling={isPulling}>
     <div
       className="h-[100dvh] bg-premium-page flex flex-col overflow-hidden animate-in fade-in-0 duration-500"
     >
@@ -479,11 +477,16 @@ const Dashboard = () => {
             }}
           >
             <h1
-              className="font-display font-bold leading-tight truncate"
+              className="font-display font-bold truncate"
               style={{
                 fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.025em",
+                // Slightly looser leading + bottom padding to clear the
+                // Beth Ellen script descenders ("y", "g", "p" tails)
+                // from colliding with the date eyebrow below.
+                lineHeight: 1.15,
+                paddingBottom: "0.15em",
               }}
             >
               {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
@@ -569,7 +572,16 @@ const Dashboard = () => {
               complete. Sits above other banners since posters won't
               respond well to incomplete-looking applicants. Tapping
               routes to Edit Profile. */}
-          {profile && completionPct < 60 && !completionDismissed && (
+          {profile && completionPct < 80 && !completionDismissed && (() => {
+            // Color the banner + chip by progress so the user gets visual
+            // momentum as they fill out their profile:
+            //   0–59%   → gold-warm (needs attention)
+            //   60–79%  → bark      (almost there)
+            // The banner hides at 80%; users can finish the last 20% later
+            // from Profile → Edit without being nagged.
+            const closeToDone = completionPct >= 60;
+            const accent = closeToDone ? "var(--bark)" : "var(--gold-warm)";
+            return (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -577,13 +589,13 @@ const Dashboard = () => {
               className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
               style={{
                 background:
-                  "radial-gradient(70% 90% at 100% 0%, hsl(var(--gold-warm) / 0.10) 0%, transparent 55%)",
-                border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+                  `radial-gradient(70% 90% at 100% 0%, hsl(${accent} / 0.10) 0%, transparent 55%)`,
+                border: `0.5px solid hsl(${accent} / 0.32)`,
               }}
             >
               <div
                 className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: "hsl(var(--gold-warm) / 0.18)", color: "hsl(var(--gold-warm))" }}
+                style={{ background: `hsl(${accent} / 0.18)`, color: `hsl(${accent})` }}
               >
                 <span className="font-display italic font-bold tabular-nums text-[0.78rem]">{completionPct}%</span>
               </div>
@@ -603,13 +615,14 @@ const Dashboard = () => {
                 type="button"
                 onClick={() => setCompletionDismissed(true)}
                 aria-label="Dismiss"
-                className="shrink-0 -mt-1 -mr-1 p-1.5 rounded-full active:opacity-70"
+                className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
                 style={{ color: "hsl(var(--olivewood) / 0.55)" }}
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </motion.div>
-          )}
+            );
+          })()}
 
           {/* Inactive subscriber nudge — gentle reminder for paid helpers
               who haven't applied in 7+ days. Dismissible per-session. */}
@@ -638,10 +651,10 @@ const Dashboard = () => {
                 type="button"
                 onClick={() => setInactiveNudge(false)}
                 aria-label="Dismiss"
-                className="shrink-0 -mt-1 -mr-1 p-1.5 rounded-full active:opacity-70"
+                className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
                 style={{ color: "hsl(var(--olivewood) / 0.55)" }}
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </motion.div>
           )}
@@ -653,17 +666,18 @@ const Dashboard = () => {
             className="liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col"
             style={{
               // Browse Tasks card extends to the viewport bottom — bottom
-              // corners drop their radius and inset shadow so the panel
-              // reads as continuing under the floating dock instead of
-              // ending at a hard edge above it.
+              // corners drop their radius and the bottom shadows are
+              // cropped so the panel visually bleeds beneath the dock's
+              // frosted curtain instead of ending in a faint shadow line
+              // right above it.
               borderBottomLeftRadius: 0,
               borderBottomRightRadius: 0,
               borderBottom: "none",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-                "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
+                "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                "1px 0 2px hsl(var(--olivewood) / 0.06), " +
+                "0 -1px 2px hsl(var(--olivewood) / 0.06)",
             }}
           >
             {/* Header row */}
@@ -676,7 +690,9 @@ const Dashboard = () => {
                   className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
-                  {filters.hasFilters ? "Filtered" : "For you, today"}
+                  {filters.hasFilters
+                    ? `Filtered · ${filters.activeFilterCount} active`
+                    : "For you, today"}
                 </span>
                 <h2
                   className="font-display italic font-bold leading-tight mt-1"
@@ -889,8 +905,8 @@ const Dashboard = () => {
             )}
 
             {view === "map" && (
-              <div className="px-3 pt-2 pb-3">
-                <Suspense fallback={<div className="h-[480px] rounded-2xl bg-muted/30 animate-pulse" />}>
+              <div className="flex-1 min-h-0 px-3 pt-2 pb-0">
+                <Suspense fallback={<div className="h-full w-full rounded-t-2xl bg-muted/30 animate-pulse" />}>
                   <BrowseMap
                     onJobAction={handleApplyRequest}
                     ctaLabel="Apply"
@@ -900,8 +916,12 @@ const Dashboard = () => {
               </div>
             )}
 
-            <div
-              className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-3 pt-3 pb-0"
+            <PullToRefreshWrapper
+              ref={containerRef}
+              pullDistance={pullDistance}
+              refreshing={refreshing}
+              isPulling={isPulling}
+              className="flex-1 min-h-0 overscroll-contain scrollbar-hide px-3 pt-3 pb-0"
               style={view === "map" ? { display: "none" } : undefined}
             >
               {/* Always-visible elevated content box. Empty state and the
@@ -926,120 +946,41 @@ const Dashboard = () => {
             {/* Job list */}
             {filters.filteredJobs.length === 0 ? (
             <div className="px-4 pt-4 flex-1 min-h-0 flex">
-              {/* Empty-state liquid-glass card — replaces the previous
-                  flat-white card so the empty state visually belongs with
-                  the warm parchment surface above. Top corners rounded,
-                  bottom flat to merge with the dock. */}
-              <div
-                className="liquid-glass flex-1 flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
-                style={{
-                  borderBottomLeftRadius: 0,
-                  borderBottomRightRadius: 0,
-                  borderBottom: "none",
-                  boxShadow:
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-                    "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                    "0 14px 30px -8px hsl(var(--olivewood) / 0.14)",
-                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
-                }}
-              >
-                  {/* Frosted glass circle — wraps the search icon so it
-                      reads as a clear focal point against the now-textured
-                      paper-mesh background. */}
-                  <div
-                    className="w-20 h-20 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                      backdropFilter: "blur(16px) saturate(150%)",
-                      WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                      border: "1px solid hsla(0, 0%, 100%, 0.7)",
-                      boxShadow:
-                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                        "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                        "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                    }}
-                  >
-                    <Search className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="text-display-eyebrow">
-                      {filters.hasFilters ? "No matches" : "All quiet — for now"}
-                    </span>
-                    <p
-                      className="font-display italic font-bold leading-tight"
-                      style={{
-                        fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                        color: "hsl(var(--ink-deep))",
-                        letterSpacing: "-0.02em",
-                      }}
-                    >
-                      {filters.hasFilters ? "No jobs match your filters." : "Nothing today, neighbor."}
-                    </p>
-                    <p
-                      className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                    >
-                      {filters.hasFilters
-                        ? filters.boostedOnly
-                          ? "No boosted jobs right now — try clearing the filter to see all open work."
-                          : "Try widening your parish, raising your budget, or clearing a filter."
-                        : (() => {
-                            // Rotating friendly tip — picks one of 4 every
-                            // hour so the empty state feels alive on repeat
-                            // visits instead of static. Deterministic per
-                            // hour keeps it from flickering on every render.
-                            const tips = [
-                              "New jobs post throughout the day. Helprs often check in around lunch and after work.",
-                              "Most posts go up on weekday evenings. Pull down to refresh anytime.",
-                              "Saved a search? Helpr will ping you the moment a matching job hits the board.",
-                              "Quiet days happen. The neighborhood circles back — usually before sundown.",
-                            ];
-                            return tips[new Date().getHours() % tips.length];
-                          })()}
-                    </p>
-                  </div>
-                  {filters.hasFilters ? (
+              <EmptyState
+                icon={Search}
+                eyebrow={filters.hasFilters ? "No matches" : "All quiet — for now"}
+                title={filters.hasFilters ? "No jobs match your filters." : "Nothing today, neighbor."}
+                body={
+                  filters.hasFilters
+                    ? filters.boostedOnly
+                      ? "No boosted jobs right now — try clearing the filter to see all open work."
+                      : "Try widening your parish, raising your budget, or clearing a filter."
+                    : (() => {
+                        // Rotating friendly tip — picks one of 4 every hour so
+                        // the empty state feels alive on repeat visits instead
+                        // of static. Deterministic per hour keeps it from
+                        // flickering on every render.
+                        const tips = [
+                          "New jobs post throughout the day. Helprs often check in around lunch and after work.",
+                          "Most posts go up on weekday evenings. Pull down to refresh anytime.",
+                          "Saved a search? Helpr will ping you the moment a matching job hits the board.",
+                          "Quiet days happen. The neighborhood circles back — usually before sundown.",
+                        ];
+                        return tips[new Date().getHours() % tips.length];
+                      })()
+                }
+                action={
+                  filters.hasFilters ? (
                     <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
                       Clear filters
                     </Button>
                   ) : (
-                    <button
-                      onClick={() => navigate("/post-job")}
-                      className="group relative inline-flex items-center gap-2.5 px-6 h-12 rounded-full overflow-hidden transition-transform duration-200 active:scale-[0.96]"
-                      style={{
-                        // Flat olive bark — matches the MobileNav FAB so the
-                        // CTA reads as a peer of the bottom dock. Previous
-                        // version used a radial gradient that produced a
-                        // visible horizontal "band" at the gradient stop,
-                        // which looked like a hairline strikethrough on
-                        // some iOS rendering paths. Flat solid bark + soft
-                        // halo eliminates the band entirely.
-                        background: "hsl(var(--bark))",
-                        color: "hsl(var(--parchment))",
-                        border: "1px solid hsl(70 22% 24%)",
-                        fontFamily: "Montserrat, system-ui, sans-serif",
-                        fontWeight: 600,
-                        letterSpacing: "0.01em",
-                        boxShadow:
-                          "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                          "0 1px 2px hsl(70 20% 18% / 0.22), " +
-                          "0 8px 18px -6px hsl(var(--bark) / 0.55), " +
-                          "0 18px 36px -12px hsl(var(--bark) / 0.4)",
-                      }}
-                    >
-                      <Plus
-                        className="w-4 h-4"
-                        strokeWidth={2.75}
-                        style={{ color: "hsl(var(--parchment))" }}
-                      />
-                      <span className="text-ds-15">Post the first job</span>
-                      <ArrowRight
-                        className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
-                        strokeWidth={2.5}
-                      />
-                    </button>
-                  )}
-              </div>
+                    <BarkPillButton onClick={() => navigate("/post-job")}>
+                      Post the first job
+                    </BarkPillButton>
+                  )
+                }
+              />
             </div>
             ) : (() => {
               const visibleJobs = filters.filteredJobs
@@ -1154,7 +1095,7 @@ const Dashboard = () => {
               );
             })()}
               </div>
-            </div>
+            </PullToRefreshWrapper>
           </motion.section>
         </div>
       </main>
@@ -1371,7 +1312,6 @@ const Dashboard = () => {
           screenshots. Desktop surfaces the CTA in the header (md:flex)
           so no desktop replacement is needed. */}
     </div>
-    </PullToRefreshWrapper>
   );
 };
 

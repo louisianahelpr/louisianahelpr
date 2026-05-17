@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CreditCard, DollarSign, BanknoteIcon, ChevronRight } from "lucide-react";
+import { CreditCard, ChevronRight, DollarSign } from "lucide-react";
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { toast } from "sonner";
@@ -32,19 +32,20 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
     }
   }, [searchParams]);
 
-  const isHelper = true;
   // Lifetime totals — completed jobs only so cancelled/expired don't
   // inflate the headline numbers.
   const completedJobs = earningsJobs.filter((j) => j.status === "completed");
   const lifetimeSpent = completedJobs.reduce((s, j) => s + j.budget, 0);
   const lifetimeEarned = totalEarnings;
-  // This-month slice — bucketed by completed_at (falls back to created_at
-  // for older rows that don't have a completion timestamp).
+  // This-month slice — bucketed by completion timestamp (poster confirmation,
+  // falling back to the helper's, then created_at for older rows that
+  // predate completion timestamps).
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   const monthCompleted = completedJobs.filter((j) => {
-    const t = (j as any).completed_at
-      ? new Date((j as any).completed_at).getTime()
+    const completedAt = j.poster_completed_at ?? j.helper_completed_at;
+    const t = completedAt
+      ? new Date(completedAt).getTime()
       : new Date(j.created_at).getTime();
     return t >= monthStart;
   });
@@ -64,45 +65,63 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
   const spentCount = scope === "month" ? monthCompleted.length : completedJobs.length;
   const earnedCount = spentCount;
   const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
+  // No money has ever moved — collapse the summary to a single empty
+  // state (no scope toggle, no dual $0.00 columns, no triple "no
+  // activity" copy).
+  const hasNoActivity = lifetimeSpent === 0 && lifetimeEarned === 0;
 
   return (
     <div className="space-y-5">
-      {isHelper && (
-        <section className="space-y-2">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <BanknoteIcon className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                Stripe Connect
-              </p>
-              <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-                Payout account
-              </h2>
-            </div>
-          </div>
-          <div className="rounded-2xl liquid-glass p-5">
-            <PayoutSetupForm />
-          </div>
-        </section>
-      )}
+      {/* Section headers are quiet eyebrow labels (matching the Edit
+          Profile sections) rather than icon-circle + eyebrow + bold
+          h2 stacks — the page had three competing title treatments
+          and read as cluttered. The tab header ("Payment settings")
+          is the one real title now. */}
+      <section className="space-y-2">
+        <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+          Payout account
+        </p>
+        <div className="rounded-2xl liquid-glass p-5">
+          <PayoutSetupForm />
+        </div>
+      </section>
 
       <section className="space-y-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <DollarSign className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              Lifetime totals
-            </p>
-            <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-              Payment summary
-            </h2>
-          </div>
-        </div>
+        <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+          Payment summary
+        </p>
         <div className="rounded-2xl liquid-glass p-5">
+          {hasNoActivity ? (
+            /* One empty state — no scope toggle, no dual $0.00 columns,
+               no repeated "no jobs yet" copy. */
+            <div className="flex flex-col items-center text-center gap-2 py-4">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{
+                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                  border: "1px solid hsl(var(--olivewood) / 0.10)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                    "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+                }}
+              >
+                <DollarSign className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+              </div>
+              <p
+                className="font-display italic font-bold leading-tight"
+                style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
+                No activity yet
+              </p>
+              <p
+                className="font-serif italic leading-snug max-w-[260px]"
+                style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.7)" }}
+              >
+                Post a job or complete one — your spending and earnings will show up here.
+              </p>
+            </div>
+          ) : (
+          <>
           {/* Scope toggle — lifetime vs this month. Inline so the
               switch is right next to the numbers it reframes. */}
           <div
@@ -170,25 +189,18 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
             </div>
           </div>
 
-          {totalSpent === 0 && totalEarnedView === 0 ? (
-            <p
-              className="font-serif italic mt-3 text-center"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.65)" }}
+          {onSeeEarnings && (
+            <button
+              type="button"
+              onClick={onSeeEarnings}
+              className="mt-3 w-full inline-flex items-center justify-center gap-1 py-2 rounded-ds-md text-[0.78rem] font-sans font-semibold active:opacity-70 transition-opacity"
+              style={{ color: "hsl(var(--bark))" }}
             >
-              No activity yet — post a job or complete one to see totals here.
-            </p>
-          ) : (
-            onSeeEarnings && (
-              <button
-                type="button"
-                onClick={onSeeEarnings}
-                className="mt-3 w-full inline-flex items-center justify-center gap-1 py-2 rounded-ds-md text-[0.78rem] font-sans font-semibold active:opacity-70 transition-opacity"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                See full breakdown
-                <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.25} />
-              </button>
-            )
+              See full breakdown
+              <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.25} />
+            </button>
+          )}
+          </>
           )}
 
           <div className="mt-4 rounded-ds-md flex items-start gap-2.5 px-3 py-2.5" style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}>

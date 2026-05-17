@@ -1,6 +1,4 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import BackButton from "@/components/BackButton";
 import type { ReactNode } from "react";
 
 interface PageHeaderProps {
@@ -20,12 +18,6 @@ interface PageHeaderProps {
 }
 
 const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, subtitle, hideBack = false }: PageHeaderProps) => {
-  const navigate = useNavigate();
-
-  const handleBack = () => {
-    if (onBack) onBack();
-    else navigate(-1);
-  };
 
   // When no rightSlot is provided, skip the empty 48px sticky bar and let
   // the title block absorb the safe-area-top padding instead. Pages like
@@ -48,18 +40,8 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, subtitle, hideBac
         className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pt-3 pb-2"
         style={!rightSlot ? { paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" } : undefined}
       >
-        <div className="flex items-start gap-2 mb-1">
-          {!hideBack && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              aria-label="Go back"
-              className="h-10 w-10 shrink-0 rounded-ds-md -ml-2"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          )}
+        <div className="flex items-start gap-3 mb-1">
+          {!hideBack && <BackButton onClick={onBack} />}
           <div className="flex flex-col leading-none min-w-0 flex-1">
             {eyebrow && (
               <span

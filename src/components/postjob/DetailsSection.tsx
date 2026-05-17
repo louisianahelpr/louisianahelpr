@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ImagePlus, X, Briefcase, CheckCircle2 } from "lucide-react";
+import { ImagePlus, X, Briefcase, CheckCircle2, Check } from "lucide-react";
 import { categoryIcons, categoryColors } from "@/components/activity/activityConstants";
 
 export const categories = [
@@ -16,6 +16,40 @@ export const categories = [
   { value: "assembly", label: "Assembly" },
   { value: "other", label: "Other" },
 ];
+
+const TITLE_MAX = 100;
+const DESCRIPTION_MAX = 1000;
+
+// Category-specific title placeholders — once the poster picks a
+// category the example title matches what they're actually posting,
+// which both speeds entry and models a good, specific title.
+const titlePlaceholders: Record<string, string> = {
+  cleaning: "e.g. Deep clean a 2-bedroom apartment",
+  yard_work: "e.g. Mow & edge the front and back yard",
+  moving: "e.g. Help me move a couch up two flights",
+  errands: "e.g. Grocery run and a pharmacy pickup",
+  handyman: "e.g. Mount a TV and hide the cables",
+  painting: "e.g. Paint a 12×12 bedroom, one coat",
+  delivery: "e.g. Pick up a dresser and drop it off",
+  pet_care: "e.g. Walk my dog twice a day this week",
+  assembly: "e.g. Assemble an IKEA wardrobe",
+  other: "e.g. Help me with a quick task",
+};
+
+// Category-specific description prompts — tells the poster what detail
+// a helpr needs to quote accurately. Vague posts get fewer applicants.
+const descriptionHints: Record<string, string> = {
+  cleaning: "Mention square footage, number of rooms, supplies on hand, and parking or access.",
+  yard_work: "Mention yard size, what needs doing, and whether tools and bags are provided.",
+  moving: "Mention what's being moved, stairs or elevator, distance, and any heavy items.",
+  errands: "List the stops, anything time-sensitive, and how purchases get paid for.",
+  handyman: "Describe the fix, what parts/tools you already have, and any specific skill needed.",
+  painting: "Mention the area, surface condition, whether paint is provided, and number of coats.",
+  delivery: "Mention pickup and drop-off addresses, item size, and whether a truck is needed.",
+  pet_care: "Mention pet type and temperament, the schedule, and any feeding or medication.",
+  assembly: "Mention the item(s), whether you have the manual, and what tools are available.",
+  other: "Add anything a helpr needs to quote accurately — access, timing, and supplies.",
+};
 
 interface DetailsSectionProps {
   title: string;
@@ -64,23 +98,18 @@ export function DetailsSection({
         {detailsComplete && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
       </div>
 
-      <div className="space-y-2.5">
-        <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
-        <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Help me move a couch" required maxLength={100} />
-      </div>
-
-      <div className="space-y-2.5">
-        <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
-        <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide details about the task…" required rows={4} maxLength={1000} />
-      </div>
-
+      {/* Category first — picking it up front lets the title placeholder
+          and the description prompt below adapt to what's actually being
+          posted, which models a good, specific post. */}
       <div className="space-y-2.5">
         <Label>Category <span className="text-destructive">*</span></Label>
-        {/* Visual chip grid — icon + label per category. Active chip
-            gets the category's brand color as a glass-pill ring so the
-            picked category reads at a glance instead of as a dropdown
-            row. Much more inviting first-impression on a post flow. */}
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        {/* Compact horizontal chips — icon + label on one row, two
+            columns. Cuts the category block from ~4 stacked rows of
+            tall cards (~400px) to ~5 short rows (~240px) so the form
+            doesn't bury the Photos + later sections under one picker.
+            Active chip keeps the brand-color ring + adds a check so
+            the selection reads instantly. */}
+        <div className="grid grid-cols-2 gap-2">
           {categories.map((c) => {
             const Icon = categoryIcons[c.value] ?? Briefcase;
             const colors = categoryColors[c.value];
@@ -91,7 +120,7 @@ export function DetailsSection({
                 type="button"
                 onClick={() => setCategory(c.value)}
                 aria-pressed={active}
-                className="flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-2xl transition-all active:scale-[0.97]"
+                className="flex items-center gap-2.5 p-2 rounded-xl transition-all active:scale-[0.97]"
                 style={
                   active
                     ? {
@@ -110,35 +139,83 @@ export function DetailsSection({
                 }
               >
                 <span
-                  className={`w-9 h-9 rounded-full flex items-center justify-center ${colors?.dot ?? ""}`}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${colors?.dot ?? ""}`}
                   style={
                     !colors?.dot
                       ? { background: "hsl(var(--olivewood) / 0.12)" }
                       : undefined
                   }
                 >
-                  <Icon className="w-4 h-4 text-white/90" strokeWidth={2.25} />
+                  <Icon className="w-3.5 h-3.5 text-white/90" strokeWidth={2.25} />
                 </span>
                 <span
-                  className="font-sans font-semibold text-center leading-tight"
+                  className="font-sans font-semibold leading-tight truncate"
                   style={{
-                    fontSize: "0.7rem",
+                    fontSize: "0.78rem",
                     color: active ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.85)",
                   }}
                 >
                   {c.label}
                 </span>
+                {active && (
+                  <Check
+                    className="w-3.5 h-3.5 ml-auto shrink-0"
+                    style={{ color: "hsl(var(--bark))" }}
+                    strokeWidth={3}
+                  />
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
+          <span className="text-[0.66rem] tabular-nums text-muted-foreground">{title.length}/{TITLE_MAX}</span>
+        </div>
+        <Input
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={titlePlaceholders[category] ?? titlePlaceholders.other}
+          required
+          maxLength={TITLE_MAX}
+        />
+      </div>
+
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
+          <span className="text-[0.66rem] tabular-nums text-muted-foreground">{description.length}/{DESCRIPTION_MAX}</span>
+        </div>
+        <Textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Provide details about the task…"
+          required
+          rows={4}
+          maxLength={DESCRIPTION_MAX}
+        />
+        {/* Category-aware prompt — tells the poster exactly what a helpr
+            needs to quote accurately. Vague posts get fewer applicants. */}
+        <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          {descriptionHints[category] ?? descriptionHints.other}
+        </p>
+      </div>
+
       {/* Image Upload — brand-aligned thumbnail grid. Active photo tiles
           get a sienna-tint hover for delete; the empty Add tile uses the
           parchment-glass dashed border treatment instead of generic gray. */}
       <div className="space-y-2.5">
-        <Label>Photos (optional, max 5)</Label>
+        <div className="space-y-0.5">
+          <Label>Photos <span className="font-normal text-muted-foreground">(optional, max 5)</span></Label>
+          <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            Posts with a photo get noticeably more applicants.
+          </p>
+        </div>
         <div className="flex flex-wrap gap-2.5">
           {imagePreviews.map((src, i) => (
             <div

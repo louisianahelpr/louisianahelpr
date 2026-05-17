@@ -184,7 +184,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required autoComplete="address-level2" className={inputCls} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="bio" className={labelCls}>Short bio <span className="text-destructive">*</span></Label>
+          <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
           <Textarea
             id="bio"
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"

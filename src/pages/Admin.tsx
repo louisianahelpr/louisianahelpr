@@ -9,7 +9,7 @@ import {
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, TrendingDown, Activity,
   X, Banknote, MapPin, Award, ChevronRight, ShieldCheck,
-  Shield, LogOut, ArrowLeft, Mail, Building2,
+  Shield, LogOut, ArrowLeft, Mail, Building2, Landmark,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lazy, Suspense } from "react";
@@ -113,6 +113,7 @@ interface Stats {
   lateCancellationRevenue: number;
   newUsers7d: number; newUsersPrev7d: number;
   revenue30d: number; revenuePrev30d: number;
+  feesThisQuarter: number;
 }
 
 const Admin = () => {
@@ -133,6 +134,7 @@ const Admin = () => {
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
     disputedJobs: 0, activeSubscriptions: 0, lateCancellationRevenue: 0,
     newUsers7d: 0, newUsersPrev7d: 0, revenue30d: 0, revenuePrev30d: 0,
+    feesThisQuarter: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -201,11 +203,15 @@ const Admin = () => {
     const d14 = new Date(now.getTime() - 14 * 86400000).toISOString();
     const d30 = new Date(now.getTime() - 30 * 86400000).toISOString();
     const d60 = new Date(now.getTime() - 60 * 86400000).toISOString();
+    // Start of the current calendar quarter — used by the tax-reserve
+    // tracker so the admin can see fee revenue accrued toward the next
+    // estimated-tax payment.
+    const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1).toISOString();
 
     const [
       profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes,
       paymentsRes, subsRes, lateCancelRes,
-      newUsers7Res, newUsersPrev7Res, rev30Res, revPrev30Res,
+      newUsers7Res, newUsersPrev7Res, rev30Res, revPrev30Res, quarterRes,
     ] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending").eq("email_verified", true),
@@ -231,6 +237,12 @@ const Admin = () => {
         .in("payment_status", ["escrow", "payout_pending", "released"])
         .neq("status", "cancelled" as any)
         .gte("updated_at", d60).lt("updated_at", d30),
+      // Platform-fee revenue accrued this calendar quarter — feeds the
+      // tax-reserve tracker's "this quarter" figure.
+      supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
+        .in("payment_status", ["escrow", "payout_pending", "released"])
+        .neq("status", "cancelled" as any)
+        .gte("updated_at", quarterStart),
     ]);
     const paymentRows = paymentsRes.data || [];
     const cancelledPaidRows = lateCancelRes.data || [];
@@ -256,6 +268,7 @@ const Admin = () => {
       newUsersPrev7d: newUsersPrev7Res.count || 0,
       revenue30d: sumFees(rev30Res.data),
       revenuePrev30d: sumFees(revPrev30Res.data),
+      feesThisQuarter: sumFees(quarterRes.data),
     });
     setStatsLoading(false);
   };
@@ -571,6 +584,152 @@ const PriorityAlert = ({ label, count, color, onClick }: {
   </button>
 );
 
+// IRS estimated-tax quarterly due dates (standard schedule). Returns the
+// next deadline after `now` so the admin always sees the upcoming one.
+const nextEstimatedTaxDate = (now: Date): Date => {
+  const y = now.getFullYear();
+  const dates = [
+    new Date(y, 3, 15),       // Apr 15 — Q1
+    new Date(y, 5, 15),       // Jun 15 — Q2
+    new Date(y, 8, 15),       // Sep 15 — Q3
+    new Date(y + 1, 0, 15),   // Jan 15 next year — Q4
+  ];
+  return dates.find((d) => d > now) ?? dates[0];
+};
+
+const RESERVE_RATE_KEY = "helpr.admin.taxReserveRate";
+const RESERVE_RATE_OPTIONS = [0.2, 0.25, 0.3, 0.35];
+
+/**
+ * Tax-reserve tracker — surfaces roughly how much of the platform-fee
+ * revenue should be parked for income tax so the owner isn't surprised
+ * by an April bill. It does NOT move money; it's a running "set aside
+ * about $X" figure plus the next quarterly-estimate due date.
+ *
+ * The reserve is computed off GROSS platform fees (a deliberately
+ * conservative basis — actual taxable profit is lower after Stripe
+ * fees + hosting + other deductible expenses, so over-reserving is the
+ * safe direction to err). The rate is admin-adjustable and persisted
+ * to localStorage.
+ */
+const TaxReserveCard = ({
+  totalFees,
+  feesThisQuarter,
+  statsLoading,
+}: {
+  totalFees: number;
+  feesThisQuarter: number;
+  statsLoading: boolean;
+}) => {
+  const [rate, setRate] = useState(0.3);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(RESERVE_RATE_KEY);
+      const parsed = stored ? parseFloat(stored) : NaN;
+      if (RESERVE_RATE_OPTIONS.includes(parsed)) setRate(parsed);
+    } catch {
+      // private mode / quota — fall back to the 30% default
+    }
+  }, []);
+
+  const setRatePersisted = (next: number) => {
+    setRate(next);
+    try { window.localStorage.setItem(RESERVE_RATE_KEY, String(next)); } catch { /* ignore */ }
+  };
+
+  const reserveAllTime = totalFees * rate;
+  const reserveThisQuarter = feesThisQuarter * rate;
+  const dueDate = nextEstimatedTaxDate(new Date());
+  const dueLabel = dueDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const money = (n: number) =>
+    n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+  return (
+    <div
+      className="rounded-ds-md liquid-glass p-4 sm:p-5 space-y-4"
+      style={{
+        backgroundImage:
+          "radial-gradient(80% 90% at 100% 0%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%)",
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center bg-accent/10 text-accent-foreground shrink-0">
+            <Landmark className="w-4 h-4 sm:w-5 sm:h-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+              Tax reserve
+            </p>
+            <p className="text-ds-11 text-muted-foreground leading-tight">
+              Set aside for income tax — not a payment
+            </p>
+          </div>
+        </div>
+        {/* Reserve-rate selector — conservative default 30%. */}
+        <div className="flex items-center gap-1 shrink-0">
+          {RESERVE_RATE_OPTIONS.map((opt) => {
+            const active = opt === rate;
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setRatePersisted(opt)}
+                className={cn(
+                  "px-1.5 h-6 rounded-md text-[10px] font-semibold tabular-nums transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {Math.round(opt * 100)}%
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Big all-time reserve figure */}
+      <div>
+        <p className="text-ds-24 sm:text-[1.75rem] font-bold tabular-nums leading-none" style={{ color: "hsl(var(--ink-deep))" }}>
+          {statsLoading ? "—" : money(reserveAllTime)}
+        </p>
+        <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
+          {Math.round(rate * 100)}% of {statsLoading ? "—" : money(totalFees)} all-time platform fees.
+          A conservative estimate on gross revenue — actual tax owed is lower after expenses.
+        </p>
+      </div>
+
+      {/* This-quarter row + next due date */}
+      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/50">
+        <div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">This quarter</p>
+          <p className="text-ds-15 font-bold tabular-nums mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
+            {statsLoading ? "—" : money(reserveThisQuarter)}
+          </p>
+          <p className="text-[10px] text-muted-foreground leading-tight">
+            on {statsLoading ? "—" : money(feesThisQuarter)} in fees
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Next estimate due</p>
+          <p className="text-ds-15 font-bold mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
+            {dueLabel}
+          </p>
+          <p className="text-[10px] text-muted-foreground leading-tight">
+            IRS quarterly estimated tax
+          </p>
+        </div>
+      </div>
+
+      <p className="text-[10px] text-muted-foreground leading-snug italic">
+        Park this in a separate account as you earn it and pay quarterly estimates — confirm the exact rate with your CPA.
+      </p>
+    </div>
+  );
+};
+
 const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
   const hasAlerts = stats.pendingApprovals > 0 || stats.disputedJobs > 0 || stats.openReports > 0 || stats.supportTickets > 0;
@@ -681,6 +840,17 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
             <KpiCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} accent="destructive" onClick={() => onNavigate("analytics")} />
           )}
         </div>
+      </div>
+
+      {/* Tax obligations — running reserve estimate so the platform-fee
+          income tax never lands as an April surprise. */}
+      <div className="space-y-2 sm:space-y-3">
+        <p className="text-[10px] sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Tax Obligations</p>
+        <TaxReserveCard
+          totalFees={stats.totalFees}
+          feesThisQuarter={stats.feesThisQuarter}
+          statsLoading={statsLoading}
+        />
       </div>
     </div>
   );

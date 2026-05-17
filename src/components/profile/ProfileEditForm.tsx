@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Shield, Upload, Loader2, Camera, ImagePlus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getProfileCompletion } from "@/lib/profileCompletion";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -149,18 +150,15 @@ export function ProfileEditForm({
   };
 
   // ─── Profile completion meter ──────────────────────────────────────
-  // Counts the 6 things that meaningfully populate the applicant-facing
-  // card. Re-rendered as the user fills them out.
-  const completionItems = [
-    { label: "Profile photo", done: !!profile?.avatar_url },
-    { label: "Phone", done: !!phone.trim() },
-    { label: "Location", done: !!location.trim() && !!zipCode.trim() },
-    { label: "Bio", done: bioOk },
-    { label: "ID verified", done: idStatus === "verified" || idStatus === "pending" || idStatus === "processing" || idStatus === "manual_review" },
-    { label: "Work photos", done: portfolioUrls.length > 0 },
-  ];
-  const completionDone = completionItems.filter((i) => i.done).length;
-  const completionPct = Math.round((completionDone / completionItems.length) * 100);
+  // Shared getProfileCompletion helper — tracks only post-signup
+  // enhancements (signup already requires photo / phone / bio / etc).
+  // Fed the live form values so the meter updates as the user edits.
+  const completion = getProfileCompletion({
+    zipCode,
+    idvStatus: idStatus,
+    portfolioCount: portfolioUrls.length,
+  });
+  const completionPct = completion.pct;
 
   return (
     // Bottom padding clears the new sticky save bar (16+44+16 = 76px) plus
@@ -210,7 +208,7 @@ export function ProfileEditForm({
           <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
             Next:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-              {completionItems.find((i) => !i.done)?.label}
+              {completion.nextLabel}
             </span>
             {" — "}
             complete profiles get more offers.

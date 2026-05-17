@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getProfileCompletion } from "@/lib/profileCompletion";
 import {
   DollarSign, LogOut, MapPin,
   CreditCard, Shield,
@@ -119,26 +120,16 @@ export function ProfileLanding({
   // ─── Portfolio gallery + completion meter ──────────────────────────
   // portfolio_urls is on profiles (text[]). Gallery shows up to 6 inline
   // on the landing; tap navigates into Edit Profile to manage. The
-  // completion meter shares the same 6-item checklist as ProfileEditForm
-  // so the % matches between landing and edit views.
+  // completion meter uses the shared getProfileCompletion helper, which
+  // tracks only post-signup enhancements (signup already requires
+  // photo / name / phone / bio / city / ID doc).
   const portfolioUrls: string[] = ((profile as any)?.portfolio_urls ?? []) as string[];
-  const completionItems = [
-    { label: "Profile photo", done: !!profile?.avatar_url },
-    { label: "Phone", done: !!(profile as any)?.phone },
-    { label: "Location", done: !!profile?.location && !!(profile as any)?.zip_code },
-    { label: "Bio", done: !!profile?.bio && profile.bio.trim().length >= 20 },
-    {
-      label: "ID verified",
-      done:
-        profile?.idv_status === "verified" ||
-        profile?.idv_status === "pending" ||
-        profile?.idv_status === "processing" ||
-        profile?.idv_status === "manual_review",
-    },
-    { label: "Work photos", done: portfolioUrls.length > 0 },
-  ];
-  const completionDone = completionItems.filter((i) => i.done).length;
-  const completionPct = Math.round((completionDone / completionItems.length) * 100);
+  const completion = getProfileCompletion({
+    zipCode: (profile as any)?.zip_code,
+    idvStatus: profile?.idv_status,
+    portfolioCount: portfolioUrls.length,
+  });
+  const completionPct = completion.pct;
 
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
@@ -550,7 +541,7 @@ export function ProfileLanding({
               className="shrink-0 text-ds-11 font-semibold active:opacity-70 whitespace-nowrap"
               style={{ color: "hsl(var(--bark))" }}
             >
-              {completionPct}% · {completionItems.find((i) => !i.done)?.label} →
+              {completionPct}% · {completion.nextLabel} →
             </button>
           </div>
         )}

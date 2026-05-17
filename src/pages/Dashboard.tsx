@@ -45,6 +45,7 @@ import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
+import { getProfileCompletion } from "@/lib/profileCompletion";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -156,25 +157,20 @@ const Dashboard = () => {
     return () => { cancelled = true; };
   }, [user?.id]);
 
-  // Profile completion nudge — when the user's profile is < 60%
-  // complete (photo / phone / location / bio / ID / portfolio), show
-  // a gentle banner on the dashboard until they fill it in. Dismissible
-  // per-session so it doesn't follow them around forever.
+  // Profile completion nudge — gentle banner shown until the user
+  // finishes the post-signup profile enhancements (ZIP / ID
+  // verification / work photos). Uses the shared getProfileCompletion
+  // helper. Dismissible per-session so it doesn't follow them around.
   const [completionDismissed, setCompletionDismissed] = useState(false);
-  const completionPct = (() => {
-    if (!profile) return 100;
-    const items = [
-      !!profile.avatar_url,
-      !!(profile as any).phone,
-      !!profile.location && !!(profile as any).zip_code,
-      !!profile.bio && profile.bio.trim().length >= 20,
-      profile.idv_status === "verified" || profile.idv_status === "pending" ||
-        profile.idv_status === "processing" || profile.idv_status === "manual_review",
-      Array.isArray((profile as any).portfolio_urls) && (profile as any).portfolio_urls.length > 0,
-    ];
-    const done = items.filter(Boolean).length;
-    return Math.round((done / items.length) * 100);
-  })();
+  const completionPct = profile
+    ? getProfileCompletion({
+        zipCode: (profile as any).zip_code,
+        idvStatus: profile.idv_status,
+        portfolioCount: Array.isArray((profile as any).portfolio_urls)
+          ? (profile as any).portfolio_urls.length
+          : 0,
+      }).pct
+    : 100;
 
   // Inactive subscriber nudge — if a paid helper hasn't applied to
   // anything in 7+ days, surface a gentle "your sub is paying for

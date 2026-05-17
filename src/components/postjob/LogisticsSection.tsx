@@ -186,7 +186,15 @@ export function LogisticsSection({
             </div>
             <div className="space-y-2.5">
               <Label>Until</Label>
-              <Input type="date" value={recurrenceEndDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} min={dateNeeded} />
+              {/* DatePickerField (same as "Date needed") instead of a raw
+                  <input type="date"> — the native control rendered as a
+                  blank, oversized white box on iOS with no placeholder. */}
+              <DatePickerField
+                value={recurrenceEndDate}
+                onChange={setRecurrenceEndDate}
+                min={dateNeeded || new Date().toISOString().split("T")[0]}
+                placeholder="Choose an end date"
+              />
             </div>
           </div>
         )}

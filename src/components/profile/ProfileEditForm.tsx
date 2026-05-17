@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Shield, Upload, Loader2, Camera, ImagePlus, X } from "lucide-react";
+import { Shield, Upload, Loader2, Camera, ImagePlus, X, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import { toast } from "sonner";
@@ -171,9 +171,9 @@ export function ProfileEditForm({
         onBack={onBack}
       />
 
-      {/* Completion meter — shows the user exactly what's left to make the
-          profile applicant-ready. 6 items: photo / phone / location / bio
-          / ID / work photos. Tints based on progress. */}
+      {/* Completion meter — the 3 post-signup enhancements (ZIP / ID
+          verified / work photos) via the shared getProfileCompletion
+          helper. Tints based on progress. */}
       <div className="rounded-2xl liquid-glass p-4 space-y-2">
         <div className="flex items-center justify-between">
           <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
@@ -228,17 +228,20 @@ export function ProfileEditForm({
                 Upload trigger moved to a small floating chip at the bottom-
                 right of the avatar so the user always sees their photo. */}
             <div className="relative shrink-0">
+              {/* Squircle (rounded-[22px]) to match the avatar on the
+                  Profile landing hero — a circle here was inconsistent
+                  with the brand's squircle treatment everywhere else. */}
               {profile?.avatar_url && !avatarBroken ? (
                 <img
                   loading="lazy"
                   decoding="async"
                   src={profile.avatar_url}
                   alt=""
-                  className="w-20 h-20 rounded-full object-cover border-2 border-primary/20"
+                  className="w-20 h-20 rounded-[22px] squircle object-cover border-2 border-primary/20"
                   onError={() => setAvatarBroken(true)}
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
+                <div className="w-20 h-20 rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
                   {initials}
                 </div>
               )}
@@ -310,7 +313,18 @@ export function ProfileEditForm({
             <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
               About your work
             </p>
-            <span className={`text-ds-11 font-medium ${bioOk ? "text-green-600 dark:text-green-500" : "text-muted-foreground"}`}>{bio.trim().length}/20</span>
+            {/* "20" is a MINIMUM, not a cap — showing "108/20" once the
+                user is past it reads like an over-limit error. So:
+                "X/20" while short of the minimum, a check once met. */}
+            {bioOk ? (
+              <span className="text-ds-11 font-medium text-green-600 dark:text-green-500 inline-flex items-center gap-1">
+                <Check className="w-3 h-3" strokeWidth={3} /> Looks good
+              </span>
+            ) : (
+              <span className="text-ds-11 font-medium text-muted-foreground tabular-nums">
+                {bio.trim().length}/20 min
+              </span>
+            )}
           </div>
           <Textarea
             id="bio"

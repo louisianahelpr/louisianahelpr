@@ -220,7 +220,7 @@ const App = () => (
         </Suspense>
         <main
           id="main-content"
-          className="w-full max-w-full app-shell-scroll no-scrollbar"
+          className="w-full max-w-full no-scrollbar"
         >
           <RoutedBoundary />
         </main>

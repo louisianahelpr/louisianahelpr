@@ -150,8 +150,29 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
     if (!deadlineDialogApp || !selectedJob || !user) return;
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
-    await supabase.from("applications").update({ status: "accepted", ...(initialMessage ? { offer_message: initialMessage } : {}) }).eq("id", deadlineDialogApp.id);
-    await supabase.from("jobs").update({ status: "accepted", helper_id: deadlineDialogApp.helper_id, response_deadline: deadline }).eq("id", selectedJob.id);
+    // Atomic accept — see migration 20260518120000_accept_application_rpc.
+    // The RPC row-locks the job so two concurrent accepts can't both
+    // book the same single-helper job, and it surfaces a real error
+    // instead of the previous fire-and-forget updates that always
+    // toasted success. (`rpc as any` until types.ts is regenerated.)
+    const { error } = await (supabase.rpc as any)("accept_application", {
+      p_application_id: deadlineDialogApp.id,
+      p_deadline: deadline,
+      p_offer_message: initialMessage ?? null,
+    });
+    if (error) {
+      const msg = String(error.message ?? "");
+      toast.error(
+        msg.includes("job_not_open")
+          ? "This job is no longer open — it may already be assigned."
+          : msg.includes("application_not_pending")
+            ? "This applicant can no longer be accepted."
+            : msg.includes("not_authorized")
+              ? "You can only accept applicants on a job you posted."
+              : "Couldn't send the offer — please try again.",
+      );
+      return;
+    }
     await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: "/my-jobs?filter=offered" });
     toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);
     setDeadlineDialogApp(null);

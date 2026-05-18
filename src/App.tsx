@@ -175,6 +175,21 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
 });
 AnimatedRoutes.displayName = "AnimatedRoutes";
 
+// Page-level error boundary, re-keyed by route. A render crash on one
+// page shows the fallback inside <main> only — the header, nav, and
+// banners stay mounted — and navigating elsewhere clears it. The root
+// ErrorBoundary in <App> still backstops crashes in the shell itself.
+const RoutedBoundary = () => {
+  const location = useLocation();
+  return (
+    <ErrorBoundary resetKey={location.pathname}>
+      <Suspense fallback={<PageFallback />}>
+        <AnimatedRoutes />
+      </Suspense>
+    </ErrorBoundary>
+  );
+};
+
 const SessionManager = () => {
   useSessionTimeout();
   useLoginTracking();
@@ -207,9 +222,7 @@ const App = () => (
           id="main-content"
           className="w-full max-w-full app-shell-scroll no-scrollbar"
         >
-          <Suspense fallback={<PageFallback />}>
-            <AnimatedRoutes />
-          </Suspense>
+          <RoutedBoundary />
         </main>
         <Suspense fallback={null}>
           <MobileNav />

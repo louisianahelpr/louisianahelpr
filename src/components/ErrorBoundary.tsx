@@ -6,6 +6,9 @@ import { report } from "@/lib/errorLogger";
 interface Props {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  /** When this value changes, a caught error is cleared. Pass the route
+   *  path so navigating away from a crashed page isn't blocked. */
+  resetKey?: string | number;
 }
 
 interface State {
@@ -98,6 +101,15 @@ class ErrorBoundary extends React.Component<Props, State> {
         sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
         void hardReloadBypassCache();
       }
+    }
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    // A changing `resetKey` (the route path) clears a caught error, so a
+    // crash on one page doesn't trap the user — navigating elsewhere
+    // renders a working tree under this still-mounted boundary.
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null });
     }
   }
 

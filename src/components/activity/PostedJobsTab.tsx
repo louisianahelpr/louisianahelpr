@@ -218,19 +218,10 @@ export const PostedJobsTab = ({
                       </div>
                       {app.status === "pending" && (
                         <Button
+                          variant="bark"
                           size="sm"
                           className="rounded-ds-md shrink-0"
                           onClick={() => onAcceptApplication(app)}
-                          style={{
-                            background: "hsl(var(--bark))",
-                            backgroundImage: "none",
-                            border: "1px solid hsl(var(--bark))",
-                            color: "hsl(var(--parchment))",
-                            fontFamily: "Montserrat, system-ui, sans-serif",
-                            fontWeight: 600,
-                            letterSpacing: "0.01em",
-                            boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -4px hsl(var(--bark) / 0.32)",
-                          }}
                         >
                           Select
                         </Button>

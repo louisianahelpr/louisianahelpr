@@ -73,15 +73,8 @@ const NotFound = () => {
             </Button>
             <Button
               asChild
+              variant="bark"
               className="rounded-ds-md"
-              style={{
-                background: "hsl(var(--bark))",
-                backgroundImage: "none",
-                border: "1px solid hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-              }}
             >
               <Link to="/">
                 <Home className="h-4 w-4 mr-2" />

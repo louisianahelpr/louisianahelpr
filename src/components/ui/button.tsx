@@ -22,6 +22,7 @@ const buttonVariants = cva(
         hero: "relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground text-base shadow-[0_1px_0_0_hsl(0_0%_100%/0.2)_inset,0_4px_8px_-2px_hsl(var(--primary)/0.4),0_12px_24px_-4px_hsl(var(--primary)/0.5),0_24px_48px_-12px_hsl(var(--primary)/0.5)] hover:shadow-[0_1px_0_0_hsl(0_0%_100%/0.25)_inset,0_6px_12px_-2px_hsl(var(--primary)/0.45),0_18px_36px_-6px_hsl(var(--primary)/0.55),0_32px_64px_-12px_hsl(var(--primary)/0.55)] hover:-translate-y-0.5 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out",
         "hero-outline":
           "relative border-2 border-primary/40 bg-background/60 backdrop-blur-md text-primary text-base shadow-[0_2px_8px_-2px_hsl(var(--foreground)/0.08)] hover:border-primary hover:bg-primary/5 hover:shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.35)] hover:-translate-y-0.5",
+        bark: "bg-[hsl(var(--bark))] text-[hsl(var(--parchment))] border border-[hsl(var(--bark))] [font-family:Montserrat,system-ui,sans-serif] font-semibold tracking-[0.01em] hover:brightness-110 hover:-translate-y-px shadow-[0_1px_2px_hsl(var(--bark)/0.18),0_8px_20px_-6px_hsl(var(--bark)/0.34)]",
       },
       size: {
         default: "h-14 px-6 py-2 text-[16px]",

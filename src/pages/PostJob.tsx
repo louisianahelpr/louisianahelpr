@@ -774,19 +774,10 @@ const PostJob = () => {
                   }}
                 >
                   <Button
+                    variant="bark"
                     type="submit"
                     className="w-full rounded-ds-md"
                     size="lg"
-                    style={{
-                      background: "hsl(var(--bark))",
-                      backgroundImage: "none",
-                      border: "1px solid hsl(var(--bark))",
-                      color: "hsl(var(--parchment))",
-                      fontFamily: "Montserrat, system-ui, sans-serif",
-                      fontWeight: 600,
-                      letterSpacing: "0.01em",
-                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 10px 24px -8px hsl(var(--bark) / 0.38)",
-                    }}
                   >
                     <span className="inline-flex items-center gap-2">
                       Review &amp; pay

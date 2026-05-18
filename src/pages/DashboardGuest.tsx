@@ -232,19 +232,10 @@ const DashboardGuest = () => {
               Log in
             </Button>
             <Button
+              variant="bark"
               size="sm"
               onClick={() => navigate("/signup")}
               className="text-ds-11 h-11 rounded-ds-md"
-              style={{
-                background: "hsl(var(--bark))",
-                backgroundImage: "none",
-                border: "1px solid hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                letterSpacing: "0.01em",
-                boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -6px hsl(var(--bark) / 0.32)",
-              }}
             >
               Sign up
             </Button>

@@ -351,15 +351,9 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
             than dead-ending the user. */}
         {emptyStateCta && (
           <Button
+            variant="bark"
             onClick={emptyStateCta.onClick}
             className="rounded-ds-md mt-1"
-            style={{
-              background: "hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              border: "1px solid hsl(70 22% 24%)",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-            }}
           >
             <BellRing className="w-4 h-4 mr-2" /> {emptyStateCta.label}
           </Button>

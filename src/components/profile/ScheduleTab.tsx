@@ -260,16 +260,10 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                       <Search className="w-3.5 h-3.5 mr-1.5" /> Browse open jobs
                     </Button>
                     <Button
+                      variant="bark"
                       size="sm"
                       className="rounded-ds-md"
                       onClick={() => navigate("/post-job")}
-                      style={{
-                        background: "hsl(var(--bark))",
-                        color: "hsl(var(--parchment))",
-                        border: "1px solid hsl(70 22% 24%)",
-                        fontFamily: "Montserrat, system-ui, sans-serif",
-                        fontWeight: 600,
-                      }}
                     >
                       <Plus className="w-3.5 h-3.5 mr-1.5" /> Post a task
                     </Button>

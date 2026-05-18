@@ -134,18 +134,11 @@ const SignupPending = () => {
                 style={{ ['--tw-ring-color' as any]: "hsl(var(--bark) / 0.3)" }}
               />
               <Button
+                variant="bark"
                 onClick={handleResend}
                 disabled={resending}
                 size="sm"
                 className="w-full rounded-ds-md"
-                style={{
-                  background: "hsl(var(--bark))",
-                  backgroundImage: "none",
-                  border: "1px solid hsl(var(--bark))",
-                  color: "hsl(var(--parchment))",
-                  fontFamily: "Montserrat, system-ui, sans-serif",
-                  fontWeight: 600,
-                }}
               >
                 {resending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Resending…</> : "Resend verification email"}
               </Button>

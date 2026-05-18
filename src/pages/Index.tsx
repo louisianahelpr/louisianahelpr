@@ -33,63 +33,8 @@ const louisianaCities = [
   "Kenner", "Bossier City", "Monroe", "Alexandria", "Houma",
 ];
 
-const localBusinessSchema = {
-  "@context": "https://schema.org",
-  "@type": "LocalBusiness",
-  "@id": `${SITE_URL}/#business`,
-  name: "Helpr",
-  description: "Louisiana's trusted marketplace connecting neighbors for cleaning, yard work, moving, errands, handyman services, and more.",
-  url: SITE_URL,
-  logo: `${SITE_URL}/pwa-512x512-v2.png`,
-  image: `${SITE_URL}/pwa-512x512-v2.png`,
-  telephone: "",
-  priceRange: "$$",
-  areaServed: [
-    { "@type": "State", name: "Louisiana", sameAs: "https://en.wikipedia.org/wiki/Louisiana" },
-    ...louisianaCities.map((city) => ({
-      "@type": "City",
-      name: city,
-      containedInPlace: { "@type": "State", name: "Louisiana" },
-    })),
-  ],
-  geo: {
-    "@type": "GeoCoordinates",
-    latitude: 30.9843,
-    longitude: -91.9623,
-  },
-  address: {
-    "@type": "PostalAddress",
-    addressRegion: "LA",
-    addressCountry: "US",
-  },
-  sameAs: [],
-  openingHoursSpecification: {
-    "@type": "OpeningHoursSpecification",
-    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-    opens: "00:00",
-    closes: "23:59",
-  },
-};
-
-const organizationSchema = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "@id": `${SITE_URL}/#organization`,
-  name: "Helpr",
-  legalName: "Helpr LLC",
-  url: SITE_URL,
-  logo: `${SITE_URL}/pwa-512x512-v2.png`,
-  description: "Louisiana's trusted marketplace connecting neighbors for cleaning, yard work, moving, errands, handyman services, and more.",
-  email: "admin@louisianahelpr.com",
-  foundingDate: "2026",
-  areaServed: { "@type": "State", name: "Louisiana" },
-  address: {
-    "@type": "PostalAddress",
-    addressRegion: "LA",
-    addressCountry: "US",
-  },
-  sameAs: ["https://www.facebook.com/louisianahelpr"],
-};
+// LocalBusiness + Organization schema is served statically from
+// index.html so non-JS crawlers see it — see that file's <head>.
 
 const breadcrumbSchema = {
   "@context": "https://schema.org",
@@ -215,14 +160,8 @@ const Index = () => {
       {/* Global mesh — fixed-position behind every section so glass surfaces
           have refracting motion all the way down the page. Subtle. */}
       <div aria-hidden className="mesh-gradient-global" />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-      />
+      {/* LocalBusiness + Organization JSON-LD is in index.html (static,
+          crawlable without JS). These page-specific schemas stay here. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}

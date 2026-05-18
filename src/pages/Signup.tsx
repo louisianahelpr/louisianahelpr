@@ -318,7 +318,7 @@ const Signup = () => {
             p_referral_code: referralCode.trim().toUpperCase(),
             p_new_user_id: userId,
           });
-        } catch { /* silent */ }
+        } catch (e) { report(e, { tags: { source: "Signup.referral" } }); }
       }
 
       // Business signup: create business

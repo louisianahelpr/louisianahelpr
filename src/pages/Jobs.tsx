@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { MapPin, Calendar, DollarSign, ArrowRight, Search, Lock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,17 +93,19 @@ const Jobs = () => {
     });
   }, [authLoading, loading, user?.id]);
 
-  const now = new Date();
-  const filtered = jobs.filter((job) => {
-    // Hide jobs that have expired in real-time (between fetches)
-    if (job.expires_at && new Date(job.expires_at) <= now) return false;
-    const matchesSearch =
-      !search ||
-      job.title.toLowerCase().includes(search.toLowerCase()) ||
-      job.location.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !selectedCategory || job.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filtered = useMemo(() => {
+    const now = new Date();
+    return jobs.filter((job) => {
+      // Hide jobs that have expired in real-time (between fetches)
+      if (job.expires_at && new Date(job.expires_at) <= now) return false;
+      const matchesSearch =
+        !search ||
+        job.title.toLowerCase().includes(search.toLowerCase()) ||
+        job.location.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = !selectedCategory || job.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [jobs, search, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-premium-page">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,32 +45,30 @@ const JobHistory = () => {
     },
   });
 
-  const postedJobs = data?.posted ?? [];
-  const workedJobs = data?.worked ?? [];
+  const postedJobs = useMemo(() => data?.posted ?? [], [data]);
+  const workedJobs = useMemo(() => data?.worked ?? [], [data]);
   const loading = isLoading && !data;
 
-  const getJobs = () => {
-    let jobs: (Job & { _source: "posted" | "worked" })[] = [];
+  const jobs = useMemo(() => {
+    let merged: (Job & { _source: "posted" | "worked" })[] = [];
     if (tab === "all" || tab === "posted") {
-      jobs = [...jobs, ...postedJobs.map((j) => ({ ...j, _source: "posted" as const }))];
+      merged = [...merged, ...postedJobs.map((j) => ({ ...j, _source: "posted" as const }))];
     }
     if (tab === "all" || tab === "worked") {
-      jobs = [...jobs, ...workedJobs.map((j) => ({ ...j, _source: "worked" as const }))];
+      merged = [...merged, ...workedJobs.map((j) => ({ ...j, _source: "worked" as const }))];
     }
     // Deduplicate
     const seen = new Set<string>();
-    jobs = jobs.filter((j) => {
+    merged = merged.filter((j) => {
       if (seen.has(j.id)) return false;
       seen.add(j.id);
       return true;
     });
     if (statusFilter !== "all") {
-      jobs = jobs.filter((j) => j.status === statusFilter);
+      merged = merged.filter((j) => j.status === statusFilter);
     }
-    return jobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  };
-
-  const jobs = getJobs();
+    return merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [tab, statusFilter, postedJobs, workedJobs]);
 
   const tabs: { key: HistoryTab; label: string }[] = [
     { key: "all", label: "All" },

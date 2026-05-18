@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { checkProximity } from "@/lib/locationUtils";
+import { aggregateRatings } from "@/lib/reviewStats";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -107,15 +108,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds).lte("feedback_visible_at", new Date().toISOString()),
       ]);
-      const reviewMap = new Map<string, number[]>();
-      reviewsRes.data?.forEach((r) => {
-        if (!reviewMap.has(r.reviewee_id)) reviewMap.set(r.reviewee_id, []);
-        reviewMap.get(r.reviewee_id)!.push(r.rating);
-      });
+      const reviewStatsMap = aggregateRatings(reviewsRes.data);
       const enriched = visibleApps.map((app) => {
         const prof = profilesRes.data?.find((p) => p.user_id === app.helper_id) || null;
-        const ratings = reviewMap.get(app.helper_id) || [];
-        return { ...app, profiles: prof, reviewCount: ratings.length, avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0 };
+        const stats = reviewStatsMap.get(app.helper_id);
+        return { ...app, profiles: prof, reviewCount: stats?.count ?? 0, avgRating: stats?.avg ?? 0 };
       });
       // Boosted Visibility: Pro/Elite helpers appear first in applicant lists
       const tierOrder = (tier: string | null | undefined) => tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;

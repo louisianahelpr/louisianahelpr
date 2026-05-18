@@ -98,7 +98,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
       // Store the storage path (not a signed URL). user-documents is a
       // private bucket as of 2026-05-05 — we generate signed URLs on
       // demand at view time via openDoc() below.
-      const update: Record<string, any> = {};
+      const update: Partial<CredentialFields> = {};
       if (kind === "license") {
         update.license_url = path;
         update.is_licensed = true;
@@ -108,10 +108,10 @@ export function CredentialsTab({ userId }: { userId: string }) {
         update.is_insured = true;
         update.insurance_status = "pending";
       }
-      const { error: updErr } = await (supabase.from("profiles") as any).update(update).eq("user_id", userId);
+      const { error: updErr } = await supabase.from("profiles").update(update).eq("user_id", userId);
       if (updErr) throw updErr;
 
-      patchCache(update as Partial<CredentialFields>);
+      patchCache(update);
       toast.success(`${kind === "license" ? "License" : "Insurance"} uploaded — pending admin review`);
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
@@ -136,7 +136,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
 
   const removeDoc = async (kind: "license" | "insurance") => {
     setSaving(true);
-    const update: Record<string, any> = {};
+    const update: Partial<CredentialFields> = {};
     if (kind === "license") {
       update.license_url = null;
       update.is_licensed = false;
@@ -146,13 +146,13 @@ export function CredentialsTab({ userId }: { userId: string }) {
       update.is_insured = false;
       update.insurance_status = "none";
     }
-    const { error } = await (supabase.from("profiles") as any).update(update).eq("user_id", userId);
+    const { error } = await supabase.from("profiles").update(update).eq("user_id", userId);
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    patchCache(update as Partial<CredentialFields>);
+    patchCache(update);
     toast.success("Removed");
   };
 

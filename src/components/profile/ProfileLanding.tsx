@@ -100,8 +100,8 @@ export function ProfileLanding({
   // Credentials tab.
   const earnedBadges = ([
     { ok: profile?.idv_status === "verified", label: "ID verified" },
-    { ok: (profile as any)?.license_status === "verified", label: "Licensed" },
-    { ok: (profile as any)?.insurance_status === "verified", label: "Insured" },
+    { ok: profile?.license_status === "verified", label: "Licensed" },
+    { ok: profile?.insurance_status === "verified", label: "Insured" },
   ]).filter((b) => b.ok);
   const stripeNeedsAction =
     profile?.approval_status === "approved" &&
@@ -123,9 +123,9 @@ export function ProfileLanding({
   // completion meter uses the shared getProfileCompletion helper, which
   // tracks only post-signup enhancements (signup already requires
   // photo / name / phone / bio / city / ID doc).
-  const portfolioUrls: string[] = ((profile as any)?.portfolio_urls ?? []) as string[];
+  const portfolioUrls: string[] = (profile?.portfolio_urls ?? []) as string[];
   const completion = getProfileCompletion({
-    zipCode: (profile as any)?.zip_code,
+    zipCode: profile?.zip_code,
     idvStatus: profile?.idv_status,
     portfolioCount: portfolioUrls.length,
   });

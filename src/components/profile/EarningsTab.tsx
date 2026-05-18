@@ -139,9 +139,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // payout_transfers ledger — the authoritative record of every
   // stripe.transfers.create() call to this helper. RLS already restricts
   // SELECT to `auth.uid() = helper_id` so no extra filter needed here.
-  // Cast via `as any`: payout_transfers was added in a recent migration and
-  // isn't in the regenerated client types yet (full types regen exceeds
-  // tooling output limits — handled the same way as admin_audit_log).
   const { data: payoutLedger = [] } = useQuery<PayoutLedgerRow[]>({
     queryKey: ["payout-transfers", helperId],
     queryFn: async () => {
@@ -249,7 +246,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const totalEarnings = completedJobs.reduce((sum, j) => {
     const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
     const perHelper = j.budget / helpers;
-    const commissionPercent = (j as any).helper_fee_percent ?? 10;
+    const commissionPercent = j.helper_fee_percent ?? 10;
     const commission = (perHelper * commissionPercent) / 100;
     return sum + (perHelper - commission + (j.urgent_fee ?? 0));
   }, 0);
@@ -632,7 +629,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               {earningsJobs.slice(0, historyVisible).map((job) => {
                 const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
                 const perHelper = job.budget / helpers;
-                const commissionPercent = (job as any).helper_fee_percent ?? 10;
+                const commissionPercent = job.helper_fee_percent ?? 10;
                 const commission = (perHelper * commissionPercent) / 100;
                 const payout = job.status === "completed" ? perHelper - commission + (job.urgent_fee ?? 0) : null;
                 const jobTips = tips.filter((t) => t.job_id === job.id);

@@ -51,7 +51,7 @@ export function DatePickerField({
           id={id}
           type="button"
           className={cn(
-            "flex h-12 w-full items-center justify-between rounded-2xl border border-input bg-background/70 backdrop-blur-sm px-4 text-[15px] text-left ring-offset-background transition-colors",
+            "flex h-12 w-full items-center justify-between rounded-2xl border border-input glass-field px-4 text-[15px] text-left ring-offset-background transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:border-ring",
             !selected && "text-muted-foreground/70",
             className,

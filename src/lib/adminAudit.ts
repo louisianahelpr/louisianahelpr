@@ -1,11 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import type { Json } from "@/integrations/supabase/types";
 
 export const logAdminAction = async (
   action: string,
   targetType?: string,
   targetId?: string,
-  details?: Record<string, unknown>
+  details?: Json
 ) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();

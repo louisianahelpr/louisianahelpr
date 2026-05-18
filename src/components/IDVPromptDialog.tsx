@@ -66,11 +66,10 @@ export function IDVPromptDialog({
       }
       if (!data?.url) throw new Error("Could not start verification");
       window.open(data.url, "_blank", "noopener,noreferrer");
-      toast.info(
-        isRetry
-          ? "New verification opened in a new tab."
-          : "Verification opened in a new tab. Come back when it's done.",
-      );
+      // Per the one-attempt policy above, this dialog's Start button only
+      // renders for first-time verification — there is no self-service
+      // retry path — so the toast is always the first-attempt copy.
+      toast.info("Verification opened in a new tab. Come back when it's done.");
       onOpenChange(false);
       onLaunched?.();
     } catch (e: unknown) {

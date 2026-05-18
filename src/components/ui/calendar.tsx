@@ -7,6 +7,9 @@ import { buttonVariants } from "@/components/ui/button";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
+// classNames + components keys follow the react-day-picker v9/v10 schema
+// (v8's `caption`/`cell`/`head_cell`/`nav_button_*` and the IconLeft/
+// IconRight components were renamed in the v9 overhaul).
 function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
   return (
     <DayPicker
@@ -15,35 +18,41 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
+        month_caption: "flex justify-center pt-1 relative items-center",
         caption_label: "font-display italic font-bold text-[0.95rem] tracking-tight text-[hsl(var(--ink-deep))]",
         nav: "space-x-1 flex items-center",
-        nav_button: cn(
+        button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)]",
+          "h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)] absolute left-1",
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell: "rounded-md w-9 font-serif italic uppercase text-[0.6rem] tracking-[0.18em] text-[hsl(var(--burnt-sienna)/0.78)]",
-        row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] hover:bg-[hsl(var(--bark)/0.10)] aria-selected:opacity-100 rounded-full"),
-        day_range_end: "day-range-end",
-        day_selected:
+        button_next: cn(
+          buttonVariants({ variant: "outline" }),
+          "h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)] absolute right-1",
+        ),
+        month_grid: "w-full border-collapse space-y-1",
+        weekdays: "flex",
+        weekday: "rounded-md w-9 font-serif italic uppercase text-[0.6rem] tracking-[0.18em] text-[hsl(var(--burnt-sienna)/0.78)]",
+        week: "flex w-full mt-2",
+        day: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        day_button: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] hover:bg-[hsl(var(--bark)/0.10)] aria-selected:opacity-100 rounded-full"),
+        range_end: "day-range-end",
+        selected:
           "!bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] hover:!bg-[hsl(var(--bark))] focus:!bg-[hsl(var(--bark))] shadow-[0_1px_2px_hsl(var(--bark)/0.18)] font-display italic font-bold",
-        day_today:
+        today:
           "!bg-[hsl(var(--burnt-sienna)/0.10)] !text-[hsl(var(--burnt-sienna))] !font-display !italic !font-bold ring-1 ring-[hsl(var(--burnt-sienna)/0.28)]",
-        day_outside: "day-outside text-[hsl(var(--olivewood)/0.45)] opacity-60 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
-        day_disabled: "text-[hsl(var(--olivewood)/0.35)] opacity-50",
-        day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
+        outside: "day-outside text-[hsl(var(--olivewood)/0.45)] opacity-60 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+        disabled: "text-[hsl(var(--olivewood)/0.35)] opacity-50",
+        range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+        hidden: "invisible",
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
+        Chevron: ({ orientation }) =>
+          orientation === "left" ? (
+            <ChevronLeft className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          ),
       }}
       {...props}
     />

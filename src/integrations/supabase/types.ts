@@ -3066,6 +3066,26 @@ export type Database = {
       }
     }
     Functions: {
+      // ── HAND-ADDED (not produced by `npm run db:types`) ──────────────
+      // These two RPCs exist in the database but were missing from the
+      // last generated types. Re-running `npm run db:types` folds them in
+      // properly and this block can then be deleted.
+      get_marketplace_activity_count: { Args: never; Returns: number }
+      get_open_jobs_for_map: {
+        Args: never
+        Returns: {
+          id: string
+          title: string
+          category: string
+          budget: number
+          is_urgent: boolean
+          latitude: number
+          longitude: number
+          parish: string | null
+          created_at: string
+        }[]
+      }
+      // ─────────────────────────────────────────────────────────────────
       are_users_blocked: {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean

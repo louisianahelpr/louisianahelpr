@@ -6,7 +6,7 @@ import { renderHook } from "@testing-library/react";
 const mocks = vi.hoisted(() => {
   const unsubscribeMock = vi.fn();
   const insertMock = vi.fn().mockResolvedValue({ data: null, error: null });
-  const fromMock = vi.fn(() => ({ insert: insertMock }));
+  const fromMock = vi.fn((..._args: unknown[]) => ({ insert: insertMock }));
   const trackMock = vi.fn();
   const reportMock = vi.fn();
   const identifyUserMock = vi.fn();

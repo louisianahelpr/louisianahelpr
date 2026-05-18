@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // each chain step to return an object with the next method.
 const insertMock = vi.fn();
 const updateEqMock = vi.fn();
-const updateMock = vi.fn(() => ({ eq: updateEqMock }));
+const updateMock = vi.fn((_payload: Record<string, unknown>) => ({ eq: updateEqMock }));
 const selectOrInMock = vi.fn();
 const selectOrMock = vi.fn(() => ({ in: selectOrInMock }));
 const selectMock = vi.fn(() => ({ or: selectOrMock }));

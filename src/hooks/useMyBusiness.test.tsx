@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => {
     eq: vi.fn().mockReturnThis(),
     maybeSingle: maybeSingleMock,
   };
-  const fromMock = vi.fn(() => builder);
+  const fromMock = vi.fn((..._args: unknown[]) => builder);
   const useAuthReadyMock = vi.fn();
   return { maybeSingleMock, fromMock, useAuthReadyMock };
 });

@@ -8,6 +8,8 @@
  * call Sentry.captureException(err, { extra }) and you're done.
  */
 
+import type { Json } from "@/integrations/supabase/types";
+
 // ── Tunables ─────────────────────────────────────────────────────────
 const MESSAGE_MAX_CHARS = 1000;
 const STACK_MAX_CHARS = 4000;
@@ -118,7 +120,7 @@ interface ErrorLogRow {
   url: string | null;
   user_agent: string | null;
   tags: Record<string, string | number | boolean>;
-  context: Record<string, unknown>;
+  context: Json;
 }
 
 // ── Queue + flush ────────────────────────────────────────────────────
@@ -179,10 +181,12 @@ export function report(err: unknown, opts: ReportOptions = {}) {
 
   // Sanitize context too — callers sometimes accidentally pass raw URLs
   // or tokens. We only redact strings; nested objects pass through.
-  const context: Record<string, unknown> = {};
+  const context: Record<string, Json> = {};
   if (opts.context) {
     for (const [k, v] of Object.entries(opts.context)) {
-      context[k] = typeof v === "string" ? redact(v) : v;
+      // Caller context is destined for a jsonb column. Strings are
+      // redacted; other values are asserted JSON-serializable.
+      context[k] = typeof v === "string" ? redact(v) : (v as Json);
     }
   }
 

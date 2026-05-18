@@ -7,7 +7,7 @@ import { useProfile, fetchProfile, useInvalidateProfile } from "./useProfile";
 const maybeSingleMock = vi.fn();
 const eqMock = vi.fn(() => ({ maybeSingle: maybeSingleMock }));
 const selectMock = vi.fn(() => ({ eq: eqMock }));
-const fromMock = vi.fn(() => ({ select: selectMock }));
+const fromMock = vi.fn((..._args: unknown[]) => ({ select: selectMock }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {

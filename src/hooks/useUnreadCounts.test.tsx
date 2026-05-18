@@ -11,7 +11,7 @@ const headMock = vi.fn();
 const eqEqMock = vi.fn();
 const eqMock = vi.fn(() => ({ eq: eqEqMock }));
 const selectMock = vi.fn(() => ({ eq: eqMock }));
-const fromMock = vi.fn(() => ({ select: selectMock }));
+const fromMock = vi.fn((_table?: string) => ({ select: selectMock }));
 
 const channelOnMock = vi.fn();
 const channelSubscribeMock = vi.fn();

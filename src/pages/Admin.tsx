@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import {
@@ -117,7 +116,6 @@ interface Stats {
 }
 
 const Admin = () => {
-  const { loading } = useAdminAuth();
   usePageTitle("Admin — Helpr");
   const navigate = useNavigate();
   // ?view= deep-links from notifications (e.g. /admin?view=people&user=<id>).
@@ -139,7 +137,10 @@ const Admin = () => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [, setUnreadMessages] = useState(0);
-  const { user } = useCurrentUser();
+  // <AdminRoute> already gates this page on isAdmin; useCurrentUser here
+  // supplies the current user + the shared loading flag (the redundant
+  // useAdminAuth redirect hook has been removed).
+  const { user, isLoading: loading } = useCurrentUser();
 
   useEffect(() => {
     if (!user) return;

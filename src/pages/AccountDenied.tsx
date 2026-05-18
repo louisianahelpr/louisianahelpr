@@ -1,32 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { XCircle, RefreshCw, Mail, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const AccountDenied = () => {
   usePageTitle("Account Denied — Helpr");
   const navigate = useNavigate();
-  const [denyReason, setDenyReason] = useState("");
+  const { user, profile, isLoading } = useCurrentUser();
 
+  // Redirect away once the account is no longer denied. Reads the shared
+  // useCurrentUser profile so this gate can't drift from the rest of the
+  // app's view of approval state.
   useEffect(() => {
-    const check = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { navigate("/login"); return; }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("approval_status, denial_reason")
-        .eq("user_id", session.user.id)
-        .single();
-      if (!profile) return;
-      if (profile.approval_status === "approved") navigate("/dashboard");
-      if (profile.approval_status === "pending") navigate("/account-pending");
-      if (profile.denial_reason) setDenyReason(profile.denial_reason);
-    };
-    check();
-  }, [navigate]);
+    if (isLoading) return;
+    if (!user) { navigate("/login"); return; }
+    if (profile?.approval_status === "approved") navigate("/dashboard");
+    else if (profile?.approval_status === "pending") navigate("/account-pending");
+  }, [user, profile, isLoading, navigate]);
+
+  const denyReason = profile?.denial_reason ?? "";
 
   return (
     <AuthShell hideBack eyebrow="Account status" maxWidth="md">

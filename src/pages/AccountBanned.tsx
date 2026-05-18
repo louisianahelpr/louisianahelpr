@@ -1,38 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Ban, Mail, LogOut, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const BAN_STATUSES = ["banned", "temp_banned", "permanently_banned"] as const;
 
 const AccountBanned = () => {
   usePageTitle("Account Banned — Helpr");
   const navigate = useNavigate();
-  const [banStatus, setBanStatus] = useState<string | null>(null);
-  const [suspendedUntil, setSuspendedUntil] = useState<string | null>(null);
+  const { user, profile, isLoading } = useCurrentUser();
 
+  // Redirect away once the account is no longer banned. Reads the shared
+  // useCurrentUser profile so this gate can't drift from the rest of the
+  // app's view of ban state.
   useEffect(() => {
-    const check = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { navigate("/login"); return; }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("ban_status, auto_suspended_until")
-        .eq("user_id", session.user.id)
-        .single();
-      if (!profile) return;
-      if (!profile.ban_status || !BAN_STATUSES.includes(profile.ban_status as any)) {
-        navigate("/dashboard");
-        return;
-      }
-      setBanStatus(profile.ban_status);
-      setSuspendedUntil(profile.auto_suspended_until ?? null);
-    };
-    check();
-  }, [navigate]);
+    if (isLoading) return;
+    if (!user) { navigate("/login"); return; }
+    if (!profile?.ban_status || !(BAN_STATUSES as readonly string[]).includes(profile.ban_status)) {
+      navigate("/dashboard");
+    }
+  }, [user, profile, isLoading, navigate]);
+
+  const banStatus = profile?.ban_status ?? null;
+  const suspendedUntil = profile?.auto_suspended_until ?? null;
 
   const isPermanent = banStatus === "permanently_banned";
   const isTemp = banStatus === "temp_banned";

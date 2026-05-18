@@ -124,6 +124,63 @@
     <meta name="twitter:description" content="Helpr connects you with trusted neighbors across Louisiana for cleaning, errands, moving, yard work, and more. Serving New Orleans, Baton Rouge, Shreveport &amp; beyond." />
     <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image.png" />
     <meta name="twitter:image:alt" content="Helpr — Louisiana's local help marketplace" />
+
+    <!-- Site-wide structured data, served statically so non-JS crawlers
+         (Bing, social/link-preview bots, LLM crawlers) see Helpr's
+         LocalBusiness + Organization entities without executing the SPA.
+         Page-specific schema (WebApplication / FAQ / Breadcrumb) is still
+         injected client-side by the landing page. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "@id": "https://www.louisianahelpr.com/#business",
+      "name": "Helpr",
+      "description": "Louisiana's trusted marketplace connecting neighbors for cleaning, yard work, moving, errands, handyman services, and more.",
+      "url": "https://www.louisianahelpr.com",
+      "logo": "https://www.louisianahelpr.com/pwa-512x512-v2.png",
+      "image": "https://www.louisianahelpr.com/pwa-512x512-v2.png",
+      "priceRange": "$$",
+      "areaServed": [
+        { "@type": "State", "name": "Louisiana", "sameAs": "https://en.wikipedia.org/wiki/Louisiana" },
+        { "@type": "City", "name": "New Orleans", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Baton Rouge", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Shreveport", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Lafayette", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Lake Charles", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Kenner", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Bossier City", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Monroe", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Alexandria", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Houma", "containedInPlace": { "@type": "State", "name": "Louisiana" } }
+      ],
+      "geo": { "@type": "GeoCoordinates", "latitude": 30.9843, "longitude": -91.9623 },
+      "address": { "@type": "PostalAddress", "addressRegion": "LA", "addressCountry": "US" },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "opens": "00:00",
+        "closes": "23:59"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://www.louisianahelpr.com/#organization",
+      "name": "Helpr",
+      "legalName": "Helpr LLC",
+      "url": "https://www.louisianahelpr.com",
+      "logo": "https://www.louisianahelpr.com/pwa-512x512-v2.png",
+      "description": "Louisiana's trusted marketplace connecting neighbors for cleaning, yard work, moving, errands, handyman services, and more.",
+      "email": "admin@louisianahelpr.com",
+      "foundingDate": "2026",
+      "areaServed": { "@type": "State", "name": "Louisiana" },
+      "address": { "@type": "PostalAddress", "addressRegion": "LA", "addressCountry": "US" },
+      "sameAs": ["https://www.facebook.com/louisianahelpr"]
+    }
+    </script>
   </head>
   <body>
     <!--

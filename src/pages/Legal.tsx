@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
@@ -11,7 +11,7 @@ import BackButton from "@/components/BackButton";
 import { PolicyRowItem, PolicySection, PolicySearchContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 type TabKey = "terms" | "community" | "privacy";
 const VALID_TABS: TabKey[] = ["terms", "community", "privacy"];
@@ -20,6 +20,25 @@ const PAGE_TITLES: Record<TabKey, string> = {
   terms: "Terms of Service — Helpr",
   community: "Community Rules — Helpr",
   privacy: "Privacy Policy — Helpr",
+};
+
+const PAGE_DESCRIPTIONS: Record<TabKey, string> = {
+  terms:
+    "Helpr's Terms of Service — eligibility, binding job agreements, escrow, split fees, subscription tiers, and tax responsibilities for Louisiana's task marketplace.",
+  community:
+    "Helpr's Community Rules — cancellation windows, escrow release, the revision-and-dispute process, strikes, bans, and money-and-taxes guidance.",
+  privacy:
+    "Helpr's Privacy Policy — what we collect, how we use it, who we share with, data security, and your rights. We never sell your personal data.",
+};
+
+// The default `terms` tab uses the clean /legal URL as its canonical;
+// the other tabs canonicalize to their ?tab= URL (which /rules and
+// /terms-style redirect stubs also point at), so each policy view has a
+// single, stable indexable URL.
+const PAGE_CANONICALS: Record<TabKey, string> = {
+  terms: "https://www.louisianahelpr.com/legal",
+  community: "https://www.louisianahelpr.com/legal?tab=community",
+  privacy: "https://www.louisianahelpr.com/legal?tab=privacy",
 };
 
 const TldrCard = ({ items }: { items: string[] }) => (
@@ -777,13 +796,15 @@ const Legal = () => {
   const tab: TabKey = VALID_TABS.includes(tabParam) ? tabParam : "terms";
   const [query, setQuery] = useState("");
 
-  usePageTitle(PAGE_TITLES[tab]);
-
-  // Update document title when the tab changes (usePageTitle only fires on
-  // initial mount with the given string).
-  useEffect(() => {
-    document.title = PAGE_TITLES[tab];
-  }, [tab]);
+  // usePageMeta is keyed on every field, so switching tabs re-runs the
+  // effect and updates title, description, and canonical together.
+  usePageMeta({
+    title: PAGE_TITLES[tab],
+    description: PAGE_DESCRIPTIONS[tab],
+    canonical: PAGE_CANONICALS[tab],
+    ogTitle: PAGE_TITLES[tab],
+    ogDescription: PAGE_DESCRIPTIONS[tab],
+  });
 
   const setTab = (next: string) => {
     const nextParams = new URLSearchParams(params);

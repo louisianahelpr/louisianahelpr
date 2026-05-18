@@ -18,13 +18,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Download, Trash2, ShieldOff, Loader2, ArrowLeft } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { safeStorage } from "@/lib/safeStorage";
 
 const DataRights = () => {
-  usePageTitle("Your Data Rights — Helpr");
+  usePageMeta({
+    title: "Your Data Rights — Helpr",
+    description:
+      "Exercise your GDPR and CCPA data rights with Helpr — export your data, opt out of data sharing, or permanently delete your account.",
+    canonical: "https://www.louisianahelpr.com/data-rights",
+    ogTitle: "Your Data Rights — Helpr",
+    ogDescription:
+      "Export, correct, or delete your personal information on Helpr at any time under the EU GDPR and California CCPA.",
+  });
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

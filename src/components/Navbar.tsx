@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const navigate = useNavigate();
 
   // Toggle the Heritage Gold border-bottom + linen surface once the user
   // scrolls past the immersive hero. While at the top of the page, the nav
@@ -75,7 +74,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             How it works
           </Link>
           <Link
-            to="/#open-jobs"
+            to="/browse"
             className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
           >
             Jobs
@@ -88,23 +87,31 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
           </Link>
           <div className="flex items-center gap-1">
             <Button
+              asChild
               variant="ghost"
               size="sm"
               className="rounded-ds-md btn-press"
-              onClick={() => navigate("/login")}
-              onMouseEnter={() => prefetchRoute("/login")}
-              onFocus={() => prefetchRoute("/login")}
             >
-              Log in
+              <Link
+                to="/login"
+                onMouseEnter={() => prefetchRoute("/login")}
+                onFocus={() => prefetchRoute("/login")}
+              >
+                Log in
+              </Link>
             </Button>
             <Button
+              asChild
               size="sm"
               className="rounded-ds-md btn-press"
-              onClick={() => navigate("/signup")}
-              onMouseEnter={() => prefetchRoute("/signup")}
-              onFocus={() => prefetchRoute("/signup")}
             >
-              Get started
+              <Link
+                to="/signup"
+                onMouseEnter={() => prefetchRoute("/signup")}
+                onFocus={() => prefetchRoute("/signup")}
+              >
+                Get started
+              </Link>
             </Button>
           </div>
         </div>
@@ -153,7 +160,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                 How it works
               </Link>
               <Link
-                to="/#open-jobs"
+                to="/browse"
                 className="block font-sans font-semibold py-3 min-h-[44px] flex items-center transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
                 style={{
                   fontSize: "1rem",
@@ -178,6 +185,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
               </Link>
               <div className="flex flex-col gap-3 mt-auto pt-6">
                 <Button
+                  asChild
                   variant="outline"
                   size="lg"
                   className="liquid-glass w-full rounded-2xl font-sans font-semibold"
@@ -185,11 +193,13 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                     color: "hsl(var(--olivewood))",
                     border: "1px solid hsla(0,0%,100%,0.6)",
                   }}
-                  onClick={() => { navigate("/login"); setMobileOpen(false); }}
                 >
-                  Log in
+                  <Link to="/login" onClick={() => setMobileOpen(false)}>
+                    Log in
+                  </Link>
                 </Button>
                 <Button
+                  asChild
                   size="lg"
                   className="btn-liquid-fill w-full rounded-2xl font-sans font-semibold"
                   style={{
@@ -199,9 +209,10 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                     boxShadow:
                       "inset 0 1px 0 0 rgba(255,255,255,0.25), 0 1px 2px rgba(0,0,0,0.04), 0 8px 32px -8px rgba(0,0,0,0.06)",
                   }}
-                  onClick={() => { navigate("/signup"); setMobileOpen(false); }}
                 >
-                  Get started
+                  <Link to="/signup" onClick={() => setMobileOpen(false)}>
+                    Get started
+                  </Link>
                 </Button>
               </div>
             </SheetContent>

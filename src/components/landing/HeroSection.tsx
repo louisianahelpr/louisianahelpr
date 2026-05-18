@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Sparkles, ArrowRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CategoryBento from "@/components/landing/CategoryBento";
@@ -111,7 +111,12 @@ const HeroSection = () => {
     };
   }, []);
 
-  const goToPostJob = async () => {
+  // CTAs render as real <Link>s (crawlable href = the anonymous-visitor
+  // destination). The onClick intercepts client-side so logged-in users get
+  // auth-aware routing instead, while crawlers/JS-disabled visitors still
+  // follow the static href.
+  const goToPostJob = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
     if (loggedIn) {
       navigate("/post-job");
       return;
@@ -126,7 +131,8 @@ const HeroSection = () => {
   // Anonymous visitors get the public job feed (/browse) so they can taste
   // the marketplace before signing up. Logged-in users go to their
   // dashboard, where the same feed lives but with personalized rails.
-  const goToJoinCommunity = async () => {
+  const goToJoinCommunity = async (e: React.MouseEvent) => {
+    e.preventDefault();
     if (loggedIn) {
       navigate("/dashboard");
       return;
@@ -227,8 +233,8 @@ const HeroSection = () => {
             {/* CTAs — stacked vertically directly under the subhead. */}
             <div className="mt-8 sm:mt-10 flex flex-col gap-3 max-w-sm">
               <Button
+                asChild
                 size="xl"
-                onClick={goToPostJob}
                 className="btn-liquid-fill group h-14 sm:h-15 lg:h-16 px-7 rounded-2xl tracking-tight w-full"
                 style={{
                   fontFamily: "Montserrat, system-ui, sans-serif",
@@ -244,14 +250,16 @@ const HeroSection = () => {
                     "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px rgba(0,0,0,0.1)",
                 }}
               >
-                <Sparkles className="mr-2 w-5 h-5" strokeWidth={1.25} />
-                Post a Request
-                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+                <Link to="/signup" onClick={goToPostJob}>
+                  <Sparkles className="mr-2 w-5 h-5" strokeWidth={1.25} />
+                  Post a Request
+                  <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+                </Link>
               </Button>
               <Button
+                asChild
                 size="xl"
                 variant="outline"
-                onClick={goToJoinCommunity}
                 className="group h-14 sm:h-15 lg:h-16 px-7 rounded-2xl tracking-tight w-full transition-all duration-200 hover:-translate-y-0.5"
                 style={{
                   fontFamily: "Montserrat, system-ui, sans-serif",
@@ -268,9 +276,11 @@ const HeroSection = () => {
                   boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
                 }}
               >
-                <Search className="mr-2 w-5 h-5" strokeWidth={1.25} />
-                Browse Local Jobs
-                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+                <Link to="/browse" onClick={goToJoinCommunity}>
+                  <Search className="mr-2 w-5 h-5" strokeWidth={1.25} />
+                  Browse Local Jobs
+                  <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+                </Link>
               </Button>
             </div>
           </div>

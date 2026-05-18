@@ -120,6 +120,12 @@ export default defineConfig(({ mode }) => ({
           // deferral, so keep them out of the SW cache too.
           "**/assets/posthog-*.js",
           "**/assets/sentry-*.js",
+          // app-icon-1024.png is the 1024×1024 source the iOS icon
+          // generator reads (scripts/generate-ios-icons.mjs). It lives in
+          // public/ so the script can find it, but nothing in the web app
+          // references it — precaching it would add ~700 KB of dead weight
+          // to every visitor's SW cache.
+          "app-icon-1024.png",
         ],
         // Bump the per-file precache limit so the main bundle still fits.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,

@@ -255,19 +255,10 @@ export function PayoutSetupForm() {
       {!isFullyOnboarded && (
         <>
           <Button
+            variant="bark"
             onClick={handleOnboard}
             disabled={onboarding}
             className="w-full rounded-ds-md"
-            style={{
-              background: "hsl(var(--bark))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
-              boxShadow: "0 1px 2px hsl(var(--bark) / 0.16), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
-            }}
           >
             {onboarding ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to Stripe…</>

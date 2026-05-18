@@ -177,20 +177,11 @@ const Login = () => {
             </Link>
           </div>
           <Button
+            variant="bark"
             type="submit"
             className="w-full rounded-ds-md"
             size="lg"
             disabled={loading}
-            style={{
-              background: "hsl(var(--bark))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px rgba(0,0,0,0.1)",
-            }}
           >
             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in…</> : "Sign in"}
           </Button>

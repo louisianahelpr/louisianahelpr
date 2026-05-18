@@ -893,6 +893,32 @@ button {
   background-color: hsla(0, 0%, 100%, 0.05);
 }
 
+/* Modal content surface — the frosted card that Dialog and AlertDialog
+   both float over their overlay. Single source of truth for that
+   material so the two stay identical. Includes the `-webkit-` prefixed
+   backdrop-filter that Tailwind's `backdrop-blur` utility omits (the
+   Capacitor / older-Safari webview needs it). Per-modal layout — gap,
+   padding, max-height — stays at the call site. */
+.glass-modal {
+  border: 1px solid hsla(0, 0%, 100%, 0.3);
+  background-color: hsl(var(--background) / 0.85);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  box-shadow: 0 30px 80px -20px hsl(160 10% 12% / 0.35);
+  border-radius: 28px;
+}
+
+/* Frosted form-field surface — the translucent fill shared by the
+   Input / Textarea / Select primitives and the DatePicker / TimeRange
+   fields that mirror them. Just the fill + blur (with the `-webkit-`
+   prefix); each field keeps its own size, radius, border, and focus
+   ring. */
+.glass-field {
+  background-color: hsl(var(--background) / 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
 /* ─────────────────────────────────────────────────────────────────
    GLOBAL liquid-glass for `bg-card` surfaces
    ─────────────────────────────────────────────────────────────────

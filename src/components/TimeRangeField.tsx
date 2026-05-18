@@ -27,7 +27,7 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
           type="button"
           disabled={disabled}
           className={cn(
-            "inline-flex items-center gap-2 h-11 px-4 rounded-2xl border border-input bg-background/70 backdrop-blur-sm text-[14px] font-semibold tabular-nums text-foreground transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "inline-flex items-center gap-2 h-11 px-4 rounded-2xl border border-input glass-field text-[14px] font-semibold tabular-nums text-foreground transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             disabled && "opacity-50 pointer-events-none",
             className,
           )}

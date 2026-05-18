@@ -96,7 +96,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // --- Action handlers ---
 
   const fetchApplicants = async (jobId: string): Promise<EnrichedApplication[]> => {
-    const { data: apps } = await supabase.from("applications").select("*").eq("job_id", jobId);
+    const { data: apps, error: appsError } = await supabase.from("applications").select("*").eq("job_id", jobId);
+    if (appsError) throw appsError;
     if (apps && apps.length > 0) {
       // Filter out applicants the current user has blocked (or who blocked them)
       const { getBlockedUserIds } = await import("@/lib/userBlocks");
@@ -130,16 +131,27 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const loadApplications = async (job: Job) => {
     setSelectedJob(job);
-    const enriched = await fetchApplicants(job.id);
-    setApplications(enriched);
+    try {
+      const enriched = await fetchApplicants(job.id);
+      setApplications(enriched);
+    } catch {
+      // A failed fetch must not read as "no applicants" — tell the truth.
+      setApplications([]);
+      toast.error("Couldn't load applicants. Please try again.");
+    }
   };
 
   const loadInlineApplicants = async (jobId: string) => {
     if (inlineApplicants[jobId]) return;
     setLoadingApplicants(prev => ({ ...prev, [jobId]: true }));
-    const enriched = await fetchApplicants(jobId);
-    setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
-    setLoadingApplicants(prev => ({ ...prev, [jobId]: false }));
+    try {
+      const enriched = await fetchApplicants(jobId);
+      setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
+    } catch {
+      toast.error("Couldn't load applicants. Please try again.");
+    } finally {
+      setLoadingApplicants(prev => ({ ...prev, [jobId]: false }));
+    }
   };
 
   const acceptApplication = async (app: EnrichedApplication) => {
@@ -235,7 +247,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         return;
       }
 
-      await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null }).eq("id", app.job_id);
+      const { error: confirmError } = await supabase
+        .from("jobs")
+        .update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null })
+        .eq("id", app.job_id);
+      if (confirmError) {
+        hapticError();
+        toast.error("Couldn't accept the job — please try again.");
+        return;
+      }
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
       hapticSuccess();
       toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
@@ -926,6 +946,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               completingJobId={completingJobId}
               onResolveRevision={resolveRevision}
               onHelperReview={(jobId, posterId, posterName) => setHelperReviewJob({ jobId, posterId, posterName })}
+              onRefresh={refresh}
             />
           )}
             </div>

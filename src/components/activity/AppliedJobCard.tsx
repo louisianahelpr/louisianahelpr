@@ -100,6 +100,8 @@ interface AppliedJobCardProps {
   completingJobId: string | null;
   onResolveRevision: (jobId: string) => void;
   onHelperReview: (jobId: string, posterId: string, posterName: string) => void;
+  /** Re-fetch the activity feed after a card-local mutation (dispute response). */
+  onRefresh: () => void;
   /** Dispute-response state (parent-owned; keyed by job id). */
   disputeResponse: string;
   setDisputeResponse: (value: string) => void;
@@ -143,6 +145,7 @@ export function AppliedJobCard({
   completingJobId,
   onResolveRevision,
   onHelperReview,
+  onRefresh,
   disputeResponse,
   setDisputeResponse,
   respondingJobId,
@@ -751,7 +754,7 @@ export function AppliedJobCard({
                             setSubmittingResponse(false);
                             setRespondingJobId(null);
                             setDisputeResponse("");
-                            window.location.reload();
+                            onRefresh();
                           }}>
                             <Send className="w-3.5 h-3.5 mr-1" /> {submittingResponse ? "Sending…" : "Submit"}
                           </Button>

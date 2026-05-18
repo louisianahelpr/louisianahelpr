@@ -96,6 +96,10 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
       supabase.from("job_checkins").select("job_id").in("job_id", jobIds).eq("type", "start_request"),
       supabase.from("reviews").select("job_id").eq("reviewer_id", userId).in("job_id", jobIds),
     ]);
+    // The applied-jobs list is meaningless without the job rows behind it —
+    // a failed jobs fetch would leave every app with `job: null` and render
+    // a blank tab. Surface it as a query error, like the primary fetches.
+    if (jobsRes.error) throw jobsRes.error;
     (helperStartCheckins.data || []).forEach((c) => startRequestedJobIds.add(c.job_id));
     helperReviewedJobIds = new Set((helperReviewsRes.data || []).map((r) => r.job_id));
     const jobs = jobsRes.data;

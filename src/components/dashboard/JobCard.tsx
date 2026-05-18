@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   MapPin, Calendar, DollarSign, Star, Zap, Rocket, Clock, Timer, Users, Repeat,
 } from "lucide-react";
@@ -318,4 +319,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   );
 };
 
-export default JobCard;
+// Memoized: the Dashboard feed re-renders on unrelated state changes
+// (banners, dialogs, etc.). With referentially-stable props from
+// BrowseTasksFeed, React.memo skips re-rendering cards whose job data
+// and per-card flags (isExpanded / isSaved) haven't changed.
+const MemoizedJobCard = memo(JobCard);
+MemoizedJobCard.displayName = "JobCard";
+
+export default MemoizedJobCard;

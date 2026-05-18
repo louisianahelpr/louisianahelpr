@@ -55,12 +55,12 @@ export function useDashboardData() {
           .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
       ]);
 
-      const feeRow = Array.isArray(feeRes.data) ? (feeRes.data as any[])[0] : null;
+      const feeRow = Array.isArray(feeRes.data) ? (feeRes.data)[0] : null;
       const platformFee = feeRow?.helper_fee_percent ?? 10;
       const helperAvailability = availRes.data ?? [];
       const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
       const blockedUserIds = new Set<string>();
-      for (const row of (blocksRes.data ?? []) as any[]) {
+      for (const row of (blocksRes.data ?? [])) {
         if (row.blocker_id === userId) blockedUserIds.add(row.blocked_id);
         if (row.blocked_id === userId) blockedUserIds.add(row.blocker_id);
       }

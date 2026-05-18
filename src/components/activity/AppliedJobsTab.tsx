@@ -13,16 +13,9 @@ interface AppliedJobsTabProps {
   apps: AppliedApp[];
   expandedJobId: string | null;
   setExpandedJobId: (id: string | null) => void;
-  startRequestedJobIds: Set<string>;
   helperReviewedJobIds: Set<string>;
   userId: string;
   onHelperResponse: (app: Application, accept: boolean) => void;
-  onMarkOnTheWay: (jobId: string) => void;
-  onTheWayLoading: string | null;
-  onMarkArrived: (jobId: string) => void;
-  arrivedLoading: string | null;
-  onStartJob: (jobId: string) => void;
-  startJobLoading: string | null;
   onComplete: (jobId: string) => void;
   completingJobId: string | null;
   onResolveRevision: (jobId: string) => void;
@@ -31,11 +24,8 @@ interface AppliedJobsTabProps {
 }
 
 export const AppliedJobsTab = ({
-  apps, expandedJobId, setExpandedJobId, startRequestedJobIds: _startRequestedJobIds,
+  apps, expandedJobId, setExpandedJobId,
   helperReviewedJobIds, userId, onHelperResponse,
-  onMarkOnTheWay: _onMarkOnTheWay, onTheWayLoading: _onTheWayLoading,
-  onMarkArrived: _onMarkArrived, arrivedLoading: _arrivedLoading,
-  onStartJob: _onStartJob, startJobLoading: _startJobLoading,
   onComplete, completingJobId,
   onResolveRevision, onHelperReview, onRefresh,
 }: AppliedJobsTabProps) => {

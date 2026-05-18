@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Gift, Copy, Users, DollarSign, Check, Banknote, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { useReferralData } from "@/hooks/useReferralData";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { queryKeys } from "@/lib/queryKeys";
 
 /**
@@ -14,7 +15,7 @@ import { queryKeys } from "@/lib/queryKeys";
  */
 const ReferralSection = ({ userId }: { userId: string }) => {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useReferralData(userId);
+  const { data, isLoading, isError, refetch } = useReferralData(userId);
   const referralCode = data?.referralCode ?? null;
   const credits = data?.credits ?? [];
   const referralCount = data?.referralCount ?? 0;
@@ -100,6 +101,16 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     );
   }
 
+  if (isError) {
+    // A failed fetch would otherwise render the page with a blank
+    // referral code and zeroed stats — show a recoverable error instead.
+    return (
+      <div className="h-full flex">
+        <ErrorState onRetry={() => { void refetch(); }} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 pb-24">
       {/* Code card — hero of the page */}
@@ -116,19 +127,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         </p>
         <div className="grid grid-cols-2 gap-2">
           <Button
+            variant="bark"
             size="sm"
             className="h-11 rounded-ds-md"
             onClick={shareReferral}
-            style={{
-              background: "hsl(var(--bark))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
-              boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -4px hsl(var(--bark) / 0.30)",
-            }}
           >
             <Share2 className="w-4 h-4 mr-1.5" />
             Share

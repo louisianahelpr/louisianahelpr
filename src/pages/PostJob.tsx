@@ -91,7 +91,7 @@ const PostJob = () => {
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
-  const [salesTaxRate] = useState<number>(10);
+  const salesTaxRate = 10;
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -458,9 +458,6 @@ const PostJob = () => {
     void maybeFireFirstPostConfetti();
     toast.info("Redirecting to payment…");
 
-    // Trigger instant job matching in background
-    supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } }).catch(() => {});
-
     // Geocode the address in the background and patch the job row with
     // lat/lng so it shows up on /browse?view=map. Best-effort — failure
     // doesn't block checkout. The map's RPC rounds these to ~110m
@@ -495,8 +492,9 @@ const PostJob = () => {
       const hasError = paymentError || paymentData?.error || !paymentUrl;
 
       if (hasError) {
-        // Delete the job since payment setup failed — don't leave orphan jobs
-        await supabase.from("jobs").delete().eq("id", jobData.id);
+        // Delete the job since payment setup failed — don't leave orphan jobs.
+        const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);
+        if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
         safeStorage.removeItem(COOLDOWN_KEY);
         const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
         toast.error(`Could not start payment: ${errorMsg}. Please try again.`);
@@ -506,11 +504,20 @@ const PostJob = () => {
       }
 
       clearDraft();
+      // Notify matching helprs now that escrow is set up — done here, not
+      // before create-payment, so a failed payment setup (which deletes the
+      // job above) never fires ghost notifications for a job that no longer
+      // exists. Awaited so it lands before the redirect unloads the page;
+      // best-effort — the job is still discoverable via browse if it fails.
+      try {
+        await supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } });
+      } catch { /* best-effort */ }
       window.location.href = paymentUrl;
     } catch (err: any) {
       report(err, { tags: { source: "PostJob.paymentInvoke" }, context: { job_id: jobData.id } });
       // Delete the job since payment setup failed
-      await supabase.from("jobs").delete().eq("id", jobData.id);
+      const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);
+      if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
       safeStorage.removeItem(COOLDOWN_KEY);
       toast.error("Payment setup failed. Please try again.");
       setSaving(false);
@@ -774,19 +781,10 @@ const PostJob = () => {
                   }}
                 >
                   <Button
+                    variant="bark"
                     type="submit"
                     className="w-full rounded-ds-md"
                     size="lg"
-                    style={{
-                      background: "hsl(var(--bark))",
-                      backgroundImage: "none",
-                      border: "1px solid hsl(var(--bark))",
-                      color: "hsl(var(--parchment))",
-                      fontFamily: "Montserrat, system-ui, sans-serif",
-                      fontWeight: 600,
-                      letterSpacing: "0.01em",
-                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 10px 24px -8px hsl(var(--bark) / 0.38)",
-                    }}
                   >
                     <span className="inline-flex items-center gap-2">
                       Review &amp; pay

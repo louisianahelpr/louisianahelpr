@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { checkProximity } from "@/lib/locationUtils";
+import { aggregateRatings } from "@/lib/reviewStats";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -63,9 +64,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // UI state
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
-  const [onTheWayLoading, setOnTheWayLoading] = useState<string | null>(null);
-  const [arrivedLoading, setArrivedLoading] = useState<string | null>(null);
-  const [startJobLoading, setStartJobLoading] = useState<string | null>(null);
   const [reportingNoShow, setReportingNoShow] = useState(false);
 
   // Dialog state
@@ -96,7 +94,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // --- Action handlers ---
 
   const fetchApplicants = async (jobId: string): Promise<EnrichedApplication[]> => {
-    const { data: apps } = await supabase.from("applications").select("*").eq("job_id", jobId);
+    const { data: apps, error: appsError } = await supabase.from("applications").select("*").eq("job_id", jobId);
+    if (appsError) throw appsError;
     if (apps && apps.length > 0) {
       // Filter out applicants the current user has blocked (or who blocked them)
       const { getBlockedUserIds } = await import("@/lib/userBlocks");
@@ -109,15 +108,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds).lte("feedback_visible_at", new Date().toISOString()),
       ]);
-      const reviewMap = new Map<string, number[]>();
-      reviewsRes.data?.forEach((r) => {
-        if (!reviewMap.has(r.reviewee_id)) reviewMap.set(r.reviewee_id, []);
-        reviewMap.get(r.reviewee_id)!.push(r.rating);
-      });
+      const reviewStatsMap = aggregateRatings(reviewsRes.data);
       const enriched = visibleApps.map((app) => {
         const prof = profilesRes.data?.find((p) => p.user_id === app.helper_id) || null;
-        const ratings = reviewMap.get(app.helper_id) || [];
-        return { ...app, profiles: prof, reviewCount: ratings.length, avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0 };
+        const stats = reviewStatsMap.get(app.helper_id);
+        return { ...app, profiles: prof, reviewCount: stats?.count ?? 0, avgRating: stats?.avg ?? 0 };
       });
       // Boosted Visibility: Pro/Elite helpers appear first in applicant lists
       const tierOrder = (tier: string | null | undefined) => tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
@@ -130,16 +125,27 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const loadApplications = async (job: Job) => {
     setSelectedJob(job);
-    const enriched = await fetchApplicants(job.id);
-    setApplications(enriched);
+    try {
+      const enriched = await fetchApplicants(job.id);
+      setApplications(enriched);
+    } catch {
+      // A failed fetch must not read as "no applicants" — tell the truth.
+      setApplications([]);
+      toast.error("Couldn't load applicants. Please try again.");
+    }
   };
 
   const loadInlineApplicants = async (jobId: string) => {
     if (inlineApplicants[jobId]) return;
     setLoadingApplicants(prev => ({ ...prev, [jobId]: true }));
-    const enriched = await fetchApplicants(jobId);
-    setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
-    setLoadingApplicants(prev => ({ ...prev, [jobId]: false }));
+    try {
+      const enriched = await fetchApplicants(jobId);
+      setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
+    } catch {
+      toast.error("Couldn't load applicants. Please try again.");
+    } finally {
+      setLoadingApplicants(prev => ({ ...prev, [jobId]: false }));
+    }
   };
 
   const acceptApplication = async (app: EnrichedApplication) => {
@@ -235,40 +241,80 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         return;
       }
 
-      await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null }).eq("id", app.job_id);
+      const { error: confirmError } = await supabase
+        .from("jobs")
+        .update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null })
+        .eq("id", app.job_id);
+      if (confirmError) {
+        hapticError();
+        toast.error("Couldn't accept the job — please try again.");
+        return;
+      }
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
       hapticSuccess();
       toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
       await refresh();
       setStatusFilter("accepted");
     } else {
-      const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
-      const priorCount = existing?.length || 0;
+      // Decline — atomic via the decline_job_offer RPC (migration
+      // 20260518140000): the violation insert, ban escalation, app
+      // rejection and job reopen all run in one transaction. Falls back
+      // to the pre-migration multi-step path (atomic per-row only) if
+      // the RPC isn't deployed to this environment yet — that branch
+      // goes dormant once the migration lands.
       let actionTaken = "none";
-      // Softened: 5 strikes with graduated warnings before ban
-      if (priorCount >= 4) actionTaken = "permanent_ban";
-      else if (priorCount >= 2) actionTaken = "warning";
-      await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${(app as AppliedApp).job?.title || "Unknown"}"`, job_id: app.job_id, action_taken: actionTaken });
+      let priorCount = 0;
+      const declineTitle = (app as AppliedApp).job?.title || "Unknown";
+
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("decline_job_offer", {
+        p_application_id: app.id,
+      });
+
+      if (rpcError) {
+        const msg = String(rpcError?.message ?? "");
+        const rpcMissing =
+          String(rpcError?.code ?? "") === "PGRST202" ||
+          /could not find the function|does not exist|schema cache/i.test(msg);
+        if (!rpcMissing) {
+          toast.error(
+            /offer_not_active/.test(msg)
+              ? "This offer is no longer active."
+              : "Couldn't record your response — please try again.",
+          );
+          return;
+        }
+        const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
+        priorCount = existing?.length || 0;
+        // Softened: 5 strikes with graduated warnings before ban
+        actionTaken = priorCount >= 4 ? "permanent_ban" : priorCount >= 2 ? "warning" : "none";
+        await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${declineTitle}"`, job_id: app.job_id, action_taken: actionTaken });
+        if (actionTaken === "warning") {
+          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", user.id);
+        } else if (actionTaken === "permanent_ban") {
+          await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id });
+          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", user.id);
+        }
+        await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id);
+        await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null }).eq("id", app.job_id);
+      } else {
+        actionTaken = (rpcData?.action as string) ?? "none";
+        priorCount = (rpcData?.prior_count as number) ?? 0;
+      }
+
+      // Notifications (best-effort) + toasts — shared by both paths.
       if (actionTaken === "warning") {
         const warningNum = priorCount + 1;
-        await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", user.id);
         await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/4)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. Declining ${5 - warningNum} more will result in a permanent ban.`, type: "warning", link: "/profile" });
         toast.warning(`Warning ${warningNum}/4: You've declined a job offer.`);
       } else if (actionTaken === "permanent_ban") {
-        await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id });
-        await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", user.id);
         toast.error("Your account has been permanently banned due to repeated job offer declines.");
       }
       if (actionTaken !== "none") {
         const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-        if (adminRoles) {
-          for (const admin of adminRoles) {
-            await createNotification({ user_id: admin.user_id, title: "⚠️ Helpr declined job offer", message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`, type: "warning", link: "/admin" });
-          }
+        for (const admin of adminRoles ?? []) {
+          await createNotification({ user_id: admin.user_id, title: "⚠️ Helpr declined job offer", message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`, type: "warning", link: "/admin" });
         }
       }
-      await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id);
-      await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null }).eq("id", app.job_id);
       toast.info("You declined the job. The poster can select someone else.");
       refresh();
     }
@@ -363,44 +409,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     } catch (err: any) { toast.error(err.message || "Failed to resolve revision"); }
   };
 
-  const startJob = async (jobId: string) => {
-    if (!user || startJobLoading) return;
-    setStartJobLoading(jobId);
-    const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
-    if (job) {
-      const isFlexible = !!job.is_flexible_schedule;
-      const now = new Date();
-      const today = now.toISOString().split("T")[0];
-      if (job.date_needed && today < job.date_needed) {
-        toast.error(`This job is scheduled for ${new Date(job.date_needed + "T00:00").toLocaleDateString()}. You can't start it before that date.`, { duration: 5000 });
-        setStartJobLoading(null); return;
-      }
-      if (!isFlexible && job.start_time && today === job.date_needed) {
-        const [h, m] = job.start_time.split(":").map(Number);
-        const scheduledTime = new Date(now); scheduledTime.setHours(h, m, 0, 0);
-        if (now < scheduledTime) {
-          toast.error(`This job is scheduled to start at ${scheduledTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}. You can't start before the scheduled time.`, { duration: 5000 });
-          setStartJobLoading(null); return;
-        }
-      }
-      const proximity = await checkProximity(job.latitude, job.longitude);
-      if (!proximity.allowed) {
-        const miles = ((proximity.distance || 0) / 5280).toFixed(1);
-        toast.error(`You must be within 500ft of the job site to start. You're currently ~${miles} miles away.`, { duration: 6000 });
-        setStartJobLoading(null); return;
-      }
-    }
-    await supabase.from("job_checkins").insert({ job_id: jobId, user_id: user.id, type: "start_request", note: "Helpr started the job" });
-    await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
-    if (job) {
-      await createNotification({ user_id: job.customer_id, title: "🚀 Job started!", message: `Your helpr has started working on "${job.title}".`, type: "success", link: "/my-posts?filter=in_progress" });
-    }
-    toast.success("Job started! You're now in progress.");
-    await refresh();
-    setStatusFilter("in_progress");
-    setStartJobLoading(null);
-  };
-
   const confirmStartJob = async (jobId: string) => {
     const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
     if (error) toast.error("Failed to confirm start");
@@ -437,57 +445,51 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     refresh();
   };
 
-  const markOnTheWay = async (jobId: string) => {
-    if (!user || onTheWayLoading) return;
-    setOnTheWayLoading(jobId);
-    const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: new Date().toISOString() }).eq("id", jobId);
-    if (error) { toast.error("Failed to update"); setOnTheWayLoading(null); return; }
-    const job = appliedApps.find(a => a.job_id === jobId)?.job;
-    if (job) {
-      await createNotification({ user_id: job.customer_id, title: "🚗 Helpr is on the way!", message: `Your helpr is headed to "${job.title}".`, type: "info", link: "/my-posts?filter=accepted" });
-    }
-    toast.success("You're on your way!");
-    refresh();
-    setOnTheWayLoading(null);
-  };
-
-  const markArrived = async (jobId: string) => {
-    if (!user || arrivedLoading) return;
-    setArrivedLoading(jobId);
-    const { error } = await supabase.from("jobs").update({ helper_arrived_at: new Date().toISOString(), status: "in_progress" }).eq("id", jobId);
-    if (error) { toast.error("Failed to update"); setArrivedLoading(null); return; }
-    const job = appliedApps.find(a => a.job_id === jobId)?.job;
-    if (job) {
-      await createNotification({ user_id: job.customer_id, title: "📍 Helpr has arrived!", message: `Your helpr has arrived for "${job.title}".`, type: "success", link: "/my-posts?filter=in_progress" });
-    }
-    toast.success("You've arrived! Job is now in progress.");
-    refresh();
-    setArrivedLoading(null);
-  };
-
   const handleNoShow = async (jobId: string) => {
     if (!user) return;
     setReportingNoShow(true);
     try {
       const job = postedJobs.find((j) => j.id === jobId);
       if (!job?.helper_id) return;
-      const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", job.helper_id).eq("violation_type", "no_show");
-      const priorCount = existing?.length || 0;
-      await supabase.from("user_violations").insert({ user_id: job.helper_id, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: priorCount >= 1 ? "permanent_ban" : "warning" });
-      if (priorCount >= 1) {
-        await supabase.from("user_bans").insert({ user_id: job.helper_id, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
-        await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", job.helper_id);
-      } else {
-        await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", job.helper_id);
-      }
-      await createNotification({ user_id: job.helper_id, title: priorCount >= 1 ? "⛔ Account banned for no-show" : "⚠️ No-show warning", message: priorCount >= 1 ? "Your account has been permanently banned for repeated no-shows." : `You received a no-show warning for "${job.title}".`, type: "warning", link: "/profile" });
-      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      if (adminRoles) {
-        for (const admin of adminRoles) {
-          await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`, type: "warning", link: "/admin" });
+      const helperId = job.helper_id;
+
+      // Atomic via the report_helper_no_show RPC (migration
+      // 20260518140000): violation, ban escalation and job reopen run
+      // in one transaction. Falls back to the pre-migration multi-step
+      // path if the RPC isn't deployed to this environment yet.
+      let actionTaken = "warning";
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("report_helper_no_show", {
+        p_job_id: jobId,
+      });
+
+      if (rpcError) {
+        const msg = String(rpcError?.message ?? "");
+        const rpcMissing =
+          String(rpcError?.code ?? "") === "PGRST202" ||
+          /could not find the function|does not exist|schema cache/i.test(msg);
+        if (!rpcMissing) { toast.error("Couldn't report the no-show — please try again."); return; }
+        const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", helperId).eq("violation_type", "no_show");
+        const priorCount = existing?.length || 0;
+        actionTaken = priorCount >= 1 ? "permanent_ban" : "warning";
+        await supabase.from("user_violations").insert({ user_id: helperId, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: actionTaken });
+        if (actionTaken === "permanent_ban") {
+          await supabase.from("user_bans").insert({ user_id: helperId, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
+          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", helperId);
+        } else {
+          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", helperId);
         }
+        await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", jobId);
+      } else {
+        actionTaken = (rpcData?.action as string) ?? "warning";
       }
-      await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", jobId);
+
+      // Notifications (best-effort) — shared by both paths.
+      const banned = actionTaken === "permanent_ban";
+      await createNotification({ user_id: helperId, title: banned ? "⛔ Account banned for no-show" : "⚠️ No-show warning", message: banned ? "Your account has been permanently banned for repeated no-shows." : `You received a no-show warning for "${job.title}".`, type: "warning", link: "/profile" });
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      for (const admin of adminRoles ?? []) {
+        await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${banned ? "Auto-banned." : "Warning issued."}`, type: "warning", link: "/admin" });
+      }
       toast.success("No-show reported. Job reopened.");
       refresh();
     } catch (err: any) { toast.error(err.message || "Failed to report no-show"); }
@@ -912,20 +914,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               apps={filteredAppliedApps}
               expandedJobId={expandedJobId}
               setExpandedJobId={setExpandedJobId}
-              startRequestedJobIds={startRequestedJobIds}
               helperReviewedJobIds={helperReviewedJobIds}
               userId={user!.id}
               onHelperResponse={handleHelperResponse}
-              onMarkOnTheWay={markOnTheWay}
-              onTheWayLoading={onTheWayLoading}
-              onMarkArrived={markArrived}
-              arrivedLoading={arrivedLoading}
-              onStartJob={startJob}
-              startJobLoading={startJobLoading}
               onComplete={completeJob}
               completingJobId={completingJobId}
               onResolveRevision={resolveRevision}
               onHelperReview={(jobId, posterId, posterName) => setHelperReviewJob({ jobId, posterId, posterName })}
+              onRefresh={refresh}
             />
           )}
             </div>

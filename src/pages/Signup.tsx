@@ -300,8 +300,11 @@ const Signup = () => {
       });
 
       if (authError && (authError.message.includes("already registered") || authError.message.includes("already been registered"))) {
-        toast.success("If this email isn't registered, you'll receive a verification link shortly.");
-        navigate("/signup-pending");
+        // An account already exists for this email — route to login instead
+        // of showing a fake "success" toast and a /signup-pending page the
+        // user never actually receives a verification email for.
+        toast.info("You already have an account with this email — please log in.");
+        navigate("/login");
         return;
       }
       if (authError) throw authError;
@@ -318,7 +321,7 @@ const Signup = () => {
             p_referral_code: referralCode.trim().toUpperCase(),
             p_new_user_id: userId,
           });
-        } catch { /* silent */ }
+        } catch (e) { report(e, { tags: { source: "Signup.referral" } }); }
       }
 
       // Business signup: create business

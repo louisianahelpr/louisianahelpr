@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatName } from "@/lib/utils";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,8 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban } from "lucide-react";
+import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import CredentialBadge from "@/components/CredentialBadge";
@@ -149,14 +150,34 @@ const UserProfile = () => {
   const isIdVerified = data?.isIdVerified ?? false;
   const loading = isLoading && !data;
 
+  // Computed up-front so the loading skeleton can render the same
+  // PageHeader (eyebrow/title/meta) as the loaded state — both only
+  // depend on the route param + current user, not the fetched profile.
+  const isOwnProfile = currentUserId === userId;
+
+  // Whether the loaded header will render a rightSlot (Save + actions).
+  // Mirrored as a placeholder in the skeleton / not-found states so the
+  // header keeps the same layout (sticky action bar + title padding)
+  // before and after the fetch resolves — no height jump.
+  const headerHasActions = !isOwnProfile && !!currentUserId;
+  const headerActionPlaceholder = headerHasActions ? (
+    <div className="flex items-center gap-1" aria-hidden>
+      <div className="h-9 w-9 rounded-ds-md bg-muted animate-pulse" />
+      <div className="h-9 w-9 rounded-ds-md bg-muted animate-pulse" />
+    </div>
+  ) : null;
 
   if (loading) {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
-        <DashboardHeader />
+        <PageHeader
+          eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
+          title={isOwnProfile ? "Profile Review" : "Profile"}
+          meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
+          rightSlot={headerActionPlaceholder}
+        />
         <main className="container mx-auto px-5 py-6">
           <div className="max-w-lg mx-auto space-y-5">
-            <div className="h-9 w-32 rounded-ds-md bg-muted animate-pulse" />
             <div className="rounded-2xl liquid-glass p-6 text-center space-y-3">
               <div className="w-20 h-20 rounded-full bg-muted animate-pulse mx-auto" />
               <div className="h-6 w-40 bg-muted animate-pulse mx-auto rounded" />
@@ -179,11 +200,27 @@ const UserProfile = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-premium-page">
-        <div className="text-center space-y-3">
-          <p className="text-muted-foreground">User not found</p>
-          <Button onClick={() => navigate(-1)}>Go back</Button>
-        </div>
+      <div className="min-h-screen bg-premium-page pb-safe-nav">
+        <PageHeader
+          eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
+          title={isOwnProfile ? "Profile Review" : "Profile"}
+          meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
+          rightSlot={headerActionPlaceholder}
+        />
+        <main className="container mx-auto px-5 py-6">
+          <div className="max-w-lg mx-auto flex">
+            <EmptyState
+              variant="inline"
+              icon={UserX}
+              eyebrow="Profile unavailable"
+              title="User not found"
+              body="This profile may have been removed, or the link is no longer valid."
+              action={
+                <BarkPillButton onClick={() => navigate(-1)}>Go back</BarkPillButton>
+              }
+            />
+          </div>
+        </main>
       </div>
     );
   }
@@ -191,7 +228,6 @@ const UserProfile = () => {
   const displayName = formatName(profile.full_name);
   const initials = (profile.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
   const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: profile.subscription_tier || null });
-  const isOwnProfile = currentUserId === userId;
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">

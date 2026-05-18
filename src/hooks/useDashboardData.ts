@@ -3,6 +3,7 @@ import { formatName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { aggregateRatings } from "@/lib/reviewStats";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -144,16 +145,7 @@ export function useDashboardData() {
         posterTierMap.set(p.user_id, expired ? null : (p.subscription_tier ?? null));
       }
 
-      const reviewStatsMap = new Map<string, { count: number; avg: number }>();
-      for (const r of reviewsRes.data ?? []) {
-        const existing = reviewStatsMap.get(r.reviewee_id);
-        if (existing) {
-          existing.count += 1;
-          existing.avg = (existing.avg * (existing.count - 1) + r.rating) / existing.count;
-        } else {
-          reviewStatsMap.set(r.reviewee_id, { count: 1, avg: r.rating });
-        }
-      }
+      const reviewStatsMap = aggregateRatings(reviewsRes.data);
 
       const now = new Date();
       const enriched: EnrichedJob[] = rawJobs
@@ -188,8 +180,10 @@ export function useDashboardData() {
     enabled: !!user && !userLoading && !!ctx,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-    refetchIntervalInBackground: false,
+    // No refetchInterval: on an infinite query it refetches EVERY loaded
+    // page (~16 queries each) on a timer. The feed stays fresh via
+    // refetchOnWindowFocus (frequent on mobile) and the dashboard's
+    // pull-to-refresh — both far cheaper than an all-pages poll.
   });
 
   // Pro tier — separate lightweight query so it doesn't block dashboard

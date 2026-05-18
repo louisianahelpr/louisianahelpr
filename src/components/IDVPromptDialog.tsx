@@ -220,19 +220,10 @@ export function IDVPromptDialog({
           </Button>
           {!isPending && !isAdminReview && (
             <Button
+              variant="bark"
               onClick={handleStart}
               disabled={loading}
               className="rounded-ds-md h-11"
-              style={{
-                background: "hsl(var(--bark))",
-                backgroundImage: "none",
-                border: "1px solid hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                letterSpacing: "0.01em",
-                boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
-              }}
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className="w-4 h-4 mr-2" />}
               Start verification

@@ -100,6 +100,8 @@ interface AppliedJobCardProps {
   completingJobId: string | null;
   onResolveRevision: (jobId: string) => void;
   onHelperReview: (jobId: string, posterId: string, posterName: string) => void;
+  /** Re-fetch the activity feed after a card-local mutation (dispute response). */
+  onRefresh: () => void;
   /** Dispute-response state (parent-owned; keyed by job id). */
   disputeResponse: string;
   setDisputeResponse: (value: string) => void;
@@ -143,6 +145,7 @@ export function AppliedJobCard({
   completingJobId,
   onResolveRevision,
   onHelperReview,
+  onRefresh,
   disputeResponse,
   setDisputeResponse,
   respondingJobId,
@@ -469,19 +472,10 @@ export function AppliedJobCard({
                   <ThumbsDown className="w-4 h-4 mr-1" /> Decline
                 </Button>
                 <Button
+                  variant="bark"
                   size="sm"
                   className="flex-1 rounded-ds-md"
                   onClick={() => onHelperResponse(app, true)}
-                  style={{
-                    background: "hsl(var(--bark))",
-                    backgroundImage: "none",
-                    border: "1px solid hsl(var(--bark))",
-                    color: "hsl(var(--parchment))",
-                    fontFamily: "Montserrat, system-ui, sans-serif",
-                    fontWeight: 600,
-                    letterSpacing: "0.01em",
-                    boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
-                  }}
                 >
                   <ThumbsUp className="w-4 h-4 mr-1" /> Accept job
                 </Button>
@@ -751,7 +745,7 @@ export function AppliedJobCard({
                             setSubmittingResponse(false);
                             setRespondingJobId(null);
                             setDisputeResponse("");
-                            window.location.reload();
+                            onRefresh();
                           }}>
                             <Send className="w-3.5 h-3.5 mr-1" /> {submittingResponse ? "Sending…" : "Submit"}
                           </Button>

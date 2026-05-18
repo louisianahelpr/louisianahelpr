@@ -1,10 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import HelprMark from "@/components/HelprMark";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useQueryClient, type Query } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PageScaffold } from "@/components/ui/PageScaffold";
@@ -109,6 +108,31 @@ const Dashboard = () => {
     allJobs, userId: user?.id, profile, helprTier, helperAvailability: helperAvailability as any,
   });
 
+  // Stat of the day — rotates one data point under the greeting eyebrow so
+  // the card feels alive. Picks deterministically by date so the same user
+  // sees the same stat for the day (no flicker). Memoized so the several
+  // .filter passes don't rerun on every unrelated render.
+  const statOfTheDay = useMemo(() => {
+    const stats: string[] = [];
+    if (recommendedJobs.length > 0) {
+      stats.push(`${recommendedJobs.length} match${recommendedJobs.length === 1 ? "" : "es"} picked just for you today.`);
+    }
+    if (filters.filteredJobs.length >= 5) {
+      stats.push(`${filters.filteredJobs.length} open jobs nearby — busiest day in a while.`);
+    }
+    const recentUrgent = filters.filteredJobs.filter((j) => j.is_urgent).length;
+    if (recentUrgent > 0) {
+      stats.push(`${recentUrgent} urgent job${recentUrgent === 1 ? "" : "s"} in the feed right now.`);
+    }
+    const recentHigh = filters.filteredJobs.filter((j) => j.budget >= 100).length;
+    if (recentHigh > 0) {
+      stats.push(`${recentHigh} job${recentHigh === 1 ? "" : "s"} paying $100+ today.`);
+    }
+    if (stats.length === 0) return null;
+    const dayIdx = Math.floor(Date.now() / 86400000) % stats.length;
+    return stats[dayIdx];
+  }, [recommendedJobs.length, filters.filteredJobs]);
+
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -129,25 +153,24 @@ const Dashboard = () => {
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   // Top saved search (most-recently-created) — surfaced on the greeting
   // when there are 0 jobs nearby, so the empty state feels intentional
-  // ("we're watching for X") rather than confusing.
-  const [topSavedSearch, setTopSavedSearch] = useState<{ name: string } | null>(null);
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
+  // ("we're watching for X") rather than confusing. Cached via React
+  // Query so it isn't re-fetched on every Dashboard mount.
+  const { data: topSavedSearch = null } = useQuery({
+    queryKey: ["savedSearches", user?.id],
+    queryFn: async () => {
       const { data } = await supabase
         .from("saved_searches")
         .select("name")
-        .eq("user_id", user.id)
+        .eq("user_id", user!.id)
         .eq("notify_enabled", true)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (cancelled) return;
-      if (data) setTopSavedSearch({ name: data.name });
-    })();
-    return () => { cancelled = true; };
-  }, [user?.id]);
+      return data ? { name: data.name } : null;
+    },
+    enabled: !!user?.id,
+    staleTime: 60 * 1000,
+  });
 
   // Profile completion nudge — gentle banner shown until the user
   // finishes the post-signup profile enhancements (ZIP / ID
@@ -168,29 +191,39 @@ const Dashboard = () => {
   // anything in 7+ days, surface a gentle "your sub is paying for
   // itself when you apply" banner. Caps the cost-justification at the
   // moment the user is checking the feed.
-  const [inactiveNudge, setInactiveNudge] = useState(false);
-  useEffect(() => {
-    if (!user || !profile) return;
-    const subTier = (profile.subscription_tier ?? "free") as string;
-    const subExp = profile.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
-    const subActive = subExp ? subExp > new Date() : false;
-    if (!subActive || subTier === "free") return;
-    let cancelled = false;
-    (async () => {
+  //
+  // Only paid, non-expired subscribers should trigger the lookup — that
+  // gate becomes the query's `enabled` flag so free/expired users never
+  // pay for the `applications` fetch.
+  const subTier = (profile?.subscription_tier ?? "free") as string;
+  const subExpiresAt = profile?.subscription_expires_at ?? null;
+  const subActive = subExpiresAt ? new Date(subExpiresAt) > new Date() : false;
+  const isPaidSubscriber = !!profile && subActive && subTier !== "free";
+  const { data: lastApplicationAt } = useQuery({
+    queryKey: ["lastApplication", user?.id],
+    queryFn: async () => {
       const { data } = await supabase
         .from("applications")
         .select("created_at")
-        .eq("helper_id", user.id)
+        .eq("helper_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (cancelled) return;
-      const last = data?.created_at ? new Date(data.created_at).getTime() : 0;
-      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-      if (!last || Date.now() - last > sevenDaysMs) setInactiveNudge(true);
-    })();
-    return () => { cancelled = true; };
-  }, [user?.id, profile?.subscription_tier, profile?.subscription_expires_at]);
+      return data?.created_at ?? null;
+    },
+    enabled: !!user?.id && isPaidSubscriber,
+    staleTime: 60 * 1000,
+  });
+  const inactiveNudgeEligible = (() => {
+    if (!isPaidSubscriber || lastApplicationAt === undefined) return false;
+    const last = lastApplicationAt ? new Date(lastApplicationAt).getTime() : 0;
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+    return !last || Date.now() - last > sevenDaysMs;
+  })();
+  // Dismissed per-session — once the user closes the banner it stays
+  // hidden even though the query data still says they're eligible.
+  const [inactiveNudgeDismissed, setInactiveNudgeDismissed] = useState(false);
+  const inactiveNudge = inactiveNudgeEligible && !inactiveNudgeDismissed;
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");
@@ -223,13 +256,25 @@ const Dashboard = () => {
 
   const effectiveFee = platformFee;
 
-  // Load saved job IDs
+  // Load saved job IDs — cached via React Query so the lookup isn't
+  // re-run on every Dashboard mount. The result seeds the local
+  // `savedJobIds` state (below), which handleToggleSave mutates
+  // optimistically as the user saves/unsaves jobs.
+  const { data: savedJobsData } = useQuery({
+    queryKey: ["savedJobs", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("saved_jobs")
+        .select("job_id")
+        .eq("user_id", user!.id);
+      return (data ?? []).map((d: { job_id: string }) => d.job_id);
+    },
+    enabled: !!user?.id,
+    staleTime: 60 * 1000,
+  });
   useEffect(() => {
-    if (!user) return;
-    supabase.from("saved_jobs").select("job_id").eq("user_id", user.id).then(({ data }) => {
-      if (data) setSavedJobIds(new Set(data.map((d: any) => d.job_id)));
-    });
-  }, [user?.id]);
+    if (savedJobsData) setSavedJobIds(new Set(savedJobsData));
+  }, [savedJobsData]);
 
   const handleToggleSave = useCallback((jobId: string, saved: boolean) => {
     setSavedJobIds(prev => {
@@ -336,11 +381,9 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
-        <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-          <div className="container mx-auto flex items-center gap-2 h-16 px-4">
-            <HelprMark to="/dashboard" size="md" />
-          </div>
-        </header>
+        {/* Same DashboardHeader as the loaded state so the header doesn't
+            jump in height/styling when the skeleton resolves. */}
+        <DashboardHeader />
         <main className="container mx-auto px-5 lg:px-8 xl:px-12 py-4">
           <div className="max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto"><DashboardSkeleton /></div>
         </main>
@@ -489,37 +532,15 @@ const Dashboard = () => {
                 </>
               )}
             </p>
-            {/* Stat of the day — rotates one data point under the
-                greeting eyebrow so the card feels alive on every load.
-                Picks deterministically by date so the same user sees
-                the same stat for the day (no flicker). */}
-            {filters.filteredJobs.length > 0 && (() => {
-              const stats: string[] = [];
-              if (recommendedJobs.length > 0) {
-                stats.push(`${recommendedJobs.length} match${recommendedJobs.length === 1 ? "" : "es"} picked just for you today.`);
-              }
-              if (filters.filteredJobs.length >= 5) {
-                stats.push(`${filters.filteredJobs.length} open jobs nearby — busiest day in a while.`);
-              }
-              const recentUrgent = filters.filteredJobs.filter((j) => j.is_urgent).length;
-              if (recentUrgent > 0) {
-                stats.push(`${recentUrgent} urgent job${recentUrgent === 1 ? "" : "s"} in the feed right now.`);
-              }
-              const recentHigh = filters.filteredJobs.filter((j) => j.budget >= 100).length;
-              if (recentHigh > 0) {
-                stats.push(`${recentHigh} job${recentHigh === 1 ? "" : "s"} paying $100+ today.`);
-              }
-              if (stats.length === 0) return null;
-              const dayIdx = Math.floor(Date.now() / 86400000) % stats.length;
-              return (
-                <p
-                  className="mt-2 font-serif italic leading-snug"
-                  style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}
-                >
-                  {stats[dayIdx]}
-                </p>
-              );
-            })()}
+            {/* Stat of the day — see the memoized `statOfTheDay` above. */}
+            {filters.filteredJobs.length > 0 && statOfTheDay && (
+              <p
+                className="mt-2 font-serif italic leading-snug"
+                style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}
+              >
+                {statOfTheDay}
+              </p>
+            )}
             {/* "Watching for" chip — only shown when 0 jobs nearby and
                 the user has an active saved search. Reframes the empty
                 state as intentional rather than confusing. */}
@@ -627,7 +648,7 @@ const Dashboard = () => {
               </div>
               <button
                 type="button"
-                onClick={() => setInactiveNudge(false)}
+                onClick={() => setInactiveNudgeDismissed(true)}
                 aria-label="Dismiss"
                 className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
                 style={{ color: "hsl(var(--olivewood) / 0.55)" }}

@@ -33,42 +33,32 @@ const louisianaCities = [
   "Kenner", "Bossier City", "Monroe", "Alexandria", "Houma",
 ];
 
-const localBusinessSchema = {
+// LocalBusiness + Organization schema is served statically from
+// index.html so non-JS crawlers see it — see that file's <head>.
+
+const breadcrumbSchema = {
   "@context": "https://schema.org",
-  "@type": "LocalBusiness",
-  "@id": `${SITE_URL}/#business`,
-  name: "Helpr",
-  description: "Louisiana's trusted marketplace connecting neighbors for cleaning, yard work, moving, errands, handyman services, and more.",
-  url: SITE_URL,
-  logo: `${SITE_URL}/pwa-512x512-v2.png`,
-  image: `${SITE_URL}/pwa-512x512-v2.png`,
-  telephone: "",
-  priceRange: "$$",
-  areaServed: [
-    { "@type": "State", name: "Louisiana", sameAs: "https://en.wikipedia.org/wiki/Louisiana" },
-    ...louisianaCities.map((city) => ({
-      "@type": "City",
-      name: city,
-      containedInPlace: { "@type": "State", name: "Louisiana" },
-    })),
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: SITE_URL,
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "For Business",
+      item: `${SITE_URL}/for-business`,
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Legal",
+      item: `${SITE_URL}/legal`,
+    },
   ],
-  geo: {
-    "@type": "GeoCoordinates",
-    latitude: 30.9843,
-    longitude: -91.9623,
-  },
-  address: {
-    "@type": "PostalAddress",
-    addressRegion: "LA",
-    addressCountry: "US",
-  },
-  sameAs: [],
-  openingHoursSpecification: {
-    "@type": "OpeningHoursSpecification",
-    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-    opens: "00:00",
-    closes: "23:59",
-  },
 };
 
 const webAppSchema = {
@@ -170,13 +160,15 @@ const Index = () => {
       {/* Global mesh — fixed-position behind every section so glass surfaces
           have refracting motion all the way down the page. Subtle. */}
       <div aria-hidden className="mesh-gradient-global" />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
-      />
+      {/* LocalBusiness + Organization JSON-LD is in index.html (static,
+          crawlable without JS). These page-specific schemas stay here. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <script
         type="application/ld+json"

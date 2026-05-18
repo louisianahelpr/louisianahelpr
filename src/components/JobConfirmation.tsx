@@ -161,19 +161,10 @@ export function JobConfirmation({
 
         {!myConfirmed && (isOwner || isHelper) && (
           <Button
+            variant="bark"
             size="sm"
             onClick={() => setShowConfirmDialog(true)}
             className="w-full rounded-ds-md"
-            style={{
-              background: "hsl(var(--bark))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
-              boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
-            }}
           >
             <CheckCircle2 className="w-4 h-4 mr-1" />
             I'm still on
@@ -244,19 +235,10 @@ export function JobConfirmation({
           <DialogFooter className="!gap-2">
             <Button variant="ghost" onClick={() => setShowConfirmDialog(false)} className="rounded-ds-md">Cancel</Button>
             <Button
+              variant="bark"
               onClick={handleConfirm}
               disabled={confirming}
               className="rounded-ds-md"
-              style={{
-                background: "hsl(var(--bark))",
-                backgroundImage: "none",
-                border: "1px solid hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                letterSpacing: "0.01em",
-                boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
-              }}
             >
               {confirming ? "Confirming…" : "Yes, I confirm"}
             </Button>

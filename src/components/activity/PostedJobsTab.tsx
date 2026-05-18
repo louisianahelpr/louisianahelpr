@@ -3,6 +3,7 @@ import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star, Users, Wrench } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { VirtualList } from "@/components/VirtualList";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
@@ -52,22 +53,17 @@ export const PostedJobsTab = ({
 
   if (jobs.length === 0) {
     return (
-      <div className="text-center py-16 px-6 space-y-4">
-        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mx-auto shadow-sm">
-          <Wrench className="w-9 h-9 text-primary/50" strokeWidth={1.5} />
-        </div>
-        <div className="space-y-1.5">
-          <p className="text-ds-15 font-display font-semibold text-foreground">
-            No posts yet in this view
-          </p>
-          <p className="text-ds-11 text-muted-foreground max-w-xs mx-auto leading-relaxed">
-            Post your first task and we'll match you with vetted Louisiana helprs nearby.
-          </p>
-        </div>
-        <Button onClick={() => navigate("/post-job")} className="rounded-ds-md btn-press">
-          <Wrench className="w-4 h-4 mr-1.5" /> Post a job
-        </Button>
-      </div>
+      <EmptyState
+        variant="inline"
+        icon={Wrench}
+        title="No posts yet in this view"
+        body="Post your first task and we'll match you with vetted Louisiana helprs nearby."
+        action={
+          <Button onClick={() => navigate("/post-job")} className="rounded-ds-md btn-press">
+            <Wrench className="w-4 h-4 mr-1.5" /> Post a job
+          </Button>
+        }
+      />
     );
   }
 
@@ -218,19 +214,10 @@ export const PostedJobsTab = ({
                       </div>
                       {app.status === "pending" && (
                         <Button
+                          variant="bark"
                           size="sm"
                           className="rounded-ds-md shrink-0"
                           onClick={() => onAcceptApplication(app)}
-                          style={{
-                            background: "hsl(var(--bark))",
-                            backgroundImage: "none",
-                            border: "1px solid hsl(var(--bark))",
-                            color: "hsl(var(--parchment))",
-                            fontFamily: "Montserrat, system-ui, sans-serif",
-                            fontWeight: 600,
-                            letterSpacing: "0.01em",
-                            boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -4px hsl(var(--bark) / 0.32)",
-                          }}
                         >
                           Select
                         </Button>

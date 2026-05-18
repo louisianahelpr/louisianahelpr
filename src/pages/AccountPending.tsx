@@ -7,17 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
-
-type ProfileSnapshot = {
-  approval_status?: string | null;
-  full_name?: string | null;
-  id_document_url?: string | null;
-  idv_status?: string | null;
-  idv_session_id?: string | null;
-  license_status?: string | null;
-  insurance_status?: string | null;
-  stripe_account_id?: string | null;
-};
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const StepRow = ({
   label,
@@ -89,66 +79,37 @@ const AccountPending = () => {
   usePageTitle("Account Under Review — Helpr");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [profile, setProfile] = useState<ProfileSnapshot | null>(null);
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [userEmail, setUserEmail] = useState("");
+  // Single source of truth for auth + profile, shared with the rest of
+  // the app. useCurrentUser carries its own realtime subscription on the
+  // profile row, so an admin flipping approval_status advances this
+  // screen without a bespoke fetch/subscribe/poll stack here.
+  const { user, profile, isLoading: loading } = useCurrentUser();
+  const emailVerified = !!user?.email_confirmed_at;
+  const userEmail = user?.email ?? "";
   const [resending, setResending] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  // Leave the pending screen as soon as the account is decided. The
+  // profile is kept fresh by useCurrentUser's realtime + focus/reconnect
+  // refetch; the interval below is a belt-and-suspenders poll in case
+  // realtime is unavailable while the user waits on this screen.
+  useEffect(() => {
+    if (loading) return;
+    if (!user) { navigate("/login"); return; }
+    if (profile?.approval_status === "approved") {
+      toast.success("You're approved! Welcome in.");
+      navigate("/dashboard");
+    } else if (profile?.approval_status === "denied") {
+      navigate("/account-denied");
+    }
+  }, [user, profile, loading, navigate]);
 
   useEffect(() => {
-    const check = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { navigate("/login"); return; }
-
-      setEmailVerified(!!session.user.email_confirmed_at);
-      setUserEmail(session.user.email || "");
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("approval_status, full_name, id_document_url, idv_status, license_status, insurance_status, stripe_account_id")
-        .eq("user_id", session.user.id)
-        .single();
-      if (!data) { setLoading(false); return; }
-      setProfile(data);
-      setLoading(false);
-      if (data.approval_status === "approved") { navigate("/dashboard"); return; }
-      if (data.approval_status === "denied") { navigate("/account-denied"); return; }
-    };
-
-    check();
-
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    const subscribeRealtime = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      channel = supabase
-        .channel(`profile-status-${session.user.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "profiles",
-            filter: `user_id=eq.${session.user.id}`,
-          },
-          (payload) => {
-            const next = payload.new as ProfileSnapshot;
-            setProfile((prev) => ({ ...(prev || {}), ...next }));
-            if (next.approval_status === "approved") navigate("/dashboard");
-            else if (next.approval_status === "denied") navigate("/account-denied");
-          }
-        )
-        .subscribe();
-    };
-    subscribeRealtime();
-
-    const interval = setInterval(check, 15000);
-    return () => {
-      clearInterval(interval);
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [navigate]);
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [queryClient]);
 
   const handleResendVerification = async () => {
     if (resending) return;
@@ -168,6 +129,9 @@ const AccountPending = () => {
     if (syncing) return;
     setSyncing(true);
     try {
+      // Drop any stale cached approval state, then re-pull the shared
+      // profile query. The redirect effect handles the outcome once the
+      // fresh row lands.
       try {
         const keysToScrub = ["currentUser", "profile", "approval", "review", "pending"];
         for (const storage of [window.localStorage, window.sessionStorage]) {
@@ -180,30 +144,16 @@ const AccountPending = () => {
         }
       } catch { /* ignore */ }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { navigate("/login", { replace: true }); return; }
       await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
       await queryClient.refetchQueries({ queryKey: ["currentUser"] });
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("approval_status, full_name, id_document_url, idv_status, license_status, insurance_status, stripe_account_id")
-        .eq("user_id", session.user.id)
-        .single();
-
-      if (error || !data) { toast.error("Couldn't reach the server."); return; }
-      setProfile(data);
-
-      if (data.approval_status === "approved") {
-        toast.success("You're approved! Welcome in.");
-        navigate("/dashboard", { replace: true });
-        return;
+      const fresh = queryClient.getQueryData<{ profile: { approval_status?: string | null } | null }>(
+        ["currentUser", user?.id],
+      );
+      const status = fresh?.profile?.approval_status;
+      if (status !== "approved" && status !== "denied") {
+        toast.success("Still verifying — we'll notify you the moment you're cleared.");
       }
-      if (data.approval_status === "denied") {
-        navigate("/account-denied", { replace: true });
-        return;
-      }
-      toast.success("Still verifying — we'll notify you the moment you're cleared.");
     } catch {
       toast.error("Sync failed. Please try again.");
     } finally {
@@ -375,18 +325,10 @@ const AccountPending = () => {
             {/* Action area */}
             <div className="shrink-0 flex flex-col gap-2.5">
               <Button
+                variant="bark"
                 onClick={() => navigate("/dashboard")}
                 size="lg"
                 className="w-full gap-2 rounded-2xl"
-                style={{
-                  background: "hsl(var(--bark))",
-                  backgroundImage: "none",
-                  border: "1px solid hsl(var(--bark))",
-                  color: "hsl(var(--parchment))",
-                  fontFamily: "Montserrat, system-ui, sans-serif",
-                  fontWeight: 600,
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px hsl(var(--bark) / 0.45)",
-                }}
               >
                 Explore Jobs While You Wait <ArrowRight className="w-4 h-4" />
               </Button>

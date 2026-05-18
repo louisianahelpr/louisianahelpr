@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { MapPin, DollarSign, Calendar, ClipboardList } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -45,32 +46,30 @@ const JobHistory = () => {
     },
   });
 
-  const postedJobs = data?.posted ?? [];
-  const workedJobs = data?.worked ?? [];
+  const postedJobs = useMemo(() => data?.posted ?? [], [data]);
+  const workedJobs = useMemo(() => data?.worked ?? [], [data]);
   const loading = isLoading && !data;
 
-  const getJobs = () => {
-    let jobs: (Job & { _source: "posted" | "worked" })[] = [];
+  const jobs = useMemo(() => {
+    let merged: (Job & { _source: "posted" | "worked" })[] = [];
     if (tab === "all" || tab === "posted") {
-      jobs = [...jobs, ...postedJobs.map((j) => ({ ...j, _source: "posted" as const }))];
+      merged = [...merged, ...postedJobs.map((j) => ({ ...j, _source: "posted" as const }))];
     }
     if (tab === "all" || tab === "worked") {
-      jobs = [...jobs, ...workedJobs.map((j) => ({ ...j, _source: "worked" as const }))];
+      merged = [...merged, ...workedJobs.map((j) => ({ ...j, _source: "worked" as const }))];
     }
     // Deduplicate
     const seen = new Set<string>();
-    jobs = jobs.filter((j) => {
+    merged = merged.filter((j) => {
       if (seen.has(j.id)) return false;
       seen.add(j.id);
       return true;
     });
     if (statusFilter !== "all") {
-      jobs = jobs.filter((j) => j.status === statusFilter);
+      merged = merged.filter((j) => j.status === statusFilter);
     }
-    return jobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  };
-
-  const jobs = getJobs();
+    return merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [tab, statusFilter, postedJobs, workedJobs]);
 
   const tabs: { key: HistoryTab; label: string }[] = [
     { key: "all", label: "All" },
@@ -136,42 +135,13 @@ const JobHistory = () => {
               <JobCardSkeleton />
             </div>
           ) : jobs.length === 0 ? (
-            <div className="flex flex-col items-center text-center px-6 gap-4 justify-center py-16">
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center"
-                style={{
-                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                  backdropFilter: "blur(16px) saturate(150%)",
-                  WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                  border: "1px solid hsla(0, 0%, 100%, 0.7)",
-                  boxShadow:
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                    "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                }}
-              >
-                <ClipboardList className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-display-eyebrow">Quiet archive</span>
-                <p
-                  className="font-display italic font-bold leading-tight"
-                  style={{
-                    fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                    color: "hsl(var(--ink-deep))",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  Nothing here yet.
-                </p>
-                <p
-                  className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                >
-                  Completed and closed jobs will collect in your archive.
-                </p>
-              </div>
-            </div>
+            <EmptyState
+              variant="inline"
+              icon={ClipboardList}
+              eyebrow="Quiet archive"
+              title="Nothing here yet."
+              body="Completed and closed jobs will collect in your archive."
+            />
           ) : (
             <div className="space-y-3">
               <p className="text-ds-11 text-muted-foreground">{jobs.length} job{jobs.length !== 1 ? "s" : ""}</p>

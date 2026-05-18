@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { MapPin, Calendar, DollarSign, ArrowRight, Search, Lock, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const DEBUG_AUTH = import.meta.env.DEV;
 
@@ -93,17 +94,19 @@ const Jobs = () => {
     });
   }, [authLoading, loading, user?.id]);
 
-  const now = new Date();
-  const filtered = jobs.filter((job) => {
-    // Hide jobs that have expired in real-time (between fetches)
-    if (job.expires_at && new Date(job.expires_at) <= now) return false;
-    const matchesSearch =
-      !search ||
-      job.title.toLowerCase().includes(search.toLowerCase()) ||
-      job.location.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !selectedCategory || job.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filtered = useMemo(() => {
+    const now = new Date();
+    return jobs.filter((job) => {
+      // Hide jobs that have expired in real-time (between fetches)
+      if (job.expires_at && new Date(job.expires_at) <= now) return false;
+      const matchesSearch =
+        !search ||
+        job.title.toLowerCase().includes(search.toLowerCase()) ||
+        job.location.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = !selectedCategory || job.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [jobs, search, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-premium-page">
@@ -192,28 +195,25 @@ const Jobs = () => {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="glass-card squircle rounded-[24px] py-14 px-6 text-center space-y-4 max-w-md mx-auto">
-              <div className="w-16 h-16 mx-auto rounded-2xl squircle bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
-                <Search className="w-7 h-7 text-primary" strokeWidth={2.25} />
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-ds-15 font-display font-bold text-foreground">
-                  No tasks found in your area yet
-                </p>
-                <p className="text-ds-11 text-muted-foreground leading-relaxed">
-                  Try adjusting your filters or check back soon — new tasks are posted across Louisiana every day.
-                </p>
-              </div>
-              {(search || selectedCategory) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { setSearch(""); setSelectedCategory(null); }}
-                  className="squircle rounded-full"
-                >
-                  Clear filters
-                </Button>
-              )}
+            <div className="max-w-md mx-auto">
+              <EmptyState
+                variant="inline"
+                icon={Search}
+                title="No tasks found in your area yet"
+                body="Try adjusting your filters or check back soon — new tasks are posted across Louisiana every day."
+                action={
+                  (search || selectedCategory) ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setSearch(""); setSelectedCategory(null); }}
+                      className="squircle rounded-full"
+                    >
+                      Clear filters
+                    </Button>
+                  ) : undefined
+                }
+              />
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

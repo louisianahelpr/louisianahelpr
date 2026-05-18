@@ -42,6 +42,10 @@ const Messages = () => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const deepLinkHandled = useRef(false);
+  // Tracks whether a conversations load has completed at least once, so
+  // the skeleton shows only on first load — background refreshes
+  // (realtime, returning to the page) keep the existing UI in place.
+  const loadedOnceRef = useRef(false);
   const keyboardInset = useKeyboardInset();
 
   // Chat presence
@@ -73,10 +77,7 @@ const Messages = () => {
   const loadConversations = async (uid: string) => {
     // Only show the skeleton on the very first load. Background refreshes
     // (e.g. realtime updates, returning to the page) keep the existing UI.
-    setConversations((prev) => {
-      if (prev.length === 0) setLoading(true);
-      return prev;
-    });
+    if (!loadedOnceRef.current) setLoading(true);
 
     // Fetch blocked-user IDs first so we can hide them from the list
     const { getBlockedUserIds } = await import("@/lib/userBlocks");
@@ -94,7 +95,7 @@ const Messages = () => {
     if (msgsError) { setLoadError(true); setLoading(false); return; }
     setLoadError(false);
 
-    if (!msgs || msgs.length === 0) { setLoading(false); return; }
+    if (!msgs || msgs.length === 0) { loadedOnceRef.current = true; setLoading(false); return; }
 
     const filteredMsgs = msgs.filter((m: any) => {
       const other = m.sender_id === uid ? m.receiver_id : m.sender_id;
@@ -138,6 +139,7 @@ const Messages = () => {
 
     convos.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
     setConversations(convos);
+    loadedOnceRef.current = true;
     setLoading(false);
 
     // Auto-open conversation from deep link

@@ -359,15 +359,9 @@ const NotificationPanel = () => {
               )}
               {filter === "all" && pushSupported && !pushEnabled && (
                 <Button
+                  variant="bark"
                   onClick={enablePush}
                   className="rounded-ds-md mt-1"
-                  style={{
-                    background: "hsl(var(--bark))",
-                    color: "hsl(var(--parchment))",
-                    border: "1px solid hsl(70 22% 24%)",
-                    fontFamily: "Montserrat, system-ui, sans-serif",
-                    fontWeight: 600,
-                  }}
                 >
                   <BellRing className="w-4 h-4 mr-2" /> Turn on push notifications
                 </Button>

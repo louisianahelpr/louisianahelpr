@@ -614,19 +614,10 @@ export function PostedJobCard({
                             to them (skipping the open-application queue). */}
                         {job.helper_id ? (
                           <Button
+                            variant="bark"
                             size="sm"
                             className="w-full rounded-ds-md"
                             onClick={() => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`)}
-                            style={{
-                              background: "hsl(var(--bark))",
-                              backgroundImage: "none",
-                              border: "1px solid hsl(var(--bark))",
-                              color: "hsl(var(--parchment))",
-                              fontFamily: "Montserrat, system-ui, sans-serif",
-                              fontWeight: 600,
-                              letterSpacing: "0.01em",
-                              boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 6px 16px -4px hsl(var(--bark) / 0.30)",
-                            }}
                           >
                             <RotateCcw className="w-4 h-4 mr-1" /> Hire {helperName} again
                           </Button>

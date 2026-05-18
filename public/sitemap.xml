@@ -6,11 +6,6 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/jobs</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://www.louisianahelpr.com/browse</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
@@ -21,27 +16,12 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/login</loc>
+    <loc>https://www.louisianahelpr.com/legal</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/signup</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/rules</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/terms</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/privacy</loc>
+    <loc>https://www.louisianahelpr.com/data-rights</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import type { Database } from "@/integrations/supabase/types";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -38,22 +39,21 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
         onBack={onBack}
       />
       {jobs.length === 0 ? (
-        <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-4 px-6 py-12">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-            {isPosted ? <Briefcase className="w-6 h-6 text-primary" /> : <Star className="w-6 h-6 text-primary" />}
-          </div>
-          <div className="space-y-1">
-            <p className="font-display italic font-bold" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))" }}>
-              {isPosted ? "No posts yet" : "No history yet"}
-            </p>
-            <p className="font-serif italic text-ds-13 max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-              {isPosted
-                ? "Tell a neighbor what you need done — they'll see it within minutes."
-                : "Every job you complete builds your record. Apply to one to get started."}
-            </p>
-          </div>
-          {isPosted && <Button onClick={() => navigate("/post-job")}>Post your first task</Button>}
-        </div>
+        <EmptyState
+          variant="inline"
+          icon={isPosted ? Briefcase : Star}
+          title={isPosted ? "No posts yet" : "No history yet"}
+          body={
+            isPosted
+              ? "Tell a neighbor what you need done — they'll see it within minutes."
+              : "Every job you complete builds your record. Apply to one to get started."
+          }
+          action={
+            isPosted ? (
+              <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="space-y-3">
           {jobs.map((job) => (

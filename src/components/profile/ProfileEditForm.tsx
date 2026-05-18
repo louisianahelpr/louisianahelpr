@@ -69,8 +69,8 @@ export function ProfileEditForm({
   onPortfolioChange,
   onContactSupport,
 }: ProfileEditFormProps) {
-  const idStatus = (profile as any)?.idv_status as string | null;
-  const hasId = !!(profile as any)?.id_document_url;
+  const idStatus = profile?.idv_status ?? null;
+  const hasId = !!profile?.id_document_url;
   const idBadge = idStatus === "verified"
     ? { label: "Verified", cls: "bg-green-500/10 text-green-600 dark:text-green-500" }
     : (idStatus === "pending" || idStatus === "processing" || idStatus === "manual_review" || (hasId && !idStatus))
@@ -86,14 +86,14 @@ export function ProfileEditForm({
   const dirty =
     phone !== (profile?.phone ?? "") ||
     location !== (profile?.location ?? "") ||
-    zipCode !== (((profile as any)?.zip_code as string | null) ?? "") ||
+    zipCode !== (profile?.zip_code ?? "") ||
     bio !== (profile?.bio ?? "");
 
   // Resolve parish from ZIP for an inline confirmation under the field
   // (it's the value used for Louisiana sales tax). Mirrors the silent
   // lookup the Profile page already runs.
   const [resolvedParish, setResolvedParish] = useState<string | null>(
-    ((profile as any)?.parish as string | null) ?? null,
+    (profile?.parish ?? null),
   );
   useEffect(() => {
     const cleaned = zipCode.replace(/\D/g, "");
@@ -110,17 +110,17 @@ export function ProfileEditForm({
   // Helpers upload up to 6 photos of previous work; applicants see these
   // on the public profile when deciding whether to apply. Uses the same
   // `avatars` public bucket as the profile photo (path-scoped to user).
-  const portfolioUrls: string[] = (profile as any)?.portfolio_urls ?? [];
+  const portfolioUrls: string[] = profile?.portfolio_urls ?? [];
   const MAX_PORTFOLIO = 6;
   const [portfolioUploading, setPortfolioUploading] = useState(false);
   const portfolioInputRef = useRef<HTMLInputElement>(null);
 
   const persistPortfolio = async (next: string[]) => {
-    const userId = (profile as any)?.user_id;
+    const userId = profile?.user_id;
     if (!userId) return;
     const { error } = await supabase
       .from("profiles")
-      .update({ portfolio_urls: next } as any)
+      .update({ portfolio_urls: next })
       .eq("user_id", userId);
     if (error) {
       toast.error("Couldn't save your work photos");
@@ -133,7 +133,7 @@ export function ProfileEditForm({
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length) return;
-    const userId = (profile as any)?.user_id;
+    const userId = profile?.user_id;
     if (!userId) return;
 
     const slotsLeft = MAX_PORTFOLIO - portfolioUrls.length;

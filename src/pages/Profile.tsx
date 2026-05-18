@@ -178,8 +178,8 @@ const ProfilePage = () => {
         setLastName(_parts.slice(1).join(" ") || "");
         setPhone(cachedProfile.phone || "");
         setLocation(cachedProfile.location || "");
-        setZipCode((cachedProfile as any).zip_code || "");
-        setParish((cachedProfile as any).parish || null);
+        setZipCode(cachedProfile.zip_code || "");
+        setParish(cachedProfile.parish || null);
         setBio(cachedProfile.bio || "");
         setSkills(cachedProfile.skills || "");
         setHourlyRate(cachedProfile.hourly_rate?.toString() || "");
@@ -561,7 +561,7 @@ const ProfilePage = () => {
               onAvatarUpload={handleAvatarUpload}
               onIdUpload={handleIdUpload}
               onBack={() => setTab("landing")}
-              onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls } as any) : prev)}
+              onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls }) : prev)}
               onContactSupport={() => setTab("support")}
             />
           )}

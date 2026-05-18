@@ -34,7 +34,12 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   // is the highest-affinity moment — both parties just had a good experience.
   useEffect(() => {
     if (step !== "share" || referralCode) return;
-    fetchReferralData(userId).then((d) => setReferralCode(d.referralCode));
+    // Best-effort: fetchReferralData now throws on a failed read, so
+    // swallow it here — the share step degrades to no referral link
+    // rather than surfacing an unhandled rejection.
+    fetchReferralData(userId)
+      .then((d) => setReferralCode(d.referralCode))
+      .catch(() => { /* referral link unavailable — skip */ });
   }, [step, referralCode, userId]);
 
   const referralLink = referralCode

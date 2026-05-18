@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Gift, Copy, Users, DollarSign, Check, Banknote, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { useReferralData } from "@/hooks/useReferralData";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { queryKeys } from "@/lib/queryKeys";
 
 /**
@@ -14,7 +15,7 @@ import { queryKeys } from "@/lib/queryKeys";
  */
 const ReferralSection = ({ userId }: { userId: string }) => {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useReferralData(userId);
+  const { data, isLoading, isError, refetch } = useReferralData(userId);
   const referralCode = data?.referralCode ?? null;
   const credits = data?.credits ?? [];
   const referralCount = data?.referralCount ?? 0;
@@ -96,6 +97,16 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <Skeleton className="h-3 w-5/6" />
           <Skeleton className="h-3 w-4/6" />
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    // A failed fetch would otherwise render the page with a blank
+    // referral code and zeroed stats — show a recoverable error instead.
+    return (
+      <div className="h-full flex">
+        <ErrorState onRetry={() => { void refetch(); }} />
       </div>
     );
   }

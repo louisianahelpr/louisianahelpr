@@ -44,9 +44,9 @@ const AdminSettings = () => {
       .limit(1)
       .maybeSingle();
     if (data) {
-      setCustomerFee(String((data as any).customer_fee_percent ?? 10));
-      setHelperFee(String((data as any).helper_fee_percent ?? 10));
-      setSocialWebhookUrl(String((data as any).social_webhook_url ?? ""));
+      setCustomerFee(String(data.customer_fee_percent ?? 10));
+      setHelperFee(String(data.helper_fee_percent ?? 10));
+      setSocialWebhookUrl(String(data.social_webhook_url ?? ""));
       setSettingsId(data.id);
     }
     setLoading(false);
@@ -92,7 +92,7 @@ const AdminSettings = () => {
           user_id: r.user_id,
           role_id: r.id,
           name: formatName(profileMap.get(r.user_id)?.full_name, "—"),
-          email: (profileMap.get(r.user_id) as any)?.email || "—",
+          email: profileMap.get(r.user_id)?.email || "—",
         }))
       );
     } else {
@@ -146,7 +146,7 @@ const AdminSettings = () => {
     setAdding(profile.user_id);
     const { error } = await supabase
       .from("user_roles")
-      .insert({ user_id: profile.user_id, role: "admin" as any });
+      .insert({ user_id: profile.user_id, role: "admin" });
 
     if (error) {
       if (error.code === "23505") toast.error("User is already an admin");
@@ -355,7 +355,7 @@ const AdminSettings = () => {
                   <div key={profile.id} className="rounded-lg border border-border bg-secondary/20 p-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium text-foreground text-ds-13">{formatName(profile.full_name, "—")}</p>
-                      <p className="text-ds-11 text-muted-foreground">{(profile as any).email || "—"}</p>
+                      <p className="text-ds-11 text-muted-foreground">{profile.email || "—"}</p>
                     </div>
                     <Button
                       size="sm"

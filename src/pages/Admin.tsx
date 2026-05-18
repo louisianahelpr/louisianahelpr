@@ -219,10 +219,10 @@ const Admin = () => {
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").eq("reported_type", "support"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any),
-      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled" as any),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed"),
+      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled"),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null),
-      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled" as any).in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]),
+      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled").in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]),
       // New users in last 7 days
       supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", d7),
       // New users in previous 7-day window (7-14 days ago)
@@ -230,27 +230,27 @@ const Admin = () => {
       // Revenue from completed payments in last 30 days
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
         .in("payment_status", ["escrow", "payout_pending", "released"])
-        .neq("status", "cancelled" as any)
+        .neq("status", "cancelled")
         .gte("updated_at", d30),
       // Revenue from previous 30-day window (30-60 days ago)
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
         .in("payment_status", ["escrow", "payout_pending", "released"])
-        .neq("status", "cancelled" as any)
+        .neq("status", "cancelled")
         .gte("updated_at", d60).lt("updated_at", d30),
       // Platform-fee revenue accrued this calendar quarter — feeds the
       // tax-reserve tracker's "this quarter" figure.
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
         .in("payment_status", ["escrow", "payout_pending", "released"])
-        .neq("status", "cancelled" as any)
+        .neq("status", "cancelled")
         .gte("updated_at", quarterStart),
     ]);
     const paymentRows = paymentsRes.data || [];
     const cancelledPaidRows = lateCancelRes.data || [];
     const lateCancellationRevenue = cancelledPaidRows.filter((j: any) => j.cancellation_fee > 0).reduce((s, j) => {
-      return s + ((j as any).cancellation_fee || 0);
+      return s + (j.cancellation_fee || 0);
     }, 0);
     const sumFees = (rows: any[] | null) =>
-      (rows || []).reduce((s, j) => s + ((j as any).platform_fee_amount || 0) + ((j as any).customer_fee_amount || 0), 0);
+      (rows || []).reduce((s, j) => s + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0), 0);
 
     setStats({
       totalUsers: profilesRes.count || 0,
@@ -260,7 +260,7 @@ const Admin = () => {
       activeJobs: activeRes.count || 0,
       completedJobs: completedRes.count || 0,
       totalRevenue: paymentRows.reduce((s, j) => s + (j.budget || 0), 0),
-      totalFees: paymentRows.reduce((s, j) => s + ((j as any).platform_fee_amount || 0) + ((j as any).customer_fee_amount || 0), 0),
+      totalFees: paymentRows.reduce((s, j) => s + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0), 0),
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,
       lateCancellationRevenue,

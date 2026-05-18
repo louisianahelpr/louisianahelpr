@@ -34,8 +34,8 @@ const AdminDisputes = () => {
     const { data } = await supabase
       .from("jobs")
       .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by")
-      .eq("status", "disputed" as any)
-      .order("disputed_at" as any, { ascending: false });
+      .eq("status", "disputed")
+      .order("disputed_at", { ascending: false });
 
     const jobs = (data || []) as unknown as DisputedJob[];
 

@@ -113,7 +113,7 @@ const AdminJobs = () => {
         setJobs(data);
         const flagMap = new Map<string, string[]>();
         for (const job of data) {
-          const existingFlags = (job as any).flag_reasons || [];
+          const existingFlags = job.flag_reasons || [];
           const detected = detectFlags(job);
           const allFlags = [...new Set([...existingFlags, ...detected])];
           if (allFlags.length > 0) flagMap.set(job.id, allFlags);
@@ -165,7 +165,7 @@ const AdminJobs = () => {
       const { error } = await supabase
         .from("jobs")
         .update({
-          status: "cancelled" as any,
+          status: "cancelled",
           cancellation_reason: `[Admin removed] ${deleteReason}`,
           cancelled_at: new Date().toISOString(),
           cancelled_by: user?.id || null,
@@ -198,7 +198,7 @@ const AdminJobs = () => {
       }
 
       // Update local state
-      setJobs((prev) => prev.map((j) => j.id === detailJob.id ? { ...j, status: "cancelled" as any, cancellation_reason: `[Admin removed] ${deleteReason}` } : j));
+      setJobs((prev) => prev.map((j) => j.id === detailJob.id ? { ...j, status: "cancelled", cancellation_reason: `[Admin removed] ${deleteReason}` } : j));
       toast.success("Job removed and poster notified");
       setDeleteOpen(false);
       setDeleteReason("");
@@ -304,7 +304,7 @@ const AdminJobs = () => {
           const flags = jobFlags.get(job.id);
           const isResolved = resolvedFlags.has(job.id);
           const showFlagStyle = flags && !isResolved;
-          const isRemoved = !!(job as any).removal_reason;
+          const isRemoved = !!job.removal_reason;
           return (
             <div
               key={job.id}
@@ -404,15 +404,15 @@ const AdminJobs = () => {
               )}
 
               {/* Removal info */}
-              {(detailJob as any).removal_reason && (
+              {detailJob.removal_reason && (
                 <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3">
                   <p className="text-ds-11 font-semibold text-destructive flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5" /> Removed by Admin
                   </p>
-                  <p className="text-ds-13 text-foreground mt-1">{(detailJob as any).removal_reason}</p>
-                  {(detailJob as any).removed_at && (
+                  <p className="text-ds-13 text-foreground mt-1">{detailJob.removal_reason}</p>
+                  {detailJob.removed_at && (
                     <p className="text-ds-11 text-muted-foreground mt-1">
-                      Removed on {new Date((detailJob as any).removed_at).toLocaleString()}
+                      Removed on {new Date(detailJob.removed_at).toLocaleString()}
                     </p>
                   )}
                 </div>

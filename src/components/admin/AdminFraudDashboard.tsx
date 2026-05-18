@@ -60,14 +60,14 @@ const AdminFraudDashboard = () => {
       const { data } = await query;
       if (!data) return [];
 
-      const userIds = [...new Set((data as any[]).map((f: any) => f.user_id))];
+      const userIds = [...new Set(data.map((f: any) => f.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", userIds);
 
       const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
-      return (data as any[]).map((f: any) => ({ ...f, user_name: formatName(nameMap.get(f.user_id), "Unknown") }));
+      return data.map((f: any) => ({ ...f, user_name: formatName(nameMap.get(f.user_id), "Unknown") }));
     },
   });
 

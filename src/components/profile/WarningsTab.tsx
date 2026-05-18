@@ -1,5 +1,6 @@
 import { AlertTriangle, Shield, CheckCircle2 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type Violation = {
   id: string;
@@ -82,24 +83,11 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               History
             </p>
             {violations.length === 0 ? (
-              <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-2 px-6 py-8">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{
-                    backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                    border: "1px solid hsl(var(--olivewood) / 0.10)",
-                    boxShadow:
-                      "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                      "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                      "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
-                  }}
-                >
-                  <CheckCircle2 className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-                </div>
-                <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-                  Clean record.
-                </p>
-              </div>
+              <EmptyState
+                variant="inline"
+                icon={CheckCircle2}
+                body="Clean record."
+              />
             ) : (
               violations.map((v) => (
                 <div key={v.id} className="rounded-ds-md liquid-glass p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-md">

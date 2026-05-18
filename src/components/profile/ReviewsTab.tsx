@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Star, Info, ArrowDownAZ, ArrowUpAZ, CalendarClock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Popover,
   PopoverContent,
@@ -198,51 +199,46 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
       {loading ? (
         <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>Loading reviews…</p>
       ) : reviews.length === 0 ? (
-        <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-4 px-6 py-12">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-            <Star className="w-6 h-6 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <p className="font-display italic font-bold" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))" }}>
-              No reviews yet
-            </p>
-            <p className="font-serif italic text-ds-13 max-w-xs" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-              Complete a job and your customer's words will land here.
-            </p>
-          </div>
-          {/* How-reviews-work disclosure — opens a small popover with
-              the 4 rating dimensions so new helprs know what's being
-              scored. No external page, no extra route. */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 text-ds-11 font-sans font-semibold active:opacity-70 transition-opacity"
-                style={{ color: "hsl(var(--bark))" }}
+        <EmptyState
+          variant="inline"
+          icon={Star}
+          title="No reviews yet"
+          body="Complete a job and your customer's words will land here."
+          action={
+            /* How-reviews-work disclosure — opens a small popover with
+               the 4 rating dimensions so new helprs know what's being
+               scored. No external page, no extra route. */
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 text-ds-11 font-sans font-semibold active:opacity-70 transition-opacity"
+                  style={{ color: "hsl(var(--bark))" }}
+                >
+                  <Info className="w-3.5 h-3.5" /> How reviews work
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[min(92vw,320px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-4"
+                align="center"
               >
-                <Info className="w-3.5 h-3.5" /> How reviews work
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-[min(92vw,320px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-4"
-              align="center"
-            >
-              <p className="text-display-eyebrow mb-2">After every job</p>
-              <p className="font-display italic font-bold leading-tight mb-2" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                Customers score you on four things.
-              </p>
-              <ul className="space-y-1.5 font-serif italic text-ds-11 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Overall</span> · the 1–5 star summary</li>
-                <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Punctuality</span> · did you show up on time?</li>
-                <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Quality</span> · was the work done well?</li>
-                <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Communication</span> · were you easy to reach?</li>
-              </ul>
-              <p className="font-serif italic text-[0.7rem] mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
-                Posters can leave written feedback too. Everything shows up here within minutes.
-              </p>
-            </PopoverContent>
-          </Popover>
-        </div>
+                <p className="text-display-eyebrow mb-2">After every job</p>
+                <p className="font-display italic font-bold leading-tight mb-2" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                  Customers score you on four things.
+                </p>
+                <ul className="space-y-1.5 font-serif italic text-ds-11 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Overall</span> · the 1–5 star summary</li>
+                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Punctuality</span> · did you show up on time?</li>
+                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Quality</span> · was the work done well?</li>
+                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Communication</span> · were you easy to reach?</li>
+                </ul>
+                <p className="font-serif italic text-[0.7rem] mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                  Posters can leave written feedback too. Everything shows up here within minutes.
+                </p>
+              </PopoverContent>
+            </Popover>
+          }
+        />
       ) : (
         <div className="space-y-3">
           {/* Sort pills — Newest by default, with Highest/Lowest for

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Send } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { VirtualList } from "@/components/VirtualList";
 import { type Application, type AppliedApp } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
@@ -96,60 +97,17 @@ export const AppliedJobsTab = ({
           marginBottom: "calc(-1 * (env(safe-area-inset-bottom, 0px) + 96px))",
         }}
       >
-        <div
-          className="flex flex-col items-center text-center justify-center gap-4 px-6 py-10 flex-1"
-          style={{
-            backgroundColor: "hsl(0, 0%, 100%)",
-            border: "0.5px solid hsl(var(--olivewood) / 0.10)",
-            borderTopLeftRadius: "1rem",
-            borderTopRightRadius: "1rem",
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
-            borderBottom: "none",
-            boxShadow:
-              "0 1px 2px hsl(var(--olivewood) / 0.04), " +
-              "0 12px 32px -8px hsl(var(--olivewood) / 0.14)",
-            paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 2.5rem)",
-          }}
-        >
-          <div
-            className="w-20 h-20 rounded-full flex items-center justify-center"
-            style={{
-              backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-              backdropFilter: "blur(16px) saturate(150%)",
-              WebkitBackdropFilter: "blur(16px) saturate(150%)",
-              border: "1px solid hsla(0, 0%, 100%, 0.7)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-            }}
-          >
-            <Send className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-          </div>
-          <div className="space-y-1.5">
-            <span className="text-display-eyebrow">No applications</span>
-            <p
-              className="font-display italic font-bold leading-tight"
-              style={{
-                fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Nothing in this view yet.
-            </p>
-            <p
-              className="font-serif italic text-ds-13 leading-relaxed"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-            >
-              Browse open tasks near you and apply — your applications will land here.
-            </p>
-          </div>
-          <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md btn-press">
-            <Send className="w-4 h-4 mr-1.5" /> Browse tasks
-          </Button>
-        </div>
+        <EmptyState
+          icon={Send}
+          eyebrow="No applications"
+          title="Nothing in this view yet."
+          body="Browse open tasks near you and apply — your applications will land here."
+          action={
+            <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md btn-press">
+              <Send className="w-4 h-4 mr-1.5" /> Browse tasks
+            </Button>
+          }
+        />
       </div>
     );
   }

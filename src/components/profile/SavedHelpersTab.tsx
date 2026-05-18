@@ -22,6 +22,7 @@ import { formatName } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type SavedSort = "rebooked" | "recent";
 
@@ -231,54 +232,29 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-3 px-6 py-12">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{
-                backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                border: "1px solid hsl(var(--olivewood) / 0.10)",
-                boxShadow:
-                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                  "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                  "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-              }}
-            >
-              <Heart className="w-7 h-7" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-            </div>
-            <div className="space-y-1.5">
-              <span className="text-display-eyebrow">
-                {helpers.length === 0 ? "Nothing saved" : "No matches"}
-              </span>
-              <p
-                className="font-display italic font-bold leading-tight"
-                style={{
-                  fontSize: "clamp(1.05rem, 1.5vw + 0.4rem, 1.35rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {helpers.length === 0 ? "No saved helprs yet." : "Nothing matches that search."}
-              </p>
-              <p
-                className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-              >
-                {helpers.length === 0
-                  ? "After your next job, tap the heart on the helpr's profile — they'll land here for one-tap rebooking."
-                  : "Try a different search term — your saved list is intact."}
-              </p>
-            </div>
-            {helpers.length === 0 && (
-              <button
-                type="button"
-                onClick={() => navigate("/my-posts")}
-                className="mt-2 inline-flex items-center gap-1.5 text-[0.78rem] font-sans font-semibold active:opacity-70"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                See your past helpers →
-              </button>
-            )}
-          </div>
+          <EmptyState
+            variant="inline"
+            icon={Heart}
+            eyebrow={helpers.length === 0 ? "Nothing saved" : "No matches"}
+            title={helpers.length === 0 ? "No saved helprs yet." : "Nothing matches that search."}
+            body={
+              helpers.length === 0
+                ? "After your next job, tap the heart on the helpr's profile — they'll land here for one-tap rebooking."
+                : "Try a different search term — your saved list is intact."
+            }
+            action={
+              helpers.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => navigate("/my-posts")}
+                  className="mt-2 inline-flex items-center gap-1.5 text-[0.78rem] font-sans font-semibold active:opacity-70"
+                  style={{ color: "hsl(var(--bark))" }}
+                >
+                  See your past helpers →
+                </button>
+              ) : undefined
+            }
+          />
         ) : (
           <div className="space-y-3 pb-2">
             {filtered.map((h) => {

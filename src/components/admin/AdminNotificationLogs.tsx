@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { channelNonce } from "@/lib/realtimeChannel";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,7 +88,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
 
   useEffect(() => {
     const ch = supabase
-      .channel("admin-notification-logs")
+      .channel(`admin-notification-logs-${channelNonce()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notification_logs" }, () => {
         if (page === 0) qc.invalidateQueries({ queryKey: ["admin-notification-logs"] });
       })

@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { channelNonce } from "@/lib/realtimeChannel";
 import { formatName } from "@/lib/utils";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
@@ -163,7 +164,7 @@ export function useActivityData(user: SupaUser | null) {
     const invalidate = () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.activity(userId) });
     const channel = supabase
-      .channel("activity-realtime")
+      .channel(`activity-realtime-${channelNonce()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking" }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "applications" }, invalidate)

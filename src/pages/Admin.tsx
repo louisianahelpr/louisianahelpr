@@ -11,6 +11,7 @@ import {
   Shield, LogOut, ArrowLeft, Mail, Building2, Landmark,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { channelNonce } from "@/lib/realtimeChannel";
 import { lazy, Suspense } from "react";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import AdminSidebar, { AdminNavItem } from "@/components/admin/AdminSidebar";
@@ -279,7 +280,7 @@ const Admin = () => {
     loadStats();
     loadUnreadCounts();
     const channel = supabase
-      .channel('admin-realtime')
+      .channel(`admin-realtime-${channelNonce()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { loadStats(); loadUnreadCounts(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { loadStats(); loadUnreadCounts(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => { loadStats(); loadUnreadCounts(); })

@@ -4,7 +4,7 @@ import HelprMark from "@/components/HelprMark";
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useQueryClient, type Query } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PageScaffold } from "@/components/ui/PageScaffold";
@@ -129,25 +129,24 @@ const Dashboard = () => {
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   // Top saved search (most-recently-created) — surfaced on the greeting
   // when there are 0 jobs nearby, so the empty state feels intentional
-  // ("we're watching for X") rather than confusing.
-  const [topSavedSearch, setTopSavedSearch] = useState<{ name: string } | null>(null);
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
+  // ("we're watching for X") rather than confusing. Cached via React
+  // Query so it isn't re-fetched on every Dashboard mount.
+  const { data: topSavedSearch = null } = useQuery({
+    queryKey: ["savedSearches", user?.id],
+    queryFn: async () => {
       const { data } = await supabase
         .from("saved_searches")
         .select("name")
-        .eq("user_id", user.id)
+        .eq("user_id", user!.id)
         .eq("notify_enabled", true)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (cancelled) return;
-      if (data) setTopSavedSearch({ name: data.name });
-    })();
-    return () => { cancelled = true; };
-  }, [user?.id]);
+      return data ? { name: data.name } : null;
+    },
+    enabled: !!user?.id,
+    staleTime: 60 * 1000,
+  });
 
   // Profile completion nudge — gentle banner shown until the user
   // finishes the post-signup profile enhancements (ZIP / ID
@@ -168,29 +167,39 @@ const Dashboard = () => {
   // anything in 7+ days, surface a gentle "your sub is paying for
   // itself when you apply" banner. Caps the cost-justification at the
   // moment the user is checking the feed.
-  const [inactiveNudge, setInactiveNudge] = useState(false);
-  useEffect(() => {
-    if (!user || !profile) return;
-    const subTier = (profile.subscription_tier ?? "free") as string;
-    const subExp = profile.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
-    const subActive = subExp ? subExp > new Date() : false;
-    if (!subActive || subTier === "free") return;
-    let cancelled = false;
-    (async () => {
+  //
+  // Only paid, non-expired subscribers should trigger the lookup — that
+  // gate becomes the query's `enabled` flag so free/expired users never
+  // pay for the `applications` fetch.
+  const subTier = (profile?.subscription_tier ?? "free") as string;
+  const subExpiresAt = profile?.subscription_expires_at ?? null;
+  const subActive = subExpiresAt ? new Date(subExpiresAt) > new Date() : false;
+  const isPaidSubscriber = !!profile && subActive && subTier !== "free";
+  const { data: lastApplicationAt } = useQuery({
+    queryKey: ["lastApplication", user?.id],
+    queryFn: async () => {
       const { data } = await supabase
         .from("applications")
         .select("created_at")
-        .eq("helper_id", user.id)
+        .eq("helper_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (cancelled) return;
-      const last = data?.created_at ? new Date(data.created_at).getTime() : 0;
-      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-      if (!last || Date.now() - last > sevenDaysMs) setInactiveNudge(true);
-    })();
-    return () => { cancelled = true; };
-  }, [user?.id, profile?.subscription_tier, profile?.subscription_expires_at]);
+      return data?.created_at ?? null;
+    },
+    enabled: !!user?.id && isPaidSubscriber,
+    staleTime: 60 * 1000,
+  });
+  const inactiveNudgeEligible = (() => {
+    if (!isPaidSubscriber || lastApplicationAt === undefined) return false;
+    const last = lastApplicationAt ? new Date(lastApplicationAt).getTime() : 0;
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+    return !last || Date.now() - last > sevenDaysMs;
+  })();
+  // Dismissed per-session — once the user closes the banner it stays
+  // hidden even though the query data still says they're eligible.
+  const [inactiveNudgeDismissed, setInactiveNudgeDismissed] = useState(false);
+  const inactiveNudge = inactiveNudgeEligible && !inactiveNudgeDismissed;
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");
@@ -223,13 +232,25 @@ const Dashboard = () => {
 
   const effectiveFee = platformFee;
 
-  // Load saved job IDs
+  // Load saved job IDs — cached via React Query so the lookup isn't
+  // re-run on every Dashboard mount. The result seeds the local
+  // `savedJobIds` state (below), which handleToggleSave mutates
+  // optimistically as the user saves/unsaves jobs.
+  const { data: savedJobsData } = useQuery({
+    queryKey: ["savedJobs", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("saved_jobs")
+        .select("job_id")
+        .eq("user_id", user!.id);
+      return (data ?? []).map((d: { job_id: string }) => d.job_id);
+    },
+    enabled: !!user?.id,
+    staleTime: 60 * 1000,
+  });
   useEffect(() => {
-    if (!user) return;
-    supabase.from("saved_jobs").select("job_id").eq("user_id", user.id).then(({ data }) => {
-      if (data) setSavedJobIds(new Set(data.map((d: any) => d.job_id)));
-    });
-  }, [user?.id]);
+    if (savedJobsData) setSavedJobIds(new Set(savedJobsData));
+  }, [savedJobsData]);
 
   const handleToggleSave = useCallback((jobId: string, saved: boolean) => {
     setSavedJobIds(prev => {
@@ -627,7 +648,7 @@ const Dashboard = () => {
               </div>
               <button
                 type="button"
-                onClick={() => setInactiveNudge(false)}
+                onClick={() => setInactiveNudgeDismissed(true)}
                 aria-label="Dismiss"
                 className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
                 style={{ color: "hsl(var(--olivewood) / 0.55)" }}

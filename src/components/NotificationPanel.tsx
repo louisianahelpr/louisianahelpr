@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
 import { Bell, Check, CheckCheck, Info, AlertTriangle, DollarSign, Users, Star, BellRing, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, Megaphone } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -129,7 +130,9 @@ const NotificationPanel = () => {
 
     // Realtime subscription — also trigger browser push for new notifications
     const channel = supabase
-      .channel("notifications-realtime")
+      // Unique per mount — NotificationPanel renders in both the header
+      // and the admin shell, and a shared channel name would collide.
+      .channel(`notifications-realtime-${channelNonce()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, async (payload) => {
         const n = payload.new as Notification;
         const { data: { session } } = await supabase.auth.getSession();

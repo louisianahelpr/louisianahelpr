@@ -71,7 +71,10 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
             // Availability / Saved Helprs) appeared frozen — there was
             // overflow but no scroll surface to handle it.
             "flex-1 min-h-0 flex flex-col",
-            scrollable ? "overflow-y-auto no-scrollbar" : "overflow-hidden",
+            // `app-shell-scroll` marks the real scroll container so
+            // MobileNav's scroll-shadow logic targets it (rather than
+            // <main>, which is never itself a scroll surface).
+            scrollable ? "overflow-y-auto no-scrollbar app-shell-scroll" : "overflow-hidden",
             contentClassName,
           )}
           style={{

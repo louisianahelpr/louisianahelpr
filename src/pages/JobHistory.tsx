@@ -6,6 +6,7 @@ import { MapPin, DollarSign, Calendar, ClipboardList } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -134,42 +135,13 @@ const JobHistory = () => {
               <JobCardSkeleton />
             </div>
           ) : jobs.length === 0 ? (
-            <div className="flex flex-col items-center text-center px-6 gap-4 justify-center py-16">
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center"
-                style={{
-                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                  backdropFilter: "blur(16px) saturate(150%)",
-                  WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                  border: "1px solid hsla(0, 0%, 100%, 0.7)",
-                  boxShadow:
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                    "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                }}
-              >
-                <ClipboardList className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-display-eyebrow">Quiet archive</span>
-                <p
-                  className="font-display italic font-bold leading-tight"
-                  style={{
-                    fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                    color: "hsl(var(--ink-deep))",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  Nothing here yet.
-                </p>
-                <p
-                  className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                >
-                  Completed and closed jobs will collect in your archive.
-                </p>
-              </div>
-            </div>
+            <EmptyState
+              variant="inline"
+              icon={ClipboardList}
+              eyebrow="Quiet archive"
+              title="Nothing here yet."
+              body="Completed and closed jobs will collect in your archive."
+            />
           ) : (
             <div className="space-y-3">
               <p className="text-ds-11 text-muted-foreground">{jobs.length} job{jobs.length !== 1 ? "s" : ""}</p>

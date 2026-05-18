@@ -1,57 +1,78 @@
 # iOS Build Runbook
 
-Reference for cutting iOS builds. Last updated when bumping `capacitor.config.ts` `ios.build` from 17 → 18 (workflow run #17, commit f3a520b).
+Reference for cutting iOS TestFlight builds. Last verified against
+workflow run #26005470509 — build `1.0.4 (2501)`, 2026-05-18.
 
-## CFBundleVersion strategy
+## TL;DR
 
-### Why we hard-force build numbers
+Trigger the **iOS Beta (TestFlight)** workflow on `main`. CI archives,
+signs, uploads, and waits for App Store Connect processing — there is
+nothing to do locally, and you do not manage build numbers.
 
-App Store Connect rejects any upload whose `CFBundleVersion` is not strictly greater than every prior upload within the same `CFBundleShortVersionString` (`1.0.4`). When TestFlight uploads stack up during development, it is easy for the `ios.build` value in `capacitor.config.ts` to fall behind ASC's high-water mark.
+## Triggering a build
 
-The `ios-beta.yml` workflow accepts an optional `force_build_number` input that overrides whatever is in `capacitor.config.ts` for that specific archive. Use it any time the source-of-truth value is at or below ASC's latest accepted build.
+Either:
 
-### High-water mark today
+- **GitHub UI** — Actions tab → "iOS Beta (TestFlight)" → "Run workflow"
+  → branch `main`.
+- **CLI** — `gh workflow run ios-beta.yml --ref main`.
 
-| Run | Source build (`capacitor.config.ts`) | Forced override | CFBundleVersion in archive |
-|-----|--------------------------------------|-----------------|----------------------------|
-| #14 | 14 | 18 | 18 |
-| #15 | 15 | 19 | 19 |
-| #16 | 16 | 2029 | 2029 |
-| #17 | 18 | 2030 | 2030 |
+Then:
 
-Next upload must use a number > 2030.
+1. CI archives + signs + uploads, then blocks on App Store Connect
+   processing — typically ~6–7 minutes end to end.
+2. When the run goes green the build is **already processed and live in
+   TestFlight** — the Fastlane lane waits on processing, so there is no
+   separate countdown afterward.
+3. Internal testers can install immediately; external testers need
+   Apple's review.
 
-### Going forward — two options
+## Build numbers — handled automatically
 
-**Option A: keep manual + bump source-of-truth in lockstep.** Bump `capacitor.config.ts` `ios.build` to `'19'`, `'20'`, etc. as releases ship. When the override is no longer needed (source value clears ASC's high-water mark on its own), stop passing the workflow input. Pro: source-of-truth file tells you what's running. Con: requires discipline; one missed bump and the next upload silently rejects.
+App Store Connect rejects an upload whose `CFBundleVersion` is not
+strictly greater than every prior upload within the same
+`CFBundleShortVersionString`. The Fastlane `beta` lane handles this: it
+uses the **highest** of —
 
-**Option B: CI-injected `${{ github.run_number }}`.** In `.github/workflows/ios-beta.yml`, replace the build-number step with something like:
+- `ios.build` in `capacitor.config.ts` (a static fallback),
+- the latest build already on App Store Connect (queried live via
+  `latest_testflight_build_number`),
+- a monotonic CI-derived value,
+- the optional `build_number_floor` workflow input.
 
-```yaml
-- name: Set CFBundleVersion to GH run number
-  run: |
-      /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" ios/App/App/Info.plist
-      ```
+Run #26005470509 logged the decision directly:
 
-      GitHub run numbers are monotonic and global to the workflow file, so they always go up. Pro: zero human input, no rejection risk. Con: build numbers will look like `25465418978` on TestFlight; not human-pretty.
+```
+Using unique build number 2501 for version 1.0.4
+  (local 20, remote-for-version 2301, remote-any-version 2301, ci 2501, floor 2302)
+```
 
-      **Recommended:** Option B for staging/TestFlight, Option A for App Store releases (so the numbers in the public release notes look reasonable).
+So in normal operation **you never set a build number** — the CI-derived
+value is monotonic and clears ASC's high-water mark on its own.
+`capacitor.config.ts` `ios.build` is only a floor and may lag freely
+behind reality.
 
-      ## Triggering a TestFlight build
+### `build_number_floor` (optional override)
 
-      1. Visit https://github.com/louisianahelpr/louisianahelpr/actions/workflows/ios-beta.yml
-      2. "Run workflow" → branch `main` → optionally fill `force_build_number` (must be > current ASC max)
-      3. Watch CI: typical archive + upload runs ~6–7 minutes
-      4. ASC processes the upload for another ~10–15 minutes before the build appears in TestFlight
-      5. Internal testers can install once processing completes; external testers require Apple review
+`ios-beta.yml` exposes one optional `workflow_dispatch` input,
+**`build_number_floor`** — "force the build number to be at least this
+value." It is only needed in the rare case ASC's API lags and reports a
+stale latest build; pass a value comfortably above ASC's real maximum.
+Leave it blank otherwise.
 
-      ## When CI fails
+## When CI fails
 
-      - **"Redundant Binary Upload"** → CFBundleVersion already exists in ASC. Force a higher number via workflow input.
-      - **"No matching profiles found"** → Distribution cert or provisioning profile drift. See `docs/APPLE_CERT_RUNBOOK.md`.
-      - **"Code signing identity not found"** → The .p12 base64 secret in repo settings has rotated or expired. Regenerate from Apple Developer → Certificates.
+- **"Redundant Binary Upload"** — `CFBundleVersion` already exists on
+  ASC. Rare now that the lane queries ASC live; if it happens, re-run
+  with `build_number_floor` set above ASC's maximum.
+- **"No matching profiles found"** — distribution cert / provisioning
+  profile drift. See `docs/APPLE_CERT_RUNBOOK.md`.
+- **"Code signing identity not found"** — the `.p12` base64 repo secret
+  has rotated or expired. Regenerate from Apple Developer → Certificates.
 
-      ## Bumping `version` (CFBundleShortVersionString)
+## Bumping the version
 
-      Edit `capacitor.config.ts` `ios.version`. App Store-visible version. Bump on every public release. When `version` increments, ASC's CFBundleVersion monotonic check resets within the new version namespace, so build numbers can drop back to a low value if desired.
-      
+`CFBundleShortVersionString` (the App Store-visible version) comes from
+`capacitor.config.ts` `ios.version` (currently `1.0.4`). Bump it for
+each public release. ASC's monotonic build-number check is scoped per
+version string, so build numbers may restart low under a new version.

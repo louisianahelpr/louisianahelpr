@@ -3,8 +3,7 @@ import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban } from "lucide-react";
+import { Flag, MessageSquare, Trash2, MoreVertical, Ban } from "lucide-react";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -23,47 +22,15 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { scanMessage } from "@/lib/messageScanner";
-import { QuickReplies } from "@/components/QuickReplies";
-import { RichMessageInput } from "@/components/RichMessageInput";
-import { MessageAttachment } from "@/components/MessageAttachment";
 import { useChatPresence } from "@/hooks/useChatPresence";
-import { OnlineIndicator, TypingIndicator, ReadReceipt } from "@/components/ChatPresence";
 import { ConversationSkeleton } from "@/components/SkeletonLoaders";
 import { VirtualList } from "@/components/VirtualList";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 
-type Message = {
-  id: string;
-  job_id: string;
-  sender_id: string;
-  receiver_id: string;
-  content: string;
-  read: boolean;
-  created_at: string;
-  attachment_url: string | null;
-  attachment_mime: string | null;
-  attachment_size: number | null;
-};
-
-type Conversation = {
-  otherUserId: string;
-  otherUserName: string;
-  otherUserAvatarUrl?: string | null;
-  jobTitle: string;
-  jobId: string;
-  /** Job status — surfaced as a chip in the chat header so participants
-      see at a glance whether they're discussing an open posting, an
-      awarded job, or a completed one. */
-  jobStatus?: string | null;
-  /** True when the current user posted the job — drives poster-specific
-      quick reply set in the chat composer. */
-  viewerIsPoster?: boolean;
-  lastMessage: string;
-  lastAt: string;
-  unread: number;
-};
+import type { Conversation, Message } from "@/components/messages/types";
+import { ChatView } from "@/components/messages/ChatView";
 
 const CHAT_PAGE_SIZE = 50;
 
@@ -84,12 +51,10 @@ const Messages = () => {
   const [reportTarget, setReportTarget] = useState<{ type: "message" | "user"; id: string } | null>(null);
   const [blockTarget, setBlockTarget] = useState<{ id: string; name: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [deleteConvoConfirm, setDeleteConvoConfirm] = useState<Conversation | null>(null);
   const [deleteMessageConfirm, setDeleteMessageConfirm] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const deepLinkHandled = useRef(false);
@@ -489,43 +454,6 @@ const Messages = () => {
     setDeleteMessageConfirm(null);
   };
 
-  const renderMessageContent = (content: string) => {
-    // Photo message
-    if (content.startsWith("📷 ")) {
-      const parts = content.slice(2).trim().split("\n");
-      const url = parts[0].trim();
-      const caption = parts.slice(1).join("\n").trim();
-      return (
-        <div className="space-y-1">
-          <img
-            loading="lazy"
-            decoding="async"
-            src={url}
-            alt="Shared photo"
-            className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={() => window.open(url, "_blank")}
-          />
-          {caption && <p>{caption}</p>}
-        </div>
-      );
-    }
-    // Location message
-    if (content.startsWith("📍 Location:")) {
-      const url = content.replace("📍 Location: ", "");
-      return (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 underline hover:no-underline"
-        >
-          📍 View location on map
-        </a>
-      );
-    }
-    return <p>{content}</p>;
-  };
-
   return (
     <>
       {!activeConvo ? (
@@ -780,261 +708,25 @@ const Messages = () => {
               )}
         </PageScaffold>
       ) : (
-        <div className="min-h-screen flex flex-col bg-premium-page overflow-hidden">
-          <DashboardHeader />
-          <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-0">
-            <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto">
-            <div
-              className="flex flex-col h-[calc(100dvh-4rem)] transition-[padding] duration-150"
-              style={{ paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : "env(safe-area-inset-bottom)" }}
-            >
-              {/* Chat header — compact, vertically centered. Avatar uses
-                  the other user's photo when available, name is brand-
-                  display italic, and a small status chip surfaces where
-                  the job currently stands so both sides have shared
-                  context without scrolling back. */}
-              <div className="flex items-center gap-2.5 px-1 py-2 -mx-4 px-4 border-b border-border bg-card">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full h-9 w-9 shrink-0 self-center"
-                  onClick={() => { setActiveConvo(null); setDraft(""); navigate("/messages", { replace: true }); }}
-                  aria-label="Back to conversations"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 self-center overflow-hidden"
-                  style={{
-                    backgroundColor: "hsl(var(--bark) / 0.12)",
-                    border: "1px solid hsl(var(--bark) / 0.22)",
-                  }}
-                >
-                  {activeConvo.otherUserAvatarUrl ? (
-                    <img
-                      loading="lazy"
-                      decoding="async"
-                      src={activeConvo.otherUserAvatarUrl}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--bark))" }}>
-                      {activeConvo.otherUserName.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1 overflow-hidden self-center">
-                  <p
-                    className="font-display italic font-bold leading-tight truncate flex items-center gap-1.5"
-                    style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-                  >
-                    <span className="truncate">{activeConvo.otherUserName}</span>
-                    <OnlineIndicator isOnline={isOtherOnline} />
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <p className="text-[11px] truncate leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                      {activeConvo.jobTitle}
-                    </p>
-                    {activeConvo.jobStatus && (() => {
-                      const status = activeConvo.jobStatus;
-                      const chip: { label: string; color: string; bg: string } =
-                        status === "open"
-                          ? { label: "Open", color: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.12)" }
-                          : status === "assigned" || status === "in_progress"
-                            ? { label: "Awarded", color: "hsl(var(--burnt-sienna))", bg: "hsl(var(--burnt-sienna) / 0.12)" }
-                            : status === "completed"
-                              ? { label: "Completed", color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.1)" }
-                              : status === "cancelled"
-                                ? { label: "Cancelled", color: "hsl(var(--destructive))", bg: "hsl(var(--destructive) / 0.1)" }
-                                : { label: status, color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.1)" };
-                      return (
-                        <span
-                          className="text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
-                          style={{ color: chip.color, backgroundColor: chip.bg, letterSpacing: "0.08em" }}
-                        >
-                          {chip.label}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="p-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
-                      aria-label="Conversation options"
-                    >
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}>
-                      <Flag className="w-4 h-4 mr-2" /> Report user
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}>
-                      <Ban className="w-4 h-4 mr-2" /> Block user
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              {/* Community rules banner — compact */}
-              {!bannerDismissed && (
-                <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
-                  <AlertTriangle className="w-3 h-3 text-accent-foreground mt-[3px] shrink-0" />
-                  <p className="text-[11px] leading-snug text-accent-foreground flex-1">
-                    Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then permanent ban.
-                  </p>
-                  <button onClick={() => setBannerDismissed(true)} className="text-accent-foreground/60 hover:text-accent-foreground shrink-0 mt-0.5" aria-label="Dismiss">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                  </button>
-                </div>
-              )}
-
-              <div className="flex-1 overflow-y-auto space-y-3 pt-4 pb-2" ref={chatContainerRef}>
-                {hasMoreMessages && (
-                  <div className="text-center py-2">
-                    <button onClick={loadOlderMessages} disabled={loadingMore} className="text-ds-11 text-primary font-medium hover:underline disabled:opacity-50 flex items-center gap-1.5 mx-auto">
-                      {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
-                      {loadingMore ? "Loading…" : "Load earlier messages"}
-                    </button>
-                  </div>
-                )}
-                {messages.length === 0 && (
-                  <div className="flex flex-col items-center text-center py-14 gap-3">
-                    <div
-                      className="w-14 h-14 rounded-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                        border: "1px solid hsl(var(--olivewood) / 0.10)",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                          "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                          "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
-                      }}
-                    >
-                      <MessageSquare className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-                    </div>
-                    <div className="space-y-1">
-                      <p
-                        className="font-display italic font-bold"
-                        style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-                      >
-                        Say hello.
-                      </p>
-                      <p
-                        className="font-serif italic text-[0.82rem] max-w-[260px]"
-                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                      >
-                        Send the first message to get the job moving.
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {messages.map((m) => {
-                  const mine = m.sender_id === userId;
-                  return (
-                    <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-                      <div
-                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 ${
-                          mine ? "rounded-br-md" : "rounded-bl-md"
-                        }`}
-                        style={mine ? {
-                          // "Mine" bubble — bark with subtle inner highlight + soft shadow
-                          // for a tactile, brand-aligned feel (vs. flat primary fill).
-                          background: "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.92) 100%)",
-                          color: "hsl(var(--parchment))",
-                          boxShadow:
-                            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), " +
-                            "0 1px 2px hsl(var(--bark) / 0.18), " +
-                            "0 6px 14px -6px hsl(var(--bark) / 0.32)",
-                        } : {
-                          // "Theirs" bubble — translucent parchment with a hairline border
-                          // so it reads as an inbound card without looking gray-on-gray.
-                          backgroundColor: "hsla(0, 0%, 100%, 0.78)",
-                          color: "hsl(var(--ink-deep))",
-                          border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-                          boxShadow:
-                            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
-                            "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                            "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
-                        }}
-                      >
-                        {m.attachment_url && m.attachment_mime && (
-                          <MessageAttachment
-                            path={m.attachment_url}
-                            mime={m.attachment_mime}
-                            size={m.attachment_size}
-                            mine={mine}
-                          />
-                        )}
-                        {m.content && renderMessageContent(m.content)}
-                        {/* Action buttons on hover */}
-                        <div className={`absolute ${mine ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
-                          {!mine && (
-                            <button
-                              onClick={() => setReportTarget({ type: "message", id: m.id })}
-                              className="text-muted-foreground hover:text-destructive p-1"
-                              title="Report"
-                            >
-                              <Flag className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                          {mine && (
-                            <button
-                              onClick={() => setDeleteMessageConfirm(m.id)}
-                              className="text-muted-foreground hover:text-destructive p-1"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className={`flex items-center gap-1 mt-1 px-1 text-[10px] text-muted-foreground ${mine ? "flex-row-reverse" : ""}`}>
-                        <span>
-                          {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
-                        </span>
-                        <ReadReceipt
-                          read={m.read}
-                          sentByMe={mine}
-                          recipientName={activeConvo?.otherUserName}
-                          recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-                {isOtherTyping && <TypingIndicator />}
-                <div ref={bottomRef} />
-              </div>
-
-              {/* Quick replies — populate the input instead of sending instantly */}
-              <div className="pt-1">
-                <QuickReplies
-                  onSelect={(msg) => setDraft(msg)}
-                  audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
-                />
-              </div>
-
-              {/* Rich message input */}
-              <div
-                className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
-                style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
-              >
-                <RichMessageInput
-                  value={draft}
-                  onChange={setDraft}
-                  onSend={(content, attachment) => { sendMessage(content, attachment); setDraft(""); }}
-                  onTyping={broadcastTyping}
-                  jobId={activeConvo.jobId}
-                  senderId={userId || undefined}
-                />
-              </div>
-            </div>
-            </div>
-          </main>
-        </div>
+        <ChatView
+          activeConvo={activeConvo}
+          setActiveConvo={setActiveConvo}
+          keyboardInset={keyboardInset}
+          isOtherOnline={isOtherOnline}
+          isOtherTyping={isOtherTyping}
+          broadcastTyping={broadcastTyping}
+          messages={messages}
+          userId={userId}
+          hasMoreMessages={hasMoreMessages}
+          loadingMore={loadingMore}
+          loadOlderMessages={loadOlderMessages}
+          sendMessage={sendMessage}
+          chatContainerRef={chatContainerRef}
+          bottomRef={bottomRef}
+          setReportTarget={setReportTarget}
+          setBlockTarget={setBlockTarget}
+          setDeleteMessageConfirm={setDeleteMessageConfirm}
+        />
       )}
 
       {reportTarget && (

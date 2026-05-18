@@ -14,6 +14,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const DEBUG_AUTH = import.meta.env.DEV;
 
@@ -192,28 +193,25 @@ const Jobs = () => {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="glass-card squircle rounded-[24px] py-14 px-6 text-center space-y-4 max-w-md mx-auto">
-              <div className="w-16 h-16 mx-auto rounded-2xl squircle bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
-                <Search className="w-7 h-7 text-primary" strokeWidth={2.25} />
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-ds-15 font-display font-bold text-foreground">
-                  No tasks found in your area yet
-                </p>
-                <p className="text-ds-11 text-muted-foreground leading-relaxed">
-                  Try adjusting your filters or check back soon — new tasks are posted across Louisiana every day.
-                </p>
-              </div>
-              {(search || selectedCategory) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { setSearch(""); setSelectedCategory(null); }}
-                  className="squircle rounded-full"
-                >
-                  Clear filters
-                </Button>
-              )}
+            <div className="max-w-md mx-auto">
+              <EmptyState
+                variant="inline"
+                icon={Search}
+                title="No tasks found in your area yet"
+                body="Try adjusting your filters or check back soon — new tasks are posted across Louisiana every day."
+                action={
+                  (search || selectedCategory) ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setSearch(""); setSelectedCategory(null); }}
+                      className="squircle rounded-full"
+                    >
+                      Clear filters
+                    </Button>
+                  ) : undefined
+                }
+              />
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -3,10 +3,16 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft } from "lucide-react";
 import { report } from "@/lib/errorLogger";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 const NotFound = () => {
-  usePageTitle("Page Not Found — Helpr");
+  // The SPA serves unknown paths with a 200 status, so the 404 page must
+  // be explicitly non-indexable to keep junk URLs out of search results.
+  usePageMeta({
+    title: "Page Not Found — Helpr",
+    description: "The page you're looking for doesn't exist or has been moved.",
+    robots: "noindex",
+  });
   const location = useLocation();
 
   useEffect(() => {

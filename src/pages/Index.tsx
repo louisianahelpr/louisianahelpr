@@ -71,6 +71,51 @@ const localBusinessSchema = {
   },
 };
 
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": `${SITE_URL}/#organization`,
+  name: "Helpr",
+  legalName: "Helpr LLC",
+  url: SITE_URL,
+  logo: `${SITE_URL}/pwa-512x512-v2.png`,
+  description: "Louisiana's trusted marketplace connecting neighbors for cleaning, yard work, moving, errands, handyman services, and more.",
+  email: "admin@louisianahelpr.com",
+  foundingDate: "2026",
+  areaServed: { "@type": "State", name: "Louisiana" },
+  address: {
+    "@type": "PostalAddress",
+    addressRegion: "LA",
+    addressCountry: "US",
+  },
+  sameAs: ["https://www.facebook.com/louisianahelpr"],
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: SITE_URL,
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "For Business",
+      item: `${SITE_URL}/for-business`,
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Legal",
+      item: `${SITE_URL}/legal`,
+    },
+  ],
+};
+
 const webAppSchema = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
@@ -176,7 +221,15 @@ const Index = () => {
       />
       <script
         type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <script
         type="application/ld+json"

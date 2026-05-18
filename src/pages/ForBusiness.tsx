@@ -10,10 +10,18 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BackButton from "@/components/BackButton";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 const ForBusiness = () => {
-  usePageTitle("Helpr for Business — Louisiana Commercial Services");
+  usePageMeta({
+    title: "Helpr for Business — Louisiana Commercial Services",
+    description:
+      "Find, hire, and pay verified local pros for your Louisiana business. Free team seats, Stripe ID-verified helprs, flat platform fee, no contracts.",
+    canonical: "https://www.louisianahelpr.com/for-business",
+    ogTitle: "Helpr for Business — Hire Local Pros Across Louisiana",
+    ogDescription:
+      "The simplest way for Louisiana businesses to find, hire, and pay local pros for cleaning, turnovers, events, and recurring tasks.",
+  });
 
   return (
     <div className="relative min-h-screen page-warmth">

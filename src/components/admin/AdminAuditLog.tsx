@@ -29,14 +29,14 @@ const AdminAuditLog = () => {
 
       if (!data) return [];
 
-      const adminIds = [...new Set((data as any[]).map((e: any) => e.admin_id))];
+      const adminIds = [...new Set(data.map((e: any) => e.admin_id))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", adminIds);
 
       const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
-      return (data as any[]).map((e: any) => ({
+      return data.map((e: any) => ({
         ...e,
         admin_name: formatName(nameMap.get(e.admin_id), "System"),
       }));

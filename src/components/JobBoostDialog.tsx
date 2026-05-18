@@ -167,19 +167,10 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
         <DialogFooter className="!gap-2">
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
           <Button
+            variant="bark"
             onClick={handleBoost}
             disabled={boosting}
             className="rounded-ds-md"
-            style={{
-              background: "hsl(var(--bark))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
-              boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
-            }}
           >
             <Rocket className="w-4 h-4 mr-1.5" />
             {boosting ? "Boosting…" : isSubscriber ? "Boost — included" : "Boost for $3"}

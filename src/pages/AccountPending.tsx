@@ -325,18 +325,10 @@ const AccountPending = () => {
             {/* Action area */}
             <div className="shrink-0 flex flex-col gap-2.5">
               <Button
+                variant="bark"
                 onClick={() => navigate("/dashboard")}
                 size="lg"
                 className="w-full gap-2 rounded-2xl"
-                style={{
-                  background: "hsl(var(--bark))",
-                  backgroundImage: "none",
-                  border: "1px solid hsl(var(--bark))",
-                  color: "hsl(var(--parchment))",
-                  fontFamily: "Montserrat, system-ui, sans-serif",
-                  fontWeight: 600,
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px hsl(var(--bark) / 0.45)",
-                }}
               >
                 Explore Jobs While You Wait <ArrowRight className="w-4 h-4" />
               </Button>

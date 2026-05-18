@@ -168,10 +168,10 @@ const Dashboard = () => {
   const [completionDismissed, setCompletionDismissed] = useState(false);
   const completionPct = profile
     ? getProfileCompletion({
-        zipCode: (profile as any).zip_code,
+        zipCode: profile.zip_code,
         idvStatus: profile.idv_status,
-        portfolioCount: Array.isArray((profile as any).portfolio_urls)
-          ? (profile as any).portfolio_urls.length
+        portfolioCount: Array.isArray(profile.portfolio_urls)
+          ? profile.portfolio_urls.length
           : 0,
       }).pct
     : 100;

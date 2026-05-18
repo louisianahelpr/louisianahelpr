@@ -116,11 +116,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             }}
             aria-label={`View ${job.posterName}'s profile`}
           >
-            {(job as any).posterAvatarUrl ? (
+            {job.posterAvatarUrl ? (
               <img
                 loading="lazy"
                 decoding="async"
-                src={(job as any).posterAvatarUrl}
+                src={job.posterAvatarUrl}
                 alt=""
                 className="w-full h-full object-cover"
               />
@@ -214,7 +214,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 <span className="flex items-center gap-1">
                   <Repeat className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
                   <span className="font-serif italic">
-                    {(job as any).recurrence_interval || "Recurring"}
+                    {job.recurrence_interval || "Recurring"}
                   </span>
                 </span>
               </>

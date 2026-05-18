@@ -53,8 +53,8 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
       if (nearbyMiles !== null && userLoc.status === "ready") {
-        const jLat = (job as any).latitude;
-        const jLng = (job as any).longitude;
+        const jLat = job.latitude;
+        const jLng = job.longitude;
         if (typeof jLat !== "number" || typeof jLng !== "number") return false;
         const dist = haversineMiles(userLoc.lat, userLoc.lng, jLat, jLng);
         if (dist > nearbyMiles) return false;

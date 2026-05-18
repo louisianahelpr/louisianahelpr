@@ -120,7 +120,7 @@ const JobDetailDialog = ({
 
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelper = job.budget / helpers;
-  const commissionPercent = (job as any).helper_fee_percent ?? effectiveFee;
+  const commissionPercent = job.helper_fee_percent ?? effectiveFee;
   const commission = (perHelper * commissionPercent) / 100;
   const payout = perHelper - commission + (job.urgent_fee ?? 0);
 
@@ -267,7 +267,7 @@ const JobDetailDialog = ({
             {job.is_recurring && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/40 text-foreground/80 text-[10px] font-semibold uppercase tracking-wider border border-border/60">
                 <Repeat className="w-3 h-3" strokeWidth={2.25} />
-                {(job as any).recurrence_interval || "Recurring"}
+                {job.recurrence_interval || "Recurring"}
               </span>
             )}
           </div>
@@ -350,7 +350,7 @@ const JobDetailDialog = ({
             const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${dateStartIso}/${dateEndIso}&details=${encodeURIComponent(job.description.slice(0, 200))}&location=${encodeURIComponent(job.location)}`;
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
             // Distance estimate when both helpr coords + parish centroid available
-            const parishCentroid = getParishCentroid((job as any).parish);
+            const parishCentroid = getParishCentroid(job.parish);
             const distMiles = userLat != null && userLng != null && parishCentroid
               ? haversineMiles(userLat, userLng, parishCentroid.lat, parishCentroid.lng)
               : null;
@@ -569,11 +569,11 @@ const JobDetailDialog = ({
                 boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)",
               }}
             >
-              {(job as any).posterAvatarUrl ? (
+              {job.posterAvatarUrl ? (
                 <img
                   loading="lazy"
                   decoding="async"
-                  src={(job as any).posterAvatarUrl}
+                  src={job.posterAvatarUrl}
                   alt=""
                   className="w-full h-full object-cover"
                 />

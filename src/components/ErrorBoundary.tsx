@@ -169,18 +169,9 @@ class ErrorBoundary extends React.Component<Props, State> {
             </p>
           </div>
           <Button
+            variant="bark"
             onClick={this.handleReset}
             className="rounded-ds-md"
-            style={{
-              background: "hsl(var(--bark))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
-              boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
-            }}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             {chunkError ? "Reload" : "Try again"}

@@ -143,20 +143,11 @@ export function SignupStep1({
       </label>
 
       <Button
+        variant="bark"
         className="w-full rounded-ds-md"
         size="lg"
         onClick={onContinue}
         disabled={!acceptedPolicies}
-        style={{
-          background: "hsl(var(--bark))",
-          backgroundImage: "none",
-          border: "1px solid hsl(var(--bark))",
-          color: "hsl(var(--parchment))",
-          fontFamily: "Montserrat, system-ui, sans-serif",
-          fontWeight: 600,
-          letterSpacing: "0.01em",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px rgba(0,0,0,0.1)",
-        }}
       >
         Continue <ArrowRight className="w-4 h-4 ml-1" />
       </Button>

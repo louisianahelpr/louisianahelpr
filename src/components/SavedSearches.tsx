@@ -186,18 +186,11 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               className="rounded-ds-md h-11 border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
             />
             <Button
+              variant="bark"
               onClick={handleSave}
               disabled={saving}
               className="h-11 w-11 p-0 rounded-ds-md shrink-0"
               aria-label="Save filter set"
-              style={{
-                background: "hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-                border: "1px solid hsl(70 22% 24%)",
-                boxShadow:
-                  "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                  "0 1px 2px hsl(70 20% 18% / 0.18)",
-              }}
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" strokeWidth={2.25} />}
             </Button>

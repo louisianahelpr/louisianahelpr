@@ -104,17 +104,10 @@ const AccountDenied = () => {
 
         <div className="flex flex-col gap-3">
           <Button
+            variant="bark"
             className="w-full rounded-ds-md"
             size="lg"
             onClick={async () => { await supabase.auth.signOut(); navigate("/signup"); }}
-            style={{
-              background: "hsl(var(--bark))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-            }}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Re-apply now

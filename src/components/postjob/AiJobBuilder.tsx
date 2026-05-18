@@ -106,18 +106,12 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
             className="text-ds-13 mt-2"
           />
           <Button
+            variant="bark"
             type="button"
             onClick={generate}
             disabled={loading}
             size="sm"
             className="w-full rounded-ds-md"
-            style={{
-              background: "hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              border: "1px solid hsl(70 22% 24%)",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-            }}
           >
             {loading ? (
               <>

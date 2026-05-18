@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useCallback } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -95,6 +95,19 @@ export function BrowseTasksFeed({
   fetchNextPage,
 }: BrowseTasksFeedProps) {
   const navigate = useNavigate();
+
+  // Stable per-card expand toggle. Previously an inline arrow was created
+  // for every card on every render — that defeated SwipeableJobCard's
+  // React.memo, since each card got a fresh `onToggleExpand` reference.
+  // The functional setState form keeps this callback free of an
+  // `expandedCardId` dependency, so it never changes identity.
+  const handleToggleExpand = useCallback(
+    (id: string) => {
+      setExpandedCardId((current) => (current === id ? null : id));
+    },
+    [setExpandedCardId],
+  );
+
   return (
     <>
       {view === "map" && (
@@ -229,7 +242,7 @@ export function BrowseTasksFeed({
                 <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5">
                   {recommendedVisible.map((job, i) => (
                     <div key={`rec-${job.id}`}>
-                      <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
+                      <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
                     </div>
                   ))}
                 </div>
@@ -262,7 +275,7 @@ export function BrowseTasksFeed({
             >
               {visibleJobs.map((job, i) => (
                 <div key={job.id}>
-                  <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={(id) => setExpandedCardId(expandedCardId === id ? null : id)} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
+                  <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
                 </div>
               ))}
             </div>

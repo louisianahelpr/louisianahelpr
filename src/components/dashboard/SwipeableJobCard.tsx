@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { memo, useState, useRef, useEffect } from "react";
 import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
 import { X } from "lucide-react";
 import JobCard from "./JobCard";
@@ -165,4 +165,10 @@ const SwipeableJobCard = ({
   );
 };
 
-export default SwipeableJobCard;
+// Memoized so unrelated Dashboard state changes don't re-render every
+// row of the feed. Effective only while BrowseTasksFeed passes
+// referentially-stable props (stable callbacks + primitive per-card flags).
+const MemoizedSwipeableJobCard = memo(SwipeableJobCard);
+MemoizedSwipeableJobCard.displayName = "SwipeableJobCard";
+
+export default MemoizedSwipeableJobCard;

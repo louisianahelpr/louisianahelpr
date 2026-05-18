@@ -63,9 +63,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // UI state
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
-  const [onTheWayLoading, setOnTheWayLoading] = useState<string | null>(null);
-  const [arrivedLoading, setArrivedLoading] = useState<string | null>(null);
-  const [startJobLoading, setStartJobLoading] = useState<string | null>(null);
   const [reportingNoShow, setReportingNoShow] = useState(false);
 
   // Dialog state
@@ -383,44 +380,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     } catch (err: any) { toast.error(err.message || "Failed to resolve revision"); }
   };
 
-  const startJob = async (jobId: string) => {
-    if (!user || startJobLoading) return;
-    setStartJobLoading(jobId);
-    const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
-    if (job) {
-      const isFlexible = !!job.is_flexible_schedule;
-      const now = new Date();
-      const today = now.toISOString().split("T")[0];
-      if (job.date_needed && today < job.date_needed) {
-        toast.error(`This job is scheduled for ${new Date(job.date_needed + "T00:00").toLocaleDateString()}. You can't start it before that date.`, { duration: 5000 });
-        setStartJobLoading(null); return;
-      }
-      if (!isFlexible && job.start_time && today === job.date_needed) {
-        const [h, m] = job.start_time.split(":").map(Number);
-        const scheduledTime = new Date(now); scheduledTime.setHours(h, m, 0, 0);
-        if (now < scheduledTime) {
-          toast.error(`This job is scheduled to start at ${scheduledTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}. You can't start before the scheduled time.`, { duration: 5000 });
-          setStartJobLoading(null); return;
-        }
-      }
-      const proximity = await checkProximity(job.latitude, job.longitude);
-      if (!proximity.allowed) {
-        const miles = ((proximity.distance || 0) / 5280).toFixed(1);
-        toast.error(`You must be within 500ft of the job site to start. You're currently ~${miles} miles away.`, { duration: 6000 });
-        setStartJobLoading(null); return;
-      }
-    }
-    await supabase.from("job_checkins").insert({ job_id: jobId, user_id: user.id, type: "start_request", note: "Helpr started the job" });
-    await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
-    if (job) {
-      await createNotification({ user_id: job.customer_id, title: "🚀 Job started!", message: `Your helpr has started working on "${job.title}".`, type: "success", link: "/my-posts?filter=in_progress" });
-    }
-    toast.success("Job started! You're now in progress.");
-    await refresh();
-    setStatusFilter("in_progress");
-    setStartJobLoading(null);
-  };
-
   const confirmStartJob = async (jobId: string) => {
     const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
     if (error) toast.error("Failed to confirm start");
@@ -455,34 +414,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     }
     toast.success("Confirmed helpr is working!");
     refresh();
-  };
-
-  const markOnTheWay = async (jobId: string) => {
-    if (!user || onTheWayLoading) return;
-    setOnTheWayLoading(jobId);
-    const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: new Date().toISOString() }).eq("id", jobId);
-    if (error) { toast.error("Failed to update"); setOnTheWayLoading(null); return; }
-    const job = appliedApps.find(a => a.job_id === jobId)?.job;
-    if (job) {
-      await createNotification({ user_id: job.customer_id, title: "🚗 Helpr is on the way!", message: `Your helpr is headed to "${job.title}".`, type: "info", link: "/my-posts?filter=accepted" });
-    }
-    toast.success("You're on your way!");
-    refresh();
-    setOnTheWayLoading(null);
-  };
-
-  const markArrived = async (jobId: string) => {
-    if (!user || arrivedLoading) return;
-    setArrivedLoading(jobId);
-    const { error } = await supabase.from("jobs").update({ helper_arrived_at: new Date().toISOString(), status: "in_progress" }).eq("id", jobId);
-    if (error) { toast.error("Failed to update"); setArrivedLoading(null); return; }
-    const job = appliedApps.find(a => a.job_id === jobId)?.job;
-    if (job) {
-      await createNotification({ user_id: job.customer_id, title: "📍 Helpr has arrived!", message: `Your helpr has arrived for "${job.title}".`, type: "success", link: "/my-posts?filter=in_progress" });
-    }
-    toast.success("You've arrived! Job is now in progress.");
-    refresh();
-    setArrivedLoading(null);
   };
 
   const handleNoShow = async (jobId: string) => {
@@ -932,16 +863,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               apps={filteredAppliedApps}
               expandedJobId={expandedJobId}
               setExpandedJobId={setExpandedJobId}
-              startRequestedJobIds={startRequestedJobIds}
               helperReviewedJobIds={helperReviewedJobIds}
               userId={user!.id}
               onHelperResponse={handleHelperResponse}
-              onMarkOnTheWay={markOnTheWay}
-              onTheWayLoading={onTheWayLoading}
-              onMarkArrived={markArrived}
-              arrivedLoading={arrivedLoading}
-              onStartJob={startJob}
-              startJobLoading={startJobLoading}
               onComplete={completeJob}
               completingJobId={completingJobId}
               onResolveRevision={resolveRevision}

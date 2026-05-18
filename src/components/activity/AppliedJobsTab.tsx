@@ -247,10 +247,9 @@ export const AppliedJobsTab = ({
   const renderAppCard = (app: AppliedApp) => {
     const job = app.job;
     if (!job) return null;
-    const jobAny = job as any;
     const status = job.status;
-    const isOffered = app.status === "accepted" && status === "accepted" && !jobAny.helper_confirmed_at;
-    const isConfirmed = app.status === "accepted" && status === "accepted" && !!jobAny.helper_confirmed_at;
+    const isOffered = app.status === "accepted" && status === "accepted" && !job.helper_confirmed_at;
+    const isConfirmed = app.status === "accepted" && status === "accepted" && !!job.helper_confirmed_at;
     const isActive = app.status === "accepted" && (status === "in_progress" || status === "revision_requested");
     const isDisputed = app.status === "accepted" && status === "disputed";
     const isCompleted = app.status === "accepted" && status === "completed";
@@ -263,7 +262,7 @@ export const AppliedJobsTab = ({
     // Payout calc
     const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
     const perHelper = job.budget / helpers;
-    const commissionPercent = jobAny.helper_fee_percent ?? 10;
+    const commissionPercent = job.helper_fee_percent ?? 10;
     const commission = (perHelper * commissionPercent) / 100;
     const payout = perHelper - commission + (job.urgent_fee ?? 0);
 
@@ -511,7 +510,7 @@ export const AppliedJobsTab = ({
                 >
                   <ThumbsUp className="w-3 h-3" /> You were picked
                 </p>
-                {(app as any).offer_message && (
+                {app.offer_message && (
                   <div
                     className="rounded-ds-md p-3"
                     style={{
@@ -526,15 +525,15 @@ export const AppliedJobsTab = ({
                       <MessageSquare className="w-3 h-3" /> Message from poster
                     </p>
                     <p className="font-serif italic leading-relaxed" style={{ fontSize: "0.88rem", color: "hsl(var(--ink-deep))" }}>
-                      "{(app as any).offer_message}"
+                      "{app.offer_message}"
                     </p>
                   </div>
                 )}
                 {/* Job countdown */}
                 <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
-                {jobAny.response_deadline && (
+                {job.response_deadline && (
                   <DeadlineCountdown
-                    deadline={jobAny.response_deadline}
+                    deadline={job.response_deadline}
                     expiredText="Response deadline expired"
                     consequenceText="Accept or decline before the deadline"
                   />
@@ -579,9 +578,9 @@ export const AppliedJobsTab = ({
                 {/* Job countdown */}
                 <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
                 {/* Tracking — only active on the day of the job */}
-                <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={jobAny.helper_confirmed_at} posterConfirmedAt={jobAny.poster_confirmed_at} />
+                <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} />
                 {/* Job confirmation for helper */}
-                <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={jobAny.poster_confirmed_at} helperConfirmedAt={jobAny.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={jobAny.helper_on_the_way_at} />
+                <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
 
                 <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
               </div>
@@ -591,10 +590,10 @@ export const AppliedJobsTab = ({
             {isActive && (
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
                 {/* Live tracking for in-progress jobs */}
-                <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={jobAny.helper_confirmed_at} posterConfirmedAt={jobAny.poster_confirmed_at} />
+                <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} />
 
                 {/* Completion status — right after tracker */}
-                {jobAny.helper_completed_at && !jobAny.poster_completed_at && !jobAny.revision_requested_at && (
+                {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && (
                   <div className="rounded-ds-md border border-primary/20 bg-primary/5 overflow-hidden">
                     <div className="flex items-center gap-2 px-3 py-2">
                       <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
@@ -608,10 +607,10 @@ export const AppliedJobsTab = ({
                       </ul>
                       <p className="text-[10px] text-muted-foreground/70 pt-1">If the poster doesn't respond within 72 hours, payment will automatically be released to you.</p>
                     </div>
-                    {jobAny.helper_completed_at && (
+                    {job.helper_completed_at && (
                       <div className="px-3 pb-2.5">
                         <DeadlineCountdown
-                          deadline={new Date(new Date(jobAny.helper_completed_at).getTime() + 72 * 60 * 60 * 1000).toISOString()}
+                          deadline={new Date(new Date(job.helper_completed_at).getTime() + 72 * 60 * 60 * 1000).toISOString()}
                           expiredText="72 hours passed — payment auto-releasing to you"
                           consequenceText="Payment will auto-release to you when this timer expires."
                           variant="warning"
@@ -620,7 +619,7 @@ export const AppliedJobsTab = ({
                     )}
                   </div>
                 )}
-                {jobAny.helper_completed_at && jobAny.poster_completed_at && (
+                {job.helper_completed_at && job.poster_completed_at && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
                     <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
                     <span className="text-ds-13 font-medium text-primary">Job complete ✓</span>
@@ -628,30 +627,30 @@ export const AppliedJobsTab = ({
                 )}
 
                 {/* Job confirmation for helper during active job */}
-                <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={jobAny.poster_confirmed_at} helperConfirmedAt={jobAny.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={jobAny.helper_on_the_way_at} />
+                <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
                 {/* Revision notice */}
                 {status === "revision_requested" && (
                   <div className="space-y-2">
-                    {jobAny.revision_note && (
+                    {job.revision_note && (
                       <div className="p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
                         <p className="text-ds-11 font-semibold text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
-                        <p className="text-ds-11 text-muted-foreground mt-1">{jobAny.revision_note}</p>
+                        <p className="text-ds-11 text-muted-foreground mt-1">{job.revision_note}</p>
                       </div>
                     )}
-                    {jobAny.revision_deadline && !jobAny.revision_completed_at && (
+                    {job.revision_deadline && !job.revision_completed_at && (
                       <DeadlineCountdown
-                        deadline={jobAny.revision_deadline}
+                        deadline={job.revision_deadline}
                         expiredText="Revision deadline passed — poster can dispute or complete"
                         consequenceText="Fix the revision before the deadline. If not completed, the poster can file a dispute."
                         variant="warning"
                       />
                     )}
-                    {jobAny.revision_completed_at ? (
+                    {job.revision_completed_at ? (
                       <div className="space-y-2">
                         <div className="text-ds-11 text-center px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium">✓ Marked as fixed — waiting for poster</div>
-                        {jobAny.revision_acceptance_deadline && (
+                        {job.revision_acceptance_deadline && (
                           <DeadlineCountdown
-                            deadline={jobAny.revision_acceptance_deadline}
+                            deadline={job.revision_acceptance_deadline}
                             expiredText="Poster didn't respond — payment auto-releasing"
                             consequenceText="If the poster doesn't accept or dispute, payment auto-releases to you."
                             variant="warning"
@@ -665,11 +664,11 @@ export const AppliedJobsTab = ({
                 )}
 
                 {/* Photo proof - only when working */}
-                {jobAny.poster_confirmed_working_at && (
+                {job.poster_confirmed_working_at && (
                   <PhotoProofGroup
                     jobId={app.job_id}
-                    beforeUrls={jobAny.proof_before_urls || []}
-                    afterUrls={jobAny.proof_after_urls || []}
+                    beforeUrls={job.proof_before_urls || []}
+                    afterUrls={job.proof_after_urls || []}
                     canUploadBefore={true}
                     canUploadAfter={true}
                     requireAfter={true}
@@ -679,11 +678,11 @@ export const AppliedJobsTab = ({
 
                 {/* Complete + Message */}
                 <div className="space-y-2">
-                  {!jobAny.helper_completed_at && jobAny.helper_arrived_at && jobAny.poster_confirmed_working_at && (() => {
-                    const beforePhotos = jobAny.proof_before_urls || [];
-                    const afterPhotos = jobAny.proof_after_urls || [];
+                  {!job.helper_completed_at && job.helper_arrived_at && job.poster_confirmed_working_at && (() => {
+                    const beforePhotos = job.proof_before_urls || [];
+                    const afterPhotos = job.proof_after_urls || [];
                     const hasPhotos = beforePhotos.length > 0 && afterPhotos.length > 0;
-                    const workingStart = jobAny.poster_confirmed_working_at ? new Date(jobAny.poster_confirmed_working_at) : null;
+                    const workingStart = job.poster_confirmed_working_at ? new Date(job.poster_confirmed_working_at) : null;
                     const minWorkMs = 30 * 60 * 1000;
                     const tooEarly = workingStart ? (Date.now() - workingStart.getTime()) < minWorkMs : false;
                     const minutesLeft = workingStart ? Math.ceil((minWorkMs - (Date.now() - workingStart.getTime())) / 60000) : 0;
@@ -729,8 +728,8 @@ export const AppliedJobsTab = ({
 
             {/* Disputed */}
             {isDisputed && (() => {
-              const disputeStatus = jobAny.dispute_status || "open";
-              const hasResponded = !!jobAny.dispute_helper_response;
+              const disputeStatus = job.dispute_status || "open";
+              const hasResponded = !!job.dispute_helper_response;
               return (
                 <div
                   className="px-4 py-3 space-y-2.5"
@@ -763,27 +762,27 @@ export const AppliedJobsTab = ({
                         ? "An admin is on it."
                         : "Both sides are talking it out."}
                     </p>
-                    {jobAny.dispute_reason && (
+                    {job.dispute_reason && (
                       <p
                         className="font-serif italic mt-1.5"
                         style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
                       >
-                        Reason: {jobAny.dispute_reason}
+                        Reason: {job.dispute_reason}
                       </p>
                     )}
-                    {jobAny.disputed_at && (
+                    {job.disputed_at && (
                       <p
                         className="font-serif italic mt-1"
                         style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}
                       >
-                        Filed {formatDistanceToNow(new Date(jobAny.disputed_at), { addSuffix: true })}
+                        Filed {formatDistanceToNow(new Date(job.disputed_at), { addSuffix: true })}
                       </p>
                     )}
                   </div>
 
-                  {jobAny.dispute_deadline && (
+                  {job.dispute_deadline && (
                     <DeadlineCountdown
-                      deadline={jobAny.dispute_deadline}
+                      deadline={job.dispute_deadline}
                       expiredText="Deadline passed — payment auto-releasing to you"
                       consequenceText="If the poster doesn't resolve or escalate, payment auto-releases to you after the deadline."
                       variant="destructive"
@@ -791,11 +790,11 @@ export const AppliedJobsTab = ({
                   )}
 
                   {/* Photo proof */}
-                  {jobAny.poster_confirmed_working_at && (
+                  {job.poster_confirmed_working_at && (
                     <PhotoProofGroup
                       jobId={app.job_id}
-                      beforeUrls={jobAny.proof_before_urls || []}
-                      afterUrls={jobAny.proof_after_urls || []}
+                      beforeUrls={job.proof_before_urls || []}
+                      afterUrls={job.proof_after_urls || []}
                       canUploadBefore={true}
                       canUploadAfter={true}
                       requireAfter={true}
@@ -807,7 +806,7 @@ export const AppliedJobsTab = ({
                   {hasResponded && (
                     <div className="p-2 rounded-lg bg-primary/5 border border-primary/20">
                       <p className="text-[10px] text-muted-foreground font-medium">Your response:</p>
-                      <p className="text-ds-11 text-foreground mt-0.5">"{jobAny.dispute_helper_response}"</p>
+                      <p className="text-ds-11 text-foreground mt-0.5">"{job.dispute_helper_response}"</p>
                     </div>
                   )}
 
@@ -868,11 +867,11 @@ export const AppliedJobsTab = ({
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
                 <PhotoProofGroup
                   jobId={app.job_id}
-                  beforeUrls={jobAny.proof_before_urls || []}
-                  afterUrls={jobAny.proof_after_urls || []}
+                  beforeUrls={job.proof_before_urls || []}
+                  afterUrls={job.proof_after_urls || []}
                   canUpload={false}
                 />
-                {jobAny.payment_status === "released" && (
+                {job.payment_status === "released" && (
                   helperReviewedJobIds.has(app.job_id) ? (
                     <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed ✓</Button>
                   ) : (
@@ -895,8 +894,8 @@ export const AppliedJobsTab = ({
               <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
                 <PhotoProofGroup
                   jobId={app.job_id}
-                  beforeUrls={jobAny.proof_before_urls || []}
-                  afterUrls={jobAny.proof_after_urls || []}
+                  beforeUrls={job.proof_before_urls || []}
+                  afterUrls={job.proof_after_urls || []}
                   canUpload={false}
                 />
               </div>

@@ -23,7 +23,7 @@ import { ActivityDialogs } from "@/components/activity/ActivityDialogs";
 import { PostedJobsTab } from "@/components/activity/PostedJobsTab";
 import { AppliedJobsTab } from "@/components/activity/AppliedJobsTab";
 import {
-  type Job, type Application, type Tab, type EnrichedApplication,
+  type Job, type Application, type Tab, type EnrichedApplication, type AppliedApp,
 } from "@/components/activity/activityConstants";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SlidersHorizontal } from "lucide-react";
@@ -196,7 +196,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       // Softened: 5 strikes with graduated warnings before ban
       if (priorCount >= 4) actionTaken = "permanent_ban";
       else if (priorCount >= 2) actionTaken = "warning";
-      await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${(app as any).job?.title || "Unknown"}"`, job_id: app.job_id, action_taken: actionTaken });
+      await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${(app as AppliedApp).job?.title || "Unknown"}"`, job_id: app.job_id, action_taken: actionTaken });
       if (actionTaken === "warning") {
         const warningNum = priorCount + 1;
         await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", user.id);
@@ -224,7 +224,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const tryCancelJob = async (job: Job) => {
     const { data: tracking } = await supabase.from("job_tracking").select("status").eq("job_id", job.id).order("created_at", { ascending: false }).limit(1);
-    const trackingStatus = (tracking as any[])?.[0]?.status;
+    const trackingStatus = tracking?.[0]?.status;
     if (trackingStatus && ["on_the_way", "arrived", "working", "done"].includes(trackingStatus)) {
       toast.error("This job can't be cancelled — the helpr is already on the way or working.", { duration: 5000 });
       return;
@@ -240,7 +240,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         const job = appliedApps.find(a => a.job_id === jobId)?.job;
         if (job) {
           // GPS proximity check with photo fallback
-          const proximity = await checkProximity((job as any).latitude, (job as any).longitude);
+          const proximity = await checkProximity(job.latitude, job.longitude);
           if (!proximity.allowed) {
             // Check if helper has a verified arrival check-in (GPS or photo fallback)
             const { data: arrivalCheckins } = await supabase
@@ -268,7 +268,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               .select("proof_after_urls")
               .eq("id", jobId)
               .single();
-            const afterPhotos = (jobData as any)?.proof_after_urls || [];
+            const afterPhotos = jobData?.proof_after_urls || [];
             if (afterPhotos.length === 0) {
               toast.error("After-photos are required for jobs $50+. Please upload proof photos before marking complete.", { duration: 6000 });
               return;
@@ -316,7 +316,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     setStartJobLoading(jobId);
     const job = [...postedJobs, ...appliedApps.map(a => a.job)].find(j => j?.id === jobId);
     if (job) {
-      const isFlexible = !!(job as any).is_flexible_schedule;
+      const isFlexible = !!job.is_flexible_schedule;
       const now = new Date();
       const today = now.toISOString().split("T")[0];
       if (job.date_needed && today < job.date_needed) {
@@ -331,7 +331,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           setStartJobLoading(null); return;
         }
       }
-      const proximity = await checkProximity((job as any).latitude, (job as any).longitude);
+      const proximity = await checkProximity(job.latitude, job.longitude);
       if (!proximity.allowed) {
         const miles = ((proximity.distance || 0) / 5280).toFixed(1);
         toast.error(`You must be within 500ft of the job site to start. You're currently ~${miles} miles away.`, { duration: 6000 });
@@ -420,7 +420,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       const job = postedJobs.find((j) => j.id === jobId);
       if (!job?.helper_id) return;
       const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", job.helper_id).eq("violation_type", "no_show");
-      const priorCount = (existing as any[] | null)?.length || 0;
+      const priorCount = existing?.length || 0;
       await supabase.from("user_violations").insert({ user_id: job.helper_id, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: priorCount >= 1 ? "permanent_ban" : "warning" });
       if (priorCount >= 1) {
         await supabase.from("user_bans").insert({ user_id: job.helper_id, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
@@ -478,11 +478,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     postedJobs.filter((j) => {
       // Status filter
       let statusMatch = false;
-      const ja = j as any;
-      if (statusFilter === "direct_offer") statusMatch = !!ja.offered_to_helper_id && ja.direct_offer_status === "pending";
-      else if (statusFilter === "offered") statusMatch = j.status === "accepted" && !ja.helper_confirmed_at;
-      else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!ja.helper_confirmed_at;
-      else statusMatch = j.status === statusFilter && !(statusFilter === "open" && ja.direct_offer_status === "pending");
+      if (statusFilter === "direct_offer") statusMatch = !!j.offered_to_helper_id && j.direct_offer_status === "pending";
+      else if (statusFilter === "offered") statusMatch = j.status === "accepted" && !j.helper_confirmed_at;
+      else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!j.helper_confirmed_at;
+      else statusMatch = j.status === statusFilter && !(statusFilter === "open" && j.direct_offer_status === "pending");
       if (!statusMatch) return false;
       // Search filter
       if (searchLower) {
@@ -495,11 +494,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     const query = searchLower;
     return appliedApps.filter((a) => {
       let statusMatch = false;
-      const ja = a.job as any;
-      if (statusFilter === "direct_offer") statusMatch = !!ja?.offered_to_helper_id && ja?.offered_to_helper_id === user?.id && ja?.direct_offer_status === "pending";
+      if (statusFilter === "direct_offer") statusMatch = !!a.job?.offered_to_helper_id && a.job?.offered_to_helper_id === user?.id && a.job?.direct_offer_status === "pending";
       else if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
-      else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at;
-      else if (statusFilter === "accepted") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at;
+      else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at;
+      else if (statusFilter === "accepted") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !!a.job?.helper_confirmed_at;
       else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && a.job?.status === "in_progress";
       else if (statusFilter === "disputed") statusMatch = a.status === "accepted" && a.job?.status === "disputed";
       else if (statusFilter === "revision") statusMatch = a.status === "accepted" && a.job?.status === "revision_requested";
@@ -516,11 +514,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const appliedCounts = useMemo(() => {
     const counts: Record<string, number> = { pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
     appliedApps.forEach((a) => {
-      const ja = a.job as any;
-      if (ja?.offered_to_helper_id === user?.id && ja?.direct_offer_status === "pending") counts.direct_offer++;
+      if (a.job?.offered_to_helper_id === user?.id && a.job?.direct_offer_status === "pending") counts.direct_offer++;
       if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
-      else if (a.status === "accepted" && a.job?.status === "accepted" && !(a.job as any)?.helper_confirmed_at) counts.offered++;
-      else if (a.status === "accepted" && a.job?.status === "accepted" && !!(a.job as any)?.helper_confirmed_at) counts.accepted++;
+      else if (a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at) counts.offered++;
+      else if (a.status === "accepted" && a.job?.status === "accepted" && !!a.job?.helper_confirmed_at) counts.accepted++;
       else if (a.status === "accepted" && a.job?.status === "in_progress") counts.in_progress++;
       else if (a.status === "accepted" && a.job?.status === "disputed") counts.disputed++;
       else if (a.status === "accepted" && a.job?.status === "revision_requested") counts.revision++;
@@ -533,10 +530,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const postedCounts = useMemo(() => {
     const counts: Record<string, number> = { open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0 };
     postedJobs.forEach((j) => {
-      const ja = j as any;
-      if (ja.offered_to_helper_id && ja.direct_offer_status === "pending") counts.direct_offer++;
-      if (j.status === "accepted" && !ja.helper_confirmed_at) counts.offered++;
-      else if (j.status === "accepted" && !!ja.helper_confirmed_at) counts.accepted++;
+      if (j.offered_to_helper_id && j.direct_offer_status === "pending") counts.direct_offer++;
+      if (j.status === "accepted" && !j.helper_confirmed_at) counts.offered++;
+      else if (j.status === "accepted" && !!j.helper_confirmed_at) counts.accepted++;
       else counts[j.status] = (counts[j.status] || 0) + 1;
     });
     return counts;

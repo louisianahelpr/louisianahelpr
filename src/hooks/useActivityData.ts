@@ -41,7 +41,7 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
   if (primaryError) throw primaryError;
 
   const startRequestedJobIds = new Set<string>();
-  const postedJobs: Job[] = (postedRes.data as any) || [];
+  const postedJobs: Job[] = postedRes.data ?? [];
   const applicantCounts: Record<string, number> = {};
   const helperNames: Record<string, string> = {};
   const completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }> = {};
@@ -108,7 +108,7 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
     }
     appliedApps = appsRes.data.map((a) => {
       const job = jobMap.get(a.job_id) || null;
-      return { ...a, job: job as any, posterName: job ? posterNameMap.get(job.customer_id) || "User" : "User" };
+      return { ...a, job, posterName: job ? posterNameMap.get(job.customer_id) || "User" : "User" };
     });
   }
 
@@ -120,7 +120,7 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
       id: `direct-${job.id}`,
       job_id: job.id,
       helper_id: userId,
-      status: "pending" as any,
+      status: "pending",
       message: null,
       offer_message: null,
       attachment_urls: null,

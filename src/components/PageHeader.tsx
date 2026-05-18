@@ -26,10 +26,7 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, subtitle, hideBac
   return (
     <>
       {rightSlot && (
-        <header
-          className="sticky top-0 z-50 border-b border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur-[12px] backdrop-saturate-150 shadow-[0_4px_20px_-8px_hsl(0_0%_0%/0.08)]"
-          style={{ paddingTop: "env(safe-area-inset-top, 0px)", WebkitBackdropFilter: "blur(12px) saturate(1.5)" }}
-        >
+        <header className="glass-header sticky top-0 z-50">
           <div className="mx-auto flex h-12 max-w-5xl lg:max-w-6xl 2xl:max-w-7xl items-center justify-end gap-2 px-5 lg:px-8 xl:px-12">
             <div className="flex items-center gap-1 shrink-0">{rightSlot}</div>
           </div>

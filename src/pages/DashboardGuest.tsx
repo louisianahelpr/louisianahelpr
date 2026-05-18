@@ -218,10 +218,7 @@ const DashboardGuest = () => {
       header={
         /* Header — matches DashboardHeader's frosted-glass treatment, with
            guest-only Log in / Sign up actions in place of the menu/notif/etc. */
-        <header
-        className="sticky top-0 z-50 border-b border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur-[12px] backdrop-saturate-150 shadow-[0_4px_20px_-8px_hsl(0_0%_0%/0.08)] shrink-0"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)", WebkitBackdropFilter: "blur(12px) saturate(1.5)" }}
-      >
+        <header className="glass-header sticky top-0 z-50 shrink-0">
         <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
           <HelprMark to="/" size="md" />
           <div className="flex items-center gap-2">

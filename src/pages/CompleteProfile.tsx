@@ -14,6 +14,7 @@ import { Camera, Check, FileText, Loader2, ShieldCheck, X } from "lucide-react";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
+import { splitName } from "@/lib/splitName";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
@@ -72,9 +73,9 @@ const CompleteProfile = () => {
   // Hydrate any existing values (so we only ask for what's missing)
   useEffect(() => {
     if (!profile) return;
-    const fn = profile.full_name?.split(" ") ?? [];
-    if (fn.length > 0 && !firstName) setFirstName(fn[0] ?? "");
-    if (fn.length > 1 && !lastName) setLastName(fn.slice(1).join(" "));
+    const { firstName: parsedFirst, lastName: parsedLast } = splitName(profile.full_name);
+    if (parsedFirst && !firstName) setFirstName(parsedFirst);
+    if (parsedLast && !lastName) setLastName(parsedLast);
     if (profile.date_of_birth && !dateOfBirth) setDateOfBirth(profile.date_of_birth);
     if (profile.phone && !phone) setPhone(formatPhone(profile.phone));
     if (profile.location && !location) setLocation(profile.location);

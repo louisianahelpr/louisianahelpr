@@ -18,6 +18,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
+import { splitName } from "@/lib/splitName";
 
 // Lazy-loaded tab components — keeps Profile.tsx initial bundle under 200KB.
 // Each tab is only fetched the first time the user clicks it.
@@ -102,20 +103,18 @@ const ProfilePage = () => {
   }, [searchParams]);
 
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
-  const [, setStripeConnectLoading] = useState(false);
-  
+
 
   // Stats
   const [completedCount, setCompletedCount] = useState(0);
   const [postedCount, setPostedCount] = useState(0);
-  const [, setTotalJobEarnings] = useState(0);
-  const [, setTotalTipEarnings] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
   const [reviewCount, setReviewCount] = useState(0);
 
   // Reviews
   const [reviews, setReviews] = useState<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
 
   // Profile fields
   const [, setFullName] = useState("");
@@ -173,9 +172,9 @@ const ProfilePage = () => {
       if (cachedProfile) {
         setProfile(cachedProfile);
         setFullName(cachedProfile.full_name || "");
-        const _parts = (cachedProfile.full_name || "").trim().split(/\s+/);
-        setFirstName(_parts[0] || "");
-        setLastName(_parts.slice(1).join(" ") || "");
+        const { firstName: _firstName, lastName: _lastName } = splitName(cachedProfile.full_name);
+        setFirstName(_firstName);
+        setLastName(_lastName);
         setPhone(cachedProfile.phone || "");
         setLocation(cachedProfile.location || "");
         setZipCode(cachedProfile.zip_code || "");
@@ -205,24 +204,12 @@ const ProfilePage = () => {
   }, [zipCode]);
 
   const loadStats = async (userId: string) => {
-    const [helperJobsRes, reviewsRes, postedRes, tipsStatsRes, completedJobIdsRes] = await Promise.all([
-      supabase.from("jobs").select("budget, platform_fee_amount, urgent_fee").eq("helper_id", userId).eq("status", "completed"),
+    const [helperJobsRes, reviewsRes, postedRes] = await Promise.all([
+      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId).eq("status", "completed"),
       supabase.from("reviews").select("rating").eq("reviewee_id", userId).lte("feedback_visible_at", new Date().toISOString()),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId),
-      supabase.from("tips").select("amount, job_id").eq("helper_id", userId),
-      supabase.from("jobs").select("id").eq("helper_id", userId).eq("status", "completed"),
     ]);
-    const completedIds = new Set((completedJobIdsRes.data || []).map(j => j.id));
-    if (helperJobsRes.data) {
-      setCompletedCount(helperJobsRes.data.length);
-      const jobEarnings = helperJobsRes.data.reduce((s, j) => {
-        const fee = j.platform_fee_amount || 0;
-        return s + (j.budget - fee + (j.urgent_fee ?? 0));
-      }, 0);
-      setTotalJobEarnings(jobEarnings);
-    }
-    const tipEarnings = (tipsStatsRes.data || []).filter(t => completedIds.has(t.job_id)).reduce((s, t) => s + (t.amount || 0), 0);
-    setTotalTipEarnings(tipEarnings);
+    setCompletedCount(helperJobsRes.count || 0);
     setPostedCount(postedRes.count || 0);
     if (reviewsRes.data && reviewsRes.data.length > 0) {
       setAvgRating(reviewsRes.data.reduce((s, r) => s + r.rating, 0) / reviewsRes.data.length);
@@ -230,8 +217,11 @@ const ProfilePage = () => {
     }
   };
 
-  const loadReviews = async () => {
+  const loadReviews = async ({ force = false }: { force?: boolean } = {}) => {
     if (!user) return;
+    // In-flight / loaded guard so the landing-tab effect fetches once.
+    // Pull-to-refresh passes { force: true } to deliberately re-sync.
+    if (!force && (reviewsLoading || reviewsLoaded)) return;
     setReviewsLoading(true);
     const { data } = await supabase
       .from("reviews")
@@ -263,6 +253,7 @@ const ProfilePage = () => {
     } else {
       setReviews([]);
     }
+    setReviewsLoaded(true);
     setReviewsLoading(false);
   };
 
@@ -274,7 +265,8 @@ const ProfilePage = () => {
     // Landing page surfaces a 2-review preview on the hero card.
     // Fetch the same data lazily on first landing-tab mount so the
     // preview appears without making the user open the reviews tab.
-    if (tab === "landing" && reviews.length === 0 && !reviewsLoading) loadReviews();
+    // loadReviews() has an in-flight/loaded guard so this fetches once.
+    if (tab === "landing") loadReviews();
   }, [tab, user]);
 
   // Pull-to-refresh for the Profile landing — re-syncs the profile,
@@ -284,7 +276,7 @@ const ProfilePage = () => {
     onRefresh: async () => {
       await refreshCurrentUser();
       if (user) await loadStats(user.id);
-      await loadReviews();
+      await loadReviews({ force: true });
     },
   });
 
@@ -295,15 +287,12 @@ const ProfilePage = () => {
   }, [profile]);
 
   const checkStripeConnect = async () => {
-    setStripeConnectLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
       if (error) throw error;
       setStripeConnectStatus(data);
     } catch {
       setStripeConnectStatus({ connected: false, details_submitted: false, payouts_enabled: false });
-    } finally {
-      setStripeConnectLoading(false);
     }
   };
 

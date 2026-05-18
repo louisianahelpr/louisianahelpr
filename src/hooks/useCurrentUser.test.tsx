@@ -29,7 +29,7 @@ const mocks = vi.hoisted(() => {
   const onMock = vi.fn();
   const removeChannelMock = vi.fn();
   let channelHandler: (() => void) | null = null;
-  const channelMock = vi.fn(() => {
+  const channelMock = vi.fn((..._args: unknown[]) => {
     const channel = {
       on: (
         _eventType: string,

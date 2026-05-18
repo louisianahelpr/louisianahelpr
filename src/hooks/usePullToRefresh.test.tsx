@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { render, act, waitFor, screen } from "@testing-library/react";
 import { useEffect, useState } from "react";
 
@@ -75,11 +75,11 @@ const performTouchSequence = async (el: Element, startY: number, endY: number) =
 };
 
 describe("usePullToRefresh", () => {
-  let onRefresh: ReturnType<typeof vi.fn>;
+  let onRefresh: Mock<() => Promise<void>>;
 
   beforeEach(() => {
     hapticMock.mockReset();
-    onRefresh = vi.fn().mockResolvedValue(undefined);
+    onRefresh = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
   });
 
   it("starts with refreshing=false, isPulling=false, pullDistance=0", () => {

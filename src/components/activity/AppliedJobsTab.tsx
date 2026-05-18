@@ -27,6 +27,7 @@ interface AppliedJobsTabProps {
   completingJobId: string | null;
   onResolveRevision: (jobId: string) => void;
   onHelperReview: (jobId: string, posterId: string, posterName: string) => void;
+  onRefresh: () => void;
 }
 
 export const AppliedJobsTab = ({
@@ -36,7 +37,7 @@ export const AppliedJobsTab = ({
   onMarkArrived: _onMarkArrived, arrivedLoading: _arrivedLoading,
   onStartJob: _onStartJob, startJobLoading: _startJobLoading,
   onComplete, completingJobId,
-  onResolveRevision, onHelperReview,
+  onResolveRevision, onHelperReview, onRefresh,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
   const [disputeResponse, setDisputeResponse] = useState("");
@@ -183,6 +184,7 @@ export const AppliedJobsTab = ({
             completingJobId={completingJobId}
             onResolveRevision={onResolveRevision}
             onHelperReview={onHelperReview}
+            onRefresh={onRefresh}
             disputeResponse={disputeResponse}
             setDisputeResponse={setDisputeResponse}
             respondingJobId={respondingJobId}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import { formatName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -88,7 +89,9 @@ export function useDashboardData() {
 
       // Phase 1: jobs page. Range is inclusive on both ends, so request
       // PAGE_SIZE + 1 rows to know whether another page exists without a count.
-      const { data: rawJobsRes, error: rawJobsError } = await supabase
+      // unwrap throws on a failed fetch so React Query flips to its error
+      // state and the dashboard shows ErrorState, not a blank "quiet" feed.
+      const rawJobsRes = unwrap(await supabase
         .from("open_jobs_browse")
         .select(
           // NOTE: open_jobs_browse view does NOT expose latitude/longitude
@@ -101,10 +104,7 @@ export function useDashboardData() {
         .neq("payment_status", "abandoned")
         .order("boosted_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE);
-      // Throw so React Query flips to its error state — the dashboard
-      // shows a recoverable ErrorState instead of a blank "all quiet" feed.
-      if (rawJobsError) throw rawJobsError;
+        .range(offset, offset + PAGE_SIZE));
 
       const rawAll = ((rawJobsRes ?? []) as any[]).filter((j) => !blockedUserIds.has(j.customer_id));
       const hasMore = rawAll.length > PAGE_SIZE;

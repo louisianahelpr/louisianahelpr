@@ -117,12 +117,12 @@ export function ChatView({
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col bg-premium-page overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
       <DashboardHeader />
-      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-0">
-        <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto">
+      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-0 flex-1 min-h-0 flex flex-col">
+        <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col">
         <div
-          className="flex flex-col h-[calc(100dvh-4rem)] transition-[padding] duration-150"
+          className="flex flex-col flex-1 min-h-0 transition-[padding] duration-150"
           style={{ paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : "env(safe-area-inset-bottom)" }}
         >
           {/* Chat header — compact, vertically centered. Avatar uses
@@ -306,8 +306,9 @@ export function ChatView({
                       />
                     )}
                     {m.content && renderMessageContent(m.content)}
-                    {/* Action buttons on hover */}
-                    <div className={`absolute ${mine ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
+                    {/* Report / delete — revealed on hover (desktop) and
+                        always shown on touch devices, which have no hover. */}
+                    <div className={`absolute ${mine ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity flex gap-1`}>
                       {!mine && (
                         <button
                           onClick={() => setReportTarget({ type: "message", id: m.id })}

@@ -7,7 +7,7 @@ import {
   ChevronRight as ChevronRightIcon, ChevronDown,
   HelpCircle, Bell, AlertTriangle, Heart, Crown,
   ShieldCheck, Trash2,
-  BadgeCheck, ImagePlus, Camera,
+  BadgeCheck, Camera,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 

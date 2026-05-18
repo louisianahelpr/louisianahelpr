@@ -114,6 +114,12 @@ export default defineConfig(({ mode }) => ({
           // first visit and Lighthouse attributes the load + a misleading
           // forced-reflow source to it. Defer the cache fetch to actual use.
           "**/assets/motion-*.js",
+          // PostHog (analytics) + Sentry (error tracking) are deferred
+          // until first user interaction (see main.tsx). Precaching them
+          // would re-ship ~322 KB on a cold landing visit and undo that
+          // deferral, so keep them out of the SW cache too.
+          "**/assets/posthog-*.js",
+          "**/assets/sentry-*.js",
         ],
         // Bump the per-file precache limit so the main bundle still fits.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,

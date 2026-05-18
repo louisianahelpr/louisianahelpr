@@ -10,7 +10,7 @@
 // (the same lightweight pattern the signup skill picker uses) — no
 // cmdk / Command primitive dependency.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { LOUISIANA_CITIES } from "@/lib/louisianaCities";

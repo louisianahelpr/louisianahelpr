@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import HelprMark from "@/components/HelprMark";
 
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -357,11 +356,9 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
-        <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-          <div className="container mx-auto flex items-center gap-2 h-16 px-4">
-            <HelprMark to="/dashboard" size="md" />
-          </div>
-        </header>
+        {/* Same DashboardHeader as the loaded state so the header doesn't
+            jump in height/styling when the skeleton resolves. */}
+        <DashboardHeader />
         <main className="container mx-auto px-5 lg:px-8 xl:px-12 py-4">
           <div className="max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto"><DashboardSkeleton /></div>
         </main>

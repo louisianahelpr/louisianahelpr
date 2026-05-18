@@ -134,7 +134,7 @@ const AdminHealth = () => {
       const [openRes, compRes, dispRes, cancelRes] = await Promise.all([
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "open").gte("created_at", weekAgo),
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").gte("updated_at", weekAgo),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed" as any).gte("updated_at", weekAgo),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").gte("updated_at", weekAgo),
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "cancelled").gte("updated_at", weekAgo),
       ]);
       const recentJobs = {

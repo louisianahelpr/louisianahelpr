@@ -15,7 +15,7 @@ export async function getBlockedUserIds(currentUserId: string): Promise<Set<stri
   if (error || !data) return new Set();
 
   const ids = new Set<string>();
-  for (const row of data as any[]) {
+  for (const row of data) {
     if (row.blocker_id === currentUserId) ids.add(row.blocked_id);
     if (row.blocked_id === currentUserId) ids.add(row.blocker_id);
   }
@@ -26,7 +26,7 @@ export async function getBlockedUserIds(currentUserId: string): Promise<Set<stri
  * Quickly check if two specific users are blocked in either direction.
  */
 export async function areUsersBlocked(userA: string, userB: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc("are_users_blocked" as any, {
+  const { data, error } = await supabase.rpc("are_users_blocked", {
     _user_a: userA,
     _user_b: userB,
   });
@@ -63,7 +63,7 @@ export async function blockUser(
 
   const cancelledJobIds: string[] = [];
   if (activeJobs && activeJobs.length > 0) {
-    for (const job of activeJobs as any[]) {
+    for (const job of activeJobs) {
       const { error: cancelErr } = await supabase
         .from("jobs")
         .update({

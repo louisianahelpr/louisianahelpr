@@ -47,7 +47,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
     }
 
     const updateField = type === "before" ? { proof_before_urls: urls } : { proof_after_urls: urls };
-    await supabase.from("jobs").update(updateField as any).eq("id", jobId);
+    await supabase.from("jobs").update(updateField).eq("id", jobId);
 
     toast.success(`${type === "before" ? "Before" : "After"} photos uploaded!`);
     setFiles([]);

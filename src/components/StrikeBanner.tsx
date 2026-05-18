@@ -18,7 +18,7 @@ export default function StrikeBanner() {
         .select("ban_status, auto_suspended_until")
         .eq("user_id", userId)
         .maybeSingle();
-      if (!cancelled && data) setStatus(data as any);
+      if (!cancelled && data) setStatus(data);
     };
     void supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user.id) void load(session.user.id);

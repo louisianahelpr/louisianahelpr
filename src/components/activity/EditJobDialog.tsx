@@ -49,7 +49,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     if (!job) return;
     setSaving(true);
     const updateData: any = {
-      title: title.trim(), description: description.trim(), category: category as any,
+      title: title.trim(), description: description.trim(), category,
       location: location.trim(), date_needed: dateNeeded, start_time: startTime || null,
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       special_requirements: specialReq.trim() || null,

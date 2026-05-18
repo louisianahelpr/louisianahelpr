@@ -363,7 +363,7 @@ const Messages = () => {
       .eq("user_id", userId)
       .eq("violation_type", "off_platform");
 
-    const priorCount = (existing as any[] | null)?.length || 0;
+    const priorCount = existing?.length || 0;
 
     if (priorCount >= 1) {
       await supabase.from("user_bans").insert({

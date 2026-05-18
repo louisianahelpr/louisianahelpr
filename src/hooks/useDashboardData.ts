@@ -188,8 +188,10 @@ export function useDashboardData() {
     enabled: !!user && !userLoading && !!ctx,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-    refetchIntervalInBackground: false,
+    // No refetchInterval: on an infinite query it refetches EVERY loaded
+    // page (~16 queries each) on a timer. The feed stays fresh via
+    // refetchOnWindowFocus (frequent on mobile) and the dashboard's
+    // pull-to-refresh — both far cheaper than an all-pages poll.
   });
 
   // Pro tier — separate lightweight query so it doesn't block dashboard

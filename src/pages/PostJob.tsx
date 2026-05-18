@@ -3,6 +3,7 @@ import PageHeader from "@/components/PageHeader";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { X, UserCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -385,7 +386,9 @@ const PostJob = () => {
       business_id: business?.business_id ?? null,
       title: title.trim(),
       description: description.trim(),
-      category: category as any,
+      // category state is a plain string; the jobs column is the
+      // job_category enum — cast at the boundary.
+      category: category as Database["public"]["Enums"]["job_category"],
       location: `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`,
       zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
       parish: parish,

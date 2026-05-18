@@ -55,7 +55,9 @@ const AdminHelperTiers = () => {
     fetcher: async () => {
       const { data, error } = await supabase.rpc("get_helper_tiers", { p_limit: 50 });
       if (error) return [];
-      return (data as any) || [];
+      // RPC row shape differs from the local HelperTier type (column
+      // naming / nullability) — cast at the boundary.
+      return (data as HelperTier[]) || [];
     },
   });
 

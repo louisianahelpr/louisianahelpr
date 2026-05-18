@@ -47,7 +47,7 @@ export async function fetchReferralData(userId: string): Promise<ReferralData> {
     referralCode,
     credits: (creditsRes.data as ReferralCredit[]) || [],
     referralCount: referralsRes.count || 0,
-    hasStripeAccount: !!(profileRes.data as any)?.stripe_account_id,
+    hasStripeAccount: !!profileRes.data?.stripe_account_id,
   };
 }
 

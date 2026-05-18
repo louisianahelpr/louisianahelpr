@@ -34,7 +34,7 @@ export function BusinessBadge({
         .maybeSingle();
 
       if (cancelled || error || !data) return;
-      const status = (data as any).businesses?.verification_status;
+      const status = data.businesses?.verification_status;
       if (status === "verified") setState("verified");
       else if (status === "pending") setState("pending");
       else setState("none");

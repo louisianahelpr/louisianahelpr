@@ -83,7 +83,7 @@ const CompleteProfile = () => {
     if (profile.id_document_url && !idPreview) setIdPreview(profile.id_document_url);
     // Persisted terms acceptance — read straight from the row so refresh / re-entry
     // doesn't reset the user's previous "yes I agree".
-    if ((profile as any).accepted_terms_at) setAcceptedPolicies(true);
+    if (profile.accepted_terms_at) setAcceptedPolicies(true);
      
   }, [profile?.user_id]);
 

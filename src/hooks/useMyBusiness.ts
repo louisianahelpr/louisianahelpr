@@ -30,7 +30,7 @@ const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | nul
 
   if (error || !data) return null;
 
-  const biz = (data as any).businesses;
+  const biz = data.businesses;
   const tier = (biz.seat_tier ?? "starter") as SeatTier;
   return {
     business_id: data.business_id,

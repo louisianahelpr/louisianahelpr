@@ -69,7 +69,7 @@ const SwipeableJobCard = ({
   // "Just in" pulsing dot for jobs posted in the last 30 minutes — gives
   // browsing helprs a live signal that the marketplace is active.
   const isJustIn = (() => {
-    const createdRaw = (job as any).created_at;
+    const createdRaw = job.created_at;
     if (!createdRaw) return false;
     const ageMs = Date.now() - new Date(createdRaw).getTime();
     return ageMs > 0 && ageMs < 30 * 60 * 1000;

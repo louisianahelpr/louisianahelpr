@@ -87,7 +87,7 @@ const NotificationPreferences = () => {
         .eq("user_id", user.id)
         .single();
       if (cancelled) return;
-      if (data) setPrefs({ ...defaultPrefs, ...(data as any) });
+      if (data) setPrefs({ ...defaultPrefs, ...data });
       setLoaded(true);
     })();
     return () => { cancelled = true; };

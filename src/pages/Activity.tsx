@@ -150,28 +150,59 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
     if (!deadlineDialogApp || !selectedJob || !user) return;
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
-    // Atomic accept — see migration 20260518120000_accept_application_rpc.
-    // The RPC row-locks the job so two concurrent accepts can't both
-    // book the same single-helper job, and it surfaces a real error
-    // instead of the previous fire-and-forget updates that always
-    // toasted success. (`rpc as any` until types.ts is regenerated.)
+    // Atomic accept via the accept_application RPC (migration
+    // 20260518120000): it row-locks the job so two concurrent accepts
+    // can't both book the same single-helper job. (`rpc as any` until
+    // types.ts is regenerated for the new function.)
     const { error } = await (supabase.rpc as any)("accept_application", {
       p_application_id: deadlineDialogApp.id,
       p_deadline: deadline,
       p_offer_message: initialMessage ?? null,
     });
+
     if (error) {
-      const msg = String(error.message ?? "");
-      toast.error(
-        msg.includes("job_not_open")
-          ? "This job is no longer open — it may already be assigned."
-          : msg.includes("application_not_pending")
-            ? "This applicant can no longer be accepted."
-            : msg.includes("not_authorized")
-              ? "You can only accept applicants on a job you posted."
-              : "Couldn't send the offer — please try again.",
-      );
-      return;
+      const msg = String(error?.message ?? "");
+      // If the RPC isn't deployed yet (migration not applied to this
+      // environment), fall back to a status-guarded direct update so the
+      // accept flow still works. `UPDATE jobs ... WHERE status = 'open'`
+      // is atomic per row, so a second concurrent accept matches zero
+      // rows and is rejected — double-booking is still prevented, just
+      // without the RPC's explicit lock. This branch goes dormant the
+      // moment the migration lands and the RPC starts succeeding.
+      const rpcMissing =
+        String(error?.code ?? "") === "PGRST202" ||
+        /could not find the function|does not exist|schema cache/i.test(msg);
+      if (rpcMissing) {
+        const { data: jobRows, error: jobErr } = await supabase
+          .from("jobs")
+          .update({ status: "accepted", helper_id: deadlineDialogApp.helper_id, response_deadline: deadline })
+          .eq("id", selectedJob.id)
+          .eq("status", "open")
+          .select("id");
+        if (jobErr || !jobRows || jobRows.length === 0) {
+          toast.error("This job is no longer open — it may already be assigned.");
+          return;
+        }
+        const { error: appErr } = await supabase
+          .from("applications")
+          .update({ status: "accepted", ...(initialMessage ? { offer_message: initialMessage } : {}) })
+          .eq("id", deadlineDialogApp.id);
+        if (appErr) {
+          toast.error("Couldn't send the offer — please try again.");
+          return;
+        }
+      } else {
+        toast.error(
+          msg.includes("job_not_open")
+            ? "This job is no longer open — it may already be assigned."
+            : msg.includes("application_not_pending")
+              ? "This applicant can no longer be accepted."
+              : msg.includes("not_authorized")
+                ? "You can only accept applicants on a job you posted."
+                : "Couldn't send the offer — please try again.",
+        );
+        return;
+      }
     }
     await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: "/my-jobs?filter=offered" });
     toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);

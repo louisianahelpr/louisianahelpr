@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/queryKeys";
+import { unwrap } from "@/lib/supabaseResult";
 
 export interface ReferralCredit {
   id: string;
@@ -32,7 +33,16 @@ export async function fetchReferralData(userId: string): Promise<ReferralData> {
     supabase.from("profiles").select("stripe_account_id").eq("user_id", userId).single(),
   ]);
 
-  let referralCode: string | null = codeRes.data?.code ?? null;
+  // Surface a failed read as a query error instead of silently
+  // returning blank data. Critically, a transient failure on the code
+  // lookup must throw *here* — otherwise it falls through to inserting
+  // a brand-new referral code even though the user already has one.
+  if (referralsRes.error) throw referralsRes.error;
+  const codeRow = unwrap(codeRes);
+  const credits = unwrap(creditsRes);
+  const profile = unwrap(profileRes);
+
+  let referralCode: string | null = codeRow?.code ?? null;
   if (!referralCode) {
     const newCode = generateCode();
     const { data: inserted } = await supabase
@@ -45,9 +55,9 @@ export async function fetchReferralData(userId: string): Promise<ReferralData> {
 
   return {
     referralCode,
-    credits: (creditsRes.data as ReferralCredit[]) || [],
+    credits: (credits as ReferralCredit[]) || [],
     referralCount: referralsRes.count || 0,
-    hasStripeAccount: !!profileRes.data?.stripe_account_id,
+    hasStripeAccount: !!profile?.stripe_account_id,
   };
 }
 

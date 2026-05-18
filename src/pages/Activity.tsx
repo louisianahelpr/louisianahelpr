@@ -259,33 +259,65 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       await refresh();
       setStatusFilter("accepted");
     } else {
-      const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
-      const priorCount = existing?.length || 0;
+      // Decline — atomic via the decline_job_offer RPC (migration
+      // 20260518140000): the violation insert, ban escalation, app
+      // rejection and job reopen all run in one transaction. Falls back
+      // to the pre-migration multi-step path (atomic per-row only) if
+      // the RPC isn't deployed to this environment yet — that branch
+      // goes dormant once the migration lands.
       let actionTaken = "none";
-      // Softened: 5 strikes with graduated warnings before ban
-      if (priorCount >= 4) actionTaken = "permanent_ban";
-      else if (priorCount >= 2) actionTaken = "warning";
-      await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${(app as AppliedApp).job?.title || "Unknown"}"`, job_id: app.job_id, action_taken: actionTaken });
+      let priorCount = 0;
+      const declineTitle = (app as AppliedApp).job?.title || "Unknown";
+
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("decline_job_offer", {
+        p_application_id: app.id,
+      });
+
+      if (rpcError) {
+        const msg = String(rpcError?.message ?? "");
+        const rpcMissing =
+          String(rpcError?.code ?? "") === "PGRST202" ||
+          /could not find the function|does not exist|schema cache/i.test(msg);
+        if (!rpcMissing) {
+          toast.error(
+            /offer_not_active/.test(msg)
+              ? "This offer is no longer active."
+              : "Couldn't record your response — please try again.",
+          );
+          return;
+        }
+        const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
+        priorCount = existing?.length || 0;
+        // Softened: 5 strikes with graduated warnings before ban
+        actionTaken = priorCount >= 4 ? "permanent_ban" : priorCount >= 2 ? "warning" : "none";
+        await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${declineTitle}"`, job_id: app.job_id, action_taken: actionTaken });
+        if (actionTaken === "warning") {
+          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", user.id);
+        } else if (actionTaken === "permanent_ban") {
+          await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id });
+          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", user.id);
+        }
+        await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id);
+        await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null }).eq("id", app.job_id);
+      } else {
+        actionTaken = (rpcData?.action as string) ?? "none";
+        priorCount = (rpcData?.prior_count as number) ?? 0;
+      }
+
+      // Notifications (best-effort) + toasts — shared by both paths.
       if (actionTaken === "warning") {
         const warningNum = priorCount + 1;
-        await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", user.id);
         await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/4)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. Declining ${5 - warningNum} more will result in a permanent ban.`, type: "warning", link: "/profile" });
         toast.warning(`Warning ${warningNum}/4: You've declined a job offer.`);
       } else if (actionTaken === "permanent_ban") {
-        await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id });
-        await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", user.id);
         toast.error("Your account has been permanently banned due to repeated job offer declines.");
       }
       if (actionTaken !== "none") {
         const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-        if (adminRoles) {
-          for (const admin of adminRoles) {
-            await createNotification({ user_id: admin.user_id, title: "⚠️ Helpr declined job offer", message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`, type: "warning", link: "/admin" });
-          }
+        for (const admin of adminRoles ?? []) {
+          await createNotification({ user_id: admin.user_id, title: "⚠️ Helpr declined job offer", message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`, type: "warning", link: "/admin" });
         }
       }
-      await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id);
-      await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null }).eq("id", app.job_id);
       toast.info("You declined the job. The poster can select someone else.");
       refresh();
     }
@@ -422,23 +454,45 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     try {
       const job = postedJobs.find((j) => j.id === jobId);
       if (!job?.helper_id) return;
-      const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", job.helper_id).eq("violation_type", "no_show");
-      const priorCount = existing?.length || 0;
-      await supabase.from("user_violations").insert({ user_id: job.helper_id, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: priorCount >= 1 ? "permanent_ban" : "warning" });
-      if (priorCount >= 1) {
-        await supabase.from("user_bans").insert({ user_id: job.helper_id, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
-        await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", job.helper_id);
-      } else {
-        await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", job.helper_id);
-      }
-      await createNotification({ user_id: job.helper_id, title: priorCount >= 1 ? "⛔ Account banned for no-show" : "⚠️ No-show warning", message: priorCount >= 1 ? "Your account has been permanently banned for repeated no-shows." : `You received a no-show warning for "${job.title}".`, type: "warning", link: "/profile" });
-      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      if (adminRoles) {
-        for (const admin of adminRoles) {
-          await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${priorCount >= 1 ? "Auto-banned." : "Warning issued."}`, type: "warning", link: "/admin" });
+      const helperId = job.helper_id;
+
+      // Atomic via the report_helper_no_show RPC (migration
+      // 20260518140000): violation, ban escalation and job reopen run
+      // in one transaction. Falls back to the pre-migration multi-step
+      // path if the RPC isn't deployed to this environment yet.
+      let actionTaken = "warning";
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("report_helper_no_show", {
+        p_job_id: jobId,
+      });
+
+      if (rpcError) {
+        const msg = String(rpcError?.message ?? "");
+        const rpcMissing =
+          String(rpcError?.code ?? "") === "PGRST202" ||
+          /could not find the function|does not exist|schema cache/i.test(msg);
+        if (!rpcMissing) { toast.error("Couldn't report the no-show — please try again."); return; }
+        const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", helperId).eq("violation_type", "no_show");
+        const priorCount = existing?.length || 0;
+        actionTaken = priorCount >= 1 ? "permanent_ban" : "warning";
+        await supabase.from("user_violations").insert({ user_id: helperId, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: actionTaken });
+        if (actionTaken === "permanent_ban") {
+          await supabase.from("user_bans").insert({ user_id: helperId, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
+          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", helperId);
+        } else {
+          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", helperId);
         }
+        await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", jobId);
+      } else {
+        actionTaken = (rpcData?.action as string) ?? "warning";
       }
-      await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", jobId);
+
+      // Notifications (best-effort) — shared by both paths.
+      const banned = actionTaken === "permanent_ban";
+      await createNotification({ user_id: helperId, title: banned ? "⛔ Account banned for no-show" : "⚠️ No-show warning", message: banned ? "Your account has been permanently banned for repeated no-shows." : `You received a no-show warning for "${job.title}".`, type: "warning", link: "/profile" });
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      for (const admin of adminRoles ?? []) {
+        await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${banned ? "Auto-banned." : "Warning issued."}`, type: "warning", link: "/admin" });
+      }
       toast.success("No-show reported. Job reopened.");
       refresh();
     } catch (err: any) { toast.error(err.message || "Failed to report no-show"); }

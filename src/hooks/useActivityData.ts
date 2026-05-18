@@ -163,19 +163,36 @@ export function useActivityData(user: SupaUser | null) {
   });
 
   // Realtime: invalidate the cache so React Query refetches in background.
+  // Debounced so a burst of related changes (a job, its tracking row and an
+  // application all updating together) collapses into one refetch instead of
+  // firing fetchActivityData's full query waterfall per event.
   useEffect(() => {
     if (!userId) return;
-    const invalidate = () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.activity(userId) });
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const invalidate = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.activity(userId) });
+      }, 800);
+    };
     const channel = supabase
       .channel(`activity-realtime-${channelNonce()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, invalidate)
+      // jobs: scope to rows that can appear in this user's activity feed via
+      // server-side filters, so platform-wide job churn never reaches this
+      // client. postgres_changes filters are single-column — hence three.
+      .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `customer_id=eq.${userId}` }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `offered_to_helper_id=eq.${userId}` }, invalidate)
+      // job_tracking / applications / reviews / job_checkins carry no
+      // user-scoped column to filter on; the debounce above keeps their
+      // (lower-volume) events from causing a refetch storm.
       .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking" }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "applications" }, invalidate)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews" }, invalidate)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "job_checkins" }, invalidate)
       .subscribe();
     return () => {
+      if (debounce) clearTimeout(debounce);
       supabase.removeChannel(channel);
     };
   }, [userId, queryClient]);

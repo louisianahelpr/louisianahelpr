@@ -72,6 +72,9 @@ const Signup = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
+  // Step 2 inline field errors — populated on Continue tap, cleared as user fixes each field
+  const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
+
   // Step 3 fields - Portfolio / Documents
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [portfolioPreviews, setPortfolioPreviews] = useState<{ name: string; type: string; url: string }[]>([]);
@@ -149,31 +152,45 @@ const Signup = () => {
 
 
   // Validates the "About you + ID" content (rendered as UI step 2).
+  // Collects ALL field errors at once so the user sees every problem on a
+  // single Continue tap — no more "fix one, tap again, get next error" loop.
   const validateAboutYouStep = async () => {
-    if (isBusinessSignup && !companyName.trim()) { toast.error("Company name is required"); return false; }
-    if (!avatarFile) { toast.error("Profile picture is required"); return false; }
-    if (!firstName.trim()) { toast.error("First name is required"); return false; }
-    if (!lastName.trim()) { toast.error("Last name is required"); return false; }
-    if (!phone.trim()) { toast.error("Phone number is required"); return false; }
-    if (!dateOfBirth) { toast.error("Date of birth is required"); return false; }
-    if (ageFromDob(dateOfBirth) < 18) { toast.error("You must be at least 18 years old to sign up"); return false; }
-    if (!location.trim()) { toast.error("City is required"); return false; }
-    if (!bio.trim() || bio.trim().length < 20) { toast.error("About you must be at least 20 characters"); return false; }
-    if (!idFile) { toast.error("Please upload a government-issued ID to continue"); return false; }
+    const errors: Record<string, string> = {};
 
+    if (isBusinessSignup && !companyName.trim()) errors.companyName = "Company name is required";
+    if (!avatarFile) errors.avatar = "Profile picture is required";
+    if (!firstName.trim()) errors.firstName = "First name is required";
+    if (!lastName.trim()) errors.lastName = "Last name is required";
+    if (!phone.trim()) {
+      errors.phone = "Phone number is required";
+    } else if (phone.replace(/\D/g, "").length < 10) {
+      errors.phone = "Enter a valid 10-digit phone number";
+    }
+    if (!dateOfBirth) {
+      errors.dateOfBirth = "Date of birth is required";
+    } else if (ageFromDob(dateOfBirth) < 18) {
+      errors.dateOfBirth = "You must be at least 18 years old to sign up";
+    }
+    if (!location.trim()) errors.location = "City is required";
+    if (!bio.trim() || bio.trim().length < 20) errors.bio = "About you must be at least 20 characters";
+    if (!idFile) errors.idFile = "Please upload a government-issued ID to continue";
+
+    // Async phone-duplicate check — only runs when all synchronous checks pass,
+    // so we don't waste a round-trip when there are obvious local errors.
     const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
-    if (normalizedPhone.length === 10) {
+    if (Object.keys(errors).length === 0 && normalizedPhone.length === 10) {
       const { data: existing } = await supabase
         .from("profiles")
         .select("id")
-        .ilike("phone", `%${normalizedPhone.slice(-7)}%`)
+        .eq("phone", normalizedPhone)
         .limit(1);
       if (existing && existing.length > 0) {
-        toast.error("This phone number is already associated with an account. Please log in instead.");
-        return false;
+        errors.phone = "This phone number is already associated with an account. Please log in instead.";
       }
     }
 
+    setStep2Errors(errors);
+    if (Object.keys(errors).length > 0) return false;
     return true;
   };
 
@@ -349,8 +366,8 @@ const Signup = () => {
 
       track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim() });
       hapticSuccess();
-      toast.success("Account created! Check your email to verify, then connect your payout account.");
-      navigate("/signup-pending");
+      toast.success("Account created! Check your email and click the verification link to continue.");
+      navigate("/signup-pending", { state: { email } });
     } catch (err: any) {
       hapticError();
       toast.error(err.message || "Signup failed");
@@ -428,11 +445,8 @@ const Signup = () => {
               </div>
             </div>
 
-            {/* Dev-only step jumper — visible on preview/localhost so you can click through every signup screen without making an account. Hidden in production. */}
-            {(typeof window !== "undefined" &&
-              (window.location.hostname === "localhost" ||
-                window.location.hostname.endsWith(".lovable.app") ||
-                window.location.hostname.endsWith(".lovableproject.com"))) && (
+            {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}
+            {import.meta.env.DEV && (
               <div className="rounded-ds-sm border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">
                 <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
                 <span className="text-muted-foreground">Jump to step:</span>
@@ -484,9 +498,12 @@ const Signup = () => {
             onIdChange={handleIdChange}
             inputCls={inputCls}
             labelCls={labelCls}
-            onBack={() => setStep(1)}
+            fieldErrors={step2Errors}
+            clearFieldError={(key) => setStep2Errors((prev) => { const next = { ...prev }; delete next[key]; return next; })}
+            onBack={() => { setStep2Errors({}); setStep(1); }}
             onContinue={async () => {
               if (!(await validateAboutYouStep())) return;
+              setStep2Errors({});
               setStep(3);
             }}
           />

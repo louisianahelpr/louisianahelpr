@@ -4,17 +4,9 @@ import { useNavigate } from "react-router-dom";
 import type { Database } from "@/integrations/supabase/types";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { StatusBadge } from "@/components/StatusBadge";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
-
-const statusColors: Record<string, string> = {
-  open: "bg-primary/10 text-primary",
-  accepted: "bg-accent/20 text-accent-foreground",
-  in_progress: "bg-accent/20 text-accent-foreground",
-  revision_requested: "bg-destructive/10 text-destructive",
-  completed: "bg-secondary text-secondary-foreground",
-  cancelled: "bg-destructive/10 text-destructive",
-};
 
 interface JobListTabProps {
   variant: "posted" | "completed";
@@ -74,7 +66,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
                 {isPosted ? (
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className="text-ds-15 font-bold text-primary tabular-nums">${job.budget}</span>
-                    <span className={`text-ds-10 font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
+                    <StatusBadge status={job.status} className="text-ds-10" />
                   </div>
                 ) : (
                   <div className="flex flex-col items-end gap-1.5 shrink-0">

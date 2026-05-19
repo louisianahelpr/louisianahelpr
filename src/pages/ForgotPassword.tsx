@@ -73,14 +73,7 @@ const ForgotPassword = () => {
             >
               <Mail className="w-7 h-7" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={1.5} />
             </div>
-            <h1
-              className="font-display italic font-bold leading-tight"
-              style={{
-                fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.02em",
-              }}
-            >
+            <h1 className="text-page-title leading-tight">
               Check your inbox.
             </h1>
             <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
@@ -121,14 +114,7 @@ const ForgotPassword = () => {
           <>
             <div className="text-center space-y-2">
               <span className="text-display-eyebrow">Forgot password</span>
-              <h1
-                className="font-display italic font-bold leading-tight mt-2"
-                style={{
-                  fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.02em",
-                }}
-              >
+              <h1 className="text-page-title leading-tight mt-2">
                 We'll send you a link.
               </h1>
               <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>

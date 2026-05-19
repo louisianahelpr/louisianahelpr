@@ -37,14 +37,7 @@ const PaymentSuccess = () => {
 
         <div className="space-y-2">
           <span className="text-display-eyebrow">All set</span>
-          <h1
-            className="font-display italic font-bold leading-tight mt-1"
-            style={{
-              fontSize: "clamp(1.75rem, 3vw + 0.5rem, 2.25rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.025em",
-            }}
-          >
+          <h1 className="text-page-title leading-tight mt-1">
             Payment authorized.
           </h1>
         </div>

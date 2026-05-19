@@ -55,14 +55,7 @@ const ResetPassword = () => {
       <div className="liquid-glass p-6 sm:p-8 space-y-6">
         <div className="text-center space-y-2">
           <span className="text-display-eyebrow">Reset password</span>
-          <h1
-            className="font-display italic font-bold leading-tight mt-2"
-            style={{
-              fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.02em",
-            }}
-          >
+          <h1 className="text-page-title leading-tight mt-2">
             Choose a new one.
           </h1>
         </div>

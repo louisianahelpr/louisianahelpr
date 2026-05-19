@@ -351,10 +351,7 @@ const UserProfile = () => {
               )}
             </div>
             <div>
-              <h1
-                className="font-display italic font-bold leading-tight"
-                style={{ fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.75rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-              >
+              <h1 className="text-page-title leading-tight">
                 {displayName}
               </h1>
               {profile.location && (

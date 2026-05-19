@@ -834,10 +834,7 @@ const Legal = () => {
                   Compliance & disclosures
                 </span>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <h1
-                    className="font-display italic font-bold leading-tight"
-                    style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.4rem, 2rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-                  >
+                  <h1 className="text-page-title leading-tight">
                     Legal
                   </h1>
                   {/* "Last updated" chip — promoted from a fading-italic

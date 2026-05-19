@@ -251,14 +251,7 @@ const DashboardGuest = () => {
             >
               A first look
             </span>
-            <h1
-              className="font-display italic font-bold leading-tight mt-0.5"
-              style={{
-                fontSize: "clamp(1.15rem, 1.6vw + 0.3rem, 1.4rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.022em",
-              }}
-            >
+            <h1 className="text-section-title leading-tight mt-0.5">
               Need help, or want to <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>earn</em>?
             </h1>
             <p

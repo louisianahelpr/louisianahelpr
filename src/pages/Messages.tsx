@@ -13,6 +13,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 
+import { channelNonce } from "@/lib/realtimeChannel";
+
 import type { Conversation, Message } from "@/components/messages/types";
 import { ChatView } from "@/components/messages/ChatView";
 import { ConversationList } from "@/components/messages/ConversationList";
@@ -76,6 +78,19 @@ const Messages = () => {
       }
     });
   }, [userId, cachedUser]);
+
+  // Scroll the thread to its bottom sentinel. Uses a double rAF rather
+  // than a fixed setTimeout: the first frame lets React commit the new
+  // message node, the second runs after layout so the element exists
+  // and has its final height — reliable across slow renders, where a
+  // hard-coded 100ms timeout could fire before the DOM settled.
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior });
+      });
+    });
+  };
 
   const loadConversations = async (uid: string) => {
     // Only show the skeleton on the very first load. Background refreshes
@@ -244,7 +259,43 @@ const Messages = () => {
           });
       }
     }
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    scrollToBottom();
+  };
+
+  // Pull-to-refresh for the open chat thread: re-fetch the most recent
+  // page of messages without the navigate / clear churn that openConvo
+  // does, so the thread quietly reconciles to the server's latest state.
+  const refreshActiveThread = async () => {
+    if (!activeConvo || !userId) return;
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("job_id", activeConvo.jobId)
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId})`)
+      .order("created_at", { ascending: false })
+      .limit(CHAT_PAGE_SIZE);
+
+    if (error) {
+      console.error("[Messages] refreshActiveThread failed:", error);
+      toast.error("Couldn't refresh this conversation.");
+      return;
+    }
+
+    if (data) {
+      const sorted = [...data].reverse();
+      setMessages((prev) => {
+        // Keep any still-in-flight optimistic bubbles the refetch
+        // doesn't yet know about so a pull-to-refresh never drops a
+        // message the user is mid-send on.
+        const pending = prev.filter(
+          (m) => m.sendStatus === "sending" || m.sendStatus === "failed",
+        );
+        const serverIds = new Set(sorted.map((m) => m.id));
+        const stillPending = pending.filter((m) => !serverIds.has(m.id));
+        return [...sorted, ...stillPending];
+      });
+      setHasMoreMessages(data.length === CHAT_PAGE_SIZE);
+    }
   };
 
   const loadOlderMessages = async () => {
@@ -288,15 +339,55 @@ const Messages = () => {
     setLoadingMore(false);
   };
 
+  // Patch a single conversation in local state for one inbound/outbound
+  // message — instead of re-running the whole 200-row + RPC
+  // `loadConversations`. Updates the affected thread's last-message,
+  // unread count, and timestamp, then re-sorts. If the message belongs
+  // to a thread not yet in the list (rare — a brand-new conversation),
+  // fall back to a full refetch so the new row's profile/job metadata
+  // gets resolved.
+  const patchConversationForMessage = (msg: Message) => {
+    if (!userId) return;
+    const other = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+    let matched = false;
+    setConversations((prev) => {
+      const next = prev.map((c) => {
+        if (c.jobId !== msg.job_id || c.otherUserId !== other) return c;
+        matched = true;
+        // An inbound message to a thread that is NOT currently open
+        // increments the unread badge; outbound messages and messages
+        // in the open thread do not.
+        const isInboundUnseen =
+          msg.receiver_id === userId &&
+          !(activeConvo &&
+            activeConvo.jobId === msg.job_id &&
+            activeConvo.otherUserId === other);
+        return {
+          ...c,
+          lastMessage: msg.content,
+          lastAt: msg.created_at,
+          unread: isInboundUnseen ? c.unread + 1 : c.unread,
+        };
+      });
+      if (!matched) return prev;
+      // Re-sort so the freshly-touched thread floats to the top.
+      next.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
+      return next;
+    });
+    // New conversation we've never seen — only then pay for a full
+    // refetch (needs profile + job RPCs to render the row).
+    if (!matched) loadConversations(userId);
+  };
+
   // Realtime subscription. Two channels — one for messages I receive
-  // (any thread, drives the conversation-list refresh), one for messages
+  // (any thread, drives the conversation-list patch), one for messages
   // I send (so the active thread sees my echo immediately). Server-side
   // filter so we don't receive every INSERT in public.messages — at
   // scale that broadcast firehose would dwarf actual relevant traffic.
   useEffect(() => {
     if (!userId) return;
     const channel = supabase
-      .channel(`messages-realtime-${userId}`)
+      .channel(`messages-realtime-${userId}-${channelNonce()}`)
       .on(
         "postgres_changes",
         {
@@ -310,9 +401,13 @@ const Messages = () => {
           if (activeConvo && msg.job_id === activeConvo.jobId) {
             setMessages((prev) => [...prev, msg]);
             supabase.from("messages").update({ read: true }).eq("id", msg.id);
-            setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+            scrollToBottom();
           }
-          loadConversations(userId);
+          // Patch just the affected conversation row instead of
+          // re-running the whole 200-row + RPC `loadConversations` on
+          // every inbound message — that full refetch is a visible lag
+          // spike in an active chat.
+          patchConversationForMessage(msg);
         },
       )
       .on(
@@ -350,7 +445,7 @@ const Messages = () => {
               }
               return [...prev, msg];
             });
-            setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+            scrollToBottom();
           }
         },
       )
@@ -478,12 +573,17 @@ const Messages = () => {
     loadConversations(userId!);
   };
 
+  // Returns `true` when the message was accepted for delivery, `false`
+  // when it was blocked by the content scan (or there was nothing to
+  // send). The caller (ChatView) keys off this to decide whether to
+  // clear the composer — a blocked message keeps the user's typed text
+  // so they don't silently lose what they wrote.
   const sendMessage = async (
     content: string,
     attachment?: { path: string; mime: string; size: number },
-  ) => {
-    if (!activeConvo || !userId) return;
-    if (!content.trim() && !attachment) return;
+  ): Promise<boolean> => {
+    if (!activeConvo || !userId) return false;
+    if (!content.trim() && !attachment) return false;
 
     // Skip scanning for system-generated messages (location shares, attachments)
     const isSystemMessage = content.startsWith("📍 Location:") || !!attachment;
@@ -498,12 +598,11 @@ const Messages = () => {
             "⚠️ Warning: Sharing contact info or taking business off-platform is not allowed. This is your first warning — a second offense will result in a permanent ban.",
             { duration: 8000 }
           );
-          await logViolation(violationDesc, content);
-          return;
-        } else {
-          await logViolation(violationDesc, content);
-          return;
         }
+        await logViolation(violationDesc, content);
+        // Blocked — report back so the composer keeps the typed text
+        // rather than silently discarding it.
+        return false;
       }
     }
 
@@ -527,9 +626,10 @@ const Messages = () => {
       sendStatus: "sending",
     };
     setMessages((prev) => [...prev, optimistic]);
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    scrollToBottom();
 
     await dispatchMessage(optimistic);
+    return true;
   };
 
   // Retry a previously failed send: flip the bubble back to "sending" and
@@ -609,6 +709,7 @@ const Messages = () => {
           hasMoreMessages={hasMoreMessages}
           loadingMore={loadingMore}
           loadOlderMessages={loadOlderMessages}
+          onRefreshThread={refreshActiveThread}
           sendMessage={sendMessage}
           retryMessage={retryMessage}
           chatContainerRef={chatContainerRef}

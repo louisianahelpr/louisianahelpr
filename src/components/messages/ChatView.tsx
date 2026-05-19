@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
 import { MessageAttachment } from "@/components/MessageAttachment";
 import { OnlineIndicator, TypingIndicator, ReadReceipt } from "@/components/ChatPresence";
+import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import type { Conversation, Message } from "./types";
 
 const renderMessageContent = (content: string) => {
@@ -75,10 +77,16 @@ interface ChatViewProps {
   hasMoreMessages: boolean;
   loadingMore: boolean;
   loadOlderMessages: () => void;
+  /** Pull-to-refresh handler — re-fetches the latest page of the open
+   *  thread. Resolves once the refetch completes. */
+  onRefreshThread: () => Promise<void>;
+  /** Sends a message. Resolves `true` when accepted for delivery,
+   *  `false` when blocked by the content scan — the composer keeps the
+   *  typed text on `false` so a blocked message isn't silently lost. */
   sendMessage: (
     content: string,
     attachment?: { path: string; mime: string; size: number },
-  ) => void;
+  ) => Promise<boolean>;
   /** Re-dispatch a previously failed optimistic message by its clientId. */
   retryMessage: (clientId: string) => void;
   /** Scroll container + bottom sentinel — created by the page so its
@@ -115,6 +123,7 @@ export function ChatView({
   hasMoreMessages,
   loadingMore,
   loadOlderMessages,
+  onRefreshThread,
   sendMessage,
   retryMessage,
   chatContainerRef,
@@ -126,6 +135,28 @@ export function ChatView({
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
   const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // Pull-to-refresh for the chat thread — reuses the same hook +
+  // wrapper every other scrollable surface uses. The hook owns its own
+  // `containerRef`; the page also needs a handle on the scroll node
+  // (for scroll-position preservation when loading older messages), so
+  // a merged callback ref points both at the single thread element.
+  const { containerRef, pullDistance, refreshing, isPulling, canTrigger } =
+    usePullToRefresh({ onRefresh: onRefreshThread });
+
+  const setThreadRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      // The hook ref is typed read-only; it is a plain useRef under the
+      // hood, so assigning through a mutable cast is safe here.
+      (containerRef as { current: HTMLDivElement | null }).current = node;
+      if (typeof chatContainerRef === "function") {
+        chatContainerRef(node);
+      } else if (chatContainerRef) {
+        (chatContainerRef as { current: HTMLDivElement | null }).current = node;
+      }
+    },
+    [containerRef, chatContainerRef],
+  );
 
   return (
     // Fixed-viewport lock + safe-area-top header inset come from AppShell,
@@ -247,7 +278,19 @@ export function ChatView({
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto space-y-3 pt-4 pb-2" ref={chatContainerRef}>
+          {/* Message thread — `aria-live="polite"` so screen readers
+              announce inbound messages as they arrive without stealing
+              focus. Wrapped in PullToRefreshWrapper so a downward swipe
+              re-fetches the thread, matching every other surface. */}
+          <PullToRefreshWrapper
+            ref={setThreadRef}
+            pullDistance={pullDistance}
+            refreshing={refreshing}
+            isPulling={isPulling}
+            canTrigger={canTrigger}
+            className="flex-1 space-y-3 pt-4 pb-2"
+          >
+          <div aria-live="polite" aria-relevant="additions" className="space-y-3">
             {hasMoreMessages && (
               <div className="text-center py-2">
                 <button onClick={loadOlderMessages} disabled={loadingMore} className="text-ds-11 text-primary font-medium hover:underline disabled:opacity-50 flex items-center gap-1.5 mx-auto">
@@ -362,13 +405,16 @@ export function ChatView({
                     )}
                     {m.content && renderMessageContent(m.content)}
                     {/* Report / delete — revealed on hover (desktop) and
-                        always shown on touch devices, which have no hover. */}
-                    <div className={`absolute ${mine ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity flex gap-1`}>
+                        always shown on touch devices, which have no hover.
+                        The button is a 44x44 hit target (iOS/Android
+                        minimum) even though the icon stays small. */}
+                    <div className={`absolute ${mine ? "-left-[52px]" : "-right-[52px]"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity flex gap-1`}>
                       {!mine && (
                         <button
                           onClick={() => setReportTarget({ type: "message", id: m.id })}
-                          className="text-muted-foreground hover:text-destructive p-1"
+                          className="text-muted-foreground hover:text-destructive flex items-center justify-center min-w-[44px] min-h-[44px]"
                           title="Report"
+                          aria-label="Report message"
                         >
                           <Flag className="w-3.5 h-3.5" />
                         </button>
@@ -376,8 +422,9 @@ export function ChatView({
                       {mine && !isSending && !isFailed && (
                         <button
                           onClick={() => setDeleteMessageConfirm(m.id)}
-                          className="text-muted-foreground hover:text-destructive p-1"
+                          className="text-muted-foreground hover:text-destructive flex items-center justify-center min-w-[44px] min-h-[44px]"
                           title="Delete"
+                          aria-label="Delete message"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -420,6 +467,7 @@ export function ChatView({
             {isOtherTyping && <TypingIndicator />}
             <div ref={bottomRef} />
           </div>
+          </PullToRefreshWrapper>
 
           {/* Quick replies — populate the input instead of sending instantly */}
           <div className="pt-1">
@@ -437,7 +485,16 @@ export function ChatView({
             <RichMessageInput
               value={draft}
               onChange={setDraft}
-              onSend={(content, attachment) => { sendMessage(content, attachment); setDraft(""); }}
+              onSend={async (content, attachment) => {
+                // RichMessageInput clears its (controlled) text right
+                // after onSend returns. If the content scan in the page
+                // blocks the message (`sendMessage` resolves `false`),
+                // restore the typed text so a blocked message isn't
+                // silently lost — the user keeps what they wrote and a
+                // toast explains why it didn't send.
+                const accepted = await sendMessage(content, attachment);
+                if (!accepted && content.trim()) setDraft(content);
+              }}
               onTyping={broadcastTyping}
               jobId={activeConvo.jobId}
               senderId={userId || undefined}

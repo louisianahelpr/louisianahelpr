@@ -271,7 +271,28 @@ const Messages = () => {
           // Only echo into the active thread — sender's own conversation
           // list refresh happens in the optimistic sendMessage flow.
           if (activeConvo && msg.job_id === activeConvo.jobId) {
-            setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+            setMessages((prev) => {
+              // Already reconciled (insert resolved first) — skip.
+              if (prev.some((m) => m.id === msg.id)) return prev;
+              // The echo may beat the insert's own response. If a pending
+              // optimistic bubble matches this row, reconcile it in place
+              // instead of appending a duplicate — keep the clientId so the
+              // still-in-flight dispatchMessage's reconcile is a no-op.
+              const pendingIdx = prev.findIndex(
+                (m) =>
+                  m.sendStatus === "sending" &&
+                  m.sender_id === msg.sender_id &&
+                  m.receiver_id === msg.receiver_id &&
+                  m.content === msg.content &&
+                  m.attachment_url === msg.attachment_url,
+              );
+              if (pendingIdx !== -1) {
+                const next = [...prev];
+                next[pendingIdx] = { ...msg, clientId: prev[pendingIdx].clientId };
+                return next;
+              }
+              return [...prev, msg];
+            });
             setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
           }
         },
@@ -352,6 +373,54 @@ const Messages = () => {
     }
   };
 
+  // Performs the actual insert for one optimistic message and reconciles
+  // its bubble with the server row (or marks it failed). Shared by the
+  // first-attempt send path and the retry path so both stay in sync.
+  const dispatchMessage = async (optimistic: Message) => {
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        job_id: optimistic.job_id,
+        sender_id: optimistic.sender_id,
+        receiver_id: optimistic.receiver_id,
+        content: optimistic.content,
+        attachment_url: optimistic.attachment_url,
+        attachment_mime: optimistic.attachment_mime,
+        attachment_size: optimistic.attachment_size,
+      })
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      // Keep the text on screen and let the user retry it.
+      hapticError();
+      toast.error("Failed to send message");
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.clientId === optimistic.clientId ? { ...m, sendStatus: "failed" } : m,
+        ),
+      );
+      return;
+    }
+
+    // Reconcile: swap the optimistic bubble for the confirmed server row.
+    // If the realtime echo raced ahead and already appended the real row,
+    // drop the optimistic placeholder instead of leaving a duplicate.
+    setMessages((prev) => {
+      const realAlreadyPresent = prev.some(
+        (m) => m.id === data.id && m.clientId === undefined,
+      );
+      if (realAlreadyPresent) {
+        return prev.filter((m) => m.clientId !== optimistic.clientId);
+      }
+      return prev.map((m) =>
+        m.clientId === optimistic.clientId ? { ...data, clientId: optimistic.clientId } : m,
+      );
+    });
+    // Refresh the conversation list so the sender's own thread re-sorts.
+    loadConversations(userId!);
+  };
+
   const sendMessage = async (
     content: string,
     attachment?: { path: string; mime: string; size: number },
@@ -381,16 +450,40 @@ const Messages = () => {
       }
     }
 
-    const { error } = await supabase.from("messages").insert({
+    // Render the bubble instantly in a "sending" state. The clientId is a
+    // stable nonce: it survives reconciliation and lets the realtime echo
+    // of our own INSERT be matched back to this bubble (dedupe), while the
+    // temporary `id` keeps React keys unique until the server row arrives.
+    const clientId = crypto.randomUUID();
+    const optimistic: Message = {
+      id: `optimistic-${clientId}`,
       job_id: activeConvo.jobId,
       sender_id: userId,
       receiver_id: activeConvo.otherUserId,
       content: content.trim(),
+      read: false,
+      created_at: new Date().toISOString(),
       attachment_url: attachment?.path ?? null,
       attachment_mime: attachment?.mime ?? null,
       attachment_size: attachment?.size ?? null,
-    });
-    if (error) toast.error("Failed to send message");
+      clientId,
+      sendStatus: "sending",
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+
+    await dispatchMessage(optimistic);
+  };
+
+  // Retry a previously failed send: flip the bubble back to "sending" and
+  // re-dispatch the same content rather than dropping the user's text.
+  const retryMessage = async (clientId: string) => {
+    const failed = messages.find((m) => m.clientId === clientId && m.sendStatus === "failed");
+    if (!failed) return;
+    setMessages((prev) =>
+      prev.map((m) => (m.clientId === clientId ? { ...m, sendStatus: "sending" } : m)),
+    );
+    await dispatchMessage({ ...failed, sendStatus: "sending" });
   };
 
   const deleteConversation = async (convo: Conversation) => {
@@ -458,6 +551,7 @@ const Messages = () => {
           loadingMore={loadingMore}
           loadOlderMessages={loadOlderMessages}
           sendMessage={sendMessage}
+          retryMessage={retryMessage}
           chatContainerRef={chatContainerRef}
           bottomRef={bottomRef}
           setReportTarget={setReportTarget}

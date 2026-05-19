@@ -487,7 +487,7 @@ const Dashboard = () => {
       titleCard={
         <>
             <h1
-              className="font-display font-bold truncate"
+              className="font-display italic font-bold truncate"
               style={{
                 fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
                 color: "hsl(var(--ink-deep))",

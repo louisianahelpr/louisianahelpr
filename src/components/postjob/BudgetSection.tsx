@@ -1,8 +1,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, Zap, CheckCircle2, Lightbulb, TrendingUp } from "lucide-react";
+import { DollarSign, Zap, Lightbulb, TrendingUp } from "lucide-react";
 import type { CategoryPriceStats } from "@/hooks/useCategoryPriceStats";
+import { SectionCard } from "@/components/postjob/SectionCard";
 
 interface BudgetSuggestion {
   min: number;
@@ -11,6 +12,8 @@ interface BudgetSuggestion {
 }
 
 interface BudgetSectionProps {
+  /** 1-based chapter number for the section header. */
+  stepNumber: number;
   budget: string;
   setBudget: (v: string) => void;
   suggested: BudgetSuggestion | null;
@@ -29,6 +32,7 @@ interface BudgetSectionProps {
 }
 
 export function BudgetSection({
+  stepNumber,
   budget,
   setBudget,
   suggested,
@@ -44,27 +48,13 @@ export function BudgetSection({
   budgetComplete,
 }: BudgetSectionProps) {
   return (
-    <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
-      {/* Brand-aligned section header — bigger icon (w-9), font-display
-          italic font-bold title, eyebrow above. Unified across all 3
-          PostJob sections (Details / Logistics / Budget). */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <DollarSign className="w-4 h-4 text-primary" />
-          </div>
-          <div className="leading-none min-w-0">
-            <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              Money
-            </p>
-            <h2 className="font-display italic font-bold mt-1" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-              Budget
-            </h2>
-          </div>
-        </div>
-        {budgetComplete && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
-      </div>
-
+    <SectionCard
+      stepNumber={stepNumber}
+      eyebrow="Money"
+      title="Budget"
+      icon={DollarSign}
+      complete={budgetComplete}
+    >
       <div className="space-y-3">
         <Label htmlFor="budget">Budget <span className="text-destructive">*</span></Label>
         <div className="relative">
@@ -233,6 +223,6 @@ export function BudgetSection({
           </div>
         )}
       </div>
-    </section>
+    </SectionCard>
   );
 }

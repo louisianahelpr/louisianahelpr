@@ -1,8 +1,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ImagePlus, X, Briefcase, CheckCircle2, Check } from "lucide-react";
+import { ImagePlus, X, Briefcase, Check } from "lucide-react";
 import { categoryIcons, categoryColors } from "@/components/activity/activityConstants";
+import { SectionCard } from "@/components/postjob/SectionCard";
 
 export const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -52,6 +53,8 @@ const descriptionHints: Record<string, string> = {
 };
 
 interface DetailsSectionProps {
+  /** 1-based chapter number for the section header. */
+  stepNumber: number;
   title: string;
   setTitle: (v: string) => void;
   description: string;
@@ -66,6 +69,7 @@ interface DetailsSectionProps {
 }
 
 export function DetailsSection({
+  stepNumber,
   title,
   setTitle,
   description,
@@ -79,25 +83,13 @@ export function DetailsSection({
   detailsComplete,
 }: DetailsSectionProps) {
   return (
-    <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
-      {/* Brand-aligned section header — eyebrow + font-display italic title. */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Briefcase className="w-4 h-4 text-primary" />
-          </div>
-          <div className="leading-none min-w-0">
-            <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              About the task
-            </p>
-            <h2 className="font-display italic font-bold mt-1" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-              Details
-            </h2>
-          </div>
-        </div>
-        {detailsComplete && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
-      </div>
-
+    <SectionCard
+      stepNumber={stepNumber}
+      eyebrow="About the task"
+      title="Details"
+      icon={Briefcase}
+      complete={detailsComplete}
+    >
       {/* Category first — picking it up front lets the title placeholder
           and the description prompt below adapt to what's actually being
           posted, which models a good, specific post. */}
@@ -274,6 +266,6 @@ export function DetailsSection({
           )}
         </div>
       </div>
-    </section>
+    </SectionCard>
   );
 }

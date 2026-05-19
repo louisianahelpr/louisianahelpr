@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MapPin, Shield, Repeat, Users, CheckCircle2 } from "lucide-react";
+import { MapPin, Shield, Repeat, Users } from "lucide-react";
+import { SectionCard } from "@/components/postjob/SectionCard";
 
 // Rough count of how many times a recurring job will run between the
 // start date and the end date at the chosen interval. Used to preview
@@ -23,6 +24,8 @@ function estimateOccurrences(start: string, end: string, interval: string): numb
 }
 
 interface LogisticsSectionProps {
+  /** 1-based chapter number for the section header. */
+  stepNumber: number;
   streetAddress: string;
   setStreetAddress: (v: string) => void;
   city: string;
@@ -56,6 +59,7 @@ interface LogisticsSectionProps {
 }
 
 export function LogisticsSection({
+  stepNumber,
   streetAddress,
   setStreetAddress,
   city,
@@ -88,25 +92,13 @@ export function LogisticsSection({
   logisticsComplete,
 }: LogisticsSectionProps) {
   return (
-    <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
-      {/* Brand-aligned section header — eyebrow + font-display italic title. */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <MapPin className="w-4 h-4 text-primary" />
-          </div>
-          <div className="leading-none min-w-0">
-            <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              When &amp; where
-            </p>
-            <h2 className="font-display italic font-bold mt-1" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-              Logistics
-            </h2>
-          </div>
-        </div>
-        {logisticsComplete && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
-      </div>
-
+    <SectionCard
+      stepNumber={stepNumber}
+      eyebrow="When & where"
+      title="Logistics"
+      icon={MapPin}
+      complete={logisticsComplete}
+    >
       <div className="space-y-3">
         <Label>Location <span className="text-destructive">*</span></Label>
         <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} autoComplete="street-address" aria-label="Street address" />
@@ -317,6 +309,6 @@ export function LogisticsSection({
           </div>
         )}
       </div>
-    </section>
+    </SectionCard>
   );
 }

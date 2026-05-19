@@ -3067,9 +3067,35 @@ export type Database = {
     }
     Functions: {
       // ── HAND-ADDED (not produced by `npm run db:types`) ──────────────
-      // These two RPCs exist in the database but were missing from the
-      // last generated types. Re-running `npm run db:types` folds them in
+      // These RPCs exist in the database but were missing from the last
+      // generated types. Re-running `npm run db:types` folds them in
       // properly and this block can then be deleted.
+      accept_application: {
+        Args: {
+          p_application_id: string
+          p_deadline: string | null
+          p_offer_message: string | null
+        }
+        Returns: undefined
+      }
+      decline_job_offer: {
+        Args: { p_application_id: string }
+        Returns: { action: string; prior_count: number }
+      }
+      get_category_price_stats: {
+        Args: { p_category: string; p_parish: string | null }
+        Returns: {
+          p25: number | null
+          p50: number | null
+          p75: number | null
+          sample_count: number | null
+          parish_match: boolean | null
+        }[]
+      }
+      report_helper_no_show: {
+        Args: { p_job_id: string }
+        Returns: { action: string }
+      }
       get_marketplace_activity_count: { Args: never; Returns: number }
       get_open_jobs_for_map: {
         Args: never

@@ -183,13 +183,15 @@ export function useActivityData(user: SupaUser | null) {
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `customer_id=eq.${userId}` }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `offered_to_helper_id=eq.${userId}` }, invalidate)
-      // job_tracking / applications / reviews / job_checkins carry no
-      // user-scoped column to filter on; the debounce above keeps their
-      // (lower-volume) events from causing a refetch storm.
-      .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking" }, invalidate)
-      .on("postgres_changes", { event: "*", schema: "public", table: "applications" }, invalidate)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews" }, invalidate)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "job_checkins" }, invalidate)
+      // job_tracking / applications / reviews / job_checkins — scoped to
+      // rows involving this user so platform-wide write churn on these
+      // high-volume tables never fans out to every connected client.
+      // Each table has exactly one user-facing column that covers the
+      // activity-feed perspective for the current user.
+      .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking", filter: `helper_id=eq.${userId}` }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `helper_id=eq.${userId}` }, invalidate)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews", filter: `reviewee_id=eq.${userId}` }, invalidate)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "job_checkins", filter: `user_id=eq.${userId}` }, invalidate)
       .subscribe();
     return () => {
       if (debounce) clearTimeout(debounce);

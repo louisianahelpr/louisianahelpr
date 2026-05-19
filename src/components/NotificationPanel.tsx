@@ -133,39 +133,51 @@ const NotificationPanel = () => {
       registerServiceWorker();
     }
 
-    // Realtime subscription — also trigger browser push for new notifications
-    const channel = supabase
-      // Unique per mount — NotificationPanel renders in both the header
-      // and the admin shell, and a shared channel name would collide.
-      .channel(`notifications-realtime-${channelNonce()}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, async (payload) => {
-        const n = payload.new as Notification;
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user && n.user_id === session.user.id) {
-          setNotifications((prev) => [n, ...prev]);
-          // Play notification chime + vibrate
-          try {
-            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.setValueAtTime(830, ctx.currentTime);
-            osc.frequency.setValueAtTime(990, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.15, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.3);
-          } catch {}
-          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-          if (document.hidden && getPushPermission() === "granted") {
-            showLocalNotification(n.title, n.message, n.link || undefined);
-          }
-        }
-      })
-      .subscribe();
+    // Realtime subscription — also trigger browser push for new notifications.
+    // We resolve the userId upfront so we can pass a server-side filter,
+    // scoping the postgres_changes subscription to only this user's rows
+    // (avoids receiving every platform-wide notification INSERT).
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const userId = session?.user?.id;
+      if (!userId) return;
+      channel = supabase
+        // Unique per mount — NotificationPanel renders in both the header
+        // and the admin shell, and a shared channel name would collide.
+        .channel(`notifications-realtime-${channelNonce()}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+          async (payload) => {
+            const n = payload.new as Notification;
+            setNotifications((prev) => [n, ...prev]);
+            // Play notification chime + vibrate
+            try {
+              const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.frequency.setValueAtTime(830, ctx.currentTime);
+              osc.frequency.setValueAtTime(990, ctx.currentTime + 0.1);
+              gain.gain.setValueAtTime(0.15, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+              osc.start(ctx.currentTime);
+              osc.stop(ctx.currentTime + 0.3);
+            } catch {}
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            if (document.hidden && getPushPermission() === "granted") {
+              showLocalNotification(n.title, n.message, n.link || undefined);
+            }
+          },
+        )
+        .subscribe();
+    });
 
-    return () => { clearTimeout(timer); supabase.removeChannel(channel); };
+    return () => {
+      clearTimeout(timer);
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   const enablePush = async () => {

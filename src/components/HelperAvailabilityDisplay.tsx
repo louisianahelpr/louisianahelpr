@@ -91,7 +91,7 @@ export function HelperAvailabilityDisplay({ helperId, showEmpty = false, onSetUp
               <span className={`block text-ds-10 font-medium mb-1 ${isAvail ? "text-foreground" : "text-muted-foreground/40"}`}>
                 {day}
               </span>
-              <div className={`rounded-md py-1 text-[9px] ${isAvail ? "bg-primary/10 text-primary font-medium" : "bg-muted text-muted-foreground/40"}`}>
+              <div className={`rounded-md py-1 text-ds-9 ${isAvail ? "bg-primary/10 text-primary font-medium" : "bg-muted text-muted-foreground/40"}`}>
                 {isAvail && slot ? (
                   <>
                     {formatTime(slot.start_time).replace(" ", "\u00A0")}

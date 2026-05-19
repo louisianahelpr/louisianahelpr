@@ -392,14 +392,7 @@ const Signup = () => {
     <AuthShell compactHeader maxWidth="2xl">
       <div className="text-center mb-4 space-y-1.5">
         <span className="text-display-eyebrow">Step {step} of {totalSteps}</span>
-        <h1
-          className="font-display italic font-bold leading-tight mt-1"
-          style={{
-            fontSize: "clamp(1.5rem, 2.2vw + 0.6rem, 2rem)",
-            color: "hsl(var(--ink-deep))",
-            letterSpacing: "-0.03em",
-          }}
-        >
+        <h1 className="text-page-title leading-tight mt-1">
           {stepHeading.title}
         </h1>
         <p

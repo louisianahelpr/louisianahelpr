@@ -356,7 +356,7 @@ export function usePostJobForm() {
       return;
     }
 
-    let photoUrls: string[] = [];
+    let photoUrls: string[];
 
     // Expire listing at the job date/time (removed when a helpr is selected or on the day of the job)
     let expiresAt: string | null = null;

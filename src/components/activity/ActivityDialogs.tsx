@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -6,15 +6,19 @@ import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
-import { JobBoostDialog } from "@/components/JobBoostDialog";
-import { TipDialog } from "@/components/TipDialog";
-import { CancellationDialog } from "@/components/CancellationDialog";
-import { CompletionPrompts } from "@/components/CompletionPrompts";
-import { ReviewForm } from "@/components/ReviewPanel";
-import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
-import { DisputeDialog } from "@/components/DisputeDialog";
-import { EditJobDialog } from "./EditJobDialog";
 import type { Job, Application } from "./activityConstants";
+
+// Dialogs are conditionally rendered — none are visible on first paint. Each
+// is code-split and only the dialogs the user actually opens get fetched,
+// keeping the Activity route chunk small.
+const JobBoostDialog = lazy(() => import("@/components/JobBoostDialog").then(m => ({ default: m.JobBoostDialog })));
+const TipDialog = lazy(() => import("@/components/TipDialog").then(m => ({ default: m.TipDialog })));
+const CancellationDialog = lazy(() => import("@/components/CancellationDialog").then(m => ({ default: m.CancellationDialog })));
+const CompletionPrompts = lazy(() => import("@/components/CompletionPrompts").then(m => ({ default: m.CompletionPrompts })));
+const ReviewForm = lazy(() => import("@/components/ReviewPanel").then(m => ({ default: m.ReviewForm })));
+const ResponseDeadlineDialog = lazy(() => import("@/components/ResponseDeadlineDialog").then(m => ({ default: m.ResponseDeadlineDialog })));
+const DisputeDialog = lazy(() => import("@/components/DisputeDialog").then(m => ({ default: m.DisputeDialog })));
+const EditJobDialog = lazy(() => import("./EditJobDialog").then(m => ({ default: m.EditJobDialog })));
 
 interface ActivityDialogsProps {
   user: { id: string } | null;
@@ -93,12 +97,16 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
     <>
       {/* Poster reviewing helper */}
       {props.reviewJob && props.reviewTarget && (
-        <ReviewForm open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
+        <Suspense fallback={null}>
+          <ReviewForm open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
+        </Suspense>
       )}
 
       {/* Helper reviewing poster */}
       {props.helperReviewJob && (
-        <ReviewForm open={!!props.helperReviewJob} onClose={() => { props.setHelperReviewJob(null); props.onRefresh(); }} jobId={props.helperReviewJob.jobId} revieweeId={props.helperReviewJob.posterId} revieweeName={props.helperReviewJob.posterName} />
+        <Suspense fallback={null}>
+          <ReviewForm open={!!props.helperReviewJob} onClose={() => { props.setHelperReviewJob(null); props.onRefresh(); }} jobId={props.helperReviewJob.jobId} revieweeId={props.helperReviewJob.posterId} revieweeName={props.helperReviewJob.posterName} />
+        </Suspense>
       )}
 
       {/* Revision Request Dialog */}
@@ -120,17 +128,26 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Job Dialog */}
-      <EditJobDialog job={props.editJob} onClose={() => props.setEditJob(null)} onSaved={props.onRefresh} />
+      {/* Edit Job Dialog — only fetch the chunk once a job is being edited;
+          EditJobDialog gates its own mounting on the `job` prop. */}
+      {props.editJob && (
+        <Suspense fallback={null}>
+          <EditJobDialog job={props.editJob} onClose={() => props.setEditJob(null)} onSaved={props.onRefresh} />
+        </Suspense>
+      )}
 
       {/* Boost Dialog */}
       {props.boostJobId && (
-        <JobBoostDialog jobId={props.boostJobId} open={!!props.boostJobId} onClose={() => props.setBoostJobId(null)} onBoosted={props.onRefresh} />
+        <Suspense fallback={null}>
+          <JobBoostDialog jobId={props.boostJobId} open={!!props.boostJobId} onClose={() => props.setBoostJobId(null)} onBoosted={props.onRefresh} />
+        </Suspense>
       )}
 
       {/* Enhanced Tip Dialog */}
       {props.enhancedTipJobId && (
-        <TipDialog jobId={props.enhancedTipJobId} helperName={props.enhancedTipHelperName} open={!!props.enhancedTipJobId} onClose={() => { props.setEnhancedTipJobId(null); props.setEnhancedTipHelperName(""); props.onRefresh(); }} />
+        <Suspense fallback={null}>
+          <TipDialog jobId={props.enhancedTipJobId} helperName={props.enhancedTipHelperName} open={!!props.enhancedTipJobId} onClose={() => { props.setEnhancedTipJobId(null); props.setEnhancedTipHelperName(""); props.onRefresh(); }} />
+        </Suspense>
       )}
 
       {/* No-Show Confirmation Dialog */}

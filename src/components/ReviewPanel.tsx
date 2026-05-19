@@ -21,11 +21,11 @@ interface ReviewFormProps {
 
 type CategoryKey = "rating" | "punctuality" | "quality" | "communication";
 
-const CATEGORY_ROWS: { key: CategoryKey; label: string; sublabel: string }[] = [
-  { key: "rating", label: "Overall", sublabel: "Your overall experience" },
-  { key: "punctuality", label: "Punctuality", sublabel: "Showed up on time" },
-  { key: "quality", label: "Quality of work", sublabel: "Met expectations" },
-  { key: "communication", label: "Communication", sublabel: "Clear and responsive" },
+const CATEGORY_ROWS: { key: CategoryKey; label: string; sublabel: string; required: boolean }[] = [
+  { key: "rating", label: "Overall", sublabel: "Your overall experience", required: true },
+  { key: "punctuality", label: "Punctuality", sublabel: "Showed up on time", required: false },
+  { key: "quality", label: "Quality of work", sublabel: "Met expectations", required: false },
+  { key: "communication", label: "Communication", sublabel: "Clear and responsive", required: false },
 ];
 
 const StarRow = ({
@@ -33,21 +33,33 @@ const StarRow = ({
   onChange,
   label,
   sublabel,
+  optional,
 }: {
   value: number;
   onChange: (v: number) => void;
   label: string;
   sublabel: string;
+  /** Optional categories render a quiet "Optional" tag so users know
+   *  they can skip them — only the Overall rating gates submission. */
+  optional?: boolean;
 }) => {
   const [hover, setHover] = useState(0);
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl liquid-glass p-3.5">
       <div className="flex-1 min-w-0">
         <p
-          className="font-display italic font-bold leading-tight"
+          className="font-display italic font-bold leading-tight flex items-center gap-1.5"
           style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
         >
           {label}
+          {optional && (
+            <span
+              className="font-serif italic"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--olivewood) / 0.55)", letterSpacing: "0.04em" }}
+            >
+              Optional
+            </span>
+          )}
         </p>
         <p
           className="font-serif italic mt-0.5"
@@ -114,11 +126,19 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
 
   const setScore = (key: CategoryKey, v: number) => setScores((prev) => ({ ...prev, [key]: v }));
 
-  const allRated = scores.rating > 0 && scores.punctuality > 0 && scores.quality > 0 && scores.communication > 0;
+  // Only the Overall rating is required to submit. The three detailed
+  // categories are optional — previously requiring all four meant a
+  // user who only wanted to leave an overall star rating hit a hard
+  // wall ("Please rate all four categories") and the job silently
+  // never got reviewed.
+  const canSubmit = scores.rating > 0;
+  // True once the user has also filled the detailed categories — used
+  // only to brighten the submit button as positive reinforcement.
+  const allRated = canSubmit && scores.punctuality > 0 && scores.quality > 0 && scores.communication > 0;
 
   const handleSubmit = async () => {
-    if (!allRated) {
-      toast.error("Please rate all four categories");
+    if (!canSubmit) {
+      toast.error("Please tap an Overall star rating");
       return;
     }
     setSubmitting(true);
@@ -130,9 +150,11 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       reviewer_id: user.id,
       reviewee_id: revieweeId,
       rating: scores.rating,
-      punctuality: scores.punctuality,
-      quality: scores.quality,
-      communication: scores.communication,
+      // Unrated detailed categories persist as null (not 0) so the
+      // ReviewList averages skip them rather than dragging the score down.
+      punctuality: scores.punctuality > 0 ? scores.punctuality : null,
+      quality: scores.quality > 0 ? scores.quality : null,
+      communication: scores.communication > 0 ? scores.communication : null,
       feedback: feedback.trim() || null,
     });
 
@@ -193,8 +215,15 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               onChange={(v) => setScore(row.key, v)}
               label={row.label}
               sublabel={row.sublabel}
+              optional={!row.required}
             />
           ))}
+          <p
+            className="font-serif italic"
+            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.65)" }}
+          >
+            Only the Overall rating is needed — the rest are optional. You can skip them and still post your review.
+          </p>
           <p
             className="font-serif italic uppercase pt-1"
             style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
@@ -239,24 +268,35 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
           />
         </div>
-        <DialogFooter className="!gap-2">
-          <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
+        <DialogFooter className="!flex-col !gap-2 !items-stretch">
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !allRated}
-            className="rounded-ds-md"
+            disabled={submitting || !canSubmit}
+            className="rounded-ds-md w-full"
             style={{
-              background: allRated ? "hsl(var(--bark))" : undefined,
+              background: canSubmit ? "hsl(var(--bark))" : undefined,
               backgroundImage: "none",
-              border: allRated ? "1px solid hsl(var(--bark))" : undefined,
-              color: allRated ? "hsl(var(--parchment))" : undefined,
+              border: canSubmit ? "1px solid hsl(var(--bark))" : undefined,
+              color: canSubmit ? "hsl(var(--parchment))" : undefined,
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
               letterSpacing: "0.01em",
-              boxShadow: allRated ? "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)" : undefined,
+              boxShadow: canSubmit ? "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)" : undefined,
             }}
           >
-            {submitting ? "Submitting…" : "Submit review"}
+            {submitting ? "Submitting…" : allRated ? "Submit review" : "Post review"}
+          </Button>
+          {/* A non-destructive escape hatch. "Cancel" reads as "discard",
+              which is wrong here — the review isn't lost, it can still be
+              left later from the completed job. This says so plainly so a
+              user who isn't ready right now doesn't feel pressured. */}
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            disabled={submitting}
+            className="rounded-ds-md w-full"
+          >
+            Maybe later
           </Button>
         </DialogFooter>
       </DialogContent>

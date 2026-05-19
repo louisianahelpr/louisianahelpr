@@ -14,6 +14,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 
 import { channelNonce } from "@/lib/realtimeChannel";
+import { archiveConversation, isArchived } from "@/lib/archivedConversations";
 
 import type { Conversation, Message } from "@/components/messages/types";
 import { ChatView } from "@/components/messages/ChatView";
@@ -156,7 +157,13 @@ const Messages = () => {
     }));
 
     convos.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
-    setConversations(convos);
+    // Drop locally-archived threads from the inbox. A thread auto-resurfaces
+    // once a message newer than the archive moment arrives, so `isArchived`
+    // is checked against each conversation's latest-message timestamp.
+    const visibleConvos = convos.filter(
+      (c) => !isArchived(uid, c.jobId, c.otherUserId, c.lastAt),
+    );
+    setConversations(visibleConvos);
     loadedOnceRef.current = true;
     setLoading(false);
 
@@ -643,26 +650,26 @@ const Messages = () => {
     await dispatchMessage({ ...failed, sendStatus: "sending" });
   };
 
-  const deleteConversation = async (convo: Conversation) => {
+  // Hide a conversation from this user's inbox.
+  //
+  // The old "delete conversation" only deleted the user's OWN sent
+  // messages (RLS forbids deleting the other person's) — so the thread
+  // stayed fully visible to the other person and half-visible here. That
+  // partial delete was misleading and irreversible. This instead does an
+  // honest local archive: nothing is deleted, the thread is just hidden
+  // from this user's list, and it resurfaces automatically if a new
+  // message arrives. See `src/lib/archivedConversations.ts`.
+  const archiveConversationLocal = (convo: Conversation) => {
     if (!userId) return;
     hapticHeavy();
-    // RLS only allows deleting own sent messages — so only delete those
-    const { error } = await supabase
-      .from("messages")
-      .delete()
-      .eq("job_id", convo.jobId)
-      .eq("sender_id", userId)
-      .eq("receiver_id", convo.otherUserId);
-
-    if (error) {
-      hapticError();
-      toast.error("Failed to delete conversation");
-    } else {
-      // Remove from local list — the other person's messages still exist for them
-      setConversations((prev) => prev.filter((c) => !(c.jobId === convo.jobId && c.otherUserId === convo.otherUserId)));
-      hapticSuccess();
-      toast.success("Your messages in this conversation have been deleted");
-    }
+    archiveConversation(userId, convo.jobId, convo.otherUserId);
+    setConversations((prev) =>
+      prev.filter(
+        (c) => !(c.jobId === convo.jobId && c.otherUserId === convo.otherUserId),
+      ),
+    );
+    hapticSuccess();
+    toast.success("Conversation hidden from your inbox");
     setDeleteConvoConfirm(null);
   };
 
@@ -746,16 +753,18 @@ const Messages = () => {
         />
       )}
 
-      {/* Delete conversation confirmation */}
+      {/* Hide conversation confirmation — an honest local archive, not a
+          partial delete. Nothing is removed; the thread is just hidden
+          from this inbox and comes back if a new message arrives. */}
       <BrandConfirmDialog
         open={!!deleteConvoConfirm}
         onOpenChange={(o) => { if (!o) setDeleteConvoConfirm(null); }}
-        title="Delete conversation?"
-        description={`This deletes your sent messages in this conversation with ${deleteConvoConfirm?.otherUserName ?? "this person"}. Messages you received stay visible to them. This can't be undone.`}
-        primaryLabel="Delete"
+        title="Hide this conversation?"
+        description={`This removes the conversation with ${deleteConvoConfirm?.otherUserName ?? "this person"} from your inbox. No messages are deleted, and it'll come back if they send you a new message.`}
+        primaryLabel="Hide"
         primaryTone="sienna"
         primaryHaptic="warning"
-        onPrimary={() => deleteConvoConfirm && deleteConversation(deleteConvoConfirm)}
+        onPrimary={() => deleteConvoConfirm && archiveConversationLocal(deleteConvoConfirm)}
         secondaryLabel="Cancel"
       />
 

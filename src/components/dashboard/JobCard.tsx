@@ -92,8 +92,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       />
       <div className="w-full px-3.5 py-3 flex items-center gap-3">
         {/* Avatar with category icon badge — poster initials in a
-            Bark-tinted glass circle, with a small colored circle on
-            top-left that mirrors the category filter icon + color. */}
+            Bark-tinted glass circle, with a small category-icon chip on
+            the top-left. The colored category rail (left edge of the
+            card) already carries the category color at full strength,
+            so this chip stays a quiet neutral circle: the icon merely
+            identifies the category, it doesn't add a second color block. */}
         <div className="relative shrink-0">
           <a
             href={`/user/${job.customer_id}`}
@@ -104,11 +107,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               // Tier halo around poster avatar: gold for Elite posters,
               // sienna for Pro, default subtle bark for free. Surfaces
               // subscriber posters in the helper's feed at a glance.
+              // Kept deliberately quiet — a 1px tinted ring at reduced
+              // opacity, so it's a soft cue rather than a sixth competing
+              // accent in the row.
               boxShadow:
                 job.posterSubscriptionTier === "elite"
-                  ? "0 0 0 2px hsl(var(--gold-warm)), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)"
+                  ? "0 0 0 1px hsl(var(--gold-warm) / 0.7), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)"
                   : job.posterSubscriptionTier === "pro"
-                    ? "0 0 0 2px hsl(var(--burnt-sienna)), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)"
+                    ? "0 0 0 1px hsl(var(--burnt-sienna) / 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)"
                     : "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)",
               border:
                 job.posterSubscriptionTier === "elite" || job.posterSubscriptionTier === "pro"
@@ -137,9 +143,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             return (
               <span
                 aria-label={categoryLabels[job.category] || job.category}
-                className={`absolute -top-0.5 -left-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-card ${catStyle.dot}`}
+                className={`absolute -top-0.5 -left-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-card bg-card ${catStyle.title}`}
+                style={{ boxShadow: "0 0 0 0.5px hsl(var(--bark) / 0.18)" }}
               >
-                <CategoryIcon className="w-2.5 h-2.5 text-white/85" strokeWidth={2.25} />
+                <CategoryIcon className="w-2.5 h-2.5" strokeWidth={2.25} />
               </span>
             );
           })()}
@@ -150,9 +157,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           <h3
             className="font-display italic font-bold text-foreground leading-tight line-clamp-2"
             style={{
-              fontSize: "0.95rem",
+              // Bumped from 0.95rem so the title is the clear focal
+              // point of the card — it should lead a browse feed, not
+              // sit visually under the price tile.
+              fontSize: "1.05rem",
               color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.012em",
+              letterSpacing: "-0.014em",
             }}
           >
             {job.title}
@@ -261,10 +271,16 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               // pay, not just an alarm cue. Falls back to plain
               // "URGENT" when no bonus was set.
               const bonus = Number(job.urgent_fee ?? 0);
+              // At most one looping animation per card: Boosted (a paid
+              // promotion) is the higher-priority signal, so when a job
+              // is both Boosted and Urgent the Urgent badge stays static
+              // — it's still fully present, just not a second animation
+              // competing for the eye.
+              const urgentAnimates = !job.isBoosted;
               return (
                 <span
                   aria-label={bonus > 0 ? `Urgent — $${bonus.toFixed(0)} bonus` : "Urgent"}
-                  className="urgent-pulse inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[8px] font-bold uppercase tracking-wider"
+                  className={`${urgentAnimates ? "urgent-pulse " : ""}inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[8px] font-bold uppercase tracking-wider`}
                   style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
                 >
                   <Zap className="w-2.5 h-2.5 text-accent fill-accent" />
@@ -274,30 +290,23 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             })()}
           </div>
         )}
-        {/* Price tile — premium achievement-badge feel: warm parchment
-            translucency, double inner-shadow (bright top rim + soft
-            bottom seat), gold-warm hairline at the top edge for the
-            "earned" cue. */}
+        {/* Price chip — calmed down from the old achievement-badge
+            treatment (gradient + blur + double inner-shadow + gold
+            inset, which made it the heaviest element on the card).
+            Now a quiet warm-parchment surface with a single hairline
+            border, so the job title leads the row instead. */}
         <div
           className="flex flex-col items-center px-2.5 py-1.5 rounded-ds-md"
           style={{
-            background: "linear-gradient(180deg, hsla(38, 50%, 96%, 0.78) 0%, hsla(38, 30%, 92%, 0.62) 100%)",
-            backdropFilter: "blur(20px) saturate(170%)",
-            WebkitBackdropFilter: "blur(20px) saturate(170%)",
-            border: "0.5px solid hsl(var(--bark) / 0.22)",
-            boxShadow:
-              "inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.85), " +
-              "inset 0 -1px 2px 0 hsl(var(--bark) / 0.10), " +
-              "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.18), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-              "0 6px 14px -4px hsl(var(--bark) / 0.22)",
+            background: "hsl(var(--bark) / 0.05)",
+            border: "0.5px solid hsl(var(--bark) / 0.16)",
           }}
         >
           <span
             className="flex items-center font-display leading-none tabular-nums"
             style={{
               fontWeight: 800,
-              fontSize: "1.05rem",
+              fontSize: "0.95rem",
               color: "hsl(var(--bark))",
               letterSpacing: "-0.02em",
             }}

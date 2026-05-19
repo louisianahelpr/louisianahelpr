@@ -62,7 +62,13 @@ export async function resolveNativeLaunchRoute(
   }
 
   try {
-    const { data } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getSession();
+    // A failed session lookup is treated the same as no session: fall
+    // through to the guest route. ProtectedRoute will re-gate properly
+    // once a real navigation happens, so a transient error here just
+    // means a signed-in user briefly lands on /browse instead of the
+    // dashboard — acceptable, and never a blank screen.
+    if (error) return "/browse";
     const session = data.session;
 
     // Guests → /browse (dashboard-style preview of open jobs).

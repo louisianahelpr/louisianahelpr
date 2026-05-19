@@ -425,11 +425,16 @@ const Dashboard = () => {
     );
   }
 
-  if (!isAdmin && profile && approvalStatus !== "approved") {
-    const handleCheckStatus = async () => {
-      await refresh();
-      toast.success("Status refreshed");
-    };
+  // Progressive activation: a `pending` user is NOT walled out of the
+  // dashboard. They can browse, save and apply while review runs — the
+  // verification gate fires only at the moments that genuinely need it
+  // (IDV-before-accept in Activity.tsx, payout setup). A non-blocking
+  // "under review" banner is rendered in `beforePanel` below instead.
+  //
+  // `denied` is still a hard stop here as defense-in-depth — ProtectedRoute
+  // already redirects denied users to /account-denied before this renders,
+  // but if that ever fails to fire we must not leak the feed to them.
+  if (!isAdmin && profile && approvalStatus === "denied") {
     const handleSignOut = async () => {
       await supabase.auth.signOut();
       navigate("/login", { replace: true });
@@ -439,42 +444,23 @@ const Dashboard = () => {
         <DashboardHeader />
         <main className="container mx-auto px-5 py-12">
           <div className="max-w-lg mx-auto text-center space-y-6">
-            {approvalStatus === "pending" ? (
-              <>
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><Clock className="w-8 h-8 text-primary" /></div>
-                <h1 className="text-page-title text-foreground text-ds-24">Profile under review</h1>
-                <p className="text-muted-foreground">Thanks for signing up, {firstName}! Your profile is being reviewed.</p>
-                <p className="text-ds-11 text-muted-foreground">
-                  We'll let you know as soon as you're approved. This screen updates automatically.
-                </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-                  <Button onClick={handleCheckStatus} className="rounded-ds-md btn-press">
-                    Check status
-                  </Button>
-                  <Button variant="outline" onClick={handleSignOut} className="rounded-ds-md">
-                    Sign out
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto"><XCircle className="w-8 h-8 text-destructive" /></div>
-                <h1 className="text-page-title text-foreground text-ds-24">Profile not approved</h1>
-                <p className="text-muted-foreground">Unfortunately, your profile was not approved. Please contact support.</p>
-                <div className="flex items-center justify-center gap-2 pt-2">
-                  <Button variant="outline" onClick={handleSignOut} className="rounded-ds-md">
-                    Sign out
-                  </Button>
-                </div>
-              </>
-            )}
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto"><XCircle className="w-8 h-8 text-destructive" /></div>
+            <h1 className="text-page-title text-foreground text-ds-24">Profile not approved</h1>
+            <p className="text-muted-foreground">Unfortunately, your profile was not approved. Please contact support.</p>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Button variant="outline" onClick={handleSignOut} className="rounded-ds-md">
+                Sign out
+              </Button>
+            </div>
           </div>
         </main>
       </div>
     );
   }
 
-  
+  const isPendingReview = !isAdmin && !!profile && approvalStatus === "pending";
+
+
 
   return (
     <>
@@ -568,6 +554,43 @@ const Dashboard = () => {
       }
       beforePanel={
         <>
+          {/* Progressive-activation banner — a pending user can browse,
+              save and apply right now; this is a non-blocking progress
+              strip, not a wall. Tapping opens the verification center
+              (/account-pending) where they can track review status. */}
+          {isPendingReview && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
+              style={{
+                background:
+                  "radial-gradient(70% 90% at 100% 0%, hsl(var(--bark) / 0.10) 0%, transparent 55%)",
+                border: "0.5px solid hsl(var(--bark) / 0.32)",
+              }}
+            >
+              <div
+                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ background: "hsl(var(--bark) / 0.18)", color: "hsl(var(--bark))" }}
+              >
+                <Clock className="w-4 h-4" strokeWidth={2.25} />
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/account-pending")}
+                className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
+              >
+                <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
+                  Verification in progress — browse and apply now.
+                </p>
+                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+                  Review usually finishes in 24–48 hours. You'll just need it cleared before you can accept a job. Tap to track status.
+                </p>
+              </button>
+            </motion.div>
+          )}
+
           {/* Quick-rebook strip — the customer's saved helprs, one tap
               from a direct offer. Self-hides when there are none. */}
           <YourHelpersRow />

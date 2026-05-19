@@ -24,8 +24,13 @@ const rightItems = [
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isLoading } = useCurrentUser();
+  const { user, profile, isLoading } = useCurrentUser();
   const isGuest = !isLoading && !user;
+  // A pending user can browse/apply, but /post-job stays gated until
+  // review clears. Hide the Post FAB for them so they don't tap into a
+  // redirect — see ProtectedRoute (the route has no `allowPending`).
+  const isPendingApproval =
+    !isGuest && profile?.approval_status === "pending";
   const [unreadCount, setUnreadCount] = useState(0);
   const [, setUnreadNotifCount] = useState(0);
   const [gateOpen, setGateOpen] = useState(false);
@@ -99,11 +104,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 
-  // Pending-approval lock: user is signed in but profile not yet approved.
-  // They can browse the home dashboard but everything else is gated until
-  // an admin clears them. Detected via route OR profile.approval_status.
-  const isPendingApproval =
-    location.pathname.startsWith("/account-pending");
+  // Progressive activation: a pending user is NOT locked out of the bottom
+  // nav tabs. Posts / Jobs / Messages / Profile are all `allowPending` /
+  // `allowUnapproved` routes, so they navigate freely while review runs —
+  // there is no `pendingLocked` branch any more. The Post FAB is the one
+  // exception (`isPendingApproval` above hides it) since /post-job is still
+  // gated. Verification still fires at the moments that genuinely need it
+  // (accepting a job, payout) inside the page components.
   // Guest "tease & convert" bottom nav is iOS/Android-app only.
   // On the web, guests should see only the top Navbar (no bottom bar).
   if (isGuest && !Capacitor.isNativePlatform()) return null;
@@ -138,8 +145,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     // that mirrors the real /dashboard), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
     const guestLocked = isGuest && !["/dashboard", "/profile"].includes(path);
-    const pendingLocked = !isGuest && isPendingApproval && path !== "/dashboard";
-    const locked = guestLocked || pendingLocked;
+    const locked = guestLocked;
     const effectivePath = isGuest
       ? path === "/dashboard"
         ? "/browse"
@@ -161,12 +167,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const handleClick = () => {
       if (guestLocked) {
         triggerGate(label.toLowerCase());
-        return;
-      }
-      if (pendingLocked) {
-        // Pending users can browse the home dashboard but nothing else.
-        // Send them back to the review screen so they can sync status.
-        navigate("/account-pending");
         return;
       }
       // Tab-switch haptic — subtle confirmation on every nav tap (only

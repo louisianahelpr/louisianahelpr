@@ -66,6 +66,11 @@ interface ChatViewProps {
   broadcastTyping: () => void;
   messages: Message[];
   userId: string | null;
+  /** True when the thread fetch failed — shows a recoverable error
+   *  state instead of the misleading "Say hello." empty state. */
+  chatLoadError: boolean;
+  /** Re-runs the thread fetch for the open conversation. */
+  onRetryLoad: () => void;
   hasMoreMessages: boolean;
   loadingMore: boolean;
   loadOlderMessages: () => void;
@@ -104,6 +109,8 @@ export function ChatView({
   broadcastTyping,
   messages,
   userId,
+  chatLoadError,
+  onRetryLoad,
   hasMoreMessages,
   loadingMore,
   loadOlderMessages,
@@ -240,7 +247,41 @@ export function ChatView({
                 </button>
               </div>
             )}
-            {messages.length === 0 && (
+            {/* Failed thread fetch — recoverable error state. Shown
+                instead of the "Say hello." empty state so a network
+                failure never masquerades as an empty conversation. */}
+            {chatLoadError && (
+              <div className="flex flex-col items-center text-center py-14 gap-3">
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{
+                    backgroundColor: "hsl(var(--destructive) / 0.1)",
+                    border: "1px solid hsl(var(--destructive) / 0.2)",
+                  }}
+                >
+                  <AlertTriangle className="w-6 h-6" style={{ color: "hsl(var(--destructive))" }} strokeWidth={1.75} />
+                </div>
+                <div className="space-y-1">
+                  <p
+                    className="font-display italic font-bold"
+                    style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                  >
+                    Couldn't load this conversation.
+                  </p>
+                  <p
+                    className="font-serif italic text-[0.82rem] max-w-[260px]"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    Check your connection and try again.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" className="rounded-full" onClick={onRetryLoad}>
+                  <RotateCw className="w-3.5 h-3.5 mr-1.5" />
+                  Retry
+                </Button>
+              </div>
+            )}
+            {!chatLoadError && messages.length === 0 && (
               <div className="flex flex-col items-center text-center py-14 gap-3">
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center"

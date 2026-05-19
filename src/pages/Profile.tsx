@@ -156,7 +156,13 @@ const ProfilePage = () => {
   const loadViolations = async () => {
     if (!user || violationsLoaded) return;
     setViolationsLoading(true);
-    const { data } = await supabase.from("user_violations").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("user_violations").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    if (error) {
+      console.error("[Profile] loadViolations failed:", error);
+      toast.error("Couldn't load your warnings. Pull to refresh to try again.");
+      setViolationsLoading(false);
+      return;
+    }
     setViolations(data || []);
     setViolationsLoaded(true);
     setViolationsLoading(false);
@@ -210,6 +216,12 @@ const ProfilePage = () => {
       supabase.from("reviews").select("rating").eq("reviewee_id", userId).lte("feedback_visible_at", new Date().toISOString()),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId),
     ]);
+    const statsError = helperJobsRes.error || reviewsRes.error || postedRes.error;
+    if (statsError) {
+      console.error("[Profile] loadStats failed:", statsError);
+      toast.error("Couldn't load your profile stats. Pull to refresh to try again.");
+      return;
+    }
     setCompletedCount(helperJobsRes.count || 0);
     setPostedCount(postedRes.count || 0);
     if (reviewsRes.data && reviewsRes.data.length > 0) {
@@ -224,13 +236,20 @@ const ProfilePage = () => {
     // Pull-to-refresh passes { force: true } to deliberately re-sync.
     if (!force && (reviewsLoading || reviewsLoaded)) return;
     setReviewsLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("reviews")
       .select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
       .eq("reviewee_id", user.id)
       .lte("feedback_visible_at", new Date().toISOString())
       .neq("jobs.status", "cancelled")
       .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("[Profile] loadReviews failed:", error);
+      toast.error("Couldn't load your reviews. Pull to refresh to try again.");
+      setReviewsLoading(false);
+      return;
+    }
 
     if (data && data.length > 0) {
       const reviewerIds = [...new Set(data.map((r) => r.reviewer_id))];
@@ -305,6 +324,12 @@ const ProfilePage = () => {
       supabase.from("jobs").select("*").eq("helper_id", user.id).neq("status", "cancelled").order("created_at", { ascending: false }),
       supabase.from("tips").select("amount, job_id, created_at").eq("helper_id", user.id),
     ]);
+    if (jobsRes.error || tipsRes.error) {
+      console.error("[Profile] loadEarnings failed:", jobsRes.error || tipsRes.error);
+      toast.error("Couldn't load your earnings. Pull to refresh to try again.");
+      setEarningsLoading(false);
+      return;
+    }
     if (jobsRes.data) {
       setEarningsJobs(jobsRes.data);
       const completedJobIds = new Set(jobsRes.data.filter(j => j.status === "completed").map(j => j.id));
@@ -322,6 +347,12 @@ const ProfilePage = () => {
       supabase.from("jobs").select("*").eq("customer_id", user.id).in("status", ["open", "accepted", "in_progress"]).order("date_needed"),
       supabase.from("jobs").select("*").eq("helper_id", user.id).in("status", ["accepted", "in_progress"]).order("date_needed"),
     ]);
+    if (posted.error || assigned.error) {
+      console.error("[Profile] loadSchedule failed:", posted.error || assigned.error);
+      toast.error("Couldn't load your schedule. Pull to refresh to try again.");
+      setScheduleLoading(false);
+      return;
+    }
     if (posted.data) setSchedulePostedJobs(posted.data);
     if (assigned.data) setScheduleAssignedJobs(assigned.data);
     setScheduleLoading(false);
@@ -333,6 +364,11 @@ const ProfilePage = () => {
       supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }).limit(20),
       supabase.from("jobs").select("*").or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`).eq("status", "completed").order("created_at", { ascending: false }).limit(20),
     ]);
+    if (posted.error || completed.error) {
+      console.error("[Profile] loadInlineJobs failed:", posted.error || completed.error);
+      toast.error("Couldn't load your jobs. Pull to refresh to try again.");
+      return;
+    }
     if (posted.data) setInlinePostedJobs(posted.data);
     if (completed.data) setInlineCompletedJobs(completed.data);
     setInlineJobsLoaded(true);

@@ -15,6 +15,20 @@ export type Message = {
   attachment_url: string | null;
   attachment_mime: string | null;
   attachment_size: number | null;
+  /**
+   * Optimistic-send bookkeeping. Absent on rows loaded from the DB or
+   * received over realtime — present only on bubbles the local user has
+   * just sent and that have not yet been confirmed by the server.
+   *
+   * - `clientId`: a client-generated nonce that survives reconciliation.
+   *   It lets the realtime INSERT echo of our own message be matched back
+   *   to the optimistic bubble so we don't render a duplicate.
+   * - `sendStatus`: `"sending"` while the insert is in flight, `"failed"`
+   *   if it errored (the bubble offers a retry). Confirmed messages leave
+   *   this `undefined`.
+   */
+  clientId?: string;
+  sendStatus?: "sending" | "failed";
 };
 
 export type Conversation = {

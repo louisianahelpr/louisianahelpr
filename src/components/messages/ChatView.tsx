@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban } from "lucide-react";
+import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,6 +73,8 @@ interface ChatViewProps {
     content: string,
     attachment?: { path: string; mime: string; size: number },
   ) => void;
+  /** Re-dispatch a previously failed optimistic message by its clientId. */
+  retryMessage: (clientId: string) => void;
   /** Scroll container + bottom sentinel — created by the page so its
    *  realtime/scroll handlers can read them; attached to nodes here. */
   chatContainerRef: Ref<HTMLDivElement>;
@@ -106,6 +108,7 @@ export function ChatView({
   loadingMore,
   loadOlderMessages,
   sendMessage,
+  retryMessage,
   chatContainerRef,
   bottomRef,
   setReportTarget,
@@ -270,12 +273,14 @@ export function ChatView({
             )}
             {messages.map((m) => {
               const mine = m.sender_id === userId;
+              const isSending = m.sendStatus === "sending";
+              const isFailed = m.sendStatus === "failed";
               return (
-                <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                <div key={m.clientId ?? m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                   <div
-                    className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 ${
+                    className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 transition-opacity ${
                       mine ? "rounded-br-md" : "rounded-bl-md"
-                    }`}
+                    } ${isSending ? "opacity-60" : ""}`}
                     style={mine ? {
                       // "Mine" bubble — bark with subtle inner highlight + soft shadow
                       // for a tactile, brand-aligned feel (vs. flat primary fill).
@@ -318,7 +323,7 @@ export function ChatView({
                           <Flag className="w-3.5 h-3.5" />
                         </button>
                       )}
-                      {mine && (
+                      {mine && !isSending && !isFailed && (
                         <button
                           onClick={() => setDeleteMessageConfirm(m.id)}
                           className="text-muted-foreground hover:text-destructive p-1"
@@ -330,15 +335,34 @@ export function ChatView({
                     </div>
                   </div>
                   <div className={`flex items-center gap-1 mt-1 px-1 text-[10px] text-muted-foreground ${mine ? "flex-row-reverse" : ""}`}>
-                    <span>
-                      {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
-                    </span>
-                    <ReadReceipt
-                      read={m.read}
-                      sentByMe={mine}
-                      recipientName={activeConvo?.otherUserName}
-                      recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}
-                    />
+                    {isSending ? (
+                      <span className="flex items-center gap-1">
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                        Sending…
+                      </span>
+                    ) : isFailed ? (
+                      <button
+                        type="button"
+                        onClick={() => m.clientId && retryMessage(m.clientId)}
+                        className="flex items-center gap-1 text-destructive font-medium hover:underline"
+                        title="Retry sending"
+                      >
+                        <RotateCw className="w-2.5 h-2.5" />
+                        Not sent — tap to retry
+                      </button>
+                    ) : (
+                      <>
+                        <span>
+                          {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
+                        </span>
+                        <ReadReceipt
+                          read={m.read}
+                          sentByMe={mine}
+                          recipientName={activeConvo?.otherUserName}
+                          recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
               );

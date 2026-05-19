@@ -90,7 +90,7 @@ test.describe("payment lifecycle — public surfaces", () => {
     // actually enforces it). A network failure / 404 here would mean the
     // function is not deployed.
     const res = await request.post(
-      `${BASE_URL.replace("www.", "").replace("https://", "https://")}/functions/v1/create-payment`,
+      `${BASE_URL.replace("www.", "")}/functions/v1/create-payment`,
       {
         data: { action: "escrow", jobId: "anything" },
         failOnStatusCode: false,

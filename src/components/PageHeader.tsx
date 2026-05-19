@@ -7,17 +7,14 @@ interface PageHeaderProps {
   eyebrow?: string;
   /** Italic Garamond meta line below the title — accepts strings or
       JSX (e.g., counts with Sienna-tinted dividers). Use this for the
-      editorial brand pattern. The legacy `subtitle` prop still works. */
+      editorial brand pattern. */
   meta?: ReactNode;
   onBack?: () => void;
   rightSlot?: ReactNode;
-  /** Legacy subtitle slot — falls back to a long-form muted description.
-      Prefer `meta` for editorial-style page headers. */
-  subtitle?: ReactNode;
   hideBack?: boolean;
 }
 
-const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, subtitle, hideBack = false }: PageHeaderProps) => {
+const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false }: PageHeaderProps) => {
 
   // When no rightSlot is provided, skip the empty 48px sticky bar and let
   // the title block absorb the safe-area-top padding instead. Pages like
@@ -71,11 +68,6 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, subtitle, hideBac
             )}
           </div>
         </div>
-        {subtitle ? (
-          <div className="mt-1 text-[14px] leading-relaxed text-muted-foreground max-w-prose">
-            {subtitle}
-          </div>
-        ) : null}
       </div>
     </>
   );

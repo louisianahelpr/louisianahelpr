@@ -109,13 +109,13 @@ const DataRights = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-page pb-24">
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
         eyebrow="Privacy controls"
         title="Your Data Rights"
         meta="Export, correct, or delete your information at any time"
       />
-      <main className="container mx-auto px-5 py-6 max-w-2xl space-y-6">
+      <main className="container mx-auto px-5 py-6 max-w-lg space-y-6">
         <p className="text-ds-11 text-muted-foreground">
           Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
           Use the controls below to exercise them. For all other privacy questions email{" "}

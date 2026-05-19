@@ -98,7 +98,7 @@ const JobHistory = () => {
       />
 
       <main className="container mx-auto px-5 py-6">
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-lg mx-auto space-y-4">
 
           {/* Tabs */}
           <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">

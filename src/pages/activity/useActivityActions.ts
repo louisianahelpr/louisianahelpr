@@ -309,8 +309,8 @@ export function useActivityActions({
       // to the pre-migration multi-step path (atomic per-row only) if
       // the RPC isn't deployed to this environment yet — that branch
       // goes dormant once the migration lands.
-      let actionTaken = "none";
-      let priorCount = 0;
+      let actionTaken: string;
+      let priorCount: number;
       const declineTitle = (app as AppliedApp).job?.title || "Unknown";
 
       const { data: rpcData, error: rpcError } = await supabase.rpc("decline_job_offer", {

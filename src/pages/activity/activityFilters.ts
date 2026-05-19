@@ -53,7 +53,7 @@ export function useActivityFilters({
   const filteredPostedJobs = useMemo(() =>
     postedJobs.filter((j) => {
       // Status filter
-      let statusMatch = false;
+      let statusMatch: boolean;
       if (statusFilter === "direct_offer") statusMatch = !!j.offered_to_helper_id && j.direct_offer_status === "pending";
       else if (statusFilter === "offered") statusMatch = j.status === "accepted" && !j.helper_confirmed_at;
       else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!j.helper_confirmed_at;

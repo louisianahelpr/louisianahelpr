@@ -144,7 +144,7 @@ const AdminHealth = () => {
         cancelled: cancelRes.count || 0,
       };
 
-      let healthStatus: "ok" | "degraded" | "unknown" = "unknown";
+      let healthStatus: "ok" | "degraded" | "unknown";
       try {
         const { data: hc, error } = await supabase.functions.invoke("health-check");
         healthStatus = error ? "degraded" : (hc?.status === "healthy" ? "ok" : "degraded");

@@ -14,11 +14,19 @@ interface ParishRow {
 const AdminParishActivity = () => {
   const [rows, setRows] = useState<ParishRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.rpc("get_parish_activity", { p_limit: 5 });
-      setRows((data as ParishRow[]) || []);
+      const { data, error } = await supabase.rpc("get_parish_activity", { p_limit: 5 });
+      if (error) {
+        // Don't let a failed RPC fall through to the "No parish activity
+        // yet" empty state — that reads as real data and hides the outage.
+        console.error("[AdminParishActivity] get_parish_activity failed:", error);
+        setLoadError(true);
+      } else {
+        setRows((data as ParishRow[]) || []);
+      }
       setLoading(false);
     };
     load();
@@ -43,6 +51,8 @@ const AdminParishActivity = () => {
         <div className="space-y-2">
           {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
         </div>
+      ) : loadError ? (
+        <p className="text-ds-11 text-muted-foreground text-center py-6">Couldn&apos;t load parish activity.</p>
       ) : rows.length === 0 ? (
         <p className="text-ds-11 text-muted-foreground text-center py-6">No parish activity yet.</p>
       ) : (

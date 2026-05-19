@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
 import { Navigation, MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -74,7 +75,7 @@ export function JobTracking({
     loadTracking();
 
     const channel = supabase
-      .channel(`tracking-${jobId}`)
+      .channel(`tracking-${jobId}-${channelNonce()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "job_tracking", filter: `job_id=eq.${jobId}` },

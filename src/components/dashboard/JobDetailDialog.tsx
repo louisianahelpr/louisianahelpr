@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { categoryLabels, categoryColors, categoryIcons } from "@/components/activity/activityConstants";
 import { getCityState } from "@/lib/locationUtils";
+import { transformedImageUrl } from "@/lib/imageUrl";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { haversineMiles } from "@/lib/geo";
 import { getParishCentroid } from "@/lib/parishCentroids";
@@ -217,7 +218,10 @@ const JobDetailDialog = ({
                   "0 8px 24px -6px hsl(var(--bark) / 0.18)",
               }}
             >
-              <img loading="lazy" decoding="async" src={photos[0]} alt="Cover" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+              {/* 16:9 cover inside a max-w-lg (512px) dialog — request a
+                  ~512x288 thumbnail instead of the raw upload. The wrapper
+                  is `aspect-video`, so the box is already CLS-safe. */}
+              <img loading="lazy" decoding="async" src={transformedImageUrl(photos[0], { width: 512, height: 288 })} alt="Cover" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
               {photos.length > 1 && (
                 <span
                   className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-sans font-semibold"

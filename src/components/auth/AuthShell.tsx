@@ -38,7 +38,13 @@ const AuthShell = ({
   return (
     <div className="min-h-screen page-warmth relative">
       <div aria-hidden className="mesh-gradient-global" />
-      <div className={`relative z-10 flex items-start sm:items-center justify-center px-5 pb-10 sm:px-8 sm:py-16 ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-16"}`}>
+      {/* Anchor the content to the TOP on every viewport. A prior
+          `sm:items-center` vertically-centered the whole block on tablet/
+          desktop, leaving the heading floating in dead space well below
+          the Back link. `items-start` keeps the heading sitting just
+          below Back with consistent, intentional spacing — and the top
+          padding is trimmed on `sm:` so the gap stays tight there too. */}
+      <div className={`relative z-10 flex items-start justify-center px-5 pb-10 sm:px-8 sm:pb-16 ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
         <div className={`w-full ${widthMap[maxWidth]}`}>
           {showCompactTopBar ? (
             <div className="mb-4 flex items-center justify-between gap-3">

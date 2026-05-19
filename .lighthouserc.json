@@ -2,7 +2,7 @@
   "ci": {
     "collect": {
       "settings": {
-        "preset": "desktop"
+        "preset": "mobile"
       },
       "numberOfRuns": 1
     },

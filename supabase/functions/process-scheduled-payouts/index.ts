@@ -264,7 +264,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("[process-scheduled-payouts] fatal:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({
+        error: "Internal server error",
+        detail: (error as Error).message,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

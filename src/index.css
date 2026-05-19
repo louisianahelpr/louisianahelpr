@@ -116,7 +116,7 @@
   --shadow-elevated: 0 25px 50px rgba(0, 0, 0, 0.15);
 
   /* Floating-card shadow stack — 3-stop, soft, restrained.
-     Used by .bento-tile, .card-floating, and the home-page job cards. */
+     Used by home-page job cards and other floating surfaces. */
   --shadow-floating:
     0 1px 2px rgba(20, 20, 18, 0.04),
     0 8px 16px -4px rgba(20, 20, 18, 0.06),
@@ -267,32 +267,6 @@ body {
   transform: translateY(-2px);
 }
 
-.card-premium {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 14px;
-  box-shadow: var(--shadow-card);
-  padding: 20px;
-}
-
-.ds-card {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 14px;
-  padding: 16px;
-  box-shadow: var(--shadow-card-soft);
-}
-
-.glass-card {
-  @apply glass;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 14px;
-  padding: 16px;
-}
-
-.dark .glass-card {
-  border-color: rgba(255, 255, 255, 0.1);
-}
 
 /* Typography Utilities — page titles use the editorial Bodoni Moda italic
    treatment so internal pages match the landing's typographic voice. The
@@ -459,70 +433,6 @@ button {
   border-bottom: 1px solid hsl(var(--heritage-gold));
 }
 
-/* Bento tile — 32px radius. Faint copper/iron-ore hairline replaces the
-   standard grey border so edges read as warm wrought-iron. Shape is also
-   defined by the soft 3-stop floating shadow + an inner top highlight. */
-/* Glassmorphism — semi-transparent over the page mesh, 1 px light hairline,
-   heavy backdrop-blur. Reads as "etched glass floating" rather than a solid
-   card. Soft low-opacity drop shadow only (no heavy multi-stop). */
-.bento-tile {
-  position: relative;
-  border-radius: 2rem;
-  /* Glass per spec: 40% white + 12 px backdrop blur + 50% white edge. */
-  background-color: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 0.5px solid rgba(255, 255, 255, 0.15);
-  /* Effortless-float shadow — single large soft drop, very low opacity. */
-  box-shadow:
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.7),
-    inset 0 -1px 0 0 hsl(var(--olivewood) / 0.05),
-    0 20px 40px rgba(0, 0, 0, 0.04);
-  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-              border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.bento-tile:hover {
-  transform: translateY(-4px);
-  border-color: hsla(0, 0%, 100%, 0.8);
-  box-shadow:
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.85),
-    inset 0 -1px 0 0 hsl(var(--olivewood) / 0.06),
-    0 0 0 1px hsl(var(--sage) / 0.18),
-    0 28px 56px rgba(0, 0, 0, 0.05);
-}
-
-/* Feature variant — slightly warmer base. Same border-less treatment. */
-.bento-tile-feature {
-  background:
-    linear-gradient(180deg, hsl(var(--secondary) / 0.55) 0%, hsl(var(--card)) 100%);
-}
-
-/* Floating job card — same shadow + texture treatment, tighter radius. */
-.card-floating {
-  position: relative;
-  border-radius: 1.5rem;
-  background-color: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 0.5px solid rgba(255, 255, 255, 0.15);
-  box-shadow:
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.7),
-    inset 0 -1px 0 0 hsl(var(--olivewood) / 0.05),
-    0 20px 40px rgba(0, 0, 0, 0.04);
-  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.card-floating:hover {
-  transform: translateY(-4px);
-  border-color: hsla(0, 0%, 100%, 0.8);
-  box-shadow:
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.85),
-    0 0 0 1px hsl(var(--sage) / 0.18),
-    0 28px 56px rgba(0, 0, 0, 0.05);
-}
 
 /* GALLERY FRAME — substantial rounded container for the hero photograph in
    the new 2-column gallery layout. Photo reads as a piece of art rather
@@ -544,8 +454,8 @@ button {
 /* GLASS ISLAND — heavy frosted plate that sits OVER the hero photograph.
    Reads as a window into the scene rather than a card on a page. Generous
    blur, low-opacity linen tint, restrained inner highlight, deep soft shadow
-   (shadow is heavier here than .bento-tile because it's floating over a
-   photograph, not over warm linen, and needs to anchor visually). */
+   (shadow is heavier here because it's floating over a photograph, not over
+   warm linen, and needs to anchor visually). */
 .glass-island {
   position: relative;
   border-radius: 2rem;
@@ -566,6 +476,17 @@ button {
     0 1px 2px rgba(20, 20, 18, 0.08),
     0 24px 48px -12px rgba(20, 20, 18, 0.28),
     0 56px 112px -24px rgba(20, 20, 18, 0.22);
+}
+
+.dark .glass-island {
+  background-color: hsl(var(--card) / 0.82);
+  box-shadow:
+    inset 0 0 0 1px hsl(0 0% 100% / 0.07),
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.12),
+    inset 0 -1px 0 0 hsl(0 0% 0% / 0.18),
+    0 1px 2px hsl(0 0% 0% / 0.24),
+    0 24px 48px -12px hsl(0 0% 0% / 0.45),
+    0 56px 112px -24px hsl(0 0% 0% / 0.38);
 }
 
 /* Primary button — Jasper Green fill in editorial serif (Fraunces 700).
@@ -705,6 +626,16 @@ button {
     0 12px 36px -8px rgba(0, 0, 0, 0.04);
 }
 
+.dark .section-linen {
+  background-color: hsl(var(--card) / 0.45);
+  border-color: hsl(var(--border) / 0.3);
+  box-shadow:
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.06),
+    inset 0 -1px 0 0 hsl(0 0% 0% / 0.12),
+    0 1px 2px hsl(0 0% 0% / 0.14),
+    0 12px 36px -8px hsl(0 0% 0% / 0.22);
+}
+
 /* Ghost CTA — frosted-blur secondary button. Reads as a separate material
    without competing with the sage-filled primary. */
 .btn-ghost-blur {
@@ -830,24 +761,14 @@ button {
     0 28px 56px -14px hsl(var(--olivewood) / 0.1);
 }
 
-/* Glass-panel utility — single source of truth for liquid-glass surfaces
-   across web + native (Capacitor) builds. Shares the exact same blur,
-   border, and shadow stops as `.liquid-glass` so the dashboard, the
-   TestFlight app's panes, dialogs, and any new surfaces all read as
-   one consistent material. Use this when you'd otherwise inline 4-5
-   style props on a div. */
-.glass-panel {
-  background-color: hsla(0, 0%, 100%, 0.42);
-  backdrop-filter: blur(20px) saturate(170%);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
-  border: 1px solid hsla(0, 0%, 100%, 0.55);
-  border-radius: 1.5rem;
+.dark .liquid-glass {
+  background-color: hsl(var(--card) / 0.55);
+  border-color: hsl(var(--border) / 0.35);
   box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.06),
-    0 1px 2px hsl(var(--olivewood) / 0.06),
-    0 14px 30px -8px hsl(var(--olivewood) / 0.14),
-    0 36px 64px -16px hsl(var(--olivewood) / 0.18);
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.07),
+    0 1px 2px hsl(0 0% 0% / 0.18),
+    0 12px 24px -6px hsl(0 0% 0% / 0.28),
+    0 28px 56px -14px hsl(0 0% 0% / 0.22);
 }
 
 /* Subtle paper-like depth for empty-state surfaces — barely-there

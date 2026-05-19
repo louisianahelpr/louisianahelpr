@@ -8,19 +8,11 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { StatusBadge } from "@/components/StatusBadge";
 import { unwrap } from "@/lib/supabaseResult";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
-
-
-const statusColors: Record<string, string> = {
-  open: "bg-primary/10 text-primary",
-  accepted: "bg-accent/20 text-accent-foreground",
-  in_progress: "bg-accent/20 text-accent-foreground",
-  completed: "bg-secondary text-secondary-foreground",
-  cancelled: "bg-destructive/10 text-destructive",
-};
 
 type HistoryTab = "all" | "posted" | "worked";
 type StatusFilter = "all" | "open" | "in_progress" | "completed" | "cancelled";
@@ -159,9 +151,7 @@ const JobHistory = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3 className="font-semibold text-foreground">{job.title}</h3>
-                        <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>
-                          {job.status.replace("_", " ")}
-                        </span>
+                        <StatusBadge status={job.status} className="text-ds-11" />
                         <span className="text-ds-11 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
                           {job._source === "posted" ? "Posted" : "Worked"}
                         </span>

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, Flag, CheckCircle2 } from "lucide-react";
+import { StatusBadge } from "@/components/StatusBadge";
 import { safeStorage } from "@/lib/safeStorage";
 
 const RESOLVED_FLAGS_KEY = "admin_resolved_job_flags";
@@ -25,14 +26,6 @@ const categoryLabels: Record<string, string> = {
   cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",
   handyman: "Handyman", painting: "Painting", delivery: "Delivery", pet_care: "Pet Care",
   assembly: "Assembly", other: "Other",
-};
-
-const statusColors: Record<string, string> = {
-  open: "bg-primary/10 text-primary",
-  accepted: "bg-accent/20 text-accent-foreground",
-  in_progress: "bg-accent/20 text-accent-foreground",
-  completed: "bg-secondary text-secondary-foreground",
-  cancelled: "bg-destructive/10 text-destructive",
 };
 
 const paymentColors: Record<string, string> = {
@@ -351,9 +344,7 @@ const AdminJobs = () => {
                   )}
                 </div>
                 <div className="flex flex-col gap-1 items-end flex-shrink-0">
-                  <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>
-                    {job.status.replace("_", " ")}
-                  </span>
+                  <StatusBadge status={job.status} className="text-ds-11" />
                   <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${paymentColors[job.payment_status || "unpaid"] || ""}`}>
                     {job.payment_status || "unpaid"}
                   </span>
@@ -435,9 +426,7 @@ const AdminJobs = () => {
 
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary" className="capitalize">{categoryLabels[detailJob.category] || detailJob.category}</Badge>
-                <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[detailJob.status]}`}>
-                  {detailJob.status.replace("_", " ")}
-                </span>
+                <StatusBadge status={detailJob.status} className="text-ds-11" />
                 <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${paymentColors[detailJob.payment_status || "unpaid"]}`}>
                   {detailJob.payment_status || "unpaid"}
                 </span>

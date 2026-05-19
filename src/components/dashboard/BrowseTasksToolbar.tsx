@@ -150,7 +150,6 @@ export function BrowseTasksToolbar({
             <div className="relative px-4 py-3">
               <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
-                autoFocus
                 placeholder="Search tasks…"
                 value={filters.searchQuery}
                 onChange={(e) => filters.setSearchQuery(e.target.value)}

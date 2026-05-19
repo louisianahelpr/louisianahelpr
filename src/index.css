@@ -896,6 +896,12 @@ button {
 .dark .glass-header {
   background-color: hsla(0, 0%, 100%, 0.05);
 }
+/* AppShell's header wrapper owns the top safe-area inset; a `.glass-header`
+   nested inside it must not re-add it (would double-count the notch gap).
+   Standalone `.glass-header` (e.g. PageHeader's sticky bar) is untouched. */
+.app-shell-header .glass-header {
+  padding-top: 0;
+}
 
 /* Modal content surface — the frosted card that Dialog and AlertDialog
    both float over their overlay. Single source of truth for that

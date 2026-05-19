@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect, forwardRef } from "react";
@@ -21,14 +20,6 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-  // On iOS Capacitor we ship with `overlaysWebView: false` + `contentInset:
-  // 'always'`, so the WebView already starts BELOW the status bar. Adding
-  // another 1rem of padding-top here pushes the logo way down (visible on
-  // TestFlight as a giant gap above the header). On the web — where the
-  // browser owns the status bar — keep the breathing room so the logo isn't
-  // flush against notch insets reported by mobile Safari.
-  const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
-
   return (
     <nav
       ref={ref}
@@ -37,13 +28,12 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
         scrolled && "is-scrolled",
       )}
       style={{
-        // On native iOS the WebView already sits below the status bar
-        // (overlaysWebView: false + contentInset: 'always'), so we add
-        // ZERO extra top padding — anything more creates a visible gap
-        // between the status bar and the Helpr logo.
-        paddingTop: isNative
-          ? "0px"
-          : "max(env(safe-area-inset-top), 0.25rem)",
+        // The iOS Capacitor WebView is edge-to-edge (`overlaysWebView: true`
+        // in capacitor.config.ts + setOverlaysWebView({overlay:true}) in
+        // nativeInit.ts), so the status bar overlaps the WebView on every
+        // platform. Pad by the safe-area top inset (clamped to 0.25rem so the
+        // logo isn't flush on browsers that report a zero inset).
+        paddingTop: "max(env(safe-area-inset-top), 0.25rem)",
       }}
     >
       <div

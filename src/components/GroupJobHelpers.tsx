@@ -21,23 +21,32 @@ export function GroupJobHelpers({
   isOwner: boolean;
 }) {
   const [helpers, setHelpers] = useState<GroupHelper[]>([]);
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadHelpers();
   }, [jobId]);
 
   const loadHelpers = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("group_job_helpers")
       .select("*")
       .eq("job_id", jobId);
+    if (error) {
+      console.error("[GroupJobHelpers] failed to load group helpers:", error);
+      toast.error("Couldn't load group helprs");
+      return;
+    }
     const rows = (data ?? []) as unknown as GroupHelper[];
     if (rows.length > 0) {
       const helperIds = rows.map((h) => h.helper_id);
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", helperIds);
+      if (profilesError) {
+        console.error("[GroupJobHelpers] failed to load helper profiles:", profilesError);
+      }
       const nameMap = new Map(profiles?.map((p) => [p.user_id, formatName(p.full_name, "Helpr")]) || []);
       setHelpers(
         rows.map((h) => ({
@@ -51,9 +60,33 @@ export function GroupJobHelpers({
   };
 
   const removeHelper = async (id: string) => {
-    await supabase.from("group_job_helpers").delete().eq("id", id);
+    if (removingIds.has(id)) return;
+    const removed = helpers.find((h) => h.id === id);
+    setRemovingIds((prev) => new Set(prev).add(id));
+    // Optimistically drop the helper so the UI updates on tap.
+    setHelpers((prev) => prev.filter((h) => h.id !== id));
+
+    const { error } = await supabase.from("group_job_helpers").delete().eq("id", id);
+
+    setRemovingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+
+    if (error) {
+      console.error("[GroupJobHelpers] failed to remove helper:", error);
+      toast.error("Couldn't remove helpr");
+      // Revert: re-add the removed helper, or reload if we lost the snapshot.
+      if (removed) {
+        setHelpers((prev) => (prev.some((h) => h.id === id) ? prev : [...prev, removed]));
+      } else {
+        loadHelpers();
+      }
+      return;
+    }
+
     toast.success("Helpr removed from group");
-    loadHelpers();
   };
 
   const filledSlots = helpers.filter((h) => h.status === "accepted").length;

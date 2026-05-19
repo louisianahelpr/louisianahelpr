@@ -81,13 +81,19 @@ const NotificationPreferences = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (cancelled || !user) return;
       setUserId(user.id);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("notification_preferences")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
       if (cancelled) return;
-      if (data) setPrefs({ ...defaultPrefs, ...data });
+      // No row yet is expected (defaults apply); a real query failure is not.
+      if (error) {
+        console.error("[NotificationPreferences] failed to load preferences:", error);
+        toast.error("Couldn't load notification preferences");
+      } else if (data) {
+        setPrefs({ ...defaultPrefs, ...data });
+      }
       setLoaded(true);
     })();
     return () => { cancelled = true; };

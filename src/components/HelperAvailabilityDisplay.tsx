@@ -29,13 +29,17 @@ export function HelperAvailabilityDisplay({ helperId, showEmpty = false, onSetUp
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("helper_availability")
         .select("day_of_week, is_available, start_time, end_time")
         .eq("helper_id", helperId)
         .is("specific_date", null)
         .order("day_of_week");
-      if (data && (data as unknown as Slot[]).length > 0) setSlots(data as unknown as Slot[]);
+      if (error) {
+        console.error("[HelperAvailabilityDisplay] failed to load availability:", error);
+      } else if (data && (data as unknown as Slot[]).length > 0) {
+        setSlots(data as unknown as Slot[]);
+      }
       setLoaded(true);
     })();
   }, [helperId]);

@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-3xl text-[15px] font-bold tracking-[-0.01em] ring-offset-background transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
+  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-3xl text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -27,7 +27,7 @@ const buttonVariants = cva(
       size: {
         default: "h-14 px-6 py-2 text-[16px]",
         sm: "h-11 rounded-3xl px-4 text-[14px]",
-        lg: "h-[60px] rounded-3xl px-8 text-[17px]",
+        lg: "h-[60px] rounded-3xl px-8 text-ds-17",
         xl: "h-16 rounded-3xl px-10 text-[18px]",
         icon: "h-14 w-14",
       },

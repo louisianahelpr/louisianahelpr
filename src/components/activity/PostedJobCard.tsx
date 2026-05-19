@@ -1,4 +1,4 @@
-import { useState, useEffect, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useState, useEffect, memo, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
   Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Calendar, Timer, Wrench,
+  Share2, RotateCw,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -17,7 +18,7 @@ import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { transformedImageUrl } from "@/lib/imageUrl";
-import { type Job } from "./activityConstants";
+import { type Job, type EnrichedApplication } from "./activityConstants";
 
 const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; startTime?: string | null; label: string }) => {
   const [now, setNow] = useState(new Date());
@@ -102,6 +103,13 @@ interface PostedJobCardProps {
   onConfirmArrival: (jobId: string) => void;
   onConfirmWorking: (jobId: string) => void;
   onLoadApplications: (job: Job) => void;
+  /** Inline applicant data for the expanded open-job card. */
+  onLoadInlineApplicants: (jobId: string) => void;
+  inlineApplicants: Record<string, EnrichedApplication[]>;
+  loadingApplicants: Record<string, boolean>;
+  /** Per-job applicant fetch error, for inline retry. */
+  applicantErrors: Record<string, boolean>;
+  onBoostJob: (jobId: string) => void;
 }
 
 /**
@@ -113,7 +121,7 @@ interface PostedJobCardProps {
  * was this one render function). Faithful relocation — the JSX is
  * unchanged; every value the card read from the parent is now a prop.
  */
-export function PostedJobCard({
+function PostedJobCardInner({
   job,
   applicantCounts,
   expandedJobId,
@@ -136,6 +144,11 @@ export function PostedJobCard({
   onConfirmArrival,
   onConfirmWorking,
   onLoadApplications,
+  onLoadInlineApplicants,
+  inlineApplicants,
+  loadingApplicants,
+  applicantErrors,
+  onBoostJob,
 }: PostedJobCardProps) {
   const navigate = useNavigate();
   const meta = completedJobMeta[job.id];
@@ -397,12 +410,109 @@ export function PostedJobCard({
                 </div>
               )}
 
-              {/* Applicants button */}
+              {/* Applicants button + inline expanded applicant list */}
               {job.status === "open" && (
-                <div className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                <div className="px-4 py-2 space-y-2" onClick={(e) => e.stopPropagation()}>
                   <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => onLoadApplications(job)}>
                     <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}
                   </Button>
+
+                  {/* Inline applicants — load when the card is expanded.
+                      Shows a skeleton while loading, an error+retry when
+                      the fetch failed, and an empty-state with a share/boost
+                      hint when there are zero applicants. */}
+                  {isExpanded && (() => {
+                    const isLoadingInline = loadingApplicants[job.id];
+                    const hasError = applicantErrors[job.id];
+                    const apps = inlineApplicants[job.id];
+
+                    // Kick off the fetch the first time the card expands.
+                    if (!isLoadingInline && !hasError && apps === undefined) {
+                      onLoadInlineApplicants(job.id);
+                    }
+
+                    if (isLoadingInline) {
+                      return (
+                        <div className="space-y-2 py-1">
+                          {[1, 2].map((i) => (
+                            <div key={i} className="h-10 rounded-ds-sm bg-muted/40 animate-pulse" />
+                          ))}
+                        </div>
+                      );
+                    }
+
+                    if (hasError) {
+                      return (
+                        <div
+                          className="rounded-ds-md px-3 py-2.5 flex items-center gap-2"
+                          style={{
+                            background: "hsl(var(--destructive) / 0.06)",
+                            border: "0.5px solid hsl(var(--destructive) / 0.22)",
+                          }}
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-destructive" />
+                          <p className="font-serif italic flex-1" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}>
+                            Couldn't load applicants.
+                          </p>
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 text-ds-11 font-semibold text-primary hover:underline"
+                            onClick={() => onLoadInlineApplicants(job.id)}
+                          >
+                            <RotateCw className="w-3 h-3" /> Retry
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    if (apps !== undefined && apps.length === 0) {
+                      return (
+                        <div
+                          className="rounded-ds-md px-3 py-2.5 space-y-1.5"
+                          style={{
+                            background: "hsl(var(--olivewood) / 0.05)",
+                            border: "0.5px solid hsl(var(--olivewood) / 0.16)",
+                          }}
+                        >
+                          <p
+                            className="font-display italic font-bold"
+                            style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                          >
+                            No applicants yet
+                          </p>
+                          <p
+                            className="font-serif italic leading-snug"
+                            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.75)" }}
+                          >
+                            Share your task or Boost it to reach more helprs nearby.
+                          </p>
+                          <div className="flex gap-2 pt-0.5">
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0 text-ds-11"
+                              onClick={() => onBoostJob(job.id)}
+                            >
+                              <Rocket className="w-3.5 h-3.5 mr-1" /> Boost
+                            </Button>
+                            {navigator.share && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 text-ds-11"
+                                onClick={() => {
+                                  navigator.share({ title: job.title, text: `Help needed: ${job.title}`, url: window.location.origin + `/dashboard?job=${job.id}` }).catch(() => {});
+                                }}
+                              >
+                                <Share2 className="w-3.5 h-3.5 mr-1" /> Share
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  })()}
                 </div>
               )}
 
@@ -762,3 +872,6 @@ export function PostedJobCard({
           </div>
   );
 }
+
+/** Memoized — re-renders only when its own props change, not on parent state updates. */
+export const PostedJobCard = memo(PostedJobCardInner);

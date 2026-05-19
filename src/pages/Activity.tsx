@@ -74,6 +74,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [applications, setApplications] = useState<EnrichedApplication[]>([]);
   const [inlineApplicants, setInlineApplicants] = useState<Record<string, EnrichedApplication[]>>({});
   const [loadingApplicants, setLoadingApplicants] = useState<Record<string, boolean>>({});
+  const [applicantErrors, setApplicantErrors] = useState<Record<string, boolean>>({});
   const [editJob, setEditJob] = useState<Job | null>(null);
   const [boostJobId, setBoostJobId] = useState<string | null>(null);
   const [enhancedTipJobId, setEnhancedTipJobId] = useState<string | null>(null);
@@ -182,18 +183,20 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     }
   };
 
-  const loadInlineApplicants = async (jobId: string) => {
-    if (inlineApplicants[jobId]) return;
+  const loadInlineApplicants = useCallback(async (jobId: string) => {
+    // Clear any prior error and start loading (supports retry by always re-fetching).
+    setApplicantErrors(prev => ({ ...prev, [jobId]: false }));
     setLoadingApplicants(prev => ({ ...prev, [jobId]: true }));
     try {
       const enriched = await fetchApplicants(jobId);
       setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
     } catch {
+      setApplicantErrors(prev => ({ ...prev, [jobId]: true }));
       toast.error("Couldn't load applicants. Please try again.");
     } finally {
       setLoadingApplicants(prev => ({ ...prev, [jobId]: false }));
     }
-  };
+  }, [user]);
 
   const acceptApplication = async (app: EnrichedApplication) => {
     hapticMedium();
@@ -587,16 +590,18 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const postedStatusFilters = useMemo(() => [
     { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
-    { key: "offered", label: "Awaiting Response", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
+    // "Awaiting Helpr's Response" — the poster sent an offer; the helpr hasn't confirmed yet.
+    { key: "offered", label: "Awaiting Helpr's Response", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
     { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
   ], []);
 
   const appliedStatusFilters = useMemo(() => [
-    { key: "pending", label: "Pending", color: "bg-secondary text-secondary-foreground border-border" },
+    { key: "pending", label: "Applied", color: "bg-secondary text-secondary-foreground border-border" },
     { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
-    { key: "offered", label: "Awaiting Response", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
+    // "Respond to Offer" — the poster selected me; I need to accept or decline.
+    { key: "offered", label: "Respond to Offer", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
     { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
     { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
     { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
@@ -983,6 +988,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onLoadInlineApplicants={loadInlineApplicants}
               inlineApplicants={inlineApplicants}
               loadingApplicants={loadingApplicants}
+              applicantErrors={applicantErrors}
             />
           )}
 

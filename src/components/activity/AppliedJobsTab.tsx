@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -42,16 +42,16 @@ export const AppliedJobsTab = ({
   const [editMessageText, setEditMessageText] = useState("");
   const [savingMessage, setSavingMessage] = useState(false);
 
-  const handleSaveMessage = async (appId: string) => {
+  const handleSaveMessage = useCallback(async (appId: string) => {
     setSavingMessage(true);
     const { error } = await supabase.from("applications").update({ message: editMessageText.trim() || null }).eq("id", appId);
     if (error) toast.error("Failed to save message");
     else toast.success("Message updated");
     setSavingMessage(false);
     setEditingMessageAppId(null);
-  };
+  }, [editMessageText]);
 
-  const confirmWithdraw = async () => {
+  const confirmWithdraw = useCallback(async () => {
     if (!withdrawTarget) return;
     const { appId, jobTitle } = withdrawTarget;
     setWithdrawingAppId(appId);
@@ -63,9 +63,9 @@ export const AppliedJobsTab = ({
     }
     setWithdrawingAppId(null);
     setWithdrawTarget(null);
-  };
+  }, [withdrawTarget, userId]);
 
-  const handleAddAttachment = async (appId: string, jobId: string, currentUrls: string[], file: File) => {
+  const handleAddAttachment = useCallback(async (appId: string, jobId: string, currentUrls: string[], file: File) => {
     if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
     setUploadingAttachment(appId);
     const ext = file.name.split('.').pop();
@@ -77,14 +77,14 @@ export const AppliedJobsTab = ({
     if (error) toast.error("Failed to save attachment");
     else toast.success("Attachment added");
     setUploadingAttachment(null);
-  };
+  }, [userId]);
 
-  const handleRemoveAttachment = async (appId: string, currentUrls: string[], urlToRemove: string) => {
+  const handleRemoveAttachment = useCallback(async (appId: string, currentUrls: string[], urlToRemove: string) => {
     const newUrls = currentUrls.filter(u => u !== urlToRemove);
     const { error } = await supabase.from("applications").update({ attachment_urls: newUrls }).eq("id", appId);
     if (error) toast.error("Failed to remove attachment");
     else toast.success("Attachment removed");
-  };
+  }, []);
 
   if (apps.length === 0) {
     return (

@@ -46,33 +46,40 @@ export const SaveHelperButton = ({
 
   const toggle = async () => {
     if (working || saved === null) return;
+
+    // Optimistic update: flip state immediately so the UI responds on tap.
+    const previousSaved = saved;
+    const nextSaved = !saved;
+    setSaved(nextSaved);
+    onChange?.(nextSaved);
     setWorking(true);
     hapticLight();
-    if (saved) {
-      const { error } = await supabase
+
+    let error: { message: string } | null = null;
+
+    if (previousSaved) {
+      ({ error } = await supabase
         .from("favorite_helpers")
         .delete()
         .eq("customer_id", customerId)
-        .eq("helper_id", helperId);
-      if (error) {
-        toast.error("Couldn't unsave helpr");
-      } else {
-        setSaved(false);
-        onChange?.(false);
-        toast.success("Removed from your saved helprs");
-      }
+        .eq("helper_id", helperId));
     } else {
-      const { error } = await supabase
+      ({ error } = await supabase
         .from("favorite_helpers")
-        .insert({ customer_id: customerId, helper_id: helperId });
-      if (error) {
-        toast.error("Couldn't save helpr");
-      } else {
-        setSaved(true);
-        onChange?.(true);
-        toast.success("Saved! Find them under Saved Helprs.");
-      }
+        .insert({ customer_id: customerId, helper_id: helperId }));
     }
+
+    if (error) {
+      // Revert on failure so the persisted state stays consistent.
+      setSaved(previousSaved);
+      onChange?.(previousSaved);
+      toast.error(previousSaved ? "Couldn't unsave helpr" : "Couldn't save helpr");
+    } else if (nextSaved) {
+      toast.success("Saved! Find them under Saved Helprs.");
+    } else {
+      toast.success("Removed from your saved helprs");
+    }
+
     setWorking(false);
   };
 

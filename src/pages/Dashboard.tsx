@@ -5,6 +5,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -160,14 +161,14 @@ const Dashboard = () => {
   const { data: topSavedSearch = null } = useQuery({
     queryKey: ["savedSearches", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const data = unwrap(await supabase
         .from("saved_searches")
         .select("name")
         .eq("user_id", user!.id)
         .eq("notify_enabled", true)
         .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle());
       return data ? { name: data.name } : null;
     },
     enabled: !!user?.id,
@@ -204,13 +205,13 @@ const Dashboard = () => {
   const { data: lastApplicationAt } = useQuery({
     queryKey: ["lastApplication", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const data = unwrap(await supabase
         .from("applications")
         .select("created_at")
         .eq("helper_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle());
       return data?.created_at ?? null;
     },
     enabled: !!user?.id && isPaidSubscriber,
@@ -265,10 +266,10 @@ const Dashboard = () => {
   const { data: savedJobsData } = useQuery({
     queryKey: ["savedJobs", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const data = unwrap(await supabase
         .from("saved_jobs")
         .select("job_id")
-        .eq("user_id", user!.id);
+        .eq("user_id", user!.id));
       return (data ?? []).map((d: { job_id: string }) => d.job_id);
     },
     enabled: !!user?.id,

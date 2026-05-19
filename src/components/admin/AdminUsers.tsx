@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -141,18 +141,25 @@ const AdminUsers = () => {
     loadProfiles();
   }, []);
 
-  // Build openProfile from the extracted factory
-  const openProfile = makeOpenProfile({
-    setViewProfile,
-    setIdDocSignedUrl,
-    setEmailTracking,
-    setEmailSendStats,
-    setProfileJobs,
-    setProfileReviews,
-    setProfileReviewsLeft,
-    setProfileViolations,
-    setProfileBans,
-  });
+  // Build openProfile from the extracted factory. Memoized so the
+  // reference stays stable across renders — the memoized AdminUserRow
+  // relies on a stable `onOpen` to skip re-rendering unchanged rows.
+  // All deps are useState setters, so this only ever runs once.
+  const openProfile = useMemo(
+    () =>
+      makeOpenProfile({
+        setViewProfile,
+        setIdDocSignedUrl,
+        setEmailTracking,
+        setEmailSendStats,
+        setProfileJobs,
+        setProfileReviews,
+        setProfileReviewsLeft,
+        setProfileViolations,
+        setProfileBans,
+      }),
+    [],
+  );
 
   // Deep-link from admin notifications: /admin?view=people&user=<id>.
   // Once profiles are loaded, find the user and open their detail dialog

@@ -43,13 +43,20 @@ export function BlockUserDialog({
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("jobs")
         .select("id")
         .or(
           `and(customer_id.eq.${user.id},helper_id.eq.${blockedUserId}),and(customer_id.eq.${blockedUserId},helper_id.eq.${user.id})`,
         )
         .in("status", ["accepted", "in_progress", "revision_requested"]);
+      if (error) {
+        // A swallowed error here would set the count to 0 and hide the
+        // "active jobs will be cancelled" warning — leave it unknown
+        // (null) instead of implying it's safe to block.
+        console.error("[BlockUserDialog] active-job lookup failed:", error);
+        return;
+      }
       if (!cancelled) setActiveJobCount(data?.length ?? 0);
     })();
     return () => {

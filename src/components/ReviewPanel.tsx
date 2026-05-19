@@ -337,12 +337,19 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("reviews")
         .select("*")
         .eq("reviewee_id", userId)
         .order("created_at", { ascending: false });
 
+      if (error) {
+        // Surface the failure instead of silently rendering an empty
+        // "no reviews yet" state that looks like real data.
+        console.error("[ReviewList] failed to load reviews:", error);
+        setLoaded(true);
+        return;
+      }
       if (data && data.length > 0) {
         const reviewerIds = [...new Set(data.map((r) => r.reviewer_id))];
         const { data: profiles } = await supabase

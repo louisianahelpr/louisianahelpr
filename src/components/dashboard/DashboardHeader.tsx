@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut, Shield, Menu } from "lucide-react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import NotificationPanel from "@/components/NotificationPanel";
 import { supabase } from "@/integrations/supabase/client";
-import { channelNonce } from "@/lib/realtimeChannel";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import HelprMark from "@/components/HelprMark";
 
@@ -16,23 +15,9 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
   const navigate = useNavigate();
-  const { isAdmin, user } = useCurrentUser();
+  const { isAdmin } = useCurrentUser();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [, setUnreadMessages] = useState(0);
-
-  useEffect(() => {
-    if (!user) return;
-    const loadUnread = () => {
-      supabase.from("messages").select("*", { count: "exact", head: true }).eq("receiver_id", user.id).eq("read", false)
-        .then(({ count }) => setUnreadMessages(count || 0));
-    };
-    loadUnread();
-    const channel = supabase.channel(`header-unread-${user.id}-${channelNonce()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, () => loadUnread())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
 
   const handleLogout = async () => {
     setLoggingOut(true);

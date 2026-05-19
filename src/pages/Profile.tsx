@@ -5,9 +5,6 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
-import ReferralSection from "@/components/ReferralSection";
-import NotificationPreferences from "@/components/NotificationPreferences";
-import { PaymentTab } from "@/components/PaymentTab";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
@@ -20,24 +17,28 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { splitName } from "@/lib/splitName";
 
-// Lazy-loaded tab components — keeps Profile.tsx initial bundle under 200KB.
-// Each tab is only fetched the first time the user clicks it.
+// Only the landing tab + its lightweight header are needed on first paint.
+// Every other tab panel and the rarely-opened dialogs are code-split so the
+// Profile route chunk stays small — each is fetched the first time it shows.
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { DeleteAccountDialog } from "@/components/profile/DeleteAccountDialog";
-import { SecurityTab } from "@/components/profile/SecurityTab";
-import { JobListTab } from "@/components/profile/JobListTab";
-import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
+const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
+const SecurityTab = lazy(() => import("@/components/profile/SecurityTab").then(m => ({ default: m.SecurityTab })));
+const JobListTab = lazy(() => import("@/components/profile/JobListTab").then(m => ({ default: m.JobListTab })));
+const ProfileEditForm = lazy(() => import("@/components/profile/ProfileEditForm").then(m => ({ default: m.ProfileEditForm })));
 const SupportInline = lazy(() => import("@/components/profile/SupportInline").then(m => ({ default: m.SupportInline })));
 const SavedHelpersTab = lazy(() => import("@/components/profile/SavedHelpersTab").then(m => ({ default: m.SavedHelpersTab })));
 const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab").then(m => ({ default: m.SubscriptionTab })));
 const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));
-import { EarningsTab } from "@/components/profile/EarningsTab";
-import { ScheduleTab } from "@/components/profile/ScheduleTab";
-import { AvailabilityTab } from "@/components/profile/AvailabilityTab";
+const EarningsTab = lazy(() => import("@/components/profile/EarningsTab").then(m => ({ default: m.EarningsTab })));
+const ScheduleTab = lazy(() => import("@/components/profile/ScheduleTab").then(m => ({ default: m.ScheduleTab })));
+const AvailabilityTab = lazy(() => import("@/components/profile/AvailabilityTab").then(m => ({ default: m.AvailabilityTab })));
 const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));
 const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
+const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
+const NotificationPreferences = lazy(() => import("@/components/NotificationPreferences"));
+const ReferralSection = lazy(() => import("@/components/ReferralSection"));
 
 const TabFallback = () => (
   <div className="space-y-4">
@@ -527,32 +528,34 @@ const ProfilePage = () => {
 
           {/* PROFILE TAB */}
           {tab === "profile" && (
-            <ProfileEditForm
-              profile={profile}
-              firstName={firstName}
-              lastName={lastName}
-              phone={phone}
-              setPhone={setPhone}
-              location={location}
-              setLocation={setLocation}
-              zipCode={zipCode}
-              setZipCode={setZipCode}
-              bio={bio}
-              setBio={setBio}
-              initials={initials}
-              avatarBroken={avatarBroken}
-              setAvatarBroken={setAvatarBroken}
-              avatarUploading={avatarUploading}
-              idUploading={idUploading}
-              saving={saving}
-              justSaved={justSaved}
-              onSave={handleSave}
-              onAvatarUpload={handleAvatarUpload}
-              onIdUpload={handleIdUpload}
-              onBack={() => setTab("landing")}
-              onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls }) : prev)}
-              onContactSupport={() => setTab("support")}
-            />
+            <Suspense fallback={<TabFallback />}>
+              <ProfileEditForm
+                profile={profile}
+                firstName={firstName}
+                lastName={lastName}
+                phone={phone}
+                setPhone={setPhone}
+                location={location}
+                setLocation={setLocation}
+                zipCode={zipCode}
+                setZipCode={setZipCode}
+                bio={bio}
+                setBio={setBio}
+                initials={initials}
+                avatarBroken={avatarBroken}
+                setAvatarBroken={setAvatarBroken}
+                avatarUploading={avatarUploading}
+                idUploading={idUploading}
+                saving={saving}
+                justSaved={justSaved}
+                onSave={handleSave}
+                onAvatarUpload={handleAvatarUpload}
+                onIdUpload={handleIdUpload}
+                onBack={() => setTab("landing")}
+                onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls }) : prev)}
+                onContactSupport={() => setTab("support")}
+              />
+            </Suspense>
           )}
 
 
@@ -590,11 +593,13 @@ const ProfilePage = () => {
                 meta="Payouts & earnings"
                 onBack={() => setTab("landing")}
               />
-              <PaymentTab
-                earningsJobs={earningsJobs}
-                totalEarnings={totalEarnings}
-                onSeeEarnings={() => setTab("earnings")}
-              />
+              <Suspense fallback={<TabFallback />}>
+                <PaymentTab
+                  earningsJobs={earningsJobs}
+                  totalEarnings={totalEarnings}
+                  onSeeEarnings={() => setTab("earnings")}
+                />
+              </Suspense>
             </div>
           )}
 
@@ -605,11 +610,15 @@ const ProfilePage = () => {
           )}
 
           {tab === "posted_jobs" && (
-            <JobListTab variant="posted" jobs={inlinePostedJobs} onBack={() => setTab("landing")} />
+            <Suspense fallback={<TabFallback />}>
+              <JobListTab variant="posted" jobs={inlinePostedJobs} onBack={() => setTab("landing")} />
+            </Suspense>
           )}
 
           {tab === "completed_jobs" && (
-            <JobListTab variant="completed" jobs={inlineCompletedJobs} onBack={() => setTab("landing")} />
+            <Suspense fallback={<TabFallback />}>
+              <JobListTab variant="completed" jobs={inlineCompletedJobs} onBack={() => setTab("landing")} />
+            </Suspense>
           )}
 
           {tab === "support" && (
@@ -632,12 +641,16 @@ const ProfilePage = () => {
                 meta="Email, push, and SMS preferences"
                 onBack={() => setTab("landing")}
               />
-              <NotificationPreferences />
+              <Suspense fallback={<TabFallback />}>
+                <NotificationPreferences />
+              </Suspense>
             </div>
           )}
 
           {tab === "security" && (
-            <SecurityTab email={user?.email} onBack={() => setTab("landing")} />
+            <Suspense fallback={<TabFallback />}>
+              <SecurityTab email={user?.email} onBack={() => setTab("landing")} />
+            </Suspense>
           )}
 
           {tab === "reviews" && (
@@ -654,7 +667,9 @@ const ProfilePage = () => {
                 meta="Earn credits when neighbors join"
                 onBack={() => setTab("landing")}
               />
-              <ReferralSection userId={user.id} />
+              <Suspense fallback={<TabFallback />}>
+                <ReferralSection userId={user.id} />
+              </Suspense>
             </div>
           )}
 
@@ -700,16 +715,22 @@ const ProfilePage = () => {
         secondaryLabel="Stay signed in"
       />
 
-      <DeleteAccountDialog
-        open={showDeleteAccountDialog}
-        onOpenChange={setShowDeleteAccountDialog}
-        deleteStep={deleteStep}
-        setDeleteStep={setDeleteStep}
-        deleteConfirmText={deleteConfirmText}
-        setDeleteConfirmText={setDeleteConfirmText}
-        deletingAccount={deletingAccount}
-        onDelete={handleDeleteAccount}
-      />
+      {/* Mounted only once the user opens it — the dialog chunk (and its
+          confirm-flow deps) is fetched on demand rather than with the route. */}
+      {showDeleteAccountDialog && (
+        <Suspense fallback={null}>
+          <DeleteAccountDialog
+            open={showDeleteAccountDialog}
+            onOpenChange={setShowDeleteAccountDialog}
+            deleteStep={deleteStep}
+            setDeleteStep={setDeleteStep}
+            deleteConfirmText={deleteConfirmText}
+            setDeleteConfirmText={setDeleteConfirmText}
+            deletingAccount={deletingAccount}
+            onDelete={handleDeleteAccount}
+          />
+        </Suspense>
+      )}
     </>
   );
 };

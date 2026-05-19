@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import AppShell from "@/components/AppShell";
 import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
 import { MessageAttachment } from "@/components/MessageAttachment";
@@ -127,8 +128,16 @@ export function ChatView({
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-premium-page overflow-hidden">
-      <DashboardHeader />
+    // Fixed-viewport lock + safe-area-top header inset come from AppShell,
+    // the single shell primitive. `scrollable={false}` because the chat
+    // body manages its own scroll (chatContainerRef); the message input
+    // bleeds to the safe-area bottom rather than reserving dock space.
+    <AppShell
+      header={<DashboardHeader />}
+      scrollable={false}
+      reserveBottomNav={false}
+      className="bg-premium-page"
+    >
       <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-0 flex-1 min-h-0 flex flex-col">
         <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col">
         <div
@@ -437,6 +446,6 @@ export function ChatView({
         </div>
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 }

@@ -12,6 +12,7 @@ import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import AuthShell from "@/components/auth/AuthShell";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import BuildStamp from "@/components/BuildStamp";
 
 const LOGIN_TIMEOUT_MS = 15000;
 
@@ -227,6 +228,10 @@ const Login = () => {
         {" · "}
         <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy Policy</Link>
       </p>
+
+      <div className="mt-4">
+        <BuildStamp />
+      </div>
     </AuthShell>
   );
 };

@@ -50,3 +50,8 @@ supabase/.temp/
 # Playwright test artifacts
 test-results/
 playwright-report/
+
+# Edge-function test harness scratch files (see src/test/edge/harness.ts).
+# The harness writes a rewritten copy of an edge function here, imports it,
+# then deletes it — this catches any left behind by an interrupted run.
+src/test/edge/*.gen.ts

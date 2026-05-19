@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
+import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -264,8 +265,19 @@ export function BrowseTasksFeed({
                 )}
               </>
             )}
+            {/* Main "Everything else" feed — virtualized. This is the
+                only unbounded list on the dashboard (50+ rows after
+                infinite scroll, each mounting framer-motion drag state),
+                so it scrolls via an element-scroll virtualizer that
+                renders just the visible window. The recommended section,
+                section headers, and the infinite-scroll sentinel stay as
+                normal DOM — recommended is capped at 5 and the rest are
+                fixed-size. The outer div keeps the horizontal padding,
+                top padding, and dock clearance; per-card vertical spacing
+                is baked into each virtualized row so it survives the
+                absolute positioning the virtualizer applies. */}
             <div
-              className="px-3 pt-3 space-y-2.5 lg:space-y-4 xl:space-y-5"
+              className="px-3 pt-3"
               style={{
                 // Dock clearance — last jobs scroll *under* the
                 // floating bottom nav, so we add safe room below
@@ -273,11 +285,19 @@ export function BrowseTasksFeed({
                 paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
               }}
             >
-              {visibleJobs.map((job, i) => (
-                <div key={job.id}>
-                  <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
-                </div>
-              ))}
+              <VirtualizedJobList
+                items={visibleJobs}
+                scrollElementRef={containerRef}
+                getKey={(job) => job.id}
+                renderItem={(job, i) => (
+                  // Gap between cards — `space-y-*` can't apply once the
+                  // virtualizer absolutely-positions rows, so the gap is
+                  // bottom padding measured as part of the row height.
+                  <div className="pb-2.5 lg:pb-4 xl:pb-5">
+                    <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
+                  </div>
+                )}
+              />
             </div>
             {/* Infinite scroll sentinel + manual fallback */}
             {hasNextPage && (

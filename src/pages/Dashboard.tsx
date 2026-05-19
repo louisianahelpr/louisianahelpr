@@ -21,6 +21,7 @@ import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { ApplyConfirmDialog } from "@/components/dashboard/ApplyConfirmDialog";
+import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 
@@ -590,6 +591,9 @@ const Dashboard = () => {
             </motion.div>
           )}
 
+          {/* Quick-rebook strip — the customer's saved helprs, one tap
+              from a direct offer. Self-hides when there are none. */}
+          <YourHelpersRow />
           {/* Profile completion nudge — surfaces when profile is < 60%
               complete. Sits above other banners since posters won't
               respond well to incomplete-looking applicants. Tapping

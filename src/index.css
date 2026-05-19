@@ -8,6 +8,10 @@
 @layer base {
   * {
     @apply border-border;
+    /* iOS WKWebView paints a translucent grey box on every <button>/<a>
+       tap. The app has its own .btn-press / active:scale feedback, so the
+       native highlight is pure noise — and a "this is a website" tell. */
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {

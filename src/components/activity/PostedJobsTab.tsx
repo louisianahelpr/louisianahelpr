@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
+import { transformedImageUrl } from "@/lib/imageUrl";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star, Users, Wrench } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
@@ -154,7 +155,9 @@ export const PostedJobsTab = ({
                           <img
                             loading="lazy"
                             decoding="async"
-                            src={app.profiles.avatar_url}
+                            // Helper avatar renders into a fixed 44px (w-11 h-11)
+                            // circle — request a matching thumbnail.
+                            src={transformedImageUrl(app.profiles.avatar_url, { width: 44, height: 44 })}
                             alt=""
                             className="w-full h-full object-cover"
                           />

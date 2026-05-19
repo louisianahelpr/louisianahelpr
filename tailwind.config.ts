@@ -114,6 +114,10 @@ export default {
         "safe-bottom": "env(safe-area-inset-bottom)",
         "safe-left": "env(safe-area-inset-left)",
         "safe-right": "env(safe-area-inset-right)",
+        // Bottom clearance for content above the floating MobileNav dock + FAB
+        // (96px dock/FAB height + 1rem breathing room) plus the iOS safe-area
+        // inset. Consumed via `pb-safe-nav` on full-scroll pages.
+        "safe-nav": "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)",
       },
       transitionTimingFunction: {
         "ds-out": "cubic-bezier(0.22, 1, 0.36, 1)",

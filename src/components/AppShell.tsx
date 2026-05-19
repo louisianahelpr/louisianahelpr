@@ -52,8 +52,13 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
         style={{ height: "100dvh" }}
       >
         {header ? (
+          // `app-shell-header` marks this wrapper as the single owner of the
+          // top safe-area inset for any AppShell header. A nested
+          // `.glass-header` (e.g. DashboardHeader) also sets that inset, so a
+          // scoped override in index.css zeros the inner one — the wrapper
+          // owns the top inset; a nested .glass-header must not re-add it.
           <div
-            className="shrink-0 z-30"
+            className="app-shell-header shrink-0 z-30"
             style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
           >
             {header}

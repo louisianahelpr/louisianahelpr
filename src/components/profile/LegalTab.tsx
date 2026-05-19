@@ -1,128 +1,28 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   DollarSign, Shield, FileText, ExternalLink, Clock,
-  Crown, XCircle, AlertTriangle, Ban, Scale, ChevronDown, ChevronRight,
+  Crown, XCircle, AlertTriangle, Ban, Scale,
   Building2, Wallet, HeartPulse, Siren,
-  type LucideIcon,
 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 
-// ---------- Policy detail rows ----------
-
-type PolicyRow = {
-  icon: LucideIcon;
-  title: string;
-  body: React.ReactNode;
-  warning?: boolean;
-};
-
-const RowItem = ({ icon: Icon, title, body, warning }: PolicyRow) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger
-        className={`group w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-ds-md text-left transition-colors btn-press ${
-          warning
-            ? "hover:bg-destructive/10"
-            : "hover:bg-primary/5"
-        }`}
-      >
-        <span className="flex items-center gap-2.5 min-w-0">
-          <span
-            className={`shrink-0 w-7 h-7 rounded-ds-sm flex items-center justify-center ${
-              warning ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
-            }`}
-          >
-            <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
-          </span>
-          <span className="text-ds-13 font-semibold text-foreground truncate">{title}</span>
-        </span>
-        <ChevronRight
-          className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${open ? "rotate-90" : ""}`}
-        />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-        <div className="px-3 pt-2 pb-3 text-ds-11 text-muted-foreground space-y-1.5 border-l-2 border-border/40 ml-5 my-1">
-          {body}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  );
-};
-
-// ---------- Group section ----------
-
-const Section = ({
-  icon: Icon,
-  title,
-  subtitle,
-  warning,
-  defaultOpen = false,
-  children,
-}: {
-  icon: LucideIcon;
-  title: string;
-  subtitle: string;
-  warning?: boolean;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <div
-        className={`rounded-2xl squircle overflow-hidden transition-colors ${
-          warning
-            ? "border-2 border-destructive/20 bg-destructive/5"
-            : "liquid-glass"
-        }`}
-      >
-        <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">
-          <span className="flex items-center gap-3 min-w-0">
-            <span
-              className={`shrink-0 w-9 h-9 rounded-ds-md flex items-center justify-center ${
-                warning ? "bg-destructive/15 text-destructive" : "bg-primary/12 text-primary"
-              }`}
-            >
-              <Icon className="w-4 h-4" strokeWidth={2.25} />
-            </span>
-            <span className="min-w-0">
-              <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1rem", color: warning ? "hsl(var(--destructive))" : "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                {title}
-              </p>
-              <p className="font-serif italic truncate" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>{subtitle}</p>
-            </span>
-          </span>
-          <ChevronDown
-            className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
-          />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-          <div className="px-2 pb-2 pt-1 space-y-0.5 border-t border-border/50">{children}</div>
-        </CollapsibleContent>
-      </div>
-    </Collapsible>
-  );
-};
+// This tab reuses the shared PolicySection / PolicyRowItem from
+// CollapsedPolicy.tsx — the same accordion primitives the /legal page
+// renders — so the Profile Legal tab and /legal are visually identical.
+// Those components read PolicySearchContext, which defaults to "" when
+// no provider is mounted, so they work here without any search UI.
 
 // ---------- Page ----------
 
 export function LegalTab({ onBack }: { onBack: () => void }) {
   return (
-    // Bottom padding bumped from pb-24 (96px) to safe-area-aware 10rem
-    // so the bottom Section ("Operations & Safety") is fully scrollable
-    // above the MobileNav dock + FAB on iPhone. Previously pb-24 left
-    // "Account Health" clipped by the dock and "Operations & Safety"
-    // entirely unreachable.
+    // Safe-area-aware bottom padding (~6rem) so the bottom section
+    // ("Operations & Safety") scrolls clear of the MobileNav dock + FAB
+    // on iPhone without leaving a large empty dead-zone below it.
     <div
-      className="space-y-5"
-      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 10rem)" }}
+      className="space-y-6"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}
     >
       <ProfileTabHeader
         eyebrow="Documents"
@@ -133,7 +33,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
 
       {/* Anchor docs — dedicated full-text pages */}
       <div>
-        <p className="font-serif italic uppercase mb-2" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+        <p className="font-serif italic uppercase mb-2.5" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
           The full text
         </p>
         <div className="space-y-2">
@@ -145,17 +45,20 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             <Link
               key={to}
               to={to}
-              className="block rounded-2xl liquid-glass p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+              className="block rounded-2xl border border-border bg-card squircle p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4" strokeWidth={2.25} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                  {/* Clean font-display heading — matches the shared
+                      PolicySection cards below so the whole tab speaks
+                      one type language. */}
+                  <p className="font-display font-bold text-foreground leading-tight text-ds-15">
                     {title}
                   </p>
-                  <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
                     {body}
                   </p>
                 </div>
@@ -166,19 +69,23 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {/* Quick reference — concise summaries of platform-specific policies */}
-      <div className="space-y-3">
+      {/* Quick reference — concise summaries of platform-specific
+          policies. Uses the shared PolicySection / PolicyRowItem so
+          this tab is visually identical to the /legal page. */}
+      <div className="space-y-2.5">
         <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
           Quick reference
         </p>
 
-      {/* Community Guidelines */}
-      <Section
+      {/* Community Guidelines — opened by default so the tab doesn't
+          read as empty when every section is collapsed. */}
+      <PolicySection
         icon={Building2}
         title="Community guidelines"
         subtitle="Respect, honesty, safety, and reporting"
+        defaultOpen
       >
-        <RowItem
+        <PolicyRowItem
           icon={Shield}
           title="The basics"
           body={
@@ -190,15 +97,15 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-      </Section>
+      </PolicySection>
 
       {/* 2. Financials */}
-      <Section
+      <PolicySection
         icon={Wallet}
         title="Financials"
         subtitle="Payments, fees, budgets, and subscriptions"
       >
-        <RowItem
+        <PolicyRowItem
           icon={DollarSign}
           title="Payment & Refund Policy"
           body={
@@ -210,7 +117,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={DollarSign}
           title="Platform Fees"
           body={
@@ -225,7 +132,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={DollarSign}
           title="Job Budget Limits"
           body={
@@ -235,7 +142,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={Crown}
           title="Subscription Tiers"
           body={
@@ -248,16 +155,16 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-      </Section>
+      </PolicySection>
 
       {/* 3. Account Health (warning tint) */}
-      <Section
+      <PolicySection
         icon={HeartPulse}
         title="Account Health"
         subtitle="Cancellations, strikes, and no-shows"
         warning
       >
-        <RowItem
+        <PolicyRowItem
           icon={XCircle}
           warning
           title="Cancellation Policy"
@@ -269,7 +176,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={AlertTriangle}
           warning
           title="Cancellation Strikes (Posters)"
@@ -283,7 +190,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={Ban}
           warning
           title="Job Denial Strikes (Helprs)"
@@ -297,7 +204,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={Ban}
           warning
           title="No-Show Policy"
@@ -305,7 +212,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             <p>If a helpr accepts a job and fails to show up without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong> immediately. No warnings, no exceptions. The poster receives a full refund.</p>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={AlertTriangle}
           title="Repeat Offender Policy"
           body={
@@ -317,16 +224,16 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-      </Section>
+      </PolicySection>
 
       {/* 4. Operations & Safety (warning tint) */}
-      <Section
+      <PolicySection
         icon={Siren}
         title="Operations & Safety"
         subtitle="Bans, reports, disputes, and verification"
         warning
       >
-        <RowItem
+        <PolicyRowItem
           icon={Shield}
           warning
           title="Immediate Ban Offenses"
@@ -342,7 +249,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={AlertTriangle}
           warning
           title="User Report Policy"
@@ -355,7 +262,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={Clock}
           title="Job Editing Restrictions"
           body={
@@ -365,7 +272,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={Scale}
           title="Dispute Resolution"
           body={
@@ -377,7 +284,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={Shield}
           title="New Helper Restrictions"
           body={
@@ -388,7 +295,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-        <RowItem
+        <PolicyRowItem
           icon={Shield}
           title="Safety & Verification"
           body={
@@ -399,7 +306,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             </>
           }
         />
-      </Section>
+      </PolicySection>
       </div>
     </div>
   );

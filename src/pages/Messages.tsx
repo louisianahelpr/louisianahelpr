@@ -32,6 +32,13 @@ const Messages = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvo, setActiveConvo] = useState<Conversation | null>(null);
+  // Mirror of `activeConvo` for the realtime handlers to read. Keeping it
+  // in a ref (kept current by the effect below) lets the subscription
+  // effect depend only on the stable `userId` — so opening or switching a
+  // conversation no longer tears down and re-subscribes the whole
+  // 3-listener channel (a websocket handshake + a window where inbound
+  // messages can be missed on every thread switch).
+  const activeConvoRef = useRef<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -60,6 +67,13 @@ const Messages = () => {
     userId: userId || "",
     otherUserId: activeConvo?.otherUserId || "",
   });
+
+  // Keep the realtime-handler mirror of `activeConvo` current. The
+  // subscription effect closes over `activeConvoRef`, not `activeConvo`,
+  // so it stays mounted for the page's lifetime instead of churning.
+  useEffect(() => {
+    activeConvoRef.current = activeConvo;
+  }, [activeConvo]);
 
   // Seed from cache for instant render
   useEffect(() => {
@@ -366,11 +380,12 @@ const Messages = () => {
         // An inbound message to a thread that is NOT currently open
         // increments the unread badge; outbound messages and messages
         // in the open thread do not.
+        const active = activeConvoRef.current;
         const isInboundUnseen =
           msg.receiver_id === userId &&
-          !(activeConvo &&
-            activeConvo.jobId === msg.job_id &&
-            activeConvo.otherUserId === other);
+          !(active &&
+            active.jobId === msg.job_id &&
+            active.otherUserId === other);
         return {
           ...c,
           lastMessage: msg.content,
@@ -407,7 +422,8 @@ const Messages = () => {
         },
         (payload) => {
           const msg = payload.new as Message;
-          if (activeConvo && msg.job_id === activeConvo.jobId) {
+          const active = activeConvoRef.current;
+          if (active && msg.job_id === active.jobId) {
             setMessages((prev) => [...prev, msg]);
             supabase.from("messages").update({ read: true }).eq("id", msg.id);
             scrollToBottom();
@@ -431,7 +447,8 @@ const Messages = () => {
           const msg = payload.new as Message;
           // Only echo into the active thread — sender's own conversation
           // list refresh happens in the optimistic sendMessage flow.
-          if (activeConvo && msg.job_id === activeConvo.jobId) {
+          const active = activeConvoRef.current;
+          if (active && msg.job_id === active.jobId) {
             setMessages((prev) => {
               // Already reconciled (insert resolved first) — skip.
               if (prev.some((m) => m.id === msg.id)) return prev;
@@ -474,7 +491,12 @@ const Messages = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [userId, activeConvo]);
+    // Depends only on the stable `userId`: the channel is created once and
+    // stays subscribed for the page's lifetime. The handlers read the live
+    // `activeConvo` via `activeConvoRef` rather than a closed-over value,
+    // so switching threads no longer churns the websocket subscription.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const logViolation = async (violationDescription: string, blockedContent: string) => {
     if (!userId) return;

@@ -495,7 +495,6 @@ const Messages = () => {
     // stays subscribed for the page's lifetime. The handlers read the live
     // `activeConvo` via `activeConvoRef` rather than a closed-over value,
     // so switching threads no longer churns the websocket subscription.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const logViolation = async (violationDescription: string, blockedContent: string) => {

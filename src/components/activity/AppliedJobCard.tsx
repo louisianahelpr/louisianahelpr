@@ -311,7 +311,8 @@ export function AppliedJobCard({
                   {editingMessageAppId !== app.id && (
                     <button
                       type="button"
-                      className="text-primary hover:text-primary/80"
+                      aria-label="Edit your message"
+                      className="text-primary hover:text-primary/80 btn-press p-0.5 -m-0.5"
                       onClick={() => { setEditingMessageAppId(app.id); setEditMessageText(app.message || ""); }}
                     >
                       <Pencil className="w-3 h-3" />

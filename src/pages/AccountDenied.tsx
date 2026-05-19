@@ -36,14 +36,7 @@ const AccountDenied = () => {
 
         <div className="space-y-2">
           <span className="text-display-eyebrow">Not approved</span>
-          <h1
-            className="font-display italic font-bold leading-tight mt-1"
-            style={{
-              fontSize: "clamp(1.6rem, 2.5vw + 0.5rem, 2rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.025em",
-            }}
-          >
+          <h1 className="text-page-title leading-tight mt-1">
             We couldn't approve your account.
           </h1>
           <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>

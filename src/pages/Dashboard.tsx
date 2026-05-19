@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -39,7 +39,6 @@ import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
-import { getProfileCompletion } from "@/lib/profileCompletion";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -111,30 +110,9 @@ const Dashboard = () => {
     allJobs, userId: user?.id, profile, helprTier, helperAvailability: helperAvailability as any,
   });
 
-  // Stat of the day — rotates one data point under the greeting eyebrow so
-  // the card feels alive. Picks deterministically by date so the same user
-  // sees the same stat for the day (no flicker). Memoized so the several
-  // .filter passes don't rerun on every unrelated render.
-  const statOfTheDay = useMemo(() => {
-    const stats: string[] = [];
-    if (recommendedJobs.length > 0) {
-      stats.push(`${recommendedJobs.length} match${recommendedJobs.length === 1 ? "" : "es"} picked just for you today.`);
-    }
-    if (filters.filteredJobs.length >= 5) {
-      stats.push(`${filters.filteredJobs.length} open jobs nearby — busiest day in a while.`);
-    }
-    const recentUrgent = filters.filteredJobs.filter((j) => j.is_urgent).length;
-    if (recentUrgent > 0) {
-      stats.push(`${recentUrgent} urgent job${recentUrgent === 1 ? "" : "s"} in the feed right now.`);
-    }
-    const recentHigh = filters.filteredJobs.filter((j) => j.budget >= 100).length;
-    if (recentHigh > 0) {
-      stats.push(`${recentHigh} job${recentHigh === 1 ? "" : "s"} paying $100+ today.`);
-    }
-    if (stats.length === 0) return null;
-    const dayIdx = Math.floor(Date.now() / 86400000) % stats.length;
-    return stats[dayIdx];
-  }, [recommendedJobs.length, filters.filteredJobs]);
+  // The greeting card's "stat of the day" line was removed — it added a
+  // third line to the title card and pushed the job feed down. The
+  // headline job count it surfaced still shows in the date eyebrow.
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
@@ -175,20 +153,11 @@ const Dashboard = () => {
     staleTime: 60 * 1000,
   });
 
-  // Profile completion nudge — gentle banner shown until the user
-  // finishes the post-signup profile enhancements (ZIP / ID
-  // verification / work photos). Uses the shared getProfileCompletion
-  // helper. Dismissible per-session so it doesn't follow them around.
-  const [completionDismissed, setCompletionDismissed] = useState(false);
-  const completionPct = profile
-    ? getProfileCompletion({
-        zipCode: profile.zip_code,
-        idvStatus: profile.idv_status,
-        portfolioCount: Array.isArray(profile.portfolio_urls)
-          ? profile.portfolio_urls.length
-          : 0,
-      }).pct
-    : 100;
+  // Profile-completion is no longer nudged on the home feed — the full
+  // "Finish your profile" card pushed the job feed below the fold. The
+  // completion checklist / progress meter lives on the Profile landing
+  // screen instead (ProfileLanding's completion meter), which is the
+  // surface the user navigates to in order to act on it.
 
   // Inactive subscriber nudge — if a paid helper hasn't applied to
   // anything in 7+ days, surface a gentle "your sub is paying for
@@ -486,24 +455,30 @@ const Dashboard = () => {
       }
       titleCard={
         <>
+            {/* Condensed greeting — the greeting + date eyebrow are folded
+                into one tight two-line block (greeting line + a small
+                date·jobs eyebrow). The greeting was its own tall line that
+                pushed the feed down; the old standalone "stat of the day"
+                paragraph (a 3rd line) is dropped — the job count it echoed
+                already appears in the eyebrow below. */}
             <h1
               className="font-display italic font-bold truncate"
               style={{
-                fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
+                fontSize: "clamp(1.25rem, 1.6vw + 0.4rem, 1.5rem)",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.025em",
                 // Slightly looser leading + bottom padding to clear the
                 // Beth Ellen script descenders ("y", "g", "p" tails)
                 // from colliding with the date eyebrow below.
                 lineHeight: 1.15,
-                paddingBottom: "0.15em",
+                paddingBottom: "0.1em",
               }}
             >
               {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
               <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>{firstName}</em>.
             </h1>
             <p
-              className="mt-1 truncate font-sans font-semibold uppercase"
+              className="mt-0.5 truncate font-sans font-semibold uppercase"
               style={{
                 fontSize: "0.62rem",
                 letterSpacing: "0.16em",
@@ -523,15 +498,6 @@ const Dashboard = () => {
                 </>
               )}
             </p>
-            {/* Stat of the day — see the memoized `statOfTheDay` above. */}
-            {filters.filteredJobs.length > 0 && statOfTheDay && (
-              <p
-                className="mt-2 font-serif italic leading-snug"
-                style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}
-              >
-                {statOfTheDay}
-              </p>
-            )}
             {/* "Watching for" chip — only shown when 0 jobs nearby and
                 the user has an active saved search. Reframes the empty
                 state as intentional rather than confusing. */}
@@ -598,61 +564,10 @@ const Dashboard = () => {
           {/* Quick-rebook strip — the customer's saved helprs, one tap
               from a direct offer. Self-hides when there are none. */}
           <YourHelpersRow />
-          {/* Profile completion nudge — surfaces when profile is < 60%
-              complete. Sits above other banners since posters won't
-              respond well to incomplete-looking applicants. Tapping
-              routes to Edit Profile. */}
-          {profile && completionPct < 80 && !completionDismissed && (() => {
-            // Color the banner + chip by progress so the user gets visual
-            // momentum as they fill out their profile:
-            //   0–59%   → gold-warm (needs attention)
-            //   60–79%  → bark      (almost there)
-            // The banner hides at 80%; users can finish the last 20% later
-            // from Profile → Edit without being nagged.
-            const closeToDone = completionPct >= 60;
-            const accent = closeToDone ? "var(--bark)" : "var(--gold-warm)";
-            return (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
-              style={{
-                background:
-                  `radial-gradient(70% 90% at 100% 0%, hsl(${accent} / 0.10) 0%, transparent 55%)`,
-                border: `0.5px solid hsl(${accent} / 0.32)`,
-              }}
-            >
-              <div
-                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: `hsl(${accent} / 0.18)`, color: `hsl(${accent})` }}
-              >
-                <span className="font-display italic font-bold tabular-nums text-[0.78rem]">{completionPct}%</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate("/profile?tab=profile")}
-                className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
-              >
-                <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
-                  Finish your profile to land more jobs.
-                </p>
-                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
-                  Posters skip incomplete profiles — finish in under 3 minutes.
-                </p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCompletionDismissed(true)}
-                aria-label="Dismiss"
-                className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
-                style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-            );
-          })()}
+          {/* The "Finish your profile" completion nudge used to render
+              here. It moved off the home feed onto the Profile landing
+              screen (ProfileLanding's completion meter) so the job feed
+              is no longer pushed below the fold. */}
 
           {/* Inactive subscriber nudge — gentle reminder for paid helpers
               who haven't applied in 7+ days. Dismissible per-session. */}

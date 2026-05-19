@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/dateUtils";
+
+// react-day-picker (the Calendar's dependency) is sizeable and only ever
+// renders inside the tap-to-open Popover below — defer its chunk until a
+// date picker is actually opened.
+const Calendar = lazy(() =>
+  import("@/components/ui/calendar").then((m) => ({ default: m.Calendar })),
+);
 
 interface DatePickerFieldProps {
   /** ISO date string `YYYY-MM-DD` (matches existing form state) */
@@ -62,22 +68,26 @@ export function DatePickerField({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 rounded-2xl" align="start" sideOffset={8}>
-        <Calendar
-          mode="single"
-          selected={selected}
-          onSelect={(d) => {
-            if (!d) return;
-            // Format as local YYYY-MM-DD (NEVER toISOString → UTC drift)
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            onChange(`${yyyy}-${mm}-${dd}`);
-            setOpen(false);
-          }}
-          disabled={(d) => d < minDate}
-          autoFocus
-          className={cn("p-3 pointer-events-auto")}
-        />
+        <Suspense
+          fallback={<div className="h-[19rem] w-[17rem] animate-pulse rounded-2xl bg-muted/40" aria-hidden />}
+        >
+          <Calendar
+            mode="single"
+            selected={selected}
+            onSelect={(d) => {
+              if (!d) return;
+              // Format as local YYYY-MM-DD (NEVER toISOString → UTC drift)
+              const yyyy = d.getFullYear();
+              const mm = String(d.getMonth() + 1).padStart(2, "0");
+              const dd = String(d.getDate()).padStart(2, "0");
+              onChange(`${yyyy}-${mm}-${dd}`);
+              setOpen(false);
+            }}
+            disabled={(d) => d < minDate}
+            autoFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </Suspense>
       </PopoverContent>
     </Popover>
   );

@@ -281,7 +281,7 @@ function DocPreview({ path }: { path: string }) {
 
   if (error) {
     return (
-      <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-ds-11 text-destructive">
+      <div className="flex items-center gap-2 rounded-ds-sm bg-destructive/10 p-3 text-ds-11 text-destructive">
         <FileText className="w-4 h-4" /> Couldn't load preview — open via the link above.
       </div>
     );
@@ -289,7 +289,7 @@ function DocPreview({ path }: { path: string }) {
 
   if (isPdf) {
     return (
-      <div className="flex items-center gap-2 rounded-lg bg-background/60 p-3 text-ds-11 text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-ds-sm bg-background/60 p-3 text-ds-11 text-muted-foreground">
         <FileText className="w-4 h-4" /> PDF document — open to review
       </div>
     );
@@ -297,7 +297,7 @@ function DocPreview({ path }: { path: string }) {
 
   if (!signedUrl) {
     return (
-      <div className="flex items-center justify-center rounded-lg bg-background/60 p-6 text-ds-11 text-muted-foreground">
+      <div className="flex items-center justify-center rounded-ds-sm bg-background/60 p-6 text-ds-11 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin" />
       </div>
     );
@@ -308,7 +308,7 @@ function DocPreview({ path }: { path: string }) {
       <img loading="lazy" decoding="async"
         src={signedUrl}
         alt="Credential document"
-        className="w-full max-h-48 object-contain rounded-lg bg-background/60"
+        className="w-full max-h-48 object-contain rounded-ds-sm bg-background/60"
       />
     </a>
   );

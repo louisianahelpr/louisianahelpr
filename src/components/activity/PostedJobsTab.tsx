@@ -231,7 +231,7 @@ export const PostedJobsTab = ({
 
                     {/* Applicant message */}
                     {app.message && (
-                      <div className="rounded-lg bg-primary/5 border border-primary/15 p-3">
+                      <div className="rounded-ds-sm bg-primary/5 border border-primary/15 p-3">
                         <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide mb-1">Their Message</p>
                         <p className="text-ds-13 text-foreground leading-relaxed">{app.message}</p>
                       </div>

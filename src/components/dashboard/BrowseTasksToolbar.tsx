@@ -243,7 +243,7 @@ export function BrowseTasksToolbar({
           <div className="flex gap-1 p-1 bg-muted/40 rounded-ds-md border border-border w-full max-w-xs mx-auto">
             <button
               onClick={() => setView("list")}
-              className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-ds-11 font-medium transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-ds-sm text-ds-11 font-medium transition-colors ${
                 view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -251,7 +251,7 @@ export function BrowseTasksToolbar({
             </button>
             <button
               onClick={() => setView("map")}
-              className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-ds-11 font-medium transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-ds-sm text-ds-11 font-medium transition-colors ${
                 view === "map" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >

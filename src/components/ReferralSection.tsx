@@ -76,7 +76,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     // Skeleton mirrors the live single-screen layout exactly — no jump on load.
     return (
       <div className="h-full flex flex-col justify-between gap-3 overflow-hidden">
-        <Skeleton className="h-10 w-full rounded-lg" />
+        <Skeleton className="h-10 w-full rounded-ds-sm" />
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
           <Skeleton className="h-3 w-32 mx-auto" />
           <Skeleton className="h-9 w-48 mx-auto rounded-md" />

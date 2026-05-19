@@ -247,7 +247,7 @@ const AdminSettings = () => {
               className="max-w-[120px]"
             />
           </div>
-          <div className="rounded-lg bg-primary/5 p-3">
+          <div className="rounded-ds-sm bg-primary/5 p-3">
             <p className="text-ds-11 text-muted-foreground">
               <strong>Total platform take:</strong> {(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}% — 
               On a $100 job: ${((parseFloat(customerFee) || 0)).toFixed(2)} from customer + ${((parseFloat(helperFee) || 0)).toFixed(2)} from helpr = ${((parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)).toFixed(2)} total
@@ -373,7 +373,7 @@ const AdminSettings = () => {
             {searchResults.length > 0 && (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {searchResults.map((profile) => (
-                  <div key={profile.id} className="rounded-lg border border-border bg-secondary/20 p-3 flex items-center justify-between gap-3">
+                  <div key={profile.id} className="rounded-ds-sm border border-border bg-secondary/20 p-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium text-foreground text-ds-13">{formatName(profile.full_name, "—")}</p>
                       <p className="text-ds-11 text-muted-foreground">{profile.email || "—"}</p>

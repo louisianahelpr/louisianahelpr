@@ -164,7 +164,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
               <div
                 key={day}
                 className={cn(
-                  "rounded-lg border px-2 py-1 transition-all",
+                  "rounded-ds-sm border px-2 py-1 transition-all",
                   off ? "border-border/60 bg-muted/30" : "border-border bg-card shadow-sm",
                 )}
               >
@@ -193,7 +193,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                         updateSlot(i, "start_time", start);
                         updateSlot(i, "end_time", end);
                       }}
-                      className="h-8 px-2 rounded-lg text-ds-11 gap-1.5"
+                      className="h-8 px-2 rounded-ds-sm text-ds-11 gap-1.5"
                     />
                   ) : (
                     <span className="text-ds-11 font-medium text-muted-foreground">Unavailable</span>
@@ -208,7 +208,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             onClick={handleSave}
             disabled={saving}
             size="lg"
-            className="w-full h-9 rounded-lg text-ds-13 font-semibold"
+            className="w-full h-9 rounded-ds-sm text-ds-13 font-semibold"
           >
             {saving ? "Saving..." : "Save Availability"}
           </Button>

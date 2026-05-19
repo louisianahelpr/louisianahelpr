@@ -184,7 +184,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       </div>
 
       {/* Composer */}
-      <div className="rounded-lg liquid-glass p-3 space-y-2">
+      <div className="rounded-ds-sm liquid-glass p-3 space-y-2">
         <Textarea
           value={newNote}
           onChange={(e) => setNewNote(e.target.value)}
@@ -232,7 +232,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
             const edited = n.updated_at && n.updated_at !== n.created_at;
 
             return (
-              <div key={n.id} className="rounded-lg liquid-glass p-3">
+              <div key={n.id} className="rounded-ds-sm liquid-glass p-3">
                 <div className="flex items-start gap-2 mb-1.5">
                   <Badge
                     variant="outline"
@@ -333,7 +333,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           {deleteNote && (
-            <div className="rounded-lg border border-border bg-secondary/30 p-3 text-ds-13 text-foreground whitespace-pre-wrap break-words max-h-40 overflow-auto">
+            <div className="rounded-ds-sm border border-border bg-secondary/30 p-3 text-ds-13 text-foreground whitespace-pre-wrap break-words max-h-40 overflow-auto">
               {deleteNote.note}
             </div>
           )}

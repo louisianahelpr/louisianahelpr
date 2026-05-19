@@ -197,7 +197,7 @@ const AdminDisputes = () => {
           </div>
 
           {job.dispute_reason && (
-            <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+            <div className="p-3 rounded-ds-sm bg-destructive/5 border border-destructive/20">
               <p className="text-ds-13 text-foreground font-medium">Reason:</p>
               <p className="text-ds-11 text-muted-foreground">{job.dispute_reason}</p>
             </div>
@@ -208,7 +208,7 @@ const AdminDisputes = () => {
               <p className="text-ds-11 font-medium text-muted-foreground">Evidence photos:</p>
               <div className="flex gap-2 flex-wrap">
                 {job.dispute_evidence_urls.map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors">
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors">
                     <img loading="lazy" decoding="async" src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
                   </a>
                 ))}

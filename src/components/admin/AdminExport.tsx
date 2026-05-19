@@ -99,7 +99,7 @@ const AdminExport = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="rounded-ds-md liquid-glass p-5 space-y-3">
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center">
             <Users className="w-4 h-4 text-primary" />
           </div>
           <h3 className="font-semibold text-foreground">Users</h3>
@@ -111,7 +111,7 @@ const AdminExport = () => {
         </div>
 
         <div className="rounded-ds-md liquid-glass p-5 space-y-3">
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center">
             <Briefcase className="w-4 h-4 text-primary" />
           </div>
           <h3 className="font-semibold text-foreground">Jobs</h3>
@@ -123,7 +123,7 @@ const AdminExport = () => {
         </div>
 
         <div className="rounded-ds-md liquid-glass p-5 space-y-3">
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center">
             <DollarSign className="w-4 h-4 text-primary" />
           </div>
           <h3 className="font-semibold text-foreground">Earnings</h3>

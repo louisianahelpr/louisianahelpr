@@ -168,7 +168,7 @@ export default function BusinessVerificationCard() {
                   key={type}
                   type="button"
                   onClick={() => setDocType(type)}
-                  className={`text-left rounded-lg border p-2.5 text-ds-11 transition-colors ${
+                  className={`text-left rounded-ds-sm border p-2.5 text-ds-11 transition-colors ${
                     docType === type
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border hover:border-primary/40"
@@ -181,7 +181,7 @@ export default function BusinessVerificationCard() {
           </div>
 
           {data.verification_document_url && (
-            <div className="rounded-lg border border-border bg-secondary/40 p-3 flex items-center gap-2 text-ds-11">
+            <div className="rounded-ds-sm border border-border bg-secondary/40 p-3 flex items-center gap-2 text-ds-11">
               <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="text-muted-foreground truncate flex-1">
                 Current: {data.verification_document_type ? docLabels[data.verification_document_type] : "Document"} on file

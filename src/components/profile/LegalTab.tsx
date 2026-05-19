@@ -35,7 +35,7 @@ const RowItem = ({ icon: Icon, title, body, warning }: PolicyRow) => {
       >
         <span className="flex items-center gap-2.5 min-w-0">
           <span
-            className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
+            className={`shrink-0 w-7 h-7 rounded-ds-sm flex items-center justify-center ${
               warning ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
             }`}
           >

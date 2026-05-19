@@ -40,7 +40,7 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
+      <div className="flex gap-1 bg-secondary/50 rounded-ds-sm p-1">
         {(["all", "pending", "approved", "denied"] as const).map(s => {
           const count = users.filter(u => s === "all" || u.approval_status === s).length;
           return (
@@ -89,7 +89,7 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
+      <div className="flex gap-1 bg-secondary/50 rounded-ds-sm p-1">
         {tiers.map(t => {
           const count = users.filter(u => t === "all" || (t === "free" ? !u.subscription_tier : u.subscription_tier === t)).length;
           return (
@@ -170,7 +170,7 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 flex-wrap bg-secondary/50 rounded-lg p-1">
+      <div className="flex gap-1 flex-wrap bg-secondary/50 rounded-ds-sm p-1">
         {statuses.map(s => (
           <button key={s} onClick={() => setFilter(s)}
             className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
@@ -229,7 +229,7 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 flex-wrap bg-secondary/50 rounded-lg p-1">
+      <div className="flex gap-1 flex-wrap bg-secondary/50 rounded-ds-sm p-1">
         {statusOptions.map(s => (
           <button key={s} onClick={() => setFilter(s)}
             className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>

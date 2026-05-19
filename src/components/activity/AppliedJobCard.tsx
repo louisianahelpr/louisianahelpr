@@ -40,7 +40,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
   const diffMs = jobDate.getTime() - now.getTime();
   if (diffMs <= 0) {
     return (
-      <div className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/30 bg-primary/10">
+      <div className="flex items-center gap-2 p-2.5 rounded-ds-sm border border-primary/30 bg-primary/10">
         <Timer className="w-4 h-4 text-primary shrink-0" />
         <p className="text-ds-11 font-semibold text-primary">Job time has arrived!</p>
       </div>
@@ -63,7 +63,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
     : "border-primary/20 bg-primary/5 text-primary";
 
   return (
-    <div className={`flex items-center gap-2 p-2.5 rounded-lg border ${colorClasses}`}>
+    <div className={`flex items-center gap-2 p-2.5 rounded-ds-sm border ${colorClasses}`}>
       <Timer className="w-4 h-4 shrink-0" />
       <div className="min-w-0">
         <p className="text-ds-11 font-semibold tabular-nums">{label}: {timeStr}</p>
@@ -298,14 +298,14 @@ export function AppliedJobCard({
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                       {/* Thumbnail strip — fixed 96x64 (w-24 h-16) box,
                           already CLS-safe. Request a matching thumbnail. */}
-                      <img loading="lazy" decoding="async" src={transformedImageUrl(url, { width: 96, height: 64 })} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                      <img loading="lazy" decoding="async" src={transformedImageUrl(url, { width: 96, height: 64 })} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                     </a>
                   ))}
                 </div>
               )}
 
               {/* Your application message — editable */}
-              <div className="rounded-lg bg-primary/5 border border-primary/15 p-2" onClick={(e) => e.stopPropagation()}>
+              <div className="rounded-ds-sm bg-primary/5 border border-primary/15 p-2" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-ds-10 text-muted-foreground font-medium">Your Message</p>
                   {editingMessageAppId !== app.id && (
@@ -349,7 +349,7 @@ export function AppliedJobCard({
                   let filename = last;
                   try { filename = decodeURIComponent(last); } catch {}
                   return (
-                    <div key={i} className="flex items-center gap-2 text-ds-11 bg-secondary/30 rounded-lg px-2.5 py-1.5">
+                    <div key={i} className="flex items-center gap-2 text-ds-11 bg-secondary/30 rounded-ds-sm px-2.5 py-1.5">
                       <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span className="truncate flex-1 text-foreground">
                         {filename.length > 30 ? filename.slice(-30) : filename}
@@ -534,7 +534,7 @@ export function AppliedJobCard({
                 </div>
               )}
               {job.helper_completed_at && job.poster_completed_at && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-ds-sm bg-primary/10 border border-primary/20">
                   <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
                   <span className="text-ds-13 font-medium text-primary">Job complete ✓</span>
                 </div>
@@ -546,7 +546,7 @@ export function AppliedJobCard({
               {status === "revision_requested" && (
                 <div className="space-y-2">
                   {job.revision_note && (
-                    <div className="p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                    <div className="p-2.5 rounded-ds-sm bg-yellow-500/10 border border-yellow-500/20">
                       <p className="text-ds-11 font-semibold text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
                       <p className="text-ds-11 text-muted-foreground mt-1">{job.revision_note}</p>
                     </div>
@@ -718,7 +718,7 @@ export function AppliedJobCard({
 
                 {/* Helper's response */}
                 {hasResponded && (
-                  <div className="p-2 rounded-lg bg-primary/5 border border-primary/20">
+                  <div className="p-2 rounded-ds-sm bg-primary/5 border border-primary/20">
                     <p className="text-ds-10 text-muted-foreground font-medium">Your response:</p>
                     <p className="text-ds-11 text-foreground mt-0.5">"{job.dispute_helper_response}"</p>
                   </div>
@@ -825,7 +825,7 @@ export function AppliedJobCard({
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
                       {/* Thumbnail strip — fixed 96x64 (w-24 h-16) box,
                           already CLS-safe. Request a matching thumbnail. */}
-                      <img loading="lazy" decoding="async" src={transformedImageUrl(url, { width: 96, height: 64 })} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                      <img loading="lazy" decoding="async" src={transformedImageUrl(url, { width: 96, height: 64 })} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                     </a>
                   ))}
                 </div>

@@ -202,7 +202,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             <p className="text-ds-11 font-semibold text-foreground uppercase tracking-wide">Full Cancellation Policy</p>
 
             {/* Step 1: Before helpr selected */}
-            <div className={`flex items-start gap-2.5 p-3 rounded-lg border transition-all ${!hasHelper ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" : "bg-muted/20 border-border opacity-50"}`}>
+            <div className={`flex items-start gap-2.5 p-3 rounded-ds-sm border transition-all ${!hasHelper ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" : "bg-muted/20 border-border opacity-50"}`}>
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -220,7 +220,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             <div className="flex justify-center"><ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 rotate-90" /></div>
 
             {/* Step 2: After helpr selected */}
-            <div className={`p-3 rounded-lg border space-y-2 transition-all ${hasHelper ? "bg-accent/10 border-accent/30 ring-1 ring-accent/20" : "bg-muted/20 border-border opacity-50"}`}>
+            <div className={`p-3 rounded-ds-sm border space-y-2 transition-all ${hasHelper ? "bg-accent/10 border-accent/30 ring-1 ring-accent/20" : "bg-muted/20 border-border opacity-50"}`}>
               <div className="flex items-start gap-2.5">
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${hasHelper ? "bg-accent text-accent-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>2</div>
                 <div className="flex-1">
@@ -248,7 +248,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               </div>
 
               {hasHelper && cancellationFee > 0 && (
-                <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
+                <div className="rounded-ds-sm bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
                   <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
                   <div className="flex justify-between text-ds-11">
                     <span className="text-muted-foreground">Cancellation fee ({cancellationFeePercent}% of ${jobBudget.toFixed(2)})</span>
@@ -266,7 +266,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               )}
 
               {hasHelper && cancellationFee === 0 && (
-                <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 ml-7 flex items-center gap-2">
+                <div className="rounded-ds-sm bg-primary/10 border border-primary/20 p-3 ml-7 flex items-center gap-2">
                   <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="text-ds-11 text-primary font-medium">
                     Free cancellation — more than 24 hours until the job starts.

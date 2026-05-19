@@ -154,7 +154,7 @@ const WelcomeScreen = ({ scale = 1 }: { scale?: number }) => (
     </div>
     <div className="px-3 flex flex-col gap-1.5 pb-2">
       <div
-        className="rounded-lg flex items-center justify-center gap-1"
+        className="rounded-ds-sm flex items-center justify-center gap-1"
         style={{
           height: `${28 * scale}px`,
           backgroundColor: "hsl(var(--sage))",
@@ -170,7 +170,7 @@ const WelcomeScreen = ({ scale = 1 }: { scale?: number }) => (
         </span>
       </div>
       <div
-        className="rounded-lg flex items-center justify-center"
+        className="rounded-ds-sm flex items-center justify-center"
         style={{
           height: `${24 * scale}px`,
           backgroundColor: "rgba(255, 255, 255, 0.5)",
@@ -335,7 +335,7 @@ const DashboardScreen = ({ scale = 1 }: { scale?: number }) => {
           {cats.map(({ Icon, label }) => (
             <div
               key={label}
-              className="rounded-lg flex flex-col justify-between"
+              className="rounded-ds-sm flex flex-col justify-between"
               style={{
                 padding: `${0.4 * scale}rem`,
                 height: `${44 * scale}px`,
@@ -365,7 +365,7 @@ const DashboardScreen = ({ scale = 1 }: { scale?: number }) => {
         </div>
         {/* CTA */}
         <div
-          className="mt-auto rounded-lg flex items-center justify-center"
+          className="mt-auto rounded-ds-sm flex items-center justify-center"
           style={{
             gap: `${0.3 * scale}rem`,
             height: `${30 * scale}px`,
@@ -433,7 +433,7 @@ const HowItWorksScreen = ({ scale = 1 }: { scale?: number }) => {
           {steps.map(({ Icon, n, label }) => (
             <div
               key={n}
-              className="rounded-lg flex items-center"
+              className="rounded-ds-sm flex items-center"
               style={{
                 gap: `${0.4 * scale}rem`,
                 padding: `${0.4 * scale}rem`,
@@ -482,7 +482,7 @@ const HowItWorksScreen = ({ scale = 1 }: { scale?: number }) => {
           ))}
         </div>
         <div
-          className="rounded-lg flex items-center justify-center"
+          className="rounded-ds-sm flex items-center justify-center"
           style={{
             gap: `${0.3 * scale}rem`,
             height: `${28 * scale}px`,

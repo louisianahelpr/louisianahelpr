@@ -264,7 +264,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 <span className="flex-1 text-ds-11 font-mono truncate text-foreground">
                   {referralLink}
                 </span>
-                <Button size="sm" onClick={copyReferral} className="rounded-lg shrink-0">
+                <Button size="sm" onClick={copyReferral} className="rounded-ds-sm shrink-0">
                   {referralCopied ? (
                     <><Check className="w-4 h-4 mr-1" /> Copied</>
                   ) : (

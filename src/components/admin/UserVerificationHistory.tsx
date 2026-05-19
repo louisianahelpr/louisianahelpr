@@ -102,7 +102,7 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
             : "system";
           const isSystem = !r.changed_by;
           return (
-            <div key={r.id} className="rounded-lg border border-border/50 bg-card/40 p-2 text-ds-11">
+            <div key={r.id} className="rounded-ds-sm border border-border/50 bg-card/40 p-2 text-ds-11">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="font-medium text-foreground">
                   {FIELD_LABEL[r.field] ?? r.field}

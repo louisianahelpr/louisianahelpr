@@ -575,7 +575,7 @@ const AdminUsers = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-0.5 bg-secondary/50 rounded-lg p-0.5 w-full">
+      <div className="flex gap-0.5 bg-secondary/50 rounded-ds-sm p-0.5 w-full">
         {tabs.map((t) => (
           <button
             key={t.key}

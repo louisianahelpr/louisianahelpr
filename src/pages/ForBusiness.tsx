@@ -192,7 +192,7 @@ const ForBusiness = () => {
                     ].map((tier) => (
                       <div
                         key={tier.name}
-                        className={`flex items-center justify-between text-ds-11 rounded-lg px-3 py-2 transition-colors ${
+                        className={`flex items-center justify-between text-ds-11 rounded-ds-sm px-3 py-2 transition-colors ${
                           tier.featured
                             ? "border border-primary/40 bg-primary/10"
                             : "border border-border/50 bg-background/50 hover:border-border"

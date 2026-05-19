@@ -331,7 +331,7 @@ export function SignupStep3(props: SignupStep3Props) {
       </div>
 
       {/* Emergency contact */}
-      <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+      <div className="space-y-3 rounded-ds-sm border border-border bg-muted/30 p-3">
         <p className="text-ds-11 font-medium text-foreground">Emergency Contact <span className="text-muted-foreground">(optional but recommended)</span></p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <Input aria-label="Emergency contact name" placeholder="Contact name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} autoComplete="name" />
@@ -407,7 +407,7 @@ export function SignupStep3(props: SignupStep3Props) {
           </div>
           {isLicensed && (
             licenseFile ? (
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-3 rounded-ds-sm border border-border bg-muted/30 p-3">
                 <div className="flex items-center gap-3 min-w-0">
                   {licensePreview && licensePreview.startsWith("blob:") ? (
                     <img loading="lazy" decoding="async" src={licensePreview} alt="License preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
@@ -430,7 +430,7 @@ export function SignupStep3(props: SignupStep3Props) {
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
+              <label className="flex flex-col items-center justify-center gap-1.5 rounded-ds-sm border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
                 <ImagePlus className="w-5 h-5 text-primary" strokeWidth={1.75} />
                 <span className="text-ds-13 font-semibold text-foreground">Upload license <span className="text-destructive">*</span></span>
                 <span className="text-ds-11 text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
@@ -465,7 +465,7 @@ export function SignupStep3(props: SignupStep3Props) {
           </div>
           {isInsured && (
             insuranceFile ? (
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-3 rounded-ds-sm border border-border bg-muted/30 p-3">
                 <div className="flex items-center gap-3 min-w-0">
                   {insurancePreview && insurancePreview.startsWith("blob:") ? (
                     <img loading="lazy" decoding="async" src={insurancePreview} alt="Insurance preview" className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
@@ -488,7 +488,7 @@ export function SignupStep3(props: SignupStep3Props) {
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
+              <label className="flex flex-col items-center justify-center gap-1.5 rounded-ds-sm border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
                 <ImagePlus className="w-5 h-5 text-primary" strokeWidth={1.75} />
                 <span className="text-ds-13 font-semibold text-foreground">Upload insurance <span className="text-destructive">*</span></span>
                 <span className="text-ds-11 text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
@@ -523,11 +523,11 @@ export function SignupStep3(props: SignupStep3Props) {
           {portfolioPreviews.map((preview, i) => (
             <div key={i} className="relative group">
               {preview.type.startsWith("image/") && preview.url.startsWith("blob:") ? (
-                <div className="w-20 h-20 rounded-lg overflow-hidden border border-border">
+                <div className="w-20 h-20 rounded-ds-sm overflow-hidden border border-border">
                   <img loading="lazy" decoding="async" src={preview.url} alt="" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="w-20 h-20 rounded-lg border border-border flex flex-col items-center justify-center bg-secondary/30 px-1">
+                <div className="w-20 h-20 rounded-ds-sm border border-border flex flex-col items-center justify-center bg-secondary/30 px-1">
                   <FileText className="w-5 h-5 text-muted-foreground" />
                   <p className="text-[9px] text-muted-foreground text-center mt-1 truncate w-full">{preview.name}</p>
                 </div>
@@ -542,7 +542,7 @@ export function SignupStep3(props: SignupStep3Props) {
             </div>
           ))}
           {portfolioFiles.length < 10 && (
-            <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
+            <label className="w-20 h-20 rounded-ds-sm border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
               <ImagePlus className="w-5 h-5 text-muted-foreground" />
               <span className="text-ds-10 text-muted-foreground mt-0.5">Add</span>
               <input

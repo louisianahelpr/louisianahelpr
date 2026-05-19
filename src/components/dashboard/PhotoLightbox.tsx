@@ -101,7 +101,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex }: Photo
       <img loading="lazy" decoding="async"
         src={photos[lightboxIndex]}
         alt={`Photo ${lightboxIndex + 1}`}
-        className="max-h-[88vh] max-w-[92vw] object-contain rounded-lg select-none"
+        className="max-h-[88vh] max-w-[92vw] object-contain rounded-ds-sm select-none"
         style={{ boxShadow: "0 20px 60px -10px rgba(0, 0, 0, 0.5)" }}
         onClick={(e) => e.stopPropagation()}
         draggable={false}

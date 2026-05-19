@@ -222,9 +222,9 @@ export function SignupStep2(props: SignupStep2Props) {
             <div className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-3">
               <div className="flex items-center gap-3 min-w-0">
                 {idPreview && idPreview.startsWith("blob:") ? (
-                  <img loading="lazy" decoding="async" src={idPreview} alt="ID preview" className="w-14 h-14 rounded-lg object-cover border border-border shrink-0" />
+                  <img loading="lazy" decoding="async" src={idPreview} alt="ID preview" className="w-14 h-14 rounded-ds-sm object-cover border border-border shrink-0" />
                 ) : (
-                  <div className="w-14 h-14 rounded-lg border border-border flex items-center justify-center bg-muted/40 shrink-0">
+                  <div className="w-14 h-14 rounded-ds-sm border border-border flex items-center justify-center bg-muted/40 shrink-0">
                     <FileText className="w-6 h-6 text-muted-foreground" />
                   </div>
                 )}

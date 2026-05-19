@@ -39,7 +39,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
   const diffMs = jobDate.getTime() - now.getTime();
   if (diffMs <= 0) {
     return (
-      <div className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/30 bg-primary/10">
+      <div className="flex items-center gap-2 p-2.5 rounded-ds-sm border border-primary/30 bg-primary/10">
         <Timer className="w-4 h-4 text-primary shrink-0" />
         <p className="text-ds-11 font-semibold text-primary">Job time has arrived!</p>
       </div>
@@ -62,7 +62,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
     : "border-primary/20 bg-primary/5 text-primary";
 
   return (
-    <div className={`flex items-center gap-2 p-2.5 rounded-lg border ${colorClasses}`}>
+    <div className={`flex items-center gap-2 p-2.5 rounded-ds-sm border ${colorClasses}`}>
       <Timer className="w-4 h-4 shrink-0" />
       <div className="min-w-0">
         <p className="text-ds-11 font-semibold tabular-nums">{label}: {timeStr}</p>
@@ -226,7 +226,7 @@ export function PostedJobCard({
                   <p className={`text-ds-11 text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
                 )}
                 {isExpanded && job.special_requirements?.trim() && (
-                  <div className="rounded-lg bg-secondary/30 p-2">
+                  <div className="rounded-ds-sm bg-secondary/30 p-2">
                     <p className="text-ds-10 text-muted-foreground mb-0.5">Special Requirements</p>
                     <p className="text-ds-11 text-foreground">{job.special_requirements}</p>
                   </div>
@@ -245,7 +245,7 @@ export function PostedJobCard({
 
               {/* Assigned helper display */}
               {job.helper_id && (job.status === "accepted" || job.status === "in_progress" || job.status === "revision_requested" || job.status === "completed" || job.status === "disputed") && (
-                <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-lg bg-muted/40">
+                <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-ds-sm bg-muted/40">
                   <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0">
                     {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
                   </div>
@@ -271,7 +271,7 @@ export function PostedJobCard({
                     <div className="space-y-1.5">
                       {job.helper_arrived_at && (
                         <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm bg-emerald-500/10 text-emerald-600">
                             <MapPin className="w-3.5 h-3.5 shrink-0" />
                             <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
                             <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -314,7 +314,7 @@ export function PostedJobCard({
 
               {/* Revision notice */}
               {job.status === "revision_requested" && (
-                <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 space-y-1.5">
+                <div className="p-2 rounded-ds-sm bg-yellow-500/10 border border-yellow-500/20 space-y-1.5">
                   <p className="text-ds-11 text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
                   {job.revision_note && <p className="text-ds-11 text-muted-foreground">{job.revision_note}</p>}
                   {job.revision_completed_at && (
@@ -378,7 +378,7 @@ export function PostedJobCard({
                         <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
                           {/* Thumbnail strip — fixed 112x80 (w-28 h-20) box,
                               already CLS-safe. Request a matching thumbnail. */}
-                          <img loading="lazy" decoding="async" src={transformedImageUrl(url, { width: 112, height: 80 })} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                          <img loading="lazy" decoding="async" src={transformedImageUrl(url, { width: 112, height: 80 })} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                         </a>
                       ))}
                     </div>
@@ -501,7 +501,7 @@ export function PostedJobCard({
                     <div className="space-y-2">
                       {/* Confirm Arrival notice */}
                       {job.helper_arrived_at && !job.poster_confirmed_arrival_at && (
-                        <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                        <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm bg-emerald-500/10 text-emerald-600">
                           <MapPin className="w-3.5 h-3.5 shrink-0" />
                           <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
                           <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -541,7 +541,7 @@ export function PostedJobCard({
                       {/* Confirm Working */}
                       {job.status === "in_progress" && !job.poster_confirmed_working_at && job.poster_confirmed_arrival_at && (
                         <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-600">
+                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm bg-amber-500/10 text-amber-600">
                             <Wrench className="w-3.5 h-3.5 shrink-0" />
                             <span className="font-medium">Is the helpr working?</span>
                           </div>
@@ -697,7 +697,7 @@ export function PostedJobCard({
                           budget={job.budget}
                         />
                       )}
-                      <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                      <div className="p-3 rounded-ds-sm bg-destructive/5 border border-destructive/20">
                         <p className="text-ds-11 text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 
                           {disputeStatus === "escalated" ? "Escalated to Admin" : disputeStatus === "resolved" ? "Dispute Resolved" : "Dispute Under Review"}
                         </p>
@@ -718,7 +718,7 @@ export function PostedJobCard({
                           />
                         )}
                       </div>
-                      <div className="p-2 rounded-lg bg-muted/50 border border-border">
+                      <div className="p-2 rounded-ds-sm bg-muted/50 border border-border">
                         <p className="text-ds-10 text-muted-foreground leading-relaxed">
                           <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the helpr.
                         </p>

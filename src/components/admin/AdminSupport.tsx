@@ -116,7 +116,7 @@ const AdminSupport = () => {
               <div key={ticket.id} className="rounded-ds-md liquid-glass p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center text-primary shrink-0">
                       {cat.icon}
                     </div>
                     <div>
@@ -138,7 +138,7 @@ const AdminSupport = () => {
                 </div>
 
                 {ticket.description && (
-                  <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-lg p-3 whitespace-pre-wrap">{ticket.description}</p>
+                  <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-ds-sm p-3 whitespace-pre-wrap">{ticket.description}</p>
                 )}
 
                 {ticket.status === "pending" && (

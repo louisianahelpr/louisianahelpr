@@ -213,7 +213,7 @@ function DocPreview({ url }: { url: string }) {
   const isPdf = /\.pdf(\?|$)/i.test(url);
   if (isPdf) {
     return (
-      <div className="flex items-center gap-2 rounded-lg bg-background/60 p-3 text-ds-11 text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-ds-sm bg-background/60 p-3 text-ds-11 text-muted-foreground">
         <FileText className="w-4 h-4" /> PDF document — open to review
       </div>
     );
@@ -223,7 +223,7 @@ function DocPreview({ url }: { url: string }) {
       <img loading="lazy" decoding="async"
         src={url}
         alt="Business verification document"
-        className="w-full max-h-48 object-contain rounded-lg bg-background/60"
+        className="w-full max-h-48 object-contain rounded-ds-sm bg-background/60"
       />
     </a>
   );

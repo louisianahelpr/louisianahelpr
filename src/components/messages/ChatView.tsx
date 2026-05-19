@@ -29,7 +29,7 @@ const renderMessageContent = (content: string) => {
           decoding="async"
           src={url}
           alt="Shared photo"
-          className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+          className="max-w-full rounded-ds-sm cursor-pointer hover:opacity-90 transition-opacity"
           onClick={() => window.open(url, "_blank")}
         />
         {caption && <p>{caption}</p>}
@@ -209,7 +209,7 @@ export function ChatView({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="p-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
+                  className="p-2 rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
                   aria-label="Conversation options"
                 >
                   <MoreVertical className="w-5 h-5" />

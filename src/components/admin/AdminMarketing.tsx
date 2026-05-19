@@ -196,7 +196,7 @@ const AdminMarketing = () => {
           </Button>
 
           {lastResult && (
-            <div className="rounded-lg border bg-muted/40 p-4 text-ds-13">
+            <div className="rounded-ds-sm border bg-muted/40 p-4 text-ds-13">
               <p className="font-semibold">Last send result</p>
               <p className="text-muted-foreground">
                 {lastResult.sent} delivered · {lastResult.failed} failed · {lastResult.total} total

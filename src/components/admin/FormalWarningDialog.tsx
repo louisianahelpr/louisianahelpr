@@ -118,7 +118,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
               rows={3}
             />
           </div>
-          <label className="flex items-start gap-2.5 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-colors">
+          <label className="flex items-start gap-2.5 rounded-ds-sm border border-border bg-secondary/30 p-3 cursor-pointer hover:bg-secondary/50 transition-colors">
             <Checkbox
               checked={bypass}
               onCheckedChange={(v) => setBypass(v === true)}

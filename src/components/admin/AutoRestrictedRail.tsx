@@ -129,7 +129,7 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
           return (
             <div
               key={u.user_id}
-              className="shrink-0 min-w-[220px] rounded-lg bg-background border border-amber-500/30 p-2.5 space-y-1.5"
+              className="shrink-0 min-w-[220px] rounded-ds-sm bg-background border border-amber-500/30 p-2.5 space-y-1.5"
             >
               <p className="text-ds-11 font-semibold truncate">
                 {formatName(u.full_name, u.email || "User")}

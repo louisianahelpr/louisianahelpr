@@ -101,7 +101,7 @@ const JobHistory = () => {
         <div className="max-w-lg mx-auto space-y-4">
 
           {/* Tabs */}
-          <div className="flex gap-1 bg-secondary/50 rounded-lg p-1">
+          <div className="flex gap-1 bg-secondary/50 rounded-ds-sm p-1">
             {tabs.map((t) => (
               <button
                 key={t.key}

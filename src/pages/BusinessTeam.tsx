@@ -353,7 +353,7 @@ const BusinessTeam = () => {
                 return (
                   <div
                     key={tier.id}
-                    className={`rounded-lg border p-3 ${isCurrent ? "border-primary/50 bg-primary/5" : "border-border/60 bg-background/50"}`}
+                    className={`rounded-ds-sm border p-3 ${isCurrent ? "border-primary/50 bg-primary/5" : "border-border/60 bg-background/50"}`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div>

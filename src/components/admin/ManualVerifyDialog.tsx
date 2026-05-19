@@ -70,7 +70,7 @@ export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerify
             Use this for someone you know personally, or whose ID is valid but our system couldn't read it.
             Their identity status will be set to <strong className="text-foreground">verified</strong> and approval will be set to <strong className="text-foreground">approved</strong>, bypassing automated checks.
           </p>
-          <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
+          <div className="rounded-ds-sm bg-accent/10 border border-accent/20 p-3">
             <p className="text-ds-11 text-muted-foreground">This action is logged in the admin audit log.</p>
           </div>
         </div>

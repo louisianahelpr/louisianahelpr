@@ -1,5 +1,6 @@
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { hapticLight } from "@/lib/haptics";
 import type { StatusFilter } from "./activityFilters";
 import type { Tab } from "@/components/activity/activityConstants";
 
@@ -129,7 +130,7 @@ export function ActivityHeader({
                       return (
                         <button
                           key={f.key}
-                          onClick={() => { setStatusFilter(f.key); setFilterOpen(false); }}
+                          onClick={() => { hapticLight(); setStatusFilter(f.key); setFilterOpen(false); }}
                           className="flex items-center justify-between w-full px-2.5 py-2 rounded-ds-md text-ds-13 transition active:scale-[0.99]"
                           style={
                             isActive

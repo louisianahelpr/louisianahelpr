@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { formatName } from "@/lib/utils";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,13 +85,13 @@ const Messages = () => {
   // message node, the second runs after layout so the element exists
   // and has its final height — reliable across slow renders, where a
   // hard-coded 100ms timeout could fire before the DOM settled.
-  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         bottomRef.current?.scrollIntoView({ behavior });
       });
     });
-  };
+  }, []);
 
   const loadConversations = async (uid: string) => {
     // Only show the skeleton on the very first load. Background refreshes
@@ -200,7 +200,9 @@ const Messages = () => {
     }
   };
 
-  const openConvo = async (convo: Conversation) => {
+  // Stable reference so the memoized ConversationRow in the inbox list
+  // skips re-rendering unchanged rows on parent state changes.
+  const openConvo = useCallback(async (convo: Conversation) => {
     setActiveConvo(convo);
     setHasMoreMessages(false);
     setChatLoadError(false);
@@ -267,7 +269,7 @@ const Messages = () => {
       }
     }
     scrollToBottom();
-  };
+  }, [userId, navigate, scrollToBottom]);
 
   // Pull-to-refresh for the open chat thread: re-fetch the most recent
   // page of messages without the navigate / clear churn that openConvo

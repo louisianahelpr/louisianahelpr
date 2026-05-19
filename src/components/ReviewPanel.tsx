@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
 import { maybeCelebrate } from "@/lib/celebrate";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { TipDialog } from "@/components/TipDialog";
 
@@ -159,9 +160,11 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
     });
 
     if (error) {
+      hapticError();
       if (error.code === "23505") toast.error("You've already reviewed this job.");
       else toast.error("Failed to submit review");
     } else {
+      hapticSuccess();
       toast.success("Review submitted!");
       // Brand-tinted confetti for the first few reviews so the moment
       // feels worth doing again. After the limit it fades to silent.

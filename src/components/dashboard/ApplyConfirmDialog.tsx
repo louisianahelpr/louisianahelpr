@@ -12,6 +12,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { FileText, Paperclip, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { hapticMedium } from "@/lib/haptics";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 interface ApplyConfirmDialogProps {
@@ -204,7 +205,7 @@ export function ApplyConfirmDialog({
         <AlertDialogFooter className="!gap-2">
           <AlertDialogCancel disabled={applyLoading} className="rounded-ds-md">Cancel</AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleApplyConfirm}
+            onClick={() => { hapticMedium(); handleApplyConfirm(); }}
             disabled={applyLoading}
             className="rounded-ds-md"
             style={{

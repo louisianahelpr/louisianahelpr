@@ -5,6 +5,7 @@
  * management screen. Extracted verbatim from AdminUsers.tsx —
  * behaviour-preserving structural refactor.
  */
+import { memo } from "react";
 import { formatName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -42,7 +43,7 @@ interface AdminUserRowProps {
   onOpen: (p: Profile) => void;
 }
 
-export const AdminUserRow = ({
+const AdminUserRowBase = ({
   p,
   tab,
   notesSummary,
@@ -309,3 +310,10 @@ export const AdminUserRow = ({
     </div>
   );
 };
+
+// Memoized: this row is rendered for every user in the virtualized admin
+// list, so a parent re-render (filter typing, summary loads) would
+// otherwise re-render every visible row. With a stable `onOpen` callback
+// and per-row `p`, unchanged rows skip re-render.
+export const AdminUserRow = memo(AdminUserRowBase);
+AdminUserRow.displayName = "AdminUserRow";

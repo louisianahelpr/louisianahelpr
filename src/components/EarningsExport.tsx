@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FileSpreadsheet, FileText, CalendarIcon, Loader2, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +12,16 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 // jsPDF + jspdf-autotable are ~450KB combined; load only when user clicks PDF export.
 import type jsPDFType from "jspdf";
+
+// react-day-picker (the Calendar's dependency) only renders inside the
+// tap-to-open date popovers below — defer its chunk until one opens.
+const Calendar = lazy(() =>
+  import("@/components/ui/calendar").then((m) => ({ default: m.Calendar })),
+);
+
+const calendarFallback = (
+  <div className="h-[19rem] w-[17rem] animate-pulse rounded-2xl bg-muted/40" aria-hidden />
+);
 
 interface EarningsExportProps {
   helperId: string;
@@ -311,7 +320,9 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={customStart} onSelect={setCustomStart} autoFocus className={cn("p-3 pointer-events-auto")} />
+                    <Suspense fallback={calendarFallback}>
+                      <Calendar mode="single" selected={customStart} onSelect={setCustomStart} autoFocus className={cn("p-3 pointer-events-auto")} />
+                    </Suspense>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -325,7 +336,9 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} autoFocus className={cn("p-3 pointer-events-auto")} />
+                    <Suspense fallback={calendarFallback}>
+                      <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} autoFocus className={cn("p-3 pointer-events-auto")} />
+                    </Suspense>
                   </PopoverContent>
                 </Popover>
               </div>

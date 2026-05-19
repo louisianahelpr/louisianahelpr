@@ -227,7 +227,7 @@ const AdminReferrals = () => {
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-primary">+${Number(c.amount).toFixed(2)}</p>
-                  <Badge variant={c.redeemed ? "secondary" : "default"} className="text-[10px]">
+                  <Badge variant={c.redeemed ? "secondary" : "default"} className="text-ds-10">
                     {c.redeemed ? "Cashed out" : "Available"}
                   </Badge>
                 </div>
@@ -283,9 +283,9 @@ const AdminReferrals = () => {
                   </p>
                 </div>
                 {credits.some(c => c.referred_user_id === r.referred_id || c.referred_user_id === r.referrer_id) ? (
-                  <Badge variant="default" className="text-[10px]">Bonus earned</Badge>
+                  <Badge variant="default" className="text-ds-10">Bonus earned</Badge>
                 ) : (
-                  <Badge variant="secondary" className="text-[10px]">Awaiting first job</Badge>
+                  <Badge variant="secondary" className="text-ds-10">Awaiting first job</Badge>
                 )}
               </div>
             </div>
@@ -309,7 +309,7 @@ const AdminReferrals = () => {
               </div>
               <div className="text-right">
                 <p className="text-ds-13 font-bold text-primary">+${Number(c.amount).toFixed(2)}</p>
-                <Badge variant={c.redeemed ? "secondary" : "default"} className="text-[10px]">
+                <Badge variant={c.redeemed ? "secondary" : "default"} className="text-ds-10">
                   {c.redeemed ? "Cashed out" : "Available"}
                 </Badge>
               </div>

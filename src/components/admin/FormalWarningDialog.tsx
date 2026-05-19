@@ -126,7 +126,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
             />
             <div className="space-y-1 min-w-0">
               <p className="text-ds-11 font-medium text-foreground">Bypass next strike (one-time courtesy)</p>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
+              <p className="text-ds-11 text-muted-foreground leading-relaxed">
                 Logs the warning but does NOT escalate to the next tier. Use when you've spoken to them and decided this is a genuine one-time mistake.
               </p>
             </div>

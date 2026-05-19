@@ -41,10 +41,10 @@ const AdminParishActivity = () => {
           </div>
           <div>
             <p className="text-ds-13 font-semibold text-foreground">Hot Parishes</p>
-            <p className="text-[11px] text-muted-foreground">Top 5 by recent activity</p>
+            <p className="text-ds-11 text-muted-foreground">Top 5 by recent activity</p>
           </div>
         </div>
-        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Last 30d</span>
+        <span className="text-ds-10 font-medium text-muted-foreground uppercase tracking-wider">Last 30d</span>
       </div>
 
       {loading ? (
@@ -65,13 +65,13 @@ const AdminParishActivity = () => {
               <span className="text-ds-13 font-bold text-muted-foreground w-5 tabular-nums">{i + 1}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-ds-13 font-medium text-foreground truncate">{r.parish}</p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">
                   {r.active_jobs} active · {r.helper_count} helprs
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-ds-13 font-bold text-foreground tabular-nums">${r.revenue_30d.toFixed(0)}</p>
-                <p className="text-[11px] text-primary flex items-center gap-0.5 justify-end">
+                <p className="text-ds-11 text-primary flex items-center gap-0.5 justify-end">
                   <TrendingUp className="w-2.5 h-2.5" />
                   {r.completed_jobs_30d} jobs
                 </p>

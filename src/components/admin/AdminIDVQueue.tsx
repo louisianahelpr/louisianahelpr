@@ -281,7 +281,7 @@ const AdminIDVQueue = () => {
                     <p className="text-ds-11 text-destructive mt-1">⚠️ {p.idv_failure_reason}</p>
                   )}
                   {p.idv_attempted_at && (
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="text-ds-10 text-muted-foreground mt-0.5">
                       Attempted {new Date(p.idv_attempted_at).toLocaleString()}
                     </p>
                   )}

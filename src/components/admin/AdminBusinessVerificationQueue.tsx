@@ -125,7 +125,7 @@ const AdminBusinessVerificationQueue = () => {
                     Owner: {r.owner_name || "Unnamed"} · {r.owner_email}
                   </p>
                 </div>
-                <p className="text-[11px] text-muted-foreground shrink-0">
+                <p className="text-ds-11 text-muted-foreground shrink-0">
                   {new Date(r.submitted_at).toLocaleDateString()}
                 </p>
               </div>
@@ -140,7 +140,7 @@ const AdminBusinessVerificationQueue = () => {
                       href={r.document_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                      className="inline-flex items-center gap-1 text-ds-11 text-primary hover:underline"
                     >
                       Open <ExternalLink className="w-3 h-3" />
                     </a>

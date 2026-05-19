@@ -177,7 +177,7 @@ export const RichMessageInput = ({
           >
             <X className="w-3 h-3" />
           </button>
-          {stagedIsPdf && <p className="text-[10px] text-muted-foreground mt-1">PDF · {(stagedFile.size / 1024).toFixed(0)} KB</p>}
+          {stagedIsPdf && <p className="text-ds-10 text-muted-foreground mt-1">PDF · {(stagedFile.size / 1024).toFixed(0)} KB</p>}
         </div>
       )}
       <div className="flex gap-1.5 items-center">

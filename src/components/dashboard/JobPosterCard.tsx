@@ -64,7 +64,7 @@ export function JobPosterCard({ job, repeatJobs }: JobPosterCardProps) {
         </div>
         <div className="min-w-0 flex-1">
           <p
-            className="text-[10px] font-sans font-semibold uppercase"
+            className="text-ds-10 font-sans font-semibold uppercase"
             style={{ color: "hsl(var(--olivewood) / 0.65)", letterSpacing: "0.06em" }}
           >
             Posted by
@@ -73,7 +73,7 @@ export function JobPosterCard({ job, repeatJobs }: JobPosterCardProps) {
             <p className="font-display italic font-bold leading-tight truncate text-[1rem] min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
               {job.posterName}
             </p>
-            <span className="flex items-center gap-0.5 text-[11px] shrink-0">
+            <span className="flex items-center gap-0.5 text-ds-11 shrink-0">
               <Star className={`w-3.5 h-3.5 ${(job.posterReviewCount ?? 0) > 0 ? "fill-accent text-accent" : "text-muted-foreground/50"}`} />
               <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                 {(job.posterReviewCount ?? 0) > 0 ? job.posterAvgRating?.toFixed(1) : "0.0"}
@@ -83,7 +83,7 @@ export function JobPosterCard({ job, repeatJobs }: JobPosterCardProps) {
               </span>
             </span>
           </div>
-          <p className="font-serif italic text-[11px] leading-tight" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
             {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
             {(job.posterCompletedJobs ?? 0) > 0 && (
               <>
@@ -112,7 +112,7 @@ export function JobPosterCard({ job, repeatJobs }: JobPosterCardProps) {
           tier badge only renders when the poster actually has one.
           Repeat-poster badge shows when they've posted multiple jobs. */}
       <div
-        className="flex items-center justify-center gap-3 mt-2 pt-2 text-[10px] font-sans font-semibold uppercase"
+        className="flex items-center justify-center gap-3 mt-2 pt-2 text-ds-10 font-sans font-semibold uppercase"
         style={{
           color: "hsl(var(--olivewood) / 0.7)",
           letterSpacing: "0.06em",

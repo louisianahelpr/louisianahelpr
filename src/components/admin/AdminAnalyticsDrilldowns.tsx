@@ -64,12 +64,12 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {u.subscription_tier && (
-                  <Badge className="text-[10px] bg-primary/10 text-primary capitalize">{u.subscription_tier}</Badge>
+                  <Badge className="text-ds-10 bg-primary/10 text-primary capitalize">{u.subscription_tier}</Badge>
                 )}
                 <Badge className={`text-ds-11 capitalize ${statusColor(u.approval_status)}`}>{u.approval_status}</Badge>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">Joined {new Date(u.created_at).toLocaleDateString()} · {roleByUser.get(u.user_id) ?? "—"}</p>
+            <p className="text-ds-10 text-muted-foreground mt-2">Joined {new Date(u.created_at).toLocaleDateString()} · {roleByUser.get(u.user_id) ?? "—"}</p>
           </div>
         ))}
       </div>

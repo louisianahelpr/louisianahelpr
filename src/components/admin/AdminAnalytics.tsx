@@ -481,7 +481,7 @@ const AdminAnalytics = () => {
             ].map(t => (
               <div key={t.label} className="text-center">
                 <p className="text-ds-17 font-bold text-foreground">{t.count}</p>
-                <Badge className={`text-[10px] ${t.color}`}>{t.label}</Badge>
+                <Badge className={`text-ds-10 ${t.color}`}>{t.label}</Badge>
               </div>
             ))}
           </div>

@@ -100,7 +100,7 @@ const CommunityVoice = () => {
               {avatars.map((avatar) => (
                 <div
                   key={avatar.initials}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-sans font-semibold"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-ds-11 font-sans font-semibold"
                   style={{
                     backgroundColor: avatar.bg,
                     color: "hsl(var(--parchment))",

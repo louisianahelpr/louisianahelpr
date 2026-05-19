@@ -361,7 +361,7 @@ const BusinessTeam = () => {
                         <p className="text-ds-11 text-muted-foreground">{tier.seats} seats · {tier.price}</p>
                       </div>
                       {isCurrent && (
-                        <Badge className="text-[10px] h-5">Current</Badge>
+                        <Badge className="text-ds-10 h-5">Current</Badge>
                       )}
                     </div>
                     {!isCurrent && (

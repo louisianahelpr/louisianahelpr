@@ -104,27 +104,27 @@ const AdminDisputes = () => {
     const hours = (Date.now() - new Date(disputedAt).getTime()) / 3600_000;
     if (hours > 120) {
       return (
-        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-bold uppercase tracking-wide">
+        <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-bold uppercase tracking-wide">
           <Flame className="w-3 h-3" /> Chargeback risk · {Math.floor(hours / 24)}d
         </span>
       );
     }
     if (hours > 48) {
       return (
-        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold uppercase tracking-wide">
+        <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold uppercase tracking-wide">
           <AlertTriangle className="w-3 h-3" /> Stale · {Math.floor(hours / 24)}d
         </span>
       );
     }
     if (hours > 24) {
       return (
-        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 font-medium uppercase tracking-wide">
+        <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 font-medium uppercase tracking-wide">
           <Clock className="w-3 h-3" /> {Math.floor(hours)}h
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium uppercase tracking-wide">
+      <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium uppercase tracking-wide">
         <Clock className="w-3 h-3" /> Fresh · {Math.floor(hours)}h
       </span>
     );
@@ -180,7 +180,7 @@ const AdminDisputes = () => {
                 <h3 className="font-semibold text-foreground">{job.title}</h3>
                 {slaBadge(job.disputed_at)}
                 {[job.customer_id, job.helper_id].some(id => id && tiers[id] === "elite") && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
+                  <span className="text-ds-10 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
                 )}
               </div>
               <p className="text-ds-11 text-muted-foreground">${job.budget}</p>

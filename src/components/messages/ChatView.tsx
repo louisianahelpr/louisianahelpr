@@ -180,7 +180,7 @@ export function ChatView({
                 <OnlineIndicator isOnline={isOtherOnline} />
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <p className="text-[11px] truncate leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="text-ds-11 truncate leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                   {activeConvo.jobTitle}
                 </p>
                 {activeConvo.jobStatus && (() => {
@@ -229,7 +229,7 @@ export function ChatView({
           {!bannerDismissed && (
             <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
               <AlertTriangle className="w-3 h-3 text-accent-foreground mt-[3px] shrink-0" />
-              <p className="text-[11px] leading-snug text-accent-foreground flex-1">
+              <p className="text-ds-11 leading-snug text-accent-foreground flex-1">
                 Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then permanent ban.
               </p>
               <button onClick={() => setBannerDismissed(true)} className="text-accent-foreground/60 hover:text-accent-foreground shrink-0 mt-0.5" aria-label="Dismiss">
@@ -375,7 +375,7 @@ export function ChatView({
                       )}
                     </div>
                   </div>
-                  <div className={`flex items-center gap-1 mt-1 px-1 text-[10px] text-muted-foreground ${mine ? "flex-row-reverse" : ""}`}>
+                  <div className={`flex items-center gap-1 mt-1 px-1 text-ds-10 text-muted-foreground ${mine ? "flex-row-reverse" : ""}`}>
                     {isSending ? (
                       <span className="flex items-center gap-1">
                         <Loader2 className="w-2.5 h-2.5 animate-spin" />

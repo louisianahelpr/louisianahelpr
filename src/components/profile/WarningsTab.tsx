@@ -93,14 +93,14 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                 <div key={v.id} className="rounded-ds-md liquid-glass p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-ds-10 font-bold uppercase tracking-wider shrink-0 ${
                         v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive"
                         : v.action_taken === "suspension" || v.action_taken === "temporary_ban" ? "bg-orange-500/10 text-orange-600"
                         : "bg-amber-500/10 text-amber-600"
                       }`}>
                         {v.action_taken.replace(/_/g, " ")}
                       </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-secondary text-secondary-foreground shrink-0">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-ds-10 font-medium bg-secondary text-secondary-foreground shrink-0">
                         {v.violation_type.replace(/_/g, " ")}
                       </span>
                     </div>

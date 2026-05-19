@@ -142,15 +142,15 @@ const AdminPayoutBatches = () => {
       {batches.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="rounded-ds-md liquid-glass p-4">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Helprs awaiting</p>
+            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Helprs awaiting</p>
             <p className="text-ds-24 font-bold text-foreground mt-1">{batches.length}</p>
           </div>
           <div className="rounded-ds-md liquid-glass p-4">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total jobs</p>
+            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total jobs</p>
             <p className="text-ds-24 font-bold text-foreground mt-1">{totalJobs}</p>
           </div>
           <div className="rounded-ds-md border border-border bg-primary/5 p-4 col-span-2 md:col-span-1">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total queued</p>
+            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total queued</p>
             <p className="text-ds-24 font-bold text-primary mt-1">${grandTotal.toFixed(2)}</p>
           </div>
         </div>
@@ -173,22 +173,22 @@ const AdminPayoutBatches = () => {
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-ds-13 text-foreground truncate">{batch.helper_name}</span>
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-ds-10">
                       {batch.job_count} job{batch.job_count > 1 ? "s" : ""}
                     </Badge>
                     {!batch.stripe_account_id && (
-                      <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">
+                      <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-ds-10">
                         <AlertTriangle className="w-3 h-3 mr-0.5" /> No Stripe
                       </Badge>
                     )}
                     {isStale && (
-                      <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-[10px]">
+                      <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-ds-10">
                         <Clock className="w-3 h-3 mr-0.5" /> {ageDays}d old
                       </Badge>
                     )}
                   </div>
                   <p className="text-ds-11 text-muted-foreground">{batch.helper_email}</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-ds-11 text-muted-foreground">
                     Oldest job: {formatDistanceToNow(new Date(batch.oldest_completed_at), { addSuffix: true })}
                   </p>
                 </div>
@@ -216,12 +216,12 @@ const AdminPayoutBatches = () => {
           <div className="flex items-center gap-2">
             <ListChecks className="w-4 h-4 text-primary" />
             <h3 className="text-ds-13 font-semibold text-foreground">Recent transfers</h3>
-            <Badge variant="secondary" className="text-[10px]">last {ledger.length}</Badge>
+            <Badge variant="secondary" className="text-ds-10">last {ledger.length}</Badge>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Authoritative ledger from <code className="text-[10px]">payout_transfers</code>.
-            Written by <code className="text-[10px]">release-payout</code> on every
-            <code className="text-[10px]"> stripe.transfers.create()</code> call.
+          <p className="text-ds-11 text-muted-foreground">
+            Authoritative ledger from <code className="text-ds-10">payout_transfers</code>.
+            Written by <code className="text-ds-10">release-payout</code> on every
+            <code className="text-ds-10"> stripe.transfers.create()</code> call.
           </p>
           <div className="space-y-1.5">
             {ledger.map((t) => {
@@ -235,12 +235,12 @@ const AdminPayoutBatches = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-ds-13 text-foreground truncate">{helperName}</span>
-                      <Badge className={`${tone} text-[10px] capitalize`}>{t.status}</Badge>
+                      <Badge className={`${tone} text-ds-10 capitalize`}>{t.status}</Badge>
                       {t.initiated_by && t.initiated_by !== "system" && (
-                        <Badge variant="outline" className="text-[10px] capitalize">{t.initiated_by}</Badge>
+                        <Badge variant="outline" className="text-ds-10 capitalize">{t.initiated_by}</Badge>
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                    <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">
                       {jobTitle}
                       {t.stripe_transfer_id && (
                         <span className="ml-2 font-mono opacity-60" title="Stripe transfer ID">
@@ -249,16 +249,16 @@ const AdminPayoutBatches = () => {
                       )}
                     </p>
                     {t.failure_reason && t.status === "failed" && (
-                      <p className="text-[11px] text-destructive mt-0.5 break-words">{t.failure_reason}</p>
+                      <p className="text-ds-11 text-destructive mt-0.5 break-words">{t.failure_reason}</p>
                     )}
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="text-ds-10 text-muted-foreground mt-0.5">
                       {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-ds-13 font-semibold text-foreground tabular-nums">${amount}</p>
                     {Number(fee) > 0 && (
-                      <p className="text-[10px] text-muted-foreground">fee ${fee}</p>
+                      <p className="text-ds-10 text-muted-foreground">fee ${fee}</p>
                     )}
                   </div>
                 </div>

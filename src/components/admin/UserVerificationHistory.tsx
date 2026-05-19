@@ -91,7 +91,7 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
     <div className="space-y-2">
       <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
         <History className="w-3.5 h-3.5" /> Verification History
-        <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+        <span className="ml-1 text-ds-10 font-normal text-muted-foreground">
           (last {rows.length})
         </span>
       </h4>
@@ -107,7 +107,7 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
                 <span className="font-medium text-foreground">
                   {FIELD_LABEL[r.field] ?? r.field}
                 </span>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-ds-10 text-muted-foreground">
                   {formatDistanceToNow(new Date(r.changed_at), { addSuffix: true })}
                 </span>
               </div>
@@ -116,7 +116,7 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
                 <span className="mx-1.5">→</span>
                 <span className="text-foreground">{renderValue(r.field, r.new_value)}</span>
               </div>
-              <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+              <div className="text-ds-10 text-muted-foreground mt-0.5 flex items-center gap-1">
                 <User className="w-2.5 h-2.5" />
                 <span className={isSystem ? "italic" : ""}>{actorName}</span>
               </div>

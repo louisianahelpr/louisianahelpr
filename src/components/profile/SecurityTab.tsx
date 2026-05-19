@@ -37,7 +37,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-ds-13 font-medium text-foreground truncate">{email}</p>
-            <p className="text-[11px] font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               We'll send a confirmation link to verify changes.
             </p>
           </div>
@@ -78,7 +78,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-ds-13 font-medium text-foreground tracking-widest">••••••••</p>
-            <p className="text-[11px] font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               Reset via secure email link.
             </p>
           </div>

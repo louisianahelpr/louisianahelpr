@@ -209,7 +209,7 @@ const AdminReports = () => {
                       sla.tone === "yellow" ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400" :
                       "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
                     return (
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${slaClass}`}>
+                      <span className={`text-ds-10 font-medium px-2 py-0.5 rounded-full border ${slaClass}`}>
                         {sla.label}
                       </span>
                     );

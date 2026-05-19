@@ -23,7 +23,7 @@ export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onC
     </div>
     <p className={`text-ds-24 font-bold ${accent ? "text-primary" : "text-foreground"}`}>{value}</p>
     <p className="text-ds-11 text-muted-foreground mt-1">{sub}</p>
-    {onClick && <p className="text-[10px] text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to view details →</p>}
+    {onClick && <p className="text-ds-10 text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to view details →</p>}
   </button>
 );
 
@@ -61,7 +61,7 @@ export const CohortRetentionCard = ({
       Of users who signed up in each month, how many had any job activity in the last 30 days.
     </p>
     <div className="space-y-2">
-      <div className="grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-1">
+      <div className="grid grid-cols-12 gap-2 text-ds-10 uppercase tracking-wider text-muted-foreground px-1">
         <div className="col-span-3">Cohort</div>
         <div className="col-span-2 text-right">Signups</div>
         <div className="col-span-2 text-right">Still active</div>

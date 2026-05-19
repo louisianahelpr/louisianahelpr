@@ -143,7 +143,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               required
               className="rounded-ds-md border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-[14px] leading-relaxed resize-none"
             />
-            <div className="flex items-center justify-between text-[11px]">
+            <div className="flex items-center justify-between text-ds-11">
               <span
                 className={
                   tooShort

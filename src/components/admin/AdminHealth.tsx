@@ -269,7 +269,7 @@ const AdminHealth = () => {
               <p className="text-ds-11 text-muted-foreground leading-relaxed">
                 Every admin notification (fraud flags, auto-restrict reverses,
                 dispute escalations, stuck-payment alerts) fans through{" "}
-                <code className="text-[10px] bg-muted px-1 rounded">push_tokens</code>.
+                <code className="text-ds-10 bg-muted px-1 rounded">push_tokens</code>.
                 With zero admin tokens, those alerts only show up if you happen
                 to refresh this dashboard. Install the latest iOS build, sign in,
                 and confirm a token lands here.
@@ -397,7 +397,7 @@ const AdminHealth = () => {
               <span className="text-foreground font-semibold">{formatDelay(medianTimeToFirstAppMin)}</span>
             </span>
             {jobsAwaitingApps > 0 && (
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="text-ds-10">
                 {jobsAwaitingApps} job{jobsAwaitingApps === 1 ? "" : "s"} no apps yet
               </Badge>
             )}
@@ -408,7 +408,7 @@ const AdminHealth = () => {
           <p className="text-ds-11 text-muted-foreground">No open jobs and no helpers with parish prefs yet.</p>
         ) : (
           <div className="space-y-1.5">
-            <div className="grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2">
+            <div className="grid grid-cols-12 gap-2 text-ds-10 uppercase tracking-wider text-muted-foreground px-2">
               <div className="col-span-4">Parish</div>
               <div className="col-span-3 text-right">Open jobs</div>
               <div className="col-span-3 text-right">Helprs</div>
@@ -448,15 +448,15 @@ const AdminHealth = () => {
         {/* Token stats */}
         <div className="grid grid-cols-3 gap-2 text-ds-13">
           <div className="rounded-lg bg-background/50 border border-border/40 p-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total tokens</div>
+            <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Total tokens</div>
             <div className="text-ds-24 font-semibold tabular-nums">{pushStats.total}</div>
           </div>
           <div className="rounded-lg bg-background/50 border border-border/40 p-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">iOS</div>
+            <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">iOS</div>
             <div className="text-ds-24 font-semibold tabular-nums">{pushStats.ios}</div>
           </div>
           <div className="rounded-lg bg-background/50 border border-border/40 p-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Android</div>
+            <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Android</div>
             <div className="text-ds-24 font-semibold tabular-nums">{pushStats.android}</div>
           </div>
         </div>

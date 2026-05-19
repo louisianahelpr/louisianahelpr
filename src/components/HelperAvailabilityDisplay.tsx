@@ -88,7 +88,7 @@ export function HelperAvailabilityDisplay({ helperId, showEmpty = false, onSetUp
           const isAvail = slot?.is_available;
           return (
             <div key={day} className="text-center">
-              <span className={`block text-[10px] font-medium mb-1 ${isAvail ? "text-foreground" : "text-muted-foreground/40"}`}>
+              <span className={`block text-ds-10 font-medium mb-1 ${isAvail ? "text-foreground" : "text-muted-foreground/40"}`}>
                 {day}
               </span>
               <div className={`rounded-md py-1 text-[9px] ${isAvail ? "bg-primary/10 text-primary font-medium" : "bg-muted text-muted-foreground/40"}`}>

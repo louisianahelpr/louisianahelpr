@@ -138,7 +138,7 @@ export function SignupStep3(props: SignupStep3Props) {
               Applying for jobs?
             </p>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-primary text-primary-foreground shrink-0">
+          <span className="text-ds-10 font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-primary text-primary-foreground shrink-0">
             Recommended
           </span>
         </div>
@@ -433,7 +433,7 @@ export function SignupStep3(props: SignupStep3Props) {
               <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
                 <ImagePlus className="w-5 h-5 text-primary" strokeWidth={1.75} />
                 <span className="text-ds-13 font-semibold text-foreground">Upload license <span className="text-destructive">*</span></span>
-                <span className="text-[11px] text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
+                <span className="text-ds-11 text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,application/pdf"
@@ -491,7 +491,7 @@ export function SignupStep3(props: SignupStep3Props) {
               <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-primary/40 bg-primary/[0.03] hover:border-primary/70 px-4 py-5 cursor-pointer transition-all">
                 <ImagePlus className="w-5 h-5 text-primary" strokeWidth={1.75} />
                 <span className="text-ds-13 font-semibold text-foreground">Upload insurance <span className="text-destructive">*</span></span>
-                <span className="text-[11px] text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
+                <span className="text-ds-11 text-muted-foreground">JPG, PNG, or PDF · Max 5MB · Required to continue</span>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,application/pdf"
@@ -503,7 +503,7 @@ export function SignupStep3(props: SignupStep3Props) {
           )}
         </div>
 
-        <p className="text-[11px] text-muted-foreground text-center">
+        <p className="text-ds-11 text-muted-foreground text-center">
           Documents are reviewed by our team. Your verified badge appears once approved.
         </p>
       </div>
@@ -544,7 +544,7 @@ export function SignupStep3(props: SignupStep3Props) {
           {portfolioFiles.length < 10 && (
             <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-colors">
               <ImagePlus className="w-5 h-5 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground mt-0.5">Add</span>
+              <span className="text-ds-10 text-muted-foreground mt-0.5">Add</span>
               <input
                 type="file"
                 accept="image/*,.pdf,.doc,.docx"

@@ -134,14 +134,14 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
               <p className="text-ds-11 font-semibold truncate">
                 {formatName(u.full_name, u.email || "User")}
               </p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-ds-10 text-muted-foreground">
                 {u.violation_count} violations · {daysLeft}d left
               </p>
               <div className="flex gap-1.5">
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 text-[11px] px-2 flex-1"
+                  className="h-7 text-ds-11 px-2 flex-1"
                   onClick={() => onReview(u.user_id)}
                 >
                   <Eye className="w-3 h-3 mr-1" /> Review
@@ -150,7 +150,7 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
                   size="sm"
                   variant="outline"
                   disabled={reversing === u.user_id}
-                  className="h-7 text-[11px] px-2 flex-1 border-amber-500/40 hover:bg-amber-500/10"
+                  className="h-7 text-ds-11 px-2 flex-1 border-amber-500/40 hover:bg-amber-500/10"
                   onClick={() => reverse(u.user_id)}
                 >
                   {reversing === u.user_id ? "..." : "Reverse"}

@@ -53,7 +53,7 @@ const DeadlineCountdown = ({ deadline, expiredText, consequenceText, variant = "
         ) : (
           <>
             <p className="text-ds-11 font-semibold tabular-nums">{timeStr} remaining</p>
-            <p className="text-[10px] mt-0.5 opacity-80">{consequenceText}</p>
+            <p className="text-ds-10 mt-0.5 opacity-80">{consequenceText}</p>
           </>
         )}
       </div>

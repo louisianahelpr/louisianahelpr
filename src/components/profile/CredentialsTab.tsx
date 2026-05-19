@@ -175,7 +175,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
           <span className="inline-flex items-center gap-1 text-ds-11 font-semibold text-destructive">
             <AlertTriangle className="w-3.5 h-3.5" /> Rejected
           </span>
-          {reason && <p className="text-[11px] text-destructive/80">{reason}</p>}
+          {reason && <p className="text-ds-11 text-destructive/80">{reason}</p>}
         </div>
       );
     return null;

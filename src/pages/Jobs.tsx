@@ -145,7 +145,7 @@ const Jobs = () => {
                 Live now
               </span>
             </div>
-            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full squircle bg-primary/10 text-primary text-[11px] font-bold tracking-wider uppercase border border-primary/15 shrink-0">
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full squircle bg-primary/10 text-primary text-ds-11 font-bold tracking-wider uppercase border border-primary/15 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               Live
             </div>
@@ -228,7 +228,7 @@ const Jobs = () => {
                       {job.title}
                     </h3>
                     {job.is_urgent && (
-                      <Badge variant="destructive" className="text-[10px] shrink-0">
+                      <Badge variant="destructive" className="text-ds-10 shrink-0">
                         Urgent
                       </Badge>
                     )}

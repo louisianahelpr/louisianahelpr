@@ -45,7 +45,7 @@ export function CredentialBadge({
       ? "text-ds-13 px-3 py-1.5 gap-1.5"
       : size === "md"
       ? "text-ds-11 px-2.5 py-1 gap-1"
-      : "text-[10px] px-2 py-0.5 gap-1";
+      : "text-ds-10 px-2 py-0.5 gap-1";
 
   const iconSize = size === "lg" ? "w-4 h-4" : size === "md" ? "w-3.5 h-3.5" : "w-3 h-3";
 

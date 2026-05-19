@@ -151,11 +151,11 @@ const AdminSubscriptions = () => {
               </div>
               <div className="flex items-center gap-2">
                 {p.subscription_tier && (
-                  <Badge className={`capitalize text-[10px] ${tierColor(p.subscription_tier)}`}>
+                  <Badge className={`capitalize text-ds-10 ${tierColor(p.subscription_tier)}`}>
                     {p.subscription_tier}
                   </Badge>
                 )}
-                <Badge variant={status === "active" ? "default" : "secondary"} className="text-[10px]">
+                <Badge variant={status === "active" ? "default" : "secondary"} className="text-ds-10">
                   {status === "active" ? "Active" : "Expired"}
                 </Badge>
                 {p.subscription_expires_at && (

@@ -356,7 +356,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
             </Button>
           </div>
 
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <p className="text-ds-11 text-muted-foreground leading-relaxed">
             Includes date, job, category, parish, taxable/exempt status, gross budget, platform fee,
             parish tax collected, and net payout. Tips are tracked separately.
           </p>

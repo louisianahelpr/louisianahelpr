@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AppShell from "@/components/AppShell";
+import HelprMark from "@/components/HelprMark";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -197,29 +198,7 @@ const AccountPending = () => {
   // Helpr-branded top header.
   const header = (
     <header className="flex items-center justify-between px-5 h-14 bg-white dark:bg-background border-b border-border/40">
-      <Link to="/" className="inline-flex items-baseline gap-1 group" aria-label="Helpr home">
-        <span
-          className="font-display italic font-bold leading-none"
-          style={{
-            fontSize: "1.4rem",
-            color: "hsl(var(--olivewood))",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Helpr
-        </span>
-        <span
-          className="font-display italic font-bold leading-none"
-          style={{
-            fontSize: "0.95rem",
-            color: "hsl(var(--burnt-sienna))",
-            letterSpacing: "0.22em",
-            marginLeft: "0.12em",
-          }}
-        >
-          · LA
-        </span>
-      </Link>
+      <HelprMark to="/" size="md" />
       <Button
         variant="ghost"
         size="sm"

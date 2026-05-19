@@ -578,7 +578,7 @@ const PostJob = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-page relative" style={{ paddingBottom: "calc(11.5rem + env(safe-area-inset-bottom, 0px))" }}>
+    <div className="min-h-screen bg-premium-page relative pb-safe-nav">
       <PageHeader
         eyebrow={step === "checkout" ? "Almost there" : "New request"}
         title={step === "checkout" ? "Order summary" : "What do you need done?"}

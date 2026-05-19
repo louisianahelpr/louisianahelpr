@@ -194,9 +194,8 @@ export function useActivityActions({
     });
     // Atomic accept via the accept_application RPC (migration
     // 20260518120000): it row-locks the job so two concurrent accepts
-    // can't both book the same single-helper job. (`rpc as any` until
-    // types.ts is regenerated for the new function.)
-    const { error } = await (supabase.rpc as any)("accept_application", {
+    // can't both book the same single-helper job.
+    const { error } = await supabase.rpc("accept_application", {
       p_application_id: deadlineDialogApp.id,
       p_deadline: deadline,
       p_offer_message: initialMessage ?? null,
@@ -314,7 +313,7 @@ export function useActivityActions({
       let priorCount = 0;
       const declineTitle = (app as AppliedApp).job?.title || "Unknown";
 
-      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("decline_job_offer", {
+      const { data: rpcData, error: rpcError } = await supabase.rpc("decline_job_offer", {
         p_application_id: app.id,
       });
 
@@ -516,7 +515,7 @@ export function useActivityActions({
       // in one transaction. Falls back to the pre-migration multi-step
       // path if the RPC isn't deployed to this environment yet.
       let actionTaken = "warning";
-      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("report_helper_no_show", {
+      const { data: rpcData, error: rpcError } = await supabase.rpc("report_helper_no_show", {
         p_job_id: jobId,
       });
 

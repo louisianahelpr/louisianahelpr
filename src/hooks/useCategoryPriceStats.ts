@@ -31,14 +31,6 @@ export interface CategoryPriceStats {
   source: "live" | "static";
 }
 
-interface RpcRow {
-  p25: number | string | null;
-  p50: number | string | null;
-  p75: number | string | null;
-  sample_count: number | null;
-  parish_match: boolean | null;
-}
-
 // A live range needs at least this many completed jobs behind it before
 // we'd rather show it than the static fallback. Below this the RPC's own
 // numbers are too noisy to phrase as "jobs like this pay $X–$Y".
@@ -85,13 +77,12 @@ export function useCategoryPriceStats(
     let cancelled = false;
     setLoading(true);
 
-    // `rpc as any` until types.ts is regenerated for the new function —
-    // same pattern as the accept_application RPC call in Activity.tsx.
-    (supabase.rpc as any)("get_category_price_stats", {
-      p_category: category,
-      p_parish: parish ?? null,
-    })
-      .then(({ data, error }: { data: RpcRow[] | null; error: any }) => {
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc("get_category_price_stats", {
+          p_category: category,
+          p_parish: parish ?? null,
+        });
         if (cancelled) return;
 
         if (error) {
@@ -121,13 +112,12 @@ export function useCategoryPriceStats(
           parishMatch: row.parish_match === true,
           source: "live",
         });
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setStats(staticStats(category));
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;

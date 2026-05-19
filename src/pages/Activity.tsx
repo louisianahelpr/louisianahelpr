@@ -106,14 +106,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         header={<DashboardHeader />}
         titleCard={
             <div className="flex flex-col leading-none">
-              <h1
-                className="font-display font-bold leading-tight"
-                style={{
-                  fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.025em",
-                }}
-              >
+              <h1 className="text-page-title leading-tight">
                 {tab === "posted" ? "My Posts" : "My Jobs"}
               </h1>
               <p

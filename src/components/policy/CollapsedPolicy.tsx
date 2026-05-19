@@ -41,10 +41,20 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
   return (
     <Collapsible open={effectiveOpen} onOpenChange={setOpen}>
       <CollapsibleTrigger
-        className={`group w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-ds-md text-left transition-colors btn-press ${warning ? "hover:bg-destructive/10" : "hover:bg-primary/5"}`}
+        className="group w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-ds-md text-left transition-colors btn-press hover:bg-primary/5"
       >
         <span className="flex items-center gap-2.5 min-w-0">
-          <span className={`shrink-0 w-7 h-7 rounded-ds-sm flex items-center justify-center ${warning ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
+          {/* Caution is conveyed purely by the icon tint — a warm
+              burnt-sienna pill instead of the plain sage primary one.
+              No full-row wash: every row reads as one consistent set. */}
+          <span
+            className={`shrink-0 w-7 h-7 rounded-ds-sm flex items-center justify-center ${warning ? "" : "bg-primary/10 text-primary"}`}
+            style={
+              warning
+                ? { background: "hsl(var(--burnt-sienna) / 0.14)", color: "hsl(var(--burnt-sienna))" }
+                : undefined
+            }
+          >
             <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
           </span>
           {/* Two-line clamp so long item labels ("Job budget limits —
@@ -99,14 +109,45 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
 
   return (
     <Collapsible open={effectiveOpen} onOpenChange={setOpen}>
-      <div className={`rounded-2xl border squircle overflow-hidden transition-colors ${warning ? "border-destructive/20 bg-destructive/5" : "border-border bg-card"}`}>
+      {/* Every section card is the same clean white-on-border surface —
+          no muddy destructive wash. A `warning` section is marked only
+          by a crisp burnt-sienna left accent edge + a small "Caution"
+          chip in the header, so all cards on the page read as one set. */}
+      <div
+        className="rounded-2xl border border-border bg-card squircle overflow-hidden transition-colors"
+        style={
+          warning
+            ? { borderLeft: "3px solid hsl(var(--burnt-sienna) / 0.55)" }
+            : undefined
+        }
+      >
         <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">
           <span className="flex items-center gap-3 min-w-0">
-            <span className={`shrink-0 w-9 h-9 rounded-ds-md flex items-center justify-center ${warning ? "bg-destructive/15 text-destructive" : "bg-primary/12 text-primary"}`}>
+            <span
+              className={`shrink-0 w-9 h-9 rounded-ds-md flex items-center justify-center ${warning ? "" : "bg-primary/12 text-primary"}`}
+              style={
+                warning
+                  ? { background: "hsl(var(--burnt-sienna) / 0.14)", color: "hsl(var(--burnt-sienna))" }
+                  : undefined
+              }
+            >
               <Icon className="w-4 h-4" strokeWidth={2.25} />
             </span>
             <span className="min-w-0">
-              <p className="font-display font-bold text-foreground leading-tight text-ds-15">{title}</p>
+              <span className="flex items-center gap-2">
+                <p className="font-display font-bold text-foreground leading-tight text-ds-15">{title}</p>
+                {warning && (
+                  <span
+                    className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-sans font-semibold uppercase tracking-wider"
+                    style={{
+                      background: "hsl(var(--burnt-sienna) / 0.12)",
+                      color: "hsl(var(--burnt-sienna))",
+                    }}
+                  >
+                    Caution
+                  </span>
+                )}
+              </span>
               <p className="text-ds-11 text-muted-foreground line-clamp-2 leading-snug">{subtitle}</p>
             </span>
           </span>

@@ -240,7 +240,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 aria-label="Boosted"
                 className="boosted-shimmer boosted-pulse inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider"
                 style={{
-                  color: "hsl(38 60% 28%)",
+                  color: "color-mix(in srgb, hsl(var(--gold-warm)) 58%, #000 42%)",
                   border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
                   boxShadow:
                     "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +

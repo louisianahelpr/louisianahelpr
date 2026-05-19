@@ -270,7 +270,7 @@ const BusinessTeam = () => {
               Your team
             </span>
             <div className="flex flex-wrap items-center gap-2 mt-1">
-              <h1 className="font-display italic font-bold leading-tight" style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}>{business.business_name}</h1>
+              <h1 className="text-page-title leading-tight">{business.business_name}</h1>
               <Badge variant="secondary" className="text-ds-11 gap-1">
                 <Sparkles className="w-3 h-3" /> {currentTierMeta.name} · {currentTierMeta.price}
               </Badge>

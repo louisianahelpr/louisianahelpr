@@ -244,28 +244,79 @@ const DashboardGuest = () => {
       </header>
       }
       titleCard={
-        <>
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
+          {/* Hero copy — eyebrow + a right-sized headline (no longer the
+              whole viewport) + a single tight subline. */}
+          <div className="min-w-0">
             <span
               className="font-serif italic uppercase text-ds-9"
               style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
             >
               A first look
             </span>
-            <h1 className="text-section-title leading-tight mt-0.5">
-              Need help, or want to <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>earn</em>?
+            {/* Hero headline — keeps the .text-section-title DS typography
+                (Bodoni Moda italic 700) but pinned to a smaller, balanced
+                size: the DS clamp (max 1.5rem) read as oversized here and
+                dominated the guest landing. Replicating the family/weight
+                inline lets us go below the DS class's !important size. */}
+            <h1
+              className="leading-[1.12] mt-0.5"
+              style={{
+                fontFamily: '"Bodoni Moda", Georgia, serif',
+                fontStyle: "italic",
+                fontWeight: 700,
+                fontSize: "clamp(1.05rem, 1.1vw + 0.35rem, 1.2rem)",
+                color: "hsl(var(--ink-deep))",
+                letterSpacing: "-0.022em",
+              }}
+            >
+              Need help, or want to{" "}
+              <em
+                className="signature"
+                style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}
+              >
+                earn
+              </em>
+              ?
             </h1>
             <p
-              className="font-serif italic mt-1 text-ds-13 leading-snug"
+              className="font-serif italic mt-1 text-ds-11 leading-snug"
               style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
-              Post a task in a minute, or browse what your Louisiana neighbors need. Free to sign up.
+              Post a task in a minute, or browse what your neighbors need.
             </p>
-        </>
+          </div>
+          {/* Prominent in-content CTA — the real conversion driver, not the
+              small corner button. Light cream text on the deep-olive bark
+              fill; "Log in" sits beneath as a quiet secondary. */}
+          <div className="flex flex-col items-stretch gap-1.5 shrink-0 sm:items-end">
+            <Button
+              variant="bark"
+              size="sm"
+              onClick={() => navigate("/signup")}
+              className="w-full sm:w-auto rounded-ds-md px-6 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+              style={{ color: "hsl(var(--parchment))" }}
+            >
+              Sign up free
+            </Button>
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="text-ds-11 font-sans font-semibold btn-press transition-colors hover:underline self-center sm:self-end"
+              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            >
+              Already on Helpr? Log in
+            </button>
+          </div>
+        </div>
       }
     >
-            {/* Header row — title block + view toggle + search button. */}
+            {/* Header row — title block + view toggle + search button.
+                Padding tightened (py-2.5) so the hero → "Browse Tasks" →
+                feed cadence reads as one continuous rhythm, not three
+                loosely-stacked blocks. */}
             <div
-              className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
+              className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5"
               style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
               <div className="flex flex-col leading-none min-w-0">
@@ -278,9 +329,9 @@ const DashboardGuest = () => {
                     : "For you, today"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
                 </span>
                 <h2
-                  className="font-display italic font-bold leading-tight mt-1"
+                  className="font-display italic font-bold leading-tight mt-0.5"
                   style={{
-                    fontSize: "1.25rem",
+                    fontSize: "1.1rem",
                     color: "hsl(var(--ink-deep))",
                     letterSpacing: "-0.018em",
                   }}

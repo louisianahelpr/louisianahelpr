@@ -2,11 +2,24 @@ import { defineConfig, type Plugin, type ESBuildOptions } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
+import { execSync } from "node:child_process";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
 
 const require = createRequire(import.meta.url);
+
+// Build identity — baked into the bundle at build time so any running app
+// can show exactly which commit it was built from without any API calls.
+const appCommit = (() => {
+  try {
+    return execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
+  } catch {
+    return process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "dev";
+  }
+})();
+const appBuiltAt = new Date().toISOString();
+
 const reactEntry = require.resolve("react");
 const reactDomEntry = require.resolve("react-dom");
 const reactDomClientEntry = require.resolve("react-dom/client");
@@ -19,6 +32,10 @@ const isAnalyze = process.env.ANALYZE === "1";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    __APP_COMMIT__: JSON.stringify(appCommit),
+    __APP_BUILT_AT__: JSON.stringify(appBuiltAt),
+  },
   server: {
     host: "::",
     port: 8080,

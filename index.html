@@ -71,29 +71,22 @@
       />
     </noscript>
 
-    <!-- Hero LCP image preload. Vite rewrites /src/assets/* references in index.html
-         to the content-hashed production path during build, so this works in both dev
-         and prod. We preload the responsive set with imagesrcset/imagesizes matching
-         the <img>'s srcset/sizes in HeroSection.tsx — the browser picks the right
-         variant for the viewport (Moto G Power → 400-500w; desktop → 1500-2000w) and
-         starts the fetch in parallel with the JS bundle instead of waiting for React
-         to mount and discover the <img> tag. This is the single biggest LCP win on
-         the landing page (Lighthouse-flagged ~4.4s savings). -->
-    <link
-      rel="preload"
-      as="image"
-      href="/src/assets/hero-courtyard-1000.webp"
-      imagesrcset="/src/assets/hero-courtyard-400.webp 400w, /src/assets/hero-courtyard-500.webp 500w, /src/assets/hero-courtyard-700.webp 700w, /src/assets/hero-courtyard-1000.webp 1000w, /src/assets/hero-courtyard-1500.webp 1500w"
-      imagesizes="100vw"
-      fetchpriority="high"
-    />
-    <!-- Preload navbar logo so it paints with the navbar instead of flashing in -->
-    <link
-      rel="preload"
-      as="image"
-      href="/src/assets/helpr-icon-96.png"
-      fetchpriority="high"
-    />
+    <!-- Hero image preloads intentionally removed 2026-05-19.
+         The hero used to render a photographic <img> (hero-courtyard-*.webp),
+         but the editorial brand polish (4ba790a0) replaced it with the
+         CSS-only PhoneCluster mockup + the Bodoni Moda H1, which is now the
+         LCP element. The preload + srcset still pointed at the retired image,
+         which made the browser fetch 100–430 KB of never-rendered bytes at
+         `fetchpriority="high"` on every desktop visit, starving the Bodoni
+         Moda webfont and the main JS bundle of bandwidth and connection slots.
+         Same story for the `/src/assets/helpr-icon-96.png` preload — that
+         filename isn't imported anywhere in src/, so Vite couldn't rewrite it
+         to a hashed asset; the Navbar's actual logo (HelprMark → helpr-logo-96.webp)
+         renders fine via its module import.
+         Net effect of removal: one fewer high-priority fetch on the critical
+         path and the LCP text element (Fraunces/Bodoni H1) gets the bandwidth
+         it actually needs. If a photographic hero returns, restore a single
+         preload that matches the rendered <img>'s exact src/srcset/sizes. -->
     <!-- Sentry + PostHog both initialize inside requestIdleCallback (after
          first paint), which means a preconnect handshake completes seconds
          before the connection is actually used and gets flagged by

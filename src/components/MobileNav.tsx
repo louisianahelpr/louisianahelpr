@@ -33,7 +33,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const isPendingApproval =
     !isGuest && profile?.approval_status === "pending";
   const [unreadCount, setUnreadCount] = useState(0);
-  const [, setUnreadNotifCount] = useState(0);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateLabel, setGateLabel] = useState("this feature");
   // Scroll-aware shadow lift — when content is actually scrolled under the
@@ -71,12 +70,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         .eq("read", false)
         .then(({ count }) => setUnreadCount(count || 0));
 
-      supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("read", false)
-        .then(({ count }) => setUnreadNotifCount(count || 0));
     };
 
     loadCounts();
@@ -88,11 +81,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
-        () => loadCounts()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         () => loadCounts()
       )
       .subscribe();

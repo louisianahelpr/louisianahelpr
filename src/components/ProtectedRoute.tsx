@@ -6,7 +6,22 @@ const DEBUG_AUTH = import.meta.env.DEV;
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  /**
+   * Fully bypasses the approval gate — pending, email-unconfirmed *and*
+   * denied users are all let through. Used for routes that an account in
+   * any state must be able to reach (e.g. /complete-profile, /profile).
+   */
   allowUnapproved?: boolean;
+  /**
+   * Progressive activation: lets `pending` / email-unconfirmed users reach
+   * the route so they can browse, save and apply during the verification
+   * window — without dropping the `denied` redirect. `denied` and banned
+   * users are still bounced exactly as strictly as before. Verification
+   * gates that genuinely require it (IDV-before-accept in Activity.tsx,
+   * payout setup) live in the page components, not here, so they remain
+   * fully enforced for pending users.
+   */
+  allowPending?: boolean;
 }
 
 // Routes a half-onboarded user is allowed to visit without being bounced
@@ -65,7 +80,11 @@ export const isProfileComplete = (profile: GateProfile | null): boolean => {
   return PROFILE_GATE_FIELDS.every((f) => isFieldComplete(profile, f.key));
 };
 
-const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRouteProps) => {
+const ProtectedRoute = ({
+  children,
+  allowUnapproved = false,
+  allowPending = false,
+}: ProtectedRouteProps) => {
   const { user, profile, isLoading, refresh } = useCurrentUser();
   const location = useLocation();
 
@@ -112,18 +131,28 @@ const ProtectedRoute = ({ children, allowUnapproved = false }: ProtectedRoutePro
   }
 
   if (!allowUnapproved) {
-    // Stage 1: Email verification (auth user is the source of truth)
-    if (user && !user.email_confirmed_at) {
-      if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "email-unconfirmed" });
-      return <Navigate to="/account-pending" replace />;
-    }
-    if (profile?.approval_status === "pending") {
-      if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "approval-pending" });
-      return <Navigate to="/account-pending" replace />;
-    }
+    // `denied` is a hard stop on every non-`allowUnapproved` route. It is
+    // NOT relaxed by `allowPending` — progressive activation only opens the
+    // app for users still inside the verification window, never for those
+    // who have already been rejected.
     if (profile?.approval_status === "denied") {
       if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-denied", reason: "approval-denied" });
       return <Navigate to="/account-denied" replace />;
+    }
+
+    // Progressive-activation routes (`allowPending`) let a pending or
+    // email-unconfirmed user through so they can browse/save/apply while
+    // they wait. Every other route still bounces them to /account-pending.
+    if (!allowPending) {
+      // Stage 1: Email verification (auth user is the source of truth)
+      if (user && !user.email_confirmed_at) {
+        if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "email-unconfirmed" });
+        return <Navigate to="/account-pending" replace />;
+      }
+      if (profile?.approval_status === "pending") {
+        if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "approval-pending" });
+        return <Navigate to="/account-pending" replace />;
+      }
     }
   }
 

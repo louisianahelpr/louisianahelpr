@@ -119,18 +119,22 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/account-banned" element={<PageTransition><AccountBanned /></PageTransition>} />
       <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
       <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      {/* Progressive activation: pending/unverified users can browse, save
+          and apply while they wait on review. Verification still gates the
+          moments that require it (accept, payout) inside the components.
+          `denied`/banned users are still redirected — see ProtectedRoute. */}
+      <Route path="/dashboard" element={<ProtectedRoute allowPending><Dashboard /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>} />
       <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
       <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/my-jobs" element={<ProtectedRoute><Activity defaultTab="applied" /></ProtectedRoute>} />
-      <Route path="/my-posts" element={<ProtectedRoute><Activity defaultTab="posted" /></ProtectedRoute>} />
+      <Route path="/my-jobs" element={<ProtectedRoute allowPending><Activity defaultTab="applied" /></ProtectedRoute>} />
+      <Route path="/my-posts" element={<ProtectedRoute allowPending><Activity defaultTab="posted" /></ProtectedRoute>} />
       <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
       <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>} />
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
-      <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+      <Route path="/messages" element={<ProtectedRoute allowPending><Messages /></ProtectedRoute>} />
       <Route path="/support" element={<Navigate to="/profile?tab=support" replace />} />
       
       <Route path="/legal" element={<PageTransition><Legal /></PageTransition>} />
@@ -138,7 +142,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
       <Route path="/data-rights" element={<PageTransition><DataRights /></PageTransition>} />
       
-      <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
+      <Route path="/jobs" element={<ProtectedRoute allowPending><Jobs /></ProtectedRoute>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /dashboard's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want

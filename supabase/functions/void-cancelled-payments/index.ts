@@ -229,9 +229,12 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("[void-cancelled-payments] fatal:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({
+        error: "Internal server error",
+        detail: (error as Error).message,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
+    );
   }
 });

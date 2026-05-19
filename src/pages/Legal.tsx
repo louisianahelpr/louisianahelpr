@@ -815,7 +815,17 @@ const Legal = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      <div aria-hidden className="h-14" />
+      {/* Spacer below the fixed Navbar. The Navbar is `h-12` content
+          (3rem) sitting under `max(env(safe-area-inset-top), 0.25rem)`,
+          so it occupies roughly `3.5rem + env(safe-area-inset-top)` of
+          screen. The spacer must include that safe-area term — a plain
+          `h-14` lacks it, so on a notched iPhone the page header slid
+          up behind the translucent nav. This value also matches the
+          sticky tabs' `top:` offset below, so both align cleanly. */}
+      <div
+        aria-hidden
+        style={{ height: "calc(3.5rem + env(safe-area-inset-top, 0px))" }}
+      />
 
       <main className="container mx-auto px-5 pt-4 pb-8">
         <div className="max-w-2xl mx-auto space-y-4">

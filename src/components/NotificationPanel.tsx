@@ -100,12 +100,17 @@ const NotificationPanel = () => {
   const loadNotifications = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
       .limit(50);
+    if (error) {
+      console.error("[NotificationPanel] failed to load notifications:", error);
+      toast.error("Couldn't load notifications");
+      return;
+    }
     if (data) setNotifications(data);
   };
 

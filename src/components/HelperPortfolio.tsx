@@ -18,7 +18,7 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
   }, [helperId]);
 
   const loadPortfolio = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("jobs")
       .select("title, proof_before_urls, proof_after_urls, updated_at")
       .eq("helper_id", helperId)
@@ -27,7 +27,9 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
       .order("updated_at", { ascending: false })
       .limit(10);
 
-    if (data) {
+    if (error) {
+      console.error("[HelperPortfolio] failed to load portfolio:", error);
+    } else if (data) {
       setItems(
         data
           .filter((j) => j.proof_after_urls && j.proof_after_urls.length > 0)

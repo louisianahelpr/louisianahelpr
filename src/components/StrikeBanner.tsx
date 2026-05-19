@@ -13,12 +13,17 @@ export default function StrikeBanner() {
     let cancelled = false;
     const load = async (userId: string) => {
       if (cancelled) return;
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("ban_status, auto_suspended_until")
         .eq("user_id", userId)
         .maybeSingle();
-      if (!cancelled && data) setStatus(data);
+      if (cancelled) return;
+      if (error) {
+        console.error("[StrikeBanner] failed to load ban status:", error);
+        return;
+      }
+      if (data) setStatus(data);
     };
     void supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user.id) void load(session.user.id);

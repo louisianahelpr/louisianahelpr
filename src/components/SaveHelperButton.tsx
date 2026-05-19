@@ -31,13 +31,21 @@ export const SaveHelperButton = ({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("favorite_helpers")
         .select("id")
         .eq("customer_id", customerId)
         .eq("helper_id", helperId)
         .maybeSingle();
-      if (!cancelled) setSaved(!!data);
+      if (cancelled) return;
+      if (error) {
+        console.error("[SaveHelperButton] failed to load saved status:", error);
+        // Resolve to a usable (unsaved) state so the button doesn't
+        // hang on its loading spinner forever.
+        setSaved(false);
+        return;
+      }
+      setSaved(!!data);
     })();
     return () => {
       cancelled = true;

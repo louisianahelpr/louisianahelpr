@@ -59,12 +59,17 @@ export function JobTracking({
 
   const loadTracking = useCallback(async () => {
     if (!helperId) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("job_tracking")
       .select("*")
       .eq("job_id", jobId)
       .order("created_at", { ascending: false })
       .limit(1);
+    if (error) {
+      console.error("[JobTracking] failed to load tracking:", error);
+      toast.error("Couldn't load job tracking");
+      return;
+    }
     if (data && data.length > 0) {
       setTracking(data[0] as unknown as TrackingData);
     }

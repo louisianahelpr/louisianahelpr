@@ -5,7 +5,11 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "supabase/functions/**", "playwright-fixture.ts", "playwright.config.ts"] },
+  // `.claude/**` excludes agent worktree copies under `.claude/worktrees/` —
+  // without this, `eslint .` lints a duplicate of the whole codebase per
+  // worktree (slow) and reports `supabase/functions` errors the top-level
+  // ignore can't match through the nested path.
+  { ignores: ["dist", ".claude/**", "supabase/functions/**", "playwright-fixture.ts", "playwright.config.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

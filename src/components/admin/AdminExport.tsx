@@ -22,10 +22,22 @@ const AdminExport = () => {
   const exportUsers = async () => {
     setExporting("users");
     // profiles.role was dropped — fetch profile + user_roles separately and merge.
-    const [{ data }, { data: roles }] = await Promise.all([
+    const [{ data, error }, { data: roles, error: rolesError }] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, email, approval_status, ban_status, location, created_at, subscription_tier").order("created_at", { ascending: false }),
       supabase.from("user_roles").select("user_id, role"),
     ]);
+    if (error) {
+      console.error("[AdminExport] exportUsers profiles:", error);
+      toast.error("Export failed: " + error.message);
+      setExporting(null);
+      return;
+    }
+    if (rolesError) {
+      console.error("[AdminExport] exportUsers roles:", rolesError);
+      toast.error("Export failed: " + rolesError.message);
+      setExporting(null);
+      return;
+    }
     if (!data?.length) { toast.error("No data to export"); setExporting(null); return; }
     // Build a user_id → roles map. Pick the most-privileged role per user
     // (admin > helper > customer) for the single CSV column.
@@ -46,7 +58,13 @@ const AdminExport = () => {
 
   const exportJobs = async () => {
     setExporting("jobs");
-    const { data } = await supabase.from("jobs").select("id, title, category, status, budget, platform_fee_amount, customer_id, helper_id, date_needed, created_at, payment_status").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("jobs").select("id, title, category, status, budget, platform_fee_amount, customer_id, helper_id, date_needed, created_at, payment_status").order("created_at", { ascending: false });
+    if (error) {
+      console.error("[AdminExport] exportJobs:", error);
+      toast.error("Export failed: " + error.message);
+      setExporting(null);
+      return;
+    }
     if (!data?.length) { toast.error("No data to export"); setExporting(null); return; }
     const header = "Job ID,Title,Category,Status,Budget,Platform Fee,Customer ID,Helper ID,Date Needed,Created,Payment Status";
     const rows = data.map(j => [j.id, j.title, j.category, j.status, j.budget, j.platform_fee_amount, j.customer_id, j.helper_id, j.date_needed, j.created_at, j.payment_status].map(esc).join(","));
@@ -57,7 +75,13 @@ const AdminExport = () => {
 
   const exportEarnings = async () => {
     setExporting("earnings");
-    const { data } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_id, customer_id, status, updated_at, payment_status, urgent_fee").eq("status", "completed");
+    const { data, error } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_id, customer_id, status, updated_at, payment_status, urgent_fee").eq("status", "completed");
+    if (error) {
+      console.error("[AdminExport] exportEarnings:", error);
+      toast.error("Export failed: " + error.message);
+      setExporting(null);
+      return;
+    }
     if (!data?.length) { toast.error("No data to export"); setExporting(null); return; }
     const header = "Job ID,Title,Budget,Platform Fee,Fee %,Urgent Fee,Helper ID,Customer ID,Payment Status,Completed At";
     const rows = data.map(j => [j.id, j.title, j.budget, j.platform_fee_amount, j.platform_fee_percent, j.urgent_fee, j.helper_id, j.customer_id, j.payment_status, j.updated_at].map(esc).join(","));

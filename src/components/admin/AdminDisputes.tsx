@@ -31,11 +31,18 @@ const AdminDisputes = () => {
   }, []);
 
   const loadDisputes = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("jobs")
       .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by")
       .eq("status", "disputed")
       .order("disputed_at", { ascending: false });
+
+    if (error) {
+      console.error("[AdminDisputes] loadDisputes:", error);
+      toast.error("Failed to load disputes");
+      setLoading(false);
+      return;
+    }
 
     const jobs = (data || []) as unknown as DisputedJob[];
 

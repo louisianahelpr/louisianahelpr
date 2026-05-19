@@ -37,12 +37,17 @@ const AdminBroadcasts = () => {
   const [showForm, setShowForm] = useState(false);
 
   const load = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("broadcast_messages")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(20);
-    if (data) setBroadcasts(data as Broadcast[]);
+    if (error) {
+      console.error("[AdminBroadcasts] load:", error);
+      toast.error("Failed to load broadcasts");
+    } else if (data) {
+      setBroadcasts(data as Broadcast[]);
+    }
     setLoading(false);
   };
 

@@ -34,10 +34,11 @@ export function useAdminUserSummaries() {
 
   const loadRatingSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("reviews")
       .select("reviewee_id, rating")
       .in("reviewee_id", userIds);
+    if (error) { console.error("[useAdminUserSummaries] loadRatingSummary:", error); return; }
     if (!data) return;
     const agg: Record<string, { sum: number; count: number }> = {};
     for (const r of data) {
@@ -54,11 +55,12 @@ export function useAdminUserSummaries() {
 
   const loadJobsCompletedSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("jobs")
       .select("helper_id, customer_id, status")
       .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
       .eq("status", "completed");
+    if (error) { console.error("[useAdminUserSummaries] loadJobsCompletedSummary:", error); return; }
     if (!data) return;
     const counts: Record<string, number> = {};
     for (const j of data) {
@@ -84,6 +86,8 @@ export function useAdminUserSummaries() {
         .in("dispute_status", ["open", "under_review", "helper_responded"])
         .is("dispute_resolved_at", null),
     ]);
+    if (reportsRes.error) console.error("[useAdminUserSummaries] loadOpenReportsSummary reports:", reportsRes.error);
+    if (disputesRes.error) console.error("[useAdminUserSummaries] loadOpenReportsSummary disputes:", disputesRes.error);
     const counts: Record<string, number> = {};
     (reportsRes.data)?.forEach((r) => {
       counts[r.reported_id] = (counts[r.reported_id] || 0) + 1;
@@ -98,11 +102,12 @@ export function useAdminUserSummaries() {
   const loadPaySummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
     // Pull only completed/escrowed jobs for pay totals
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("jobs")
       .select("helper_id, customer_id, budget, helper_fee_percent, customer_fee_amount, sales_tax_amount, status, payment_status")
       .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
       .in("payment_status", ["escrow", "payout_pending", "released"]);
+    if (error) { console.error("[useAdminUserSummaries] loadPaySummary:", error); return; }
     if (!data) return;
     const totals: Record<string, number> = {};
     for (const j of data) {
@@ -121,9 +126,10 @@ export function useAdminUserSummaries() {
 
   const loadStrikesSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
-    const { data } = await supabase.from("user_violations")
+    const { data, error } = await supabase.from("user_violations")
       .select("user_id")
       .in("user_id", userIds);
+    if (error) { console.error("[useAdminUserSummaries] loadStrikesSummary:", error); return; }
     if (!data) return;
     const counts: Record<string, number> = {};
     for (const row of data) {
@@ -141,6 +147,9 @@ export function useAdminUserSummaries() {
       supabase.from("applications").select("helper_id, created_at").in("helper_id", userIds).order("created_at", { ascending: false }).limit(500),
       supabase.from("login_history").select("user_id, created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(500),
     ]);
+    if (jobsRes.error) console.error("[useAdminUserSummaries] loadActivitySummary jobs:", jobsRes.error);
+    if (appsRes.error) console.error("[useAdminUserSummaries] loadActivitySummary applications:", appsRes.error);
+    if (loginRes.error) console.error("[useAdminUserSummaries] loadActivitySummary loginHistory:", loginRes.error);
     const consider = (uid: string, label: string, at?: string | null) => {
       if (!at) return;
       const cur = summary[uid];
@@ -168,10 +177,11 @@ export function useAdminUserSummaries() {
 
   const loadNotesSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
-    const { data } = await supabase.from("admin_user_notes")
+    const { data, error } = await supabase.from("admin_user_notes")
       .select("user_id, note, created_at, category")
       .in("user_id", userIds)
       .order("created_at", { ascending: false });
+    if (error) { console.error("[useAdminUserSummaries] loadNotesSummary:", error); return; }
     if (!data) return;
     const summary: Record<string, { count: number; recent: { note: string; created_at: string; category: string }[] }> = {};
     for (const row of data) {

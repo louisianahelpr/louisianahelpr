@@ -58,7 +58,11 @@ const AdminAnalytics = () => {
       let page = 0;
       const PAGE_SIZE = 999;
       while (true) {
-        const { data } = await supabase.from("jobs").select("*").range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        const { data, error } = await supabase.from("jobs").select("*").range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        if (error) {
+          console.error("[AdminAnalytics] load jobs page:", error);
+          break;
+        }
         if (!data || data.length === 0) break;
         allJobsData = [...allJobsData, ...data];
         if (data.length < PAGE_SIZE) break;
@@ -70,6 +74,9 @@ const AdminAnalytics = () => {
         supabase.from("tips").select("*"),
         supabase.from("user_roles").select("user_id, role"),
       ]);
+      if (profilesRes.error) console.error("[AdminAnalytics] load profiles:", profilesRes.error);
+      if (tipsRes.error) console.error("[AdminAnalytics] load tips:", tipsRes.error);
+      if (rolesRes.error) console.error("[AdminAnalytics] load roles:", rolesRes.error);
       setProfiles(profilesRes.data || []);
       setAllJobs(allJobsData);
       setTips(tipsRes.data || []);
@@ -330,16 +337,19 @@ const AdminAnalytics = () => {
     setDrillDown(type);
     setDrillLoading(true);
     if (type === "users") {
-      const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      if (error) console.error("[AdminAnalytics] drillDown users:", error);
       setDrillUsers(data || []);
     } else if (type === "jobs" || type === "revenue" || type === "fees" || type === "payouts") {
       const query = supabase.from("jobs").select("*").order("created_at", { ascending: false });
       if (type === "revenue" || type === "fees") query.in("payment_status", ["escrow", "payout_pending", "released"]);
       if (type === "payouts") query.in("payment_status", ["escrow", "payout_pending", "released"]);
-      const { data } = await query;
+      const { data, error } = await query;
+      if (error) console.error("[AdminAnalytics] drillDown jobs:", error);
       setDrillJobs(data || []);
     } else if (type === "subscriptions") {
-      const { data } = await supabase.from("profiles").select("*").not("subscription_tier", "is", null).order("subscription_tier");
+      const { data, error } = await supabase.from("profiles").select("*").not("subscription_tier", "is", null).order("subscription_tier");
+      if (error) console.error("[AdminAnalytics] drillDown subscriptions:", error);
       setDrillUsers(data || []);
     }
     setDrillLoading(false);

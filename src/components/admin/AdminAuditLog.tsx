@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,18 +23,18 @@ const AdminAuditLog = () => {
     key: ["admin-audit-log"],
     fallback: [],
     fetcher: async () => {
-      const { data } = await supabase.from("admin_audit_log")
+      const data = unwrap(await supabase.from("admin_audit_log")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(200));
 
-      if (!data) return [];
+      if (!data || data.length === 0) return [];
 
       const adminIds = [...new Set(data.map((e: any) => e.admin_id))];
-      const { data: profiles } = await supabase
+      const profiles = unwrap(await supabase
         .from("profiles")
         .select("user_id, full_name")
-        .in("user_id", adminIds);
+        .in("user_id", adminIds));
 
       const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
       return data.map((e: any) => ({

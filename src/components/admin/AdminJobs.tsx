@@ -105,11 +105,14 @@ const AdminJobs = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("jobs")
         .select("*")
         .order("created_at", { ascending: false });
-      if (data) {
+      if (error) {
+        console.error("[AdminJobs] load:", error);
+        toast.error("Failed to load jobs");
+      } else if (data) {
         setJobs(data);
         const flagMap = new Map<string, string[]>();
         for (const job of data) {
@@ -146,8 +149,10 @@ const AdminJobs = () => {
     setHelperName("");
     const ids = [job.customer_id, job.helper_id].filter(Boolean) as string[];
     if (ids.length > 0) {
-      const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
-      if (data) {
+      const { data, error } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+      if (error) {
+        console.error("[AdminJobs] openJob profiles:", error);
+      } else if (data) {
         const map = new Map(data.map((p) => [p.user_id, formatName(p.full_name)]));
         setPosterName(map.get(job.customer_id) || "Unknown");
         if (job.helper_id) setHelperName(map.get(job.helper_id) || "Unknown");

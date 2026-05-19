@@ -132,11 +132,14 @@ const AdminUsers = () => {
   };
 
   const loadProfiles = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .order("created_at", { ascending: false });
-    if (data) {
+    if (error) {
+      console.error("[AdminUsers] loadProfiles:", error);
+      toast.error("Failed to load users");
+    } else if (data) {
       setProfiles(data);
       // Load supplemental data in parallel (non-blocking). `profiles` (the
       // prior render's state) is passed for loadActivitySummary's
@@ -186,7 +189,7 @@ const AdminUsers = () => {
             .eq("recipient_email", profile.email)
             .order("created_at", { ascending: false })
             .limit(500)
-        : Promise.resolve({ data: [] as any[] }),
+        : Promise.resolve({ data: [] as any[], error: null }),
       supabase
         .from("jobs")
         .select("id, title, status, payment_status, budget, helper_fee_percent, customer_fee_amount, platform_fee_amount, sales_tax_amount, customer_id, helper_id, created_at, updated_at, poster_completed_at, helper_completed_at, parish")
@@ -195,13 +198,21 @@ const AdminUsers = () => {
         .limit(500),
     ]);
 
+    if (jobsRes.error) console.error("[AdminUsers] openProfile jobs:", jobsRes.error);
+    if (reviewsRes.error) console.error("[AdminUsers] openProfile reviews:", reviewsRes.error);
+    if (reviewsLeftRes.error) console.error("[AdminUsers] openProfile reviewsLeft:", reviewsLeftRes.error);
+    if (violationsRes.error) console.error("[AdminUsers] openProfile violations:", violationsRes.error);
+    if (bansRes.error) console.error("[AdminUsers] openProfile bans:", bansRes.error);
+    if (trackingRes.error) console.error("[AdminUsers] openProfile emailTracking:", trackingRes.error);
+    if (sendLogRes.error) console.error("[AdminUsers] openProfile sendLog:", sendLogRes.error);
     setProfileJobs(jobsRes.data || []);
 
     // Generate signed URL for private ID document
     if (profile.id_document_url) {
-      const { data: signedData } = await supabase.storage
+      const { data: signedData, error: signedError } = await supabase.storage
         .from("id-documents")
         .createSignedUrl(profile.id_document_url, 3600); // 1 hour
+      if (signedError) console.error("[AdminUsers] openProfile signedUrl:", signedError);
       if (signedData?.signedUrl) {
         setIdDocSignedUrl(signedData.signedUrl);
       }
@@ -216,11 +227,13 @@ const AdminUsers = () => {
     const [relatedUsersRes, relatedJobsRes] = await Promise.all([
       relatedUserIds.size > 0
         ? supabase.from("profiles").select("user_id, full_name").in("user_id", Array.from(relatedUserIds))
-        : Promise.resolve({ data: [] as any[] }),
+        : Promise.resolve({ data: [] as any[], error: null }),
       relatedJobIds.size > 0
         ? supabase.from("jobs").select("id, title").in("id", Array.from(relatedJobIds))
-        : Promise.resolve({ data: [] as any[] }),
+        : Promise.resolve({ data: [] as any[], error: null }),
     ]);
+    if (relatedUsersRes.error) console.error("[AdminUsers] openProfile relatedUsers:", relatedUsersRes.error);
+    if (relatedJobsRes.error) console.error("[AdminUsers] openProfile relatedJobs:", relatedJobsRes.error);
     const nameMap = new Map((relatedUsersRes.data || []).map((p: any) => [p.user_id, formatName(p.full_name)]));
     const jobMap = new Map((relatedJobsRes.data || []).map((j: any) => [j.id, j.title]));
 

@@ -74,10 +74,15 @@ const AdminIDVQueue = () => {
   const load = () => qc.invalidateQueries({ queryKey });
 
   const loadSettings = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("platform_settings")
       .select("id, hybrid_idv_enabled, idv_auto_approve_threshold")
       .maybeSingle();
+    if (error) {
+      console.error("[AdminIDVQueue] loadSettings:", error);
+      toast.error("Failed to load IDV settings");
+      return;
+    }
     if (data) {
       setSettingsId(data.id);
       setHybridEnabled(!!data.hybrid_idv_enabled);

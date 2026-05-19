@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Crown, Clock, Users } from "lucide-react";
@@ -21,17 +22,17 @@ const AdminSubscriptions = () => {
     key: ["admin-subscriptions"],
     fallback: [],
     fetcher: async () => {
-      const { data } = await supabase
+      const data = unwrap(await supabase
         .from("profiles")
         .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
         .not("subscription_tier", "is", null)
-        .order("subscription_expires_at", { ascending: false, nullsFirst: false });
+        .order("subscription_expires_at", { ascending: false, nullsFirst: false }));
 
-      const { data: expiredData } = await supabase
+      const expiredData = unwrap(await supabase
         .from("profiles")
         .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
         .is("subscription_tier", null)
-        .not("subscription_expires_at", "is", null);
+        .not("subscription_expires_at", "is", null));
 
       return [...(data || []), ...(expiredData || [])];
     },

@@ -38,12 +38,15 @@ const AdminSettings = () => {
   }, []);
 
   const loadSettings = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("platform_settings")
       .select("*")
       .limit(1)
       .maybeSingle();
-    if (data) {
+    if (error) {
+      console.error("[AdminSettings] loadSettings:", error);
+      toast.error("Failed to load platform settings");
+    } else if (data) {
       setCustomerFee(String(data.customer_fee_percent ?? 10));
       setHelperFee(String(data.helper_fee_percent ?? 10));
       setSocialWebhookUrl(String(data.social_webhook_url ?? ""));
@@ -74,17 +77,28 @@ const AdminSettings = () => {
 
   const loadAdmins = async () => {
     setAdminsLoading(true);
-    const { data: roles } = await supabase
+    const { data: roles, error: rolesError } = await supabase
       .from("user_roles")
       .select("id, user_id, role")
       .eq("role", "admin");
 
+    if (rolesError) {
+      console.error("[AdminSettings] loadAdmins roles:", rolesError);
+      toast.error("Failed to load admin list");
+      setAdminsLoading(false);
+      return;
+    }
+
     if (roles && roles.length > 0) {
       const userIds = roles.map((r) => r.user_id);
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, full_name, email")
         .in("user_id", userIds);
+
+      if (profilesError) {
+        console.error("[AdminSettings] loadAdmins profiles:", profilesError);
+      }
 
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
       setAdmins(
@@ -130,11 +144,18 @@ const AdminSettings = () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
     const q = searchQuery.trim().toLowerCase();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
       .limit(10);
+
+    if (error) {
+      console.error("[AdminSettings] searchUsers:", error);
+      toast.error("Search failed: " + error.message);
+      setSearching(false);
+      return;
+    }
 
     // Filter out users who are already admins
     const adminIds = new Set(admins.map((a) => a.user_id));

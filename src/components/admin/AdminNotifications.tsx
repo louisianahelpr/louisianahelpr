@@ -86,9 +86,9 @@ const AdminNotifications = () => {
 
   const loadPrefs = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("notification_preferences")
       .select("*")
       .eq("user_id", user.id)
@@ -96,14 +96,23 @@ const AdminNotifications = () => {
 
     if (data) {
       setPrefs(data as NotifPrefs);
+    } else if (error && error.code !== "PGRST116") {
+      // PGRST116 = "no rows" — expected when prefs don't exist yet
+      console.error("[AdminNotifications] loadPrefs:", error);
+      toast.error("Failed to load notification preferences");
     } else {
       // Create default preferences
-      const { data: newPrefs } = await supabase
+      const { data: newPrefs, error: insertError } = await supabase
         .from("notification_preferences")
         .insert({ user_id: user.id })
         .select()
         .single();
-      if (newPrefs) setPrefs(newPrefs as NotifPrefs);
+      if (insertError) {
+        console.error("[AdminNotifications] createPrefs:", insertError);
+        toast.error("Failed to create notification preferences");
+      } else if (newPrefs) {
+        setPrefs(newPrefs as NotifPrefs);
+      }
     }
     setLoading(false);
   };

@@ -417,8 +417,41 @@ export function PostedJobCard({
                       ? new Date(job.boost_expires_at)
                       : null;
                     const isBoosted = boostExp && boostExp > new Date();
+                    // Stale-job nudge — a two-sided liquidity prompt for
+                    // the poster's side: an open job with zero applicants
+                    // that's been up more than 24h is quietly stuck.
+                    // Surface a gentle pointer to Boost (the existing
+                    // paid visibility lever) so they have a clear next
+                    // move. Hidden once it's already boosted — Boost is
+                    // doing its job — or once applicants arrive.
+                    const ageHours = differenceInHours(new Date(), new Date(job.created_at));
+                    const isStale =
+                      !isBoosted &&
+                      ageHours >= 24 &&
+                      (applicantCounts[job.id] || 0) === 0;
                     return (
                     <>
+                      {isStale && (
+                        <div
+                          className="rounded-ds-md px-3 py-2 mb-2 flex items-start gap-2"
+                          style={{
+                            background: "hsl(var(--accent) / 0.08)",
+                            border: "0.5px solid hsl(var(--accent) / 0.30)",
+                          }}
+                        >
+                          <Rocket className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent" strokeWidth={2.25} />
+                          <p
+                            className="font-serif italic leading-snug"
+                            style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                          >
+                            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                              Quiet so far — no applicants yet.
+                            </span>{" "}
+                            A Boost lifts this task to the top of the feed
+                            so more helprs see it.
+                          </p>
+                        </div>
+                      )}
                       {isBoosted && (
                         <div
                           className="rounded-ds-md px-3 py-2 mb-2 flex items-center gap-2"

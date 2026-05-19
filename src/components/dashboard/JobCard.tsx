@@ -254,15 +254,24 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 Boosted
               </span>
             )}
-            {job.is_urgent && (
-              <span
-                aria-label="Urgent"
-                className="urgent-pulse inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[8px] font-bold uppercase tracking-wider"
-                style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
-              >
-                <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
-              </span>
-            )}
+            {job.is_urgent && (() => {
+              // Urgent badge doubles as a liquidity signal — when the
+              // poster attached an urgent_fee, the badge spells the
+              // bonus out ("+$15 URGENT") so the helpr sees the extra
+              // pay, not just an alarm cue. Falls back to plain
+              // "URGENT" when no bonus was set.
+              const bonus = Number(job.urgent_fee ?? 0);
+              return (
+                <span
+                  aria-label={bonus > 0 ? `Urgent — $${bonus.toFixed(0)} bonus` : "Urgent"}
+                  className="urgent-pulse inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[8px] font-bold uppercase tracking-wider"
+                  style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
+                >
+                  <Zap className="w-2.5 h-2.5 text-accent fill-accent" />
+                  {bonus > 0 ? `+$${bonus.toFixed(0)} Urgent` : "Urgent"}
+                </span>
+              );
+            })()}
           </div>
         )}
         {/* Price tile — premium achievement-badge feel: warm parchment

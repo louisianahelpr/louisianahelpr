@@ -18,6 +18,7 @@ import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
+import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { hapticSuccess } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
 import { AiJobBuilder, type AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
@@ -543,6 +544,12 @@ const PostJob = () => {
   // categoryPricing table when the RPC is missing or data is thin.
   const { stats: priceStats, loading: priceStatsLoading } = useCategoryPriceStats(category, parish);
 
+  // Two-sided liquidity signal — a conservative count of helprs who've
+  // worked in the poster's parish, shown at checkout so they know the
+  // other side of the marketplace is active before they pay. Null when
+  // the parish is unknown or the count is too thin to be honest.
+  const { activity: helprActivity } = useHelprActivity(parish);
+
   // Budget presets derived from category suggested range. Prefer the
   // live stats range when available so the quick-tap pills track the
   // real market; otherwise fall back to the static guide.
@@ -837,6 +844,7 @@ const PostJob = () => {
               isUrgent={isUrgent}
               urgentFeeNum={urgentFeeNum}
               budgetNum={budgetNum}
+              helprActivity={helprActivity}
               customerFee={customerFee}
               customerFeeAmount={customerFeeAmount}
               totalCharge={totalCharge}

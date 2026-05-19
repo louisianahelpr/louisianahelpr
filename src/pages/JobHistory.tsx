@@ -7,6 +7,8 @@ import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { unwrap } from "@/lib/supabaseResult";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -30,7 +32,7 @@ const JobHistory = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   // React Query: cached for 30s, instant on revisit, refresh in background.
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["job-history"],
     staleTime: 30_000,
     gcTime: 5 * 60_000,
@@ -38,11 +40,13 @@ const JobHistory = () => {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) { navigate("/login"); return { posted: [] as Job[], worked: [] as Job[] }; }
-      const [posted, worked] = await Promise.all([
+      const [postedRes, workedRes] = await Promise.all([
         supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }),
         supabase.from("jobs").select("*").eq("helper_id", user.id).order("created_at", { ascending: false }),
       ]);
-      return { posted: (posted.data || []) as Job[], worked: (worked.data || []) as Job[] };
+      const posted = unwrap(postedRes) as Job[];
+      const worked = unwrap(workedRes) as Job[];
+      return { posted, worked };
     },
   });
 
@@ -133,6 +137,10 @@ const JobHistory = () => {
               <JobCardSkeleton />
               <JobCardSkeleton />
               <JobCardSkeleton />
+            </div>
+          ) : isError ? (
+            <div className="flex">
+              <ErrorState onRetry={() => refetch()} />
             </div>
           ) : jobs.length === 0 ? (
             <EmptyState

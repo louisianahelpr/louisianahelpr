@@ -152,14 +152,7 @@ const Jobs = () => {
               >
                 Open across Louisiana
               </span>
-              <h1
-                className="font-display italic font-bold leading-tight truncate mt-1"
-                style={{
-                  fontSize: "clamp(1.5rem, 3vw + 0.5rem, 2.25rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.025em",
-                }}
-              >
+              <h1 className="text-page-title leading-tight truncate mt-1">
                 Browse tasks
               </h1>
               <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>

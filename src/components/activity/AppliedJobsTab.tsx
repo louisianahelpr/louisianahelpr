@@ -177,7 +177,7 @@ export const AppliedJobsTab = ({
             <Button
               size="lg"
               variant="destructive"
-              className="w-full rounded-ds-md text-[15px] font-semibold"
+              className="w-full rounded-ds-md btn-press text-ds-15 font-semibold"
               disabled={!!withdrawingAppId}
               onClick={confirmWithdraw}
             >
@@ -186,7 +186,7 @@ export const AppliedJobsTab = ({
             <Button
               size="lg"
               variant="ghost"
-              className="w-full rounded-ds-md text-[15px] font-medium text-muted-foreground hover:text-foreground"
+              className="w-full rounded-ds-md btn-press text-ds-15 font-medium text-muted-foreground hover:text-foreground"
               disabled={!!withdrawingAppId}
               onClick={() => setWithdrawTarget(null)}
             >

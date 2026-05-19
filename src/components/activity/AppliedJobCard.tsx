@@ -40,7 +40,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
   const diffMs = jobDate.getTime() - now.getTime();
   if (diffMs <= 0) {
     return (
-      <div className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/30 bg-primary/10">
+      <div className="flex items-center gap-2 p-2.5 rounded-ds-md border border-primary/30 bg-primary/10">
         <Timer className="w-4 h-4 text-primary shrink-0" />
         <p className="text-ds-11 font-semibold text-primary">Job time has arrived!</p>
       </div>
@@ -63,11 +63,11 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
     : "border-primary/20 bg-primary/5 text-primary";
 
   return (
-    <div className={`flex items-center gap-2 p-2.5 rounded-lg border ${colorClasses}`}>
+    <div className={`flex items-center gap-2 p-2.5 rounded-ds-md border ${colorClasses}`}>
       <Timer className="w-4 h-4 shrink-0" />
       <div className="min-w-0">
         <p className="text-ds-11 font-semibold tabular-nums">{label}: {timeStr}</p>
-        <p className="text-[10px] opacity-80 mt-0.5">
+        <p className="text-ds-10 opacity-80 mt-0.5">
           {startTime
             ? new Date(jobDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
             : new Date(jobDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + " · Flexible"
@@ -305,13 +305,14 @@ export function AppliedJobCard({
               )}
 
               {/* Your application message — editable */}
-              <div className="rounded-lg bg-primary/5 border border-primary/15 p-2" onClick={(e) => e.stopPropagation()}>
+              <div className="rounded-ds-md bg-primary/5 border border-primary/15 p-2" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[10px] text-muted-foreground font-medium">Your Message</p>
+                  <p className="text-ds-10 text-muted-foreground font-medium">Your Message</p>
                   {editingMessageAppId !== app.id && (
                     <button
                       type="button"
-                      className="text-primary hover:text-primary/80"
+                      aria-label="Edit your message"
+                      className="text-primary hover:text-primary/80 btn-press p-0.5 -m-0.5"
                       onClick={() => { setEditingMessageAppId(app.id); setEditMessageText(app.message || ""); }}
                     >
                       <Pencil className="w-3 h-3" />

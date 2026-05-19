@@ -108,8 +108,16 @@ export const PostedJobsTab = ({
       {/* Applicants full-screen view */}
       {selectedJob && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-right duration-200">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedJob(null)}><ArrowLeft className="w-4 h-4" /></Button>
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="btn-press -ml-1 h-9 w-9 p-0 shrink-0"
+              aria-label="Back to posted jobs"
+              onClick={() => setSelectedJob(null)}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
             <div className="min-w-0 flex-1">
               <h2 className="font-display font-semibold text-foreground truncate">Applicants</h2>
               <p className="text-ds-11 text-muted-foreground truncate">{selectedJob.title}</p>
@@ -117,10 +125,12 @@ export const PostedJobsTab = ({
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-4">
             {applications.length === 0 ? (
-              <div className="text-center py-12">
-                <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-ds-11 text-muted-foreground">No applications yet.</p>
-              </div>
+              <EmptyState
+                variant="inline"
+                icon={Users}
+                title="No applications yet"
+                body="When helprs apply to this task, they'll show up here for you to review."
+              />
             ) : (
               <div className="space-y-3 max-w-lg mx-auto">
                 {applications.map((app) => {
@@ -219,7 +229,8 @@ export const PostedJobsTab = ({
                         <Button
                           variant="bark"
                           size="sm"
-                          className="rounded-ds-md shrink-0"
+                          className="rounded-ds-md btn-press shrink-0"
+                          aria-label={`Select ${helperName}`}
                           onClick={() => onAcceptApplication(app)}
                         >
                           Select
@@ -231,8 +242,8 @@ export const PostedJobsTab = ({
 
                     {/* Applicant message */}
                     {app.message && (
-                      <div className="rounded-lg bg-primary/5 border border-primary/15 p-3">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Their Message</p>
+                      <div className="rounded-ds-md bg-primary/5 border border-primary/15 p-3">
+                        <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide mb-1">Their Message</p>
                         <p className="text-ds-13 text-foreground leading-relaxed">{app.message}</p>
                       </div>
                     )}
@@ -240,7 +251,7 @@ export const PostedJobsTab = ({
                     {/* Applicant attachments */}
                     {(app.attachment_urls || []).length > 0 && (
                       <div className="space-y-1.5">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Attached Files</p>
+                        <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide">Attached Files</p>
                         <div className="flex flex-wrap gap-1.5">
                           {(app.attachment_urls || []).map((url, i) => {
                             const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);

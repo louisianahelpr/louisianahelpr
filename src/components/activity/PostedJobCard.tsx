@@ -16,6 +16,7 @@ import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
+import { transformedImageUrl } from "@/lib/imageUrl";
 import { type Job } from "./activityConstants";
 
 const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; startTime?: string | null; label: string }) => {
@@ -375,7 +376,9 @@ export function PostedJobCard({
                     <div className="flex gap-2 overflow-x-auto pb-1">
                       {(job.photos || []).map((url, i) => (
                         <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                          <img loading="lazy" decoding="async" src={url} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                          {/* Thumbnail strip — fixed 112x80 (w-28 h-20) box,
+                              already CLS-safe. Request a matching thumbnail. */}
+                          <img loading="lazy" decoding="async" src={transformedImageUrl(url, { width: 112, height: 80 })} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
                         </a>
                       ))}
                     </div>

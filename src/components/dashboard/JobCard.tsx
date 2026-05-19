@@ -6,6 +6,7 @@ import { formatDistanceToNow, differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors, categoryIcons } from "@/components/activity/activityConstants";
 import { parseLocalDate } from "@/lib/dateUtils";
+import { transformedImageUrl } from "@/lib/imageUrl";
 import { getCityState } from "@/lib/locationUtils";
 import type { EnrichedJob } from "./types";
 
@@ -121,7 +122,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <img
                 loading="lazy"
                 decoding="async"
-                src={job.posterAvatarUrl}
+                // Avatar renders into a fixed 44px (w-11 h-11) circle — request
+                // a matching thumbnail instead of the raw multi-MB upload.
+                src={transformedImageUrl(job.posterAvatarUrl, { width: 44, height: 44 })}
                 alt=""
                 className="w-full h-full object-cover"
               />

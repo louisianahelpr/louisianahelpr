@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Star, Search } from "lucide-react";
+import { Star, Search, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -188,6 +188,26 @@ export function BrowseTasksFeed({
               <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
                 Clear filters
               </Button>
+            ) : user ? (
+              // Quiet feed — the most useful thing a signed-in helper can
+              // do is turn a saved search into a live alert so they stop
+              // having to re-check an empty board. "Get notified" is the
+              // primary CTA; posting a job is the secondary link below.
+              <div className="flex flex-col items-center gap-2">
+                <BarkPillButton
+                  onClick={() => window.dispatchEvent(new Event("open-saved-searches"))}
+                >
+                  <Bell className="w-4 h-4 mr-2" strokeWidth={2} aria-hidden="true" />
+                  Get notified of new jobs
+                </BarkPillButton>
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/post-job")}
+                  className="text-ds-11 text-muted-foreground hover:text-foreground rounded-ds-md btn-press"
+                >
+                  Or post a job
+                </Button>
+              </div>
             ) : (
               <BarkPillButton onClick={() => navigate("/post-job")}>
                 Post the first job

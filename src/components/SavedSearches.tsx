@@ -45,6 +45,15 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
     if (open) load();
   }, [open]);
 
+  // Open the dialog when another part of the dashboard asks for it —
+  // e.g. the Browse Tasks empty-state "Get notified" CTA, which lives in
+  // a sibling component and can't reach this dialog's state directly.
+  useEffect(() => {
+    const openDialog = () => setOpen(true);
+    window.addEventListener("open-saved-searches", openDialog);
+    return () => window.removeEventListener("open-saved-searches", openDialog);
+  }, []);
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase

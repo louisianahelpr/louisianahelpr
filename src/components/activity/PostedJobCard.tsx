@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { memo, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import {
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
+import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
@@ -19,64 +20,6 @@ import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { transformedImageUrl } from "@/lib/imageUrl";
 import { type Job, type EnrichedApplication } from "./activityConstants";
-
-const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; startTime?: string | null; label: string }) => {
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Parse date parts manually to avoid timezone shifts
-  const [year, month, day] = dateNeeded.split("-").map(Number);
-  const jobDate = new Date(year, month - 1, day);
-  if (startTime) {
-    const [h, m] = startTime.split(":").map(Number);
-    jobDate.setHours(h, m, 0, 0);
-  } else {
-    jobDate.setHours(23, 59, 59, 0);
-  }
-
-  const diffMs = jobDate.getTime() - now.getTime();
-  if (diffMs <= 0) {
-    return (
-      <div className="flex items-center gap-2 p-2.5 rounded-ds-sm border border-primary/30 bg-primary/10">
-        <Timer className="w-4 h-4 text-primary shrink-0" />
-        <p className="text-ds-11 font-semibold text-primary">Job time has arrived!</p>
-      </div>
-    );
-  }
-
-  const totalMin = Math.floor(diffMs / 60_000);
-  const days = Math.floor(totalMin / 1440);
-  const hours = Math.floor((totalMin % 1440) / 60);
-  const minutes = totalMin % 60;
-
-  const timeStr = days > 0 ? `${days}d ${hours}h ${minutes}m` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  const isUrgent = totalMin < 720;
-  const isCritical = totalMin < 120;
-
-  const colorClasses = isCritical
-    ? "border-destructive/30 bg-destructive/10 text-destructive"
-    : isUrgent
-    ? "border-accent/30 bg-accent/10 text-accent"
-    : "border-primary/20 bg-primary/5 text-primary";
-
-  return (
-    <div className={`flex items-center gap-2 p-2.5 rounded-ds-sm border ${colorClasses}`}>
-      <Timer className="w-4 h-4 shrink-0" />
-      <div className="min-w-0">
-        <p className="text-ds-11 font-semibold tabular-nums">{label}: {timeStr}</p>
-        <p className="text-ds-10 opacity-80 mt-0.5">
-          {startTime
-            ? new Date(jobDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-            : new Date(jobDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + " · Flexible"
-          }
-        </p>
-      </div>
-    </div>
-  );
-};
 
 interface PostedJobCardProps {
   /** The job + its embedded data — one row of the posted feed. */

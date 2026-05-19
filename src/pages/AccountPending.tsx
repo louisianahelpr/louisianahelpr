@@ -195,9 +195,14 @@ const AccountPending = () => {
   const progressPct = Math.round((completed / steps.length) * 100);
   const firstName = (profile?.full_name || "").split(" ")[0];
 
-  // Helpr-branded top header.
+  // Helpr-branded top header. Not a `.glass-header`, so it owns its own
+  // top safe-area inset — the `bg-white` background then fills the iOS
+  // status-bar region and the row content clears the notch.
   const header = (
-    <header className="flex items-center justify-between px-5 h-14 bg-white dark:bg-background border-b border-border/40">
+    <header
+      className="flex items-center justify-between px-5 h-14 bg-white dark:bg-background border-b border-border/40"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
       <HelprMark to="/" size="md" />
       <Button
         variant="ghost"

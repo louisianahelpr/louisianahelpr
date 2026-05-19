@@ -52,17 +52,15 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
         style={{ height: "100dvh" }}
       >
         {header ? (
-          // `app-shell-header` marks this wrapper as the single owner of the
-          // top safe-area inset for any AppShell header. A nested
-          // `.glass-header` (e.g. DashboardHeader) also sets that inset, so a
-          // scoped override in index.css zeros the inner one — the wrapper
-          // owns the top inset; a nested .glass-header must not re-add it.
-          <div
-            className="app-shell-header shrink-0 z-30"
-            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-          >
-            {header}
-          </div>
+          // The header itself owns the top safe-area inset, applied exactly
+          // once: a `.glass-header` (e.g. DashboardHeader) gets it from the
+          // base `.glass-header` rule in index.css, and a bespoke non-glass
+          // header sets its own `padding-top: env(safe-area-inset-top)`.
+          // This wrapper is a transparent positioning shell only — it must
+          // NOT add the inset, or the frosted-glass background would start
+          // below the status bar (visible seam) or the notch gap would
+          // double-count.
+          <div className="app-shell-header shrink-0 z-30">{header}</div>
         ) : null}
 
         <div

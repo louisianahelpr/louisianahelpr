@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
@@ -31,6 +32,8 @@ import { SlidersHorizontal } from "lucide-react";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { fetchProfile } from "@/hooks/useProfile";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
+import { queryKeys } from "@/lib/queryKeys";
+import type { ActivityData } from "@/hooks/useActivityData";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
@@ -90,6 +93,50 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [idvStatus, setIdvStatus] = useState<string | undefined>(undefined);
   const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
   const [pendingAcceptApp, setPendingAcceptApp] = useState<Application | null>(null);
+
+  const queryClient = useQueryClient();
+
+  // --- Optimistic cache helper ---
+  // Money-path handlers below patch the cached ActivityData *before* the
+  // Supabase write lands so the card moves to its new state instantly. The
+  // helper patches every place a job appears in the cache (the poster's
+  // `postedJobs` row and any `appliedApps[].job` that references it), returns
+  // a snapshot for rollback, and skips entirely if the cache is empty (the
+  // write still runs — it just isn't optimistic). On error the caller restores
+  // the snapshot; on success refresh()/realtime reconciles authoritative state.
+  const optimisticallyPatchJob = useCallback(
+    (jobId: string, patch: Partial<Job>): ActivityData | undefined => {
+      if (!user) return undefined;
+      const key = queryKeys.activity(user.id);
+      const snapshot = queryClient.getQueryData<ActivityData>(key);
+      if (!snapshot) return undefined;
+      queryClient.setQueryData<ActivityData>(key, (prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          postedJobs: prev.postedJobs.map((j) =>
+            j.id === jobId ? { ...j, ...patch } : j,
+          ),
+          appliedApps: prev.appliedApps.map((a) =>
+            a.job_id === jobId && a.job
+              ? { ...a, job: { ...a.job, ...patch } }
+              : a,
+          ),
+        };
+      });
+      return snapshot;
+    },
+    [user, queryClient],
+  );
+
+  // Restore a snapshot taken before an optimistic patch (rollback on error).
+  const rollbackActivity = useCallback(
+    (snapshot: ActivityData | undefined) => {
+      if (!user || !snapshot) return;
+      queryClient.setQueryData<ActivityData>(queryKeys.activity(user.id), snapshot);
+    },
+    [user, queryClient],
+  );
 
   // --- Action handlers ---
 
@@ -156,6 +203,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
     if (!deadlineDialogApp || !selectedJob || !user) return;
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
+    // Optimistic: move the posted job into the "Awaiting Response" bucket
+    // (status accepted, no helper_confirmed_at) right away so the card jumps
+    // instead of waiting on the RPC + refetch. Rolled back on any error path.
+    const snapshot = optimisticallyPatchJob(selectedJob.id, {
+      status: "accepted",
+      helper_id: deadlineDialogApp.helper_id,
+      response_deadline: deadline,
+    });
     // Atomic accept via the accept_application RPC (migration
     // 20260518120000): it row-locks the job so two concurrent accepts
     // can't both book the same single-helper job. (`rpc as any` until
@@ -186,6 +241,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           .eq("status", "open")
           .select("id");
         if (jobErr || !jobRows || jobRows.length === 0) {
+          rollbackActivity(snapshot);
           toast.error("This job is no longer open — it may already be assigned.");
           return;
         }
@@ -194,10 +250,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           .update({ status: "accepted", ...(initialMessage ? { offer_message: initialMessage } : {}) })
           .eq("id", deadlineDialogApp.id);
         if (appErr) {
+          rollbackActivity(snapshot);
           toast.error("Couldn't send the offer — please try again.");
           return;
         }
       } else {
+        rollbackActivity(snapshot);
         toast.error(
           msg.includes("job_not_open")
             ? "This job is no longer open — it may already be assigned."
@@ -241,11 +299,20 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         return;
       }
 
+      // Optimistic: move this applied job from the "Awaiting Response"
+      // bucket into "Accepted" instantly (helper_confirmed_at set, deadline
+      // cleared) so the card transitions on tap, not after the refetch.
+      const confirmedAt = new Date().toISOString();
+      const snapshot = optimisticallyPatchJob(app.job_id, {
+        helper_confirmed_at: confirmedAt,
+        response_deadline: null,
+      });
       const { error: confirmError } = await supabase
         .from("jobs")
-        .update({ helper_confirmed_at: new Date().toISOString(), response_deadline: null })
+        .update({ helper_confirmed_at: confirmedAt, response_deadline: null })
         .eq("id", app.job_id);
       if (confirmError) {
+        rollbackActivity(snapshot);
         hapticError();
         toast.error("Couldn't accept the job — please try again.");
         return;
@@ -410,9 +477,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   };
 
   const confirmStartJob = async (jobId: string) => {
+    // Optimistic: flip the card to "In Progress" immediately.
+    const snapshot = optimisticallyPatchJob(jobId, { status: "in_progress" });
     const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
-    if (error) toast.error("Failed to confirm start");
-    else {
+    if (error) {
+      rollbackActivity(snapshot);
+      toast.error("Failed to confirm start");
+    } else {
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
         await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
@@ -424,8 +495,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   };
 
   const confirmArrival = async (jobId: string) => {
-    const { error } = await supabase.from("jobs").update({ poster_confirmed_arrival_at: new Date().toISOString() }).eq("id", jobId);
-    if (error) { toast.error("Failed to confirm arrival"); return; }
+    // Optimistic: mark arrival confirmed on the card right away.
+    const arrivedAt = new Date().toISOString();
+    const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_arrival_at: arrivedAt });
+    const { error } = await supabase.from("jobs").update({ poster_confirmed_arrival_at: arrivedAt }).eq("id", jobId);
+    if (error) { rollbackActivity(snapshot); toast.error("Failed to confirm arrival"); return; }
     const job = postedJobs.find(j => j.id === jobId);
     if (job?.helper_id) {
       await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
@@ -435,8 +509,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   };
 
   const confirmWorking = async (jobId: string) => {
-    const { error } = await supabase.from("jobs").update({ poster_confirmed_working_at: new Date().toISOString() }).eq("id", jobId);
-    if (error) { toast.error("Failed to confirm"); return; }
+    // Optimistic: mark "helpr working" confirmed on the card right away.
+    const workingAt = new Date().toISOString();
+    const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_working_at: workingAt });
+    const { error } = await supabase.from("jobs").update({ poster_confirmed_working_at: workingAt }).eq("id", jobId);
+    if (error) { rollbackActivity(snapshot); toast.error("Failed to confirm"); return; }
     const job = postedJobs.find(j => j.id === jobId);
     if (job?.helper_id) {
       await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });

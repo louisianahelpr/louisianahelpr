@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { motion } from "framer-motion";
+import AppShell from "@/components/AppShell";
 
 /**
  * PageScaffold — the shared "two-card" page shell used by Dashboard,
@@ -10,6 +11,13 @@ import { motion } from "framer-motion";
  * bottom radius + border so it bleeds beneath the floating dock with no
  * hard edge. Callers supply only the card bodies — the liquid-glass
  * styling lives here instead of being copy-pasted per screen.
+ *
+ * The fixed-viewport lock (100dvh, safe-area-top header inset) is NOT
+ * re-implemented here: PageScaffold is a thin wrapper over {@link AppShell},
+ * the single fixed-viewport primitive. PageScaffold only adds the two-card
+ * layout. `scrollable={false}` because the panel has no scroll padding —
+ * it bleeds beneath the dock — and any internal scrolling happens inside
+ * the panel's own children.
  */
 
 interface PageScaffoldProps {
@@ -128,13 +136,12 @@ export function PageScaffold({
   );
 
   return (
-    <div
-      className={
-        "h-[100dvh] max-h-[100dvh] bg-premium-page flex flex-col overflow-hidden" +
-        (className ? ` ${className}` : "")
-      }
+    <AppShell
+      header={header}
+      scrollable={false}
+      reserveBottomNav={false}
+      className={"bg-premium-page" + (className ? ` ${className}` : "")}
     >
-      {header}
       <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
         <div
           className={`w-full ${columnWidth} mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden`}
@@ -145,7 +152,7 @@ export function PageScaffold({
           {panelEl}
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 }
 

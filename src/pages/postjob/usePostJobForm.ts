@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { categoryPricing } from "@/lib/pricingGuide";
@@ -19,6 +18,7 @@ import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
 import type { AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 import { categories } from "@/components/postjob/DetailsSection";
 import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
+import { buildJobInsertPayload } from "./jobSubmitHelpers";
 
 export type Step = "form" | "checkout";
 
@@ -305,15 +305,24 @@ export function usePostJobForm() {
   const COOLDOWN_KEY = "helpr_last_job_submit";
   const COOLDOWN_MS = 30_000; // 30 second cooldown
 
-  const handleSubmit = async () => {
+  /**
+   * Pre-flight gating before any job INSERT — double-click guard, submit
+   * cooldown, auth, identity-verification gate, and the open-job limit.
+   *
+   * Returns the authenticated `user` when all checks pass, or `null` when
+   * a check failed (in which case it has already shown the right toast /
+   * dialog and reset `saving` + `submittingRef`). Behavior is identical to
+   * the inline checks it replaces — same order, same messages.
+   */
+  const runPreSubmitChecks = async () => {
     // Prevent double-click
-    if (submittingRef.current || saving) return;
+    if (submittingRef.current || saving) return null;
 
     // Cooldown check
     const lastSubmit = safeStorage.getItem(COOLDOWN_KEY);
     if (lastSubmit && Date.now() - parseInt(lastSubmit) < COOLDOWN_MS) {
       toast.error("Please wait before posting another job. You recently submitted one.");
-      return;
+      return null;
     }
 
     submittingRef.current = true;
@@ -324,7 +333,7 @@ export function usePostJobForm() {
       toast.error("You must be logged in");
       setSaving(false);
       submittingRef.current = false;
-      return;
+      return null;
     }
 
     // Identity verification gate — required before posting. Same Stripe
@@ -343,7 +352,7 @@ export function usePostJobForm() {
         setIdvDialogOpen(true);
         setSaving(false);
         submittingRef.current = false;
-        return;
+        return null;
       }
     }
 
@@ -353,63 +362,65 @@ export function usePostJobForm() {
       toast.error("You can have a maximum of 5 open jobs at a time. Close or wait for existing jobs first.");
       setSaving(false);
       submittingRef.current = false;
-      return;
+      return null;
     }
 
-    let photoUrls: string[];
+    return user;
+  };
 
-    // Expire listing at the job date/time (removed when a helpr is selected or on the day of the job)
-    let expiresAt: string | null = null;
-    if (startTime && dateNeeded) {
-      expiresAt = new Date(`${dateNeeded}T${startTime}`).toISOString();
-    } else if (dateNeeded) {
-      // If no start_time, expire at end of the scheduled day
-      expiresAt = new Date(`${dateNeeded}T23:59:59`).toISOString();
+  /**
+   * Uploads the selected photos to storage and, if any landed, patches
+   * the job row's `photos` column. No-op when there are no images.
+   * Toggles the `uploading` flag around the work.
+   */
+  const uploadAndAttachPhotos = async (jobId: string) => {
+    if (imageFiles.length === 0) return;
+    setUploading(true);
+    const photoUrls = await uploadImages(jobId);
+    if (photoUrls.length > 0) {
+      await supabase.from("jobs").update({ photos: photoUrls }).eq("id", jobId);
     }
+    setUploading(false);
+  };
 
-    // Lock platform fee and sales tax at creation time
-    const lockedFeePercent = platformFee ?? 0;
-    const lockedFeeAmount = parseFloat(budget) * (lockedFeePercent / 100);
-    const lockedSalesTaxRate = salesTaxRate;
-    const lockedSalesTaxAmount = parseFloat(budget) * (lockedSalesTaxRate / 100);
+  const handleSubmit = async () => {
+    const user = await runPreSubmitChecks();
+    if (!user) return;
 
-    const { data: jobData, error } = await supabase.from("jobs").insert({
-      customer_id: user.id,
-      business_id: business?.business_id ?? null,
-      title: title.trim(),
-      description: description.trim(),
-      // category state is a plain string; the jobs column is the
-      // job_category enum — cast at the boundary.
-      category: category as Database["public"]["Enums"]["job_category"],
-      location: `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`,
-      zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
-      parish: parish,
-      date_needed: dateNeeded,
-      start_time: startTime || null,
-      is_flexible_schedule: isFlexibleSchedule,
-      estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
-      budget: parseFloat(budget),
-      special_requirements: specialRequirements.trim() || null,
-      is_recurring: isRecurring,
-      recurrence_interval: isRecurring ? recurrenceInterval : null,
-      recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
-      is_group_job: isGroupJob,
-      helpers_needed: isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
-      expires_at: expiresAt,
-      is_urgent: isUrgent,
-      urgent_fee: isUrgent ? parseFloat(urgentFee) || 0 : 0,
-      platform_fee_percent: lockedFeePercent,
-      platform_fee_amount: lockedFeeAmount,
-      sales_tax_rate: lockedSalesTaxRate,
-      sales_tax_amount: lockedSalesTaxAmount,
-      ...(offerToHelperId
-        ? {
-            offered_to_helper_id: offerToHelperId,
-            direct_offer_status: "pending",
-            direct_offer_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          }
-        : {}),
-    }).select("id").single();
+    const { data: jobData, error } = await supabase
+      .from("jobs")
+      .insert(
+        buildJobInsertPayload({
+          userId: user.id,
+          businessId: business?.business_id ?? null,
+          title,
+          description,
+          category,
+          streetAddress,
+          city,
+          addrState,
+          zipCode,
+          parish,
+          dateNeeded,
+          startTime,
+          isFlexibleSchedule,
+          estimatedHours,
+          budget,
+          specialRequirements,
+          isRecurring,
+          recurrenceInterval,
+          recurrenceEndDate,
+          isGroupJob,
+          helpersNeeded,
+          isUrgent,
+          urgentFee,
+          platformFee,
+          salesTaxRate,
+          offerToHelperId,
+        }),
+      )
+      .select("id")
+      .single();
 
     if (error || !jobData) {
       toast.error(error?.message || "Failed to create job");
@@ -437,14 +448,7 @@ export function usePostJobForm() {
       track(AhaEvent.FirstJobPosted, { job_id: jobData.id, category, parish });
     }
 
-    if (imageFiles.length > 0) {
-      setUploading(true);
-      photoUrls = await uploadImages(jobData.id);
-      if (photoUrls.length > 0) {
-        await supabase.from("jobs").update({ photos: photoUrls }).eq("id", jobData.id);
-      }
-      setUploading(false);
-    }
+    await uploadAndAttachPhotos(jobData.id);
 
     hapticSuccess();
     void maybeFireFirstPostConfetti();

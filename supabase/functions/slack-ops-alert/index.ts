@@ -6,11 +6,7 @@
 // latency-sensitive flows. Failures are logged but never thrown back to
 // callers — Slack outages must never break a dispute or payout.
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-}
+import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/slack/api'
 const DEFAULT_CHANNEL = Deno.env.get('SLACK_OPS_CHANNEL') || '#ops-alerts'

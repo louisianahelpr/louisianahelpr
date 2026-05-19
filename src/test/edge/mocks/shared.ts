@@ -1,12 +1,47 @@
 /**
  * Test doubles for the edge functions' `../_shared/*` helpers.
  *
- * `rate-limit.ts` and `slack-alerts.ts` are real Deno modules that themselves
- * import Deno-only globals. The harness rewrites imports of those files to
- * this module so the function under test gets controllable, network-free
- * versions.
+ * `rate-limit.ts`, `slack-alerts.ts`, and `cors.ts` are real Deno modules
+ * that themselves import Deno-only globals. The harness rewrites imports of
+ * those files to this module so the function under test gets controllable,
+ * network-free versions.
  */
 import { vi } from "vitest";
+
+// ---------------------------------------------------------------------------
+// cors.ts re-exports (real values — no Deno APIs needed)
+// ---------------------------------------------------------------------------
+
+export const corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+export const corsHeadersFull: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+export function jsonResponse(
+  body: unknown,
+  status: number,
+  headers: Record<string, string>,
+): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...headers, "Content-Type": "application/json" },
+  });
+}
+
+export function errorResponse(
+  message: string,
+  status: number,
+  headers: Record<string, string>,
+): Response {
+  return jsonResponse({ error: message }, status, headers);
+}
 
 /**
  * Controls what `checkRateLimit` returns. Default: allowed. Set

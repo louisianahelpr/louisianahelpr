@@ -24,43 +24,63 @@ export const categoryLabels: Record<string, string> = {
 export const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));
 
 /**
- * Category palette — muted, editorial. Warm-brand only (no purple, violet,
- * or indigo per repo-wide brand cleanup). Each category gets a distinct
- * -50/-700 pair so chips read at a glance.
+ * Category palette — warm-brand only. All entries are tints or lightness
+ * variations of the four brand hues: sage (stone), bark (deep olive),
+ * burnt-sienna (orange), and gold-warm (amber). No fuchsia, cyan, teal,
+ * sky, pink, or rose — those break the earthy system.
  *
- * Mapping rationale:
- *   cleaning   → sky      (clean, cool)
- *   yard_work  → emerald  (outdoors, green)
- *   moving     → fuchsia  (warm magenta, distinct from errands' amber)
- *   errands    → amber    (gold, energetic)
- *   handyman   → orange   (tools, warm)
- *   painting   → pink     (creative, soft)
- *   delivery   → cyan     (transport, cool blue-green — replaces indigo)
- *   pet_care   → rose     (warmth, affection)
- *   assembly   → teal     (precision, calm)
- *   other      → slate    (neutral default)
+ * Mapping rationale (brand hue → Tailwind analog):
+ *   sage        → stone  (muted warm neutral, olive-green adjacent)
+ *   bark        → stone-7xx (deeper grounded olive)
+ *   burnt-sienna → orange (warm earthy red-orange)
+ *   gold-warm   → amber  (antique gold)
+ *
+ *   cleaning    → stone light      (fresh, neutral)
+ *   yard_work   → stone deep       (earthy, grounded)
+ *   moving      → amber medium     (warm gold energy)
+ *   errands     → amber light      (bright warm movement)
+ *   handyman    → orange medium    (sienna tools)
+ *   painting    → orange light     (warm creative)
+ *   delivery    → amber deep       (rich transit gold)
+ *   pet_care    → stone medium     (soft, warm neutral)
+ *   assembly    → orange deep      (precise, structured)
+ *   other       → stone muted      (neutral default)
  */
 export const categoryColors: Record<string, { badge: string; title: string; dot: string }> = {
-  cleaning: { badge: "bg-sky-50 text-sky-700 border-sky-200/60", title: "text-sky-700", dot: "bg-sky-700/65" },
-  yard_work: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200/60", title: "text-emerald-700", dot: "bg-emerald-700/65" },
-  moving: { badge: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200/60", title: "text-fuchsia-700", dot: "bg-fuchsia-700/65" },
-  errands: { badge: "bg-amber-50 text-amber-700 border-amber-200/60", title: "text-amber-700", dot: "bg-amber-700/65" },
-  handyman: { badge: "bg-orange-50 text-orange-700 border-orange-200/60", title: "text-orange-700", dot: "bg-orange-700/65" },
-  painting: { badge: "bg-pink-50 text-pink-700 border-pink-200/60", title: "text-pink-700", dot: "bg-pink-700/65" },
-  delivery: { badge: "bg-cyan-50 text-cyan-700 border-cyan-200/60", title: "text-cyan-700", dot: "bg-cyan-700/65" },
-  pet_care: { badge: "bg-rose-50 text-rose-700 border-rose-200/60", title: "text-rose-700", dot: "bg-rose-700/65" },
-  assembly: { badge: "bg-teal-50 text-teal-700 border-teal-200/60", title: "text-teal-700", dot: "bg-teal-700/65" },
-  other: { badge: "bg-slate-50 text-slate-700 border-slate-200/60", title: "text-slate-700", dot: "bg-slate-600/65" },
+  cleaning:  { badge: "bg-stone-50 text-stone-600 border-stone-200/60",  title: "text-stone-600",  dot: "bg-stone-500/65" },
+  yard_work: { badge: "bg-stone-100 text-stone-700 border-stone-300/60", title: "text-stone-700",  dot: "bg-stone-700/65" },
+  moving:    { badge: "bg-amber-50 text-amber-700 border-amber-200/60",  title: "text-amber-700",  dot: "bg-amber-700/65" },
+  errands:   { badge: "bg-amber-100 text-amber-600 border-amber-300/60", title: "text-amber-600",  dot: "bg-amber-600/65" },
+  handyman:  { badge: "bg-orange-50 text-orange-700 border-orange-200/60", title: "text-orange-700", dot: "bg-orange-700/65" },
+  painting:  { badge: "bg-orange-100 text-orange-600 border-orange-300/60", title: "text-orange-600", dot: "bg-orange-600/65" },
+  delivery:  { badge: "bg-amber-50 text-amber-800 border-amber-200/60",  title: "text-amber-800",  dot: "bg-amber-800/65" },
+  pet_care:  { badge: "bg-stone-50 text-stone-500 border-stone-200/60",  title: "text-stone-500",  dot: "bg-stone-400/65" },
+  assembly:  { badge: "bg-orange-50 text-orange-800 border-orange-200/60", title: "text-orange-800", dot: "bg-orange-800/65" },
+  other:     { badge: "bg-stone-100 text-stone-500 border-stone-200/60", title: "text-stone-500",  dot: "bg-stone-400/55" },
 };
 
+/**
+ * Status badge classes — mapped onto semantic design tokens so every
+ * status pill inherits the brand palette automatically if the CSS vars
+ * change. Do not use raw Tailwind color literals here; use the tokens
+ * defined in index.css `:root` (--success, --warning, --error, --info).
+ *
+ *   open               → info     (available, neutral-positive)
+ *   accepted           → warning  (in motion, needs attention)
+ *   in_progress        → warning  (active work)
+ *   revision_requested → warning  (needs action — distinct label handles it)
+ *   completed          → success  (done, affirming)
+ *   cancelled          → error    (terminal negative)
+ *   disputed           → error    (elevated negative)
+ */
 export const statusBadge: Record<string, string> = {
-  open: "bg-primary/10 text-primary",
-  accepted: "bg-amber-500/15 text-amber-600",
-  in_progress: "bg-amber-500/15 text-amber-600",
-  revision_requested: "bg-orange-500/15 text-orange-600",
-  completed: "bg-emerald-500/15 text-emerald-600",
-  cancelled: "bg-destructive/10 text-destructive",
-  disputed: "bg-red-500/15 text-red-600",
+  open:               "bg-info/15 text-info",
+  accepted:           "bg-warning/15 text-warning",
+  in_progress:        "bg-warning/15 text-warning",
+  revision_requested: "bg-warning/20 text-warning",
+  completed:          "bg-success/15 text-success",
+  cancelled:          "bg-error/10 text-error",
+  disputed:           "bg-error/15 text-error",
 };
 
 export type EnrichedApplication = Application & {

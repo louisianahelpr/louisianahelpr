@@ -190,7 +190,9 @@ export function useDashboardData() {
   const { data: proData } = useQuery({
     queryKey: ["proTier", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.functions.invoke("check-pro-subscription");
+      // unwrap surfaces an edge-function failure as the query's error state
+      // instead of silently treating the user as a non-subscriber.
+      const data = unwrap(await supabase.functions.invoke("check-pro-subscription"));
       return data?.subscribed ? (data.tier as string) : null;
     },
     enabled: !!user,

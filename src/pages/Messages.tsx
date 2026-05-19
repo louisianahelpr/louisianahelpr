@@ -32,6 +32,9 @@ const Messages = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  // Tracks a failed message-thread fetch so the chat surfaces a
+  // recoverable error instead of the misleading "Say hello." empty state.
+  const [chatLoadError, setChatLoadError] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "message" | "user"; id: string } | null>(null);
   const [blockTarget, setBlockTarget] = useState<{ id: string; name: string } | null>(null);
   const [warningShown, setWarningShown] = useState(false);
@@ -178,8 +181,10 @@ const Messages = () => {
   const openConvo = async (convo: Conversation) => {
     setActiveConvo(convo);
     setHasMoreMessages(false);
+    setChatLoadError(false);
+    setMessages([]);
     navigate("/messages?chat=1", { replace: true });
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
       .eq("job_id", convo.jobId)
@@ -187,13 +192,56 @@ const Messages = () => {
       .order("created_at", { ascending: false })
       .limit(CHAT_PAGE_SIZE);
 
+    // Surface a failed thread fetch instead of falling through to the
+    // "Say hello." empty state, which would wrongly imply 0 messages.
+    if (error) {
+      console.error("[Messages] openConvo failed:", error);
+      setChatLoadError(true);
+      return;
+    }
+
     if (data) {
-      const sorted = [...data].reverse();
+      // Optimistic read: flip the read flag locally now so the unread
+      // badge clears immediately, then persist in the background. The
+      // optimistic-send flow keys off clientId/sendStatus, not `read`,
+      // so toggling `read` here cannot collide with it.
+      const unreadIds = data.filter((m) => m.receiver_id === userId && !m.read).map((m) => m.id);
+      const sorted = [...data]
+        .reverse()
+        .map((m) => (unreadIds.includes(m.id) ? { ...m, read: true } : m));
       setMessages(sorted);
       setHasMoreMessages(data.length === CHAT_PAGE_SIZE);
-      const unreadIds = data.filter((m) => m.receiver_id === userId && !m.read).map((m) => m.id);
       if (unreadIds.length > 0) {
-        await supabase.from("messages").update({ read: true }).in("id", unreadIds);
+        // Clear the conversation-list unread count optimistically too.
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.jobId === convo.jobId && c.otherUserId === convo.otherUserId
+              ? { ...c, unread: 0 }
+              : c,
+          ),
+        );
+        // Persist in the background — do NOT block the UI on the round-trip.
+        void supabase
+          .from("messages")
+          .update({ read: true })
+          .in("id", unreadIds)
+          .then(({ error: markError }) => {
+            if (markError) {
+              // Revert the optimistic read flags so the badge re-appears.
+              console.error("[Messages] mark-as-read failed:", markError);
+              const unreadSet = new Set(unreadIds);
+              setMessages((prev) =>
+                prev.map((m) => (unreadSet.has(m.id) ? { ...m, read: false } : m)),
+              );
+              setConversations((prev) =>
+                prev.map((c) =>
+                  c.jobId === convo.jobId && c.otherUserId === convo.otherUserId
+                    ? { ...c, unread: unreadIds.length }
+                    : c,
+                ),
+              );
+            }
+          });
       }
     }
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
@@ -203,7 +251,7 @@ const Messages = () => {
     if (!activeConvo || !userId || loadingMore || messages.length === 0) return;
     setLoadingMore(true);
     const oldestMsg = messages[0];
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
       .eq("job_id", activeConvo.jobId)
@@ -211,6 +259,15 @@ const Messages = () => {
       .lt("created_at", oldestMsg.created_at)
       .order("created_at", { ascending: false })
       .limit(CHAT_PAGE_SIZE);
+
+    // A failed page fetch: keep the already-loaded thread visible and
+    // leave the "Load earlier" affordance so the user can retry.
+    if (error) {
+      console.error("[Messages] loadOlderMessages failed:", error);
+      toast.error("Couldn't load earlier messages. Tap to try again.");
+      setLoadingMore(false);
+      return;
+    }
 
     if (data && data.length > 0) {
       const sorted = [...data].reverse();
@@ -547,6 +604,8 @@ const Messages = () => {
           broadcastTyping={broadcastTyping}
           messages={messages}
           userId={userId}
+          chatLoadError={chatLoadError}
+          onRetryLoad={() => openConvo(activeConvo)}
           hasMoreMessages={hasMoreMessages}
           loadingMore={loadingMore}
           loadOlderMessages={loadOlderMessages}

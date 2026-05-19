@@ -159,7 +159,7 @@ const ProfilePage = () => {
     const { data, error } = await supabase.from("user_violations").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     if (error) {
       console.error("[Profile] loadViolations failed:", error);
-      toast.error("Couldn't load your warnings. Pull to refresh to try again.");
+      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
       setViolationsLoading(false);
       return;
     }
@@ -219,7 +219,7 @@ const ProfilePage = () => {
     const statsError = helperJobsRes.error || reviewsRes.error || postedRes.error;
     if (statsError) {
       console.error("[Profile] loadStats failed:", statsError);
-      toast.error("Couldn't load your profile stats. Pull to refresh to try again.");
+      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
       return;
     }
     setCompletedCount(helperJobsRes.count || 0);
@@ -246,7 +246,7 @@ const ProfilePage = () => {
 
     if (error) {
       console.error("[Profile] loadReviews failed:", error);
-      toast.error("Couldn't load your reviews. Pull to refresh to try again.");
+      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
       setReviewsLoading(false);
       return;
     }
@@ -326,7 +326,7 @@ const ProfilePage = () => {
     ]);
     if (jobsRes.error || tipsRes.error) {
       console.error("[Profile] loadEarnings failed:", jobsRes.error || tipsRes.error);
-      toast.error("Couldn't load your earnings. Pull to refresh to try again.");
+      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
       setEarningsLoading(false);
       return;
     }
@@ -349,7 +349,7 @@ const ProfilePage = () => {
     ]);
     if (posted.error || assigned.error) {
       console.error("[Profile] loadSchedule failed:", posted.error || assigned.error);
-      toast.error("Couldn't load your schedule. Pull to refresh to try again.");
+      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
       setScheduleLoading(false);
       return;
     }
@@ -366,7 +366,7 @@ const ProfilePage = () => {
     ]);
     if (posted.error || completed.error) {
       console.error("[Profile] loadInlineJobs failed:", posted.error || completed.error);
-      toast.error("Couldn't load your jobs. Pull to refresh to try again.");
+      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
       return;
     }
     if (posted.data) setInlinePostedJobs(posted.data);

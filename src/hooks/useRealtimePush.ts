@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showLocalNotification, registerServiceWorker } from "@/lib/pushNotifications";
+import { channelNonce } from "@/lib/realtimeChannel";
 
 /**
  * Listens for new notifications via Supabase Realtime and triggers
@@ -19,7 +20,7 @@ export function useRealtimePush(userId: string | null) {
     }
 
     const channel = supabase
-      .channel(`push-notifications-${userId}`)
+      .channel(`push-notifications-${userId}-${channelNonce()}`)
       .on(
         "postgres_changes",
         {

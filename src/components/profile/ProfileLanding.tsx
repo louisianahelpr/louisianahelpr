@@ -7,7 +7,7 @@ import {
   ChevronRight as ChevronRightIcon, ChevronDown,
   HelpCircle, Bell, AlertTriangle, Heart, Crown,
   ShieldCheck, Trash2,
-  BadgeCheck, Camera,
+  BadgeCheck, Camera, Check, Circle,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -77,6 +77,11 @@ export function ProfileLanding({
   // stays compact — they can make the card very tall on an
   // established profile.
   const [showcaseOpen, setShowcaseOpen] = useState(false);
+  // Profile-completion checklist disclosure. The "Finish your profile"
+  // prompt moved off the home feed onto this screen — expanding the
+  // meter reveals the per-item checklist so the user can see exactly
+  // what's left and act on it here.
+  const [completionOpen, setCompletionOpen] = useState(false);
   // Derived state — drives "Action needed" dots on menu items so the
   // user sees blockers at a glance without having to navigate into each
   // tab to discover them.
@@ -514,35 +519,112 @@ export function ProfileLanding({
             )}
           </div>
         )}
-        {/* Completion meter — compact single row (bar + inline
-            "NN% · next step" link) instead of the old eyebrow-row +
-            bar two-row block, so the content-dense hero gets one row
-            shorter. Auto-hides at 100%. */}
+        {/* Profile-completion checklist — this is where the home
+            screen's "Finish your profile" prompt now lives. Collapsed it
+            is a compact one-row meter (bar + "NN% complete · expand");
+            expanding reveals the per-item checklist (ZIP / ID verified /
+            Work photos) so the user sees exactly what's left and can tap
+            straight into Edit Profile to finish it. Auto-hides at 100%. */}
         {completionPct < 100 && (
           <div
-            className="mt-3 pt-3 flex items-center gap-3"
+            className="mt-3 pt-3"
             style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
           >
-            <div className="h-1.5 flex-1 rounded-full bg-muted/60 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${completionPct}%`,
-                  background:
-                    completionPct >= 66
-                      ? "hsl(var(--bark) / 0.85)"
-                      : "hsl(var(--burnt-sienna) / 0.75)",
-                }}
-              />
-            </div>
             <button
               type="button"
-              onClick={() => onSelectTab("profile")}
-              className="shrink-0 text-ds-11 font-semibold active:opacity-70 whitespace-nowrap"
-              style={{ color: "hsl(var(--bark))" }}
+              onClick={() => setCompletionOpen((o) => !o)}
+              aria-expanded={completionOpen}
+              className="w-full flex items-center gap-3 active:opacity-70 transition-opacity"
             >
-              {completionPct}% · {completion.nextLabel} →
+              <div className="h-1.5 flex-1 rounded-full bg-muted/60 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${completionPct}%`,
+                    background:
+                      completionPct >= 66
+                        ? "hsl(var(--bark) / 0.85)"
+                        : "hsl(var(--burnt-sienna) / 0.75)",
+                  }}
+                />
+              </div>
+              <span
+                className="shrink-0 inline-flex items-center gap-1 text-ds-11 font-semibold whitespace-nowrap"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                {completionPct}% complete
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${completionOpen ? "rotate-180" : ""}`}
+                />
+              </span>
             </button>
+
+            {completionOpen && (
+              <div className="mt-3 space-y-1.5">
+                <p
+                  className="font-serif italic text-ds-11 leading-snug mb-1"
+                  style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                >
+                  Finish your profile to land more jobs — posters skip
+                  incomplete profiles.
+                </p>
+                {completion.items.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => onSelectTab("profile")}
+                    disabled={item.done}
+                    className="w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-all enabled:active:scale-[0.99]"
+                    style={{
+                      background: item.done
+                        ? "hsl(var(--bark) / 0.06)"
+                        : "hsla(0, 0%, 100%, 0.55)",
+                      border: "1px solid hsl(var(--olivewood) / 0.10)",
+                      cursor: item.done ? "default" : "pointer",
+                    }}
+                  >
+                    {item.done ? (
+                      <span
+                        className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                        style={{ background: "hsl(var(--bark))" }}
+                      >
+                        <Check
+                          className="w-3 h-3"
+                          strokeWidth={3}
+                          style={{ color: "hsl(var(--parchment))" }}
+                        />
+                      </span>
+                    ) : (
+                      <Circle
+                        className="shrink-0 w-5 h-5"
+                        strokeWidth={2}
+                        style={{ color: "hsl(var(--burnt-sienna) / 0.55)" }}
+                      />
+                    )}
+                    <span
+                      className="flex-1 text-ds-12 font-semibold"
+                      style={{
+                        color: item.done
+                          ? "hsl(var(--olivewood) / 0.6)"
+                          : "hsl(var(--ink-deep))",
+                        textDecoration: item.done ? "line-through" : "none",
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                    {!item.done && (
+                      <span
+                        className="shrink-0 inline-flex items-center gap-0.5 text-ds-11 font-semibold"
+                        style={{ color: "hsl(var(--bark))" }}
+                      >
+                        Add
+                        <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

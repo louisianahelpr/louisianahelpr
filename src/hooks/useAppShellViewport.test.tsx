@@ -16,8 +16,10 @@ describe("useAppShellViewport", () => {
 
   // The "app-shell" class on <html> locks the viewport to 100dvh +
   // overflow:hidden, forcing pages to use AppShell's internal scroll
-  // container. Marketing/auth/long-form routes need NORMAL document
-  // scroll, so they should NOT get the class.
+  // container. Marketing, long-form, and the TALL auth pages (Signup,
+  // CompleteProfile) need normal document scroll. SHORT auth pages
+  // (Login, ForgotPassword) deliberately KEEP the lock so iOS doesn't
+  // rubber-band the body around content that already fits the screen.
 
   it("removes app-shell on the marketing root /", () => {
     document.documentElement.classList.add("app-shell"); // start locked
@@ -25,10 +27,9 @@ describe("useAppShellViewport", () => {
     expect(document.documentElement.classList.contains("app-shell")).toBe(false);
   });
 
-  it("removes app-shell on /login (auth flow uses min-h-screen)", () => {
-    document.documentElement.classList.add("app-shell");
+  it("ADDS app-shell on /login (short auth page — viewport-locked, not document scroll)", () => {
     renderHook(() => useAppShellViewport(), { wrapper: wrapperFor("/login") });
-    expect(document.documentElement.classList.contains("app-shell")).toBe(false);
+    expect(document.documentElement.classList.contains("app-shell")).toBe(true);
   });
 
   it("removes app-shell on /signup", () => {
@@ -37,10 +38,9 @@ describe("useAppShellViewport", () => {
     expect(document.documentElement.classList.contains("app-shell")).toBe(false);
   });
 
-  it("removes app-shell on /forgot-password", () => {
-    document.documentElement.classList.add("app-shell");
+  it("ADDS app-shell on /forgot-password (short auth page — viewport-locked)", () => {
     renderHook(() => useAppShellViewport(), { wrapper: wrapperFor("/forgot-password") });
-    expect(document.documentElement.classList.contains("app-shell")).toBe(false);
+    expect(document.documentElement.classList.contains("app-shell")).toBe(true);
   });
 
   it("removes app-shell on /profile (tall multi-tab page)", () => {

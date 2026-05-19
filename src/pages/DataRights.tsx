@@ -170,9 +170,10 @@ const DataRights = () => {
             variant="destructive"
             size="lg"
             className="w-full sm:w-auto"
+            disabled={deleting}
             onClick={() => setDeleteDialogOpen(true)}
           >
-            Delete my account
+            {deleting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting…</> : "Delete my account"}
           </Button>
           <BrandConfirmDialog
             open={deleteDialogOpen}

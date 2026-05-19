@@ -22,6 +22,7 @@ import { splitName } from "@/lib/splitName";
 // Profile route chunk stays small — each is fetched the first time it shows.
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
+import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 const SecurityTab = lazy(() => import("@/components/profile/SecurityTab").then(m => ({ default: m.SecurityTab })));
 const JobListTab = lazy(() => import("@/components/profile/JobListTab").then(m => ({ default: m.JobListTab })));
@@ -73,7 +74,6 @@ const ProfilePage = () => {
   const [avatarBroken, setAvatarBroken] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
-  const [activeMenuGroup, setActiveMenuGroup] = useState<string | null>("Account");
 
   // Sync tab to URL for bookmarkability and browser back
   useEffect(() => {
@@ -105,6 +105,14 @@ const ProfilePage = () => {
 
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
 
+  // Per-section load errors. Each Profile sub-section loads independently;
+  // a failure in one must NOT surface as a page-level "couldn't load your
+  // profile" banner when the core profile (name, avatar) loaded fine.
+  // Instead each failed section shows a small inline error scoped to it.
+  type SectionKey = "stats" | "reviews" | "inlineJobs" | "earnings" | "schedule" | "violations";
+  const [sectionErrors, setSectionErrors] = useState<Partial<Record<SectionKey, boolean>>>({});
+  const setSectionError = (key: SectionKey, failed: boolean) =>
+    setSectionErrors((prev) => (prev[key] === failed ? prev : { ...prev, [key]: failed }));
 
   // Stats
   const [completedCount, setCompletedCount] = useState(0);
@@ -153,13 +161,14 @@ const ProfilePage = () => {
   const [violationsLoading, setViolationsLoading] = useState(false);
   const [violationsLoaded, setViolationsLoaded] = useState(false);
 
-  const loadViolations = async () => {
-    if (!user || violationsLoaded) return;
+  const loadViolations = async ({ force = false }: { force?: boolean } = {}) => {
+    if (!user || (violationsLoaded && !force)) return;
     setViolationsLoading(true);
+    setSectionError("violations", false);
     const { data, error } = await supabase.from("user_violations").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     if (error) {
       console.error("[Profile] loadViolations failed:", error);
-      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
+      setSectionError("violations", true);
       setViolationsLoading(false);
       return;
     }
@@ -211,6 +220,7 @@ const ProfilePage = () => {
   }, [zipCode]);
 
   const loadStats = async (userId: string) => {
+    setSectionError("stats", false);
     const [helperJobsRes, reviewsRes, postedRes] = await Promise.all([
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId).eq("status", "completed"),
       supabase.from("reviews").select("rating").eq("reviewee_id", userId).lte("feedback_visible_at", new Date().toISOString()),
@@ -219,7 +229,7 @@ const ProfilePage = () => {
     const statsError = helperJobsRes.error || reviewsRes.error || postedRes.error;
     if (statsError) {
       console.error("[Profile] loadStats failed:", statsError);
-      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
+      setSectionError("stats", true);
       return;
     }
     setCompletedCount(helperJobsRes.count || 0);
@@ -236,6 +246,7 @@ const ProfilePage = () => {
     // Pull-to-refresh passes { force: true } to deliberately re-sync.
     if (!force && (reviewsLoading || reviewsLoaded)) return;
     setReviewsLoading(true);
+    setSectionError("reviews", false);
     const { data, error } = await supabase
       .from("reviews")
       .select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
@@ -246,7 +257,7 @@ const ProfilePage = () => {
 
     if (error) {
       console.error("[Profile] loadReviews failed:", error);
-      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
+      setSectionError("reviews", true);
       setReviewsLoading(false);
       return;
     }
@@ -320,13 +331,14 @@ const ProfilePage = () => {
   const loadEarnings = async () => {
     if (!user) return;
     setEarningsLoading(true);
+    setSectionError("earnings", false);
     const [jobsRes, tipsRes] = await Promise.all([
       supabase.from("jobs").select("*").eq("helper_id", user.id).neq("status", "cancelled").order("created_at", { ascending: false }),
       supabase.from("tips").select("amount, job_id, created_at").eq("helper_id", user.id),
     ]);
     if (jobsRes.error || tipsRes.error) {
       console.error("[Profile] loadEarnings failed:", jobsRes.error || tipsRes.error);
-      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
+      setSectionError("earnings", true);
       setEarningsLoading(false);
       return;
     }
@@ -343,13 +355,14 @@ const ProfilePage = () => {
   const loadSchedule = async () => {
     if (!user) return;
     setScheduleLoading(true);
+    setSectionError("schedule", false);
     const [posted, assigned] = await Promise.all([
       supabase.from("jobs").select("*").eq("customer_id", user.id).in("status", ["open", "accepted", "in_progress"]).order("date_needed"),
       supabase.from("jobs").select("*").eq("helper_id", user.id).in("status", ["accepted", "in_progress"]).order("date_needed"),
     ]);
     if (posted.error || assigned.error) {
       console.error("[Profile] loadSchedule failed:", posted.error || assigned.error);
-      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
+      setSectionError("schedule", true);
       setScheduleLoading(false);
       return;
     }
@@ -358,15 +371,16 @@ const ProfilePage = () => {
     setScheduleLoading(false);
   };
 
-  const loadInlineJobs = async () => {
-    if (!user || inlineJobsLoaded) return;
+  const loadInlineJobs = async ({ force = false }: { force?: boolean } = {}) => {
+    if (!user || (inlineJobsLoaded && !force)) return;
+    setSectionError("inlineJobs", false);
     const [posted, completed] = await Promise.all([
       supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }).limit(20),
       supabase.from("jobs").select("*").or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`).eq("status", "completed").order("created_at", { ascending: false }).limit(20),
     ]);
     if (posted.error || completed.error) {
       console.error("[Profile] loadInlineJobs failed:", posted.error || completed.error);
-      toast.error("Couldn't load your profile. Pull to refresh to try again.", { id: "profile-load-error" });
+      setSectionError("inlineJobs", true);
       return;
     }
     if (posted.data) setInlinePostedJobs(posted.data);
@@ -548,14 +562,16 @@ const ProfilePage = () => {
               postedCount={postedCount}
               completedCount={completedCount}
               stripeConnectStatus={stripeConnectStatus}
-              activeMenuGroup={activeMenuGroup}
-              setActiveMenuGroup={setActiveMenuGroup}
               onSelectTab={(key) => setTab(key as Tab)}
               onNavigate={navigate}
               onLoadInlineJobs={loadInlineJobs}
               onRequestDelete={() => { setDeleteStep(1); setDeleteConfirmText(""); setShowDeleteAccountDialog(true); }}
               onRequestLogout={() => setShowLogoutDialog(true)}
               reviewsPreview={reviews.slice(0, 2)}
+              statsError={!!sectionErrors.stats}
+              reviewsError={!!sectionErrors.reviews}
+              onRetryStats={() => { if (user) loadStats(user.id); }}
+              onRetryReviews={() => loadReviews({ force: true })}
             />
           </PullToRefreshWrapper>
         ) : (
@@ -597,22 +613,32 @@ const ProfilePage = () => {
 
           {/* EXTRACTED TAB COMPONENTS — lazy loaded */}
           {tab === "earnings" && user && (
-            <Suspense fallback={<TabFallback />}>
-              <EarningsTab
-                earningsJobs={earningsJobs}
-                tips={tips}
-                loading={earningsLoading}
-                onBack={() => setTab("landing")}
-                helperId={user.id}
-                helperName={profile?.full_name || user.email || "Helpr"}
-              />
-            </Suspense>
+            <div className="space-y-3">
+              {sectionErrors.earnings && (
+                <ProfileSectionError section="your earnings" onRetry={loadEarnings} />
+              )}
+              <Suspense fallback={<TabFallback />}>
+                <EarningsTab
+                  earningsJobs={earningsJobs}
+                  tips={tips}
+                  loading={earningsLoading}
+                  onBack={() => setTab("landing")}
+                  helperId={user.id}
+                  helperName={profile?.full_name || user.email || "Helpr"}
+                />
+              </Suspense>
+            </div>
           )}
 
           {tab === "schedule" && user && (
-            <Suspense fallback={<TabFallback />}>
-              <ScheduleTab postedJobs={schedulePostedJobs} assignedJobs={scheduleAssignedJobs} loading={scheduleLoading} userId={user.id} onBack={() => setTab("landing")} />
-            </Suspense>
+            <div className="space-y-3">
+              {sectionErrors.schedule && (
+                <ProfileSectionError section="your schedule" onRetry={loadSchedule} />
+              )}
+              <Suspense fallback={<TabFallback />}>
+                <ScheduleTab postedJobs={schedulePostedJobs} assignedJobs={scheduleAssignedJobs} loading={scheduleLoading} userId={user.id} onBack={() => setTab("landing")} />
+              </Suspense>
+            </div>
           )}
 
           {tab === "availability" && user && (
@@ -646,15 +672,25 @@ const ProfilePage = () => {
           )}
 
           {tab === "posted_jobs" && (
-            <Suspense fallback={<TabFallback />}>
-              <JobListTab variant="posted" jobs={inlinePostedJobs} onBack={() => setTab("landing")} />
-            </Suspense>
+            <div className="space-y-3">
+              {sectionErrors.inlineJobs && (
+                <ProfileSectionError section="your posted jobs" onRetry={() => loadInlineJobs({ force: true })} />
+              )}
+              <Suspense fallback={<TabFallback />}>
+                <JobListTab variant="posted" jobs={inlinePostedJobs} onBack={() => setTab("landing")} />
+              </Suspense>
+            </div>
           )}
 
           {tab === "completed_jobs" && (
-            <Suspense fallback={<TabFallback />}>
-              <JobListTab variant="completed" jobs={inlineCompletedJobs} onBack={() => setTab("landing")} />
-            </Suspense>
+            <div className="space-y-3">
+              {sectionErrors.inlineJobs && (
+                <ProfileSectionError section="your completed jobs" onRetry={() => loadInlineJobs({ force: true })} />
+              )}
+              <Suspense fallback={<TabFallback />}>
+                <JobListTab variant="completed" jobs={inlineCompletedJobs} onBack={() => setTab("landing")} />
+              </Suspense>
+            </div>
           )}
 
           {tab === "support" && (
@@ -716,9 +752,17 @@ const ProfilePage = () => {
           )}
 
           {tab === "warnings" && (
-            <Suspense fallback={<TabFallback />}>
-              <WarningsTab violations={violations} loading={violationsLoading} onBack={() => setTab("landing")} />
-            </Suspense>
+            <div className="space-y-3">
+              {sectionErrors.violations && (
+                <ProfileSectionError
+                  section="your warnings & strikes"
+                  onRetry={() => loadViolations({ force: true })}
+                />
+              )}
+              <Suspense fallback={<TabFallback />}>
+                <WarningsTab violations={violations} loading={violationsLoading} onBack={() => setTab("landing")} />
+              </Suspense>
+            </div>
           )}
 
           {tab === "credentials" && user && (

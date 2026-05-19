@@ -36,8 +36,13 @@ const config: CapacitorConfig = {
     supportUrl: 'https://louisianahelpr.com/support',
     privacyPolicyUrl: 'https://www.louisianahelpr.com/privacy',
     marketingUrl: 'https://www.louisianahelpr.com',
-    // Allow iPad multitasking (Split View / Slide Over). Set to true to lock full screen.
-    contentInset: 'always',
+    // Safe-area insets are handled entirely in CSS via env(safe-area-inset-*)
+    // in our headers/shells (PageHeader, AppShell, DashboardHeader, AuthShell…).
+    // 'always' made WKWebView ALSO inset scrollable content for the safe area,
+    // double-counting against that CSS padding — the ~100px dead band above
+    // document-scroll pages (PostJob, Profile, Activity, Legal). 'never' lets
+    // the CSS env() padding be the single source of truth for the inset.
+    contentInset: 'never',
     // -------------------------------------------------------------------------
     // Info.plist keys — source-of-truth reminder for the committed native file.
     // These values are already present in ios/App/App/Info.plist so GitHub →

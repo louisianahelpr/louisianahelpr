@@ -55,19 +55,15 @@ export const SaveHelperButton = ({
     setWorking(true);
     hapticLight();
 
-    let error: { message: string } | null = null;
-
-    if (previousSaved) {
-      ({ error } = await supabase
-        .from("favorite_helpers")
-        .delete()
-        .eq("customer_id", customerId)
-        .eq("helper_id", helperId));
-    } else {
-      ({ error } = await supabase
-        .from("favorite_helpers")
-        .insert({ customer_id: customerId, helper_id: helperId }));
-    }
+    const { error } = previousSaved
+      ? await supabase
+          .from("favorite_helpers")
+          .delete()
+          .eq("customer_id", customerId)
+          .eq("helper_id", helperId)
+      : await supabase
+          .from("favorite_helpers")
+          .insert({ customer_id: customerId, helper_id: helperId });
 
     if (error) {
       // Revert on failure so the persisted state stays consistent.

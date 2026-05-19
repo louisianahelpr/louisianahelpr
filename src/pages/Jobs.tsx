@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { MapPin, Calendar, DollarSign, ArrowRight, Search, Lock, Timer } from "lucide-react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { format, formatDistanceToNow, differenceInHours } from "date-fns";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -15,6 +17,10 @@ import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { VirtualList } from "@/components/VirtualList";
+import { categoryLabels } from "@/components/activity/activityConstants";
+import { queryKeys } from "@/lib/queryKeys";
 
 const DEBUG_AUTH = import.meta.env.DEV;
 
@@ -30,58 +36,66 @@ interface PublicJob {
   expires_at: string | null;
 }
 
-const categoryLabels: Record<string, string> = {
-  cleaning: "Cleaning",
-  yard_work: "Yard Work",
-  moving: "Moving",
-  errands: "Errands",
-  handyman: "Handyman",
-  painting: "Painting",
-  delivery: "Delivery",
-  pet_care: "Pet Care",
-  assembly: "Assembly",
-  other: "Other",
-};
-
 const ALL_CATEGORIES = Object.keys(categoryLabels);
+
+const PAGE_SIZE = 30;
+
+// Cards per virtualized row — matches the lg:grid-cols-3 grid so each
+// VirtualList row holds a full grid line.
+const CARDS_PER_ROW = 3;
+
+// Cap the staggered entrance animation to roughly the first screenful of
+// cards. Beyond this the per-card animationDelay would compound layout
+// work on long lists for an effect nobody scrolls fast enough to see.
+const MAX_STAGGER_CARDS = 9;
+
+interface JobsPage {
+  jobs: PublicJob[];
+  nextOffset: number | null;
+}
 
 const Jobs = () => {
   usePageTitle("Browse Jobs — Helpr");
-  const [jobs, setJobs] = useState<PublicJob[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useCurrentUser();
-  const PAGE_SIZE = 30;
 
-  const fetchJobs = async (offset = 0, append = false) => {
-    if (!append) setLoading(true);
-    else setLoadingMore(true);
-    // get_ranked_open_jobs ranks by boost (1000) + parish match (500) +
-    // urgent (100) + recency (0-50). Replaces the old chronological-only
-    // sort against the open_jobs_safe view. Anon callers still work — they
-    // just don't get the parish-match boost.
-    // Cast via `as any`: get_ranked_open_jobs is a new RPC not yet present
-    // in the regenerated client types (full types regen exceeds tooling
-    // output limits). Runtime contract verified server-side.
-    const { data } = await (supabase.rpc as any)("get_ranked_open_jobs", { p_limit: PAGE_SIZE, p_offset: offset }) as { data: PublicJob[] | null };
-    const newJobs = data || [];
-    setHasMore(newJobs.length === PAGE_SIZE);
-    if (append) {
-      setJobs((prev) => [...prev, ...newJobs]);
-    } else {
-      setJobs(newJobs);
-    }
-    setLoading(false);
-    setLoadingMore(false);
-  };
+  // Paginated open-jobs feed via React Query, consistent with the
+  // dashboard's useInfiniteQuery feed. get_ranked_open_jobs ranks by boost
+  // (1000) + parish match (500) + urgent (100) + recency (0-50). Replaces
+  // the old chronological-only sort against the open_jobs_safe view. Anon
+  // callers still work — they just don't get the parish-match boost.
+  const {
+    data: pagesData,
+    isLoading: jobsLoading,
+    isError: jobsError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: queryKeys.jobsOpen(),
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }): Promise<JobsPage> => {
+      const offset = pageParam as number;
+      // unwrap surfaces a failed fetch as the query's error state (drives
+      // <ErrorState/>) instead of silently degrading to a blank feed.
+      const rows = unwrap(
+        await supabase.rpc("get_ranked_open_jobs", { p_limit: PAGE_SIZE, p_offset: offset }),
+      );
+      const jobs = (rows ?? []) as unknown as PublicJob[];
+      return { jobs, nextOffset: jobs.length === PAGE_SIZE ? offset + PAGE_SIZE : null };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
+  const jobs = useMemo<PublicJob[]>(
+    () => (pagesData?.pages ?? []).flatMap((p) => p.jobs),
+    [pagesData],
+  );
 
   useEffect(() => {
     if (!DEBUG_AUTH) return;
@@ -89,10 +103,10 @@ const Jobs = () => {
       authLoading,
       hasUser: !!user,
       userId: user?.id ?? null,
-      jobsLoading: loading,
+      jobsLoading,
       route: window.location.pathname,
     });
-  }, [authLoading, loading, user?.id]);
+  }, [authLoading, jobsLoading, user?.id]);
 
   const filtered = useMemo(() => {
     const now = new Date();
@@ -107,6 +121,16 @@ const Jobs = () => {
       return matchesSearch && matchesCategory;
     });
   }, [jobs, search, selectedCategory]);
+
+  // Chunk the filtered jobs into grid rows so the window-scroll VirtualList
+  // (single-column row primitive) still renders the original 3-up grid.
+  const rows = useMemo<PublicJob[][]>(() => {
+    const out: PublicJob[][] = [];
+    for (let i = 0; i < filtered.length; i += CARDS_PER_ROW) {
+      out.push(filtered.slice(i, i + CARDS_PER_ROW));
+    }
+    return out;
+  }, [filtered]);
 
   return (
     <div className="min-h-screen bg-premium-page">
@@ -188,11 +212,15 @@ const Jobs = () => {
           </div>
 
           {/* Jobs Grid */}
-          {loading ? (
+          {jobsLoading ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="Loading jobs">
               {Array.from({ length: 6 }).map((_, i) => (
                 <JobCardSkeleton key={i} />
               ))}
+            </div>
+          ) : jobsError && jobs.length === 0 ? (
+            <div className="max-w-md mx-auto">
+              <ErrorState onRetry={() => refetch()} />
             </div>
           ) : filtered.length === 0 ? (
             <div className="max-w-md mx-auto">
@@ -216,86 +244,104 @@ const Jobs = () => {
               />
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((job, i) => (
-                <div
-                  key={job.id}
-                  className="rounded-2xl liquid-glass p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
-                  style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-foreground line-clamp-1 text-ds-13">
-                      {job.title}
-                    </h3>
-                    {job.is_urgent && (
-                      <Badge variant="destructive" className="text-ds-10 shrink-0">
-                        Urgent
-                      </Badge>
-                    )}
-                  </div>
+            // Virtualized grid: each VirtualList row is one grid line of up
+            // to CARDS_PER_ROW cards. The window virtualizer keeps the DOM
+            // small on long lists while preserving the 1/2/3-up layout.
+            <VirtualList
+              items={rows}
+              getKey={(row, i) => `row-${i}-${row[0]?.id ?? "empty"}`}
+              estimateSize={250}
+              overscan={3}
+              renderItem={(row, rowIndex) => (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+                  {row.map((job, colIndex) => {
+                    const flatIndex = rowIndex * CARDS_PER_ROW + colIndex;
+                    return (
+                      <div
+                        key={job.id}
+                        className="rounded-2xl liquid-glass p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
+                        style={
+                          flatIndex < MAX_STAGGER_CARDS
+                            ? { animationDelay: `${flatIndex * 40}ms`, animationFillMode: "both" }
+                            : undefined
+                        }
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold text-foreground line-clamp-1 text-ds-13">
+                            {job.title}
+                          </h3>
+                          {job.is_urgent && (
+                            <Badge variant="destructive" className="text-ds-10 shrink-0">
+                              Urgent
+                            </Badge>
+                          )}
+                        </div>
 
-                  <Badge variant="secondary" className="text-ds-11">
-                    {categoryLabels[job.category] || job.category}
-                  </Badge>
+                        <Badge variant="secondary" className="text-ds-11">
+                          {categoryLabels[job.category] || job.category}
+                        </Badge>
 
-                  <div className="space-y-1.5 text-ds-11 text-muted-foreground">
-                    <a
-                      href={`https://www.google.com/maps/search/${encodeURIComponent(getCityState(job.location))}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 hover:text-primary transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MapPin className="w-3 h-3" />
-                      <span className="line-clamp-1">{getCityState(job.location)}</span>
-                    </a>
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3 h-3" />
-                      <span>{format(parseLocalDate(job.date_needed), "MMM d, yyyy")}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <DollarSign className="w-3 h-3" />
-                      <span className="font-medium text-foreground">${job.budget}</span>
-                    </div>
-                    <div className={`flex items-center gap-1.5 ${job.expires_at && differenceInHours(new Date(job.expires_at), new Date()) < 24 ? "text-destructive font-medium" : ""}`}>
-                      <Timer className="w-3 h-3" />
-                      <span>
-                        {job.expires_at
-                          ? new Date(job.expires_at) <= new Date()
-                            ? "Expired"
-                            : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left"
-                          : "Posted " + formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
-                      </span>
-                    </div>
-                  </div>
+                        <div className="space-y-1.5 text-ds-11 text-muted-foreground">
+                          <a
+                            href={`https://www.google.com/maps/search/${encodeURIComponent(getCityState(job.location))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MapPin className="w-3 h-3" />
+                            <span className="line-clamp-1">{getCityState(job.location)}</span>
+                          </a>
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="w-3 h-3" />
+                            <span>{format(parseLocalDate(job.date_needed), "MMM d, yyyy")}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <DollarSign className="w-3 h-3" />
+                            <span className="font-medium text-foreground">${job.budget}</span>
+                          </div>
+                          <div className={`flex items-center gap-1.5 ${job.expires_at && differenceInHours(new Date(job.expires_at), new Date()) < 24 ? "text-destructive font-medium" : ""}`}>
+                            <Timer className="w-3 h-3" />
+                            <span>
+                              {job.expires_at
+                                ? new Date(job.expires_at) <= new Date()
+                                  ? "Expired"
+                                  : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left"
+                                : "Posted " + formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                        </div>
 
-                  {/* Locked overlay on hover */}
-                  <div className="absolute inset-0 rounded-2xl bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                    <Lock className="w-5 h-5 text-primary" />
-                    <p className="text-ds-11 font-medium text-foreground">Sign up to apply</p>
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="text-ds-11"
-                      onClick={() => navigate("/signup")}
-                    >
-                      Get Started
-                    </Button>
-                  </div>
+                        {/* Locked overlay on hover */}
+                        <div className="absolute inset-0 rounded-2xl bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                          <Lock className="w-5 h-5 text-primary" />
+                          <p className="text-ds-11 font-medium text-foreground">Sign up to apply</p>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="text-ds-11"
+                            onClick={() => navigate("/signup")}
+                          >
+                            Get Started
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              )}
+            />
           )}
 
           {/* Load More */}
-          {hasMore && !loading && filtered.length > 0 && (
+          {hasNextPage && !jobsLoading && filtered.length > 0 && (
             <div className="text-center mt-6">
               <Button
                 variant="outline"
-                onClick={() => fetchJobs(jobs.length, true)}
-                disabled={loadingMore}
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
               >
-                {loadingMore ? "Loading…" : "Load more jobs"}
+                {isFetchingNextPage ? "Loading…" : "Load more jobs"}
               </Button>
             </div>
           )}

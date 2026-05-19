@@ -1,39 +1,47 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { MapPin, Calendar, DollarSign, ArrowRight, Search, Lock, Timer } from "lucide-react";
+import { ArrowRight, Search, Lock } from "lucide-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { format, formatDistanceToNow, differenceInHours } from "date-fns";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { getCityState } from "@/lib/locationUtils";
-import { parseLocalDate } from "@/lib/dateUtils";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { VirtualList } from "@/components/VirtualList";
 import { categoryLabels } from "@/components/activity/activityConstants";
 import { queryKeys } from "@/lib/queryKeys";
+import JobCard from "@/components/dashboard/JobCard";
+import type { EnrichedJob } from "@/components/dashboard/types";
 
 const DEBUG_AUTH = import.meta.env.DEV;
 
+// Shape of a row from get_ranked_open_jobs. The RPC returns the full job
+// detail set; we type the subset the guest browse card actually reads.
 interface PublicJob {
   id: string;
   title: string;
+  description: string | null;
   category: string;
   location: string;
   budget: number;
   date_needed: string;
+  start_time: string | null;
   is_urgent: boolean | null;
+  urgent_fee: number | null;
+  is_recurring: boolean | null;
+  recurrence_interval: string | null;
+  is_group_job: boolean | null;
+  helpers_needed: number | null;
   created_at: string;
   expires_at: string | null;
+  boost_expires_at: string | null;
 }
 
 const ALL_CATEGORIES = Object.keys(categoryLabels);
@@ -53,6 +61,41 @@ interface JobsPage {
   jobs: PublicJob[];
   nextOffset: number | null;
 }
+
+// Adapt a PublicJob (anon RPC row) to the EnrichedJob shape JobCard
+// expects. Guests have no poster-profile enrichment, so the poster-*
+// fields are intentionally omitted — JobCard renders a neutral avatar
+// fallback. `customer_id`/`status`/`description` satisfy the type;
+// `isBoosted` is derived from the boost-expiry timestamp.
+const toEnrichedJob = (job: PublicJob): EnrichedJob => ({
+  id: job.id,
+  title: job.title,
+  description: job.description ?? "",
+  // The RPC returns the job_category enum; PublicJob types it loosely as
+  // string. JobCard only uses it for categoryLabels/Colors lookups
+  // (both keyed by string), so the cast is display-safe.
+  category: job.category as EnrichedJob["category"],
+  budget: job.budget,
+  date_needed: job.date_needed,
+  start_time: job.start_time,
+  location: job.location,
+  customer_id: "",
+  status: "open",
+  created_at: job.created_at,
+  expires_at: job.expires_at,
+  is_urgent: job.is_urgent ?? false,
+  urgent_fee: job.urgent_fee ?? 0,
+  is_recurring: job.is_recurring ?? false,
+  recurrence_interval: job.recurrence_interval,
+  is_group_job: job.is_group_job ?? false,
+  helpers_needed: job.helpers_needed,
+  isBoosted: !!job.boost_expires_at && new Date(job.boost_expires_at) > new Date(),
+});
+
+// JobCard requires apply/report/select/save handlers. On the public
+// browse page every interaction routes to /signup via the wrapping
+// <Link>, so these are inert no-ops.
+const noop = () => {};
 
 const Jobs = () => {
   usePageTitle("Browse Jobs — Helpr");
@@ -250,75 +293,31 @@ const Jobs = () => {
                   {row.map((job, colIndex) => {
                     const flatIndex = rowIndex * CARDS_PER_ROW + colIndex;
                     return (
-                      <div
+                      // The whole card is a /signup link — phones have no
+                      // hover state, so the guest CTA must be reachable by
+                      // a plain tap. JobCard's guest variant renders the
+                      // persistent "Sign up to apply" affordance inside.
+                      <Link
                         key={job.id}
-                        className="rounded-2xl liquid-glass p-5 space-y-3 hover:border-primary/30 hover:shadow-md transition-all group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
+                        to="/signup"
+                        aria-label={`Sign up to apply for ${job.title}`}
+                        className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-in fade-in slide-in-from-bottom-2 duration-300"
                         style={
                           flatIndex < MAX_STAGGER_CARDS
                             ? { animationDelay: `${flatIndex * 40}ms`, animationFillMode: "both" }
                             : undefined
                         }
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-semibold text-foreground line-clamp-1 text-ds-13">
-                            {job.title}
-                          </h3>
-                          {job.is_urgent && (
-                            <Badge variant="destructive" className="text-ds-10 shrink-0">
-                              Urgent
-                            </Badge>
-                          )}
-                        </div>
-
-                        <Badge variant="secondary" className="text-ds-11">
-                          {categoryLabels[job.category] || job.category}
-                        </Badge>
-
-                        <div className="space-y-1.5 text-ds-11 text-muted-foreground">
-                          <a
-                            href={`https://www.google.com/maps/search/${encodeURIComponent(getCityState(job.location))}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 hover:text-primary transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MapPin className="w-3 h-3" />
-                            <span className="line-clamp-1">{getCityState(job.location)}</span>
-                          </a>
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3 h-3" />
-                            <span>{format(parseLocalDate(job.date_needed), "MMM d, yyyy")}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <DollarSign className="w-3 h-3" />
-                            <span className="font-medium text-foreground">${job.budget}</span>
-                          </div>
-                          <div className={`flex items-center gap-1.5 ${job.expires_at && differenceInHours(new Date(job.expires_at), new Date()) < 24 ? "text-destructive font-medium" : ""}`}>
-                            <Timer className="w-3 h-3" />
-                            <span>
-                              {job.expires_at
-                                ? new Date(job.expires_at) <= new Date()
-                                  ? "Expired"
-                                  : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left"
-                                : "Posted " + formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Locked overlay on hover */}
-                        <div className="absolute inset-0 rounded-2xl bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                          <Lock className="w-5 h-5 text-primary" />
-                          <p className="text-ds-11 font-medium text-foreground">Sign up to apply</p>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="text-ds-11"
-                            onClick={() => navigate("/signup")}
-                          >
-                            Get Started
-                          </Button>
-                        </div>
-                      </div>
+                        <JobCard
+                          job={toEnrichedJob(job)}
+                          variant="guest"
+                          effectiveFee={0}
+                          onApply={noop}
+                          onReport={noop}
+                          onSelect={noop}
+                          index={flatIndex}
+                        />
+                      </Link>
                     );
                   })}
                 </div>

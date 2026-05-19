@@ -42,12 +42,23 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
       const path = `${jobId}/${type}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("proof-photos").upload(path, file);
       if (error) { report(error, { tags: { source: "PhotoProof.upload", proof_type: type } }); continue; }
-      const { data } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
-      if (data?.signedUrl) urls.push(data.signedUrl);
+      const { data, error: signError } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signError) {
+        report(signError, { tags: { source: "PhotoProof.createSignedUrl", proof_type: type } });
+        toast.error("Uploaded, but couldn't generate a preview link.");
+      } else if (data?.signedUrl) {
+        urls.push(data.signedUrl);
+      }
     }
 
     const updateField = type === "before" ? { proof_before_urls: urls } : { proof_after_urls: urls };
-    await supabase.from("jobs").update(updateField).eq("id", jobId);
+    const { error: updateError } = await supabase.from("jobs").update(updateField).eq("id", jobId);
+    if (updateError) {
+      console.error("[PhotoProof] failed to save photo URLs:", updateError);
+      toast.error("Photos uploaded but couldn't be saved to the job. Please try again.");
+      setUploading(false);
+      return;
+    }
 
     toast.success(`${type === "before" ? "Before" : "After"} photos uploaded!`);
     setFiles([]);

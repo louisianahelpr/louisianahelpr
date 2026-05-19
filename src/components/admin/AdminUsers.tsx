@@ -13,6 +13,7 @@ import { Star, ShieldAlert, Clock, MailIcon, ShieldCheck, MessageCircle, Briefca
 import { formatDistanceToNow } from "date-fns";
 import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
+import { VirtualList } from "@/components/VirtualList";
 import { AutoRestrictedRail } from "./AutoRestrictedRail";
 import { DenyUserDialog } from "./DenyUserDialog";
 import { BanDialog } from "./BanDialog";
@@ -652,10 +653,14 @@ const AdminUsers = () => {
       {filtered.length === 0 ? (
         <p className="text-ds-11 text-muted-foreground text-center py-8">No users in this category.</p>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((p) => (
+        <VirtualList
+          items={filtered}
+          getKey={(p) => p.id}
+          estimateSize={100}
+          overscan={8}
+          className="space-y-2"
+          renderItem={(p) => (
             <div
-              key={p.id}
               className="rounded-ds-md liquid-glass p-3 cursor-pointer hover:bg-secondary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={() => openProfile(p)}
               role="button"
@@ -908,8 +913,8 @@ const AdminUsers = () => {
                 </div>
               )}
             </div>
-          ))}
-        </div>
+          )}
+        />
       )}
 
 

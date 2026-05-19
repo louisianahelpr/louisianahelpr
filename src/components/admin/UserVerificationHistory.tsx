@@ -56,10 +56,14 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
     queryKey: ["helper-verifications-actors", actorIds.sort().join(",")],
     enabled: actorIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", actorIds);
+      if (error) {
+        console.error("[UserVerificationHistory] failed to load actor profiles:", error);
+        return new Map<string, string>();
+      }
       return new Map((data ?? []).map((p) => [p.user_id, formatName(p.full_name, "Unknown")]));
     },
     staleTime: 5 * 60_000,

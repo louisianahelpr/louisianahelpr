@@ -56,11 +56,17 @@ const StarRow = ({
           {sublabel}
         </p>
       </div>
-      <div className="flex gap-0.5 shrink-0">
+      <div
+        className="flex gap-0.5 shrink-0"
+        role="radiogroup"
+        aria-label={`${label} rating`}
+      >
         {[1, 2, 3, 4, 5].map((s) => (
           <button
             key={s}
             type="button"
+            role="radio"
+            aria-checked={s === value}
             onClick={() => onChange(s)}
             onMouseEnter={() => setHover(s)}
             onMouseLeave={() => setHover(0)}
@@ -333,6 +339,7 @@ const MiniStars = ({ value }: { value: number }) => (
 export const ReviewList = ({ userId }: ReviewListProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [reportReviewId, setReportReviewId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -347,6 +354,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
         // Surface the failure instead of silently rendering an empty
         // "no reviews yet" state that looks like real data.
         console.error("[ReviewList] failed to load reviews:", error);
+        setLoadFailed(true);
         setLoaded(true);
         return;
       }
@@ -373,6 +381,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
   const qualityAvg = avg("quality");
   const communicationAvg = avg("communication");
 
+  if (loaded && loadFailed) return <p className="text-ds-11 text-destructive">Couldn't load reviews. Please try again later.</p>;
   if (loaded && reviews.length === 0) return <p className="text-ds-11 text-muted-foreground">No reviews yet.</p>;
   if (!loaded && reviews.length === 0) return null;
 

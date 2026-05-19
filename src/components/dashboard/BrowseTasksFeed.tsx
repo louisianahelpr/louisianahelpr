@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback } from "react";
+import { lazy, Suspense, useCallback, useRef, useEffect, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -109,8 +109,34 @@ export function BrowseTasksFeed({
     [setExpandedCardId],
   );
 
+  // Track previous job count to announce newly appended pages to screen
+  // readers via an aria-live="polite" region, without moving focus.
+  const prevJobCountRef = useRef(filters.filteredJobs.length);
+  const [infiniteScrollMsg, setInfiniteScrollMsg] = useState("");
+
+  useEffect(() => {
+    const prev = prevJobCountRef.current;
+    const next = filters.filteredJobs.length;
+    if (next > prev && !isFetchingNextPage) {
+      const added = next - prev;
+      setInfiniteScrollMsg(`${added} more job${added === 1 ? "" : "s"} loaded`);
+    }
+    prevJobCountRef.current = next;
+  }, [filters.filteredJobs.length, isFetchingNextPage]);
+
   return (
     <>
+      {/* Visually hidden aria-live region — announces newly loaded page
+          of jobs to screen readers after infinite scroll without moving
+          focus or interrupting the user mid-scroll. */}
+      <p
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {infiniteScrollMsg}
+      </p>
+
       {view === "map" && (
         <div className="flex-1 min-h-0 px-3 pt-2 pb-0">
           <Suspense fallback={<div className="h-full w-full rounded-t-2xl bg-muted/30 animate-pulse" />}>

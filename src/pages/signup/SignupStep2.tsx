@@ -19,9 +19,21 @@ import {
   ShieldCheck,
   UserRound,
   Lock,
+  AlertCircle,
 } from "lucide-react";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { formatPhone } from "./signupHelpers";
+
+/** Renders a red inline error message below a form field. */
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="flex items-center gap-1 text-ds-11 text-destructive mt-1">
+      <AlertCircle className="w-3 h-3 shrink-0" aria-hidden />
+      {message}
+    </p>
+  );
+}
 
 export interface SignupStep2Props {
   isBusinessSignup: boolean;
@@ -49,6 +61,13 @@ export interface SignupStep2Props {
   onIdChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   inputCls: string;
   labelCls: string;
+  /**
+   * Map of field key → error message string. Populated by the parent's
+   * validateAboutYouStep() so ALL missing fields are shown at once.
+   */
+  fieldErrors?: Record<string, string>;
+  /** Called when the user edits a field, to clear its individual error. */
+  clearFieldError?: (key: string) => void;
   /** Called when the user clicks Back. */
   onBack: () => void;
   /** Called when the user clicks Continue — parent runs validation, then advances step. */
@@ -81,6 +100,8 @@ export function SignupStep2(props: SignupStep2Props) {
     onIdChange,
     inputCls,
     labelCls,
+    fieldErrors = {},
+    clearFieldError,
     onBack,
     onContinue,
   } = props;
@@ -96,10 +117,11 @@ export function SignupStep2(props: SignupStep2Props) {
               id="companyName"
               placeholder="Acme Property Management"
               value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
+              onChange={(e) => { setCompanyName(e.target.value); clearFieldError?.("companyName"); }}
               required
-              className={inputCls}
+              className={`${inputCls}${fieldErrors.companyName ? " border-destructive" : ""}`}
             />
+            <FieldError message={fieldErrors.companyName} />
           </div>
           <p className="text-ds-11 text-muted-foreground">
             You'll be the owner. Invite 1 teammate free (2 seats total) — add more anytime with seat upgrades.
@@ -134,11 +156,12 @@ export function SignupStep2(props: SignupStep2Props) {
             >
               <Camera className="w-5 h-5" strokeWidth={2.25} />
             </div>
-            <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => { onAvatarChange(e); clearFieldError?.("avatar"); }} />
           </label>
           <p className="text-ds-11 text-muted-foreground text-center max-w-[260px] leading-relaxed">
             A clear face photo builds trust with neighbors. JPG or PNG, max 5MB.
           </p>
+          <FieldError message={fieldErrors.avatar} />
         </div>
       </section>
 
@@ -150,11 +173,13 @@ export function SignupStep2(props: SignupStep2Props) {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="firstName" className={labelCls}>First name <span className="text-destructive">*</span></Label>
-            <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} required autoComplete="given-name" className={inputCls} />
+            <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required autoComplete="given-name" className={`${inputCls}${fieldErrors.firstName ? " border-destructive" : ""}`} />
+            <FieldError message={fieldErrors.firstName} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="lastName" className={labelCls}>Last name <span className="text-destructive">*</span></Label>
-            <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} required autoComplete="family-name" className={inputCls} />
+            <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required autoComplete="family-name" className={`${inputCls}${fieldErrors.lastName ? " border-destructive" : ""}`} />
+            <FieldError message={fieldErrors.lastName} />
           </div>
         </div>
         <div className="space-y-2">
@@ -165,21 +190,26 @@ export function SignupStep2(props: SignupStep2Props) {
             inputMode="tel"
             placeholder="(555) 123-4567"
             value={phone}
-            onChange={(e) => setPhone(formatPhone(e.target.value))}
+            onChange={(e) => { setPhone(formatPhone(e.target.value)); clearFieldError?.("phone"); }}
             required
             autoComplete="tel"
             maxLength={14}
-            className={inputCls}
+            className={`${inputCls}${fieldErrors.phone ? " border-destructive" : ""}`}
           />
+          <FieldError message={fieldErrors.phone} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-ds-11">*</span></Label>
-          <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={setDateOfBirth} />
-          <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>You must be at least 18 years old.</p>
+          <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }} />
+          {fieldErrors.dateOfBirth
+            ? <FieldError message={fieldErrors.dateOfBirth} />
+            : <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>You must be at least 18 years old.</p>
+          }
         </div>
         <div className="space-y-2">
           <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
-          <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => setLocation(e.target.value)} required autoComplete="address-level2" className={inputCls} />
+          <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required autoComplete="address-level2" className={`${inputCls}${fieldErrors.location ? " border-destructive" : ""}`} />
+          <FieldError message={fieldErrors.location} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
@@ -187,15 +217,18 @@ export function SignupStep2(props: SignupStep2Props) {
             id="bio"
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"
             value={bio}
-            onChange={(e) => setBio(e.target.value)}
+            onChange={(e) => { setBio(e.target.value); clearFieldError?.("bio"); }}
             rows={4}
             required
             minLength={20}
-            className="rounded-ds-md"
+            className={`rounded-ds-md${fieldErrors.bio ? " border-destructive" : ""}`}
           />
-          <p className={`text-ds-11 ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
-            {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
-          </p>
+          {fieldErrors.bio
+            ? <FieldError message={fieldErrors.bio} />
+            : <p className={`text-ds-11 ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
+                {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
+              </p>
+          }
         </div>
       </section>
 
@@ -242,7 +275,7 @@ export function SignupStep2(props: SignupStep2Props) {
               </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center gap-2 rounded-ds-md border-2 border-dashed border-border bg-card hover:border-primary/60 hover:bg-primary/[0.02] px-4 py-7 cursor-pointer transition-all">
+            <label className={`flex flex-col items-center justify-center gap-2 rounded-ds-md border-2 border-dashed bg-card hover:border-primary/60 hover:bg-primary/[0.02] px-4 py-7 cursor-pointer transition-all ${fieldErrors.idFile ? "border-destructive" : "border-border"}`}>
               <Camera className="w-7 h-7 text-primary/70" strokeWidth={1.75} />
               <span className="text-ds-13 font-semibold text-foreground">Upload your ID</span>
               <span className="text-ds-11 text-muted-foreground">JPG, PNG, or PDF · Max 5MB</span>
@@ -250,10 +283,11 @@ export function SignupStep2(props: SignupStep2Props) {
                 type="file"
                 accept="image/jpeg,image/png,image/webp,application/pdf"
                 className="hidden"
-                onChange={onIdChange}
+                onChange={(e) => { onIdChange(e); clearFieldError?.("idFile"); }}
               />
             </label>
           )}
+          <FieldError message={fieldErrors.idFile} />
         </div>
       </section>
 

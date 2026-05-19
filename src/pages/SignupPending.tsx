@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { MailCheck, Clock, ShieldCheck, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,8 +7,11 @@ import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
 
 const SignupPending = () => {
+  const location = useLocation();
+  // Prefill the email from router state if Signup passed it via navigate()
+  const prefillEmail: string = (location.state as { email?: string } | null)?.email ?? "";
   const [resending, setResending] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefillEmail);
   const [showResend, setShowResend] = useState(false);
 
   const handleResend = async () => {
@@ -117,7 +120,7 @@ const SignupPending = () => {
           ) : (
             <div className="space-y-3">
               <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                Enter your email to resend the verification link:
+                {prefillEmail ? "Confirm your email to resend the verification link:" : "Enter your email to resend the verification link:"}
               </p>
               <input
                 type="email"

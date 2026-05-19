@@ -13,6 +13,7 @@ import {
 import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
@@ -54,7 +55,7 @@ const UserProfile = () => {
   const [showBlock, setShowBlock] = useState(false);
 
   // React Query: cached for 60s, instant on revisit, refresh in background.
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["user-profile", userId],
     enabled: !!userId,
     staleTime: 60_000,
@@ -192,6 +193,24 @@ const UserProfile = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-premium-page pb-safe-nav">
+        <PageHeader
+          eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
+          title={isOwnProfile ? "Profile Review" : "Profile"}
+          meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
+          rightSlot={headerActionPlaceholder}
+        />
+        <main className="container mx-auto px-5 py-6">
+          <div className="max-w-lg mx-auto flex">
+            <ErrorState onRetry={() => refetch()} />
           </div>
         </main>
       </div>

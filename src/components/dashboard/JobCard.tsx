@@ -1,6 +1,6 @@
-import { memo } from "react";
+import { memo, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, DollarSign, Star, Zap, Rocket, Clock, Timer, Users, Repeat,
+  MapPin, Calendar, DollarSign, Star, Zap, Rocket, Clock, Timer, Users, Repeat, Lock,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
@@ -23,6 +23,14 @@ interface JobCardProps {
   onToggleExpand?: (jobId: string) => void;
   isSaved?: boolean;
   onToggleSave?: (jobId: string, saved: boolean) => void;
+  /**
+   * Guest/read-only variant for the public Browse page. Hides helper-only
+   * affordances — the per-helpr "You earn" net-pay math (a guest has no
+   * fee tier yet) — and shows the gross budget with a persistent
+   * "Sign up to apply" CTA instead. The signed-in Dashboard leaves this
+   * unset, so its behaviour is unchanged.
+   */
+  variant?: "default" | "guest";
 }
 
 // Category colors apply ONLY to the category badge pill at the top of
@@ -30,7 +38,8 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default" }: JobCardProps) => {
+  const isGuest = variant === "guest";
   // Per-helpr take-home: gross share minus the platform's commission, plus
   // the customer-paid urgent bonus. Matches JobDetailDialog math 1:1.
   // (The 10% sales tax on the platform commission is paid by the platform,
@@ -40,7 +49,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   const perHelperBudget = job.budget / helpersCount;
   const commission = perHelperBudget * (effectiveFee / 100);
   const netEarnings = perHelperBudget - commission + (job.urgent_fee ?? 0);
-  const earnings = netEarnings.toFixed(2);
+  // Guests have no fee tier yet — show the gross posted budget rather
+  // than a helpr-specific net-pay figure.
+  const earnings = (isGuest ? job.budget : netEarnings).toFixed(2);
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
   const cityState = getCityState(job.location);
@@ -67,20 +78,29 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     .slice(0, 2);
   const ratingDisplay = (job.posterReviewCount ?? 0) > 0 ? job.posterAvgRating?.toFixed(1) : null;
 
+  // In the guest variant the card is wrapped in a /signup <Link> by the
+  // caller (Jobs.tsx), so the card root must NOT be a nested interactive
+  // element — drop role/tabIndex/handlers and let the Link own the tap.
+  const interactiveProps = isGuest
+    ? {}
+    : {
+        onClick: () => onSelect(job),
+        role: "button" as const,
+        tabIndex: 0,
+        "aria-label": `View ${job.title} — $${job.budget}`,
+        onKeyDown: (e: KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(job);
+          }
+        },
+      };
+
   return (
     <div
       style={{ animationDelay: entryDelay, animationFillMode: "both" }}
       className="animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary overflow-hidden"
-      onClick={() => onSelect(job)}
-      role="button"
-      tabIndex={0}
-      aria-label={`View ${job.title} — $${job.budget}`}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect(job);
-        }
-      }}
+      {...interactiveProps}
     >
       {/* Category rail — vertical color stripe down the left edge of
           the card. Makes the feed scannable: same category jobs read as
@@ -314,28 +334,50 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             <DollarSign className="w-3.5 h-3.5" strokeWidth={2.25} />
             {earnings}
           </span>
-          {(job.urgent_fee ?? 0) > 0 && (
+          {!isGuest && (job.urgent_fee ?? 0) > 0 && (
             <span
-              className="font-sans font-semibold mt-0.5 text-[8.5px] tracking-[0.04em]"
+              className="font-sans font-semibold mt-0.5 text-[10px] tracking-[0.04em]"
               style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               incl. ${Number(job.urgent_fee).toFixed(0)} urgent bonus
             </span>
           )}
           <span
-            className="text-[7.5px] uppercase mt-0.5 font-sans"
+            className="text-[10px] uppercase mt-0.5 font-sans"
             style={{
-              color: "hsl(var(--olivewood) / 0.6)",
+              color: "hsl(var(--olivewood) / 0.85)",
               letterSpacing: "0.16em",
               fontWeight: 600,
             }}
           >
-            You earn
+            {isGuest ? "Budget" : "You earn"}
           </span>
         </div>
         </div>
       </div>
 
+      {/* Guest CTA — a persistent (never hover-gated) "Sign up to apply"
+          affordance pinned to the card foot. Phones have no hover state,
+          so the old opacity-0/group-hover overlay was permanently
+          invisible and unclickable on the native app. The whole card is
+          also a /signup link (see the wrapping <a> in Jobs.tsx). */}
+      {isGuest && (
+        <div
+          className="flex items-center justify-center gap-1.5 px-3.5 py-2 border-t"
+          style={{
+            borderColor: "hsl(var(--bark) / 0.12)",
+            background: "hsl(var(--bark) / 0.04)",
+          }}
+        >
+          <Lock className="w-3 h-3" style={{ color: "hsl(var(--primary))" }} />
+          <span
+            className="font-sans font-bold uppercase text-[10px]"
+            style={{ color: "hsl(var(--primary))", letterSpacing: "0.08em" }}
+          >
+            Sign up to apply
+          </span>
+        </div>
+      )}
     </div>
   );
 };

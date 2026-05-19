@@ -17,6 +17,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { hapticSuccess } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
 import { AiJobBuilder, type AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
@@ -537,13 +538,21 @@ const PostJob = () => {
   const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && estimatedHours && parseFloat(estimatedHours) >= 0.5);
   const budgetComplete = !!(budget && parseFloat(budget) >= 5);
 
-  // Budget presets derived from category suggested range
+  // Smart Pricing Guidance — live budget range from real completed jobs
+  // in this category (+ parish), with a graceful fallback to the static
+  // categoryPricing table when the RPC is missing or data is thin.
+  const { stats: priceStats, loading: priceStatsLoading } = useCategoryPriceStats(category, parish);
+
+  // Budget presets derived from category suggested range. Prefer the
+  // live stats range when available so the quick-tap pills track the
+  // real market; otherwise fall back to the static guide.
   const suggested = category && categoryPricing[category] ? categoryPricing[category] : null;
-  const budgetPresets = suggested
+  const presetRange = priceStats ?? suggested;
+  const budgetPresets = presetRange
     ? Array.from(new Set([
-        suggested.min,
-        Math.round((suggested.min + suggested.max) / 2),
-        suggested.max,
+        presetRange.min,
+        priceStats?.median ?? Math.round((presetRange.min + presetRange.max) / 2),
+        presetRange.max,
       ]))
     : [25, 50, 100];
 
@@ -756,6 +765,8 @@ const PostJob = () => {
                   setBudget={setBudget}
                   suggested={suggested}
                   budgetPresets={budgetPresets}
+                  priceStats={priceStats}
+                  priceStatsLoading={priceStatsLoading}
                   isUrgent={isUrgent}
                   setIsUrgent={setIsUrgent}
                   urgentFee={urgentFee}

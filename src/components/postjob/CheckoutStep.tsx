@@ -13,7 +13,9 @@ import {
   DollarSign,
   ChevronLeft,
   CheckCircle2,
+  Users,
 } from "lucide-react";
+import type { HelprActivity } from "@/hooks/useHelprActivity";
 
 const isSafeBlobPreviewUrl = (value: string): boolean => {
   if (!value) return false;
@@ -45,6 +47,8 @@ interface CheckoutStepProps {
   isUrgent: boolean;
   urgentFeeNum: number;
   budgetNum: number;
+  /** Parish-scoped helpr-activity signal, or null when not meaningful. */
+  helprActivity: HelprActivity | null;
   customerFee: number | null;
   customerFeeAmount: number;
   totalCharge: number;
@@ -77,6 +81,7 @@ export function CheckoutStep({
   isUrgent,
   urgentFeeNum,
   budgetNum,
+  helprActivity,
   customerFee,
   customerFeeAmount,
   totalCharge,
@@ -91,6 +96,33 @@ export function CheckoutStep({
   return (
     <>
       <p className="text-muted-foreground text-ds-11">Review your task before paying</p>
+
+      {/* Two-sided liquidity signal — a quiet confidence cue that the
+          helpr side is active before the poster commits to paying.
+          The count is helprs who've worked at least one job in this
+          parish (from get_parish_activity), so the copy says exactly
+          that — never an invented "active this week" figure. Renders
+          only when the count is meaningful (>= 3). */}
+      {helprActivity && (
+        <div
+          className="flex items-center gap-2.5 rounded-ds-md px-3 py-2"
+          style={{
+            background: "hsl(var(--primary) / 0.06)",
+            border: "0.5px solid hsl(var(--primary) / 0.22)",
+          }}
+        >
+          <Users className="w-4 h-4 text-primary shrink-0" strokeWidth={2.25} />
+          <p className="text-ds-11 leading-snug text-foreground">
+            <span className="font-display font-bold tabular-nums">
+              {helprActivity.count} helprs
+            </span>{" "}
+            <span className="text-muted-foreground">
+              have worked jobs in {helprActivity.parish} Parish — your
+              task will reach an active community.
+            </span>
+          </p>
+        </div>
+      )}
 
       {/* Task Details Card */}
       <div className="rounded-2xl liquid-glass overflow-hidden">

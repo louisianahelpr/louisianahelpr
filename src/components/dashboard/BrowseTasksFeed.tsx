@@ -227,7 +227,15 @@ export function BrowseTasksFeed({
               if (inRecommended || inNearby) return false;
             }
             return true;
-          });
+          })
+          // Two-sided liquidity signal — float urgent jobs to the top of
+          // the "Everything else" feed so the helpr side sees the work
+          // that needs them most (and the bonus that comes with it)
+          // first. Stable sort: equal-urgency rows keep the feed's
+          // existing order, so this only lifts urgent jobs without
+          // reshuffling everything else.
+          .slice()
+          .sort((a, b) => Number(b.is_urgent ?? false) - Number(a.is_urgent ?? false));
         const recommendedVisible = !filters.hasFilters
           ? recommendedJobs.filter(j => !dismissedJobIds.has(j.id))
           : [];

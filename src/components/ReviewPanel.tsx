@@ -410,7 +410,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
       </div>
       <div className="space-y-3">
         {reviews.map((r) => (
-          <div key={r.id} className="rounded-lg liquid-glass p-4">
+          <div key={r.id} className="rounded-ds-sm liquid-glass p-4">
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">
                 <div className="flex">

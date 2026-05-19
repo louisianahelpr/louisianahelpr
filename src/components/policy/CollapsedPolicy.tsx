@@ -44,7 +44,7 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
         className={`group w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-ds-md text-left transition-colors btn-press ${warning ? "hover:bg-destructive/10" : "hover:bg-primary/5"}`}
       >
         <span className="flex items-center gap-2.5 min-w-0">
-          <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${warning ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
+          <span className={`shrink-0 w-7 h-7 rounded-ds-sm flex items-center justify-center ${warning ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
             <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
           </span>
           {/* Two-line clamp so long item labels ("Job budget limits —

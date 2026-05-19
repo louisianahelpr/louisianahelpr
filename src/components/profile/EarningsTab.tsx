@@ -268,7 +268,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              className="p-2 rounded-ds-sm hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Earnings settings"
             >
               <Settings className="w-5 h-5" />

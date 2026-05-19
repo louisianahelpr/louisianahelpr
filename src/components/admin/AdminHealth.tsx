@@ -423,7 +423,7 @@ const AdminHealth = () => {
                 : undersupplied ? "text-amber-600 font-semibold"
                 : "text-foreground";
               return (
-                <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-lg liquid-glass p-2 text-ds-13">
+                <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-ds-sm liquid-glass p-2 text-ds-13">
                   <div className="col-span-4 truncate text-foreground">{p.parish}</div>
                   <div className="col-span-3 text-right tabular-nums">{p.openJobs}</div>
                   <div className="col-span-3 text-right tabular-nums">{p.activeHelpers}</div>
@@ -447,15 +447,15 @@ const AdminHealth = () => {
 
         {/* Token stats */}
         <div className="grid grid-cols-3 gap-2 text-ds-13">
-          <div className="rounded-lg bg-background/50 border border-border/40 p-3">
+          <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
             <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Total tokens</div>
             <div className="text-ds-24 font-semibold tabular-nums">{pushStats.total}</div>
           </div>
-          <div className="rounded-lg bg-background/50 border border-border/40 p-3">
+          <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
             <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">iOS</div>
             <div className="text-ds-24 font-semibold tabular-nums">{pushStats.ios}</div>
           </div>
-          <div className="rounded-lg bg-background/50 border border-border/40 p-3">
+          <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
             <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Android</div>
             <div className="text-ds-24 font-semibold tabular-nums">{pushStats.android}</div>
           </div>

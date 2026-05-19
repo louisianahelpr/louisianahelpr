@@ -90,7 +90,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="rounded-lg bg-muted/50 border border-border p-3">
+          <div className="rounded-ds-sm bg-muted/50 border border-border p-3">
             <p className="text-ds-11 text-muted-foreground">
               Current email:{" "}
               <strong className="text-foreground">
@@ -124,7 +124,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
             )}
           </div>
 
-          <div className="rounded-lg bg-accent/10 border border-accent/20 p-3">
+          <div className="rounded-ds-sm bg-accent/10 border border-accent/20 p-3">
             <p className="text-ds-11 text-muted-foreground">
               ⚠️ This will immediately update the user's login email. They'll be notified of the change.
             </p>

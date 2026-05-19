@@ -380,7 +380,7 @@ const AdminJobs = () => {
               {/* Flags banner */}
               {jobFlags.has(detailJob.id) && (
                 resolvedFlags.has(detailJob.id) ? (
-                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 flex items-start justify-between gap-3">
+                  <div className="rounded-ds-sm bg-primary/5 border border-primary/20 p-3 flex items-start justify-between gap-3">
                     <div className="space-y-1.5 flex-1">
                       <p className="text-ds-11 font-semibold text-primary flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Flags marked as resolved
@@ -392,7 +392,7 @@ const AdminJobs = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
+                  <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3 space-y-2">
                     <div className="flex items-start justify-between gap-3">
                       <p className="text-ds-11 font-semibold text-destructive flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5" /> Auto-flagged Issues
@@ -410,7 +410,7 @@ const AdminJobs = () => {
 
               {/* Removal info */}
               {detailJob.removal_reason && (
-                <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3">
+                <div className="rounded-ds-sm bg-destructive/10 border border-destructive/30 p-3">
                   <p className="text-ds-11 font-semibold text-destructive flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5" /> Removed by Admin
                   </p>
@@ -427,7 +427,7 @@ const AdminJobs = () => {
                 <div className="flex gap-2 overflow-x-auto pb-2">
                   {(detailJob.photos || []).map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                      <img loading="lazy" decoding="async" src={url} alt={`Photo ${i + 1}`} className="w-32 h-24 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                      <img loading="lazy" decoding="async" src={url} alt={`Photo ${i + 1}`} className="w-32 h-24 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                     </a>
                   ))}
                 </div>
@@ -446,32 +446,32 @@ const AdminJobs = () => {
               <p className="text-ds-13 text-foreground">{detailJob.description}</p>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-secondary/30 p-3">
+                <div className="rounded-ds-sm bg-secondary/30 p-3">
                   <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Budget</p>
                   <p className="font-semibold text-foreground">${detailJob.budget}</p>
                 </div>
-                <div className="rounded-lg bg-secondary/30 p-3">
+                <div className="rounded-ds-sm bg-secondary/30 p-3">
                   <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>
                   <p className="font-semibold text-foreground">{detailJob.location}</p>
                 </div>
-                <div className="rounded-lg bg-secondary/30 p-3">
+                <div className="rounded-ds-sm bg-secondary/30 p-3">
                   <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date Needed</p>
                   <p className="font-semibold text-foreground">{new Date(detailJob.date_needed).toLocaleDateString()}</p>
                 </div>
                 {detailJob.start_time && (
-                  <div className="rounded-lg bg-secondary/30 p-3">
+                  <div className="rounded-ds-sm bg-secondary/30 p-3">
                     <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Start Time</p>
                     <p className="font-semibold text-foreground">{detailJob.start_time}</p>
                   </div>
                 )}
                 {detailJob.estimated_hours && (
-                  <div className="rounded-lg bg-secondary/30 p-3">
+                  <div className="rounded-ds-sm bg-secondary/30 p-3">
                     <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Est. Hours</p>
                     <p className="font-semibold text-foreground">{detailJob.estimated_hours}h</p>
                   </div>
                 )}
                 {detailJob.platform_fee_amount && (
-                  <div className="rounded-lg bg-secondary/30 p-3">
+                  <div className="rounded-ds-sm bg-secondary/30 p-3">
                     <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Platform Fee</p>
                     <p className="font-semibold text-foreground">${detailJob.platform_fee_amount} ({detailJob.platform_fee_percent}%)</p>
                   </div>
@@ -479,14 +479,14 @@ const AdminJobs = () => {
               </div>
 
               {detailJob.special_requirements && (
-                <div className="rounded-lg bg-secondary/30 p-3">
+                <div className="rounded-ds-sm bg-secondary/30 p-3">
                   <p className="text-ds-11 text-muted-foreground mb-1">Special Requirements</p>
                   <p className="text-ds-13 text-foreground">{detailJob.special_requirements}</p>
                 </div>
               )}
 
               {detailJob.revision_note && (
-                <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+                <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
                   <p className="text-ds-11 text-destructive mb-1">Revision Note</p>
                   <p className="text-ds-13 text-foreground">{detailJob.revision_note}</p>
                 </div>
@@ -561,7 +561,7 @@ const AdminJobs = () => {
               rows={3}
             />
             {detailJob && (
-              <div className="rounded-lg bg-secondary/30 p-3">
+              <div className="rounded-ds-sm bg-secondary/30 p-3">
                 <p className="text-ds-11 text-muted-foreground">Job being removed</p>
                 <p className="text-ds-13 font-medium text-foreground">{detailJob.title}</p>
                 <p className="text-ds-11 text-muted-foreground">${detailJob.budget} · {detailJob.location}</p>
@@ -599,7 +599,7 @@ const AdminJobs = () => {
               a partial refund (job state stays intact). Logged to admin_audit_log.
             </p>
             {detailJob && (
-              <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
+              <div className="rounded-ds-sm bg-secondary/30 p-3 space-y-1">
                 <p className="text-ds-11 text-muted-foreground">Refunding</p>
                 <p className="text-ds-13 font-medium text-foreground">{detailJob.title}</p>
                 <p className="text-ds-11 text-muted-foreground">
@@ -641,7 +641,7 @@ const AdminJobs = () => {
               rows={3}
             />
             {detailJob?.payment_status === "released" && (
-              <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+              <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
                 <p className="text-ds-11 text-destructive font-medium mb-1">⚠️ Money already paid out</p>
                 <p className="text-ds-11 text-foreground">
                   This payment has already been transferred to the helper.

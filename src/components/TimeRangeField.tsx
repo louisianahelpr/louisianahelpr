@@ -53,7 +53,7 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
               type="button"
               onClick={() => setTab(t)}
               className={cn(
-                "h-9 rounded-lg text-ds-13 font-semibold capitalize transition-all",
+                "h-9 rounded-ds-sm text-ds-13 font-semibold capitalize transition-all",
                 tab === t
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",

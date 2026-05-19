@@ -54,10 +54,10 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
           <img loading="lazy" decoding="async"
             src={thumbUrl}
             alt={`Attachment ${index + 1}`}
-            className="w-20 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors"
+            className="w-20 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors"
           />
         ) : (
-          <div className="w-20 h-14 rounded-lg border border-border bg-muted flex items-center justify-center">
+          <div className="w-20 h-14 rounded-ds-sm border border-border bg-muted flex items-center justify-center">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           </div>
         )}
@@ -69,7 +69,7 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
     <button
       type="button"
       onClick={handleOpen}
-      className={`flex items-center gap-1.5 text-ds-11 text-primary hover:underline bg-secondary/30 rounded-lg px-2.5 py-1.5 ${className ?? ""}`}
+      className={`flex items-center gap-1.5 text-ds-11 text-primary hover:underline bg-secondary/30 rounded-ds-sm px-2.5 py-1.5 ${className ?? ""}`}
     >
       <FileText className="w-3.5 h-3.5" />
       <span className="truncate max-w-[120px]">{filename.length > 20 ? filename.slice(-20) : filename}</span>

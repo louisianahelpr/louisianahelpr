@@ -263,11 +263,11 @@ export const PhotoProofGroup = ({
               <div className="flex gap-1.5 flex-wrap">
                 {beforeUrls.slice(0, 3).map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={url} alt={`Before ${i + 1}`} className="w-14 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                    <img loading="lazy" decoding="async" src={url} alt={`Before ${i + 1}`} className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
                 {beforeUrls.length > 3 && (
-                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center text-ds-11 text-muted-foreground font-medium">
+                  <div className="w-14 h-14 rounded-ds-sm bg-muted flex items-center justify-center text-ds-11 text-muted-foreground font-medium">
                     +{beforeUrls.length - 3}
                   </div>
                 )}
@@ -287,11 +287,11 @@ export const PhotoProofGroup = ({
               <div className="flex gap-1.5 flex-wrap">
                 {afterUrls.slice(0, 3).map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={url} alt={`After ${i + 1}`} className="w-14 h-14 rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                    <img loading="lazy" decoding="async" src={url} alt={`After ${i + 1}`} className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
                 {afterUrls.length > 3 && (
-                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center text-ds-11 text-muted-foreground font-medium">
+                  <div className="w-14 h-14 rounded-ds-sm bg-muted flex items-center justify-center text-ds-11 text-muted-foreground font-medium">
                     +{afterUrls.length - 3}
                   </div>
                 )}
@@ -326,7 +326,7 @@ export const PhotoProofGroup = ({
                 <div className="grid grid-cols-3 gap-2">
                   {beforeUrls.map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                      <img loading="lazy" decoding="async" src={url} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                      <img loading="lazy" decoding="async" src={url} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                     </a>
                   ))}
                 </div>
@@ -338,7 +338,7 @@ export const PhotoProofGroup = ({
                 <div className="grid grid-cols-3 gap-2">
                   {afterUrls.map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                      <img loading="lazy" decoding="async" src={url} alt={`After ${i + 1}`} className="w-full aspect-square rounded-lg object-cover border border-border hover:border-primary transition-colors" />
+                      <img loading="lazy" decoding="async" src={url} alt={`After ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                     </a>
                   ))}
                 </div>

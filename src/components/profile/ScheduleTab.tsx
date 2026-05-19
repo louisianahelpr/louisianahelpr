@@ -147,7 +147,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                   <button
                     key={day}
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                    className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-ds-13 transition-colors ${
+                    className={`relative aspect-square flex flex-col items-center justify-center rounded-ds-sm text-ds-13 transition-colors ${
                       isSelected ? "bg-primary text-primary-foreground" :
                       isToday ? "text-primary font-bold ring-2 ring-primary/70 ring-inset bg-primary/8" :
                       "hover:bg-secondary text-foreground"

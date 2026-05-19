@@ -36,7 +36,7 @@ const AdminParishActivity = () => {
     <div className="rounded-ds-md liquid-glass p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-ds-sm bg-accent/10 flex items-center justify-center">
             <MapPin className="w-4 h-4 text-accent-foreground" />
           </div>
           <div>
@@ -49,7 +49,7 @@ const AdminParishActivity = () => {
 
       {loading ? (
         <div className="space-y-2">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-ds-sm" />)}
         </div>
       ) : loadError ? (
         <p className="text-ds-11 text-muted-foreground text-center py-6">Couldn&apos;t load parish activity.</p>
@@ -60,7 +60,7 @@ const AdminParishActivity = () => {
           {rows.map((r, i) => (
             <div
               key={r.parish}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-ds-sm hover:bg-muted/40 transition-colors"
             >
               <span className="text-ds-13 font-bold text-muted-foreground w-5 tabular-nums">{i + 1}</span>
               <div className="flex-1 min-w-0">

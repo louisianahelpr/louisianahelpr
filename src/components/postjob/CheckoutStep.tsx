@@ -145,9 +145,9 @@ export function CheckoutStep({
             <div className="flex gap-2 overflow-x-auto pb-1">
               {imagePreviews.map((src, i) =>
                 isSafeBlobPreviewUrl(src) ? (
-                  <img loading="lazy" decoding="async" key={i} src={src} alt="" className="w-16 h-12 rounded-lg object-cover border border-border" />
+                  <img loading="lazy" decoding="async" key={i} src={src} alt="" className="w-16 h-12 rounded-ds-sm object-cover border border-border" />
                 ) : (
-                  <div key={i} className="w-16 h-12 rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                  <div key={i} className="w-16 h-12 rounded-ds-sm border border-border bg-muted/40 flex items-center justify-center">
                     <ImagePlus className="w-4 h-4 text-muted-foreground" />
                   </div>
                 ),
@@ -179,13 +179,13 @@ export function CheckoutStep({
           </div>
 
            {specialRequirements && (
-            <div className="rounded-lg bg-secondary/30 p-3 mt-2">
+            <div className="rounded-ds-sm bg-secondary/30 p-3 mt-2">
               <p className="text-ds-11 text-muted-foreground font-medium mb-1">Special Requirements</p>
               <p className="text-ds-13 text-foreground">{specialRequirements}</p>
             </div>
           )}
           {isRecurring && (
-            <div className="rounded-lg bg-primary/5 p-3 mt-2">
+            <div className="rounded-ds-sm bg-primary/5 p-3 mt-2">
               <p className="text-ds-11 text-primary font-medium mb-1 flex items-center gap-1"><Repeat className="w-3 h-3" /> Recurring Task</p>
               <p className="text-ds-13 text-foreground capitalize">{recurrenceInterval}{recurrenceEndDate ? ` until ${new Date(recurrenceEndDate + "T00:00").toLocaleDateString()}` : ""}</p>
             </div>

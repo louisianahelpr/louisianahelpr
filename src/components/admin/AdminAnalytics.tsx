@@ -453,7 +453,7 @@ const AdminAnalytics = () => {
           </p>
           <div className="mt-3 space-y-1.5">
             {lateCancelledPaidJobs.map(j => (
-              <div key={j.id} className="flex items-center justify-between text-ds-11 bg-muted/30 rounded-lg px-3 py-2">
+              <div key={j.id} className="flex items-center justify-between text-ds-11 bg-muted/30 rounded-ds-sm px-3 py-2">
                 <span className="text-foreground font-medium truncate mr-2">{j.title}</span>
                 <span className="text-muted-foreground shrink-0">${((j.customer_fee_amount || 0) + (j.platform_fee_amount || 0)).toFixed(2)} retained</span>
               </div>

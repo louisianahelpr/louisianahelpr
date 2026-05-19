@@ -779,7 +779,7 @@ const Dashboard = () => {
       )}
 
       <AlertDialog open={!!confirmDismissJobId} onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}>
-        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg rounded-lg p-4 sm:p-6">
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg rounded-ds-sm p-4 sm:p-6">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-ds-15 sm:text-ds-17">Not Interested?</AlertDialogTitle>
             <AlertDialogDescription className="text-ds-13">

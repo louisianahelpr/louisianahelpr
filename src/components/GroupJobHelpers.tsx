@@ -111,7 +111,7 @@ export function GroupJobHelpers({
       {helpers.length > 0 && (
         <div className="space-y-2">
           {helpers.map((h) => (
-            <div key={h.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
+            <div key={h.id} className="flex items-center justify-between p-2 rounded-ds-sm border border-border">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-ds-11 font-bold">
                   {(h.helperName || "?")[0].toUpperCase()}

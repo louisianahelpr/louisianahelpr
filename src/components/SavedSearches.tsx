@@ -292,7 +292,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 <button
                   type="button"
                   onClick={() => toggleNotify(s)}
-                  className="h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-muted shrink-0 active:scale-[0.95] transition"
+                  className="h-8 w-8 inline-flex items-center justify-center rounded-ds-sm hover:bg-muted shrink-0 active:scale-[0.95] transition"
                   aria-label={s.notify_enabled ? "Mute notifications" : "Enable notifications"}
                   title={s.notify_enabled ? "Notifications on" : "Notifications off"}
                 >
@@ -305,7 +305,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 <button
                   type="button"
                   onClick={() => remove(s.id)}
-                  className="h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-destructive/10 shrink-0 active:scale-[0.95] transition"
+                  className="h-8 w-8 inline-flex items-center justify-center rounded-ds-sm hover:bg-destructive/10 shrink-0 active:scale-[0.95] transition"
                   aria-label="Delete saved search"
                 >
                   <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />

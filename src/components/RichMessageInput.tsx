@@ -162,9 +162,9 @@ export const RichMessageInput = ({
       {stagedFile && (
         <div className="relative inline-block">
           {imagePreview && imagePreview.startsWith("blob:") ? (
-            <img loading="lazy" decoding="async" src={imagePreview} alt="Preview" className="h-20 w-20 rounded-lg object-cover border border-border" />
+            <img loading="lazy" decoding="async" src={imagePreview} alt="Preview" className="h-20 w-20 rounded-ds-sm object-cover border border-border" />
           ) : (
-            <div className="h-20 w-32 rounded-lg border border-border bg-muted flex items-center gap-2 px-3">
+            <div className="h-20 w-32 rounded-ds-sm border border-border bg-muted flex items-center gap-2 px-3">
               <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
               <span className="text-ds-11 text-foreground truncate">{stagedFile.name}</span>
             </div>

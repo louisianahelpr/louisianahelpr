@@ -45,7 +45,7 @@ const DeadlineCountdown = ({ deadline, expiredText, consequenceText, variant = "
     : "bg-yellow-500/5 border-yellow-500/20 text-muted-foreground";
 
   return (
-    <div className={`flex items-start gap-2 p-2 rounded-lg border ${colorClasses}`}>
+    <div className={`flex items-start gap-2 p-2 rounded-ds-sm border ${colorClasses}`}>
       <Timer className="w-4 h-4 shrink-0 mt-0.5" />
       <div className="min-w-0">
         {isExpired ? (

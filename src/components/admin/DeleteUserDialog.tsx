@@ -65,7 +65,7 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
             Are you sure you want to permanently delete{" "}
             <strong className="text-foreground">{formatName(profile?.full_name)}</strong>'s account?
           </p>
-          <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+          <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
             <p className="text-ds-11 text-destructive flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" />
               This action is permanent and cannot be undone. All user data will be removed.

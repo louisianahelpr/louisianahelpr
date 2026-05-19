@@ -499,7 +499,7 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
       className="rounded-ds-md liquid-glass p-4 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
     >
       <div className="flex items-center justify-between mb-2 sm:mb-3">
-        <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center", accentClasses)}>
+        <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-ds-sm flex items-center justify-center", accentClasses)}>
           <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         {trend && (
@@ -531,7 +531,7 @@ const PriorityAlert = ({ label, count, color, onClick }: {
     )}
   >
     <span className={cn(
-      "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center text-ds-11 sm:text-ds-13 font-bold tabular-nums shrink-0",
+      "w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm flex items-center justify-center text-ds-11 sm:text-ds-13 font-bold tabular-nums shrink-0",
       color === "destructive" ? "bg-destructive/15 text-destructive" : "bg-accent/15 text-accent-foreground"
     )}>
       {count}
@@ -612,7 +612,7 @@ const TaxReserveCard = ({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center bg-accent/10 text-accent-foreground shrink-0">
+          <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-ds-sm flex items-center justify-center bg-accent/10 text-accent-foreground shrink-0">
             <Landmark className="w-4 h-4 sm:w-5 sm:h-5" />
           </span>
           <div className="min-w-0">

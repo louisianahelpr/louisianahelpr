@@ -433,7 +433,7 @@ const Signup = () => {
               (window.location.hostname === "localhost" ||
                 window.location.hostname.endsWith(".lovable.app") ||
                 window.location.hostname.endsWith(".lovableproject.com"))) && (
-              <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">
+              <div className="rounded-ds-sm border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">
                 <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
                 <span className="text-muted-foreground">Jump to step:</span>
                 {[1, 2, 3].map((n) => (

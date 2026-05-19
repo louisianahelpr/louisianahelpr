@@ -218,7 +218,7 @@ const AdminReports = () => {
               </div>
 
               {report.description && (
-                <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-lg p-3">{report.description}</p>
+                <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-ds-sm p-3">{report.description}</p>
               )}
 
               <div className="flex flex-wrap gap-2 pt-1">

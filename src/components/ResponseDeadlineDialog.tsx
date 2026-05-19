@@ -75,7 +75,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
             />
           </div>
 
-          <div className="rounded-lg bg-muted/50 border border-border p-3">
+          <div className="rounded-ds-sm bg-muted/50 border border-border p-3">
             <p className="text-ds-11 text-muted-foreground">
               <span className="font-medium text-foreground">⚠️ Denial policy:</span> Helprs who decline jobs repeatedly will face escalating consequences:
             </p>

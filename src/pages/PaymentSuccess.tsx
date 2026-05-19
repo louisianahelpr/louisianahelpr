@@ -88,7 +88,7 @@ const PaymentSuccess = () => {
                       {step.label}
                       {isFirst && (
                         <span
-                          className="ml-2 text-[10px] uppercase tracking-wider font-sans"
+                          className="ml-2 text-ds-10 uppercase tracking-wider font-sans"
                           style={{ color: "hsl(var(--bark))" }}
                         >
                           you are here
@@ -103,7 +103,7 @@ const PaymentSuccess = () => {
               );
             })}
           </ol>
-          <p className="text-[11px] font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+          <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
             If one side confirms and the other doesn't respond within 72 hours, payment is released automatically.
           </p>
         </div>

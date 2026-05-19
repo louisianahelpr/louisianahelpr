@@ -82,7 +82,7 @@ const SortContent = ({
       <button
         key={opt.value}
         onClick={() => { setSortBy(opt.value); onSelect?.(); }}
-        className={`${chipBase} w-full justify-center px-2 h-8 text-[11px] ${sortBy === opt.value ? chipActive : chipIdle}`}
+        className={`${chipBase} w-full justify-center px-2 h-8 text-ds-11 ${sortBy === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>
@@ -130,7 +130,7 @@ const NearbyContent = ({
   const current = locationFilter.startsWith("nearby:") ? parseFloat(locationFilter.slice(7)) : null;
   return (
     <div>
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Nearby radius</p>
+      <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Nearby radius</p>
       <div className="grid grid-cols-4 gap-1.5">
         {radiusOptions.map((mi) => {
           const active = current === mi;
@@ -147,13 +147,13 @@ const NearbyContent = ({
         })}
       </div>
       {current !== null && status === "loading" && (
-        <p className="text-[11px] text-muted-foreground mt-2">Getting your location…</p>
+        <p className="text-ds-11 text-muted-foreground mt-2">Getting your location…</p>
       )}
       {current !== null && status === "error" && (
-        <p className="text-[11px] text-destructive mt-2">{message || "Couldn't get your location"}</p>
+        <p className="text-ds-11 text-destructive mt-2">{message || "Couldn't get your location"}</p>
       )}
       {current !== null && status === "ready" && (
-        <p className="text-[11px] text-muted-foreground mt-2">Showing jobs within {current} miles of you</p>
+        <p className="text-ds-11 text-muted-foreground mt-2">Showing jobs within {current} miles of you</p>
       )}
     </div>
   );
@@ -186,12 +186,12 @@ const AvailabilityContent = ({
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <Clock className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} />
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold text-foreground leading-snug">Only my hours</p>
+          <p className="text-ds-11 font-semibold text-foreground leading-snug">Only my hours</p>
           {!hasAvailability && (
             <button
               type="button"
               onClick={() => navigate("/availability")}
-              className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
+              className="inline-flex items-center gap-0.5 text-ds-10 font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
             >
               Set hours
               <ArrowUpRight className="w-2.5 h-2.5" />
@@ -310,7 +310,7 @@ const JobFilters = ({
         <MobileDropdown icon={ArrowUpDown} label={sortLabel} active={sortBy !== "newest"}>
           {(close) => (
             <>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
+              <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
               <SortContent sortBy={sortBy} setSortBy={setSortBy} onSelect={close} />
             </>
           )}
@@ -319,7 +319,7 @@ const JobFilters = ({
         <MobileDropdown icon={LayoutGrid} label={categoryLabel} active={!!selectedCategory}>
           {(close) => (
             <>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Category</p>
+              <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Category</p>
               <CategoryContent
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
@@ -345,11 +345,11 @@ const JobFilters = ({
           {(close) => (
             <div className="space-y-3">
               <div>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Expires within</p>
+                <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Expires within</p>
                 <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} onSelect={close} />
               </div>
               <div>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Match my availability</p>
+                <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Match my availability</p>
                 <AvailabilityContent
                   matchAvailability={matchAvailability}
                   setMatchAvailability={setMatchAvailability}

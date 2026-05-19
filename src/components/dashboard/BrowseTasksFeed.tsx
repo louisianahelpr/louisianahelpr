@@ -348,7 +348,7 @@ export function BrowseTasksFeed({
               </div>
             )}
             {!hasNextPage && visibleJobs.length >= 25 && (
-              <div className="px-4 py-4 text-center text-[11px] text-muted-foreground">
+              <div className="px-4 py-4 text-center text-ds-11 text-muted-foreground">
                 You've reached the end of the feed.
               </div>
             )}

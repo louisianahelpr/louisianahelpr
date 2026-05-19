@@ -247,7 +247,7 @@ export const PhotoProofGroup = ({
           <span className="text-ds-11 font-semibold text-foreground">Photo Proof</span>
         </div>
         {(hasBefore || hasAfter) && (
-          <button onClick={() => setViewOpen(true)} className="text-[10px] text-primary hover:underline font-medium">
+          <button onClick={() => setViewOpen(true)} className="text-ds-10 text-primary hover:underline font-medium">
             View all
           </button>
         )}
@@ -258,7 +258,7 @@ export const PhotoProofGroup = ({
         <div className="grid grid-cols-2 gap-3">
           {/* Before column */}
           <div className="space-y-1.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
+            <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
             {hasBefore ? (
               <div className="flex gap-1.5 flex-wrap">
                 {beforeUrls.slice(0, 3).map((url, i) => (
@@ -273,7 +273,7 @@ export const PhotoProofGroup = ({
                 )}
               </div>
             ) : (
-              <div className="text-[10px] text-muted-foreground/60 italic">No photos</div>
+              <div className="text-ds-10 text-muted-foreground/60 italic">No photos</div>
             )}
             {showBeforeUpload && (
               <PhotoProof jobId={jobId} type="before" existingUrls={beforeUrls} onUploaded={onUploaded} />
@@ -282,7 +282,7 @@ export const PhotoProofGroup = ({
 
           {/* After column */}
           <div className="space-y-1.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">After</p>
+            <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
             {hasAfter ? (
               <div className="flex gap-1.5 flex-wrap">
                 {afterUrls.slice(0, 3).map((url, i) => (
@@ -297,7 +297,7 @@ export const PhotoProofGroup = ({
                 )}
               </div>
             ) : (
-              <div className="text-[10px] text-muted-foreground/60 italic">No photos</div>
+              <div className="text-ds-10 text-muted-foreground/60 italic">No photos</div>
             )}
             {showAfterUpload && (
               <PhotoProof jobId={jobId} type="after" existingUrls={afterUrls} onUploaded={onUploaded} />

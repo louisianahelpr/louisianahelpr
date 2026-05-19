@@ -136,7 +136,7 @@ export function SignupStep2(props: SignupStep2Props) {
             </div>
             <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
           </label>
-          <p className="text-[11px] text-muted-foreground text-center max-w-[260px] leading-relaxed">
+          <p className="text-ds-11 text-muted-foreground text-center max-w-[260px] leading-relaxed">
             A clear face photo builds trust with neighbors. JPG or PNG, max 5MB.
           </p>
         </div>
@@ -214,7 +214,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <p className="text-ds-11 text-muted-foreground leading-relaxed">
               Driver's license, state ID, or passport. Stored encrypted and used for safety, fraud prevention, and compliance.
             </p>
-            <div className="flex items-center justify-center gap-1.5 text-[11px] text-primary font-medium pt-1">
+            <div className="flex items-center justify-center gap-1.5 text-ds-11 text-primary font-medium pt-1">
               <Lock className="w-3 h-3" /> Encrypted · Never shared publicly
             </div>
           </div>

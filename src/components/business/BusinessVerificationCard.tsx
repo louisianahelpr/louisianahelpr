@@ -226,7 +226,7 @@ export default function BusinessVerificationCard() {
                 </>
               )}
             </Button>
-            <p className="text-[11px] text-muted-foreground mt-1.5">
+            <p className="text-ds-11 text-muted-foreground mt-1.5">
               Images or PDF, max 10MB. Re-uploading puts your business back into review.
             </p>
           </div>
@@ -239,27 +239,27 @@ export default function BusinessVerificationCard() {
 function StatusPill({ status }: { status: Verification["verification_status"] }) {
   if (status === "verified") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/30">
+      <span className="inline-flex items-center gap-1 text-ds-11 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/30">
         <BadgeCheck className="w-3 h-3" /> Verified
       </span>
     );
   }
   if (status === "pending") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium border border-border">
+      <span className="inline-flex items-center gap-1 text-ds-11 px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium border border-border">
         <Clock className="w-3 h-3" /> Pending review
       </span>
     );
   }
   if (status === "rejected") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold border border-destructive/30">
+      <span className="inline-flex items-center gap-1 text-ds-11 px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold border border-destructive/30">
         <ShieldAlert className="w-3 h-3" /> Rejected
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium border border-border">
+    <span className="inline-flex items-center gap-1 text-ds-11 px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium border border-border">
       Not submitted
     </span>
   );

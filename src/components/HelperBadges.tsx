@@ -146,7 +146,7 @@ export function HelperBadges({ badges }: { badges: HelperBadge[] }) {
       {badges.map((badge) => (
         <span
           key={badge.key}
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${badge.color}`}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-semibold ${badge.color}`}
         >
           {badge.icon}
           {badge.label}

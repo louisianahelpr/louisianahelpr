@@ -118,14 +118,14 @@ const AdminHelperTiers = () => {
                     <p className="font-semibold text-ds-13 text-foreground truncate">
                       {formatName(helper.full_name, "—")}
                     </p>
-                    <Badge className={`${TIER_COLOR[helper.tier]} text-[10px] gap-0.5`}>
+                    <Badge className={`${TIER_COLOR[helper.tier]} text-ds-10 gap-0.5`}>
                       <Icon className="w-3 h-3" /> {helper.tier}
                     </Badge>
                     {helper.parish && (
-                      <span className="text-[11px] text-muted-foreground">{helper.parish} Parish</span>
+                      <span className="text-ds-11 text-muted-foreground">{helper.parish} Parish</span>
                     )}
                   </div>
-                  <div className="flex gap-3 text-[11px] text-muted-foreground">
+                  <div className="flex gap-3 text-ds-11 text-muted-foreground">
                     <span className="flex items-center gap-0.5">
                       <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                       {Number(helper.avg_rating).toFixed(2)} avg ({helper.total_reviews} reviews)

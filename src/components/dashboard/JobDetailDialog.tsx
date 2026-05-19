@@ -224,7 +224,7 @@ const JobDetailDialog = ({
               <img loading="lazy" decoding="async" src={transformedImageUrl(photos[0], { width: 512, height: 288 })} alt="Cover" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
               {photos.length > 1 && (
                 <span
-                  className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-sans font-semibold"
+                  className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold"
                   style={{
                     backgroundColor: "hsla(0, 0%, 100%, 0.85)",
                     backdropFilter: "blur(12px) saturate(150%)",
@@ -245,13 +245,13 @@ const JobDetailDialog = ({
         {(job.is_group_job || job.is_recurring) && (
           <div className="flex items-center gap-1.5 flex-wrap">
             {job.is_group_job && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wider border border-primary/20">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-ds-10 font-semibold uppercase tracking-wider border border-primary/20">
                 <Users className="w-3 h-3" strokeWidth={2.25} />
                 {job.helpers_needed ?? 2} helprs needed
               </span>
             )}
             {job.is_recurring && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/40 text-foreground/80 text-[10px] font-semibold uppercase tracking-wider border border-border/60">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/40 text-foreground/80 text-ds-10 font-semibold uppercase tracking-wider border border-border/60">
                 <Repeat className="w-3 h-3" strokeWidth={2.25} />
                 {job.recurrence_interval || "Recurring"}
               </span>
@@ -314,7 +314,7 @@ const JobDetailDialog = ({
               <button
                 type="button"
                 onClick={() => setDescExpanded((v) => !v)}
-                className="mt-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.06em] hover:opacity-80 transition-opacity"
+                className="mt-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] hover:opacity-80 transition-opacity"
                 style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
               >
                 {descExpanded ? "Show less" : "Read more"}
@@ -404,7 +404,7 @@ const JobDetailDialog = ({
                 >
                   <div className="relative z-10">
                     <p
-                      className="flex items-center justify-center gap-1.5 text-[11px] font-sans font-semibold uppercase"
+                      className="flex items-center justify-center gap-1.5 text-ds-11 font-sans font-semibold uppercase"
                       style={{
                         color: urgent ? "hsl(var(--accent))" : "hsl(var(--olivewood) / 0.65)",
                         letterSpacing: "0.06em",
@@ -423,7 +423,7 @@ const JobDetailDialog = ({
                       {value}
                     </p>
                     {sub && (
-                      <p className="font-serif italic text-[11px] truncate text-center mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                      <p className="font-serif italic text-ds-11 truncate text-center mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
                         {sub}
                       </p>
                     )}
@@ -493,7 +493,7 @@ const JobDetailDialog = ({
           </div>
           {payoutExpanded && (
             <div
-              className="mt-2 pt-2 space-y-0.5 text-[11px] font-serif italic"
+              className="mt-2 pt-2 space-y-0.5 text-ds-11 font-serif italic"
               style={{ color: "hsl(var(--olivewood) / 0.85)", borderTop: "0.5px solid hsl(var(--bark) / 0.18)" }}
             >
               <div className="flex justify-between">

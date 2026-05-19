@@ -122,7 +122,7 @@ const AdminSupport = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-ds-13 font-semibold text-foreground">{subject || "No subject"}</p>
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">{cat.label}</Badge>
+                        <Badge variant="outline" className="text-ds-10 px-1.5 py-0">{cat.label}</Badge>
                       </div>
                       <p className="text-ds-11 text-muted-foreground">
                         {ticket.reporter_name}

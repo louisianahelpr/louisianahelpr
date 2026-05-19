@@ -232,7 +232,7 @@ export const PostedJobsTab = ({
                     {/* Applicant message */}
                     {app.message && (
                       <div className="rounded-lg bg-primary/5 border border-primary/15 p-3">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Their Message</p>
+                        <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide mb-1">Their Message</p>
                         <p className="text-ds-13 text-foreground leading-relaxed">{app.message}</p>
                       </div>
                     )}
@@ -240,7 +240,7 @@ export const PostedJobsTab = ({
                     {/* Applicant attachments */}
                     {(app.attachment_urls || []).length > 0 && (
                       <div className="space-y-1.5">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Attached Files</p>
+                        <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide">Attached Files</p>
                         <div className="flex flex-wrap gap-1.5">
                           {(app.attachment_urls || []).map((url, i) => {
                             const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);

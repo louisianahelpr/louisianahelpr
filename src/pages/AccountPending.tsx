@@ -26,7 +26,7 @@ const StepRow = ({
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
       </span>
     ) : (
-      <span className="w-6 h-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0 text-[11px]">
+      <span className="w-6 h-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0 text-ds-11">
         •
       </span>
     );
@@ -51,7 +51,7 @@ const StepRow = ({
       {icon}
       <div className="flex-1 min-w-0">
         <p className={`text-ds-13 font-medium leading-tight ${tone}`}>{label}</p>
-        <p className={`text-[11px] leading-tight ${subTone}`}>{sub}</p>
+        <p className={`text-ds-11 leading-tight ${subTone}`}>{sub}</p>
       </div>
     </div>
   );
@@ -301,10 +301,10 @@ const AccountPending = () => {
               {/* Progress bar */}
               <div className="mt-5">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <span className="text-ds-11 font-medium uppercase tracking-wider text-muted-foreground">
                     Verification progress
                   </span>
-                  <span className="text-[11px] font-semibold text-primary">{progressPct}%</span>
+                  <span className="text-ds-11 font-semibold text-primary">{progressPct}%</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                   <div

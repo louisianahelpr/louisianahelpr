@@ -175,7 +175,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+        <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
           <StickyNote className="w-3.5 h-3.5" /> Internal Admin Notes
           {notes.length > 0 && (
             <span className="text-muted-foreground/70">· {notes.length}</span>
@@ -236,12 +236,12 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                 <div className="flex items-start gap-2 mb-1.5">
                   <Badge
                     variant="outline"
-                    className={`text-[10px] h-5 px-1.5 ${categoryStyle(isEditing ? editingCategory : n.category)}`}
+                    className={`text-ds-10 h-5 px-1.5 ${categoryStyle(isEditing ? editingCategory : n.category)}`}
                   >
                     {categoryLabel(isEditing ? editingCategory : n.category)}
                   </Badge>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="text-ds-11 text-muted-foreground truncate">
                       <span className="font-medium text-foreground">{n.admin_name}</span>
                       <span className="mx-1">·</span>
                       <span title={format(new Date(n.created_at), "PPpp")}>

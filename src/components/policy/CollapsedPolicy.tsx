@@ -107,7 +107,7 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
             </span>
             <span className="min-w-0">
               <p className="font-display font-bold text-foreground leading-tight text-ds-15">{title}</p>
-              <p className="text-[11px] text-muted-foreground line-clamp-2 leading-snug">{subtitle}</p>
+              <p className="text-ds-11 text-muted-foreground line-clamp-2 leading-snug">{subtitle}</p>
             </span>
           </span>
           <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${effectiveOpen ? "rotate-180" : ""}`} />

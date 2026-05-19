@@ -524,7 +524,7 @@ const AdminUsers = () => {
           </button>
         </HoverCardTrigger>
         <HoverCardContent side="top" className="w-72 p-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Recent admin notes ({summary.count})</p>
+          <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-semibold">Recent admin notes ({summary.count})</p>
           {summary.recent.map((n, i) => (
             <div key={i} className="text-ds-11 space-y-0.5 border-l-2 border-accent/40 pl-2">
               <p className="text-foreground line-clamp-3">{n.note}</p>
@@ -580,13 +580,13 @@ const AdminUsers = () => {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 min-w-0 px-1 py-1.5 rounded-md text-[10px] sm:text-ds-13 font-medium transition-colors flex items-center justify-center gap-0.5 ${
+            className={`flex-1 min-w-0 px-1 py-1.5 rounded-md text-ds-10 sm:text-ds-13 font-medium transition-colors flex items-center justify-center gap-0.5 ${
               tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <span className="truncate">{t.label}</span>
             {t.count !== undefined && t.count > 0 && (
-              <span className="text-[9px] sm:text-[10px] bg-destructive/10 text-destructive px-1 py-0.5 rounded-full flex-shrink-0">{t.count}</span>
+              <span className="text-[9px] sm:text-ds-10 bg-destructive/10 text-destructive px-1 py-0.5 rounded-full flex-shrink-0">{t.count}</span>
             )}
           </button>
         ))}
@@ -642,7 +642,7 @@ const AdminUsers = () => {
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="text-[11px] text-primary hover:underline"
+            className="text-ds-11 text-primary hover:underline"
           >
             Clear search
           </button>
@@ -712,7 +712,7 @@ const AdminUsers = () => {
                       ? "bg-accent/20 text-accent-foreground border-accent/30"
                       : "bg-primary/10 text-primary border-primary/20";
                     return (
-                      <Badge variant="outline" className={`mt-1 h-5 px-2 text-[10px] font-semibold ${tone}`}>
+                      <Badge variant="outline" className={`mt-1 h-5 px-2 text-ds-10 font-semibold ${tone}`}>
                         <Clock className="w-2.5 h-2.5 mr-1" />
                         {label}
                       </Badge>
@@ -721,7 +721,7 @@ const AdminUsers = () => {
 
                   {/* Denial reason — surfaced prominently for denied users */}
                   {p.approval_status === "denied" && (
-                    <p className="text-[11px] font-medium text-destructive truncate mt-1" title={p.denial_reason || "No reason on file"}>
+                    <p className="text-ds-11 font-medium text-destructive truncate mt-1" title={p.denial_reason || "No reason on file"}>
                       Denied: {p.denial_reason || "No reason on file"}
                     </p>
                   )}
@@ -901,7 +901,7 @@ const AdminUsers = () => {
               </div>
               {p.approval_status === "pending" && isVerifiedEmail(p) && wasFlaggedByStripe(p) && (
                 <div className="flex gap-1.5 mt-2.5 flex-wrap items-center">
-                  <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-[10px] bg-accent/10 text-accent-foreground border-accent/30">
+                  <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-ds-10 bg-accent/10 text-accent-foreground border-accent/30">
                     <ShieldAlert className="w-3 h-3" />
                     Flagged by Stripe
                   </Badge>

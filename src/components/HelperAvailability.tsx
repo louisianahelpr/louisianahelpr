@@ -193,7 +193,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                         updateSlot(i, "start_time", start);
                         updateSlot(i, "end_time", end);
                       }}
-                      className="h-8 px-2 rounded-lg text-[11px] gap-1.5"
+                      className="h-8 px-2 rounded-lg text-ds-11 gap-1.5"
                     />
                   ) : (
                     <span className="text-ds-11 font-medium text-muted-foreground">Unavailable</span>

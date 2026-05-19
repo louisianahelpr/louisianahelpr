@@ -470,7 +470,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
                 </p>
                 <p className="font-mono text-ds-13 font-semibold">${Number(job.budget).toFixed(2)}</p>
                 {job.is_urgent && (
-                  <p className="text-[10px] uppercase tracking-wide text-destructive font-bold">
+                  <p className="text-ds-10 uppercase tracking-wide text-destructive font-bold">
                     Urgent
                   </p>
                 )}

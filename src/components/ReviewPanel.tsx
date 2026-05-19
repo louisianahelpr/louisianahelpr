@@ -400,7 +400,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
               { label: "Communication", v: communicationAvg },
             ].map((cat) => (
               <div key={cat.label} className="text-center">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{cat.label}</p>
+                <p className="text-ds-10 uppercase tracking-wide text-muted-foreground mb-1">{cat.label}</p>
                 <div className="flex justify-center mb-0.5"><MiniStars value={cat.v} /></div>
                 <p className="text-ds-11 font-semibold text-foreground">{cat.v > 0 ? cat.v.toFixed(1) : "—"}</p>
               </div>
@@ -429,7 +429,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
               </button>
             </div>
             {(r.punctuality || r.quality || r.communication) && (
-              <div className="grid grid-cols-3 gap-2 mb-2 text-[10px]">
+              <div className="grid grid-cols-3 gap-2 mb-2 text-ds-10">
                 {r.punctuality && (
                   <div className="flex items-center gap-1 text-muted-foreground">
                     <span>Punctuality</span><MiniStars value={r.punctuality} />

@@ -82,7 +82,7 @@ const Footer = () => (
         {/* Company */}
         <div className="md:col-span-2">
           <h3
-            className="text-[11px] font-semibold mb-3 uppercase tracking-[0.18em]"
+            className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
           >
             Company
@@ -104,7 +104,7 @@ const Footer = () => (
         {/* Legal */}
         <div className="md:col-span-2">
           <h3
-            className="text-[11px] font-semibold mb-3 uppercase tracking-[0.18em]"
+            className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
           >
             Legal
@@ -131,7 +131,7 @@ const Footer = () => (
         {/* Connect */}
         <div className="md:col-span-3">
           <h3
-            className="text-[11px] font-semibold mb-3 uppercase tracking-[0.18em]"
+            className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
           >
             Connect

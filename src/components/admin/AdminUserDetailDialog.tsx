@@ -123,7 +123,7 @@ export function AdminUserDetailDialog({
                   {stripeBadge(viewProfile)}
 
                   {(viewProfile.application_count || 1) > 1 && (
-                    <Badge variant="outline" className="text-[10px] bg-accent/10 text-accent-foreground border-accent/30">
+                    <Badge variant="outline" className="text-ds-10 bg-accent/10 text-accent-foreground border-accent/30">
                       Applied {viewProfile.application_count}x
                     </Badge>
                   )}
@@ -179,7 +179,7 @@ export function AdminUserDetailDialog({
                               ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                               : <><MailIcon className="w-3.5 h-3.5 mr-1.5" /> Resend Email</>}
                           </Button>
-                          <Badge variant="outline" className={`text-[10px] ${maxReached ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-muted text-muted-foreground"}`}>
+                          <Badge variant="outline" className={`text-ds-10 ${maxReached ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-muted text-muted-foreground"}`}>
                             Sent {sent}/3
                           </Badge>
                         </>
@@ -194,12 +194,12 @@ export function AdminUserDetailDialog({
 
             <Tabs defaultValue="actions" className="w-full flex flex-col flex-1 min-h-0">
               <TabsList className="grid grid-cols-6 w-full flex-shrink-0">
-                <TabsTrigger value="actions" className="text-[10px] sm:text-ds-13 px-1">Actions</TabsTrigger>
-                <TabsTrigger value="overview" className="text-[10px] sm:text-ds-13 px-1">Overview</TabsTrigger>
-                <TabsTrigger value="jobs" className="text-[10px] sm:text-ds-13 px-1">Jobs</TabsTrigger>
-                <TabsTrigger value="reviews" className="text-[10px] sm:text-ds-13 px-1">Reviews</TabsTrigger>
-                <TabsTrigger value="documents" className="text-[10px] sm:text-ds-13 px-1">Docs</TabsTrigger>
-                <TabsTrigger value="emails" className="text-[10px] sm:text-ds-13 px-1">Emails</TabsTrigger>
+                <TabsTrigger value="actions" className="text-ds-10 sm:text-ds-13 px-1">Actions</TabsTrigger>
+                <TabsTrigger value="overview" className="text-ds-10 sm:text-ds-13 px-1">Overview</TabsTrigger>
+                <TabsTrigger value="jobs" className="text-ds-10 sm:text-ds-13 px-1">Jobs</TabsTrigger>
+                <TabsTrigger value="reviews" className="text-ds-10 sm:text-ds-13 px-1">Reviews</TabsTrigger>
+                <TabsTrigger value="documents" className="text-ds-10 sm:text-ds-13 px-1">Docs</TabsTrigger>
+                <TabsTrigger value="emails" className="text-ds-10 sm:text-ds-13 px-1">Emails</TabsTrigger>
               </TabsList>
 
               {/* ===== OVERVIEW TAB ===== */}
@@ -217,15 +217,15 @@ export function AdminUserDetailDialog({
                   <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Contact & Account</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 rounded-ds-md bg-secondary/30 border border-border p-4">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
+                      <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
                       <p className={`text-ds-13 font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
+                      <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Location</p>
                       <p className={`text-ds-13 font-medium ${viewProfile.location ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.location || "Not provided"}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
+                      <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date of Birth</p>
                       <p className={`text-ds-13 font-medium ${viewProfile.date_of_birth ? "text-foreground" : "text-muted-foreground italic"}`}>
                         {viewProfile.date_of_birth
                           ? new Date(viewProfile.date_of_birth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
@@ -233,11 +233,11 @@ export function AdminUserDetailDialog({
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
+                      <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
                       <p className="text-ds-13 font-medium text-foreground">{new Date(viewProfile.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>
+                      <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>
                       <p className="text-ds-13 font-medium text-foreground">{formatDistanceToNow(new Date(viewProfile.updated_at), { addSuffix: true })}</p>
                     </div>
                   </div>
@@ -276,7 +276,7 @@ export function AdminUserDetailDialog({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-ds-md bg-secondary/30 border border-border p-4">
                         {fields.map((f, i) => (
                           <div key={i}>
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
+                            <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">{f.label}</p>
                             <p className={`text-ds-13 font-medium ${f.value ? "text-foreground" : "text-muted-foreground italic"}`}>{f.value || "Not provided"}</p>
                           </div>
                         ))}
@@ -372,12 +372,12 @@ export function AdminUserDetailDialog({
                       {/* Summary */}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="rounded-ds-md bg-secondary/30 border border-border p-3">
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Earned (Worked)</p>
+                          <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Earned (Worked)</p>
                           <p className="text-ds-17 font-semibold text-foreground">${totalEarned.toFixed(2)}</p>
                           <p className="text-muted-foreground text-ds-11">{workedCompleted.length} completed</p>
                         </div>
                         <div className="rounded-ds-md bg-secondary/30 border border-border p-3">
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Spent (Posted)</p>
+                          <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Spent (Posted)</p>
                           <p className="text-ds-17 font-semibold text-foreground">${totalSpent.toFixed(2)}</p>
                           <p className="text-muted-foreground text-ds-11">{postedCompleted.length} completed</p>
                         </div>
@@ -409,7 +409,7 @@ export function AdminUserDetailDialog({
                               <div key={j.id} className="p-3 rounded-lg bg-secondary/30 border border-border">
                                 <div className="flex items-start justify-between gap-2 mb-1">
                                   <p className="text-ds-13 font-medium text-foreground line-clamp-1">{j.title}</p>
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                                  <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
                                     j.status === "completed" ? "bg-primary/10 text-primary" :
                                     j.status === "cancelled" ? "bg-destructive/10 text-destructive" :
                                     "bg-muted text-muted-foreground"
@@ -417,7 +417,7 @@ export function AdminUserDetailDialog({
                                 </div>
                                 <div className="flex items-center justify-between gap-2 text-ds-11 text-muted-foreground">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge variant="outline" className="text-[10px] h-5">{isHelper ? "Worked" : "Posted"}</Badge>
+                                    <Badge variant="outline" className="text-ds-10 h-5">{isHelper ? "Worked" : "Posted"}</Badge>
                                     {j.parish && <span>{j.parish}</span>}
                                     <span>·</span>
                                     <span>{new Date(dateRef).toLocaleDateString()}</span>
@@ -458,7 +458,7 @@ export function AdminUserDetailDialog({
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <div className="min-w-0">
                               <p className="text-ds-13 font-medium text-foreground">From {r.reviewer_name}</p>
-                              {r.job_title && <p className="text-[11px] text-muted-foreground line-clamp-1">on "{r.job_title}"</p>}
+                              {r.job_title && <p className="text-ds-11 text-muted-foreground line-clamp-1">on "{r.job_title}"</p>}
                             </div>
                             <div className="flex items-center gap-0.5 flex-shrink-0">
                               {Array.from({ length: 5 }).map((_, idx) => (
@@ -488,7 +488,7 @@ export function AdminUserDetailDialog({
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <div className="min-w-0">
                               <p className="text-ds-13 font-medium text-foreground">For {r.reviewee_name}</p>
-                              {r.job_title && <p className="text-[11px] text-muted-foreground line-clamp-1">on "{r.job_title}"</p>}
+                              {r.job_title && <p className="text-ds-11 text-muted-foreground line-clamp-1">on "{r.job_title}"</p>}
                             </div>
                             <div className="flex items-center gap-0.5 flex-shrink-0">
                               {Array.from({ length: 5 }).map((_, idx) => (
@@ -733,7 +733,7 @@ export function AdminUserDetailDialog({
                   <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
                     <MailIcon className="w-4 h-4" /> Emails Sent
                     {emailSendStats.length > 0 && (
-                      <Badge variant="secondary" className="ml-1 text-[10px]">
+                      <Badge variant="secondary" className="ml-1 text-ds-10">
                         {emailSendStats.reduce((sum, s) => sum + s.count, 0)} total
                       </Badge>
                     )}
@@ -748,7 +748,7 @@ export function AdminUserDetailDialog({
                             <p className="font-medium text-foreground truncate capitalize">
                               {s.template_name.replace(/[-_]/g, " ")}
                             </p>
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="text-ds-11 text-muted-foreground">
                               Last sent {formatDistanceToNow(new Date(s.last_sent), { addSuffix: true })}
                             </p>
                           </div>

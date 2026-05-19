@@ -459,7 +459,7 @@ const AdminBadgeToggle = () => {
       className="flex items-center gap-1.5 px-2 h-9 rounded-ds-md bg-destructive/10 text-destructive hover:bg-destructive/20 mr-1 btn-press"
     >
       <Shield className="w-3.5 h-3.5" />
-      <span className="text-[11px] font-bold uppercase tracking-wide">Admin</span>
+      <span className="text-ds-11 font-bold uppercase tracking-wide">Admin</span>
     </button>
   );
 };
@@ -504,7 +504,7 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
         </div>
         {trend && (
           <span className={cn(
-            "text-ds-11 sm:text-[11px] font-semibold px-2 py-1 rounded-md flex items-center gap-0.5",
+            "text-ds-11 sm:text-ds-11 font-semibold px-2 py-1 rounded-md flex items-center gap-0.5",
             trend.up ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
           )}>
             {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -634,7 +634,7 @@ const TaxReserveCard = ({
                 type="button"
                 onClick={() => setRatePersisted(opt)}
                 className={cn(
-                  "px-1.5 h-6 rounded-md text-[10px] font-semibold tabular-nums transition-colors",
+                  "px-1.5 h-6 rounded-md text-ds-10 font-semibold tabular-nums transition-colors",
                   active
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted/60 text-muted-foreground hover:bg-muted",
@@ -661,26 +661,26 @@ const TaxReserveCard = ({
       {/* This-quarter row + next due date */}
       <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/50">
         <div>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">This quarter</p>
+          <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">This quarter</p>
           <p className="text-ds-15 font-bold tabular-nums mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
             {statsLoading ? "—" : money(reserveThisQuarter)}
           </p>
-          <p className="text-[10px] text-muted-foreground leading-tight">
+          <p className="text-ds-10 text-muted-foreground leading-tight">
             on {statsLoading ? "—" : money(feesThisQuarter)} in fees
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Next estimate due</p>
+          <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">Next estimate due</p>
           <p className="text-ds-15 font-bold mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
             {dueLabel}
           </p>
-          <p className="text-[10px] text-muted-foreground leading-tight">
+          <p className="text-ds-10 text-muted-foreground leading-tight">
             IRS quarterly estimated tax
           </p>
         </div>
       </div>
 
-      <p className="text-[10px] text-muted-foreground leading-snug italic">
+      <p className="text-ds-10 text-muted-foreground leading-snug italic">
         Park this in a separate account as you earn it and pay quarterly estimates — confirm the exact rate with your CPA.
       </p>
     </div>
@@ -766,7 +766,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
         <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" />
-            <p className="text-[10px] sm:text-ds-11 font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
+            <p className="text-ds-10 sm:text-ds-11 font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
           </div>
           <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
             {stats.pendingApprovals > 0 && (
@@ -787,7 +787,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
 
       {/* Financial Health — full width */}
       <div className="space-y-2 sm:space-y-3">
-        <p className="text-[10px] sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
+        <p className="text-ds-10 sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
         <div className="grid grid-cols-2 gap-4 sm:gap-4">
           <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
@@ -802,7 +802,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       {/* Tax obligations — running reserve estimate so the platform-fee
           income tax never lands as an April surprise. */}
       <div className="space-y-2 sm:space-y-3">
-        <p className="text-[10px] sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Tax Obligations</p>
+        <p className="text-ds-10 sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Tax Obligations</p>
         <TaxReserveCard
           totalFees={stats.totalFees}
           feesThisQuarter={stats.feesThisQuarter}

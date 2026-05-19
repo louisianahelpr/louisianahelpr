@@ -115,7 +115,7 @@ const AdminCredentialQueue = () => {
                   <p className="font-semibold text-ds-13 text-foreground truncate">{r.full_name || "Unnamed"}</p>
                   <p className="text-ds-11 text-muted-foreground truncate">{r.email}</p>
                 </div>
-                <p className="text-[11px] text-muted-foreground shrink-0">
+                <p className="text-ds-11 text-muted-foreground shrink-0">
                   {new Date(r.submitted_at).toLocaleDateString()}
                 </p>
               </div>
@@ -248,7 +248,7 @@ function SignedOpenLink({ path }: { path: string }) {
       type="button"
       onClick={open}
       disabled={busy}
-      className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline disabled:opacity-50"
+      className="inline-flex items-center gap-1 text-ds-11 text-primary hover:underline disabled:opacity-50"
     >
       {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Open <ExternalLink className="w-3 h-3" /></>}
     </button>

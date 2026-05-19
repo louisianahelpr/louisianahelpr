@@ -67,7 +67,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
       <Timer className="w-4 h-4 shrink-0" />
       <div className="min-w-0">
         <p className="text-ds-11 font-semibold tabular-nums">{label}: {timeStr}</p>
-        <p className="text-[10px] opacity-80 mt-0.5">
+        <p className="text-ds-10 opacity-80 mt-0.5">
           {startTime
             ? new Date(jobDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
             : new Date(jobDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + " · Flexible"
@@ -307,7 +307,7 @@ export function AppliedJobCard({
               {/* Your application message — editable */}
               <div className="rounded-lg bg-primary/5 border border-primary/15 p-2" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[10px] text-muted-foreground font-medium">Your Message</p>
+                  <p className="text-ds-10 text-muted-foreground font-medium">Your Message</p>
                   {editingMessageAppId !== app.id && (
                     <button
                       type="button"
@@ -343,7 +343,7 @@ export function AppliedJobCard({
 
               {/* Your attachments */}
               <div className="space-y-1.5">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Your Attachments</p>
+                <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide">Your Attachments</p>
                 {(app.attachment_urls || []).map((url, i) => {
                   const last = url.split('/').pop() || `File ${i + 1}`;
                   let filename = last;
@@ -519,7 +519,7 @@ export function AppliedJobCard({
                       <li><span className="text-foreground font-medium">Approve & complete</span> the job</li>
                       <li>Or <span className="text-foreground font-medium">request a revision</span></li>
                     </ul>
-                    <p className="text-[10px] text-muted-foreground/70 pt-1">If the poster doesn't respond within 72 hours, payment will automatically be released to you.</p>
+                    <p className="text-ds-10 text-muted-foreground/70 pt-1">If the poster doesn't respond within 72 hours, payment will automatically be released to you.</p>
                   </div>
                   {job.helper_completed_at && (
                     <div className="px-3 pb-2.5">
@@ -719,7 +719,7 @@ export function AppliedJobCard({
                 {/* Helper's response */}
                 {hasResponded && (
                   <div className="p-2 rounded-lg bg-primary/5 border border-primary/20">
-                    <p className="text-[10px] text-muted-foreground font-medium">Your response:</p>
+                    <p className="text-ds-10 text-muted-foreground font-medium">Your response:</p>
                     <p className="text-ds-11 text-foreground mt-0.5">"{job.dispute_helper_response}"</p>
                   </div>
                 )}
@@ -764,7 +764,7 @@ export function AppliedJobCard({
                 )}
 
                 {/* Policy note */}
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                <p className="text-ds-10 text-muted-foreground leading-relaxed">
                   If not resolved within 72 hours, payment auto-releases to you.
                 </p>
 

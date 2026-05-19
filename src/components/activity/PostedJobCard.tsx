@@ -66,7 +66,7 @@ const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: string; st
       <Timer className="w-4 h-4 shrink-0" />
       <div className="min-w-0">
         <p className="text-ds-11 font-semibold tabular-nums">{label}: {timeStr}</p>
-        <p className="text-[10px] opacity-80 mt-0.5">
+        <p className="text-ds-10 opacity-80 mt-0.5">
           {startTime
             ? new Date(jobDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
             : new Date(jobDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + " · Flexible"
@@ -227,14 +227,14 @@ export function PostedJobCard({
                 )}
                 {isExpanded && job.special_requirements?.trim() && (
                   <div className="rounded-lg bg-secondary/30 p-2">
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Special Requirements</p>
+                    <p className="text-ds-10 text-muted-foreground mb-0.5">Special Requirements</p>
                     <p className="text-ds-11 text-foreground">{job.special_requirements}</p>
                   </div>
                 )}
                 {(job.description.length > 100 || job.special_requirements?.trim()) && (
                   <button
                     type="button"
-                    className="text-[10px] text-primary hover:underline"
+                    className="text-ds-10 text-primary hover:underline"
                     onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
                   >
                     {isExpanded ? "▲ Less" : "▼ More details"}
@@ -246,7 +246,7 @@ export function PostedJobCard({
               {/* Assigned helper display */}
               {job.helper_id && (job.status === "accepted" || job.status === "in_progress" || job.status === "revision_requested" || job.status === "completed" || job.status === "disputed") && (
                 <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-lg bg-muted/40">
-                  <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0">
                     {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
                   </div>
                   <span className="text-ds-11 text-muted-foreground">Offered to</span>
@@ -274,7 +274,7 @@ export function PostedJobCard({
                           <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
                             <MapPin className="w-3.5 h-3.5 shrink-0" />
                             <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
-                            <span className="ml-auto text-[10px] text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                           {job.poster_confirmed_arrival_at ? (
                             <span className="text-ds-11 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrival confirmed</span>
@@ -504,7 +504,7 @@ export function PostedJobCard({
                         <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
                           <MapPin className="w-3.5 h-3.5 shrink-0" />
                           <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
-                          <span className="ml-auto text-[10px] text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       )}
                       {/* Confirm Arrival + No-Show side by side */}
@@ -604,7 +604,7 @@ export function PostedJobCard({
                       {job.status === "revision_requested" && job.revision_deadline && new Date(job.revision_deadline) < new Date() && !job.revision_completed_at && (
                         <button
                           onClick={() => onDispute(job)}
-                          className="w-full text-[11px] text-muted-foreground hover:text-destructive underline underline-offset-2 py-1 transition-colors"
+                          className="w-full text-ds-11 text-muted-foreground hover:text-destructive underline underline-offset-2 py-1 transition-colors"
                         >
                           Still unresolved? File a formal dispute
                         </button>
@@ -673,7 +673,7 @@ export function PostedJobCard({
                                 <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
                                   <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
                                 </Button>
-                                <p className="text-[10px] text-muted-foreground text-center italic">Request a revision first before filing a dispute</p>
+                                <p className="text-ds-10 text-muted-foreground text-center italic">Request a revision first before filing a dispute</p>
                               </>
                             )}
                           </>
@@ -705,7 +705,7 @@ export function PostedJobCard({
                         {job.dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1 italic">"{job.dispute_reason}"</p>}
                         {job.dispute_helper_response && (
                           <div className="mt-2 p-2 rounded bg-muted/50">
-                            <p className="text-[10px] text-muted-foreground font-medium">Helpr's response:</p>
+                            <p className="text-ds-10 text-muted-foreground font-medium">Helpr's response:</p>
                             <p className="text-ds-11 text-foreground mt-0.5">"{job.dispute_helper_response}"</p>
                           </div>
                         )}
@@ -719,7 +719,7 @@ export function PostedJobCard({
                         )}
                       </div>
                       <div className="p-2 rounded-lg bg-muted/50 border border-border">
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        <p className="text-ds-10 text-muted-foreground leading-relaxed">
                           <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the helpr.
                         </p>
                       </div>

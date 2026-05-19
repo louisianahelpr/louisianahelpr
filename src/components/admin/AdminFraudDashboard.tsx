@@ -138,7 +138,7 @@ const AdminFraudDashboard = () => {
                 {flag.details && (
                   <p className="text-ds-11 text-muted-foreground line-clamp-2">{flag.details}</p>
                 )}
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">
                   {formatDistanceToNow(new Date(flag.created_at), { addSuffix: true })}
                 </p>
               </div>

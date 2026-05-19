@@ -432,7 +432,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             })()}
 
             {!stripeData.payouts_enabled && (
-              <p className="mt-2 text-[11px] text-destructive">
+              <p className="mt-2 text-ds-11 text-destructive">
                 Payouts not yet enabled — finish setup to start receiving funds.
               </p>
             )}
@@ -502,7 +502,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                           <span className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
                             {formatCents(p.amount, p.currency)}
                           </span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${payoutStatusColors[p.status] || "bg-secondary text-secondary-foreground"}`}>
+                          <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium capitalize ${payoutStatusColors[p.status] || "bg-secondary text-secondary-foreground"}`}>
                             {p.status.replace("_", " ")}
                           </span>
                         </div>
@@ -547,15 +547,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                         <h3 className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                           {jobTitle}
                         </h3>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${tone}`}>{t.status}</span>
+                        <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium capitalize ${tone}`}>{t.status}</span>
                       </div>
                       <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                         {date}
                         {t.stripe_transfer_id && (
-                          <span className="ml-2 text-[10px] font-mono opacity-60" title="Stripe transfer ID">{t.stripe_transfer_id.slice(-8)}</span>
+                          <span className="ml-2 text-ds-10 font-mono opacity-60" title="Stripe transfer ID">{t.stripe_transfer_id.slice(-8)}</span>
                         )}
                         {t.failure_reason && t.status === "failed" && (
-                          <span className="block mt-1 text-destructive text-[11px]">{t.failure_reason}</span>
+                          <span className="block mt-1 text-destructive text-ds-11">{t.failure_reason}</span>
                         )}
                       </p>
                     </div>
@@ -642,7 +642,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                           <h3 className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                             {job.title}
                           </h3>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
+                          <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
                         </div>
                         <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                           {job.location} <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span> {new Date(job.date_needed).toLocaleDateString()}
@@ -680,7 +680,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       )}
 
       {/* Muted legal/tax disclosure — bottom of page */}
-      <p className="text-[11px] text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
+      <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
         <Info className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
           <strong className="text-muted-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for helprs who exceed $20,000 in gross payments and 200 transactions in a calendar year. Stripe issues these automatically — no action needed.

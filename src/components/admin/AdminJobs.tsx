@@ -344,9 +344,9 @@ const AdminJobs = () => {
                   {showFlagStyle && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {flags!.slice(0, 2).map((f, i) => (
-                        <span key={i} className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">{f}</span>
+                        <span key={i} className="text-ds-10 bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">{f}</span>
                       ))}
-                      {flags!.length > 2 && <span className="text-[10px] text-destructive">+{flags!.length - 2} more</span>}
+                      {flags!.length > 2 && <span className="text-ds-10 text-destructive">+{flags!.length - 2} more</span>}
                     </div>
                   )}
                 </div>
@@ -627,7 +627,7 @@ const AdminJobs = () => {
                 />
               </div>
               {refundAmount.trim() && Number(refundAmount) > 0 && detailJob && Number(refundAmount) < Number(detailJob.budget) && (
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-ds-11 text-muted-foreground">
                   Partial refund of ${Number(refundAmount).toFixed(2)} of ${Number(detailJob.budget).toFixed(2)} —
                   job stays open, helper not notified.
                 </p>

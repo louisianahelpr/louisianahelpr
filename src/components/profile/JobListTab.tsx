@@ -74,7 +74,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
                 {isPosted ? (
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className="text-ds-15 font-bold text-primary tabular-nums">${job.budget}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
+                    <span className={`text-ds-10 font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
                   </div>
                 ) : (
                   <div className="flex flex-col items-end gap-1.5 shrink-0">

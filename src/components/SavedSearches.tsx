@@ -205,7 +205,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
             </Button>
           </div>
           <p
-            className="text-[11px] font-serif italic"
+            className="text-ds-11 font-serif italic"
             style={{ color: "hsl(var(--olivewood) / 0.7)" }}
           >
             Active filters:{" "}
@@ -277,7 +277,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                     {s.name}
                   </p>
                   <p
-                    className="text-[11px] font-serif italic truncate mt-0.5"
+                    className="text-ds-11 font-serif italic truncate mt-0.5"
                     style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                   >
                     {[

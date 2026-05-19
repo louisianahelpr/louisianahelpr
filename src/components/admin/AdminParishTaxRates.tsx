@@ -192,7 +192,7 @@ const AdminParishTaxRates = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] uppercase tracking-wider text-muted-foreground">State rate %</label>
+                    <label className="text-ds-11 uppercase tracking-wider text-muted-foreground">State rate %</label>
                     <Input
                       type="number"
                       step="0.01"
@@ -201,7 +201,7 @@ const AdminParishTaxRates = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Local rate %</label>
+                    <label className="text-ds-11 uppercase tracking-wider text-muted-foreground">Local rate %</label>
                     <Input
                       type="number"
                       step="0.01"

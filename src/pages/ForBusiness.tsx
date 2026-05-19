@@ -208,7 +208,7 @@ const ForBusiness = () => {
                       </div>
                     ))}
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed text-center">
+                  <p className="text-ds-11 text-muted-foreground mt-3 leading-relaxed text-center">
                     Owner's card charged per job — no monthly fees on Starter.
                   </p>
                 </div>

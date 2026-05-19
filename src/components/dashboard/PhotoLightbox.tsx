@@ -49,7 +49,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex }: Photo
     >
       {/* Counter — top-left */}
       <div
-        className="absolute top-4 left-4 px-2.5 py-1 rounded-full text-[11px] font-sans font-semibold tracking-[0.06em]"
+        className="absolute top-4 left-4 px-2.5 py-1 rounded-full text-ds-11 font-sans font-semibold tracking-[0.06em]"
         style={{
           backgroundColor: "rgba(255, 255, 255, 0.12)",
           backdropFilter: "blur(20px) saturate(150%)",

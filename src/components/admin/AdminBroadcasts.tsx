@@ -250,24 +250,24 @@ const AdminBroadcasts = () => {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-ds-13 font-semibold text-foreground">{b.title}</p>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${typeBadge[b.type] || typeBadge.info}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-ds-10 font-bold uppercase ${typeBadge[b.type] || typeBadge.info}`}>
                     {b.type}
                   </span>
                   {b.pending_push_fan_out_at && !b.push_fanned_out_at ? (
-                    <Badge variant="outline" className="text-[10px] border-amber-500/60 text-amber-700">Pending push</Badge>
+                    <Badge variant="outline" className="text-ds-10 border-amber-500/60 text-amber-700">Pending push</Badge>
                   ) : b.push_fanned_out_at ? (
-                    <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Sent</Badge>
+                    <Badge variant="outline" className="text-ds-10 border-primary/30 text-primary">Sent</Badge>
                   ) : null}
                   {isActive(b) ? (
-                    <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Active</Badge>
+                    <Badge variant="outline" className="text-ds-10 border-primary/30 text-primary">Active</Badge>
                   ) : new Date(b.expires_at) <= new Date() ? (
-                    <Badge variant="outline" className="text-[10px] border-muted-foreground/30 text-muted-foreground">Expired</Badge>
+                    <Badge variant="outline" className="text-ds-10 border-muted-foreground/30 text-muted-foreground">Expired</Badge>
                   ) : (
-                    <Badge variant="outline" className="text-[10px]">Scheduled</Badge>
+                    <Badge variant="outline" className="text-ds-10">Scheduled</Badge>
                   )}
                 </div>
                 <p className="text-ds-11 text-muted-foreground mt-1">{b.message}</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-1">
+                <p className="text-ds-10 text-muted-foreground/60 mt-1">
                   Expires: {new Date(b.expires_at).toLocaleString()}
                 </p>
               </div>

@@ -203,16 +203,16 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
             {/* Step 1: Before helpr selected */}
             <div className={`flex items-start gap-2.5 p-3 rounded-lg border transition-all ${!hasHelper ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" : "bg-muted/20 border-border opacity-50"}`}>
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <p className="text-ds-11 font-semibold text-foreground">Before a helpr is selected</p>
-                  {!hasHelper && <span className="text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
+                  {!hasHelper && <span className="text-ds-10 font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Cancel anytime with no fee. You&apos;ll receive a full refund.</p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">Cancel anytime with no fee. You&apos;ll receive a full refund.</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <CheckCircle className="w-3 h-3 text-primary shrink-0" />
-                  <span className="text-[11px] text-primary font-medium">$0 fee · Full refund · No consequences</span>
+                  <span className="text-ds-11 text-primary font-medium">$0 fee · Full refund · No consequences</span>
                 </div>
               </div>
             </div>
@@ -222,16 +222,16 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             {/* Step 2: After helpr selected */}
             <div className={`p-3 rounded-lg border space-y-2 transition-all ${hasHelper ? "bg-accent/10 border-accent/30 ring-1 ring-accent/20" : "bg-muted/20 border-border opacity-50"}`}>
               <div className="flex items-start gap-2.5">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${hasHelper ? "bg-accent text-accent-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>2</div>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${hasHelper ? "bg-accent text-accent-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>2</div>
                 <div className="flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-ds-11 font-semibold text-foreground">After a helpr is selected</p>
-                    {hasHelper && <span className="text-[10px] font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
+                    {hasHelper && <span className="text-ds-10 font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <p className="text-ds-11 text-muted-foreground mt-0.5">
                     Cancellation fees are <strong className="text-foreground">tiered by timing</strong> to compensate the helpr for their committed time:
                   </p>
-                  <ul className="text-[11px] text-muted-foreground mt-1 space-y-0.5 list-disc list-inside">
+                  <ul className="text-ds-11 text-muted-foreground mt-1 space-y-0.5 list-disc list-inside">
                     <li><strong className="text-foreground">24+ hours before:</strong> 0% (free)</li>
                     <li><strong className="text-foreground">Less than 24 hours:</strong> 25% fee</li>
                     <li><strong className="text-foreground">Less than 2 hours:</strong> 50% fee</li>
@@ -239,7 +239,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                   {hasHelper && (
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <DollarSign className="w-3 h-3 text-accent shrink-0" />
-                      <span className="text-[11px] text-accent font-medium">
+                      <span className="text-ds-11 text-accent font-medium">
                         {feeTier} → {cancellationFeePercent}% fee · Strike recorded
                       </span>
                     </div>
@@ -249,7 +249,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
               {hasHelper && cancellationFee > 0 && (
                 <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
+                  <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
                   <div className="flex justify-between text-ds-11">
                     <span className="text-muted-foreground">Cancellation fee ({cancellationFeePercent}% of ${jobBudget.toFixed(2)})</span>
                     <span className="font-semibold text-foreground">${cancellationFee.toFixed(2)}</span>
@@ -268,7 +268,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               {hasHelper && cancellationFee === 0 && (
                 <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 ml-7 flex items-center gap-2">
                   <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <span className="text-[11px] text-primary font-medium">
+                  <span className="text-ds-11 text-primary font-medium">
                     Free cancellation — more than 24 hours until the job starts.
                   </span>
                 </div>
@@ -296,7 +296,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               </div>
             </div>
             {!hasHelper && (
-              <p className="text-[11px] text-muted-foreground italic">✓ These consequences don&apos;t apply to you — no helpr has been selected.</p>
+              <p className="text-ds-11 text-muted-foreground italic">✓ These consequences don&apos;t apply to you — no helpr has been selected.</p>
             )}
           </div>
 

@@ -144,7 +144,7 @@ const AdminAuditLog = () => {
                   {summary && (
                     <p className="text-ds-11 text-foreground/80 mt-1 break-words">{summary}</p>
                   )}
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <p className="text-ds-11 text-muted-foreground mt-0.5">
                     {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
                   </p>
                 </div>

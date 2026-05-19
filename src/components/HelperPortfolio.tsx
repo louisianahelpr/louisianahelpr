@@ -63,7 +63,7 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
                 loading="lazy"
               />
               {item.beforeUrls.length > 0 && (
-                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-background/80 text-[10px] font-medium text-foreground backdrop-blur-sm">
+                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-background/80 text-ds-10 font-medium text-foreground backdrop-blur-sm">
                   Before & After
                 </div>
               )}

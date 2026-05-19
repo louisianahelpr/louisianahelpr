@@ -193,7 +193,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 className="w-[min(92vw,220px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5"
                 align="end"
               >
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-2 pt-1 pb-1.5">
+                <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest px-2 pt-1 pb-1.5">
                   Sort by
                 </p>
                 {sortOptions.map((opt) => {

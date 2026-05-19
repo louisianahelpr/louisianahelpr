@@ -92,7 +92,7 @@ const AdminSidebar = ({
         {navGroups.map((group) => (
           <SidebarGroup key={group.title} className="py-1">
             {!collapsed && (
-              <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 h-6">
+              <SidebarGroupLabel className="text-ds-10 font-semibold uppercase tracking-widest text-muted-foreground px-3 h-6">
                 {group.title}
               </SidebarGroupLabel>
             )}
@@ -113,7 +113,7 @@ const AdminSidebar = ({
                         {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
                         {badge !== undefined && (
                           <span className={cn(
-                            "text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold px-1",
+                            "text-ds-10 min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold px-1",
                             badgeColor,
                             collapsed && "absolute top-1 right-1"
                           )}>

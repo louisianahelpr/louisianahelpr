@@ -9,8 +9,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // Primary CTA. `text-primary-foreground` nominally resolves to the
+        // light parchment cream via a two-hop token chain
+        // (text-primary-foreground -> --primary-foreground -> --parchment),
+        // but that chain has repeatedly lost the cascade in the Capacitor
+        // WebView and rendered dark-on-olive (reported multiple times). Pin
+        // the cream explicitly with `!text-[...]` plus a descendant `[&_*]`
+        // rule so an `asChild` <a> child can't inherit a darker color
+        // either — independent of variant token resolution.
         default:
-          "bg-gradient-to-b from-primary to-primary/85 text-primary-foreground hover:brightness-110 shadow-[0_1px_0_0_hsl(0_0%_100%/0.15)_inset,0_2px_4px_-2px_hsl(var(--primary)/0.35),0_8px_16px_-4px_hsl(var(--primary)/0.35),0_16px_32px_-8px_hsl(var(--primary)/0.3)] hover:shadow-[0_1px_0_0_hsl(0_0%_100%/0.2)_inset,0_4px_8px_-2px_hsl(var(--primary)/0.4),0_12px_24px_-4px_hsl(var(--primary)/0.45),0_24px_48px_-8px_hsl(var(--primary)/0.35)] hover:-translate-y-px",
+          "bg-gradient-to-b from-primary to-primary/85 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] hover:brightness-110 shadow-[0_1px_0_0_hsl(0_0%_100%/0.15)_inset,0_2px_4px_-2px_hsl(var(--primary)/0.35),0_8px_16px_-4px_hsl(var(--primary)/0.35),0_16px_32px_-8px_hsl(var(--primary)/0.3)] hover:shadow-[0_1px_0_0_hsl(0_0%_100%/0.2)_inset,0_4px_8px_-2px_hsl(var(--primary)/0.4),0_12px_24px_-4px_hsl(var(--primary)/0.45),0_24px_48px_-8px_hsl(var(--primary)/0.35)] hover:-translate-y-px",
         destructive:
           "bg-gradient-to-b from-destructive to-destructive/85 text-destructive-foreground hover:brightness-110 shadow-[0_1px_0_0_hsl(0_0%_100%/0.15)_inset,0_2px_4px_-2px_hsl(var(--destructive)/0.35),0_8px_16px_-4px_hsl(var(--destructive)/0.35),0_16px_32px_-8px_hsl(var(--destructive)/0.3)] hover:-translate-y-px",
         outline:
@@ -19,10 +27,14 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[0_1px_2px_0_hsl(var(--foreground)/0.04),0_4px_12px_-4px_hsl(var(--foreground)/0.08)]",
         ghost: "hover:bg-secondary hover:text-secondary-foreground",
         link: "text-primary underline-offset-4 hover:underline shadow-none",
-        hero: "relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground text-base shadow-[0_1px_0_0_hsl(0_0%_100%/0.2)_inset,0_4px_8px_-2px_hsl(var(--primary)/0.4),0_12px_24px_-4px_hsl(var(--primary)/0.5),0_24px_48px_-12px_hsl(var(--primary)/0.5)] hover:shadow-[0_1px_0_0_hsl(0_0%_100%/0.25)_inset,0_6px_12px_-2px_hsl(var(--primary)/0.45),0_18px_36px_-6px_hsl(var(--primary)/0.55),0_32px_64px_-12px_hsl(var(--primary)/0.55)] hover:-translate-y-0.5 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out",
+        hero: "relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/80 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] text-base shadow-[0_1px_0_0_hsl(0_0%_100%/0.2)_inset,0_4px_8px_-2px_hsl(var(--primary)/0.4),0_12px_24px_-4px_hsl(var(--primary)/0.5),0_24px_48px_-12px_hsl(var(--primary)/0.5)] hover:shadow-[0_1px_0_0_hsl(0_0%_100%/0.25)_inset,0_6px_12px_-2px_hsl(var(--primary)/0.45),0_18px_36px_-6px_hsl(var(--primary)/0.55),0_32px_64px_-12px_hsl(var(--primary)/0.55)] hover:-translate-y-0.5 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out",
         "hero-outline":
           "relative border-2 border-primary/40 bg-background/60 backdrop-blur-md text-primary text-base shadow-[0_2px_8px_-2px_hsl(var(--foreground)/0.08)] hover:border-primary hover:bg-primary/5 hover:shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.35)] hover:-translate-y-0.5",
-        bark: "bg-[hsl(var(--bark))] text-[hsl(var(--parchment))] border border-[hsl(var(--bark))] [font-family:Montserrat,system-ui,sans-serif] font-semibold tracking-[0.01em] hover:brightness-110 hover:-translate-y-px shadow-[0_1px_2px_hsl(var(--bark)/0.18),0_8px_20px_-6px_hsl(var(--bark)/0.34)]",
+        // Bark CTA (used by the auth-screen "Sign in" / "Send reset link"
+        // buttons). Same cascade-loss defense as `default`: pin the cream
+        // text with `!text-[...]` + descendant `[&_*]` so it never renders
+        // dark-on-olive in the WebView.
+        bark: "bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border border-[hsl(var(--bark))] [font-family:Montserrat,system-ui,sans-serif] font-semibold tracking-[0.01em] hover:brightness-110 hover:-translate-y-px shadow-[0_1px_2px_hsl(var(--bark)/0.18),0_8px_20px_-6px_hsl(var(--bark)/0.34)]",
       },
       size: {
         default: "h-14 px-6 py-2 text-[16px]",

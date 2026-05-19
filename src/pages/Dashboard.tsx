@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
 
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -10,26 +10,27 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Clock, XCircle, Star, X, Search } from "lucide-react";
 import { toast } from "sonner";
-import ReportDialog from "@/components/ReportDialog";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
-import OnboardingTour from "@/components/OnboardingTour";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import JobDetailDialog from "@/components/dashboard/JobDetailDialog";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
-import { ApplyConfirmDialog } from "@/components/dashboard/ApplyConfirmDialog";
 import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
-
-import PayoutSetupDialog from "@/components/PayoutSetupDialog";
-
-
-import BirthdayPopup from "@/components/BirthdayPopup";
 import type { EnrichedJob } from "@/components/dashboard/types";
+
+// Dialogs and overlays — none are visible on first paint. Each is code-split
+// and only the dialogs the user actually opens get fetched, keeping the
+// Dashboard route chunk small.
+const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
+const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
+const ReportDialog = lazy(() => import("@/components/ReportDialog"));
+const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
+const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
+const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -471,7 +472,9 @@ const Dashboard = () => {
       header={
         <>
           <DashboardHeader />
-          <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
+          <Suspense fallback={null}>
+            <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
+          </Suspense>
         </>
       }
       aboveTitle={
@@ -725,38 +728,54 @@ const Dashboard = () => {
             />
     </PageScaffold>
 
-      <JobDetailDialog
-        job={detailJob}
-        effectiveFee={effectiveFee}
-        allJobs={allJobs}
-        isSaved={detailJob ? savedJobIds.has(detailJob.id) : false}
-        onToggleSave={handleToggleSave}
-        userLat={filters.userLoc?.status === "ready" ? filters.userLoc.lat : null}
-        userLng={filters.userLoc?.status === "ready" ? filters.userLoc.lng : null}
-        onClose={() => setDetailJob(null)}
-        onApply={handleApplyRequest}
-        onReport={setReportJobId}
-        onSelect={setDetailJob}
-      />
+      {/* Dialog chunks load on demand — only mounted once the user opens
+          them, so the Dashboard route chunk doesn't carry them. */}
+      {detailJob && (
+        <Suspense fallback={null}>
+          <JobDetailDialog
+            job={detailJob}
+            effectiveFee={effectiveFee}
+            allJobs={allJobs}
+            isSaved={detailJob ? savedJobIds.has(detailJob.id) : false}
+            onToggleSave={handleToggleSave}
+            userLat={filters.userLoc?.status === "ready" ? filters.userLoc.lat : null}
+            userLng={filters.userLoc?.status === "ready" ? filters.userLoc.lng : null}
+            onClose={() => setDetailJob(null)}
+            onApply={handleApplyRequest}
+            onReport={setReportJobId}
+            onSelect={setDetailJob}
+          />
+        </Suspense>
+      )}
 
-      {reportJobId && <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />}
+      {reportJobId && (
+        <Suspense fallback={null}>
+          <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />
+        </Suspense>
+      )}
 
-      <OnboardingTour profileCreatedAt={profile?.created_at} />
+      <Suspense fallback={null}>
+        <OnboardingTour profileCreatedAt={profile?.created_at} />
+      </Suspense>
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApplyRequest} />
 
 
-      <ApplyConfirmDialog
-        open={!!confirmApplyJobId}
-        onClose={() => setConfirmApplyJobId(null)}
-        confirmApplyJob={confirmApplyJob}
-        platformFee={platformFee}
-        applyMessage={applyMessage}
-        setApplyMessage={setApplyMessage}
-        applyFiles={applyFiles}
-        setApplyFiles={setApplyFiles}
-        applyLoading={applyLoading}
-        handleApplyConfirm={handleApplyConfirm}
-      />
+      {confirmApplyJobId && (
+        <Suspense fallback={null}>
+          <ApplyConfirmDialog
+            open={!!confirmApplyJobId}
+            onClose={() => setConfirmApplyJobId(null)}
+            confirmApplyJob={confirmApplyJob}
+            platformFee={platformFee}
+            applyMessage={applyMessage}
+            setApplyMessage={setApplyMessage}
+            applyFiles={applyFiles}
+            setApplyFiles={setApplyFiles}
+            applyLoading={applyLoading}
+            handleApplyConfirm={handleApplyConfirm}
+          />
+        </Suspense>
+      )}
 
       <AlertDialog open={!!confirmDismissJobId} onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg rounded-lg p-4 sm:p-6">
@@ -774,7 +793,11 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />
+      {payoutSetupDialogOpen && (
+        <Suspense fallback={null}>
+          <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />
+        </Suspense>
+      )}
 
       {/* Floating-FAB removed — MobileNav already renders a Post FAB at the
           right edge of the bottom dock. Two FABs at the same screen corner

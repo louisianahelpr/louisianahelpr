@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "allowImportingTsExtensions": true,
+    "composite": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "lib": [

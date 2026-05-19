@@ -264,13 +264,22 @@ const Admin = () => {
     if (loading) return;
     loadStats();
     loadUnreadCounts();
+    // Debounce realtime-triggered reloads — admin tables (jobs, profiles,
+    // reports) can receive bursts of writes (e.g. a batch import or a job
+    // lifecycle transition touching multiple rows). Without a debounce each
+    // write fires a full stats reload; 500 ms collapses a burst into one.
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const debouncedReload = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => { loadStats(); loadUnreadCounts(); }, 500);
+    };
     const channel = supabase
       .channel(`admin-realtime-${channelNonce()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => { loadStats(); loadUnreadCounts(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { loadStats(); loadUnreadCounts(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => { loadStats(); loadUnreadCounts(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, debouncedReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, debouncedReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, debouncedReload)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (debounce) clearTimeout(debounce); supabase.removeChannel(channel); };
   }, [loading]);
 
   useEffect(() => {

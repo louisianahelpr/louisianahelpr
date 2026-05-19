@@ -1,39 +1,27 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
-import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
-import { formatName } from "@/lib/utils";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { createNotification } from "@/lib/notifications";
-import { checkProximity } from "@/lib/locationUtils";
-import { aggregateRatings } from "@/lib/reviewStats";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ErrorState } from "@/components/ui/ErrorState";
-import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { PageScaffold } from "@/components/ui/PageScaffold";
-import { toast } from "sonner";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Send, X } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/activity/ActivityDialogs";
 import { PostedJobsTab } from "@/components/activity/PostedJobsTab";
 import { AppliedJobsTab } from "@/components/activity/AppliedJobsTab";
-import {
-  type Job, type Application, type Tab, type EnrichedApplication, type AppliedApp,
-} from "@/components/activity/activityConstants";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SlidersHorizontal } from "lucide-react";
-import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
-import { fetchProfile } from "@/hooks/useProfile";
+import { type Tab } from "@/components/activity/activityConstants";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
-import { queryKeys } from "@/lib/queryKeys";
-import type { ActivityData } from "@/hooks/useActivityData";
+import { useActivityActions } from "@/pages/activity/useActivityActions";
+import {
+  POSTED_STATUS_FILTERS,
+  APPLIED_STATUS_FILTERS,
+  useActivityFilters,
+} from "@/pages/activity/activityFilters";
+import { ActivityHeader } from "@/pages/activity/ActivityHeader";
+import { ActivityEmptyState } from "@/pages/activity/ActivityEmptyState";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
@@ -64,615 +52,24 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     helperReviewedJobIds, refresh,
   } = useActivityData(user);
 
-  // UI state
-  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
-  const [completingJobId, setCompletingJobId] = useState<string | null>(null);
-  const [reportingNoShow, setReportingNoShow] = useState(false);
+  // Data-loading + action handlers + dialog/UI state (extracted hook).
+  const actions = useActivityActions({
+    user,
+    postedJobs,
+    appliedApps,
+    refresh,
+    setStatusFilter,
+  });
 
-  // Dialog state
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [applications, setApplications] = useState<EnrichedApplication[]>([]);
-  const [inlineApplicants, setInlineApplicants] = useState<Record<string, EnrichedApplication[]>>({});
-  const [loadingApplicants, setLoadingApplicants] = useState<Record<string, boolean>>({});
-  const [applicantErrors, setApplicantErrors] = useState<Record<string, boolean>>({});
-  const [editJob, setEditJob] = useState<Job | null>(null);
-  const [boostJobId, setBoostJobId] = useState<string | null>(null);
-  const [enhancedTipJobId, setEnhancedTipJobId] = useState<string | null>(null);
-  const [enhancedTipHelperName, setEnhancedTipHelperName] = useState("");
-  const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
-  const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
-  const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
-  const [deadlineDialogApp, setDeadlineDialogApp] = useState<(Application & { profiles?: any }) | null>(null);
-  const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
-  const [disputeJob, setDisputeJob] = useState<Job | null>(null);
-  const [reviewJob, setReviewJob] = useState<Job | null>(null);
-  const [reviewTarget, setReviewTarget] = useState<{ id: string; name: string } | null>(null);
-  const [helperReviewJob, setHelperReviewJob] = useState<{ jobId: string; posterId: string; posterName: string } | null>(null);
-
-  const { checkHelperStripeConnect } = useStripeConnectCheck();
-  const [idvDialogOpen, setIdvDialogOpen] = useState(false);
-  const [idvStatus, setIdvStatus] = useState<string | undefined>(undefined);
-  const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
-  const [pendingAcceptApp, setPendingAcceptApp] = useState<Application | null>(null);
-
-  const queryClient = useQueryClient();
-
-  // --- Optimistic cache helper ---
-  // Money-path handlers below patch the cached ActivityData *before* the
-  // Supabase write lands so the card moves to its new state instantly. The
-  // helper patches every place a job appears in the cache (the poster's
-  // `postedJobs` row and any `appliedApps[].job` that references it), returns
-  // a snapshot for rollback, and skips entirely if the cache is empty (the
-  // write still runs — it just isn't optimistic). On error the caller restores
-  // the snapshot; on success refresh()/realtime reconciles authoritative state.
-  const optimisticallyPatchJob = useCallback(
-    (jobId: string, patch: Partial<Job>): ActivityData | undefined => {
-      if (!user) return undefined;
-      const key = queryKeys.activity(user.id);
-      const snapshot = queryClient.getQueryData<ActivityData>(key);
-      if (!snapshot) return undefined;
-      queryClient.setQueryData<ActivityData>(key, (prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          postedJobs: prev.postedJobs.map((j) =>
-            j.id === jobId ? { ...j, ...patch } : j,
-          ),
-          appliedApps: prev.appliedApps.map((a) =>
-            a.job_id === jobId && a.job
-              ? { ...a, job: { ...a.job, ...patch } }
-              : a,
-          ),
-        };
-      });
-      return snapshot;
-    },
-    [user, queryClient],
-  );
-
-  // Restore a snapshot taken before an optimistic patch (rollback on error).
-  const rollbackActivity = useCallback(
-    (snapshot: ActivityData | undefined) => {
-      if (!user || !snapshot) return;
-      queryClient.setQueryData<ActivityData>(queryKeys.activity(user.id), snapshot);
-    },
-    [user, queryClient],
-  );
-
-  // --- Action handlers ---
-
-  const fetchApplicants = async (jobId: string): Promise<EnrichedApplication[]> => {
-    const { data: apps, error: appsError } = await supabase.from("applications").select("*").eq("job_id", jobId);
-    if (appsError) throw appsError;
-    if (apps && apps.length > 0) {
-      // Filter out applicants the current user has blocked (or who blocked them)
-      const { getBlockedUserIds } = await import("@/lib/userBlocks");
-      const blockedSet = user ? await getBlockedUserIds(user.id) : new Set<string>();
-      const visibleApps = apps.filter((a: any) => !blockedSet.has(a.helper_id));
-      if (visibleApps.length === 0) return [];
-
-      const helperIds = visibleApps.map((a) => a.helper_id);
-      const [profilesRes, reviewsRes] = await Promise.all([
-        supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
-        supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds).lte("feedback_visible_at", new Date().toISOString()),
-      ]);
-      const reviewStatsMap = aggregateRatings(reviewsRes.data);
-      const enriched = visibleApps.map((app) => {
-        const prof = profilesRes.data?.find((p) => p.user_id === app.helper_id) || null;
-        const stats = reviewStatsMap.get(app.helper_id);
-        return { ...app, profiles: prof, reviewCount: stats?.count ?? 0, avgRating: stats?.avg ?? 0 };
-      });
-      // Boosted Visibility: Pro/Elite helpers appear first in applicant lists
-      const tierOrder = (tier: string | null | undefined) => tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
-      enriched.sort((a, b) => tierOrder(a.profiles?.subscription_tier) - tierOrder(b.profiles?.subscription_tier));
-      enriched.reverse();
-      return enriched;
-    }
-    return [];
-  };
-
-  const loadApplications = async (job: Job) => {
-    setSelectedJob(job);
-    try {
-      const enriched = await fetchApplicants(job.id);
-      setApplications(enriched);
-    } catch {
-      // A failed fetch must not read as "no applicants" — tell the truth.
-      setApplications([]);
-      toast.error("Couldn't load applicants. Please try again.");
-    }
-  };
-
-  const loadInlineApplicants = useCallback(async (jobId: string) => {
-    // Clear any prior error and start loading (supports retry by always re-fetching).
-    setApplicantErrors(prev => ({ ...prev, [jobId]: false }));
-    setLoadingApplicants(prev => ({ ...prev, [jobId]: true }));
-    try {
-      const enriched = await fetchApplicants(jobId);
-      setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
-    } catch {
-      setApplicantErrors(prev => ({ ...prev, [jobId]: true }));
-      toast.error("Couldn't load applicants. Please try again.");
-    } finally {
-      setLoadingApplicants(prev => ({ ...prev, [jobId]: false }));
-    }
-  }, [user]);
-
-  const acceptApplication = async (app: EnrichedApplication) => {
-    hapticMedium();
-    setDeadlineDialogApp(app);
-  };
-
-  const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
-    if (!deadlineDialogApp || !selectedJob || !user) return;
-    const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
-    // Optimistic: move the posted job into the "Awaiting Response" bucket
-    // (status accepted, no helper_confirmed_at) right away so the card jumps
-    // instead of waiting on the RPC + refetch. Rolled back on any error path.
-    const snapshot = optimisticallyPatchJob(selectedJob.id, {
-      status: "accepted",
-      helper_id: deadlineDialogApp.helper_id,
-      response_deadline: deadline,
+  // Status-filter definitions + memoized list/count derivations.
+  const { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts } =
+    useActivityFilters({
+      postedJobs,
+      appliedApps,
+      statusFilter,
+      searchQuery,
+      userId: user?.id,
     });
-    // Atomic accept via the accept_application RPC (migration
-    // 20260518120000): it row-locks the job so two concurrent accepts
-    // can't both book the same single-helper job. (`rpc as any` until
-    // types.ts is regenerated for the new function.)
-    const { error } = await (supabase.rpc as any)("accept_application", {
-      p_application_id: deadlineDialogApp.id,
-      p_deadline: deadline,
-      p_offer_message: initialMessage ?? null,
-    });
-
-    if (error) {
-      const msg = String(error?.message ?? "");
-      // If the RPC isn't deployed yet (migration not applied to this
-      // environment), fall back to a status-guarded direct update so the
-      // accept flow still works. `UPDATE jobs ... WHERE status = 'open'`
-      // is atomic per row, so a second concurrent accept matches zero
-      // rows and is rejected — double-booking is still prevented, just
-      // without the RPC's explicit lock. This branch goes dormant the
-      // moment the migration lands and the RPC starts succeeding.
-      const rpcMissing =
-        String(error?.code ?? "") === "PGRST202" ||
-        /could not find the function|does not exist|schema cache/i.test(msg);
-      if (rpcMissing) {
-        const { data: jobRows, error: jobErr } = await supabase
-          .from("jobs")
-          .update({ status: "accepted", helper_id: deadlineDialogApp.helper_id, response_deadline: deadline })
-          .eq("id", selectedJob.id)
-          .eq("status", "open")
-          .select("id");
-        if (jobErr || !jobRows || jobRows.length === 0) {
-          rollbackActivity(snapshot);
-          toast.error("This job is no longer open — it may already be assigned.");
-          return;
-        }
-        const { error: appErr } = await supabase
-          .from("applications")
-          .update({ status: "accepted", ...(initialMessage ? { offer_message: initialMessage } : {}) })
-          .eq("id", deadlineDialogApp.id);
-        if (appErr) {
-          rollbackActivity(snapshot);
-          toast.error("Couldn't send the offer — please try again.");
-          return;
-        }
-      } else {
-        rollbackActivity(snapshot);
-        toast.error(
-          msg.includes("job_not_open")
-            ? "This job is no longer open — it may already be assigned."
-            : msg.includes("application_not_pending")
-              ? "This applicant can no longer be accepted."
-              : msg.includes("not_authorized")
-                ? "You can only accept applicants on a job you posted."
-                : "Couldn't send the offer — please try again.",
-        );
-        return;
-      }
-    }
-    await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: "/my-jobs?filter=offered" });
-    toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);
-    setDeadlineDialogApp(null);
-    setSelectedJob(null);
-    setApplications([]);
-    setInlineApplicants(prev => { const copy = { ...prev }; delete copy[selectedJob.id]; return copy; });
-    await refresh();
-    setStatusFilter("offered");
-  };
-
-  const handleHelperResponse = async (app: Application, accept: boolean) => {
-    if (!user) return;
-    if (accept) {
-      const stripeCheck = await checkHelperStripeConnect();
-      if (!stripeCheck.ok) { toast.error(stripeCheck.reason); return; }
-
-      // Identity verification gate — required before first accept
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("idv_status, idv_failure_reason")
-        .eq("user_id", user.id)
-        .single();
-      const idvStatus = (prof as { idv_status?: string })?.idv_status;
-      if (idvStatus !== "verified") {
-        setPendingAcceptApp(app);
-        setIdvStatus(idvStatus);
-        setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
-        setIdvDialogOpen(true);
-        return;
-      }
-
-      // Optimistic: move this applied job from the "Awaiting Response"
-      // bucket into "Accepted" instantly (helper_confirmed_at set, deadline
-      // cleared) so the card transitions on tap, not after the refetch.
-      const confirmedAt = new Date().toISOString();
-      const snapshot = optimisticallyPatchJob(app.job_id, {
-        helper_confirmed_at: confirmedAt,
-        response_deadline: null,
-      });
-      const { error: confirmError } = await supabase
-        .from("jobs")
-        .update({ helper_confirmed_at: confirmedAt, response_deadline: null })
-        .eq("id", app.job_id);
-      if (confirmError) {
-        rollbackActivity(snapshot);
-        hapticError();
-        toast.error("Couldn't accept the job — please try again.");
-        return;
-      }
-      await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
-      hapticSuccess();
-      toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
-      await refresh();
-      setStatusFilter("accepted");
-    } else {
-      // Decline — atomic via the decline_job_offer RPC (migration
-      // 20260518140000): the violation insert, ban escalation, app
-      // rejection and job reopen all run in one transaction. Falls back
-      // to the pre-migration multi-step path (atomic per-row only) if
-      // the RPC isn't deployed to this environment yet — that branch
-      // goes dormant once the migration lands.
-      let actionTaken = "none";
-      let priorCount = 0;
-      const declineTitle = (app as AppliedApp).job?.title || "Unknown";
-
-      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("decline_job_offer", {
-        p_application_id: app.id,
-      });
-
-      if (rpcError) {
-        const msg = String(rpcError?.message ?? "");
-        const rpcMissing =
-          String(rpcError?.code ?? "") === "PGRST202" ||
-          /could not find the function|does not exist|schema cache/i.test(msg);
-        if (!rpcMissing) {
-          toast.error(
-            /offer_not_active/.test(msg)
-              ? "This offer is no longer active."
-              : "Couldn't record your response — please try again.",
-          );
-          return;
-        }
-        const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
-        priorCount = existing?.length || 0;
-        // Softened: 5 strikes with graduated warnings before ban
-        actionTaken = priorCount >= 4 ? "permanent_ban" : priorCount >= 2 ? "warning" : "none";
-        await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${declineTitle}"`, job_id: app.job_id, action_taken: actionTaken });
-        if (actionTaken === "warning") {
-          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", user.id);
-        } else if (actionTaken === "permanent_ban") {
-          await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id });
-          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", user.id);
-        }
-        await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id);
-        await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null }).eq("id", app.job_id);
-      } else {
-        actionTaken = (rpcData?.action as string) ?? "none";
-        priorCount = (rpcData?.prior_count as number) ?? 0;
-      }
-
-      // Notifications (best-effort) + toasts — shared by both paths.
-      if (actionTaken === "warning") {
-        const warningNum = priorCount + 1;
-        await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/4)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. Declining ${5 - warningNum} more will result in a permanent ban.`, type: "warning", link: "/profile" });
-        toast.warning(`Warning ${warningNum}/4: You've declined a job offer.`);
-      } else if (actionTaken === "permanent_ban") {
-        toast.error("Your account has been permanently banned due to repeated job offer declines.");
-      }
-      if (actionTaken !== "none") {
-        const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-        for (const admin of adminRoles ?? []) {
-          await createNotification({ user_id: admin.user_id, title: "⚠️ Helpr declined job offer", message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`, type: "warning", link: "/admin" });
-        }
-      }
-      toast.info("You declined the job. The poster can select someone else.");
-      refresh();
-    }
-  };
-
-  const tryCancelJob = async (job: Job) => {
-    const { data: tracking } = await supabase.from("job_tracking").select("status").eq("job_id", job.id).order("created_at", { ascending: false }).limit(1);
-    const trackingStatus = tracking?.[0]?.status;
-    if (trackingStatus && ["on_the_way", "arrived", "working", "done"].includes(trackingStatus)) {
-      toast.error("This job can't be cancelled — the helpr is already on the way or working.", { duration: 5000 });
-      return;
-    }
-    setCancelDialogJob(job);
-  };
-
-  const completeJob = async (jobId: string) => {
-    setCompletingJobId(jobId);
-    try {
-      const isHelper = appliedApps.some(a => a.job_id === jobId && a.helper_id === user?.id);
-      if (isHelper) {
-        const job = appliedApps.find(a => a.job_id === jobId)?.job;
-        if (job) {
-          // GPS proximity check with photo fallback
-          const proximity = await checkProximity(job.latitude, job.longitude);
-          if (!proximity.allowed) {
-            // Check if helper has a verified arrival check-in (GPS or photo fallback)
-            const { data: arrivalCheckins } = await supabase
-              .from("job_checkins")
-              .select("id")
-              .eq("job_id", jobId)
-              .eq("user_id", user!.id)
-              .in("type", ["arrival", "arrival_photo"])
-              .limit(1);
-
-            if (!arrivalCheckins?.length) {
-              const miles = ((proximity.distance || 0) / 5280).toFixed(1);
-              toast.error(
-                `You must be within 500ft of the job site or have a verified arrival check-in. You're ~${miles} miles away. If your GPS is off, use the "Check In with Photo" option.`,
-                { duration: 8000 }
-              );
-              return;
-            }
-          }
-
-          // Require after-photos for jobs $50+
-          if (job.budget >= 50) {
-            const { data: jobData } = await supabase
-              .from("jobs")
-              .select("proof_after_urls")
-              .eq("id", jobId)
-              .single();
-            const afterPhotos = jobData?.proof_after_urls || [];
-            if (afterPhotos.length === 0) {
-              toast.error("After-photos are required for jobs $50+. Please upload proof photos before marking complete.", { duration: 6000 });
-              return;
-            }
-          }
-        }
-      }
-      const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (data?.bothDone) {
-        hapticSuccess();
-        toast.success("Job completed! Payment released.");
-        // Brand-tinted confetti for the first 3 completed jobs — fades to
-        // silent after to avoid noise on regulars.
-        const { maybeCelebrate } = await import("@/lib/celebrate");
-        void maybeCelebrate("first_complete", { particleCount: 120 });
-        await refresh();
-        setStatusFilter("completed");
-      } else {
-        hapticMedium();
-        toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
-        await refresh();
-      }
-    } catch (err: any) {
-      hapticError();
-      toast.error(err.message || "Failed to complete job");
-    } finally {
-      setCompletingJobId(null);
-    }
-  };
-
-  const resolveRevision = async (jobId: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "resolve_revision", jobId } });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      toast.success("Revision resolved! Job is back in progress.");
-      refresh();
-    } catch (err: any) { toast.error(err.message || "Failed to resolve revision"); }
-  };
-
-  const confirmStartJob = async (jobId: string) => {
-    // Optimistic: flip the card to "In Progress" immediately.
-    const snapshot = optimisticallyPatchJob(jobId, { status: "in_progress" });
-    const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
-    if (error) {
-      rollbackActivity(snapshot);
-      toast.error("Failed to confirm start");
-    } else {
-      const job = postedJobs.find(j => j.id === jobId);
-      if (job?.helper_id) {
-        await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
-      }
-      toast.success("Job started! It's now in progress.");
-      await refresh();
-      setStatusFilter("in_progress");
-    }
-  };
-
-  const confirmArrival = async (jobId: string) => {
-    // Optimistic: mark arrival confirmed on the card right away.
-    const arrivedAt = new Date().toISOString();
-    const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_arrival_at: arrivedAt });
-    const { error } = await supabase.from("jobs").update({ poster_confirmed_arrival_at: arrivedAt }).eq("id", jobId);
-    if (error) { rollbackActivity(snapshot); toast.error("Failed to confirm arrival"); return; }
-    const job = postedJobs.find(j => j.id === jobId);
-    if (job?.helper_id) {
-      await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
-    }
-    toast.success("Arrival confirmed!");
-    refresh();
-  };
-
-  const confirmWorking = async (jobId: string) => {
-    // Optimistic: mark "helpr working" confirmed on the card right away.
-    const workingAt = new Date().toISOString();
-    const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_working_at: workingAt });
-    const { error } = await supabase.from("jobs").update({ poster_confirmed_working_at: workingAt }).eq("id", jobId);
-    if (error) { rollbackActivity(snapshot); toast.error("Failed to confirm"); return; }
-    const job = postedJobs.find(j => j.id === jobId);
-    if (job?.helper_id) {
-      await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
-    }
-    toast.success("Confirmed helpr is working!");
-    refresh();
-  };
-
-  const handleNoShow = async (jobId: string) => {
-    if (!user) return;
-    setReportingNoShow(true);
-    try {
-      const job = postedJobs.find((j) => j.id === jobId);
-      if (!job?.helper_id) return;
-      const helperId = job.helper_id;
-
-      // Atomic via the report_helper_no_show RPC (migration
-      // 20260518140000): violation, ban escalation and job reopen run
-      // in one transaction. Falls back to the pre-migration multi-step
-      // path if the RPC isn't deployed to this environment yet.
-      let actionTaken = "warning";
-      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("report_helper_no_show", {
-        p_job_id: jobId,
-      });
-
-      if (rpcError) {
-        const msg = String(rpcError?.message ?? "");
-        const rpcMissing =
-          String(rpcError?.code ?? "") === "PGRST202" ||
-          /could not find the function|does not exist|schema cache/i.test(msg);
-        if (!rpcMissing) { toast.error("Couldn't report the no-show — please try again."); return; }
-        const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", helperId).eq("violation_type", "no_show");
-        const priorCount = existing?.length || 0;
-        actionTaken = priorCount >= 1 ? "permanent_ban" : "warning";
-        await supabase.from("user_violations").insert({ user_id: helperId, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: actionTaken });
-        if (actionTaken === "permanent_ban") {
-          await supabase.from("user_bans").insert({ user_id: helperId, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
-          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", helperId);
-        } else {
-          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", helperId);
-        }
-        await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", jobId);
-      } else {
-        actionTaken = (rpcData?.action as string) ?? "warning";
-      }
-
-      // Notifications (best-effort) — shared by both paths.
-      const banned = actionTaken === "permanent_ban";
-      await createNotification({ user_id: helperId, title: banned ? "⛔ Account banned for no-show" : "⚠️ No-show warning", message: banned ? "Your account has been permanently banned for repeated no-shows." : `You received a no-show warning for "${job.title}".`, type: "warning", link: "/profile" });
-      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      for (const admin of adminRoles ?? []) {
-        await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${banned ? "Auto-banned." : "Warning issued."}`, type: "warning", link: "/admin" });
-      }
-      toast.success("No-show reported. Job reopened.");
-      refresh();
-    } catch (err: any) { toast.error(err.message || "Failed to report no-show"); }
-    finally { setReportingNoShow(false); setNoShowJobId(null); }
-  };
-
-  const openReviewForPosted = async (job: Job) => {
-    if (!job.helper_id) return;
-    // Use shared fetchProfile so the read goes through the same code
-    // path React Query callers use. Direct supabase.from inline reads
-    // fragment caching across the app — see src/hooks/useProfile.ts.
-    const helperProfile = await fetchProfile(job.helper_id);
-    setReviewTarget({ id: job.helper_id, name: formatName(helperProfile?.full_name, "Helpr") });
-    setReviewJob(job);
-  };
-
-  // --- Filters ---
-  const postedStatusFilters = useMemo(() => [
-    { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
-    { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
-    // "Awaiting Helpr's Response" — the poster sent an offer; the helpr hasn't confirmed yet.
-    { key: "offered", label: "Awaiting Helpr's Response", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
-    { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
-    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
-  ], []);
-
-  const appliedStatusFilters = useMemo(() => [
-    { key: "pending", label: "Applied", color: "bg-secondary text-secondary-foreground border-border" },
-    { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
-    // "Respond to Offer" — the poster selected me; I need to accept or decline.
-    { key: "offered", label: "Respond to Offer", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
-    { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
-    { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-    { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
-    { key: "not_selected", label: "Not Selected", color: "bg-destructive/15 text-destructive border-destructive/30" },
-  ], []);
-
-  const searchLower = searchQuery.toLowerCase().trim();
-
-  const filteredPostedJobs = useMemo(() =>
-    postedJobs.filter((j) => {
-      // Status filter
-      let statusMatch = false;
-      if (statusFilter === "direct_offer") statusMatch = !!j.offered_to_helper_id && j.direct_offer_status === "pending";
-      else if (statusFilter === "offered") statusMatch = j.status === "accepted" && !j.helper_confirmed_at;
-      else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!j.helper_confirmed_at;
-      else statusMatch = j.status === statusFilter && !(statusFilter === "open" && j.direct_offer_status === "pending");
-      if (!statusMatch) return false;
-      // Search filter
-      if (searchLower) {
-        return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || j.location.toLowerCase().includes(searchLower);
-      }
-      return true;
-    }), [postedJobs, statusFilter, searchLower]);
-
-  const filteredAppliedApps = useMemo(() => {
-    const query = searchLower;
-    return appliedApps.filter((a) => {
-      let statusMatch = false;
-      if (statusFilter === "direct_offer") statusMatch = !!a.job?.offered_to_helper_id && a.job?.offered_to_helper_id === user?.id && a.job?.direct_offer_status === "pending";
-      else if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
-      else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at;
-      else if (statusFilter === "accepted") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !!a.job?.helper_confirmed_at;
-      else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && a.job?.status === "in_progress";
-      else if (statusFilter === "disputed") statusMatch = a.status === "accepted" && a.job?.status === "disputed";
-      else if (statusFilter === "revision") statusMatch = a.status === "accepted" && a.job?.status === "revision_requested";
-      else if (statusFilter === "completed") statusMatch = a.status === "accepted" && a.job?.status === "completed";
-      else if (statusFilter === "not_selected") statusMatch = a.status === "rejected" || a.job?.status === "cancelled";
-      if (!statusMatch) return false;
-      if (query && a.job) {
-        return a.job.title.toLowerCase().includes(query) || a.job.description.toLowerCase().includes(query) || a.job.location.toLowerCase().includes(query);
-      }
-      return true;
-    });
-  }, [appliedApps, statusFilter, searchLower]);
-
-  const appliedCounts = useMemo(() => {
-    const counts: Record<string, number> = { pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
-    appliedApps.forEach((a) => {
-      if (a.job?.offered_to_helper_id === user?.id && a.job?.direct_offer_status === "pending") counts.direct_offer++;
-      if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
-      else if (a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at) counts.offered++;
-      else if (a.status === "accepted" && a.job?.status === "accepted" && !!a.job?.helper_confirmed_at) counts.accepted++;
-      else if (a.status === "accepted" && a.job?.status === "in_progress") counts.in_progress++;
-      else if (a.status === "accepted" && a.job?.status === "disputed") counts.disputed++;
-      else if (a.status === "accepted" && a.job?.status === "revision_requested") counts.revision++;
-      else if (a.status === "accepted" && a.job?.status === "completed") counts.completed++;
-      else if (a.status === "rejected" || a.job?.status === "cancelled") counts.not_selected++;
-    });
-    return counts;
-  }, [appliedApps]);
-
-  const postedCounts = useMemo(() => {
-    const counts: Record<string, number> = { open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0 };
-    postedJobs.forEach((j) => {
-      if (j.offered_to_helper_id && j.direct_offer_status === "pending") counts.direct_offer++;
-      if (j.status === "accepted" && !j.helper_confirmed_at) counts.offered++;
-      else if (j.status === "accepted" && !!j.helper_confirmed_at) counts.accepted++;
-      else counts[j.status] = (counts[j.status] || 0) + 1;
-    });
-    return counts;
-  }, [postedJobs]);
 
   // Pull-to-refresh — must run unconditionally (hook order). Same
   // gesture pattern as Dashboard.
@@ -700,7 +97,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     );
   }
 
-  const activeStatusFilters = tab === "posted" ? postedStatusFilters : appliedStatusFilters;
+  const activeStatusFilters = tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS;
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
   return (
@@ -733,175 +130,19 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             </div>
         }
       >
-          {/* Header row — title + search/filter toggle buttons. The search
-              input expands below this row instead of replacing the title,
-              matching the Dashboard search pattern. */}
-          <div
-            className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
-            style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
-          >
-                <div className="flex flex-col leading-none min-w-0">
-                  <span
-                    className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
-                    style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
-                  >
-                    {tab === "posted" ? "Posted tasks" : "Applied tasks"}
-                  </span>
-                  <h2
-                    className="font-display italic font-bold leading-tight mt-1 truncate"
-                    style={{
-                      fontSize: "1.25rem",
-                      color: "hsl(var(--ink-deep))",
-                      letterSpacing: "-0.018em",
-                    }}
-                  >
-                    {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
-                  </h2>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setSearchOpen(!searchOpen)}
-                    aria-label="Search tasks"
-                    aria-expanded={searchOpen}
-                    className={`h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition ${
-                      searchOpen || searchQuery
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                    }`}
-                  >
-                    <Search className="w-4 h-4" />
-                  </button>
-                  {/* Filter button — opens a dropdown of status options
-                      (Open · Direct Offer · In Progress · etc.). Mirrors the
-                      dashboard's filter pill behavior. */}
-                  <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label="Filter by status"
-                        className={`h-8 w-8 rounded-ds-md btn-press flex items-center justify-center relative transition ${
-                          filterOpen || statusFilter !== (tab === "applied" ? "pending" : "open")
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                        }`}
-                      >
-                        <SlidersHorizontal className="w-4 h-4" />
-                        {statusFilter !== (tab === "applied" ? "pending" : "open") && (
-                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
-                        )}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="w-60 p-2">
-                      <p
-                        className="font-serif italic uppercase px-2 pt-1 pb-2"
-                        style={{
-                          fontSize: "0.62rem",
-                          color: "hsl(var(--burnt-sienna) / 0.78)",
-                          letterSpacing: "0.18em",
-                        }}
-                      >
-                        Filter by status
-                      </p>
-                      <div className="grid grid-cols-1 gap-0.5">
-                        {activeStatusFilters.map((f) => {
-                          const count = activeCounts[f.key] || 0;
-                          const isActive = statusFilter === f.key;
-                          // Status-color dot — matches the chip-color logic
-                          // each filter ships with so the dropdown reads as
-                          // a legend, not just a flat list.
-                          const dotColor =
-                            f.key === "in_progress"
-                              ? "hsl(var(--burnt-sienna))"
-                              : f.key === "completed"
-                                ? "hsl(var(--bark))"
-                                : f.key === "cancelled"
-                                  ? "hsl(var(--destructive))"
-                                  : f.key === "accepted"
-                                    ? "hsl(var(--bark))"
-                                    : f.key === "direct_offer"
-                                      ? "hsl(var(--gold-warm))"
-                                      : "hsl(var(--olivewood) / 0.5)";
-                          return (
-                            <button
-                              key={f.key}
-                              onClick={() => { setStatusFilter(f.key); setFilterOpen(false); }}
-                              className="flex items-center justify-between w-full px-2.5 py-2 rounded-ds-md text-ds-13 transition active:scale-[0.99]"
-                              style={
-                                isActive
-                                  ? {
-                                      background: "hsl(var(--bark))",
-                                      color: "hsl(var(--parchment))",
-                                      fontWeight: 600,
-                                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
-                                    }
-                                  : {
-                                      color: "hsl(var(--ink-deep))",
-                                      fontWeight: 500,
-                                    }
-                              }
-                            >
-                              <span className="inline-flex items-center gap-2 min-w-0">
-                                <span
-                                  className="shrink-0 w-1.5 h-1.5 rounded-full"
-                                  style={{
-                                    background: isActive ? "hsl(var(--parchment) / 0.85)" : dotColor,
-                                  }}
-                                />
-                                <span className="truncate">{f.label}</span>
-                              </span>
-                              {count > 0 && (
-                                <span
-                                  className="text-[0.7rem] tabular-nums font-sans font-semibold shrink-0 ml-2 px-1.5 py-0.5 rounded-full"
-                                  style={
-                                    isActive
-                                      ? { background: "hsl(var(--parchment) / 0.18)", color: "hsl(var(--parchment))" }
-                                      : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.85)" }
-                                  }
-                                >
-                                  {count}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-          </div>
-
-          {/* Expandable search bar — drops down below the header row,
-              matching the Dashboard search pattern. */}
-          {searchOpen && (
-            <div
-              className="shrink-0 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200"
-              style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
-            >
-              <div className="relative px-4 py-3">
-                <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  autoFocus
-                  type="search"
-                  aria-label="Search tasks"
-                  placeholder="Search tasks…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    aria-label="Clear search"
-                    className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+          <ActivityHeader
+            tab={tab}
+            activeStatusFilters={activeStatusFilters}
+            activeCounts={activeCounts}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            filterOpen={filterOpen}
+            setFilterOpen={setFilterOpen}
+            searchOpen={searchOpen}
+            setSearchOpen={setSearchOpen}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+          />
 
           <PullToRefreshWrapper
             ref={containerRef}
@@ -915,95 +156,63 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             // Empty state — a liquid-glass card that fills the panel and
             // bleeds beneath the dock (flat bottom, no hard edge), matching
             // the Dashboard / Messages empty-state pattern.
-            (() => {
-              // A failed fetch leaves both lists empty — show a recoverable
-              // ErrorState rather than a misleading "nothing posted yet".
-              if (loadError && postedJobs.length === 0 && appliedApps.length === 0) {
-                return (
-                  <div className="flex-1 min-h-full flex">
-                    <ErrorState onRetry={refresh} />
-                  </div>
-                );
-              }
-              const isPosted = tab === "posted";
-              const totalCount = isPosted ? postedJobs.length : appliedApps.length;
-              const eyebrow = totalCount === 0 ? "Nothing yet" : "No matches";
-              const title = totalCount === 0
-                ? (isPosted ? "Nothing posted yet." : "No applications yet.")
-                : "No tasks in this view.";
-              const body = totalCount === 0
-                ? (isPosted
-                    ? "Post your first task and your local helprs will see it instantly."
-                    : "Browse open tasks near you and apply — your applications will land here.")
-                : "Try a different filter — there might be tasks in another status.";
-              const ctaLabel = isPosted ? "Post a Job" : "Browse tasks";
-              const ctaTo = isPosted ? "/post-job" : "/dashboard";
-              const Icon = isPosted ? Search : Send;
-              return (
-                <div className="flex-1 min-h-full flex">
-                  <EmptyState
-                    icon={Icon}
-                    eyebrow={eyebrow}
-                    title={title}
-                    body={body}
-                    action={
-                      <BarkPillButton onClick={() => navigate(ctaTo)}>
-                        {ctaLabel}
-                      </BarkPillButton>
-                    }
-                  />
-                </div>
-              );
-            })()
+            <ActivityEmptyState
+              tab={tab}
+              loadError={!!loadError}
+              postedJobsCount={postedJobs.length}
+              appliedAppsCount={appliedApps.length}
+              onRetry={refresh}
+              onNavigate={navigate}
+            />
           ) : (
             <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
           {tab === "posted" && (
             <PostedJobsTab
               jobs={filteredPostedJobs}
               applicantCounts={applicantCounts}
-              expandedJobId={expandedJobId}
-              setExpandedJobId={setExpandedJobId}
+              expandedJobId={actions.expandedJobId}
+              setExpandedJobId={actions.setExpandedJobId}
               helperNames={helperNames}
               completedJobMeta={completedJobMeta}
               startRequestedJobIds={startRequestedJobIds}
               userId={user!.id}
-              onBoost={setBoostJobId}
-              onEdit={setEditJob}
-              onCancel={tryCancelJob}
-              onComplete={completeJob}
-              completingJobId={completingJobId}
-              onRevision={setRevisionJobId}
-              onNoShow={setNoShowJobId}
-              onTip={(jobId, name) => { setEnhancedTipJobId(jobId); setEnhancedTipHelperName(name); }}
-              onReview={openReviewForPosted}
-              onDispute={setDisputeJob}
-              onConfirmStart={confirmStartJob}
-              onConfirmArrival={confirmArrival}
-              onConfirmWorking={confirmWorking}
-              onLoadApplications={loadApplications}
-              selectedJob={selectedJob}
-              setSelectedJob={setSelectedJob}
-              applications={applications}
-              onAcceptApplication={acceptApplication}
-              onLoadInlineApplicants={loadInlineApplicants}
-              inlineApplicants={inlineApplicants}
-              loadingApplicants={loadingApplicants}
-              applicantErrors={applicantErrors}
+              onBoost={actions.setBoostJobId}
+              onEdit={actions.setEditJob}
+              onCancel={actions.tryCancelJob}
+              onComplete={actions.completeJob}
+              completingJobId={actions.completingJobId}
+              onRevision={actions.setRevisionJobId}
+              onNoShow={actions.setNoShowJobId}
+              onTip={(jobId, name) => { actions.setEnhancedTipJobId(jobId); actions.setEnhancedTipHelperName(name); }}
+              onReview={actions.openReviewForPosted}
+              onDispute={actions.setDisputeJob}
+              onConfirmStart={actions.confirmStartJob}
+              onConfirmArrival={actions.confirmArrival}
+              onConfirmWorking={actions.confirmWorking}
+              onLoadApplications={actions.loadApplications}
+              selectedJob={actions.selectedJob}
+              setSelectedJob={actions.setSelectedJob}
+              applications={actions.applications}
+              onAcceptApplication={actions.acceptApplication}
+              onLoadInlineApplicants={actions.loadInlineApplicants}
+              inlineApplicants={actions.inlineApplicants}
+              loadingApplicants={actions.loadingApplicants}
+              applicantErrors={actions.applicantErrors}
             />
           )}
 
           {tab === "applied" && (
             <AppliedJobsTab
               apps={filteredAppliedApps}
-              expandedJobId={expandedJobId}
-              setExpandedJobId={setExpandedJobId}
+              expandedJobId={actions.expandedJobId}
+              setExpandedJobId={actions.setExpandedJobId}
               helperReviewedJobIds={helperReviewedJobIds}
               userId={user!.id}
-              onHelperResponse={handleHelperResponse}
-              onComplete={completeJob}
-              completingJobId={completingJobId}
-              onResolveRevision={resolveRevision}
-              onHelperReview={(jobId, posterId, posterName) => setHelperReviewJob({ jobId, posterId, posterName })}
+              onHelperResponse={actions.handleHelperResponse}
+              onComplete={actions.completeJob}
+              completingJobId={actions.completingJobId}
+              onResolveRevision={actions.resolveRevision}
+              onHelperReview={(jobId, posterId, posterName) => actions.setHelperReviewJob({ jobId, posterId, posterName })}
               onRefresh={refresh}
             />
           )}
@@ -1014,45 +223,45 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
       <ActivityDialogs
         user={user ? { id: user.id } : null}
-        revisionJobId={revisionJobId}
-        setRevisionJobId={setRevisionJobId}
+        revisionJobId={actions.revisionJobId}
+        setRevisionJobId={actions.setRevisionJobId}
         onRevisionRequested={refresh}
-        editJob={editJob}
-        setEditJob={setEditJob}
-        boostJobId={boostJobId}
-        setBoostJobId={setBoostJobId}
-        enhancedTipJobId={enhancedTipJobId}
-        enhancedTipHelperName={enhancedTipHelperName}
-        setEnhancedTipJobId={setEnhancedTipJobId}
-        setEnhancedTipHelperName={setEnhancedTipHelperName}
-        noShowJobId={noShowJobId}
-        setNoShowJobId={setNoShowJobId}
-        onNoShow={handleNoShow}
-        reportingNoShow={reportingNoShow}
-        cancelDialogJob={cancelDialogJob}
-        setCancelDialogJob={setCancelDialogJob}
-        completionPromptJob={completionPromptJob}
-        setCompletionPromptJob={setCompletionPromptJob}
-        deadlineDialogApp={deadlineDialogApp}
-        setDeadlineDialogApp={setDeadlineDialogApp}
-        onDeadlineConfirm={confirmAcceptWithDeadline}
-        disputeJob={disputeJob}
-        setDisputeJob={setDisputeJob}
-        reviewJob={reviewJob}
-        reviewTarget={reviewTarget}
-        setReviewJob={setReviewJob}
-        setReviewTarget={setReviewTarget}
-        helperReviewJob={helperReviewJob}
-        setHelperReviewJob={setHelperReviewJob}
+        editJob={actions.editJob}
+        setEditJob={actions.setEditJob}
+        boostJobId={actions.boostJobId}
+        setBoostJobId={actions.setBoostJobId}
+        enhancedTipJobId={actions.enhancedTipJobId}
+        enhancedTipHelperName={actions.enhancedTipHelperName}
+        setEnhancedTipJobId={actions.setEnhancedTipJobId}
+        setEnhancedTipHelperName={actions.setEnhancedTipHelperName}
+        noShowJobId={actions.noShowJobId}
+        setNoShowJobId={actions.setNoShowJobId}
+        onNoShow={actions.handleNoShow}
+        reportingNoShow={actions.reportingNoShow}
+        cancelDialogJob={actions.cancelDialogJob}
+        setCancelDialogJob={actions.setCancelDialogJob}
+        completionPromptJob={actions.completionPromptJob}
+        setCompletionPromptJob={actions.setCompletionPromptJob}
+        deadlineDialogApp={actions.deadlineDialogApp}
+        setDeadlineDialogApp={actions.setDeadlineDialogApp}
+        onDeadlineConfirm={actions.confirmAcceptWithDeadline}
+        disputeJob={actions.disputeJob}
+        setDisputeJob={actions.setDisputeJob}
+        reviewJob={actions.reviewJob}
+        reviewTarget={actions.reviewTarget}
+        setReviewJob={actions.setReviewJob}
+        setReviewTarget={actions.setReviewTarget}
+        helperReviewJob={actions.helperReviewJob}
+        setHelperReviewJob={actions.setHelperReviewJob}
         helperNames={helperNames}
         onRefresh={refresh}
       />
       <IDVPromptDialog
-        open={idvDialogOpen}
-        onOpenChange={(o) => { setIdvDialogOpen(o); if (!o) setPendingAcceptApp(null); }}
-        reason={pendingAcceptApp ? "Helpr requires a one-time ID + selfie check before you accept your first job. Posters won't see their full address until you're verified." : undefined}
-        status={idvStatus as never}
-        failureReason={idvFailureReason}
+        open={actions.idvDialogOpen}
+        onOpenChange={(o) => { actions.setIdvDialogOpen(o); if (!o) actions.setPendingAcceptApp(null); }}
+        reason={actions.pendingAcceptApp ? "Helpr requires a one-time ID + selfie check before you accept your first job. Posters won't see their full address until you're verified." : undefined}
+        status={actions.idvStatus as never}
+        failureReason={actions.idvFailureReason}
       />
     </>
   );

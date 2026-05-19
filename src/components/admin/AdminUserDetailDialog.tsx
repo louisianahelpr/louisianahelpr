@@ -215,7 +215,7 @@ export function AdminUserDetailDialog({
                 {/* Contact & Account */}
                 <div className="space-y-2">
                   <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Contact & Account</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 rounded-ds-md bg-secondary/30 border border-border p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 rounded-ds-md bg-secondary/30 border border-border p-4">
                     <div>
                       <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Phone</p>
                       <p className={`text-ds-13 font-medium ${viewProfile.phone ? "text-foreground" : "text-muted-foreground italic"}`}>{viewProfile.phone || "Not provided"}</p>

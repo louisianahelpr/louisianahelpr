@@ -169,7 +169,8 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
       </div>
 
       <div className="rounded-2xl border border-border overflow-hidden bg-card">
-        <div className="overflow-x-auto">
+        {/* Desktop table — hidden on small screens */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-ds-13">
             <thead className="bg-muted/40 text-ds-11 uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -227,6 +228,62 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile stacked cards — shown below md breakpoint */}
+        <div className="md:hidden">
+          {filtered.length === 0 ? (
+            <p className="px-4 py-12 text-center text-muted-foreground text-ds-13">
+              {isFetching ? "Loading…" : "No notification logs match your filters."}
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {filtered.map((row) => (
+                <div
+                  key={row.id}
+                  className={cn(
+                    "px-4 py-3 space-y-2",
+                    row.status === "failed" && "bg-destructive/5"
+                  )}
+                >
+                  {/* Top row: status badge + channel + timestamp */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={cn("text-ds-11 capitalize", STATUS_VARIANT[row.status] || "")}>
+                        {row.status}
+                      </Badge>
+                      <span className="inline-flex items-center gap-1 text-ds-11 text-muted-foreground">
+                        {row.channel === "email"
+                          ? <Mail className="w-3.5 h-3.5" />
+                          : <Smartphone className="w-3.5 h-3.5" />}
+                        {row.channel === "email" ? "Email" : "In-App"}
+                      </span>
+                    </div>
+                    <span className="text-ds-11 text-muted-foreground whitespace-nowrap">
+                      {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  {/* Recipient + category */}
+                  <div className="flex items-center justify-between gap-2 text-ds-13">
+                    <span className="truncate text-foreground">
+                      {row.recipient_email || <span className="text-muted-foreground italic">No recipient</span>}
+                    </span>
+                    <span className="text-ds-11 text-muted-foreground flex-shrink-0">
+                      {CATEGORY_LABEL[row.category] ?? row.category}
+                    </span>
+                  </div>
+                  {/* Subject */}
+                  {row.subject && (
+                    <p className="text-ds-11 text-muted-foreground truncate">{row.subject}</p>
+                  )}
+                  {/* Error */}
+                  {row.error_message && (
+                    <p className="text-ds-11 text-destructive truncate">{row.error_message}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

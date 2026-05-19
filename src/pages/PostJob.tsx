@@ -61,7 +61,11 @@ const PostJob = () => {
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+  // Preflight open-job count — checked at mount so the user learns
+  // about the 5-job cap before filling the entire form.
+  const [openJobCount, setOpenJobCount] = useState<number | null>(null);
   const [idvDialogOpen, setIdvDialogOpen] = useState(false);
   const [idvStatus, setIdvStatus] = useState<string | undefined>(undefined);
   const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
@@ -121,36 +125,50 @@ const PostJob = () => {
     });
   }, []);
 
-  
+  // Preflight: check open-job count at mount so the user isn't surprised
+  // at submit after filling the whole form.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", user.id)
+        .eq("status", "open")
+        .then(({ count }) => { setOpenJobCount(count ?? 0); });
+    });
+  }, []);
 
   // One-tap rebook: load from query params
   useEffect(() => {
     const rebookId = searchParams.get("rebook");
     if (rebookId) {
-      supabase.from("jobs").select("*").eq("id", rebookId).single().then(({ data }) => {
-        if (data) {
-          setTitle(data.title);
-          setDescription(data.description);
-          setCategory(data.category);
-          // Parse location back into fields if possible
-          const locParts = (data.location || "").split(", ");
-          if (locParts.length >= 3) {
-            setStreetAddress(locParts[0]);
-            setCity(locParts[1]);
-            const stateZip = locParts[2].split(" ");
-            setAddrState(stateZip[0] || "");
-            setZipCode(stateZip.slice(1).join(" ") || "");
-          } else {
-            setStreetAddress(data.location);
-          }
-          setBudget(data.budget.toString());
-          setEstimatedHours(data.estimated_hours?.toString() || "");
-          setSpecialRequirements(data.special_requirements || "");
-          setIsRecurring(data.is_recurring || false);
-          setRecurrenceInterval(data.recurrence_interval || "weekly");
-          setDraftLoaded(true);
-          toast.info("Job details pre-filled from previous booking!");
+      supabase.from("jobs").select("*").eq("id", rebookId).single().then(({ data, error }) => {
+        if (error || !data) {
+          toast.error("Couldn't load the previous job for rebooking — please fill in the details manually.");
+          return;
         }
+        setTitle(data.title);
+        setDescription(data.description);
+        setCategory(data.category);
+        // Parse location back into fields if possible
+        const locParts = (data.location || "").split(", ");
+        if (locParts.length >= 3) {
+          setStreetAddress(locParts[0]);
+          setCity(locParts[1]);
+          const stateZip = locParts[2].split(" ");
+          setAddrState(stateZip[0] || "");
+          setZipCode(stateZip.slice(1).join(" ") || "");
+        } else {
+          setStreetAddress(data.location);
+        }
+        setBudget(data.budget.toString());
+        setEstimatedHours(data.estimated_hours?.toString() || "");
+        setSpecialRequirements(data.special_requirements || "");
+        setIsRecurring(data.is_recurring || false);
+        setRecurrenceInterval(data.recurrence_interval || "weekly");
+        setDraftLoaded(true);
+        toast.info("Job details pre-filled from previous booking!");
       });
       return;
     }
@@ -305,7 +323,7 @@ const PostJob = () => {
     if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); return; }
     // special_requirements is optional — no validation needed
     if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
-    if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000. For larger projects, split into milestones."); return; }
+    if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000."); return; }
     if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent bonus must be at least $5"); return; }
     setConfirmed(false);
     setStep("checkout");
@@ -500,6 +518,7 @@ const PostJob = () => {
         safeStorage.removeItem(COOLDOWN_KEY);
         const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
         toast.error(`Could not start payment: ${errorMsg}. Please try again.`);
+        setRedirecting(false);
         setStep("checkout");
         submittingRef.current = false;
         return;
@@ -514,6 +533,9 @@ const PostJob = () => {
       try {
         await supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } });
       } catch { /* best-effort */ }
+      // Show the blocking overlay before the redirect so the user can't
+      // re-tap submit during the navigation delay on slow networks.
+      setRedirecting(true);
       window.location.href = paymentUrl;
     } catch (err: any) {
       report(err, { tags: { source: "PostJob.paymentInvoke" }, context: { job_id: jobData.id } });
@@ -523,6 +545,7 @@ const PostJob = () => {
       safeStorage.removeItem(COOLDOWN_KEY);
       toast.error("Payment setup failed. Please try again.");
       setSaving(false);
+      setRedirecting(false);
       setStep("checkout");
       submittingRef.current = false;
     }
@@ -579,6 +602,34 @@ const PostJob = () => {
 
   return (
     <div className="min-h-screen bg-premium-page relative pb-safe-nav">
+      {/* Blocking full-screen overlay shown from the moment the Stripe
+          redirect is triggered until the page unloads. Prevents re-taps
+          on a slow network; pointer-events:none on everything else. */}
+      {redirecting && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4"
+          style={{ background: "hsla(38, 18%, 97%, 0.94)", backdropFilter: "blur(6px)" }}
+          aria-live="assertive"
+          aria-label="Redirecting to secure checkout"
+        >
+          <svg
+            className="animate-spin"
+            style={{ width: 40, height: 40, color: "hsl(var(--bark))" }}
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <p className="font-display font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+            Taking you to secure checkout…
+          </p>
+          <p className="text-ds-11 text-muted-foreground">Please don't close this page</p>
+        </div>
+      )}
+
       <PageHeader
         eyebrow={step === "checkout" ? "Almost there" : "New request"}
         title={step === "checkout" ? "Order summary" : "What do you need done?"}
@@ -674,6 +725,28 @@ const PostJob = () => {
                     >
                       Load draft
                     </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Open-job limit notice — surfaced at form mount so the user
+                  discovers the cap before filling the whole form, not at submit. */}
+              {openJobCount !== null && openJobCount >= 5 && (
+                <div
+                  className="rounded-ds-md p-4 flex items-start gap-3"
+                  style={{
+                    background: "hsl(var(--destructive) / 0.07)",
+                    border: "1px solid hsl(var(--destructive) / 0.35)",
+                  }}
+                  role="alert"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-ds-13 font-semibold" style={{ color: "hsl(var(--destructive))" }}>
+                      You have 5 open jobs
+                    </p>
+                    <p className="text-ds-11 text-muted-foreground mt-0.5">
+                      Helpr allows a maximum of 5 open jobs at a time. Close or complete an existing job before posting a new one.
+                    </p>
                   </div>
                 </div>
               )}
@@ -831,6 +904,7 @@ const PostJob = () => {
                     type="submit"
                     className="w-full rounded-ds-md"
                     size="lg"
+                    disabled={openJobCount !== null && openJobCount >= 5}
                   >
                     <span className="inline-flex items-center gap-2">
                       Review &amp; pay
@@ -879,7 +953,7 @@ const PostJob = () => {
                 totalCharge={totalCharge}
                 confirmed={confirmed}
                 setConfirmed={setConfirmed}
-                saving={saving}
+                saving={saving || redirecting}
                 uploading={uploading}
                 uploadProgress={uploadProgress}
                 onEdit={() => setStep("form")}

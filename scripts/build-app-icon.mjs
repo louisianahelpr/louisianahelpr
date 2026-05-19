@@ -201,7 +201,8 @@ async function buildVariant({
     },
   })
     .composite(layers)
-    .flatten({ background }) // drop alpha — Apple rejects icons with alpha
+    .flatten({ background }) // composite onto an opaque background
+    .removeAlpha() // strip the alpha channel — Apple rejects icons with alpha
     .png({ compressionLevel: 9 })
     .toFile(outPath);
 

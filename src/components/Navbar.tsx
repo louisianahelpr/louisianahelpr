@@ -90,10 +90,18 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                 Log in
               </Link>
             </Button>
+            {/* "Get started" — explicit light-cream text. The `default`
+                variant nominally resolves text-primary-foreground →
+                --parchment, but that two-hop token chain has repeatedly
+                rendered dark-on-olive in the WebView. Pin the color
+                locally — `!text-...` on the button itself plus a
+                belt-and-braces inline style — so it can never lose the
+                cascade, independent of variant token resolution. */}
             <Button
               asChild
               size="sm"
-              className="rounded-ds-md btn-press"
+              className="rounded-ds-md btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+              style={{ color: "hsl(var(--parchment))" }}
             >
               <Link
                 to="/signup"
@@ -188,10 +196,15 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                     Log in
                   </Link>
                 </Button>
+                {/* Mobile sign-up CTA — same explicit light-cream pin as
+                    the desktop "Get started". The descendant `[&_*]` rule
+                    guarantees the <Link> text stays parchment even though
+                    asChild renders an <a> that can otherwise inherit a
+                    darker color from the sheet's `color: --olivewood`. */}
                 <Button
                   asChild
                   size="lg"
-                  className="btn-liquid-fill w-full rounded-2xl font-sans font-semibold"
+                  className="btn-liquid-fill w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                   style={{
                     color: "hsl(var(--parchment))",
                     backgroundColor: "hsl(var(--sage))",

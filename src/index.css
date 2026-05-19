@@ -234,23 +234,17 @@ body {
   overscroll-behavior-y: none;
 }
 
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Scrollbars are never shown — app-wide. This is a native-feel mobile UI;
+   scrolling still works (touch / wheel / trackpad), just with no visible
+   scrollbar on any element, on any platform. */
+* {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* legacy Edge */
 }
-
-::-webkit-scrollbar-track {
-  background: hsl(var(--background));
-}
-
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted));
+*::-webkit-scrollbar {
+  display: none;                /* Chromium / Safari / iOS & Android WebView */
+  width: 0;
+  height: 0;
 }
 
 /* Component Styles */

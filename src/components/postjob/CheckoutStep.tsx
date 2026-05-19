@@ -223,7 +223,7 @@ export function CheckoutStep({
           </div>
           <div className="h-px bg-border" />
           <div className="flex justify-between">
-            <span className="font-semibold text-foreground">Subtotal (before tax)</span>
+            <span className="font-semibold text-foreground">Estimated total (excl. tax)</span>
             <span className="text-ds-20 font-bold text-foreground">${totalCharge.toFixed(2)}</span>
           </div>
           <p className="text-muted-foreground text-ds-11">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>
@@ -296,17 +296,7 @@ export function CheckoutStep({
                 ? "Processing…"
                 : !confirmed
                   ? "Confirm details to continue"
-                  : (
-                    <span className="inline-flex items-center gap-2">
-                      Pay
-                      <span
-                        className="font-display italic font-bold tabular-nums"
-                        style={{ fontSize: "1.05rem", letterSpacing: "-0.01em" }}
-                      >
-                        ${totalCharge.toFixed(2)}
-                      </span>
-                    </span>
-                  )}
+                  : "Continue to payment"}
         </Button>
         <Button
           variant="ghost"

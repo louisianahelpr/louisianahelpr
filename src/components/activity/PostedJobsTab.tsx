@@ -39,6 +39,7 @@ interface PostedJobsTabProps {
   onLoadInlineApplicants: (jobId: string) => void;
   inlineApplicants: Record<string, EnrichedApplication[]>;
   loadingApplicants: Record<string, boolean>;
+  applicantErrors: Record<string, boolean>;
 }
 
 export const PostedJobsTab = ({
@@ -47,8 +48,8 @@ export const PostedJobsTab = ({
   onBoost, onEdit, onCancel, onComplete, completingJobId,
   onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart, onConfirmArrival, onConfirmWorking,
   onLoadApplications, selectedJob, setSelectedJob, applications,
-  onAcceptApplication, onLoadInlineApplicants: _onLoadInlineApplicants,
-  inlineApplicants: _inlineApplicants, loadingApplicants: _loadingApplicants,
+  onAcceptApplication, onLoadInlineApplicants,
+  inlineApplicants, loadingApplicants, applicantErrors,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
 
@@ -101,6 +102,11 @@ export const PostedJobsTab = ({
             onConfirmArrival={onConfirmArrival}
             onConfirmWorking={onConfirmWorking}
             onLoadApplications={onLoadApplications}
+            onLoadInlineApplicants={onLoadInlineApplicants}
+            inlineApplicants={inlineApplicants}
+            loadingApplicants={loadingApplicants}
+            applicantErrors={applicantErrors}
+            onBoostJob={onBoost}
           />
         )}
       />

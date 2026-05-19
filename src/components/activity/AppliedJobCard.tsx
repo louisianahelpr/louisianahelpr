@@ -1,4 +1,4 @@
-import { useState, useEffect, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useState, useEffect, memo, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -135,7 +135,7 @@ interface AppliedJobCardProps {
  * JSX is unchanged; every value the card read from the parent is now a
  * prop. The parent still owns the state + handlers and threads them in.
  */
-export function AppliedJobCard({
+function AppliedJobCardInner({
   app,
   expandedJobId,
   setExpandedJobId,
@@ -848,3 +848,6 @@ export function AppliedJobCard({
         </div>
   );
 }
+
+/** Memoized — re-renders only when its own props change, not on parent state updates. */
+export const AppliedJobCard = memo(AppliedJobCardInner);

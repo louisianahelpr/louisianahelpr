@@ -24,6 +24,29 @@ iOS app. Map any "native" concept to its React/Capacitor equivalent.
 This is a deliberate architecture — one codebase serves web + iOS + Android.
 A SwiftUI rewrite is explicitly not the direction.
 
+## Page layout — which shell to use
+
+There is exactly **one** fixed-viewport primitive: `AppShell`
+(`src/components/AppShell.tsx`). It owns the only implementation of the
+100dvh lock, the internal scroll container, the safe-area top inset, and the
+bottom-nav clearance. Never re-implement those — build on `AppShell`.
+
+- **Fixed-shell pages** — the page locks to 100dvh, the bottom nav stays
+  pinned, and scrolling happens in an internal container. Use `AppShell`
+  directly (Profile, AccountPending), or `PageScaffold`
+  (`src/components/ui/PageScaffold.tsx`) when you want its two-card layout
+  (Dashboard, Activity, Messages list, guest dashboard). `PageScaffold` is a
+  *thin wrapper over `AppShell`* — it adds only the title-card + bleeding
+  panel, never its own viewport lock.
+- **Document-scroll pages** — long-form / tall content that scrolls the
+  document (legal, marketing, multi-step forms, Profile/Activity tab pages).
+  Use a plain `min-h-screen bg-premium-page pb-safe-nav` wrapper (with
+  `<PageHeader>` if a back-button header is needed). Do NOT use `AppShell`.
+- The authoritative map of which routes do which lives in
+  `DOCUMENT_SCROLL_ROUTES` in `src/hooks/useAppShellViewport.ts` — that hook
+  toggles the `app-shell` class on `<html>`. A page's shell choice and its
+  entry in that list must agree.
+
 ## Working rules
 
 Each of these is a real, non-obvious gotcha that has cost real time — keep

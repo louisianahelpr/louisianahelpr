@@ -10,6 +10,7 @@ import {
 import {
   categoryLabels, categoryIcons, categoryColors,
 } from "@/components/activity/activityConstants";
+import { hapticLight } from "@/lib/haptics";
 
 export { categoryLabels };
 
@@ -81,7 +82,7 @@ const SortContent = ({
     {sortOptions.map((opt) => (
       <button
         key={opt.value}
-        onClick={() => { setSortBy(opt.value); onSelect?.(); }}
+        onClick={() => { hapticLight(); setSortBy(opt.value); onSelect?.(); }}
         className={`${chipBase} w-full justify-center px-2 h-8 text-ds-11 ${sortBy === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
@@ -104,7 +105,7 @@ const CategoryContent = ({
         return (
           <button
             key={key}
-            onClick={() => { setSelectedCategory(isActive ? null : key); onSelect?.(); }}
+            onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
             className={`${chipBase} shrink-0 ${isActive ? chipActive : chipIdle}`}
           >
             <Icon className={`w-2.5 h-2.5 ${isActive ? "" : titleColor}`} strokeWidth={2.25} />
@@ -138,7 +139,7 @@ const NearbyContent = ({
             <button
               key={mi}
               type="button"
-              onClick={() => { setLocationFilter(active ? "" : `nearby:${mi}`); onSelect?.(); }}
+              onClick={() => { hapticLight(); setLocationFilter(active ? "" : `nearby:${mi}`); onSelect?.(); }}
               className={`${chipBase} w-full justify-center ${active ? chipActive : chipIdle}`}
             >
               {mi} mi
@@ -166,7 +167,7 @@ const ExpiresContent = ({
     {expiresOptions.map((opt) => (
       <button
         key={opt.value}
-        onClick={() => { setExpiresWithin(expiresWithin === opt.value ? "" : opt.value); onSelect?.(); }}
+        onClick={() => { hapticLight(); setExpiresWithin(expiresWithin === opt.value ? "" : opt.value); onSelect?.(); }}
         className={`${chipBase} w-full justify-center ${expiresWithin === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}

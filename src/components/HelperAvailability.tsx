@@ -35,12 +35,19 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
   }, [userId]);
 
   const loadAvailability = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("helper_availability")
       .select("*")
       .eq("helper_id", userId)
       .is("specific_date", null)
       .order("day_of_week");
+
+    if (error) {
+      console.error("[HelperAvailability] failed to load availability:", error);
+      toast.error("Couldn't load your availability");
+      setLoaded(true);
+      return;
+    }
 
     if (data && data.length > 0) {
       const existingSlots = DAYS.map((_, i) => {

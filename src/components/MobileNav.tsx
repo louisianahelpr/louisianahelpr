@@ -4,6 +4,7 @@ import { Home, Send, MessageSquare, User, Plus, ClipboardList, Lock } from "luci
 import { Capacitor } from "@capacitor/core";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { channelNonce } from "@/lib/realtimeChannel";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight } from "@/lib/haptics";
@@ -81,7 +82,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     loadCounts();
 
     const channel = supabase
-      .channel(`unread-nav-${user.id}`)
+      // Nonce so a quick remount doesn't collide with the prior channel —
+      // Supabase dedupes by name and would silently drop the new sub.
+      .channel(`unread-nav-${user.id}-${channelNonce()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },

@@ -14,6 +14,12 @@ type EmptyStateVariant = "dock" | "inline";
 interface EmptyStateProps {
   /** Lucide icon rendered inside the frosted circle. */
   icon: LucideIcon;
+  /**
+   * Optional branded line-art illustration. When provided, it renders in
+   * place of the frosted-circle icon — used to give high-traffic empty
+   * states a warmer, hand-drawn feel.
+   */
+  illustration?: ReactNode;
   /** Small uppercase serif eyebrow above the title. Optional. */
   eyebrow?: string;
   /** Bold display-italic headline. Optional. */
@@ -40,6 +46,7 @@ interface EmptyStateProps {
  */
 export function EmptyState({
   icon: Icon,
+  illustration,
   eyebrow,
   title,
   body,
@@ -70,21 +77,27 @@ export function EmptyState({
       }
       style={cardStyle}
     >
-      <div
-        className="w-20 h-20 rounded-full flex items-center justify-center"
-        style={{
-          backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-          backdropFilter: "blur(16px) saturate(150%)",
-          WebkitBackdropFilter: "blur(16px) saturate(150%)",
-          border: "1px solid hsl(var(--olivewood) / 0.10)",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-            "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-            "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-        }}
-      >
-        <Icon className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-      </div>
+      {illustration ? (
+        <div className="flex items-center justify-center" aria-hidden="true">
+          {illustration}
+        </div>
+      ) : (
+        <div
+          className="w-20 h-20 rounded-full flex items-center justify-center"
+          style={{
+            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+            backdropFilter: "blur(16px) saturate(150%)",
+            WebkitBackdropFilter: "blur(16px) saturate(150%)",
+            border: "1px solid hsl(var(--olivewood) / 0.10)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+              "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+              "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
+          }}
+        >
+          <Icon className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+        </div>
+      )}
       <div className="space-y-1.5">
         {eyebrow && <span className="text-display-eyebrow">{eyebrow}</span>}
         {title && (

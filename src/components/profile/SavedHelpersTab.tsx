@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 
@@ -267,6 +268,11 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
           <EmptyState
             variant="inline"
             icon={Heart}
+            illustration={
+              helpers.length === 0 ? (
+                <EmptyStateIllustration variant="saved" />
+              ) : undefined
+            }
             eyebrow={helpers.length === 0 ? "Nothing saved" : "No matches"}
             title={helpers.length === 0 ? "No saved helprs yet." : "Nothing matches that search."}
             body={

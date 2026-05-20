@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Send } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { VirtualList } from "@/components/VirtualList";
 import { type Application, type AppliedApp } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
@@ -99,6 +100,7 @@ export const AppliedJobsTab = ({
       >
         <EmptyState
           icon={Send}
+          illustration={<EmptyStateIllustration variant="jobs" />}
           eyebrow="No applications"
           title="Nothing in this view yet."
           body="Browse open tasks near you and apply — they'll collect here as you go."

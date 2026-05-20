@@ -36,6 +36,8 @@ async function fanOutToPostHog(event: string, props: Record<string, any>) {
 export const AhaEvent = {
   // Activation funnel
   SignupStarted: "signup_started",
+  SignupStepCompleted: "signup_step_completed",
+  SignupStepValidationFailed: "signup_step_validation_failed",
   SignupCompleted: "signup_completed",
   EmailVerified: "email_verified",
   ProfileCompleted: "profile_completed",
@@ -43,8 +45,11 @@ export const AhaEvent = {
   FirstJobPosted: "first_job_posted",
   FirstJobApplication: "first_job_application_sent",
   FirstHelperHired: "first_helper_hired",
+  FirstJobAccepted: "first_job_accepted",
   FirstJobCompleted: "first_job_completed",
   FirstReviewLeft: "first_review_left",
+  FirstFiveStarReview: "first_five_star_review",
+  FirstPaymentCollected: "first_payment_collected",
   FirstPayoutReceived: "first_payout_received",
   // Engagement
   JobPosted: "job_posted",
@@ -53,11 +58,14 @@ export const AhaEvent = {
   JobCompleted: "job_completed",
   PaymentMade: "payment_made",
   PayoutRequested: "payout_requested",
+  PayoutSetupStarted: "payout_setup_started",
+  PayoutSetupCompleted: "payout_setup_completed",
   ReviewLeft: "review_left",
   ReferralShared: "referral_shared",
   // Retention
   AppOpenedFromPush: "app_opened_from_push",
   AppOpenedFromDeepLink: "app_opened_from_deep_link",
+  PushReceivedForeground: "push_received_foreground",
   ReturnedAfter30Days: "returned_after_30_days",
   // Monetization
   ProUpgradeViewed: "pro_upgrade_viewed",

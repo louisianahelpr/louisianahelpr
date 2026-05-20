@@ -171,9 +171,20 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       void maybeCelebrate("first_review");
       // Aha-moment analytics + native review prompt. A 5-star review is the
       // strongest signal that this user would also rate us 5 stars on the App Store.
-      track(AhaEvent.ReviewLeft, { jobId, rating: scores.rating });
+      track(AhaEvent.ReviewLeft, { job_id: jobId, rating: scores.rating });
+      // True first-review (any rating) — count this user's prior reviews
+      // before treating this submission as the first.
+      try {
+        const { count: priorReviews } = await supabase
+          .from("reviews")
+          .select("id", { count: "exact", head: true })
+          .eq("reviewer_id", user.id);
+        if ((priorReviews ?? 0) <= 1) {
+          track(AhaEvent.FirstReviewLeft, { job_id: jobId, rating: scores.rating });
+        }
+      } catch { /* analytics must never break the flow */ }
       if (scores.rating === 5) {
-        track(AhaEvent.FirstReviewLeft, { jobId, rating: 5 });
+        track(AhaEvent.FirstFiveStarReview, { job_id: jobId, rating: 5 });
         // Fire-and-forget — internally rate-limited to once per 90 days.
         void maybeRequestInAppReview();
         // 5-star moment — show the tip prompt instead of closing

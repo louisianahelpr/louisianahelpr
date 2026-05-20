@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { fetchProfile } from "@/hooks/useProfile";
+import { track, AhaEvent } from "@/lib/analytics";
+import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { queryKeys } from "@/lib/queryKeys";
 import type { ActivityData } from "@/hooks/useActivityData";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
@@ -299,6 +301,23 @@ export function useActivityActions({
       }
       await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
       hapticSuccess();
+      // Funnel: helper accepted an offer — closes the "applied → hired" gap
+      // in the helper funnel that previously had zero instrumentation.
+      const ppoProps = ppoTrackingProps();
+      track(AhaEvent.JobAccepted, { job_id: app.job_id, ...ppoProps });
+      // First-acceptance aha — count prior confirmed acceptances by this
+      // helper (helper_confirmed_at != null). ≤ 1 covers the row we just
+      // wrote since the count read may race the just-written update.
+      try {
+        const { count } = await supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("helper_id", user.id)
+          .not("helper_confirmed_at", "is", null);
+        if ((count ?? 0) <= 1) {
+          track(AhaEvent.FirstJobAccepted, { job_id: app.job_id, ...ppoProps });
+        }
+      } catch { /* analytics must never break the flow */ }
       toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
       await refresh();
       setStatusFilter("accepted");

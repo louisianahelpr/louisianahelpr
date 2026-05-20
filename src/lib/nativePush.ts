@@ -127,7 +127,7 @@ export function useNativePushSetup() {
 
         // Foreground notification received — let the in-app toast/badge handle it.
         await PushNotifications.addListener("pushNotificationReceived", (notification) => {
-          track("push_received_foreground", {
+          track(AhaEvent.PushReceivedForeground, {
             title: notification.title,
             data: notification.data,
           });

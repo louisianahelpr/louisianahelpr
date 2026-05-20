@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { track, AhaEvent } from "@/lib/analytics";
+import { ppoTrackingProps } from "@/lib/ppoAttribution";
+import { safeStorage } from "@/lib/safeStorage";
 
 type PayoutMethod = {
   id: string;
@@ -75,6 +78,10 @@ export function PayoutSetupForm() {
     try {
       const returnUrl = window.location.href;
       const action = status?.connected && !status?.details_submitted ? "update_onboarding" : "onboard";
+      // Funnel: helper started Stripe Connect onboarding. Critical because
+      // helpers can complete jobs and never get paid if they never finish
+      // this flow — instrumentation lets us see the drop-off rate.
+      track(AhaEvent.PayoutSetupStarted, { action, ...ppoTrackingProps() });
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action, return_url: returnUrl },
       });
@@ -147,6 +154,28 @@ export function PayoutSetupForm() {
 
   const isFullyOnboarded = status?.connected && status?.details_submitted && status?.payouts_enabled;
   const needsMoreInfo = status?.connected && (!status?.details_submitted || (status?.requirements?.length ?? 0) > 0);
+
+  // Funnel: helper finished Stripe Connect — fire once per user, deduped
+  // via safeStorage so re-visits to the page don't refire the event.
+  // Closes the payout-setup funnel started by PayoutSetupStarted.
+  useEffect(() => {
+    if (!isFullyOnboarded) return;
+    void (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const key = `payout-setup-completed-fired-${user.id}`;
+        if (safeStorage.getItem(key)) return;
+        safeStorage.setItem(key, "1");
+        track(AhaEvent.PayoutSetupCompleted, {
+          requirements_remaining: status?.requirements?.length ?? 0,
+          ...ppoTrackingProps(),
+        });
+      } catch (err) {
+        report(err, { tags: { source: "PayoutSetupForm.completedTrack" } });
+      }
+    })();
+  }, [isFullyOnboarded, status?.requirements?.length]);
 
   if (statusLoading) {
     return (

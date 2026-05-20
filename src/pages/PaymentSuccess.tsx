@@ -1,10 +1,14 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, ShieldCheck, Megaphone, Handshake, Hammer, Wallet } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticSuccess } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
+import { supabase } from "@/integrations/supabase/client";
+import { track, AhaEvent } from "@/lib/analytics";
+import { ppoTrackingProps } from "@/lib/ppoAttribution";
+import { report } from "@/lib/errorLogger";
 
 // Visual lifecycle preview — replaces the dense paragraph that used to
 // sit in this same slot. Keeps the same content (4 stages from job-state
@@ -20,10 +24,36 @@ const LIFECYCLE_STEPS = [
 const PaymentSuccess = () => {
   usePageTitle("Payment Authorized — Helpr");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     hapticSuccess();
-  }, []);
+    const jobId = searchParams.get("job_id") || null;
+    const ppoProps = ppoTrackingProps();
+    // Funnel: customer authorized payment — closes the customer funnel
+    // that previously stopped at job_posted with no record of payment.
+    track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps });
+
+    // First-payment aha — fire only when this is the user's first
+    // successful payment. Mirrors the count-query pattern from
+    // first_job_posted / first_job_application_sent.
+    void (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { count } = await supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("customer_id", user.id)
+          .not("stripe_payment_intent_id", "is", null);
+        if ((count ?? 0) <= 1) {
+          track(AhaEvent.FirstPaymentCollected, { job_id: jobId, ...ppoProps });
+        }
+      } catch (e) {
+        report(e, { tags: { source: "PaymentSuccess.firstPaymentCount" } });
+      }
+    })();
+  }, [searchParams]);
 
   return (
     <AuthShell hideBack eyebrow="Payment authorized" maxWidth="md">

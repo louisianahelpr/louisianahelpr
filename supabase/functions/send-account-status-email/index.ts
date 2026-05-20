@@ -93,7 +93,7 @@ async function renderApprovedEmail(fullName: string, userId: string): Promise<{ 
 <body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
-  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">You're approved! 🎉</h1>
+  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">You're approved.</h1>
   <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">
     Hey ${greetingName},
   </p>
@@ -110,7 +110,7 @@ async function renderApprovedEmail(fullName: string, userId: string): Promise<{ 
 </div>
 </body></html>`
 
-  const text = `You're approved!\n\nHey ${greetingName},\n\nGreat news — your account has been reviewed and approved! You now have full access to the Helpr platform.\n\nLog in at: ${siteUrl}/login\n\nWelcome to the Helpr community!`
+  const text = `You're approved.\n\nHey ${greetingName},\n\nGreat news — your account has been reviewed and approved! You now have full access to the Helpr platform.\n\nLog in at: ${siteUrl}/login\n\nWelcome to the Helpr community!`
 
   return { html, text }
 }
@@ -136,7 +136,7 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
     Go to Dashboard
   </a>
   <p style="font-size:13px;color:hsl(160,6%,50%);line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
-    Welcome to the Helpr community — geaux help out! 🌿
+    Welcome in. You're set to post tasks and help neighbors across Louisiana.
   </p>
   <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
 </div>
@@ -272,7 +272,7 @@ Deno.serve(async (req) => {
       subject = 'Your identity is verified ✅ — welcome to Helpr!'
     } else if (status === 'approved') {
       ({ html, text } = await renderApprovedEmail(profile.full_name || '', userId))
-      subject = 'Your Helpr account has been approved! 🎉'
+      subject = 'Your Helpr account is approved'
     } else {
       ({ html, text } = await renderDeniedEmail(profile.full_name || '', userId, reason))
       subject = 'Helpr Account Update'

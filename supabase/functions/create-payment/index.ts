@@ -308,7 +308,7 @@ serve(async (req) => {
       if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
-          title: "Poster marked job complete",
+          title: "Poster marked the job complete",
           message: `The poster marked "${job.title}" as complete. Please confirm completion to release payment.`,
           type: "info", link: "/my-jobs?filter=in_progress",
         });
@@ -316,8 +316,8 @@ serve(async (req) => {
       if (isHelper && !posterDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
-          title: "Helper marked job complete",
-          message: `The helper marked "${job.title}" as complete. Please confirm completion to release payment.`,
+          title: "Helpr marked the job complete",
+          message: `The helpr marked "${job.title}" as complete. Please confirm completion to release payment.`,
           type: "info", link: "/my-posts?filter=in_progress",
         });
       }
@@ -401,7 +401,7 @@ serve(async (req) => {
       await supabaseAdmin.from("notifications").insert({
         user_id: job.customer_id,
         title: "Revision completed — review needed",
-        message: `The helper has fixed the revision for "${job.title}". You have 72 hours to accept (mark complete) or dispute. If you do nothing, payment auto-releases.`,
+        message: `The helpr has fixed the revision for "${job.title}". You have 72 hours to accept (mark complete) or dispute. If you do nothing, payment auto-releases.`,
         type: "warning", link: "/my-posts?filter=revision_requested",
       });
 

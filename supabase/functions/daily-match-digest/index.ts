@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
       const message =
         others > 0
           ? `${lead.title} in ${lead.location} · $${lead.budget}, plus ${others} more. Tap to browse.`
-          : `${lead.title} in ${lead.location} · $${lead.budget}. Tap to apply before someone else.`;
+          : `${lead.title} in ${lead.location} · $${lead.budget}. Tap to review and apply.`;
       notifications.push({
         user_id: userId,
         title,

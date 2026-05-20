@@ -60,7 +60,7 @@ serve(async (req) => {
     const notifications = expired.map(p => ({
       user_id: p.user_id,
       title: "Subscription expired",
-      message: `Your ${p.subscription_tier} pass has expired. Upgrade to continue enjoying premium features.`,
+      message: `Your ${p.subscription_tier} pass ended. Renew anytime in Profile → Plans.`,
       type: "info",
       link: "/profile?tab=subscription",
     }));

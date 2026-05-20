@@ -162,6 +162,10 @@ const ConversationRowBase = ({
           <DropdownMenuItem onClick={() => setBlockTarget({ id: c.otherUserId, name: c.otherUserName })}>
             <Ban className="w-4 h-4 mr-2" /> Block user
           </DropdownMenuItem>
+          {/* Divider separates the destructive "Delete conversation"
+              action from the report/block items above so it doesn't
+              read as a third item of the same weight. */}
+          <div role="separator" className="my-1 h-px bg-border" />
           <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteConvoConfirm(c)}>
             <Trash2 className="w-4 h-4 mr-2" /> Delete conversation
           </DropdownMenuItem>

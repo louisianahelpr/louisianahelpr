@@ -576,7 +576,7 @@ const ProfilePage = () => {
           </PullToRefreshWrapper>
         ) : (
           /* Non-landing tabs — own inner scroll surface. */
-          <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pt-8 lg:pt-10 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]">
+          <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]">
 
           {/* PROFILE TAB */}
           {tab === "profile" && (

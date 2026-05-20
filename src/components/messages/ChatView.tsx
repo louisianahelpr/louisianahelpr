@@ -180,7 +180,7 @@ export function ChatView({
               display italic, and a small status chip surfaces where
               the job currently stands so both sides have shared
               context without scrolling back. */}
-          <div className="flex items-center gap-2.5 px-1 py-2 -mx-4 px-4 border-b border-border bg-card">
+          <div className="flex items-center gap-2.5 py-2 -mx-4 px-4 border-b border-border bg-card">
             <Button
               variant="ghost"
               size="icon"
@@ -404,29 +404,33 @@ export function ChatView({
                       />
                     )}
                     {m.content && renderMessageContent(m.content)}
-                    {/* Report / delete — revealed on hover (desktop) and
-                        always shown on touch devices, which have no hover.
-                        The button is a 44x44 hit target (iOS/Android
-                        minimum) even though the icon stays small. */}
-                    <div className={`absolute ${mine ? "-left-[52px]" : "-right-[52px]"} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity flex gap-1`}>
+                    {/* Report / delete — overlay sits INSIDE the bubble
+                        top corner so it never clips off-screen on narrow
+                        phones (<375px), which the old `-left-[52px]` /
+                        `-right-[52px]` offsets did. Faded on touch
+                        devices (no hover state) so the affordance is
+                        still discoverable without dominating every
+                        bubble. */}
+                    <div className={`absolute ${mine ? "left-1" : "right-1"} top-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-60 transition-opacity flex gap-0.5`}>
                       {!mine && (
                         <button
                           onClick={() => setReportTarget({ type: "message", id: m.id })}
-                          className="text-muted-foreground hover:text-destructive flex items-center justify-center min-w-[44px] min-h-[44px]"
+                          className="text-muted-foreground hover:text-destructive flex items-center justify-center w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm"
                           title="Report"
                           aria-label="Report message"
                         >
-                          <Flag className="w-3.5 h-3.5" />
+                          <Flag className="w-3 h-3" />
                         </button>
                       )}
                       {mine && !isSending && !isFailed && (
                         <button
                           onClick={() => setDeleteMessageConfirm(m.id)}
-                          className="text-muted-foreground hover:text-destructive flex items-center justify-center min-w-[44px] min-h-[44px]"
+                          className="flex items-center justify-center w-7 h-7 rounded-full backdrop-blur-sm"
+                          style={{ color: "hsl(var(--parchment) / 0.85)", background: "rgba(0, 0, 0, 0.18)" }}
                           title="Delete"
                           aria-label="Delete message"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       )}
                     </div>

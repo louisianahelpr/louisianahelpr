@@ -467,18 +467,18 @@ const Dashboard = () => {
                 fontSize: "clamp(1.25rem, 1.6vw + 0.4rem, 1.5rem)",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.025em",
-                // Slightly looser leading + bottom padding to clear the
-                // Beth Ellen script descenders ("y", "g", "p" tails)
-                // from colliding with the date eyebrow below.
-                lineHeight: 1.15,
-                paddingBottom: "0.1em",
+                // Looser leading so the Beth Ellen script descenders
+                // ("y", "g", "p" tails) on the signature first name
+                // clear the date eyebrow below without the brittle
+                // `paddingBottom: 0.1em` workaround.
+                lineHeight: 1.25,
               }}
             >
               {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
               <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>{firstName}</em>.
             </h1>
             <p
-              className="mt-0.5 truncate font-sans font-semibold uppercase"
+              className="mt-1 truncate font-sans font-semibold uppercase"
               style={{
                 fontSize: "0.62rem",
                 letterSpacing: "0.16em",
@@ -502,23 +502,28 @@ const Dashboard = () => {
                 the user has an active saved search. Reframes the empty
                 state as intentional rather than confusing. */}
             {filters.filteredJobs.length === 0 && topSavedSearch && (
-              <button
-                type="button"
-                onClick={() => navigate("/profile?tab=notifications")}
-                className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full active:opacity-70 transition-opacity"
-                style={{
-                  background: "hsl(var(--burnt-sienna) / 0.10)",
-                  border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
-                }}
-              >
-                <Search className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
-                <span
-                  className="text-[0.7rem] font-sans font-semibold tracking-wide truncate max-w-[200px]"
-                  style={{ color: "hsl(var(--burnt-sienna))" }}
+              // Wrapped in a min-w-0 flex container so a long saved-search
+              // name truncates instead of forcing the title card wider
+              // than its column at large Dynamic Type sizes.
+              <div className="mt-2 flex min-w-0 max-w-full">
+                <button
+                  type="button"
+                  onClick={() => navigate("/profile?tab=notifications")}
+                  className="inline-flex min-w-0 max-w-full items-center gap-1.5 px-2.5 py-1 rounded-full active:opacity-70 transition-opacity"
+                  style={{
+                    background: "hsl(var(--burnt-sienna) / 0.10)",
+                    border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
+                  }}
                 >
-                  Watching for: {topSavedSearch.name}
-                </span>
-              </button>
+                  <Search className="w-3 h-3 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
+                  <span
+                    className="text-[0.7rem] font-sans font-semibold tracking-wide truncate min-w-0"
+                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                  >
+                    Watching for: {topSavedSearch.name}
+                  </span>
+                </button>
+              </div>
             )}
         </>
       }

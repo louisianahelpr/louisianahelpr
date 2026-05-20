@@ -29,6 +29,7 @@ import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
 import { HelperStreakBadge } from "@/components/profile/HelperStreakBadge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -257,6 +258,16 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
   const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);
+
+  // Helper-milestone retention nudges — one-shot toasts at meaningful
+  // job/earnings/streak thresholds. Pulls from stats already computed
+  // above; the five-star streak is read from the React Query cache
+  // populated by <HelperStreakBadge /> below. Closes #120.
+  useHelperMilestones({
+    helperId,
+    completedJobCount: completedJobs.length,
+    totalEarningsDollars: totalEarnings,
+  });
 
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 

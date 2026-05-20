@@ -1,18 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import { SocialLogin } from "@capgo/capacitor-social-login";
-
-// Supabase client is dynamically imported (NOT statically) to keep the
-// ~205KB supabase-js chunk out of the entry bundle. main.tsx -> nativeInit
-// -> initSocialLogin used to pull supabase into the critical static graph
-// (via this file's static import), which forced the supabase chunk to load
-// and its top-level await (keychainStorageAdapter hydratePromise) to run
-// before React could mount on native cold starts. Lazy-importing here keeps
-// the sign-in functions identical at the call sites — the import resolves
-// before the user can possibly tap the Apple/Google sign-in button.
-async function getSupabase() {
-  const { supabase } = await import("@/integrations/supabase/client");
-  return supabase;
-}
+import { supabase } from "@/integrations/supabase/client";
 
 // Initialize @capgo/capacitor-social-login on native platforms.
 // No-op on web — web flow uses supabase.auth.signInWithOAuth in the
@@ -48,7 +36,6 @@ export async function nativeAppleSignIn(): Promise<void> {
   // result has idToken when Apple sign-in succeeds
   const idToken = (result as { idToken?: string })?.idToken;
   if (!idToken) throw new Error("Apple sign-in returned no idToken");
-  const supabase = await getSupabase();
   const { error } = await supabase.auth.signInWithIdToken({
     provider: "apple",
     token: idToken,
@@ -67,7 +54,6 @@ export async function nativeGoogleSignIn(): Promise<void> {
   });
   const idToken = (result as { idToken?: string })?.idToken;
   if (!idToken) throw new Error("Google sign-in returned no idToken");
-  const supabase = await getSupabase();
   const { error } = await supabase.auth.signInWithIdToken({
     provider: "google",
     token: idToken,

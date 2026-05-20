@@ -15,6 +15,7 @@
  * Web is a no-op (returns null) so deep links and SEO entry points are
  * never overridden.
  */
+import { supabase } from "@/integrations/supabase/client";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 // Routes that should "stick" on cold launch even for signed-in users.
@@ -61,13 +62,6 @@ export async function resolveNativeLaunchRoute(
   }
 
   try {
-    // Lazy-import the supabase client. This file is imported statically by
-    // NativeLaunchRouter, which is in App.tsx's static graph — a static
-    // import here would pull the ~205KB supabase chunk + its top-level
-    // await (keychainStorageAdapter hydratePromise) onto the critical
-    // path and block first paint on native cold starts. Lazy import means
-    // the chunk loads in parallel with the first frame.
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data, error } = await supabase.auth.getSession();
     // A failed session lookup is treated the same as no session: fall
     // through to the guest route. ProtectedRoute will re-gate properly

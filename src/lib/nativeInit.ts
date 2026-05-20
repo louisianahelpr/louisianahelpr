@@ -2,13 +2,7 @@
 // Sets the iOS/Android status bar to match the app theme and hides the
 // branded splash screen after the first paint so it doesn't linger.
 //
-// @capgo/capacitor-social-login is dynamically imported (NOT statically)
-// to keep its ~55KB chunk out of the entry bundle. Without this,
-// main.tsx -> nativeInit -> socialLogin pulled the plugin into the
-// critical static graph and forced it to load before React could mount
-// on native cold starts. initNative() runs after the first paint
-// (`initNative()` is called from inside the `hydrateStorage().finally`
-// post-render block in main.tsx), so the import latency is invisible.
+import { initSocialLogin } from "./socialLogin";
 // Safe on web: every call is wrapped in a try/catch and no-ops if the
 // plugin isn't available (i.e. you're in a browser).
 
@@ -27,10 +21,8 @@ export async function initNative() {
   // Initialize @capgo/capacitor-social-login so the Apple/Google sign-in
   // buttons can call SocialLogin.login() via the native plugin path.
   // Idempotent (the helper guards against re-init). Best-effort —
-  // sign-in buttons fall back to the web flow if init fails. Dynamic
-  // import keeps the plugin chunk out of the critical entry graph.
+  // sign-in buttons fall back to the web flow if init fails.
   try {
-    const { initSocialLogin } = await import("./socialLogin");
     await initSocialLogin();
   } catch { /* ignore */ }
 

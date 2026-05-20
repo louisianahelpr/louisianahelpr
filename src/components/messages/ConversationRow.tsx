@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Flag, Ban, Trash2, MoreVertical } from "lucide-react";
 import {
@@ -7,10 +7,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  getMessageAttachmentSignedUrl,
+  isImageMime,
+} from "@/lib/messageAttachments";
 import type { Conversation } from "./types";
 
 interface ConversationRowProps {
   convo: Conversation;
+  /** Logged-in user id — used to detect when the last message was sent by
+      the current user, which triggers the iMessage-style "You: " prefix. */
+  currentUserId: string | null;
   /** Opens this conversation into the chat view. */
   openConvo: (convo: Conversation) => void;
   setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
@@ -19,19 +26,54 @@ interface ConversationRowProps {
 }
 
 /**
- * ConversationRow — a single row in the virtualized inbox list: avatar,
- * unread badge, job title + status chip, last-message preview, relative
- * timestamp, and the per-row report / block / delete menu.
+ * Tiny 32×32 image preview for the conversation-row "Photo" case.
  *
- * Extracted verbatim from the inline `renderItem` closure in
- * ConversationList so it can be wrapped in React.memo — the inbox list is
- * virtualized, so a parent re-render (pull-to-refresh state, "show all"
- * toggle) would otherwise re-render every visible row. With a stable
- * `openConvo` callback and the state-setter props, unchanged rows skip
- * re-render.
+ * `messages.attachment_url` stores a storage path, not a URL — we have to
+ * resolve a short-lived signed URL on mount. Kept local to this row so it
+ * only fetches when an image attachment is actually the last message
+ * (skipping the round-trip for the typical text-message case).
+ */
+function LastMessageImageThumb({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void getMessageAttachmentSignedUrl(path).then((signed) => {
+      if (!cancelled) setUrl(signed);
+    });
+    return () => { cancelled = true; };
+  }, [path]);
+  return (
+    <div
+      className="shrink-0 w-8 h-8 rounded-ds-sm overflow-hidden"
+      style={{
+        background: "hsl(var(--ivory-sand) / 0.6)",
+        border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+      }}
+      aria-hidden="true"
+    >
+      {url ? (
+        <img
+          loading="lazy"
+          decoding="async"
+          src={url}
+          alt=""
+          className="w-full h-full object-cover"
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * ConversationRow — a single row in the virtualized inbox list: avatar,
+ * iMessage-style preview ("You: " prefix when you sent it, photo
+ * thumbnail when the last message was an image attachment), job title +
+ * status chip, relative timestamp, far-right unread dot, and the per-
+ * row report / block / delete menu.
  */
 const ConversationRowBase = ({
   convo: c,
+  currentUserId,
   openConvo,
   setReportTarget,
   setBlockTarget,
@@ -59,6 +101,23 @@ const ConversationRowBase = ({
     if (s === "cancelled") return { label: "Cancelled", color: "hsl(var(--destructive))", bg: "hsl(var(--destructive) / 0.10)" };
     return null;
   })();
+
+  // Rich-preview derivations.
+  // - `sentByMe`: did the current user send the last message? Drives the
+  //   muted-italic "You: " prefix (iMessage convention) so the participant
+  //   sees at a glance whether they sent or received last.
+  // - `lastIsImage`: was the last message an image attachment? Renders a
+  //   32×32 thumbnail to the left of the preview and swaps the text body
+  //   for "Photo" (no emoji — house brand voice).
+  // - `hasUnreadFromOther`: there's an inbound message we haven't read
+  //   yet. Drives the 8px sienna dot pinned to the far-right of the row.
+  const sentByMe = !!currentUserId && c.lastMessageSenderId === currentUserId;
+  const lastIsImage =
+    !!c.lastMessageAttachmentPath && isImageMime(c.lastMessageAttachmentMime);
+  const hasUnreadFromOther = c.unread > 0;
+  const previewBody = lastIsImage
+    ? "Photo"
+    : (c.lastMessage || "—");
   return (
     <div
       className="w-full text-left p-3 rounded-ds-md liquid-glass hover:shadow-md transition-shadow flex items-center gap-2.5"
@@ -99,17 +158,6 @@ const ConversationRowBase = ({
               >
                 {c.otherUserName}
               </p>
-              {c.unread > 0 && (
-                <span
-                  className="shrink-0 px-1.5 h-4 min-w-[1rem] rounded-full text-[0.65rem] font-bold flex items-center justify-center"
-                  style={{
-                    background: "hsl(var(--burnt-sienna))",
-                    color: "hsl(var(--parchment))",
-                  }}
-                >
-                  {c.unread}
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-1.5 mt-0.5">
               <p
@@ -127,15 +175,33 @@ const ConversationRowBase = ({
                 </span>
               )}
             </div>
-            <p
-              className="text-[0.78rem] truncate mt-0.5"
-              style={{
-                color: c.unread > 0 ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.75)",
-                fontWeight: c.unread > 0 ? 600 : 400,
-              }}
-            >
-              {c.lastMessage || "—"}
-            </p>
+            {/* iMessage-style rich preview row. The image thumbnail (when
+                present) sits to the LEFT of the text. The "You: " prefix
+                is muted/italic so it doesn't compete with the actual
+                content. Bold-ish weight when there's an unread inbound
+                message, regular otherwise. */}
+            <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+              {lastIsImage && c.lastMessageAttachmentPath && (
+                <LastMessageImageThumb path={c.lastMessageAttachmentPath} />
+              )}
+              <p
+                className="text-[0.78rem] truncate min-w-0 flex-1"
+                style={{
+                  color: hasUnreadFromOther ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.75)",
+                  fontWeight: hasUnreadFromOther ? 600 : 400,
+                }}
+              >
+                {sentByMe && (
+                  <span
+                    className="italic mr-1"
+                    style={{ color: "hsl(var(--olivewood) / 0.55)", fontWeight: 400 }}
+                  >
+                    You:
+                  </span>
+                )}
+                {previewBody}
+              </p>
+            </div>
           </div>
           <span
             className="text-[0.7rem] shrink-0 self-start whitespace-nowrap"
@@ -145,6 +211,17 @@ const ConversationRowBase = ({
           </span>
         </div>
       </button>
+      {/* Far-right unread dot — iMessage-style. Shown only when there's
+          an unread inbound message; absent on fully-read threads so the
+          row stays visually calm. */}
+      {hasUnreadFromOther && (
+        <span
+          aria-label={`${c.unread} unread message${c.unread === 1 ? "" : "s"}`}
+          role="status"
+          className="shrink-0 w-2 h-2 rounded-full self-center"
+          style={{ background: "hsl(var(--burnt-sienna))" }}
+        />
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

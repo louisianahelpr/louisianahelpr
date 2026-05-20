@@ -166,6 +166,7 @@ export function ConversationList({
                     renderItem={(c) => (
                       <ConversationRow
                         convo={c}
+                        currentUserId={userId}
                         openConvo={openConvo}
                         setReportTarget={setReportTarget}
                         setBlockTarget={setBlockTarget}

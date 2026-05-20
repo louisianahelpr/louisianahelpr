@@ -168,6 +168,12 @@ const Messages = () => {
       lastMessage: v.messages[0].content,
       lastAt: v.messages[0].created_at,
       unread: v.messages.filter((m) => m.receiver_id === uid && !m.read).length,
+      // Rich-preview metadata for the inbox row: who sent the last
+      // message (drives the "You: " prefix) and whether it carried an
+      // attachment (drives the image-thumbnail preview).
+      lastMessageSenderId: v.messages[0].sender_id,
+      lastMessageAttachmentPath: v.messages[0].attachment_url,
+      lastMessageAttachmentMime: v.messages[0].attachment_mime,
     }));
 
     convos.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
@@ -206,6 +212,9 @@ const Messages = () => {
           lastMessage: "",
           lastAt: new Date().toISOString(),
           unread: 0,
+          lastMessageSenderId: null,
+          lastMessageAttachmentPath: null,
+          lastMessageAttachmentMime: null,
         };
         setConversations(prev => [placeholder, ...prev]);
         setActiveConvo(placeholder);
@@ -391,6 +400,12 @@ const Messages = () => {
           lastMessage: msg.content,
           lastAt: msg.created_at,
           unread: isInboundUnseen ? c.unread + 1 : c.unread,
+          // Keep the rich-preview metadata in lockstep with the latest
+          // message so "You: " prefix and image-thumb previews update
+          // live on realtime inserts (and on the sender's own echo).
+          lastMessageSenderId: msg.sender_id,
+          lastMessageAttachmentPath: msg.attachment_url,
+          lastMessageAttachmentMime: msg.attachment_mime,
         };
       });
       if (!matched) return prev;

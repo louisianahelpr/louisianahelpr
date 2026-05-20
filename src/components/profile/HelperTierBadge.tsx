@@ -168,7 +168,7 @@ export function HelperTierBadge(props: HelperTierBadgeProps) {
           >
             {meta.description}
           </p>
-          {progress && progress.nextTier !== null && progress.missing.length > 0 && (
+          {progress && progress.nextTier !== null && progress.nextTier !== 0 && progress.missing.length > 0 && (
             <div
               className="rounded-ds-sm px-2.5 py-2 mt-1"
               style={{
@@ -180,7 +180,7 @@ export function HelperTierBadge(props: HelperTierBadgeProps) {
                 className="font-sans uppercase tracking-wider mb-1"
                 style={{ fontSize: "0.6rem", color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.14em" }}
               >
-                To reach {TIER_META[progress.nextTier].label}
+                To reach {TIER_META[progress.nextTier as Exclude<HelperTier, 0>].label}
               </p>
               <ul className="space-y-0.5">
                 {progress.missing.map((line) => (

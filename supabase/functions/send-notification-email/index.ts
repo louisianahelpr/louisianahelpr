@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
+import { htmlEscape, sanitizeSameOriginLink, timingSafeEqual } from '../_shared/safe-strings.ts'
 
 const SITE_NAME = "Helpr"
 const SENDER_DOMAIN = "louisianahelpr.com"
@@ -67,23 +68,39 @@ async function sendWithResend(apiKey: string, params: { to: string; from: string
 }
 
 function renderNotificationEmail(title: string, message: string, link: string | null, userName: string): { html: string; text: string } {
+  // HTML-escape every interpolated value. The plaintext title/message/userName
+  // come from upstream callers (notification triggers, edge functions) but a
+  // compromised RPC, a future caller-bug, or a stored-XSS via DB row could
+  // smuggle markup; escaping at the render boundary makes that a non-issue.
+  // The URL is built from SITE_URL + a server-relative link path that the
+  // caller has already sanitized (sanitizeSameOriginLink) — escaped here as
+  // defense-in-depth.
+  const safeTitle = htmlEscape(title)
+  const safeMessage = htmlEscape(message)
+  const safeUser = htmlEscape(userName || 'there')
   const actionUrl = link ? `${SITE_URL}${link}` : SITE_URL
+  const safeActionUrl = htmlEscape(actionUrl)
+  const safeFromName = htmlEscape(FROM_NAME)
+  const safeRootDomain = htmlEscape(ROOT_DOMAIN)
+
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif;margin:0;padding:0">
 <div style="padding:32px 28px;max-width:480px;margin:0 auto">
   <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
-  <h1 style="font-size:20px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 12px">${title}</h1>
-  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 8px">Hey ${userName || 'there'},</p>
-  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">${message}</p>
-  <a href="${actionUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
+  <h1 style="font-size:20px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 12px">${safeTitle}</h1>
+  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 8px">Hey ${safeUser},</p>
+  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">${safeMessage}</p>
+  <a href="${safeActionUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     View Details
   </a>
-  <p style="font-size:14px;color:hsl(160,8%,30%);margin:28px 0 4px">— ${FROM_NAME}</p>
+  <p style="font-size:14px;color:hsl(160,8%,30%);margin:28px 0 4px">— ${safeFromName}</p>
   <p style="font-size:12px;color:hsl(160,6%,65%);margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
-    You're receiving this because you enabled email notifications on ${ROOT_DOMAIN}. Manage your preferences in your profile settings.
+    You're receiving this because you enabled email notifications on ${safeRootDomain}. Manage your preferences in your profile settings.
   </p>
 </div></body></html>`
 
+  // Text body uses raw (unescaped) values — text/plain doesn't interpret HTML
+  // and the only mutator is the caller, who validated lengths already.
   const text = `${title}\n\nHey ${userName || 'there'},\n\n${message}\n\nView details: ${actionUrl}\n\n— ${FROM_NAME}\nManage notifications: ${SITE_URL}/profile`
   return { html, text }
 }
@@ -94,6 +111,22 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Service-role-only: this endpoint sends a Helpr-branded HTML email to
+    // any user_id. Before this gate any caller could POST arbitrary HTML/
+    // copy and the function would deliver it as Helpr — a textbook open-
+    // phishing relay. supabase/config.toml sets verify_jwt=false for this
+    // function so the gateway lets the bearer token through; we then
+    // require that bearer to equal SUPABASE_SERVICE_ROLE_KEY.
+    const expectedSecret = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SECRET_KEY') ?? ''
+    const authHeader = req.headers.get('authorization') ?? ''
+    const presentedToken = authHeader.replace(/^Bearer\s+/i, '')
+    if (!expectedSecret || !timingSafeEqual(presentedToken, expectedSecret)) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
     if (!resendApiKey) {
       console.error('RESEND_API_KEY not configured')
@@ -115,6 +148,12 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    // Sanitize link to a same-origin path. If a non-null link was provided
+    // but failed validation, send the email without an action link rather
+    // than failing — the email still has useful content and the bad link
+    // would have produced a broken "View Details" button anyway.
+    const safeLink = link == null ? null : sanitizeSameOriginLink(link)
 
     const mapping = TYPE_MAP[type] || { prefCol: 'email_system_alerts', category: 'system' }
     const prefColumn = mapping.prefCol
@@ -166,7 +205,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { html, text } = renderNotificationEmail(title, message, link, profile.full_name || '')
+    const { html, text } = renderNotificationEmail(title, message, safeLink, profile.full_name || '')
     const messageId = crypto.randomUUID()
 
     const emailPayload = {

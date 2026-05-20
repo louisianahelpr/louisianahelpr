@@ -1,15 +1,22 @@
 /**
- * Sentry initialization — error tracking + performance.
+ * Sentry initialization — error tracking + Session Replay (prod only).
  *
  * The DSN is publishable (safe in client bundles). Falls back to the
  * project DSN so the integration works even before VITE_SENTRY_DSN is
  * wired into env vars. Disable by clearing the fallback.
  *
  * IMPORTANT: We use named imports (not `import * as Sentry`) so Rollup
- * can tree-shake the Replay, Feedback, and Replay-Canvas integrations
- * out of the main bundle. Lighthouse flagged ~57KB of unused JS from
- * those three modules even with `defaultIntegrations: false` because a
- * namespace import keeps every re-export reachable.
+ * can tree-shake the Feedback and Replay-Canvas integrations out of the
+ * main bundle. Lighthouse flagged ~57KB of unused JS from those modules
+ * even with `defaultIntegrations: false` because a namespace import
+ * keeps every re-export reachable.
+ *
+ * Session Replay is enabled ONLY in production builds (gated on
+ * `import.meta.env.PROD`) with conservative sampling (10% sessions,
+ * 100% on-error). All text inputs are masked by default for Stripe PCI
+ * safety; media is unmasked so the UI surface is still legible in the
+ * replay. Dev builds skip Replay entirely to keep the local bundle and
+ * test surface small — errors still report in dev as before.
  *
  * We also skip `browserTracingIntegration`: it's the single heaviest
  * Sentry integration (~25KB gzip) and we don't consume the data — there
@@ -27,6 +34,7 @@ import {
   linkedErrorsIntegration,
   dedupeIntegration,
   httpContextIntegration,
+  replayIntegration,
 } from "@sentry/react";
 
 const DSN =
@@ -136,24 +144,55 @@ export function isBenignEvent(event: MinimalEvent | null | undefined): boolean {
 export function initSentry() {
   if (initialized || typeof window === "undefined" || !DSN) return;
   try {
+    // Session Replay is prod-only — see file header for rationale.
+    const integrations = [
+      breadcrumbsIntegration(),
+      globalHandlersIntegration(),
+      linkedErrorsIntegration(),
+      dedupeIntegration(),
+      httpContextIntegration(),
+    ];
+    if (import.meta.env.PROD) {
+      integrations.push(
+        // Privacy defaults:
+        // - maskAllText: true — every text node (incl. <input> values) is
+        //   redacted. Critical for Stripe PCI scope (card numbers, CVCs)
+        //   and Supabase magic-link tokens that may appear inline.
+        // - blockAllMedia: false — we DO want to see images/icons/SVGs
+        //   so the replay is legible enough to debug the UI surface.
+        // - networkDetailAllowUrls left at its default (empty) — replay
+        //   captures request URLs but NOT bodies/headers, so auth tokens
+        //   in Supabase responses or Stripe payloads can't leak.
+        replayIntegration({
+          maskAllText: true,
+          blockAllMedia: false,
+        }),
+      );
+    }
+
     init({
       dsn: DSN,
       environment: ENV,
       release: RELEASE,
-      // Replace defaults with a minimal set. Skips Replay (~38KB),
-      // Feedback (~15KB), Replay-Canvas (~4KB), and BrowserTracing
-      // (~25KB) integrations that ship with @sentry/react by default.
+      // Replace defaults with a minimal set. Skips Feedback (~15KB),
+      // Replay-Canvas (~4KB), and BrowserTracing (~25KB) integrations
+      // that ship with @sentry/react by default. Replay is added back
+      // (prod only) above with conservative sampling.
       defaultIntegrations: false,
-      integrations: [
-        breadcrumbsIntegration(),
-        globalHandlersIntegration(),
-        linkedErrorsIntegration(),
-        dedupeIntegration(),
-        httpContextIntegration(),
-      ],
+      integrations,
       // No tracing — we removed browserTracingIntegration above.
       // tracesSampleRate left out so Sentry doesn't even register the
       // tracing transport.
+
+      // Session Replay sampling — conservative to keep quota predictable.
+      //   - 10% random session sample (gives us a visual archive of
+      //     "normal" sessions for context, without ingesting everything).
+      //   - 100% of sessions that hit an error (these are the ones we
+      //     always want to see — debugging is the whole point).
+      // Both default to 0 in dev because Replay isn't registered there.
+      replaysSessionSampleRate: import.meta.env.PROD ? 0.1 : 0,
+      replaysOnErrorSampleRate: import.meta.env.PROD ? 1.0 : 0,
+
       // Don't ship benign noise.
       ignoreErrors: [
         "ResizeObserver loop limit exceeded",

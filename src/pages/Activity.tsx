@@ -229,6 +229,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               completingJobId={actions.completingJobId}
               onResolveRevision={actions.resolveRevision}
               onHelperReview={(jobId, posterId, posterName) => actions.setHelperReviewJob({ jobId, posterId, posterName })}
+              onDispute={actions.setDisputeJob}
               onRefresh={refresh}
             />
           )}

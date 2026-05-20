@@ -8,7 +8,7 @@ import { Send } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { VirtualList } from "@/components/VirtualList";
-import { type Application, type AppliedApp } from "./activityConstants";
+import { type Application, type AppliedApp, type Job } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
 
 interface AppliedJobsTabProps {
@@ -22,6 +22,8 @@ interface AppliedJobsTabProps {
   completingJobId: string | null;
   onResolveRevision: (jobId: string) => void;
   onHelperReview: (jobId: string, posterId: string, posterName: string) => void;
+  /** Open the dispute dialog for this job — helper-initiated dispute (issue #113). */
+  onDispute: (job: Job) => void;
   onRefresh: () => void;
 }
 
@@ -29,7 +31,7 @@ export const AppliedJobsTab = ({
   apps, expandedJobId, setExpandedJobId,
   helperReviewedJobIds, userId, onHelperResponse,
   onComplete, completingJobId,
-  onResolveRevision, onHelperReview, onRefresh,
+  onResolveRevision, onHelperReview, onDispute, onRefresh,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
   const [disputeResponse, setDisputeResponse] = useState("");
@@ -134,6 +136,7 @@ export const AppliedJobsTab = ({
             completingJobId={completingJobId}
             onResolveRevision={onResolveRevision}
             onHelperReview={onHelperReview}
+            onDispute={onDispute}
             onRefresh={onRefresh}
             disputeResponse={disputeResponse}
             setDisputeResponse={setDisputeResponse}

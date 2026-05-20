@@ -116,7 +116,7 @@ export function DetailsSection({
                 style={
                   active
                     ? {
-                        background: "hsla(0, 0%, 100%, 0.7)",
+                        background: "hsl(var(--parchment) / 0.7)",
                         border: "0.5px solid hsl(var(--bark) / 0.35)",
                         boxShadow:
                           "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
@@ -124,8 +124,12 @@ export function DetailsSection({
                           "0 6px 16px -4px hsl(var(--bark) / 0.22)",
                       }
                     : {
-                        background: "hsla(0, 0%, 100%, 0.45)",
-                        border: "0.5px solid hsl(var(--olivewood) / 0.12)",
+                        // Inactive chip surface was nearly invisible on the
+                        // parchment page — bumped fill opacity AND raised
+                        // the olivewood border so unselected categories
+                        // read as a real, tappable choice instead of a ghost.
+                        background: "hsl(var(--parchment) / 0.7)",
+                        border: "0.5px solid hsl(var(--olivewood) / 0.22)",
                         boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
                       }
                 }
@@ -244,7 +248,7 @@ export function DetailsSection({
             <label
               className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
               style={{
-                background: "hsla(0, 0%, 100%, 0.4)",
+                background: "hsl(var(--parchment) / 0.4)",
                 border: "1.5px dashed hsl(var(--bark) / 0.30)",
               }}
             >

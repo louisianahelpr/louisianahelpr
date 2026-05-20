@@ -219,9 +219,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 </span>
               </>
             )}
+            {/* Age chip is the lowest-value field in the row — hide it
+                on the smallest phones (<360px) so the meta row doesn't
+                wrap to three lines. `xs` breakpoint isn't defined in
+                tailwind.config, so an arbitrary media-query class is
+                used instead. */}
             <>
-              <span className="opacity-30">·</span>
-              <span className="flex items-center gap-1 opacity-80">
+              <span className="opacity-30 hidden [@media(min-width:360px)]:inline">·</span>
+              <span className="hidden [@media(min-width:360px)]:flex items-center gap-1 opacity-80">
                 <Clock className="w-2.5 h-2.5 shrink-0" />
                 <span className="font-serif italic">
                   {formatDistanceToNow(new Date(job.created_at), { addSuffix: false })} ago
@@ -243,9 +248,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </>
             )}
             {job.is_recurring && (
+              // Same sub-360px guard as the age chip: hide the
+              // recurring chip on the smallest phones so the meta
+              // row stays on two lines max.
               <>
-                <span className="opacity-30">·</span>
-                <span className="flex items-center gap-1">
+                <span className="opacity-30 hidden [@media(min-width:360px)]:inline">·</span>
+                <span className="hidden [@media(min-width:360px)]:flex items-center gap-1">
                   <Repeat className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
                   <span className="font-serif italic">
                     {job.recurrence_interval || "Recurring"}
@@ -264,7 +272,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             corner of the price tile. Stacked horizontally with Urgent
             (alarm cue) inner-most so it reads first when both apply. */}
         {(job.isBoosted || job.is_urgent) && (
-          <div className="absolute -top-2 -right-2 z-10 flex items-center gap-1">
+          // Sits just inside the card's rounded edge so the cluster
+          // isn't clipped by the root `overflow-hidden` (which is kept
+          // so the colored category rail stays inside the rounded
+          // corners). Previously `-top-2 -right-2` got chopped.
+          <div className="absolute -top-1 -right-1 z-10 flex items-center gap-1">
             {job.isBoosted && (
               <span
                 aria-label="Boosted"

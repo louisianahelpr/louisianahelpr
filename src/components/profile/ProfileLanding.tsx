@@ -200,13 +200,15 @@ export function ProfileLanding({
         <button
           onClick={() => onSelectTab("profile")}
           aria-label="Edit profile"
-          className="absolute top-3 right-3 h-8 pl-2 pr-2.5 rounded-full bg-secondary/60 hover:bg-secondary active:scale-95 inline-flex items-center gap-1 text-foreground/75 hover:text-foreground transition-all"
+          // h-10 hits the iOS/Android 40pt minimum tap target; nudged
+          // down half a step so it doesn't crowd the status bar inset.
+          className="absolute top-3.5 right-3 h-10 pl-2.5 pr-3 rounded-full bg-secondary/60 hover:bg-secondary active:scale-95 inline-flex items-center gap-1 text-foreground/75 hover:text-foreground transition-all"
         >
           <Edit className="w-3.5 h-3.5" />
           <span className="text-ds-11 font-sans font-semibold">Edit</span>
         </button>
 
-        <div className="flex flex-row items-center gap-4 pr-[72px]">
+        <div className="flex flex-row items-center gap-4 pr-[84px]">
           {/* Avatar — a real focal point on this applicant-facing page.
               Tier-styled ring uses gold for elite, sienna for pro,
               bark for everyone else. ID-verified checkmark sits on the
@@ -352,10 +354,14 @@ export function ProfileLanding({
               onRetry={() => onRetryStats?.()}
             />
           ) : (
-            <div className="grid grid-cols-3">
+            /* Buttons use `h-full py-2` so the middle column's vertical
+               `border-x border-border/50` divider spans the full height
+               of the trust strip; previously the borders only matched
+               the (variable) intrinsic height of the middle column. */
+            <div className="grid grid-cols-3 items-stretch">
               <button
                 onClick={() => onSelectTab("reviews")}
-                className="flex flex-col items-center gap-0.5 active:opacity-60 transition-opacity"
+                className="flex flex-col items-center justify-center gap-0.5 py-2 h-full active:opacity-60 transition-opacity"
               >
                 <span className="inline-flex items-center gap-1">
                   <Star
@@ -378,7 +384,7 @@ export function ProfileLanding({
               </button>
               <button
                 onClick={() => { if (completedCount > 0) { onLoadInlineJobs(); onSelectTab("completed_jobs"); } }}
-                className="flex flex-col items-center gap-0.5 border-x border-border/50 active:opacity-60 transition-opacity"
+                className="flex flex-col items-center justify-center gap-0.5 py-2 h-full border-x border-border/50 active:opacity-60 transition-opacity"
               >
                 <span className="text-ds-15 font-bold text-foreground leading-none">{completedCount}</span>
                 <span className="text-ds-9 font-sans font-medium uppercase tracking-wider text-muted-foreground">
@@ -387,7 +393,7 @@ export function ProfileLanding({
               </button>
               <button
                 onClick={() => { if (postedCount > 0) { onLoadInlineJobs(); onSelectTab("posted_jobs"); } }}
-                className="flex flex-col items-center gap-0.5 active:opacity-60 transition-opacity"
+                className="flex flex-col items-center justify-center gap-0.5 py-2 h-full active:opacity-60 transition-opacity"
               >
                 <span className="text-ds-15 font-bold text-foreground leading-none">{postedCount}</span>
                 <span className="text-ds-9 font-sans font-medium uppercase tracking-wider text-muted-foreground">
@@ -724,16 +730,15 @@ export function ProfileLanding({
                         />
                       )}
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="relative shrink-0">
+                        {/* Icon tile — the per-icon red corner-dot was
+                            removed; "Action needed" inline text below
+                            (plus the group-level dot in the section
+                            header) is the readable signal, and three
+                            stacked reds was visual noise. */}
+                        <div className="shrink-0">
                           <div className="w-10 h-10 rounded-ds-md bg-muted/60 text-muted-foreground flex items-center justify-center transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
                             {item.icon}
                           </div>
-                          {item.needsAction && (
-                            <span
-                              aria-label="Action needed"
-                              className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-destructive ring-2 ring-white"
-                            />
-                          )}
                         </div>
                         <div className="min-w-0">
                           <p className="text-ds-13 font-semibold text-foreground leading-tight">

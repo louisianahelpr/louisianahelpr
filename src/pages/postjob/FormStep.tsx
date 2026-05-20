@@ -203,11 +203,15 @@ export function FormStep({ form }: FormStepProps) {
             contextual: it names the next unfinished chapter until every
             required field is in, then becomes "Review & pay". */}
         <div
-          className="sticky z-20 -mx-5 px-5 pt-3 pb-1"
+          className="sticky z-20 -mx-4 px-4 pt-3 pb-1"
           style={{
             bottom: "calc(env(safe-area-inset-bottom, 0px) + 84px)",
+            // Parchment gradient tokenized so palette tweaks propagate.
+            // Was hard-coded `hsla(38, 18%, 97%, ...)` matching the
+            // parchment token — using the var directly keeps them in
+            // sync if the token ever shifts.
             background:
-              "linear-gradient(to top, hsla(38, 18%, 97%, 0.96) 55%, hsla(38, 18%, 97%, 0))",
+              "linear-gradient(to top, hsl(var(--parchment) / 0.96) 55%, hsl(var(--parchment) / 0))",
           }}
         >
           <Button
@@ -218,11 +222,15 @@ export function FormStep({ form }: FormStepProps) {
             disabled={submitDisabled}
             aria-disabled={submitDisabled}
           >
-            <span className="inline-flex items-center gap-2">
-              {submitLabel}
+            {/* On 320px phones the long contextual labels ("Add when &
+                where to continue") + the trailing budget can overflow.
+                Truncate the label and keep the budget chip un-shrunk so
+                it always stays readable. */}
+            <span className="inline-flex items-center gap-2 min-w-0 max-w-full">
+              <span className="truncate min-w-0">{submitLabel}</span>
               {formReady && form.budgetNum > 0 && (
                 <span
-                  className="font-display italic font-bold tabular-nums"
+                  className="font-display italic font-bold tabular-nums shrink-0"
                   style={{ fontSize: "1rem", letterSpacing: "-0.01em" }}
                 >
                   · ${form.budgetNum.toFixed(2)}

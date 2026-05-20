@@ -4,8 +4,37 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Elevation system — TestFlight #2 feedback "buttons look flat next to cards"
+//
+// Four cumulative depth treatments, applied selectively per variant so the
+// hierarchy stays legible (a ghost button and a primary CTA must NOT read at
+// the same elevation):
+//
+//   1. ELEVATION  — 2-layer drop shadow that mimics real lift (a tight 1px
+//      contact shadow + a wider 2px/4px ambient shadow). Two layers prevent
+//      the "single hard line" pasted-on look.
+//   2. HIGHLIGHT  — inner 1px top-edge cream highlight, picking up light
+//      from above so the button feels embossed / lit, not painted flat.
+//   3. PRESS      — on `:active`, translate down 1px and collapse the
+//      ambient shadow so the button physically depresses under the finger.
+//   4. GRADIENT   — barely-perceptible 0% → 92% vertical gradient on the
+//      bark PRIMARY CTA only. Just enough that the surface reads as
+//      "solid + lit from above" instead of a flat fill.
+//
+// Brand tokens live as raw HSL CSS vars (NOT in tailwind.config.ts), so they
+// MUST be referenced as `hsl(var(--token) / alpha)` — `bg-ink-deep` is a
+// no-op class.
+// ─────────────────────────────────────────────────────────────────────────────
+const ELEV_FILLED =
+  "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.18),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_4px_hsl(var(--ink-deep)/0.12)] " +
+  "active:translate-y-px active:shadow-[inset_0_1px_0_hsl(var(--parchment)/0.18),0_1px_1px_hsl(var(--ink-deep)/0.12)]";
+const ELEV_OUTLINE =
+  "shadow-[0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_4px_hsl(var(--ink-deep)/0.12)] " +
+  "active:translate-y-px active:shadow-[0_1px_1px_hsl(var(--ink-deep)/0.12)]";
+
 const buttonVariants = cva(
-  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-3xl text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
+  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-3xl text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 disabled:active:translate-y-0 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -17,24 +46,47 @@ const buttonVariants = cva(
         // the cream explicitly with `!text-[...]` plus a descendant `[&_*]`
         // rule so an `asChild` <a> child can't inherit a darker color
         // either — independent of variant token resolution.
+        //
+        // Depth: all 4 treatments (filled primary CTA).
         default:
-          "bg-gradient-to-b from-primary to-primary/85 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] hover:brightness-110 shadow-[0_1px_0_0_hsl(0_0%_100%/0.15)_inset,0_2px_4px_-2px_hsl(var(--primary)/0.35),0_8px_16px_-4px_hsl(var(--primary)/0.35),0_16px_32px_-8px_hsl(var(--primary)/0.3)] hover:shadow-[0_1px_0_0_hsl(0_0%_100%/0.2)_inset,0_4px_8px_-2px_hsl(var(--primary)/0.4),0_12px_24px_-4px_hsl(var(--primary)/0.45),0_24px_48px_-8px_hsl(var(--primary)/0.35)] hover:-translate-y-px",
+          "bg-[linear-gradient(180deg,hsl(var(--primary))_0%,hsl(var(--primary)/0.92)_100%)] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] hover:brightness-110 " +
+          ELEV_FILLED,
+        // Destructive: shadow + highlight + press, NO gradient — keep red
+        // flat-looking so it doesn't get accidentally pressed.
         destructive:
-          "bg-gradient-to-b from-destructive to-destructive/85 text-destructive-foreground hover:brightness-110 shadow-[0_1px_0_0_hsl(0_0%_100%/0.15)_inset,0_2px_4px_-2px_hsl(var(--destructive)/0.35),0_8px_16px_-4px_hsl(var(--destructive)/0.35),0_16px_32px_-8px_hsl(var(--destructive)/0.3)] hover:-translate-y-px",
+          "bg-destructive text-destructive-foreground hover:brightness-110 " + ELEV_FILLED,
+        // Outline: shadow #1 ONLY — outlines stay clean and minimal, no
+        // inner highlight, no gradient.
         outline:
-          "border border-border/60 bg-background/70 backdrop-blur-md hover:bg-secondary hover:text-secondary-foreground shadow-[0_1px_2px_0_hsl(var(--foreground)/0.04),0_4px_12px_-4px_hsl(var(--foreground)/0.08)]",
+          "border border-border/60 bg-background/70 backdrop-blur-md hover:bg-secondary hover:text-secondary-foreground " +
+          ELEV_OUTLINE,
+        // Secondary / parchment-tint: shadow + highlight + press, no gradient.
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[0_1px_2px_0_hsl(var(--foreground)/0.04),0_4px_12px_-4px_hsl(var(--foreground)/0.08)]",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 " + ELEV_FILLED,
+        // Ghost / link: intentionally FLAT. No elevation — these read as
+        // tertiary affordances and must not compete with filled CTAs.
         ghost: "hover:bg-secondary hover:text-secondary-foreground",
         link: "text-primary underline-offset-4 hover:underline shadow-none",
-        hero: "relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/80 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] text-base shadow-[0_1px_0_0_hsl(0_0%_100%/0.2)_inset,0_4px_8px_-2px_hsl(var(--primary)/0.4),0_12px_24px_-4px_hsl(var(--primary)/0.5),0_24px_48px_-12px_hsl(var(--primary)/0.5)] hover:shadow-[0_1px_0_0_hsl(0_0%_100%/0.25)_inset,0_6px_12px_-2px_hsl(var(--primary)/0.45),0_18px_36px_-6px_hsl(var(--primary)/0.55),0_32px_64px_-12px_hsl(var(--primary)/0.55)] hover:-translate-y-0.5 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out",
+        // Hero is the marketing-page primary CTA — same family as bark/default,
+        // so it gets all 4 treatments (gradient + highlight + 2-layer shadow
+        // + active press), plus its existing shimmer sweep.
+        hero:
+          "relative overflow-hidden bg-[linear-gradient(180deg,hsl(var(--primary))_0%,hsl(var(--primary)/0.92)_100%)] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] text-base hover:brightness-110 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out " +
+          ELEV_FILLED,
+        // Hero-outline: outline family, shadow #1 only.
         "hero-outline":
-          "relative border-2 border-primary/40 bg-background/60 backdrop-blur-md text-primary text-base shadow-[0_2px_8px_-2px_hsl(var(--foreground)/0.08)] hover:border-primary hover:bg-primary/5 hover:shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.35)] hover:-translate-y-0.5",
-        // Bark CTA (used by the auth-screen "Sign in" / "Send reset link"
-        // buttons). Same cascade-loss defense as `default`: pin the cream
-        // text with `!text-[...]` + descendant `[&_*]` so it never renders
-        // dark-on-olive in the WebView.
-        bark: "bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border border-[hsl(var(--bark))] [font-family:Montserrat,system-ui,sans-serif] font-semibold tracking-[0.01em] hover:brightness-110 hover:-translate-y-px shadow-[0_1px_2px_hsl(var(--bark)/0.18),0_8px_20px_-6px_hsl(var(--bark)/0.34)]",
+          "relative border-2 border-primary/40 bg-background/60 backdrop-blur-md text-primary text-base hover:border-primary hover:bg-primary/5 " +
+          ELEV_OUTLINE,
+        // Bark CTA (auth-screen "Sign in" / "Send reset link"). Same
+        // cascade-loss defense as `default`: pin cream text with `!text-[...]`
+        // + descendant `[&_*]` so it never renders dark-on-olive in the
+        // WebView.
+        //
+        // Depth: all 4 treatments — this is THE primary CTA the TestFlight
+        // feedback flagged as flat.
+        bark:
+          "bg-[linear-gradient(180deg,hsl(var(--bark))_0%,hsl(var(--bark)/0.92)_100%)] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border border-[hsl(var(--bark))] [font-family:Montserrat,system-ui,sans-serif] font-semibold tracking-[0.01em] hover:brightness-110 " +
+          ELEV_FILLED,
       },
       size: {
         default: "h-14 px-6 py-2 text-[16px]",

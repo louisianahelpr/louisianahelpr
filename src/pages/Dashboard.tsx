@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react"
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery, useQueryClient, type Query } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
@@ -248,13 +248,62 @@ const Dashboard = () => {
     if (savedJobsData) setSavedJobIds(new Set(savedJobsData));
   }, [savedJobsData]);
 
+  // Save / un-save a job. Optimistic: the heart flips the instant the
+  // user taps, both in local state and in the cached `savedJobs` query,
+  // so the action feels sub-100ms. On failure we roll the snapshot back
+  // and surface a small toast — no full refetch on success, because the
+  // optimistic state is already correct.
+  const saveJobMutation = useMutation({
+    mutationFn: async ({ jobId, saved, userId }: { jobId: string; saved: boolean; userId: string }) => {
+      if (saved) {
+        // upsert avoids a 23505 unique-violation if the row already exists
+        // (e.g. a stale local state desyncs from the server).
+        const { error } = await supabase
+          .from("saved_jobs")
+          .upsert({ user_id: userId, job_id: jobId }, { onConflict: "user_id,job_id" });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("saved_jobs")
+          .delete()
+          .eq("user_id", userId)
+          .eq("job_id", jobId);
+        if (error) throw error;
+      }
+    },
+    onMutate: async ({ jobId, saved, userId }) => {
+      // Cancel any in-flight refetch so it can't overwrite our optimistic
+      // value after we've applied it.
+      await queryClient.cancelQueries({ queryKey: ["savedJobs", userId] });
+      const previousSavedJobs = queryClient.getQueryData<string[]>(["savedJobs", userId]);
+      const previousLocal = savedJobIds;
+      queryClient.setQueryData<string[]>(["savedJobs", userId], (prev) => {
+        const current = prev ?? [];
+        if (saved) return current.includes(jobId) ? current : [...current, jobId];
+        return current.filter((id) => id !== jobId);
+      });
+      setSavedJobIds((prev) => {
+        const next = new Set(prev);
+        if (saved) next.add(jobId); else next.delete(jobId);
+        return next;
+      });
+      return { previousSavedJobs, previousLocal };
+    },
+    onError: (_err, vars, context) => {
+      if (context) {
+        queryClient.setQueryData(["savedJobs", vars.userId], context.previousSavedJobs);
+        setSavedJobIds(context.previousLocal);
+      }
+      toast.error("Couldn't save. Try again.");
+    },
+    // No onSuccess refetch: optimistic state is correct; a refetch would
+    // briefly toggle the heart back and forth as the cache reconciles.
+  });
+
   const handleToggleSave = useCallback((jobId: string, saved: boolean) => {
-    setSavedJobIds(prev => {
-      const next = new Set(prev);
-      if (saved) next.add(jobId); else next.delete(jobId);
-      return next;
-    });
-  }, []);
+    if (!user) { navigate("/login"); return; }
+    saveJobMutation.mutate({ jobId, saved, userId: user.id });
+  }, [user, navigate, saveJobMutation]);
   const handleApplyRequest = useCallback(async (jobId: string) => {
     hapticMedium(); // confirm tap on Apply
     if (!user) { navigate("/login"); return; }
@@ -267,56 +316,94 @@ const Dashboard = () => {
     setConfirmApplyJobId(jobId);
   }, [user, allJobs, navigate]);
 
-  const handleApplyConfirm = useCallback(async () => {
-    if (!user || !confirmApplyJobId || applyLoading) return;
-    setApplyLoading(true);
-
-    // Note: payout-account setup is NOT required to apply. It is only enforced
-    // at job-acceptance time (see Activity.tsx → handleHelperResponse).
-
-    // Upload attachments (store storage paths; resolve signed URLs at view time)
-    const attachmentUrls: string[] = [];
-    if (applyFiles.length > 0) {
-      for (const file of applyFiles) {
+  // Optimistic Apply. The moment a helper hits "Apply now" we:
+  //   1) close the dialog,
+  //   2) optimistically add this job's id to `dashboardContext.appliedJobIds`
+  //      so the feed filter (`!appliedJobIds.has(j.id)`) removes the row
+  //      across every loaded page of the infinite query — the card vanishes
+  //      in the same frame as the tap (no spinner, no Stripe-style wait).
+  // The file-upload + insert run in the background; on error we restore
+  // the snapshots so the job re-appears and the user can retry.
+  type ApplyVars = {
+    jobId: string;
+    helperId: string;
+    message: string;
+    files: File[];
+  };
+  type ApplySnapshot = {
+    previousContext: unknown;
+    userId: string;
+  };
+  const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
+    mutationFn: async ({ jobId, helperId, message, files }) => {
+      // Upload attachments first (store storage paths; resolve signed URLs at view time).
+      const attachmentUrls: string[] = [];
+      for (const file of files) {
         const ext = file.name.split('.').pop();
-        const path = `${user.id}/${confirmApplyJobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file);
+        const path = `${helperId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("application-attachments")
+          .upload(path, file);
         if (uploadErr) {
-          toast.error(`Failed to upload ${file.name}`);
-          setApplyLoading(false);
-          return;
+          // Re-throw with a friendly file-specific message so onError can toast it.
+          throw Object.assign(new Error(`Failed to upload ${file.name}`), { code: "UPLOAD_FAILED" });
         }
         attachmentUrls.push(path);
       }
-    }
-
-    const { error } = await supabase.from("applications").insert({
-      job_id: confirmApplyJobId,
-      helper_id: user.id,
-      message: applyMessage.trim() || null,
-      attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
-    });
-    if (error) {
+      const { error } = await supabase.from("applications").insert({
+        job_id: jobId,
+        helper_id: helperId,
+        message: message.trim() || null,
+        attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
+      });
+      if (error) throw error as Error & { code?: string };
+    },
+    onMutate: async ({ jobId, helperId }) => {
+      await queryClient.cancelQueries({ queryKey: ["dashboardContext", helperId] });
+      const previousContext = queryClient.getQueryData(["dashboardContext", helperId]);
+      // Optimistically widen appliedJobIds so the feed filter drops this
+      // job from every loaded page of the infinite query immediately.
+      queryClient.setQueryData(["dashboardContext", helperId], (prev: any) => {
+        if (!prev) return prev;
+        const nextApplied = new Set<string>(prev.appliedJobIds ?? []);
+        nextApplied.add(jobId);
+        return { ...prev, appliedJobIds: nextApplied };
+      });
+      return { previousContext, userId: helperId };
+    },
+    onError: (err, _vars, context) => {
       hapticError();
-      if (error.code === "23505") toast.error("You've already applied.");
-      else toast.error(error.message);
-    } else {
+      // Roll the appliedJobIds set back so the card re-appears in the feed.
+      if (context) {
+        queryClient.setQueryData(["dashboardContext", context.userId], context.previousContext);
+      }
+      const code = (err as { code?: string } | null)?.code;
+      if (code === "23505") {
+        toast.error("You've already applied.");
+      } else if (code === "UPLOAD_FAILED") {
+        toast.error(err.message);
+      } else {
+        toast.error("Couldn't submit application. Try again.");
+      }
+    },
+    onSuccess: async (_data, vars) => {
       hapticSuccess();
-      // Funnel: track first application separately for activation analysis
-      track(AhaEvent.JobApplied, { job_id: confirmApplyJobId });
+      // Funnel: track first application separately for activation analysis.
+      track(AhaEvent.JobApplied, { job_id: vars.jobId });
       const { count } = await supabase
         .from("applications")
         .select("id", { count: "exact", head: true })
-        .eq("helper_id", user.id);
-      if ((count ?? 0) <= 1) track(AhaEvent.FirstJobApplication, { job_id: confirmApplyJobId });
+        .eq("helper_id", vars.helperId);
+      if ((count ?? 0) <= 1) track(AhaEvent.FirstJobApplication, { job_id: vars.jobId });
       toast.success("Application sent! Track it in My Jobs.", {
         action: { label: "View", onClick: () => navigate("/my-jobs") },
       });
-      // Invalidate every cache that may show this job/application so any open
-      // screen (Dashboard, My Jobs, future Activity-as-Query) updates in sync.
-      // Predicate match catches keys like ["dashboardJobs", userId],
-      // ["applications", ...], ["jobs", jobId], etc. without needing each
-      // caller to know the exact shape.
+    },
+    onSettled: async (_data, _err, vars) => {
+      // Reconcile against the server now that the optimistic state has
+      // either been confirmed or rolled back. Predicate match catches
+      // ["dashboardJobs", userId], ["applications", ...], ["jobs", jobId],
+      // etc. without needing every caller to know the exact shape.
       await queryClient.invalidateQueries({
         predicate: (q: Query) => {
           const k = q.queryKey?.[0];
@@ -327,12 +414,29 @@ const Dashboard = () => {
             || k === "activity";
         },
       });
-    }
+      void vars;
+    },
+  });
+
+  const handleApplyConfirm = useCallback(() => {
+    if (!user || !confirmApplyJobId || applyLoading) return;
+    const jobId = confirmApplyJobId;
+    const files = applyFiles;
+    const message = applyMessage;
+    // Close the dialog + reset its state synchronously so the next paint
+    // already has the optimistic feed. The mutation continues in the
+    // background; React Query's onError rolls things back on failure.
     setConfirmApplyJobId(null);
-    setApplyLoading(false);
     setApplyMessage("");
     setApplyFiles([]);
-  }, [user, confirmApplyJobId, navigate, queryClient, profile, applyLoading, applyFiles, applyMessage]);
+    // setApplyLoading flips off on settled (handled below) — we still
+    // set it true here so a fast double-tap can't enqueue twice.
+    setApplyLoading(true);
+    applyMutation.mutate(
+      { jobId, helperId: user.id, message, files },
+      { onSettled: () => setApplyLoading(false) },
+    );
+  }, [user, confirmApplyJobId, applyLoading, applyFiles, applyMessage, applyMutation]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);

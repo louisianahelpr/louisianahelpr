@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
@@ -175,7 +174,7 @@ describe("HelperScheduleStrip", () => {
     expect(dayCell).not.toBeNull();
     expect(within(dayCell as HTMLElement).getByText(/\+1 more/i)).toBeInTheDocument();
 
-    await userEvent.click(dayCell as HTMLElement);
+    fireEvent.click(dayCell as HTMLElement);
 
     // All three jobs now visible inside the dialog (one of them is the
     // third item that wasn't in the inline preview).

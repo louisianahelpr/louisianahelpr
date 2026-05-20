@@ -16,6 +16,7 @@ import { lookupParishByZip } from "@/lib/parishLookup";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { splitName } from "@/lib/splitName";
+import { requireOnline } from "@/lib/requireOnline";
 
 // Only the landing tab + its lightweight header are needed on first paint.
 // Every other tab panel and the rarely-opened dialogs are code-split so the
@@ -390,6 +391,7 @@ const ProfilePage = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!requireOnline()) return;
     if (!user) return;
     const merged = `${firstName.trim()} ${lastName.trim()}`.trim();
     setSaving(true);

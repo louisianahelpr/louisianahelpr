@@ -37,6 +37,7 @@ import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { track, AhaEvent } from "@/lib/analytics";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { requireOnline } from "@/lib/requireOnline";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 
@@ -305,6 +306,7 @@ const Dashboard = () => {
     saveJobMutation.mutate({ jobId, saved, userId: user.id });
   }, [user, navigate, saveJobMutation]);
   const handleApplyRequest = useCallback(async (jobId: string) => {
+    if (!requireOnline()) return;
     hapticMedium(); // confirm tap on Apply
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);

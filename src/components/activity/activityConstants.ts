@@ -1,19 +1,18 @@
 import type { Database } from "@/integrations/supabase/types";
-import {
-  Sparkles, Leaf, Truck, ShoppingBag, Wrench, Paintbrush,
-  Package, PawPrint, Hammer, MoreHorizontal, type LucideIcon,
-} from "lucide-react";
+import { CATEGORY_ICONS } from "@/lib/categoryIcons";
 
 export type Job = Database["public"]["Tables"]["jobs"]["Row"];
 export type Application = Database["public"]["Tables"]["applications"]["Row"];
 
 export type Tab = "posted" | "applied";
 
-export const categoryIcons: Record<string, LucideIcon> = {
-  cleaning: Sparkles, yard_work: Leaf, moving: Truck, errands: ShoppingBag,
-  handyman: Wrench, painting: Paintbrush, delivery: Package, pet_care: PawPrint,
-  assembly: Hammer, other: MoreHorizontal,
-};
+/**
+ * Re-exported from the canonical `src/lib/categoryIcons.ts`. The single
+ * source of truth lives there so non-activity surfaces (landing,
+ * post-a-task, profile) can import the icon map without dragging in
+ * activity-specific types.
+ */
+export const categoryIcons = CATEGORY_ICONS;
 
 export const categoryLabels: Record<string, string> = {
   cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",

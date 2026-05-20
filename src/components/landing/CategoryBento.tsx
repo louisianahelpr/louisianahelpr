@@ -1,32 +1,27 @@
-import {
-  Leaf,
-  Sparkles,
-  Truck,
-  ShoppingBag,
-  Wrench,
-  Paintbrush,
-  Package,
-  PawPrint,
-  Hammer,
-  Heart,
-} from "lucide-react";
+import { Heart, type LucideIcon } from "lucide-react";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 
 type CategoryPill = {
-  icon: typeof Leaf;
+  icon: LucideIcon;
   label: string;
   nearby: number;
 };
 
+// Pills sourced from the canonical `job_category` icon map so the landing
+// marquee can never drift from the icons used inside the app (Dashboard,
+// JobCard, JobFilters, PostJob picker). "Senior Help" is intentionally
+// extra here — it's a marketing aspiration, not a real DB enum value, so
+// it stays defined inline.
 const categories: CategoryPill[] = [
-  { icon: Leaf, label: "Yard Work", nearby: 12 },
-  { icon: Sparkles, label: "Cleaning", nearby: 14 },
-  { icon: Truck, label: "Moving", nearby: 5 },
-  { icon: ShoppingBag, label: "Errands", nearby: 9 },
-  { icon: Wrench, label: "Handyman", nearby: 7 },
-  { icon: Paintbrush, label: "Painting", nearby: 4 },
-  { icon: Package, label: "Delivery", nearby: 8 },
-  { icon: PawPrint, label: "Pet Care", nearby: 6 },
-  { icon: Hammer, label: "Assembly", nearby: 3 },
+  { icon: getCategoryIcon("yard_work"), label: "Yard Work", nearby: 12 },
+  { icon: getCategoryIcon("cleaning"), label: "Cleaning", nearby: 14 },
+  { icon: getCategoryIcon("moving"), label: "Moving", nearby: 5 },
+  { icon: getCategoryIcon("errands"), label: "Errands", nearby: 9 },
+  { icon: getCategoryIcon("handyman"), label: "Handyman", nearby: 7 },
+  { icon: getCategoryIcon("painting"), label: "Painting", nearby: 4 },
+  { icon: getCategoryIcon("delivery"), label: "Delivery", nearby: 8 },
+  { icon: getCategoryIcon("pet_care"), label: "Pet Care", nearby: 6 },
+  { icon: getCategoryIcon("assembly"), label: "Assembly", nearby: 3 },
   { icon: Heart, label: "Senior Help", nearby: 5 },
 ];
 

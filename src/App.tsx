@@ -1,4 +1,4 @@
-import { lazy, Suspense, forwardRef } from "react";
+import { lazy, Suspense, forwardRef, type ReactElement } from "react";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
@@ -9,6 +9,7 @@ import { persistOptions, PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
+import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
 import PageTransition from "@/components/PageTransition";
 import OfflineBanner from "@/components/OfflineBanner";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
@@ -105,57 +106,64 @@ const queryClient = new QueryClient({
   },
 });
 
-const PageFallback = () => (
-  <div className="fixed inset-0 overflow-hidden bg-background flex items-center justify-center" aria-hidden="true">
-    <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-  </div>
+/**
+ * Wraps a single route's lazy content in its own `<Suspense>` with a
+ * branded parchment fallback so navigating between routes doesn't blank
+ * the persistent shell (header, banners, mobile nav). Each route gets its
+ * own independent Suspense boundary — the fallback renders in place of
+ * THAT route only.
+ *
+ * Composes inside `RouteErrorBoundary` (`<RouteErrorBoundary>{routeEl(...)}
+ * </RouteErrorBoundary>`) so a lazy-chunk fetch failure still surfaces
+ * the branded route-error UI instead of suspending forever.
+ */
+const routeEl = (node: ReactElement) => (
+  <Suspense fallback={<RouteSuspenseFallback />}>{node}</Suspense>
 );
-
-
 
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
   return (
     <Routes location={location}>
-      <Route path="/" element={<RouteErrorBoundary><Index /></RouteErrorBoundary>} />
-      <Route path="/login" element={<RouteErrorBoundary><PageTransition><Login /></PageTransition></RouteErrorBoundary>} />
-      <Route path="/signup" element={<RouteErrorBoundary><PageTransition><Signup /></PageTransition></RouteErrorBoundary>} />
-      <Route path="/signup-pending" element={<RouteErrorBoundary><PageTransition><SignupPending /></PageTransition></RouteErrorBoundary>} />
-      <Route path="/complete-profile" element={<RouteErrorBoundary><ProtectedRoute allowUnapproved><CompleteProfile /></ProtectedRoute></RouteErrorBoundary>} />
-      <Route path="/account-pending" element={<RouteErrorBoundary><PageTransition><AccountPending /></PageTransition></RouteErrorBoundary>} />
-      <Route path="/account-denied" element={<RouteErrorBoundary><PageTransition><AccountDenied /></PageTransition></RouteErrorBoundary>} />
-      <Route path="/account-banned" element={<RouteErrorBoundary><PageTransition><AccountBanned /></PageTransition></RouteErrorBoundary>} />
-      <Route path="/forgot-password" element={<RouteErrorBoundary><PageTransition><ForgotPassword /></PageTransition></RouteErrorBoundary>} />
-      <Route path="/reset-password" element={<RouteErrorBoundary><PageTransition><ResetPassword /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/" element={<RouteErrorBoundary>{routeEl(<Index />)}</RouteErrorBoundary>} />
+      <Route path="/login" element={<RouteErrorBoundary>{routeEl(<PageTransition><Login /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/signup" element={<RouteErrorBoundary>{routeEl(<PageTransition><Signup /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/signup-pending" element={<RouteErrorBoundary>{routeEl(<PageTransition><SignupPending /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/complete-profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowUnapproved><CompleteProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/account-pending" element={<RouteErrorBoundary>{routeEl(<PageTransition><AccountPending /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/account-denied" element={<RouteErrorBoundary>{routeEl(<PageTransition><AccountDenied /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/account-banned" element={<RouteErrorBoundary>{routeEl(<PageTransition><AccountBanned /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/forgot-password" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForgotPassword /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/reset-password" element={<RouteErrorBoundary>{routeEl(<PageTransition><ResetPassword /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Progressive activation: pending/unverified users can browse, save
           and apply while they wait on review. Verification still gates the
           moments that require it (accept, payout) inside the components.
           `denied`/banned users are still redirected — see ProtectedRoute. */}
-      <Route path="/dashboard" element={<RouteErrorBoundary><ProtectedRoute allowPending><Dashboard /></ProtectedRoute></RouteErrorBoundary>} />
-      <Route path="/profile" element={<RouteErrorBoundary><ProtectedRoute allowUnapproved><Profile /></ProtectedRoute></RouteErrorBoundary>} />
-      <Route path="/post-job" element={<RouteErrorBoundary><ProtectedRoute><PostJob /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Dashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/my-jobs" element={<RouteErrorBoundary><ProtectedRoute allowPending><Activity defaultTab="applied" /></ProtectedRoute></RouteErrorBoundary>} />
-      <Route path="/my-posts" element={<RouteErrorBoundary><ProtectedRoute allowPending><Activity defaultTab="posted" /></ProtectedRoute></RouteErrorBoundary>} />
-      <Route path="/payment-success" element={<RouteErrorBoundary><ProtectedRoute><PaymentSuccess /></ProtectedRoute></RouteErrorBoundary>} />
-      <Route path="/user/:userId" element={<RouteErrorBoundary><ProtectedRoute><UserProfile /></ProtectedRoute></RouteErrorBoundary>} />
-      <Route path="/admin" element={<RouteErrorBoundary><ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/my-jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Activity defaultTab="applied" /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/my-posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Activity defaultTab="posted" /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
-      <Route path="/messages" element={<RouteErrorBoundary><ProtectedRoute allowPending><Messages /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/support" element={<Navigate to="/profile?tab=support" replace />} />
 
-      <Route path="/legal" element={<RouteErrorBoundary><PageTransition><Legal /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
-      <Route path="/data-rights" element={<RouteErrorBoundary><PageTransition><DataRights /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/data-rights" element={<RouteErrorBoundary>{routeEl(<PageTransition><DataRights /></PageTransition>)}</RouteErrorBoundary>} />
 
-      <Route path="/jobs" element={<RouteErrorBoundary><ProtectedRoute allowPending><Jobs /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Jobs /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /dashboard's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want
           a no-account preview, though the marketing landing remains canonical. */}
-      <Route path="/browse" element={<RouteErrorBoundary><PageTransition><DashboardGuest /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/browse" element={<RouteErrorBoundary>{routeEl(<PageTransition><DashboardGuest /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
       {/* /community is a legacy/external-link redirect stub — the content
           lives as a tab inside /legal. Without this redirect, old search
@@ -172,8 +180,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/schedule" element={<Navigate to="/profile?tab=schedule" replace />} />
       <Route path="/availability" element={<Navigate to="/profile?tab=availability" replace />} />
       <Route path="/saved-helpers" element={<Navigate to="/profile?tab=saved_helpers" replace />} />
-      <Route path="/for-business" element={<RouteErrorBoundary><PageTransition><ForBusiness /></PageTransition></RouteErrorBoundary>} />
-      <Route path="/business/team" element={<RouteErrorBoundary><ProtectedRoute><BusinessTeam /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
 
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
       {/* Legacy paths surfaced by 404s in error_logs (external links, old
@@ -182,7 +190,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/dashboard/post-login" element={<Navigate to="/dashboard" replace />} />
       <Route path="/settings/profile" element={<Navigate to="/profile" replace />} />
       <Route path="/settings" element={<Navigate to="/profile" replace />} />
-      <Route path="*" element={<RouteErrorBoundary><NotFound /></RouteErrorBoundary>} />
+      <Route path="*" element={<RouteErrorBoundary>{routeEl(<NotFound />)}</RouteErrorBoundary>} />
     </Routes>
   );
 });
@@ -192,13 +200,18 @@ AnimatedRoutes.displayName = "AnimatedRoutes";
 // page shows the fallback inside <main> only — the header, nav, and
 // banners stay mounted — and navigating elsewhere clears it. The root
 // ErrorBoundary in <App> still backstops crashes in the shell itself.
+//
+// No outer <Suspense> here on purpose: every lazy route element brings
+// its own per-route Suspense (see `routeEl()` above). A single shared
+// Suspense at this level would tear down the active route's UI during a
+// nav transition — by scoping the fallback per route, the previous
+// route's content stays mounted until the next chunk resolves, so the
+// persistent shell never flashes blank between pages.
 const RoutedBoundary = () => {
   const location = useLocation();
   return (
     <ErrorBoundary resetKey={location.pathname}>
-      <Suspense fallback={<PageFallback />}>
-        <AnimatedRoutes />
-      </Suspense>
+      <AnimatedRoutes />
     </ErrorBoundary>
   );
 };

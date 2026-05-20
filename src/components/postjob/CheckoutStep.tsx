@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import type { HelprActivity } from "@/hooks/useHelprActivity";
+import { EscrowExplainer } from "@/components/payment/EscrowExplainer";
 
 const isSafeBlobPreviewUrl = (value: string): boolean => {
   if (!value) return false;
@@ -225,6 +226,12 @@ export function CheckoutStep({
           <div className="flex justify-between">
             <span className="font-semibold text-foreground">Estimated total (excl. tax)</span>
             <span className="text-ds-20 font-bold text-foreground">${totalCharge.toFixed(2)}</span>
+          </div>
+          {/* First-time escrow reassurance — inline pill + info popover.
+              The pill stays for everyone (passive reassurance); the
+              popover auto-opens once, then suppresses via safeStorage. */}
+          <div className="pt-1">
+            <EscrowExplainer />
           </div>
           <p className="text-muted-foreground text-ds-11">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>
         </div>

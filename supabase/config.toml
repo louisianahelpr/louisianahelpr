@@ -53,3 +53,10 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.send-push-notification]
     verify_jwt = false
+  # Service-role-only: send-notification-email accepts a bearer token equal to
+  # SUPABASE_SERVICE_ROLE_KEY and renders an HTML email branded as Helpr. With
+  # verify_jwt=true the gateway would accept any signed-in user's JWT and the
+  # service-role check inside the handler couldn't run. Keep this false; the
+  # handler enforces auth itself.
+  [functions.send-notification-email]
+    verify_jwt = false

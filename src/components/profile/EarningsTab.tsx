@@ -27,6 +27,7 @@ import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
+import { HelperScheduleStrip } from "@/components/profile/HelperScheduleStrip";
 import { HelperStreakBadge } from "@/components/profile/HelperStreakBadge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
@@ -338,6 +339,18 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       <EarningsForecastCard
         helperId={helperId}
         enabled={profile?.approval_status === "approved"}
+      />
+
+      {/* "Next 7 days" upcoming-jobs strip — pairs with the dollar
+          forecast above to show the helper *which* jobs make up the
+          projection. Gated behind Stripe-connected so pre-onboarded
+          helpers (who can't accept jobs yet) don't see an empty week.
+          Closes #130. */}
+      <HelperScheduleStrip
+        helperId={helperId}
+        enabled={
+          profile?.approval_status === "approved" && !!stripeData?.connected
+        }
       />
 
       {/* ─── COMPACT DASHBOARD: Wallet + Stats ─── */}

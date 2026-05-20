@@ -24,11 +24,22 @@ import {
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { formatPhone } from "./signupHelpers";
 
-/** Renders a red inline error message below a form field. */
-function FieldError({ message }: { message?: string }) {
+/**
+ * Renders a red inline error message below a form field.
+ *
+ * Accessibility: the `id` is required so the paired form control can
+ * reference it via `aria-describedby`, and `role="alert"` makes screen
+ * readers announce the message the moment it renders. Without both, the
+ * error is a visually-adjacent but programmatically-orphaned paragraph.
+ */
+function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p className="flex items-center gap-1 text-ds-11 text-destructive mt-1">
+    <p
+      id={id}
+      role="alert"
+      className="flex items-center gap-1 text-ds-11 text-destructive mt-1"
+    >
       <AlertCircle className="w-3 h-3 shrink-0" aria-hidden />
       {message}
     </p>
@@ -120,9 +131,11 @@ export function SignupStep2(props: SignupStep2Props) {
               onChange={(e) => { setCompanyName(e.target.value); clearFieldError?.("companyName"); }}
               required
               aria-required="true"
+              aria-invalid={!!fieldErrors.companyName}
+              aria-describedby={fieldErrors.companyName ? "companyName-error" : undefined}
               className={`${inputCls}${fieldErrors.companyName ? " border-destructive" : ""}`}
             />
-            <FieldError message={fieldErrors.companyName} />
+            <FieldError id="companyName-error" message={fieldErrors.companyName} />
           </div>
           <p className="text-ds-11 text-muted-foreground">
             You'll be the owner. Invite 1 teammate free (2 seats total) — add more anytime with seat upgrades.
@@ -157,12 +170,20 @@ export function SignupStep2(props: SignupStep2Props) {
             >
               <Camera className="w-5 h-5" strokeWidth={2.25} />
             </div>
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => { onAvatarChange(e); clearFieldError?.("avatar"); }} />
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              aria-label="Profile photo"
+              aria-invalid={!!fieldErrors.avatar}
+              aria-describedby={fieldErrors.avatar ? "avatar-error" : undefined}
+              onChange={(e) => { onAvatarChange(e); clearFieldError?.("avatar"); }}
+            />
           </label>
           <p className="text-ds-11 text-muted-foreground text-center max-w-[260px] leading-relaxed">
             A clear face photo builds trust with neighbors. JPG or PNG, max 5MB.
           </p>
-          <FieldError message={fieldErrors.avatar} />
+          <FieldError id="avatar-error" message={fieldErrors.avatar} />
         </div>
       </section>
 
@@ -174,13 +195,13 @@ export function SignupStep2(props: SignupStep2Props) {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden="true" className="text-destructive">*</span></Label>
-            <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" className={`${inputCls}${fieldErrors.firstName ? " border-destructive" : ""}`} />
-            <FieldError message={fieldErrors.firstName} />
+            <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" aria-invalid={!!fieldErrors.firstName} aria-describedby={fieldErrors.firstName ? "firstName-error" : undefined} className={`${inputCls}${fieldErrors.firstName ? " border-destructive" : ""}`} />
+            <FieldError id="firstName-error" message={fieldErrors.firstName} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden="true" className="text-destructive">*</span></Label>
-            <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" className={`${inputCls}${fieldErrors.lastName ? " border-destructive" : ""}`} />
-            <FieldError message={fieldErrors.lastName} />
+            <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" aria-invalid={!!fieldErrors.lastName} aria-describedby={fieldErrors.lastName ? "lastName-error" : undefined} className={`${inputCls}${fieldErrors.lastName ? " border-destructive" : ""}`} />
+            <FieldError id="lastName-error" message={fieldErrors.lastName} />
           </div>
         </div>
         <div className="space-y-2">
@@ -196,22 +217,38 @@ export function SignupStep2(props: SignupStep2Props) {
             aria-required="true"
             autoComplete="tel"
             maxLength={14}
+            aria-invalid={!!fieldErrors.phone}
+            aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
             className={`${inputCls}${fieldErrors.phone ? " border-destructive" : ""}`}
           />
-          <FieldError message={fieldErrors.phone} />
+          <FieldError id="phone-error" message={fieldErrors.phone} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden="true" className="text-destructive text-ds-11">*</span></Label>
-          <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }} />
+          {/*
+            The picker is a composite of three Selects, so individual
+            aria-invalid on each trigger would be misleading. Wrap in a
+            role="group" so the error/help-text describes the trio as one
+            unit while DateOfBirthPicker itself stays untouched.
+          */}
+          <div
+            role="group"
+            aria-labelledby="dob-label"
+            aria-invalid={!!fieldErrors.dateOfBirth}
+            aria-describedby={fieldErrors.dateOfBirth ? "dob-error" : "dob-help"}
+          >
+            <span id="dob-label" className="sr-only">Date of birth</span>
+            <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }} />
+          </div>
           {fieldErrors.dateOfBirth
-            ? <FieldError message={fieldErrors.dateOfBirth} />
-            : <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>You must be at least 18 years old.</p>
+            ? <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
+            : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>You must be at least 18 years old.</p>
           }
         </div>
         <div className="space-y-2">
           <Label htmlFor="location" className={labelCls}>City <span aria-hidden="true" className="text-destructive">*</span></Label>
-          <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required aria-required="true" autoComplete="address-level2" className={`${inputCls}${fieldErrors.location ? " border-destructive" : ""}`} />
-          <FieldError message={fieldErrors.location} />
+          <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required aria-required="true" autoComplete="address-level2" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${fieldErrors.location ? " border-destructive" : ""}`} />
+          <FieldError id="location-error" message={fieldErrors.location} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="bio" className={labelCls}>About you <span aria-hidden="true" className="text-destructive">*</span></Label>
@@ -224,11 +261,13 @@ export function SignupStep2(props: SignupStep2Props) {
             required
             aria-required="true"
             minLength={20}
+            aria-invalid={!!fieldErrors.bio}
+            aria-describedby={fieldErrors.bio ? "bio-error" : "bio-help"}
             className={`rounded-ds-md${fieldErrors.bio ? " border-destructive" : ""}`}
           />
           {fieldErrors.bio
-            ? <FieldError message={fieldErrors.bio} />
-            : <p className={`text-ds-11 ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
+            ? <FieldError id="bio-error" message={fieldErrors.bio} />
+            : <p id="bio-help" className={`text-ds-11 ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
                 {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
               </p>
           }
@@ -286,11 +325,14 @@ export function SignupStep2(props: SignupStep2Props) {
                 type="file"
                 accept="image/jpeg,image/png,image/webp,application/pdf"
                 className="hidden"
+                aria-label="Government-issued ID"
+                aria-invalid={!!fieldErrors.idFile}
+                aria-describedby={fieldErrors.idFile ? "idFile-error" : undefined}
                 onChange={(e) => { onIdChange(e); clearFieldError?.("idFile"); }}
               />
             </label>
           )}
-          <FieldError message={fieldErrors.idFile} />
+          <FieldError id="idFile-error" message={fieldErrors.idFile} />
         </div>
       </section>
 

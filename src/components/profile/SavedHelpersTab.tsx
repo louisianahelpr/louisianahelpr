@@ -23,6 +23,8 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 
 type SavedSort = "rebooked" | "recent";
 
@@ -53,18 +55,41 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const { user } = useCurrentUser();
   const [helpers, setHelpers] = useState<SavedHelper[]>([]);
   const [loading, setLoading] = useState(true);
+  // Distinguishes "fetch failed" from "fetched, but empty" — without
+  // this flag a failed RPC silently falls through to the EmptyState and
+  // the user gets a misleading "no saved helprs yet" instead of a
+  // recoverable retry affordance.
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SavedSort>("rebooked");
+
+  // Extracted so the ErrorState's retry button can call back in. The
+  // effect below mirrors the same logic but adds a cancellation guard
+  // to swallow stale results when the userId changes mid-flight.
+  const loadSavedHelpers = async () => {
+    if (!user) return;
+    setLoading(true);
+    setLoadError(false);
+    const { data, error } = await supabase.rpc("get_my_saved_helpers");
+    if (error) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
+    setHelpers((data as SavedHelper[]) || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setLoadError(false);
       const { data, error } = await supabase.rpc("get_my_saved_helpers");
       if (cancelled) return;
       if (error) {
-        toast.error("Couldn't load saved helprs");
+        setLoadError(true);
         setLoading(false);
         return;
       }
@@ -231,6 +256,13 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
               </div>
             ))}
           </div>
+        ) : loadError ? (
+          // A failed RPC fetch shows a recoverable retry surface instead
+          // of the misleading "no saved helprs yet" empty state.
+          <ErrorState
+            title="We couldn't load your saved helprs."
+            onRetry={loadSavedHelpers}
+          />
         ) : filtered.length === 0 ? (
           <EmptyState
             variant="inline"
@@ -244,15 +276,14 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
             }
             action={
               helpers.length === 0 ? (
-                <button
-                  type="button"
-                  onClick={() => navigate("/my-posts")}
-                  className="mt-2 inline-flex items-center gap-1.5 text-[0.78rem] font-sans font-semibold active:opacity-70"
-                  style={{ color: "hsl(var(--bark))" }}
-                >
-                  See your past helpers →
-                </button>
-              ) : undefined
+                <BarkPillButton onClick={() => navigate("/post-job")}>
+                  Post a job
+                </BarkPillButton>
+              ) : (
+                <BarkPillButton onClick={() => setSearch("")}>
+                  Clear search
+                </BarkPillButton>
+              )
             }
           />
         ) : (

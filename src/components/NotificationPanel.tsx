@@ -9,6 +9,7 @@ import { isPushSupported, registerServiceWorker, requestPushPermission, showLoca
 import { toast } from "sonner";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 type Notification = {
   id: string;
@@ -96,6 +97,11 @@ const NotificationPanel = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
+  // Differentiates "fetch failed" from "fetched, but no notifications"
+  // — without this flag a failed initial load silently falls through to
+  // the "All caught up" empty state, which would wrongly suggest the
+  // user has no notifications.
+  const [loadError, setLoadError] = useState(false);
 
   const loadNotifications = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -108,9 +114,15 @@ const NotificationPanel = () => {
       .limit(50);
     if (error) {
       console.error("[NotificationPanel] failed to load notifications:", error);
+      // Only mark the panel as errored when we have no existing rows to
+      // show. A background refresh failure with prior data on screen
+      // stays silent so a transient hiccup doesn't blow away a list the
+      // user is mid-reading.
+      setLoadError((prev) => (notifications.length === 0 ? true : prev));
       toast.error("Couldn't load notifications");
       return;
     }
+    setLoadError(false);
     if (data) setNotifications(data);
   };
 
@@ -319,7 +331,18 @@ const NotificationPanel = () => {
           className="flex-1 min-h-0 no-scrollbar overscroll-contain"
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
-          {visibleNotifications.length === 0 ? (
+          {loadError && notifications.length === 0 ? (
+            // A failed initial load takes precedence over the "All caught
+            // up" empty state — show a recoverable retry surface so the
+            // user can recover from a transient hiccup without closing
+            // and re-opening the panel.
+            <div className="px-4 pt-6 flex min-h-full">
+              <ErrorState
+                title="We couldn't load your notifications."
+                onRetry={loadNotifications}
+              />
+            </div>
+          ) : visibleNotifications.length === 0 ? (
             <div className="min-h-full flex flex-col items-center justify-center text-center gap-4 px-6 py-8">
               <div
                 className="w-20 h-20 rounded-full flex items-center justify-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-500"

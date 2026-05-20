@@ -1,0 +1,95 @@
+name: E2E happy-path smoke
+
+permissions:
+  contents: read
+
+# Three critical-path Playwright smoke tests covering customer-posts-job,
+# helper-browses-and-applies, customer-sees-application. Run against the
+# local Vite preview build with Supabase calls mocked via route() — no
+# network dependency on the real Supabase project.
+#
+# Scope:
+# - Runs on PRs that touch the React surface, the e2e suite, or the
+#   build pipeline.
+# - Concurrency-locked to one run per ref.
+# - Uploads HTML report + screenshots on failure for fast triage.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "vite.config.ts"
+      - "tailwind.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.config.ts"
+      - "e2e/happy-path/**"
+      - ".github/workflows/e2e-happy-path.yml"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-happy-path-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  happy-path:
+    name: Playwright happy-path smoke (mocked Supabase, mobile viewport)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.actor != 'dependabot[bot]'
+
+    env:
+      # Bake the same Supabase env vars the production build uses so the
+      # `import.meta.env.VITE_SUPABASE_URL` literal in the bundle still
+      # resolves to a real-looking URL. Playwright's route() intercepts
+      # everything hitting that origin, so no real traffic is sent.
+      VITE_SUPABASE_PROJECT_ID: fncmgoasalhdgfwzhsqa
+      VITE_SUPABASE_URL: https://fncmgoasalhdgfwzhsqa.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_test_key_for_e2e_only
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        # See test.yml — Lovable can drift the lockfile, so use `install` not `ci`.
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run happy-path smoke tests
+        # PLAYWRIGHT_WEB_SERVER=1 turns on the auto-start of
+        # `npm run build && npx vite preview` (see playwright.config.ts).
+        env:
+          PLAYWRIGHT_WEB_SERVER: "1"
+        run: npm run test:e2e:happy
+
+      - name: Upload Playwright HTML report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-happy-path
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Playwright test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-test-results-happy-path
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14

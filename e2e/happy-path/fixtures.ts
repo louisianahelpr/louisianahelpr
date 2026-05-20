@@ -1,0 +1,437 @@
+import {
+  test as baseTest,
+  expect,
+  type Page,
+  type Route,
+  type BrowserContext,
+} from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+
+// Happy-path smoke fixtures. These tests run against `npm run build && npx
+// vite preview` (the Vite preview server, no live backend) and stub every
+// Supabase HTTP call with deterministic responses via `page.route()`. The
+// goal is to verify the critical UI flow contracts — landing→signup,
+// post-job, browse-and-apply, see-applications — fail loudly if the React
+// surface breaks, WITHOUT depending on the real Supabase project.
+//
+// Why we pre-seed an authed session instead of driving the multi-step
+// Signup form: the live signup form is a 3-step flow that requires an
+// avatar upload + government-ID upload + bio + phone duplicate-check
+// before it lets the user through. A full form-driving smoke would be
+// brittle (file inputs over Playwright + 20+ fields per spec) and would
+// double the wall-clock cost of the suite. The contract this suite cares
+// about is the POST-AUTH behavior — once a user is "signed in," what do
+// they see — so we forge a session at the storage layer and assert on
+// the surfaces from there. A bare "/signup renders without crashing"
+// assertion is kept in `smoke.spec.ts` and covers the signup-page-loads
+// half of the contract independently.
+
+const SUPABASE_PROJECT_ID = "fncmgoasalhdgfwzhsqa";
+const SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
+const SUPABASE_AUTH_STORAGE_KEY = `sb-${SUPABASE_PROJECT_ID}-auth-token`;
+
+// Mobile viewport — matches the existing Mobile viewport spot-check
+// suite (iPhone-SE 2nd/3rd-gen profile, 375x667). Most Helpr users hit
+// the app from a phone, so smoke tests assert the mobile layout, not
+// the desktop one.
+const MOBILE_VIEWPORT = { width: 375, height: 812 } as const;
+
+// --- Session helpers ----------------------------------------------------
+
+export interface FakeUser {
+  id: string;
+  email: string;
+  fullName: string;
+  role: "customer" | "helper";
+}
+
+export const FAKE_CUSTOMER: FakeUser = {
+  id: "00000000-0000-4000-8000-00000000c1ce",
+  email: "customer.smoke@helpr.test",
+  fullName: "Smoke Customer",
+  role: "customer",
+};
+
+export const FAKE_HELPER: FakeUser = {
+  id: "00000000-0000-4000-8000-00000000he1p",
+  email: "helper.smoke@helpr.test",
+  fullName: "Smoke Helper",
+  role: "helper",
+};
+
+// Supabase-js stores its session under `sb-<project>-auth-token` as a
+// JSON-encoded object that includes a `currentSession` (older
+// localStorage encoding) or the session shape directly. We write the
+// flatter session shape that newer @supabase/supabase-js (>=2.x) reads
+// from `getSession()` — verified against
+// `src/integrations/supabase/keychainStorageAdapter.test.ts`.
+function buildFakeSession(user: FakeUser) {
+  const nowSec = Math.floor(Date.now() / 1000);
+  // 1h validity — plenty for the smoke run, short enough that a leaked
+  // token would expire by the time someone read this comment.
+  const expiresAt = nowSec + 60 * 60;
+  return {
+    access_token: `fake-access-token-${user.id}`,
+    token_type: "bearer",
+    expires_in: 3600,
+    expires_at: expiresAt,
+    refresh_token: `fake-refresh-token-${user.id}`,
+    provider_token: null,
+    provider_refresh_token: null,
+    user: buildFakeAuthUser(user),
+  };
+}
+
+function buildFakeAuthUser(user: FakeUser) {
+  const nowIso = new Date().toISOString();
+  return {
+    id: user.id,
+    aud: "authenticated",
+    role: "authenticated",
+    email: user.email,
+    email_confirmed_at: nowIso, // skip the verify-email gate
+    phone: "",
+    confirmed_at: nowIso,
+    last_sign_in_at: nowIso,
+    app_metadata: { provider: "email", providers: ["email"] },
+    user_metadata: { full_name: user.fullName },
+    identities: [],
+    created_at: nowIso,
+    updated_at: nowIso,
+  };
+}
+
+function buildFakeProfile(user: FakeUser) {
+  // The "Big 7" verification gate in `ProtectedRoute.tsx` requires every
+  // one of these fields be set, otherwise the user is bounced to
+  // /complete-profile and nothing else renders. is_legacy_user=true
+  // bypasses the gate as a belt-and-braces fallback for any field the
+  // gate later adds.
+  const nowIso = new Date().toISOString();
+  return {
+    id: `${user.id}-profile`,
+    user_id: user.id,
+    full_name: user.fullName,
+    avatar_url: "https://example.com/avatar.png",
+    bio: "Smoke-test profile bio with at least twenty characters.",
+    date_of_birth: "1990-01-01",
+    phone: "5045550100",
+    location: "New Orleans, LA",
+    id_document_url: "https://example.com/id.png",
+    approval_status: "approved",
+    ban_status: "active",
+    is_legacy_user: true,
+    subscription_tier: "free",
+    subscription_expires_at: null,
+    referral_code: "SMOKE",
+    is_verified: true,
+    role: user.role,
+    created_at: nowIso,
+    updated_at: nowIso,
+  };
+}
+
+// --- Network mocking ----------------------------------------------------
+
+/**
+ * Map of (matcher fn) -> response builder. First match wins. Tests register
+ * specific overrides via `mockSupabase()`; everything else falls through to
+ * the catch-all empty-array response so unanticipated reads don't 404 and
+ * crash the page.
+ */
+export type SupabaseRouteHandler = (
+  url: URL,
+  request: Route["request"] extends () => infer R ? R : never,
+) => SupabaseResponse | null | Promise<SupabaseResponse | null>;
+
+export interface SupabaseResponse {
+  status?: number;
+  body?: unknown;
+  headers?: Record<string, string>;
+}
+
+interface MockRule {
+  match: (url: URL, method: string) => boolean;
+  handle: (url: URL, method: string) => SupabaseResponse | null;
+}
+
+export interface MockSupabaseOptions {
+  user?: FakeUser;
+  rules?: MockRule[];
+}
+
+/**
+ * Register a route handler for every Supabase HTTP call. Default
+ * responses keep the page from white-screening; per-test overrides take
+ * precedence by being checked first.
+ *
+ * Safe to call multiple times on the same page — each call removes the
+ * previous handler before installing a fresh one, so per-test mock
+ * additions never stack on top of the fixture-installed defaults (which
+ * would otherwise leave the older handler matching first and ignoring
+ * the new rules).
+ */
+export async function installSupabaseMocks(
+  page: Page,
+  options: MockSupabaseOptions = {},
+): Promise<void> {
+  const user = options.user;
+  const rules = options.rules ?? [];
+
+  // Clear any handler the fixture (or a prior call) registered for the
+  // same URL pattern. Playwright stacks handlers most-recent-first, so
+  // without this the old catch-all would resolve every request before
+  // the new override rules ever ran.
+  await page.unroute(`${SUPABASE_URL}/**`).catch(() => {
+    /* no-op when nothing was registered yet */
+  });
+  await page.route(`${SUPABASE_URL}/**`, async (route) => {
+    const req = route.request();
+    const url = new URL(req.url());
+    const method = req.method();
+
+    // 1. Per-test overrides — first matching rule wins.
+    for (const rule of rules) {
+      if (rule.match(url, method)) {
+        const resp = rule.handle(url, method);
+        if (resp) {
+          return route.fulfill(buildFulfill(resp));
+        }
+      }
+    }
+
+    // 2. Auth endpoints
+    if (url.pathname.startsWith("/auth/v1/")) {
+      return route.fulfill(buildFulfill(handleAuth(url, method, user)));
+    }
+
+    // 3. PostgREST (table/RPC reads + writes)
+    if (url.pathname.startsWith("/rest/v1/")) {
+      return route.fulfill(buildFulfill(handleRest(url, method, user)));
+    }
+
+    // 4. Edge functions (e.g. complete-signup) — always 200 with an empty
+    //    success body. The post-signup code paths in src/pages/Signup.tsx
+    //    treat a missing `result.error` as success.
+    if (url.pathname.startsWith("/functions/v1/")) {
+      return route.fulfill(buildFulfill({ status: 200, body: { success: true } }));
+    }
+
+    // 5. Realtime websockets — Playwright doesn't intercept ws upgrades,
+    //    they'll fail to connect, which is fine (subscriptions log a
+    //    warning but the app doesn't depend on them for first paint).
+
+    // 6. Storage uploads etc — 200 empty.
+    return route.fulfill(buildFulfill({ status: 200, body: {} }));
+  });
+
+  // Also intercept any other backend hosts we don't depend on for smoke.
+  // PostHog, Sentry, Vercel analytics, Lovable tagger, etc. shouldn't
+  // make tests fail when they 4xx — let them through if they're harmless
+  // but block any cross-origin write attempts that might add latency.
+  await page.route("**/*.posthog.com/**", (r) => r.fulfill({ status: 200, body: "{}", contentType: "application/json" }));
+  await page.route("**/sentry.io/**", (r) => r.fulfill({ status: 200, body: "{}", contentType: "application/json" }));
+  await page.route("**/*.ingest.sentry.io/**", (r) => r.fulfill({ status: 200, body: "{}", contentType: "application/json" }));
+  await page.route("**/vitals.vercel-insights.com/**", (r) => r.fulfill({ status: 204, body: "" }));
+  await page.route("**/vercel.live/**", (r) => r.fulfill({ status: 204, body: "" }));
+  await page.route("**/_vercel/**", (r) => r.fulfill({ status: 204, body: "" }));
+}
+
+function buildFulfill(resp: SupabaseResponse) {
+  return {
+    status: resp.status ?? 200,
+    contentType: resp.headers?.["content-type"] ?? "application/json",
+    body: typeof resp.body === "string" ? resp.body : JSON.stringify(resp.body ?? null),
+    headers: resp.headers ?? {},
+  };
+}
+
+function handleAuth(url: URL, method: string, user: FakeUser | undefined): SupabaseResponse {
+  const path = url.pathname.replace("/auth/v1/", "");
+
+  // signup → return an auth user (email_confirmed so the app proceeds)
+  if (path === "signup" && method === "POST") {
+    if (!user) return { status: 200, body: { user: null, session: null } };
+    return { status: 200, body: { user: buildFakeAuthUser(user), session: buildFakeSession(user) } };
+  }
+
+  // signInWithPassword → POST /auth/v1/token?grant_type=password
+  if (path === "token" && method === "POST") {
+    if (!user) return { status: 400, body: { error: "invalid_grant" } };
+    return { status: 200, body: buildFakeSession(user) };
+  }
+
+  // getUser → GET /auth/v1/user
+  if (path === "user" && method === "GET") {
+    if (!user) return { status: 401, body: { error: "no user" } };
+    return { status: 200, body: buildFakeAuthUser(user) };
+  }
+
+  // logout → POST /auth/v1/logout
+  if (path === "logout") {
+    return { status: 204, body: "" };
+  }
+
+  // Default — let any other auth endpoint return an empty 200 to avoid
+  // crashing the supabase-js client.
+  return { status: 200, body: {} };
+}
+
+function handleRest(url: URL, method: string, user: FakeUser | undefined): SupabaseResponse {
+  // /rest/v1/<table>?... or /rest/v1/rpc/<name>
+  const parts = url.pathname.replace("/rest/v1/", "").split("/");
+  const table = parts[0] ?? "";
+
+  // RPC calls — return null which most RPCs in the codebase tolerate as
+  // "no rows" via `data ?? []` or `?? null` patterns.
+  if (table === "rpc") {
+    return { status: 200, body: null };
+  }
+
+  // profiles SELECT by user_id → return the fake profile so the "Big 7"
+  // gate in ProtectedRoute passes.
+  if (table === "profiles" && method === "GET" && user) {
+    return { status: 200, body: [buildFakeProfile(user)] };
+  }
+
+  // user_roles SELECT — fake user is NOT admin, return an empty array.
+  if (table === "user_roles" && method === "GET") {
+    return { status: 200, body: [] };
+  }
+
+  // INSERT / UPDATE / DELETE — return an empty array so .insert().select()
+  // patterns get back data. supabase-js doesn't care about the row shape
+  // here; the dashboard mutations all refresh via React Query, and the
+  // mocked SELECTs will reflect the new state.
+  if (["POST", "PATCH", "DELETE", "PUT"].includes(method)) {
+    return { status: 201, body: [] };
+  }
+
+  // Default empty array for any other SELECT.
+  return { status: 200, body: [] };
+}
+
+// --- Helpers exposed to specs -------------------------------------------
+
+/**
+ * Convenience: build a mock-rule that matches a `/rest/v1/<table>` URL
+ * regardless of query string, and returns the given body.
+ */
+export function mockTable(
+  table: string,
+  body: unknown,
+  options: { method?: string; status?: number } = {},
+): MockRule {
+  const wantMethod = options.method ?? "GET";
+  return {
+    match: (url, method) =>
+      method === wantMethod && url.pathname === `/rest/v1/${table}`,
+    handle: () => ({ status: options.status ?? 200, body }),
+  };
+}
+
+/**
+ * Convenience: build a mock-rule that matches `/rest/v1/rpc/<name>`.
+ */
+export function mockRpc(
+  name: string,
+  body: unknown,
+  options: { status?: number } = {},
+): MockRule {
+  return {
+    match: (url, method) =>
+      method === "POST" && url.pathname === `/rest/v1/rpc/${name}`,
+    handle: () => ({ status: options.status ?? 200, body }),
+  };
+}
+
+/**
+ * Pre-seed an authed Supabase session into localStorage before the app's
+ * JS boots. Must be called BEFORE the first `page.goto()` so it lands
+ * before `getSession()` runs during app bootstrap.
+ */
+export async function seedAuthedSession(context: BrowserContext, user: FakeUser, baseURL: string): Promise<void> {
+  const session = buildFakeSession(user);
+  // addInitScript runs in every new page, before any of the page's JS.
+  await context.addInitScript(
+    ({ key, value }) => {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        /* SSR/no-storage guard — irrelevant on Vite preview */
+      }
+    },
+    { key: SUPABASE_AUTH_STORAGE_KEY, value: JSON.stringify(session) },
+  );
+  // Some browsers gate localStorage on origin — touch the origin once so
+  // the addInitScript above lands on the right localStorage partition.
+  // (This is a no-op on file:// or about:blank for the same reason.)
+  void baseURL;
+}
+
+/**
+ * Run an Axe accessibility scan at the current page state. Asserts no
+ * critical or serious violations. Use `tags` to limit the rule set
+ * (default = WCAG 2.0 A/AA + best-practice, which is what most CI gates
+ * use).
+ */
+export async function checkA11y(
+  page: Page,
+  options: { context?: string; tags?: string[] } = {},
+): Promise<void> {
+  const builder = new AxeBuilder({ page }).withTags(
+    options.tags ?? ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"],
+  );
+  if (options.context) builder.include(options.context);
+  // Some legacy color-contrast tickets are not yet fixed app-wide.
+  // We do NOT silently mute them; the suite asserts no
+  // critical/serious violations, and color-contrast typically lands as
+  // "serious," so a regression here will still fail loudly. If the
+  // bootstrap suite is too noisy we'll narrow with .disableRules() per
+  // page.
+  const results = await builder.analyze();
+  const blocking = results.violations.filter(
+    (v) => v.impact === "critical" || v.impact === "serious",
+  );
+  if (blocking.length > 0) {
+    const formatted = blocking
+      .map(
+        (v) =>
+          `[${v.impact}] ${v.id} — ${v.help}\n    nodes: ${v.nodes.length}\n    help: ${v.helpUrl}`,
+      )
+      .join("\n");
+    throw new Error(`Axe a11y violations:\n${formatted}`);
+  }
+}
+
+// --- Custom test with fixtures ------------------------------------------
+
+interface HappyPathFixtures {
+  customerPage: Page;
+  helperPage: Page;
+}
+
+export const test = baseTest.extend<HappyPathFixtures>({
+  // Always start on mobile viewport — matches the live mobile-viewport
+  // spot-check workflow and is what 80%+ of Helpr users hit.
+  page: async ({ page }, use) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await use(page);
+  },
+
+  customerPage: async ({ context, page, baseURL }, use) => {
+    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
+    await installSupabaseMocks(page, { user: FAKE_CUSTOMER });
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await use(page);
+  },
+
+  helperPage: async ({ context, page, baseURL }, use) => {
+    await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
+    await installSupabaseMocks(page, { user: FAKE_HELPER });
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await use(page);
+  },
+});
+
+export { expect };

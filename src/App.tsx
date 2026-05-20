@@ -1,8 +1,11 @@
 import { lazy, Suspense, forwardRef } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
+
+import { persistOptions, PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
@@ -80,7 +83,10 @@ const queryClient = new QueryClient({
       // after a brief context switch triggers a background refetch, long
       // enough to avoid hammering Supabase on rapid remounts.
       staleTime: 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      // Match the persisted-cache max age. `gcTime` MUST be >= the
+      // persister's maxAge or TanStack drops entries on hydrate, defeating
+      // the whole point of disk persistence. See src/lib/queryPersister.ts.
+      gcTime: PERSIST_MAX_AGE_MS,
       // Only retry transient/server errors. Client errors (401/403/404/etc.)
       // won't be fixed by retrying — the token's invalid, the row doesn't
       // exist, or RLS blocked it. Retrying just wastes a round-trip.
@@ -226,7 +232,11 @@ const SessionManager = () => {
 
 const App = () => (
   <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
+    {/* PersistQueryClientProvider hydrates the cache from IndexedDB before
+        the first render that depends on it — returning users see their
+        last-known dashboard/jobs/messages instantly while React Query
+        revalidates in the background. See src/lib/queryPersister.ts. */}
+    <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <Suspense fallback={null}>
         <Toaster />
         <Sonner />
@@ -255,7 +265,7 @@ const App = () => (
         <SpeedInsightsRouted />
       </BrowserRouter>
       <Analytics />
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   </ErrorBoundary>
 );
 

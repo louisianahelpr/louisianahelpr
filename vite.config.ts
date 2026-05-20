@@ -349,6 +349,17 @@ export default defineConfig(({ mode }) => ({
           // the critical path entirely.
           if (id.includes("framer-motion")) return "motion";
           if (id.includes("@stripe") || id.includes("stripe-js")) return "stripe";
+          // Keep @capgo/capacitor-social-login in its own chunk. Otherwise
+          // Rollup hoists shared tslib helpers (used by both capgo and
+          // supabase-js) into the "supabase" chunk, which then makes the
+          // nativeInit chunk statically import a symbol from supabase-*.js
+          // even though no real supabase code is referenced — that forced
+          // the 205KB supabase chunk onto the cold-start critical path on
+          // native via main.tsx -> nativeInit -> socialLogin, defeating the
+          // dynamic-import of the supabase client. Splitting capgo into its
+          // own chunk keeps the tslib helpers there, so nativeInit only
+          // pulls a small social-login chunk on cold start.
+          if (id.includes("@capgo") || id.includes("capacitor-social-login")) return "social-login";
           if (id.includes("@supabase")) return "supabase";
           if (id.includes("date-fns") || id.includes("react-day-picker")) return "dates";
           if (id.includes("@tanstack")) return "tanstack";

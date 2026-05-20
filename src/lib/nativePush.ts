@@ -16,7 +16,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { report } from "@/lib/errorLogger";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
@@ -25,6 +24,21 @@ import {
   registerServiceWorker,
   requestPushPermission as requestWebPushPermission,
 } from "@/lib/pushNotifications";
+
+// Supabase client is dynamically imported (NOT statically) to keep the
+// ~205KB supabase-js chunk out of the entry bundle. Push setup is a
+// native-only background task — all of its work happens inside an
+// `if (isNativePlatform)` useEffect that runs after first paint, so the
+// lazy-import latency is invisible to the user. Without this, App.tsx ->
+// SessionManager -> useNativePushSetup pulled supabase into the critical
+// path and blocked first paint on the supabase client's top-level await
+// (keychainStorageAdapter hydratePromise) on native cold starts — the
+// largest single cause of the slow cold-start the user reported on
+// TestFlight build #2.
+async function getSupabase() {
+  const { supabase } = await import("@/integrations/supabase/client");
+  return supabase;
+}
 
 let listenersAttached = false;
 
@@ -47,6 +61,7 @@ function currentAppVersion(): string {
 
 async function persistPushToken(userId: string, token: string, platform: "ios" | "android") {
   try {
+    const supabase = await getSupabase();
     const { error } = await supabase.from("push_tokens").upsert(
       {
         user_id: userId,
@@ -65,9 +80,10 @@ async function persistPushToken(userId: string, token: string, platform: "ios" |
   }
 }
 
-function attachAuthListenerOnce() {
+async function attachAuthListenerOnce() {
   if (authListenerAttached) return;
   authListenerAttached = true;
+  const supabase = await getSupabase();
   supabase.auth.onAuthStateChange((event, session) => {
     if ((event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") && session?.user && pendingToken) {
       const { token, platform } = pendingToken;
@@ -79,6 +95,7 @@ function attachAuthListenerOnce() {
 
 async function savePushToken(token: string, platform: "ios" | "android") {
   try {
+    const supabase = await getSupabase();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await persistPushToken(user.id, token, platform);
@@ -86,7 +103,7 @@ async function savePushToken(token: string, platform: "ios" | "android") {
     }
     // Session not yet restored — buffer the token and flush on first auth event.
     pendingToken = { token, platform };
-    attachAuthListenerOnce();
+    void attachAuthListenerOnce();
   } catch (err) {
     report(err, { tags: { source: "savePushToken" } });
   }
@@ -245,6 +262,7 @@ export function useRequestPushPermission() {
 /** Remove all device tokens for the current user. Call on sign-out. */
 export async function unregisterPushOnSignOut(userId: string) {
   try {
+    const supabase = await getSupabase();
     await supabase.from("push_tokens").delete().eq("user_id", userId);
   } catch { /* ignore */ }
 }

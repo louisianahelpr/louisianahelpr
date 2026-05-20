@@ -8,13 +8,19 @@ import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 import { ArrowLeft, Mail, Loader2 } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
 const RESEND_COOLDOWN_S = 60;
 
 const ForgotPassword = () => {
-  usePageTitle("Reset Password — Helpr");
+  usePageMeta({
+    title: "Reset Your Password — Helpr",
+    description: "Forgot your Helpr password? Enter your email and we'll send you a reset link.",
+    canonical: "https://www.louisianahelpr.com/forgot-password",
+    ogTitle: "Reset Your Password — Helpr",
+    ogDescription: "Recover access to your Helpr account with a one-time password reset email.",
+  });
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);

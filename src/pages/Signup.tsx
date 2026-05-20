@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BadgeCheck } from "lucide-react";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
@@ -26,7 +26,13 @@ import { SignupStep3 } from "./signup/SignupStep3";
 
 const Signup = () => {
   const navigate = useNavigate();
-  usePageTitle("Sign Up — Helpr");
+  usePageMeta({
+    title: "Sign Up — Helpr",
+    description: "Create your free Helpr account in under a minute.",
+    canonical: "https://www.louisianahelpr.com/signup",
+    ogTitle: "Sign Up — Helpr",
+    ogDescription: "Join Helpr in under a minute and start posting tasks or earning as a verified helper across Louisiana.",
+  });
   // Funnel event: user landed on signup page (top of activation funnel)
   useEffect(() => {
     track(AhaEvent.SignupStarted, { source: "web", ...ppoTrackingProps() });

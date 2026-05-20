@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
@@ -33,7 +33,13 @@ const signInWithTimeout = async (email: string, password: string) => {
 const Login = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  usePageTitle("Log In — Helpr");
+  usePageMeta({
+    title: "Log In — Helpr",
+    description: "Sign in to your Helpr account.",
+    canonical: "https://www.louisianahelpr.com/login",
+    ogTitle: "Log In — Helpr",
+    ogDescription: "Sign in to your Helpr account to post tasks or pick up local work across Louisiana.",
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

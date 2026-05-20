@@ -71,7 +71,7 @@ export function ShareJobButton({
     setSharing(true);
     const url = `${window.location.origin}/dashboard?job=${job.id}`;
     const title = job.title;
-    const text = `Looking for help: ${job.title}. Take a look on Louisiana Helpr →`;
+    const text = `${job.title} — posted on Louisiana Helpr.`;
 
     try {
       // 1. Native Share Sheet — only on actual iOS/Android shells.
@@ -89,7 +89,7 @@ export function ShareJobButton({
       // 3. Clipboard fallback — paste-to-share.
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
-        toast.success("Link copied — paste to share");
+        toast.success("Link copied. Paste it anywhere.");
         return;
       }
 

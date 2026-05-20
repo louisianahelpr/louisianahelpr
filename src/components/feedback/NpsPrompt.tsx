@@ -114,7 +114,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
       // but the local one keeps us silent during the 100ms before the row
       // becomes readable through the API.
       setNpsLocalCooldown();
-      toast.success("Thanks for the feedback!");
+      toast.success("Got it — thanks for telling us.");
       setOpen(false);
       onClose?.();
     } catch (err) {

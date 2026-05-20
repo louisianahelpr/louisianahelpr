@@ -200,7 +200,7 @@ export function HelperTierBadge(props: HelperTierBadgeProps) {
               className="text-ds-11 italic"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
-              You&apos;re at the top of the ladder — keep up the good work.
+              You&apos;re at the top of the ladder. Stay on it.
             </p>
           )}
         </div>

@@ -55,29 +55,21 @@ export const AhaEvent = {
   JobPosted: "job_posted",
   JobApplied: "job_applied",
   JobAccepted: "job_accepted",
-  JobCompleted: "job_completed",
   PaymentMade: "payment_made",
-  PayoutRequested: "payout_requested",
   PayoutSetupStarted: "payout_setup_started",
   PayoutSetupCompleted: "payout_setup_completed",
   ReviewLeft: "review_left",
-  ReferralShared: "referral_shared",
   // Retention
   AppOpenedFromPush: "app_opened_from_push",
   AppOpenedFromDeepLink: "app_opened_from_deep_link",
   PushReceivedForeground: "push_received_foreground",
-  ReturnedAfter30Days: "returned_after_30_days",
-  // Monetization
-  ProUpgradeViewed: "pro_upgrade_viewed",
-  ProUpgradeStarted: "pro_upgrade_started",
-  ProUpgradeCompleted: "pro_upgrade_completed",
   // Friction
   ErrorShown: "error_shown",
   PermissionDenied: "permission_denied",
   AppCrashed: "app_crashed",
 } as const;
 
-export type EventName = typeof AhaEvent[keyof typeof AhaEvent] | (string & {});
+type EventName = typeof AhaEvent[keyof typeof AhaEvent] | (string & {});
 
 const queue: any[] = [];
 let flushTimer: number | null = null;
@@ -139,15 +131,6 @@ export function track(event: EventName, props: Record<string, any> = {}) {
   schedule();
   // Fan out to PostHog (lazy-loaded). No-op until initPostHog() runs.
   void fanOutToPostHog(event, props);
-}
-
-/** Flush immediately. Call before navigating away or closing the app. */
-export function flushNow() {
-  if (flushTimer != null) {
-    clearTimeout(flushTimer);
-    flushTimer = null;
-  }
-  return flush();
 }
 
 if (typeof window !== "undefined") {

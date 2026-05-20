@@ -610,7 +610,7 @@ enforce correctly).
 - ✅ **SW HTML cache fix** — deploys now show up on next reload (no more stuck-on-old-version).
 - ✅ **IDV retry UX** — failed/requires_input shows "Try again" CTA + Stripe failure reason.
 - ✅ **Signup.tsx refactor** — 1267 → 579 lines, split into Step1/Step2/Step3 components.
-- ✅ **AVIF image pipeline** — `npm run images:avif`, generated for current logo + hero-courtyard set.
+- ✅ **AVIF image pipeline** — `npm run images:avif`. Rolled back in PR #221 — hero preload removed for LCP.
 - ✅ **Bundle visualizer** — `ANALYZE=1 npm run build` writes dist/stats.html.
 - ✅ **Playwright smoke tests** — landing/browse/legal in `e2e/smoke.spec.ts`.
 - ✅ **npm vulns** — bumped serialize-javascript override to ^7.0.5; 4 high → 0.

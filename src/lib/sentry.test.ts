@@ -20,7 +20,6 @@ vi.mock("@sentry/react", () => ({
   linkedErrorsIntegration: () => ({ name: "linkedErrors" }),
   dedupeIntegration: () => ({ name: "dedupe" }),
   httpContextIntegration: () => ({ name: "httpContext" }),
-  browserTracingIntegration: () => ({ name: "browserTracing" }),
 }));
 
 beforeEach(() => {
@@ -45,7 +44,7 @@ describe("initSentry", () => {
     expect(config.release).toBeTruthy();
     expect(config.defaultIntegrations).toBe(false); // bundle-size guard
     expect(Array.isArray(config.integrations)).toBe(true);
-    expect((config.integrations as unknown[]).length).toBe(6);
+    expect((config.integrations as unknown[]).length).toBe(5);
   });
 
   it("is idempotent — second call does NOT re-init", async () => {

@@ -10,6 +10,13 @@
  * out of the main bundle. Lighthouse flagged ~57KB of unused JS from
  * those three modules even with `defaultIntegrations: false` because a
  * namespace import keeps every re-export reachable.
+ *
+ * We also skip `browserTracingIntegration`: it's the single heaviest
+ * Sentry integration (~25KB gzip) and we don't consume the data — there
+ * are zero custom `startSpan` / `startTransaction` calls in the app, so
+ * the only thing it produced was automatic page-load + route-change
+ * transactions that nobody looks at. Errors (the long-term archive) keep
+ * working via the remaining integrations.
  */
 import {
   init,
@@ -20,7 +27,6 @@ import {
   linkedErrorsIntegration,
   dedupeIntegration,
   httpContextIntegration,
-  browserTracingIntegration,
 } from "@sentry/react";
 
 const DSN =
@@ -44,8 +50,8 @@ export function initSentry() {
       environment: ENV,
       release: RELEASE,
       // Replace defaults with a minimal set. Skips Replay (~38KB),
-      // Feedback (~15KB), and Replay-Canvas (~4KB) integrations that
-      // ship with @sentry/react by default.
+      // Feedback (~15KB), Replay-Canvas (~4KB), and BrowserTracing
+      // (~25KB) integrations that ship with @sentry/react by default.
       defaultIntegrations: false,
       integrations: [
         breadcrumbsIntegration(),
@@ -53,10 +59,10 @@ export function initSentry() {
         linkedErrorsIntegration(),
         dedupeIntegration(),
         httpContextIntegration(),
-        browserTracingIntegration(),
       ],
-      // Sample 10% of transactions in production, 100% in dev.
-      tracesSampleRate: import.meta.env.DEV ? 1.0 : 0.1,
+      // No tracing — we removed browserTracingIntegration above.
+      // tracesSampleRate left out so Sentry doesn't even register the
+      // tracing transport.
       // Don't ship benign noise.
       ignoreErrors: [
         "ResizeObserver loop limit exceeded",

@@ -19,7 +19,7 @@ import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import type { EnrichedJob } from "@/components/dashboard/types";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import HelprMark from "@/components/HelprMark";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -41,7 +41,20 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 
 const DashboardGuest = () => {
   const navigate = useNavigate();
-  usePageTitle("Browse Jobs — Helpr");
+  // /browse is the only public, indexable route a guest lands on directly —
+  // give it its own title + description + OG so search engines and social
+  // unfurlers don't fall back to index.html's landing-page meta.
+  usePageMeta({
+    title: "Browse Local Jobs — Helpr",
+    description:
+      "See what your Louisiana neighbors need help with right now. No account needed to look.",
+    canonical: "https://www.louisianahelpr.com/browse",
+    ogTitle: "Browse Local Jobs — Helpr",
+    ogDescription:
+      "See what your Louisiana neighbors need help with right now. No account needed to look.",
+    geoRegion: "US-LA",
+    geoPlacename: "Louisiana",
+  });
 
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);

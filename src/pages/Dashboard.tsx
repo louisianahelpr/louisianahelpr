@@ -294,7 +294,7 @@ const Dashboard = () => {
         queryClient.setQueryData(["savedJobs", vars.userId], context.previousSavedJobs);
         setSavedJobIds(context.previousLocal);
       }
-      toast.error("Couldn't save. Try again.");
+      toast.error("Couldn't save that job right now — give it another try?");
     },
     // No onSuccess refetch: optimistic state is correct; a refetch would
     // briefly toggle the heart back and forth as the cache reconciles.
@@ -383,7 +383,7 @@ const Dashboard = () => {
       } else if (code === "UPLOAD_FAILED") {
         toast.error(err.message);
       } else {
-        toast.error("Couldn't submit application. Try again.");
+        toast.error("Couldn't send your application through — try once more?");
       }
     },
     onSuccess: async (_data, vars) => {

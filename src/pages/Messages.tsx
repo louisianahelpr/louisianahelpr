@@ -591,7 +591,7 @@ const Messages = () => {
     if (error || !data) {
       // Keep the text on screen and let the user retry it.
       hapticError();
-      toast.error("Failed to send message");
+      toast.error("Message didn't go through — tap it to try again.");
       setMessages((prev) =>
         prev.map((m) =>
           m.clientId === optimistic.clientId ? { ...m, sendStatus: "failed" } : m,
@@ -716,7 +716,7 @@ const Messages = () => {
     const { error } = await supabase.from("messages").delete().eq("id", messageId);
     if (error) {
       hapticError();
-      toast.error("Failed to delete message");
+      toast.error("Couldn't delete that one — give it another try?");
     } else {
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
       hapticSuccess();

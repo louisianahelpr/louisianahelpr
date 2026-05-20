@@ -442,7 +442,7 @@ export function usePostJobForm() {
       .single();
 
     if (error || !jobData) {
-      toast.error(error?.message || "Failed to create job");
+      toast.error(error?.message || "Couldn't post your job just yet — give it another try?");
       setSaving(false);
       submittingRef.current = false;
       return;

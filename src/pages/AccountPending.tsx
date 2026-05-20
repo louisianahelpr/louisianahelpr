@@ -121,7 +121,7 @@ const AccountPending = () => {
       if (error) toast.error("Couldn't send. Try again in a moment.");
       else toast.success("Sent! Check your inbox.");
     } catch {
-      toast.error("Something went wrong.");
+      toast.error("Hit a snag on our end — try that again in a moment?");
     } finally {
       setResending(false);
     }
@@ -157,7 +157,7 @@ const AccountPending = () => {
         toast.success("Still verifying — we'll notify you the moment you're cleared.");
       }
     } catch {
-      toast.error("Sync failed. Please try again.");
+      toast.error("Couldn't sync your status just yet — try again in a sec?");
     } finally {
       setSyncing(false);
     }

@@ -1190,6 +1190,13 @@ button {
   z-index: 0;
 }
 
+/* Pause the mesh drift when the tab is hidden — saves composite cycles
+   on lower-end devices when no one is looking. Toggled by a visibility
+   listener in HeroSection. */
+.mesh-gradient.is-paused {
+  animation-play-state: paused;
+}
+
 @keyframes mesh-drift {
   0% {
     transform: translate3d(0, 0, 0) scale(1);

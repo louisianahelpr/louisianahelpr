@@ -48,6 +48,11 @@ export function trackKey(key: string) {
   "birthday_popup_dismissed",
   "greeting_dismissed_at",
   "push-prompt-dismissed",
+  // High-intent push permission re-ask nudge (see pushPermissionNudge.ts).
+  // Per-reason "shown" markers (push-nudge-shown:<reason>) are mirrored via
+  // the trackKey() call in that module to avoid coupling this list to the
+  // NudgeReason union here.
+  "push-nudge-dismissed-at",
   "admin_resolved_job_flags",
   "admin_seen_user_ids_v1",
   "helpr_dismissed_jobs",

@@ -22,6 +22,7 @@ import {
 } from "@/pages/activity/activityFilters";
 import { ActivityHeader } from "@/pages/activity/ActivityHeader";
 import { ActivityEmptyState } from "@/pages/activity/ActivityEmptyState";
+import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
@@ -51,6 +52,21 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     startRequestedJobIds, helperNames, completedJobMeta,
     helperReviewedJobIds, refresh,
   } = useActivityData(user);
+
+  // Customer-first-bid push nudge — fires the high-intent re-ask the
+  // first time this customer sees at least one applicant on a job they
+  // posted. `applicantCounts` is keyed by job id and populated by
+  // useActivityData on every fetch (including the realtime-driven
+  // invalidations), so the moment a bid lands we're in here. The hook
+  // self-suppresses on already-granted, already-shown, or
+  // recently-dismissed — so this effect is safe to fire on every load.
+  const triggerPushNudge = usePushPermissionNudge();
+  useEffect(() => {
+    if (!user) return;
+    const hasAnyBid = Object.values(applicantCounts).some((n) => n > 0);
+    if (!hasAnyBid) return;
+    void triggerPushNudge("customer-first-bid");
+  }, [user, applicantCounts, triggerPushNudge]);
 
   // Data-loading + action handlers + dialog/UI state (extracted hook).
   const actions = useActivityActions({

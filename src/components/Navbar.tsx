@@ -23,6 +23,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   return (
     <nav
       ref={ref}
+      aria-label="Primary"
       className={cn(
         "fixed top-0 left-0 right-0 z-50 glass-nav transition-[border-color,background-color,box-shadow] duration-300",
         scrolled && "is-scrolled",

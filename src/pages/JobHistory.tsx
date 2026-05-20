@@ -9,6 +9,7 @@ import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { StatusBadge } from "@/components/StatusBadge";
+import { jobStatusLabel } from "@/lib/statusLabels";
 import { unwrap } from "@/lib/supabaseResult";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -75,10 +76,10 @@ const JobHistory = () => {
 
   const statuses: { key: StatusFilter; label: string }[] = [
     { key: "all", label: "All" },
-    { key: "open", label: "Open" },
-    { key: "in_progress", label: "In Progress" },
-    { key: "completed", label: "Completed" },
-    { key: "cancelled", label: "Cancelled" },
+    { key: "open", label: jobStatusLabel("open") },
+    { key: "in_progress", label: jobStatusLabel("in_progress") },
+    { key: "completed", label: jobStatusLabel("completed") },
+    { key: "cancelled", label: jobStatusLabel("cancelled") },
   ];
 
   return (

@@ -1,9 +1,15 @@
 import { useMemo } from "react";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
+import { jobStatusLabel } from "@/lib/statusLabels";
 
 /**
  * activityFilters — status-filter definitions and the memoized list/count
  * derivations for the Activity page.
+ *
+ * Filter keys that match a `job_status` enum value use `jobStatusLabel`
+ * so chips read identically to the rest of the app (see #46). Keys that
+ * are derived buckets ("direct_offer", "offered", "not_selected") keep
+ * their custom copy — they aren't enum values.
  */
 
 export interface StatusFilter {
@@ -13,13 +19,13 @@ export interface StatusFilter {
 }
 
 export const POSTED_STATUS_FILTERS: StatusFilter[] = [
-  { key: "open", label: "Open", color: "bg-primary/15 text-primary border-primary/30" },
+  { key: "open", label: jobStatusLabel("open"), color: "bg-primary/15 text-primary border-primary/30" },
   { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
   // "Awaiting Helpr's Response" — the poster sent an offer; the helpr hasn't confirmed yet.
   { key: "offered", label: "Awaiting Helpr's Response", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
-  { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
-  { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-  { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
+  { key: "accepted", label: jobStatusLabel("accepted"), color: "bg-primary/15 text-primary border-primary/30" },
+  { key: "in_progress", label: jobStatusLabel("in_progress"), color: "bg-accent/15 text-accent-foreground border-accent/30" },
+  { key: "completed", label: jobStatusLabel("completed"), color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
 ];
 
 export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
@@ -27,9 +33,9 @@ export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
   { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
   // "Respond to Offer" — the poster selected me; I need to accept or decline.
   { key: "offered", label: "Respond to Offer", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
-  { key: "accepted", label: "Accepted", color: "bg-primary/15 text-primary border-primary/30" },
-  { key: "in_progress", label: "In Progress", color: "bg-accent/15 text-accent-foreground border-accent/30" },
-  { key: "completed", label: "Completed", color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
+  { key: "accepted", label: jobStatusLabel("accepted"), color: "bg-primary/15 text-primary border-primary/30" },
+  { key: "in_progress", label: jobStatusLabel("in_progress"), color: "bg-accent/15 text-accent-foreground border-accent/30" },
+  { key: "completed", label: jobStatusLabel("completed"), color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
   { key: "not_selected", label: "Not Selected", color: "bg-destructive/15 text-destructive border-destructive/30" },
 ];
 

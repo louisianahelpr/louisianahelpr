@@ -11,6 +11,7 @@ import {
   getMessageAttachmentSignedUrl,
   isImageMime,
 } from "@/lib/messageAttachments";
+import { jobStatusLabel } from "@/lib/statusLabels";
 import type { Conversation } from "./types";
 
 interface ConversationRowProps {
@@ -91,14 +92,22 @@ const ConversationRowBase = ({
     ageHr < 24 ? `${ageHr}h` :
     ageDay < 7 ? `${ageDay}d` :
     new Date(c.lastAt).toLocaleDateString([], { month: "short", day: "numeric" });
-  // Status chip — short label so it fits inline next to the job title.
-  // Same color logic as the chat-header status pill.
+  // Status chip — inline next to the job title. Labels come from the
+  // canonical `jobStatusLabel` (see #46) so the chip reads identically
+  // here, in the chat-header pill, and in every <StatusBadge>. Colors
+  // stay bespoke — the row sits on a translucent paper texture where
+  // the semantic-token palette looks washed out.
+  //
+  // `assigned` isn't in the job_status enum — it's a legacy
+  // conversation-row alias for the offered-not-yet-confirmed window.
+  // Keep its bespoke "Awarded" copy.
   const statusChip = c.jobStatus && (() => {
     const s = c.jobStatus;
-    if (s === "open") return { label: "Open", color: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.12)" };
-    if (s === "assigned" || s === "in_progress") return { label: "Awarded", color: "hsl(var(--burnt-sienna))", bg: "hsl(var(--burnt-sienna) / 0.12)" };
-    if (s === "completed") return { label: "Done", color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.10)" };
-    if (s === "cancelled") return { label: "Cancelled", color: "hsl(var(--destructive))", bg: "hsl(var(--destructive) / 0.10)" };
+    if (s === "open") return { label: jobStatusLabel("open"), color: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.12)" };
+    if (s === "assigned") return { label: "Awarded", color: "hsl(var(--burnt-sienna))", bg: "hsl(var(--burnt-sienna) / 0.12)" };
+    if (s === "in_progress") return { label: jobStatusLabel("in_progress"), color: "hsl(var(--burnt-sienna))", bg: "hsl(var(--burnt-sienna) / 0.12)" };
+    if (s === "completed") return { label: jobStatusLabel("completed"), color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.10)" };
+    if (s === "cancelled") return { label: jobStatusLabel("cancelled"), color: "hsl(var(--destructive))", bg: "hsl(var(--destructive) / 0.10)" };
     return null;
   })();
 

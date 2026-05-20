@@ -75,7 +75,7 @@ describe("useRealtimePush", () => {
 
   it("subscribes to a per-user channel when userId is provided", () => {
     renderHook(() => useRealtimePush("user-1"));
-    expect(channelMock).toHaveBeenCalledWith("push-notifications-user-1");
+    expect(channelMock).toHaveBeenCalledWith(expect.stringMatching(/^push-notifications-user-1-/));
   });
 
   it("registers the service worker on first mount", () => {
@@ -156,7 +156,7 @@ describe("useRealtimePush", () => {
 
     rerender({ uid: "user-2" });
     expect(channelMock).toHaveBeenCalledTimes(2);
-    expect(channelMock).toHaveBeenLastCalledWith("push-notifications-user-2");
+    expect(channelMock).toHaveBeenLastCalledWith(expect.stringMatching(/^push-notifications-user-2-/));
     // Old channel removed
     expect(removeChannelMock).toHaveBeenCalled();
   });

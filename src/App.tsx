@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
 
 import ErrorBoundary from "@/components/ErrorBoundary";
+import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import PageTransition from "@/components/PageTransition";
 import OfflineBanner from "@/components/OfflineBanner";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
@@ -110,45 +111,45 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
   return (
     <Routes location={location}>
-      <Route path="/" element={<Index />} />
-      <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
-      <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
-      <Route path="/signup-pending" element={<PageTransition><SignupPending /></PageTransition>} />
-      <Route path="/complete-profile" element={<ProtectedRoute allowUnapproved><CompleteProfile /></ProtectedRoute>} />
-      <Route path="/account-pending" element={<PageTransition><AccountPending /></PageTransition>} />
-      <Route path="/account-denied" element={<PageTransition><AccountDenied /></PageTransition>} />
-      <Route path="/account-banned" element={<PageTransition><AccountBanned /></PageTransition>} />
-      <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
-      <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
+      <Route path="/" element={<RouteErrorBoundary><Index /></RouteErrorBoundary>} />
+      <Route path="/login" element={<RouteErrorBoundary><PageTransition><Login /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/signup" element={<RouteErrorBoundary><PageTransition><Signup /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/signup-pending" element={<RouteErrorBoundary><PageTransition><SignupPending /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/complete-profile" element={<RouteErrorBoundary><ProtectedRoute allowUnapproved><CompleteProfile /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/account-pending" element={<RouteErrorBoundary><PageTransition><AccountPending /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/account-denied" element={<RouteErrorBoundary><PageTransition><AccountDenied /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/account-banned" element={<RouteErrorBoundary><PageTransition><AccountBanned /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/forgot-password" element={<RouteErrorBoundary><PageTransition><ForgotPassword /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/reset-password" element={<RouteErrorBoundary><PageTransition><ResetPassword /></PageTransition></RouteErrorBoundary>} />
       {/* Progressive activation: pending/unverified users can browse, save
           and apply while they wait on review. Verification still gates the
           moments that require it (accept, payout) inside the components.
           `denied`/banned users are still redirected — see ProtectedRoute. */}
-      <Route path="/dashboard" element={<ProtectedRoute allowPending><Dashboard /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>} />
-      <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<RouteErrorBoundary><ProtectedRoute allowPending><Dashboard /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/profile" element={<RouteErrorBoundary><ProtectedRoute allowUnapproved><Profile /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/post-job" element={<RouteErrorBoundary><ProtectedRoute><PostJob /></ProtectedRoute></RouteErrorBoundary>} />
       <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/my-jobs" element={<ProtectedRoute allowPending><Activity defaultTab="applied" /></ProtectedRoute>} />
-      <Route path="/my-posts" element={<ProtectedRoute allowPending><Activity defaultTab="posted" /></ProtectedRoute>} />
-      <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
-      <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>} />
+      <Route path="/my-jobs" element={<RouteErrorBoundary><ProtectedRoute allowPending><Activity defaultTab="applied" /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/my-posts" element={<RouteErrorBoundary><ProtectedRoute allowPending><Activity defaultTab="posted" /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/payment-success" element={<RouteErrorBoundary><ProtectedRoute><PaymentSuccess /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/user/:userId" element={<RouteErrorBoundary><ProtectedRoute><UserProfile /></ProtectedRoute></RouteErrorBoundary>} />
+      <Route path="/admin" element={<RouteErrorBoundary><ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute></RouteErrorBoundary>} />
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
-      <Route path="/messages" element={<ProtectedRoute allowPending><Messages /></ProtectedRoute>} />
+      <Route path="/messages" element={<RouteErrorBoundary><ProtectedRoute allowPending><Messages /></ProtectedRoute></RouteErrorBoundary>} />
       <Route path="/support" element={<Navigate to="/profile?tab=support" replace />} />
-      
-      <Route path="/legal" element={<PageTransition><Legal /></PageTransition>} />
+
+      <Route path="/legal" element={<RouteErrorBoundary><PageTransition><Legal /></PageTransition></RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
-      <Route path="/data-rights" element={<PageTransition><DataRights /></PageTransition>} />
-      
-      <Route path="/jobs" element={<ProtectedRoute allowPending><Jobs /></ProtectedRoute>} />
+      <Route path="/data-rights" element={<RouteErrorBoundary><PageTransition><DataRights /></PageTransition></RouteErrorBoundary>} />
+
+      <Route path="/jobs" element={<RouteErrorBoundary><ProtectedRoute allowPending><Jobs /></ProtectedRoute></RouteErrorBoundary>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /dashboard's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want
           a no-account preview, though the marketing landing remains canonical. */}
-      <Route path="/browse" element={<PageTransition><DashboardGuest /></PageTransition>} />
+      <Route path="/browse" element={<RouteErrorBoundary><PageTransition><DashboardGuest /></PageTransition></RouteErrorBoundary>} />
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
       {/* /community is a legacy/external-link redirect stub — the content
           lives as a tab inside /legal. Without this redirect, old search
@@ -156,7 +157,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           /legal URL, not this stub. Mirrors the /rules → /legal?tab=community
           pattern above. */}
       <Route path="/community" element={<Navigate to="/legal?tab=community" replace />} />
-      
+
       {/* Settings-style pages live inside the Profile shell so the
           shared back button + safe-area top padding stay consistent.
           Standalone routes redirect into the Profile tab system so
@@ -165,9 +166,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/schedule" element={<Navigate to="/profile?tab=schedule" replace />} />
       <Route path="/availability" element={<Navigate to="/profile?tab=availability" replace />} />
       <Route path="/saved-helpers" element={<Navigate to="/profile?tab=saved_helpers" replace />} />
-      <Route path="/for-business" element={<PageTransition><ForBusiness /></PageTransition>} />
-      <Route path="/business/team" element={<ProtectedRoute><BusinessTeam /></ProtectedRoute>} />
-      
+      <Route path="/for-business" element={<RouteErrorBoundary><PageTransition><ForBusiness /></PageTransition></RouteErrorBoundary>} />
+      <Route path="/business/team" element={<RouteErrorBoundary><ProtectedRoute><BusinessTeam /></ProtectedRoute></RouteErrorBoundary>} />
+
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
       {/* Legacy paths surfaced by 404s in error_logs (external links, old
           bookmarks, search-engine indexes) — redirect to their modern
@@ -175,7 +176,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/dashboard/post-login" element={<Navigate to="/dashboard" replace />} />
       <Route path="/settings/profile" element={<Navigate to="/profile" replace />} />
       <Route path="/settings" element={<Navigate to="/profile" replace />} />
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={<RouteErrorBoundary><NotFound /></RouteErrorBoundary>} />
     </Routes>
   );
 });

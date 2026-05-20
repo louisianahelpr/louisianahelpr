@@ -129,8 +129,9 @@ const PayoutTicker = () => {
   const amount = dollars.format(current.amount_dollars);
   const city = (current.city ?? "").trim();
   // formatDistanceToNow throws on invalid date strings; we guard so a
-  // bad row doesn't take the whole ticker down.
-  let relative = "";
+  // bad row doesn't take the whole ticker down. The catch arm intentionally
+  // leaves `relative` empty so the suffix span just doesn't render.
+  let relative: string;
   try {
     relative = formatDistanceToNow(new Date(current.paid_at), { addSuffix: true });
   } catch {

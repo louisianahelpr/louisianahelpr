@@ -47,4 +47,14 @@ export type Conversation = {
   lastMessage: string;
   lastAt: string;
   unread: number;
+  /** Sender of the last message — drives the iMessage-style "You: " prefix
+      on the preview row when the current user sent it. */
+  lastMessageSenderId?: string | null;
+  /** Storage path of the last-message attachment (NOT a URL — resolved via
+      `getMessageAttachmentSignedUrl` at render time). Only set when the
+      last message carried an attachment. */
+  lastMessageAttachmentPath?: string | null;
+  /** MIME of the last-message attachment. Used with `isImageMime` to
+      decide whether to render a thumbnail preview vs treat as a file. */
+  lastMessageAttachmentMime?: string | null;
 };

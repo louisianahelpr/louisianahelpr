@@ -257,29 +257,29 @@ const DashboardGuest = () => {
       </header>
       }
       titleCard={
-        // Compact hero strip — eyebrow + a right-sized headline + a single
-        // tight subline. The in-card "Sign up free" CTA and "Already on
-        // Helpr? Log in" link were removed 2026-05-19 because the page
-        // header (rendered above) already shows both `Log in` and `Sign up`
-        // buttons in the corner. Duplicating them here doubled the card's
-        // height and dominated the guest dashboard without adding any new
-        // conversion path. If A/B testing later shows the corner CTAs are
-        // missed by guest users, reintroduce a single inline link rather
-        // than the full bark Button + secondary text-link stack.
+        // Compact hero strip — a single inline headline. The in-card
+        // "Sign up free" CTA and "Already on Helpr? Log in" link were
+        // removed 2026-05-19 because the page header (rendered above)
+        // already shows both `Log in` and `Sign up` buttons in the corner.
+        // Duplicating them here doubled the card's height and dominated
+        // the guest dashboard without adding any new conversion path.
+        //
+        // The "A first look" eyebrow and the "Post a task in a minute…"
+        // subline were dropped 2026-05-20 (TestFlight 19 feedback: "the
+        // top bar that says like need help is still too big"). The
+        // subline was redundant with the browse feed rendered directly
+        // below the card; the eyebrow consumed a full line for no real
+        // signal. If A/B testing later shows the corner CTAs are missed
+        // by guest users, reintroduce a single inline link rather than
+        // the full bark Button + secondary text-link stack.
         <div className="min-w-0">
-          <span
-            className="font-serif italic uppercase text-ds-9"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            A first look
-          </span>
           <h1
-            className="leading-[1.12] mt-0.5"
+            className="leading-[1.12]"
             style={{
               fontFamily: '"Bodoni Moda", Georgia, serif',
               fontStyle: "italic",
-              fontWeight: 700,
-              fontSize: "clamp(1.05rem, 1.1vw + 0.35rem, 1.2rem)",
+              fontWeight: 600,
+              fontSize: "clamp(0.95rem, 0.8vw + 0.35rem, 1.05rem)",
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.022em",
             }}
@@ -293,12 +293,6 @@ const DashboardGuest = () => {
             </em>
             ?
           </h1>
-          <p
-            className="font-serif italic mt-1 text-ds-11 leading-snug"
-            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-          >
-            Post a task in a minute, or browse what your neighbors need.
-          </p>
         </div>
       }
     >

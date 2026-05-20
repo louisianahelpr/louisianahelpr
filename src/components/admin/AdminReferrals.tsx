@@ -253,6 +253,7 @@ const AdminReferrals = () => {
                 <span className="font-mono text-ds-13 font-bold text-primary tracking-widest">{c.code}</span>
                 <button
                   onClick={() => { navigator.clipboard.writeText(c.code); toast.success("Code copied"); }}
+                  aria-label="Copy referral code"
                   className="p-1 rounded hover:bg-secondary/50 transition-colors"
                 >
                   <Copy className="w-3.5 h-3.5 text-muted-foreground" />

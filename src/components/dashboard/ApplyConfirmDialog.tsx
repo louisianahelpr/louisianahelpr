@@ -172,7 +172,7 @@ export function ApplyConfirmDialog({
                   <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
                   <span className="truncate flex-1 font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>{file.name}</span>
                   <span className="font-sans tabular-nums shrink-0" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>{(file.size / 1024).toFixed(0)}KB</span>
-                  <button type="button" onClick={() => setApplyFiles(f => f.filter((_, idx) => idx !== i))} style={{ color: "hsl(var(--burnt-sienna))" }} className="active:opacity-70">
+                  <button type="button" onClick={() => setApplyFiles(f => f.filter((_, idx) => idx !== i))} aria-label="Remove attached file" style={{ color: "hsl(var(--burnt-sienna))" }} className="active:opacity-70">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>

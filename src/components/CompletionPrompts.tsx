@@ -156,7 +156,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             <p className="text-ds-11 text-muted-foreground">How was your experience with {revieweeName} on "{jobTitle}"?</p>
             <div className="flex gap-1 justify-center">
               {[1, 2, 3, 4, 5].map((s) => (
-                <button key={s} onClick={() => setRating(s)} onMouseEnter={() => setHoverRating(s)} onMouseLeave={() => setHoverRating(0)}>
+                <button key={s} onClick={() => setRating(s)} onMouseEnter={() => setHoverRating(s)} onMouseLeave={() => setHoverRating(0)} aria-label={`Rate ${s} star${s === 1 ? "" : "s"}`}>
                   <Star className={`w-8 h-8 transition-colors ${s <= (hoverRating || rating) ? "fill-primary text-primary" : "text-muted-foreground/30"}`} />
                 </button>
               ))}

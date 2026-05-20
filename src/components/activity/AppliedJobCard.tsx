@@ -290,7 +290,7 @@ function AppliedJobCardInner({
                         {filename.length > 30 ? filename.slice(-30) : filename}
                       </span>
                       <AttachmentLink url={url} index={i} variant="chip" className="!px-1.5 !py-0.5" />
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveAttachment(app.id, app.attachment_urls || [], url); }} className="text-destructive hover:text-destructive/80">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveAttachment(app.id, app.attachment_urls || [], url); }} aria-label="Remove attachment" className="text-destructive hover:text-destructive/80">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>

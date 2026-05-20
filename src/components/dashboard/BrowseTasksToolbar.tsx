@@ -156,7 +156,7 @@ export function BrowseTasksToolbar({
                 className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
               />
               {filters.searchQuery && (
-                <button onClick={() => filters.setSearchQuery("")} className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press">
+                <button onClick={() => filters.setSearchQuery("")} aria-label="Clear search" className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press">
                   <X className="w-4 h-4" />
                 </button>
               )}
@@ -201,7 +201,7 @@ export function BrowseTasksToolbar({
           {filters.selectedCategory && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
               {categoryLabels[filters.selectedCategory]}
-              <button onClick={() => filters.setSelectedCategory(null)} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setSelectedCategory(null)} aria-label="Clear category filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.locationFilter && (
@@ -210,25 +210,25 @@ export function BrowseTasksToolbar({
               {filters.locationFilter.startsWith("nearby:")
                 ? `Within ${filters.locationFilter.slice(7)} mi`
                 : filters.locationFilter}
-              <button onClick={() => filters.setLocationFilter("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setLocationFilter("")} aria-label="Clear location filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.maxBudget && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
               ≤ ${filters.maxBudget}
-              <button onClick={() => filters.setMaxBudget("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setMaxBudget("")} aria-label="Clear max budget" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.expiresWithin && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
               {filters.expiresWithin}
-              <button onClick={() => filters.setExpiresWithin("")} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setExpiresWithin("")} aria-label="Clear expiry filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.matchAvailability && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
               <Clock className="w-3 h-3" /> My hours
-              <button onClick={() => filters.setMatchAvailability(false)} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setMatchAvailability(false)} aria-label="Clear availability filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
         </div>

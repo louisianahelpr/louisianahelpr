@@ -161,7 +161,7 @@ export function useActivityActions({
     } catch {
       // A failed fetch must not read as "no applicants" — tell the truth.
       setApplications([]);
-      toast.error("Couldn't load applicants. Please try again.");
+      toast.error("Couldn't pull up applicants right now — give it a second and try again?");
     }
   };
 
@@ -174,7 +174,7 @@ export function useActivityActions({
       setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
     } catch {
       setApplicantErrors(prev => ({ ...prev, [jobId]: true }));
-      toast.error("Couldn't load applicants. Please try again.");
+      toast.error("Couldn't pull up applicants right now — give it a second and try again?");
     } finally {
       setLoadingApplicants(prev => ({ ...prev, [jobId]: false }));
     }

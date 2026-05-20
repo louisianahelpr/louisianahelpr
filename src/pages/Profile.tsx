@@ -423,7 +423,7 @@ const ProfilePage = () => {
     const { error: upErr } = await supabase.storage.from("id-documents").upload(path, file, { upsert: true });
     if (upErr) { toast.error("Upload failed: " + upErr.message); setIdUploading(false); return; }
     const { error: updErr } = await supabase.from("profiles").update({ id_document_url: path, idv_status: "pending" }).eq("user_id", user.id);
-    if (updErr) toast.error("Failed to save ID");
+    if (updErr) toast.error("Got your ID, but couldn't save it to your profile. Try again?");
     else {
       setProfile(prev => prev ? ({ ...prev, id_document_url: path, idv_status: "pending" }) : prev);
       toast.success("ID sent in — we'll let you know when it's cleared.");
@@ -463,7 +463,7 @@ const ProfilePage = () => {
       .eq("user_id", user.id);
 
     if (updateError) {
-      toast.error("Failed to save avatar");
+      toast.error("Photo uploaded, but couldn't pin it to your profile. Try again?");
     } else {
       setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
       setAvatarBroken(false);

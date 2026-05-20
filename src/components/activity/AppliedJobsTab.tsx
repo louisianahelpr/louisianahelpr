@@ -46,7 +46,7 @@ export const AppliedJobsTab = ({
   const handleSaveMessage = useCallback(async (appId: string) => {
     setSavingMessage(true);
     const { error } = await supabase.from("applications").update({ message: editMessageText.trim() || null }).eq("id", appId);
-    if (error) toast.error("Failed to save message");
+    if (error) toast.error("Couldn't save your note — try again?");
     else toast.success("Message updated");
     setSavingMessage(false);
     setEditingMessageAppId(null);
@@ -58,7 +58,7 @@ export const AppliedJobsTab = ({
     setWithdrawingAppId(appId);
     const { error } = await supabase.from("applications").delete().eq("id", appId).eq("helper_id", userId);
     if (error) {
-      toast.error("Failed to withdraw application");
+      toast.error("Couldn't withdraw that one — give it another try?");
     } else {
       toast.success(`Withdrawn from "${jobTitle}".`);
     }

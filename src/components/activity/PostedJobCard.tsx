@@ -25,6 +25,7 @@ import {
   deriveEscrowStepFromJob,
 } from "@/components/payment/EscrowProgressBar";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
+import { DisputeLink } from "@/components/jobs/DisputeLink";
 
 interface PostedJobCardProps {
   /** The job + its embedded data — one row of the posted feed. */
@@ -685,6 +686,16 @@ function PostedJobCardInner({
                           Still unresolved? File a formal dispute
                         </button>
                       )}
+                      {/* Issue #113 — always-findable dispute path during a
+                          pending revision. Distinct from the deadline-gated
+                          button above: this surfaces *whenever* a revision is
+                          open, not only after the deadline elapses. The
+                          component self-hides for jobs already in dispute. */}
+                      <DisputeLink
+                        job={job}
+                        side="customer"
+                        onOpenDispute={() => onDispute(job)}
+                      />
                     </div>
                   )}
                   {job.status === "completed" && (() => {
@@ -754,6 +765,15 @@ function PostedJobCardInner({
                             )}
                           </>
                         )}
+                        {/* Issue #113 — quiet, always-findable dispute path for
+                            the 7-day window after completion. The component
+                            self-hides outside that window or once a dispute is
+                            already filed, so this lives unconditionally here. */}
+                        <DisputeLink
+                          job={job}
+                          side="customer"
+                          onOpenDispute={() => onDispute(job)}
+                        />
                       </div>
                     );
                   })()}

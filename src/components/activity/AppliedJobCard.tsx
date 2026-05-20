@@ -21,11 +21,12 @@ import { WhatToBringChecklist } from "@/components/jobs/WhatToBringChecklist";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
-import type { Application, AppliedApp } from "./activityConstants";
+import type { Application, AppliedApp, Job } from "./activityConstants";
 import {
   EscrowProgressBar,
   deriveEscrowStepFromJob,
 } from "@/components/payment/EscrowProgressBar";
+import { DisputeLink } from "@/components/jobs/DisputeLink";
 
 interface AppliedJobCardProps {
   /** The application + its embedded job — one row of the applied feed. */
@@ -40,6 +41,8 @@ interface AppliedJobCardProps {
   completingJobId: string | null;
   onResolveRevision: (jobId: string) => void;
   onHelperReview: (jobId: string, posterId: string, posterName: string) => void;
+  /** Open the dispute dialog for this job — helper-initiated dispute (issue #113). */
+  onDispute: (job: Job) => void;
   /** Re-fetch the activity feed after a card-local mutation (dispute response). */
   onRefresh: () => void;
   /** Dispute-response state (parent-owned; keyed by job id). */
@@ -85,6 +88,7 @@ function AppliedJobCardInner({
   completingJobId,
   onResolveRevision,
   onHelperReview,
+  onDispute,
   onRefresh,
   disputeResponse,
   setDisputeResponse,
@@ -762,7 +766,27 @@ function AppliedJobCardInner({
                   </Button>
                 )
               )}
+              {/* Issue #113 — discoverable dispute path for helpers within
+                  the 7-day window after completion. Self-hides outside the
+                  window or once a dispute is already filed. */}
+              <DisputeLink
+                job={job}
+                side="helper"
+                onOpenDispute={() => onDispute(job)}
+              />
             </div>
+          )}
+
+          {/* Fully reviewed completed jobs still get the dispute link until
+              the 7-day window closes — issue #113. Helpers may not realize
+              there's a problem until after they've left a review. */}
+          {isFullyDone && (
+            <DisputeLink
+              job={job}
+              side="helper"
+              onOpenDispute={() => onDispute(job)}
+              className="px-4 pb-2"
+            />
           )}
 
           {/* Fully done (reviewed) - collapsible */}

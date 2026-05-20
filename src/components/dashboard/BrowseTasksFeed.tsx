@@ -1,9 +1,11 @@
 import { lazy, Suspense, useCallback, useRef, useEffect, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Star, Search, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useReducedMotion } from "@/lib/accessibility";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -96,6 +98,7 @@ export function BrowseTasksFeed({
   fetchNextPage,
 }: BrowseTasksFeedProps) {
   const navigate = useNavigate();
+  const reducedMotion = useReducedMotion();
 
   // Stable per-card expand toggle. Previously an inline arrow was created
   // for every card on every render — that defeated SwipeableJobCard's
@@ -295,11 +298,27 @@ export function BrowseTasksFeed({
                   </span>
                 </div>
                 <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5">
-                  {recommendedVisible.map((job, i) => (
-                    <div key={`rec-${job.id}`}>
-                      <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
-                    </div>
-                  ))}
+                  {/* AnimatePresence with initial={false} — only NEW
+                      recommended jobs slide in (e.g. when a fresh match
+                      arrives or the user dismisses a sibling). The
+                      first paint stays static so the section doesn't
+                      feel laggy when the dashboard loads. The virtualized
+                      "Everything else" list below is intentionally NOT
+                      wrapped — animating across an absolute-positioned
+                      virtualizer fights its layout math. */}
+                  <AnimatePresence initial={false}>
+                    {recommendedVisible.map((job, i) => (
+                      <motion.div
+                        key={`rec-${job.id}`}
+                        initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                        animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                        transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+                      >
+                        <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
                 {visibleJobs.length > 0 && (
                   <div

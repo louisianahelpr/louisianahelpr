@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
+import { useReducedMotion } from "@/lib/accessibility";
 import { Button } from "@/components/ui/button";
 import { Bell, Check, CheckCheck, Info, AlertTriangle, DollarSign, Users, Star, BellRing, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, Megaphone } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -94,6 +96,7 @@ const groupByDay = (items: Notification[]) => {
 
 const NotificationPanel = () => {
   const navigate = useNavigate();
+  const reducedMotion = useReducedMotion();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -440,61 +443,72 @@ const NotificationPanel = () => {
                       {group.items.length}
                     </span>
                   </div>
-                  {group.items.map((n) => (
-                    <button
-                      key={n.id}
-                      onClick={() => handleClick(n)}
-                      className="w-full text-left px-4 py-3 transition-colors active:opacity-80"
-                      style={{
-                        background: !n.read ? "hsl(var(--burnt-sienna) / 0.06)" : undefined,
-                        borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
-                      }}
-                    >
-                      <div className="flex gap-3">
-                        <div
-                          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-                          style={{
-                            background: !n.read ? "hsl(var(--burnt-sienna) / 0.12)" : "hsl(var(--bark) / 0.08)",
-                            color: !n.read ? "hsl(var(--burnt-sienna))" : "hsl(var(--bark))",
-                          }}
-                        >
-                          {typeIcons[n.type] || typeIcons.info}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p
-                              className="font-display italic font-bold leading-tight truncate"
-                              style={{
-                                fontSize: "0.92rem",
-                                color: !n.read ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
-                                letterSpacing: "-0.012em",
-                              }}
-                            >
-                              {n.title}
-                            </p>
-                            {!n.read && (
-                              <span
-                                className="w-2 h-2 rounded-full flex-shrink-0"
-                                style={{ background: "hsl(var(--burnt-sienna))" }}
-                              />
-                            )}
+                  {/* AnimatePresence with initial={false} — only NEW
+                      notifications animate in (realtime arrivals slide
+                      down + fade). The first render of the sheet stays
+                      static so the panel doesn't feel slow to open. */}
+                  <AnimatePresence initial={false}>
+                    {group.items.map((n) => (
+                      <motion.button
+                        key={n.id}
+                        layout={!reducedMotion}
+                        initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                        animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                        transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+                        onClick={() => handleClick(n)}
+                        className="w-full text-left px-4 py-3 transition-colors active:opacity-80"
+                        style={{
+                          background: !n.read ? "hsl(var(--burnt-sienna) / 0.06)" : undefined,
+                          borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
+                        }}
+                      >
+                        <div className="flex gap-3">
+                          <div
+                            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                            style={{
+                              background: !n.read ? "hsl(var(--burnt-sienna) / 0.12)" : "hsl(var(--bark) / 0.08)",
+                              color: !n.read ? "hsl(var(--burnt-sienna))" : "hsl(var(--bark))",
+                            }}
+                          >
+                            {typeIcons[n.type] || typeIcons.info}
                           </div>
-                          <p
-                            className="font-serif italic mt-0.5 line-clamp-2"
-                            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
-                          >
-                            {n.message}
-                          </p>
-                          <p
-                            className="font-serif italic mt-1"
-                            style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.55)" }}
-                          >
-                            {timeAgo(n.created_at)}
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p
+                                className="font-display italic font-bold leading-tight truncate"
+                                style={{
+                                  fontSize: "0.92rem",
+                                  color: !n.read ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
+                                  letterSpacing: "-0.012em",
+                                }}
+                              >
+                                {n.title}
+                              </p>
+                              {!n.read && (
+                                <span
+                                  className="w-2 h-2 rounded-full flex-shrink-0"
+                                  style={{ background: "hsl(var(--burnt-sienna))" }}
+                                />
+                              )}
+                            </div>
+                            <p
+                              className="font-serif italic mt-0.5 line-clamp-2"
+                              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                            >
+                              {n.message}
+                            </p>
+                            <p
+                              className="font-serif italic mt-1"
+                              style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.55)" }}
+                            >
+                              {timeAgo(n.created_at)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </motion.button>
+                    ))}
+                  </AnimatePresence>
                 </section>
               ))}
             </div>

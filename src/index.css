@@ -1395,3 +1395,14 @@ button {
     linear-gradient(135deg, #F5F5F0 0%, #E8E2D9 100%);
   background-attachment: fixed;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-slide-down {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+

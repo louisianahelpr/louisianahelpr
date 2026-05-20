@@ -112,13 +112,14 @@ export function SignupStep2(props: SignupStep2Props) {
         <div className="rounded-ds-md border border-primary/30 bg-primary/5 p-4 space-y-3">
           <p className="text-ds-13 font-semibold text-primary">📊 Business account</p>
           <div className="space-y-2">
-            <Label htmlFor="companyName" className={labelCls}>Company name <span className="text-destructive">*</span></Label>
+            <Label htmlFor="companyName" className={labelCls}>Company name <span aria-hidden="true" className="text-destructive">*</span></Label>
             <Input
               id="companyName"
               placeholder="Acme Property Management"
               value={companyName}
               onChange={(e) => { setCompanyName(e.target.value); clearFieldError?.("companyName"); }}
               required
+              aria-required="true"
               className={`${inputCls}${fieldErrors.companyName ? " border-destructive" : ""}`}
             />
             <FieldError message={fieldErrors.companyName} />
@@ -172,18 +173,18 @@ export function SignupStep2(props: SignupStep2Props) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="firstName" className={labelCls}>First name <span className="text-destructive">*</span></Label>
-            <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required autoComplete="given-name" className={`${inputCls}${fieldErrors.firstName ? " border-destructive" : ""}`} />
+            <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden="true" className="text-destructive">*</span></Label>
+            <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" className={`${inputCls}${fieldErrors.firstName ? " border-destructive" : ""}`} />
             <FieldError message={fieldErrors.firstName} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName" className={labelCls}>Last name <span className="text-destructive">*</span></Label>
-            <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required autoComplete="family-name" className={`${inputCls}${fieldErrors.lastName ? " border-destructive" : ""}`} />
+            <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden="true" className="text-destructive">*</span></Label>
+            <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" className={`${inputCls}${fieldErrors.lastName ? " border-destructive" : ""}`} />
             <FieldError message={fieldErrors.lastName} />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone" className={labelCls}>Phone number <span className="text-destructive text-ds-11">*</span></Label>
+          <Label htmlFor="phone" className={labelCls}>Phone number <span aria-hidden="true" className="text-destructive text-ds-11">*</span></Label>
           <Input
             id="phone"
             type="tel"
@@ -192,6 +193,7 @@ export function SignupStep2(props: SignupStep2Props) {
             value={phone}
             onChange={(e) => { setPhone(formatPhone(e.target.value)); clearFieldError?.("phone"); }}
             required
+            aria-required="true"
             autoComplete="tel"
             maxLength={14}
             className={`${inputCls}${fieldErrors.phone ? " border-destructive" : ""}`}
@@ -199,7 +201,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <FieldError message={fieldErrors.phone} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="dob" className={labelCls}>Date of birth <span className="text-destructive text-ds-11">*</span></Label>
+          <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden="true" className="text-destructive text-ds-11">*</span></Label>
           <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }} />
           {fieldErrors.dateOfBirth
             ? <FieldError message={fieldErrors.dateOfBirth} />
@@ -207,12 +209,12 @@ export function SignupStep2(props: SignupStep2Props) {
           }
         </div>
         <div className="space-y-2">
-          <Label htmlFor="location" className={labelCls}>City <span className="text-destructive">*</span></Label>
-          <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required autoComplete="address-level2" className={`${inputCls}${fieldErrors.location ? " border-destructive" : ""}`} />
+          <Label htmlFor="location" className={labelCls}>City <span aria-hidden="true" className="text-destructive">*</span></Label>
+          <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required aria-required="true" autoComplete="address-level2" className={`${inputCls}${fieldErrors.location ? " border-destructive" : ""}`} />
           <FieldError message={fieldErrors.location} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="bio" className={labelCls}>About you <span className="text-destructive">*</span></Label>
+          <Label htmlFor="bio" className={labelCls}>About you <span aria-hidden="true" className="text-destructive">*</span></Label>
           <Textarea
             id="bio"
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"
@@ -220,6 +222,7 @@ export function SignupStep2(props: SignupStep2Props) {
             onChange={(e) => { setBio(e.target.value); clearFieldError?.("bio"); }}
             rows={4}
             required
+            aria-required="true"
             minLength={20}
             className={`rounded-ds-md${fieldErrors.bio ? " border-destructive" : ""}`}
           />
@@ -243,7 +246,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
               <ShieldCheck className="w-6 h-6 text-primary" strokeWidth={1.75} />
             </div>
-            <h3 className="text-ds-15 font-display font-semibold text-foreground">Government-issued ID</h3>
+            <h2 className="text-ds-15 font-display font-semibold text-foreground">Government-issued ID</h2>
             <p className="text-ds-11 text-muted-foreground leading-relaxed">
               Driver's license, state ID, or passport. Stored encrypted and used for safety, fraud prevention, and compliance.
             </p>

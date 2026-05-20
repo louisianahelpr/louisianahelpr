@@ -381,7 +381,7 @@ export function SignupStep3(props: SignupStep3Props) {
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
             <Award className="w-6 h-6 text-primary" strokeWidth={1.75} />
           </div>
-          <h3 className="text-ds-15 font-display font-semibold text-foreground">Professional credentials</h3>
+          <h2 className="text-ds-15 font-display font-semibold text-foreground">Professional credentials</h2>
           <p className="text-ds-11 text-muted-foreground leading-relaxed">
             Optional — earn a verified badge that helps you get picked first. You can also add these later in Profile → Credentials.
           </p>
@@ -512,7 +512,7 @@ export function SignupStep3(props: SignupStep3Props) {
       <div className="rounded-ds-md liquid-glass p-5 space-y-4">
         <div className="text-center space-y-2">
           <FileText className="w-10 h-10 text-primary mx-auto" />
-          <h3 className="font-semibold text-foreground">Portfolio (optional)</h3>
+          <h2 className="font-semibold text-foreground">Portfolio (optional)</h2>
           <p className="text-ds-11 text-muted-foreground">
             A few photos of past work — finished lawns, clean driveways, repairs — help posters trust you instantly.
           </p>

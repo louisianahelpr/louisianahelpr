@@ -150,7 +150,7 @@ const JobHistory = () => {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="font-semibold text-foreground">{job.title}</h3>
+                        <h2 className="font-semibold text-foreground">{job.title}</h2>
                         <StatusBadge status={job.status} className="text-ds-11" />
                         <span className="text-ds-11 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
                           {job._source === "posted" ? "Posted" : "Worked"}

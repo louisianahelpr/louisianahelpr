@@ -41,7 +41,7 @@
   --bark:         70 20% 33%;   /* #5E6544 — deep olive */
   --olivewood:    64 16% 16%;   /* #2E2F22 — primary text + dark ground */
   --burnt-sienna: 19 75% 35%;   /* #984216 — warm accent / emphasis */
-  --stormy-sky:   198 9% 51%;   /* #78898F — secondary text */
+  --stormy-sky:   198 12% 38%;  /* darkened to meet WCAG AA 4.5:1 for muted-foreground */
   --gold-warm:    38 60% 48%;   /* #C28B2E — antique gold (matches the
                                     wrought-iron logo's fleur-de-lis finials).
                                     SCOPED to status / prestige roles only:

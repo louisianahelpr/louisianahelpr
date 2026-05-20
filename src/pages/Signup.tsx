@@ -184,15 +184,35 @@ const Signup = () => {
 
     // Async phone-duplicate check — only runs when all synchronous checks pass,
     // so we don't waste a round-trip when there are obvious local errors.
+    //
+    // NOTE: `profiles.phone` stores the formatted value produced by
+    // `formatPhone` (e.g. "(504) 555-1234"), not a digits-only string —
+    // see signupHelpers.ts:62-72 and the unmodified pass-through in
+    // complete-signup/index.ts. So an `.eq("phone", digits)` comparison
+    // never matches and duplicate-phone signups slip through.
+    //
+    // Match the last 7 digits via `ilike` instead — tolerant of historical
+    // formatting variations and area-code typos, and matches behavior from
+    // before the (now-broken) "normalize to digits" change.
     const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
     if (Object.keys(errors).length === 0 && normalizedPhone.length === 10) {
+      const lastSeven = normalizedPhone.slice(-7);
       const { data: existing } = await supabase
         .from("profiles")
-        .select("id")
-        .eq("phone", normalizedPhone)
-        .limit(1);
+        .select("user_id")
+        .ilike("phone", `%${lastSeven}%`)
+        .limit(5);
       if (existing && existing.length > 0) {
         errors.phone = "This phone number is already associated with an account. Please log in instead.";
+        // Monitor false-positive rate — multiple matches likely means our
+        // last-7-digit heuristic is too loose for this number.
+        if (existing.length > 1) {
+          report("signup.phoneDedupe.multipleMatches", {
+            severity: "warning",
+            tags: { source: "Signup.phoneDedupe" },
+            context: { matchCount: existing.length, lastSevenSuffix: lastSeven.slice(-4) },
+          });
+        }
       }
     }
 

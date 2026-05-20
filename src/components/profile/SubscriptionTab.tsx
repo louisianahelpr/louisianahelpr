@@ -211,8 +211,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 Your plan
               </span>
               <h2
-                className="font-display italic font-bold leading-tight mt-0.5"
-                style={{ fontSize: "1.45rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+                className="font-display italic font-bold leading-tight mt-0.5 text-headline-hero"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
               >
                 {activeTierConfig.name}.
               </h2>

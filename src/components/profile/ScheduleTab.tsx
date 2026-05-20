@@ -106,7 +106,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
             <div className="flex items-center justify-between mb-4">
               <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} aria-label="Previous month"><ChevronLeft className="w-4 h-4" /></Button>
               <div className="flex flex-col items-center gap-1">
-                <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
                 </h2>
                 {/* "Today" reset surfaces only when the user has flipped
@@ -182,7 +182,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                 <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                   Selected day
                 </p>
-                <h3 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </h3>
               </div>
@@ -219,7 +219,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
                 <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                   Coming up
                 </p>
-                <h3 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   Upcoming jobs
                 </h3>
               </div>

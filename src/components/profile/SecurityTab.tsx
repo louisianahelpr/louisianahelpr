@@ -29,7 +29,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <p className="font-serif italic uppercase text-[0.6rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
               Login email
             </p>
-            <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Email address
             </h2>
           </div>
@@ -70,7 +70,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <p className="font-serif italic uppercase text-[0.6rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
               Sign-in
             </p>
-            <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Password
             </h2>
           </div>

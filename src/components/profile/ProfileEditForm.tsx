@@ -296,7 +296,7 @@ export function ProfileEditForm({
               </label>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "1.15rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+              <p className="font-display italic font-bold leading-tight truncate text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                 {`${firstName} ${lastName}`.trim() || "Your name"}
               </p>
               <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>

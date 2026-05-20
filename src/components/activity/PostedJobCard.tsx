@@ -144,8 +144,8 @@ function PostedJobCardInner({
               style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
             >
               <h3
-                className="font-display italic font-bold leading-snug truncate min-w-0"
-                style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 {job.title}
               </h3>

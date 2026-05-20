@@ -52,7 +52,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
             <div key={job.id} className="rounded-ds-md liquid-glass p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                  <p className="font-display italic font-bold leading-tight truncate text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                     {job.title}
                   </p>
                   <div className="flex items-center gap-x-2 gap-y-0.5 mt-1.5 font-serif italic flex-wrap" style={{ color: "hsl(var(--olivewood) / 0.7)", fontSize: "0.78rem" }}>

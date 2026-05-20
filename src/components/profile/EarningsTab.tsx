@@ -565,7 +565,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <p className="font-serif italic uppercase mb-1" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
             Payouts
           </p>
-          <h2 className="font-display italic font-bold leading-tight mb-3" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+          <h2 className="font-display italic font-bold leading-tight mb-3 text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             Recent transfers
           </h2>
           <div className="space-y-2.5">
@@ -625,7 +625,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <p className="font-serif italic uppercase mb-1" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
             History
           </p>
-          <h2 className="font-display italic font-bold leading-tight mb-3" style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+          <h2 className="font-display italic font-bold leading-tight mb-3 text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             Earning history
           </h2>
           {earningsJobs.length === 0 ? (

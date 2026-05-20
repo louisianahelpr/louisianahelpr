@@ -334,8 +334,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         </div>
         <div className="space-y-1">
           <p
-            className="font-display italic font-bold leading-tight"
-            style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            className="font-display italic font-bold leading-tight text-headline-card"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
             Empty map for now.
           </p>

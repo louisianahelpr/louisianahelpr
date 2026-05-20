@@ -189,8 +189,8 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
               This week's projection
             </p>
             <h3
-              className="font-display italic font-bold leading-tight"
-              style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}
+              className="font-display italic font-bold leading-tight text-headline-card"
+              style={{ color: "hsl(var(--ink-deep))" }}
             >
               No jobs lined up yet
             </h3>

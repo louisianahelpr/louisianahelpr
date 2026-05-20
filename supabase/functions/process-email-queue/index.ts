@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { verifyCronSecret } from '../_shared/cron-auth.ts'
 
 // Email delivery is via Resend exclusively. Lovable Cloud's email-js was
 // previously used for auth_emails (templated by Lovable IDE) but the
@@ -57,6 +58,13 @@ async function sendWithResend(apiKey: string, payload: any): Promise<void> {
 }
 
 Deno.serve(async (req) => {
+  // Cron-only: this function drains the auth + transactional email queues and
+  // sends via Resend. Before this gate, verify_jwt=false in config.toml +
+  // no in-handler auth meant anyone could POST and either drain the queue
+  // (denying delivery to real recipients) or burn through Resend quota.
+  const denied = verifyCronSecret(req)
+  if (denied) return denied
+
   const resendApiKey = Deno.env.get('RESEND_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))

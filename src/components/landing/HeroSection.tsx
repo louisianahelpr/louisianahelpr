@@ -26,6 +26,25 @@ const HeroSection = () => {
   // snapping. Respects prefers-reduced-motion (snaps instantly there).
   const animatedCount = useCountUp(activeCount, { durationMs: 1200 });
   const headlineRef = useRef<HTMLHeadingElement>(null);
+  const meshRef = useRef<HTMLDivElement>(null);
+
+  // Pause the mesh-gradient drift animation when the tab is hidden.
+  // The CSS animation otherwise keeps requesting composite cycles even
+  // when no one is looking — wasted work on lower-end devices.
+  // The `.is-paused` class sets `animation-play-state: paused`.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const el = meshRef.current;
+    if (!el) return;
+    const sync = () => {
+      el.classList.toggle("is-paused", document.visibilityState !== "visible");
+    };
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, []);
 
   // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
   // the user scrolls past the hero. Restrained: clamps at -0.06 em max.
@@ -182,7 +201,7 @@ const HeroSection = () => {
           distracting from content. Pointer-events disabled so it never
           blocks clicks. */}
       <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="mesh-gradient" />
+        <div ref={meshRef} className="mesh-gradient" />
       </div>
 
       <div

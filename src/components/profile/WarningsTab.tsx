@@ -59,7 +59,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                     {eyebrow}
                   </p>
-                  <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.4rem", color: palette.title, letterSpacing: "-0.02em" }}>
+                  <h2 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: palette.title, letterSpacing: "-0.02em" }}>
                     {title}
                   </h2>
                   <p className="font-serif italic max-w-sm mx-auto" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>

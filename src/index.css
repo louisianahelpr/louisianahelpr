@@ -272,12 +272,35 @@ body {
    treatment so internal pages match the landing's typographic voice. The
    `!important` on font-size beats the trailing Tailwind `text-2xl` that
    appears on most call sites; without it the legacy size class wins because
-   Tailwind utilities are loaded after this layer. */
+   Tailwind utilities are loaded after this layer.
+
+   ---------------------------------------------------------------------------
+   Headline scale (Bodoni Moda) — there are exactly THREE canonical sizes for
+   editorial display headlines. Anything Bodoni Moda (`.font-display` or the
+   `.text-page-title`/`.text-section-title`/`.text-headline-*` utilities)
+   should pick one of these three. New code should never set an inline
+   `fontSize` on a Bodoni Moda element — pick the closest canonical instead.
+
+     --headline-hero    → hero H1s, page titles (Profile, Activity, etc.)
+     --headline-section → in-page H2s on content surfaces
+     --headline-card    → titles inside cards / list items / dialog rows
+
+   Numeric / tabular-nums sites (currency totals, the Referral counter, the
+   Earnings totals) are intentionally outside this scale because their size
+   is driven by amount-prominence rather than headline rhythm. The Beth Ellen
+   "Helpr·LA" wordmark is also outside this scale (different font).
+   ------------------------------------------------------------------------- */
+:root {
+  --headline-hero: clamp(1.4rem, 1.5vw + 0.85rem, 1.55rem);
+  --headline-section: clamp(1.15rem, 1.0vw + 0.65rem, 1.25rem);
+  --headline-card: clamp(0.95rem, 0.6vw + 0.55rem, 1.05rem);
+}
+
 .text-page-title {
   font-family: "Bodoni Moda", Georgia, serif !important;
   font-style: italic !important;
   font-weight: 700 !important;
-  font-size: clamp(1.4rem, 2vw + 0.4rem, 1.85rem) !important;
+  font-size: var(--headline-hero) !important;
   line-height: 1.1 !important;
   letter-spacing: -0.025em !important;
   color: hsl(var(--ink-deep));
@@ -287,11 +310,21 @@ body {
   font-family: "Bodoni Moda", Georgia, serif !important;
   font-style: italic !important;
   font-weight: 700 !important;
-  font-size: clamp(1.15rem, 1.5vw + 0.4rem, 1.5rem) !important;
+  font-size: var(--headline-section) !important;
   line-height: 1.15 !important;
   letter-spacing: -0.022em !important;
   color: hsl(var(--ink-deep));
 }
+
+/* Size-only utilities — assume the call site already supplies font-family
+   (.font-display), italic, weight, and color. Use these when you'd otherwise
+   reach for an inline `style={{ fontSize: "..." }}` on a Bodoni Moda
+   element. They intentionally do NOT set color/weight/italic so a card
+   title can opt-in to the canonical SIZE without giving up its local
+   color/letter-spacing decisions. */
+.text-headline-hero    { font-size: var(--headline-hero); }
+.text-headline-section { font-size: var(--headline-section); }
+.text-headline-card    { font-size: var(--headline-card); }
 
 .text-card-title {
   font-family: Inter, system-ui, sans-serif;

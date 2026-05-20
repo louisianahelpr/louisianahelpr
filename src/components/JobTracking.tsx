@@ -275,8 +275,8 @@ export function JobTracking({
           <Navigation className="w-3 h-3" /> Live
         </span>
         <h3
-          className="font-display italic font-bold leading-tight mt-1"
-          style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          className="font-display italic font-bold leading-tight mt-1 text-headline-card"
+          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
           Job tracking
         </h3>

@@ -224,7 +224,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
                 >
                   {eyebrow}
                 </p>
-                <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                   Professional credentials
                 </h2>
                 <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
@@ -282,7 +282,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
                     ? "Action needed"
                     : "Optional"}
             </p>
-            <Label htmlFor="lic-toggle" className="font-display italic font-bold leading-tight cursor-pointer" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            <Label htmlFor="lic-toggle" className="font-display italic font-bold leading-tight cursor-pointer text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               I am licensed
             </Label>
             <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
@@ -378,7 +378,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
                     ? "Action needed"
                     : "Optional"}
             </p>
-            <Label htmlFor="ins-toggle" className="font-display italic font-bold leading-tight cursor-pointer" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            <Label htmlFor="ins-toggle" className="font-display italic font-bold leading-tight cursor-pointer text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               I am insured
             </Label>
             <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>

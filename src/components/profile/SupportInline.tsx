@@ -200,7 +200,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
             Sent
           </p>
-          <h1 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.5rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+          <h1 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             Message sent
           </h1>
           <p className="font-serif italic max-w-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>

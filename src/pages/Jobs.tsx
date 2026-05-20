@@ -11,7 +11,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { JobCardSkeleton } from "@/components/SkeletonLoaders";
+// Card-matching skeleton — mirrors the actual JobCard avatar/title/price
+// layout so the loading→loaded transition doesn't shift. See task #121.
+import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { VirtualList } from "@/components/VirtualList";

@@ -9,7 +9,10 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
-import { ConversationSkeleton } from "@/components/SkeletonLoaders";
+// Card-matching skeleton — mirrors the actual ConversationRow shape
+// (avatar + name/job/last-msg lines + timestamp + unread dot) so the
+// loading→loaded swap doesn't shift the row. See task #121.
+import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSkeleton";
 import { VirtualList } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
 import type { Conversation } from "./types";
@@ -149,7 +152,7 @@ export function ConversationList({
           {loading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4].map((i) => (
-                <ConversationSkeleton key={i} />
+                <MessageThreadSkeleton key={i} />
               ))}
             </div>
           ) : (

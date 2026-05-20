@@ -5,6 +5,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
+import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -107,7 +108,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         }
       >
         <div className="px-4 pt-3 space-y-2.5">
-          {[1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
+          {/* On the "applied" tab use the application-card-shaped skeleton
+              so the loading→loaded swap doesn't visibly thump (see #121).
+              The "posted" tab keeps the original generic ActivityCardSkeleton
+              for now — it's a different card shape. */}
+          {tab === "applied"
+            ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
+            : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
         </div>
       </PageScaffold>
     );

@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   MapPin, Calendar, DollarSign, Clock, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, ChevronDown, Rocket, Zap, ChevronRight,
 } from "lucide-react";
-import { categoryLabels, categoryColors, categoryIcons } from "@/components/activity/activityConstants";
+import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { getCityState } from "@/lib/locationUtils";
 import { transformedImageUrl } from "@/lib/imageUrl";
 import { parseLocalDate } from "@/lib/dateUtils";
@@ -99,7 +100,6 @@ const JobDetailDialog = ({
 
   const photos = job.photos || [];
   const catStyle = categoryColors[job.category] || categoryColors.other;
-  const CategoryIcon = categoryIcons[job.category] || categoryIcons.other;
 
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelper = job.budget / helpers;
@@ -153,7 +153,12 @@ const JobDetailDialog = ({
               aria-label={categoryLabels[job.category] || job.category}
               className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ${catStyle.dot}`}
             >
-              <CategoryIcon className="w-2.5 h-2.5 text-white/90" strokeWidth={2.5} />
+              <CategoryIcon
+                category={job.category}
+                aria-hidden
+                className="w-2.5 h-2.5 text-white/90"
+                strokeWidth={2.5}
+              />
             </span>
             {categoryLabels[job.category] || job.category}
           </span>

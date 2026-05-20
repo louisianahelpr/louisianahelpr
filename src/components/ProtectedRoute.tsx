@@ -86,7 +86,7 @@ const ProtectedRoute = ({
   allowUnapproved = false,
   allowPending = false,
 }: ProtectedRouteProps) => {
-  const { user, profile, isLoading } = useCurrentUser();
+  const { user, profile, isLoading, isError } = useCurrentUser();
   const location = useLocation();
 
   // Note: previously this component fired a `refresh()` on every mount,
@@ -127,6 +127,20 @@ const ProtectedRoute = ({
 
   if (!user) {
     if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/login", reason: "no-user-after-ready" });
+    return <Navigate to="/login" replace />;
+  }
+
+  // SECURITY: profile fetch errored (after retries) — DO NOT fall through.
+  // The optimistic fail-open below assumes the profile is still in flight
+  // and will land on a subsequent render. When the fetch has actually
+  // failed, no re-render is coming for the rest of the session, so a
+  // banned / denied / unverified user would otherwise get full UI access
+  // to /dashboard, /post-job, /admin etc. RLS protects mutations, but
+  // read-only damage (especially on admin surfaces) is real. Bounce them
+  // to /login — a fresh session attempt is the safest recovery and avoids
+  // serving any unguarded protected UI.
+  if (isError && !profile) {
+    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/login", reason: "profile-fetch-error" });
     return <Navigate to="/login" replace />;
   }
 

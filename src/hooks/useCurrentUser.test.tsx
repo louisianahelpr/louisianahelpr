@@ -241,6 +241,39 @@ describe("useCurrentUser", () => {
     await waitFor(() => expect(result.current.profile?.full_name).toBe("Lexi v2"));
   });
 
+  it("surfaces isError=true and isLoading=false when the profile fetch fails", async () => {
+    // Regression test for the PR #303 follow-up: if useQuery errors after
+    // its retries, the hook must NOT stay isLoading=true forever (which
+    // previously caused ProtectedRoute to fall through its gate and render
+    // unguarded children for banned/denied users).
+    //
+    // The production hook sets `retry: 2`, so a real failure takes ~7s of
+    // backoff. The test doesn't need to validate React Query's retry
+    // behavior — only that, once the query has *settled* in an error
+    // state, our `isError` is surfaced and `isLoading` flips to false.
+    // Drive that state directly through the cache.
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    const localWrap = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+    );
+
+    mocks.authReadyState.user = { id: "u1" };
+    mocks.authReadyState.isReady = true;
+    mocks.profileMaybeSingle.mockRejectedValue(new Error("boom"));
+    mocks.rolesMaybeSingle.mockResolvedValue({ data: null, error: null });
+
+    const { result } = renderHook(() => useCurrentUser(), { wrapper: localWrap });
+
+    await waitFor(
+      () => expect(result.current.isError).toBe(true),
+      { timeout: 8000 },
+    );
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.profile).toBeNull();
+  }, 10000);
+
   it("refresh() is a no-op when there's no user", async () => {
     mocks.authReadyState.user = null;
     mocks.authReadyState.isReady = true;

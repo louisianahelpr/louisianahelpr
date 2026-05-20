@@ -23,6 +23,14 @@ interface CurrentUser {
   profile: Profile | null;
   isAdmin: boolean;
   isLoading: boolean;
+  /**
+   * True when the profile query has finished (after all retries) and ended in
+   * error. Distinct from `isLoading`: we are no longer waiting, the fetch
+   * just failed. Callers (notably `ProtectedRoute`) use this to avoid
+   * fail-open rendering when the profile can never arrive in this session
+   * without a manual retry — see PR #303 follow-up.
+   */
+  isError: boolean;
   /** Force a re-fetch of the current user's profile (bypasses cache). */
   refresh: () => Promise<void>;
 }
@@ -62,7 +70,7 @@ export const useCurrentUser = (): CurrentUser => {
   const { user, isReady } = useAuthReady();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.currentUser.byId(user?.id),
     queryFn: () => fetchCurrentUser(user!.id),
     enabled: isReady && !!user,
@@ -125,7 +133,16 @@ export const useCurrentUser = (): CurrentUser => {
     user,
     profile: data?.profile ?? null,
     isAdmin: data?.isAdmin ?? false,
-    isLoading: !isReady || (!!user && (isLoading || !data)),
+    // After all retries fail, `useQuery` reports `isLoading: false` *and*
+    // `data: undefined`. We must NOT treat the missing data as "still
+    // loading" in that case — doing so leaves callers blocked on a state
+    // that will never resolve in this session, and (worse) lets
+    // `ProtectedRoute` fall through its `isLoading && !user` guard and
+    // render with no profile-based gate. Surface the error to callers
+    // explicitly via `isError` and stop reporting `isLoading` once the
+    // query has settled.
+    isLoading: !isReady || (!!user && !isError && (isLoading || !data)),
+    isError: !!user && isError,
     refresh,
   };
 };

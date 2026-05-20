@@ -17,6 +17,7 @@ import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
+import { WhatToBringChecklist } from "@/components/jobs/WhatToBringChecklist";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { transformedImageUrl } from "@/lib/imageUrl";
@@ -396,6 +397,10 @@ function AppliedJobCardInner({
                   consequenceText="Accept or decline before the deadline"
                 />
               )}
+              {/* Category-aware "what to bring" checklist — informational,
+                  ticks persist locally. Renders nothing if the category
+                  has no curated list (see src/data/whatToBring.ts). */}
+              <WhatToBringChecklist jobId={app.job_id} category={job.category} />
               <div className="flex gap-2 pt-1">
                 <Button
                   size="sm"
@@ -430,6 +435,10 @@ function AppliedJobCardInner({
               <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} />
               {/* Job confirmation for helper */}
               <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
+              {/* Category-aware "what to bring" checklist — quiet pre-job
+                  packing prompt. Collapsed by default, ticks persist per
+                  job id. No-op when the category has no curated list. */}
+              <WhatToBringChecklist jobId={app.job_id} category={job.category} />
 
               <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
             </div>
@@ -440,6 +449,11 @@ function AppliedJobCardInner({
             <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
               {/* Live tracking for in-progress jobs */}
               <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} />
+
+              {/* What-to-bring checklist — still useful during the job
+                  itself (e.g. "did I bring the bug spray?"). Stays
+                  collapsed and renders nothing for uncovered categories. */}
+              <WhatToBringChecklist jobId={app.job_id} category={job.category} />
 
               {/* Completion status — right after tracker */}
               {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && (

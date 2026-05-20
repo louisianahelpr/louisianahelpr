@@ -11,6 +11,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { queryKeys } from "@/lib/queryKeys";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 type PayoutMethod = {
   id: string;
@@ -31,12 +32,14 @@ type AccountStatus = {
 
 export function PayoutSetupForm() {
   const qc = useQueryClient();
+  const { user } = useAuthReady();
+  const userId = user?.id;
   const [onboarding, setOnboarding] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
 
   const statusQuery = useQuery<AccountStatus | null>({
-    queryKey: queryKeys.payoutSetup.status(),
+    queryKey: queryKeys.payoutSetup.status(userId),
     queryFn: async () => {
       try {
         const res = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
@@ -46,12 +49,13 @@ export function PayoutSetupForm() {
         return null;
       }
     },
+    enabled: !!userId,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
 
   const methodsQuery = useQuery<PayoutMethod[]>({
-    queryKey: queryKeys.payoutSetup.methods(),
+    queryKey: queryKeys.payoutSetup.methods(userId),
     queryFn: async () => {
       try {
         const res = await supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } });
@@ -61,6 +65,7 @@ export function PayoutSetupForm() {
         return [];
       }
     },
+    enabled: !!userId,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });

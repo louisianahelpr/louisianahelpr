@@ -9,6 +9,8 @@ import { formatDistanceToNow } from "date-fns";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface PayoutBatch {
   helper_id: string;
@@ -43,12 +45,23 @@ const LEDGER_TONE: Record<string, string> = {
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
-  const queryKey = ["admin-payout-batches"];
+  const { user } = useAuthReady();
+  const adminId = user?.id;
+  // Admin-scoped key: two admins on the same device should not share
+  // cached views, and the persister must never surface the prior admin's
+  // batch list to a different account on the next sign-in.
+  const queryKey = ["admin-payout-batches", adminId] as const;
   const [paying, setPaying] = useState<string | null>(null);
 
   const { data: batches, isInitialLoading, isFetching } = useInstantQuery<PayoutBatch[]>({
     key: queryKey,
     fallback: [],
+    enabled: !!adminId,
+    // Admin batch list is high-sensitivity (every helper's pending payout
+    // and email). Belt + suspenders: even though SIGNED_OUT wipes the
+    // persisted cache, opt out of disk persistence entirely so this
+    // never lands in IDB in the first place.
+    meta: { persist: false },
     fetcher: async () => {
       const { data, error } = await supabase.rpc("get_payout_batches");
       if (error) {
@@ -68,7 +81,10 @@ const AdminPayoutBatches = () => {
   // Cast via `as any`: payout_transfers is in a recent migration not yet in
   // generated client types (full regen exceeds tooling output limits).
   const { data: ledger = [] } = useQuery<PayoutLedgerRow[]>({
-    queryKey: ["admin-payout-ledger"],
+    queryKey: queryKeys.admin.payoutLedger(adminId),
+    enabled: !!adminId,
+    // Admin-wide transfer ledger — opt out of disk persistence.
+    meta: { persist: false },
     queryFn: async () => {
       const { data, error } = await supabase.from("payout_transfers")
         .select(

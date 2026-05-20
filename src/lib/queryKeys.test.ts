@@ -75,17 +75,58 @@ describe("queryKeys", () => {
   });
 
   describe("payoutSetup", () => {
-    it("status key shape: ['payout-setup', 'status']", () => {
-      expect(queryKeys.payoutSetup.status()).toEqual(["payout-setup", "status"]);
+    it("status key shape: ['payout-setup', 'status', userId]", () => {
+      expect(queryKeys.payoutSetup.status("user-1")).toEqual(["payout-setup", "status", "user-1"]);
     });
 
-    it("methods key shape: ['payout-setup', 'methods']", () => {
-      expect(queryKeys.payoutSetup.methods()).toEqual(["payout-setup", "methods"]);
+    it("methods key shape: ['payout-setup', 'methods', userId]", () => {
+      expect(queryKeys.payoutSetup.methods("user-1")).toEqual(["payout-setup", "methods", "user-1"]);
     });
 
     it("status and methods share the ['payout-setup'] prefix for one-call invalidation", () => {
-      expect(queryKeys.payoutSetup.status()[0]).toBe(queryKeys.payoutSetup.methods()[0]);
+      expect(queryKeys.payoutSetup.status("user-1")[0]).toBe(queryKeys.payoutSetup.methods("user-1")[0]);
       expect(queryKeys.payoutSetup.all).toEqual(["payout-setup"]);
+    });
+
+    it("different users yield different payoutSetup keys", () => {
+      expect(queryKeys.payoutSetup.status("user-1")).not.toEqual(queryKeys.payoutSetup.status("user-2"));
+      expect(queryKeys.payoutSetup.methods("user-1")).not.toEqual(queryKeys.payoutSetup.methods("user-2"));
+    });
+  });
+
+  describe("jobHistory", () => {
+    it("byUser key shape: ['job-history', userId]", () => {
+      expect(queryKeys.jobHistory.byUser("user-1")).toEqual(["job-history", "user-1"]);
+    });
+
+    it("domain prefix: ['job-history']", () => {
+      expect(queryKeys.jobHistory.all).toEqual(["job-history"]);
+      expect(queryKeys.jobHistory.byUser("user-1")[0]).toBe(queryKeys.jobHistory.all[0]);
+    });
+  });
+
+  describe("stripePayouts", () => {
+    it("byUser key shape: ['stripe-payouts', userId]", () => {
+      expect(queryKeys.stripePayouts.byUser("user-1")).toEqual(["stripe-payouts", "user-1"]);
+    });
+
+    it("domain prefix: ['stripe-payouts']", () => {
+      expect(queryKeys.stripePayouts.all).toEqual(["stripe-payouts"]);
+    });
+  });
+
+  describe("admin", () => {
+    it("payoutLedger is admin-scoped", () => {
+      expect(queryKeys.admin.payoutLedger("admin-1")).toEqual(["admin-payout-ledger", "admin-1"]);
+    });
+
+    it("notificationLogs encodes admin id + filters", () => {
+      const filters = { category: "all", status: "all", channel: "all", page: 0 };
+      expect(queryKeys.admin.notificationLogs("admin-1", filters)).toEqual([
+        "admin-notification-logs",
+        "admin-1",
+        filters,
+      ]);
     });
   });
 
@@ -95,11 +136,15 @@ describe("queryKeys", () => {
       expect(queryKeys.profile.byId("user-1")).not.toEqual(queryKeys.profile.byId("user-2"));
       expect(queryKeys.referral.byUser("user-1")).not.toEqual(queryKeys.referral.byUser("user-2"));
       expect(queryKeys.currentUser.byId("user-1")).not.toEqual(queryKeys.currentUser.byId("user-2"));
+      expect(queryKeys.jobHistory.byUser("user-1")).not.toEqual(queryKeys.jobHistory.byUser("user-2"));
+      expect(queryKeys.stripePayouts.byUser("user-1")).not.toEqual(queryKeys.stripePayouts.byUser("user-2"));
+      expect(queryKeys.admin.payoutLedger("admin-1")).not.toEqual(queryKeys.admin.payoutLedger("admin-2"));
     });
 
     it("same user + same factory yields identical keys (cache hit invariant)", () => {
       expect(queryKeys.activity.byUser("user-1")).toEqual(queryKeys.activity.byUser("user-1"));
       expect(queryKeys.currentUser.byId("user-1")).toEqual(queryKeys.currentUser.byId("user-1"));
+      expect(queryKeys.jobHistory.byUser("user-1")).toEqual(queryKeys.jobHistory.byUser("user-1"));
     });
   });
 });

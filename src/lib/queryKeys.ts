@@ -63,7 +63,47 @@ export const queryKeys = {
   },
   payoutSetup: {
     all: ["payout-setup"] as const,
-    status: () => ["payout-setup", "status"] as const,
-    methods: () => ["payout-setup", "methods"] as const,
+    /**
+     * User-scoped — the persisted React Query cache (24h IDB) would
+     * otherwise rehydrate the prior user's Stripe connect status on a
+     * shared device. Same goes for `methods` below.
+     */
+    status: (userId: string | undefined | null) => ["payout-setup", "status", userId] as const,
+    methods: (userId: string | undefined | null) => ["payout-setup", "methods", userId] as const,
+  },
+  /**
+   * Helper job history — every key under this domain is user-scoped.
+   * The IDB persister keeps successful queries for 24h, so a literal
+   * `["job-history"]` would survive sign-out and rehydrate into the
+   * next user's session on a shared device. See removePersistedClient
+   * (queryPersister.ts) for the belt-and-suspenders cleanup on signout.
+   */
+  jobHistory: {
+    all: ["job-history"] as const,
+    byUser: (userId: string | undefined | null) => ["job-history", userId] as const,
+  },
+  /**
+   * Stripe payouts — auth-sensitive. Must include the helper's user.id
+   * so a shared-device sign-out can't leak the prior user's payouts.
+   */
+  stripePayouts: {
+    all: ["stripe-payouts"] as const,
+    byUser: (userId: string | undefined | null) => ["stripe-payouts", userId] as const,
+  },
+  /**
+   * Admin-only queries — keyed by the *admin's* user.id so two admins
+   * on the same device don't share cached views, and so the persister
+   * doesn't surface admin data to a non-admin who logs in afterwards.
+   * These additionally opt out of disk persistence via
+   * `meta: { persist: false }` at the call site for extra defense.
+   */
+  admin: {
+    all: ["admin"] as const,
+    payoutLedger: (adminId: string | undefined | null) =>
+      ["admin-payout-ledger", adminId] as const,
+    notificationLogs: (
+      adminId: string | undefined | null,
+      filters: { category: string; status: string; channel: string; page: number },
+    ) => ["admin-notification-logs", adminId, filters] as const,
   },
 } as const;

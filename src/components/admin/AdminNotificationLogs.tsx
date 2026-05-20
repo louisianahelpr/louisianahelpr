@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface LogRow {
   id: string;
@@ -53,6 +55,8 @@ interface AdminNotificationLogsProps {
 
 const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProps) => {
   const qc = useQueryClient();
+  const { user } = useAuthReady();
+  const adminId = user?.id;
   const [search, setSearch] = useState(initialSearch);
   const [category, setCategory] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
@@ -64,11 +68,18 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
     if (initialSearch) setSearch(initialSearch);
   }, [initialSearch]);
 
-  const queryKey = ["admin-notification-logs", { category, status, channel, page }] as const;
+  // Admin-scoped + filter-scoped. Includes adminId so cached logs from one
+  // admin don't surface to another on the same device (or to a non-admin
+  // who logs in after — the persister has 24h maxAge). Belt + suspenders:
+  // also marked `meta: { persist: false }` below so notification-log
+  // recipient emails never land in IDB.
+  const queryKey = queryKeys.admin.notificationLogs(adminId, { category, status, channel, page });
 
   const { data: rows, isFetching, refetch } = useInstantQuery<LogRow[]>({
     key: queryKey,
     fallback: [],
+    enabled: !!adminId,
+    meta: { persist: false },
     fetcher: async () => {
       let q = supabase
         .from("notification_logs")
@@ -90,6 +101,8 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
     const ch = supabase
       .channel(`admin-notification-logs-${channelNonce()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notification_logs" }, () => {
+        // Prefix invalidate — matches every (adminId, filters) variant
+        // currently cached for this admin's session.
         if (page === 0) qc.invalidateQueries({ queryKey: ["admin-notification-logs"] });
       })
       .subscribe();

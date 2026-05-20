@@ -1,10 +1,13 @@
 import { lazy, Suspense, forwardRef, useEffect, useState, type ReactElement } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
 
-import { persistOptions, PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
+import { persistOptions } from "@/lib/queryPersister";
+// Shared singleton so the SIGNED_OUT handler in main.tsx can wipe the
+// same cache the provider wraps. See src/lib/queryClient.ts.
+import { queryClient } from "@/lib/queryClient";
 
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
@@ -75,35 +78,6 @@ const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 // Lazy load route wrappers
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 const AdminRoute = lazy(() => import("./components/AdminRoute"));
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // Keep data considered fresh for 60s — short enough that refocusing
-      // after a brief context switch triggers a background refetch, long
-      // enough to avoid hammering Supabase on rapid remounts.
-      staleTime: 60 * 1000,
-      // Match the persisted-cache max age. `gcTime` MUST be >= the
-      // persister's maxAge or TanStack drops entries on hydrate, defeating
-      // the whole point of disk persistence. See src/lib/queryPersister.ts.
-      gcTime: PERSIST_MAX_AGE_MS,
-      // Only retry transient/server errors. Client errors (401/403/404/etc.)
-      // won't be fixed by retrying — the token's invalid, the row doesn't
-      // exist, or RLS blocked it. Retrying just wastes a round-trip.
-      retry: (failureCount, error: unknown) => {
-        const status =
-          (error as { status?: number; statusCode?: number; code?: number | string })?.status ??
-          (error as { statusCode?: number })?.statusCode ??
-          Number((error as { code?: number | string })?.code);
-        if (typeof status === "number" && status >= 400 && status < 500) return false;
-        return failureCount < 2;
-      },
-      // Re-enable: in a live marketplace, returning to the app should
-      // surface jobs that may have been claimed/cancelled while away.
-      refetchOnWindowFocus: true,
-    },
-  },
-});
 
 /**
  * Wraps a single route's lazy content in its own `<Suspense>` with a

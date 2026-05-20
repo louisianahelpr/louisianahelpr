@@ -55,13 +55,44 @@ const CACHE_BUSTER =
  */
 export const PERSIST_MAX_AGE_MS = 1000 * 60 * 60 * 24;
 
+/**
+ * idb-keyval entry key that backs the persisted React Query cache.
+ * Exported so `removePersistedClient()` and the persister itself stay
+ * in lockstep — a literal here and a literal in the persister would
+ * drift silently if one is renamed.
+ */
+export const PERSIST_CACHE_KEY = "helpr-rq-cache";
+
 export const queryCachePersister = createAsyncStoragePersister({
   storage: idbAsyncStorage,
-  key: "helpr-rq-cache",
+  key: PERSIST_CACHE_KEY,
   // Coalesce frequent writes (e.g. during a list-scroll that refetches
   // pages) into a single IndexedDB transaction per second.
   throttleTime: 1000,
 });
+
+/**
+ * Wipe the persisted React Query cache from IndexedDB.
+ *
+ * Called from the SIGNED_OUT auth handler so the next user on a shared
+ * device doesn't rehydrate the prior user's data (Stripe payouts,
+ * admin payout ledger, job history, notification logs). The 24h
+ * `maxAge` on the persister would otherwise keep that data alive
+ * across the sign-out boundary.
+ *
+ * Best-effort: idb-keyval can throw on private-mode browsers / quota
+ * issues. We swallow the error rather than surface it to the user —
+ * the in-memory `queryClient.clear()` paired with this call still
+ * removes the privacy leak from THIS session, and the persister will
+ * overwrite stale entries on the next write.
+ */
+export const removePersistedClient = async (): Promise<void> => {
+  try {
+    await del(PERSIST_CACHE_KEY);
+  } catch {
+    /* ignore — best-effort cleanup */
+  }
+};
 
 export const persistOptions = {
   persister: queryCachePersister,

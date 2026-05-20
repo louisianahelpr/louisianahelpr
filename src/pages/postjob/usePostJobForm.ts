@@ -9,6 +9,7 @@ import { compressImage } from "@/lib/imageCompression";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { requireOnline } from "@/lib/requireOnline";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
@@ -403,6 +404,7 @@ export function usePostJobForm() {
   };
 
   const handleSubmit = async () => {
+    if (!requireOnline()) return;
     const user = await runPreSubmitChecks();
     if (!user) return;
 

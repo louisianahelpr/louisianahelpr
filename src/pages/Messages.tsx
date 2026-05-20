@@ -15,6 +15,7 @@ import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 
 import { channelNonce } from "@/lib/realtimeChannel";
 import { archiveConversation, isArchived } from "@/lib/archivedConversations";
+import { requireOnline } from "@/lib/requireOnline";
 
 import type { Conversation, Message } from "@/components/messages/types";
 import { ChatView } from "@/components/messages/ChatView";
@@ -627,6 +628,7 @@ const Messages = () => {
     content: string,
     attachment?: { path: string; mime: string; size: number },
   ): Promise<boolean> => {
+    if (!requireOnline()) return false;
     if (!activeConvo || !userId) return false;
     if (!content.trim() && !attachment) return false;
 

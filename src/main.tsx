@@ -49,12 +49,30 @@ if (import.meta.env.DEV && typeof navigator !== "undefined" && "serviceWorker" i
   })();
 }
 
-// Restore durable Preferences → localStorage BEFORE first render so any
-// component that reads sync (e.g. dismissed jobs, drafts, cooldowns) sees
-// values that survived a WebKit eviction or app restart.
-hydrateStorage().finally(() => {
-  createRoot(document.getElementById("root")!).render(<App />);
+// Render first, hydrate Preferences in parallel.
+//
+// Previously we awaited `hydrateStorage()` before mounting React so the
+// first render saw durable values mirrored back from Capacitor Preferences.
+// On native iOS that's ~500-1500ms of serial Preferences reads (one per
+// tracked key) blocking first paint. The vast majority of consumers either
+// (a) read in a `useEffect` (drafts, dismissals, push nudges) — completely
+// unaffected because the effect runs well after hydrate resolves, or
+// (b) read in `useState(() => ...)` with a sensible default — they get the
+// default on first render, durable values land before any subsequent
+// interaction.
+//
+// We do NOT wrap the render in `hydrateStorage().finally(...)` anymore.
+// Instead we kick the post-paint init chain immediately and let hydrate
+// race the first paint. See `src/lib/safeStorage.ts` for the durable
+// storage contract.
+createRoot(document.getElementById("root")!).render(<App />);
+void hydrateStorage();
 
+// Wrap the rest of the boot sequence in an IIFE so the `hydrateStorage`
+// vs `createRoot` ordering above is the only thing that matters — every
+// `requestIdleCallback`/`setTimeout`/event-listener path below is the
+// same as it was when this lived inside the `.finally()` callback.
+(() => {
   // Everything below here is post-paint. Sentry + PostHog each pull in
   // ~30-50KB of JS and run their own init work; loading them before the
   // first frame was costing us ~4s of FCP on slow connections. Defer to
@@ -166,4 +184,4 @@ hydrateStorage().finally(() => {
       window.location.href = "/support?from=shake";
     }
   });
-});
+})();

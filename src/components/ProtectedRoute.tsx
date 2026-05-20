@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { RouteSuspenseFallback } from "@/components/RouteSuspenseFallback";
 
 const DEBUG_AUTH = import.meta.env.DEV;
 
@@ -86,16 +86,15 @@ const ProtectedRoute = ({
   allowUnapproved = false,
   allowPending = false,
 }: ProtectedRouteProps) => {
-  const { user, profile, isLoading, refresh } = useCurrentUser();
+  const { user, profile, isLoading } = useCurrentUser();
   const location = useLocation();
 
-  // Force a fresh DB fetch on every mount so a user who just completed
-  // their profile (or had an admin update them) sees the new state
-  // immediately instead of hitting a stale-cache redirect loop.
-  useEffect(() => {
-    if (user?.id) void refresh();
-     
-  }, [user?.id, location.pathname]);
+  // Note: previously this component fired a `refresh()` on every mount,
+  // doubling cold-start latency by issuing a redundant Supabase profile
+  // fetch on top of useCurrentUser's own load. `useCurrentUser` already
+  // refetches on session change, and post-profile-edit flows update the
+  // local cache via their own mutations, so the per-mount refresh was
+  // pure overhead. Removed to make cold start + every navigation snappier.
 
   useEffect(() => {
     if (!DEBUG_AUTH) return;
@@ -110,11 +109,10 @@ const ProtectedRoute = ({
   }, [allowUnapproved, isLoading, location.pathname, profile, user?.id]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <HelprSpinner size={36} />
-      </div>
-    );
+    // Use the calm, static brand-mark + skeleton fallback (same one the
+    // per-route Suspense boundary uses) instead of the spinning H, which
+    // felt overwhelming on a 2-3s cold cellular load.
+    return <RouteSuspenseFallback />;
   }
 
   if (!user) {

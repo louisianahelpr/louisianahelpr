@@ -15,6 +15,7 @@ import { useMyBusiness, type SeatTier } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BusinessVerificationCard from "@/components/business/BusinessVerificationCard";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface Member {
   id: string;
@@ -58,7 +59,7 @@ const BusinessTeam = () => {
       try {
         await supabase.functions.invoke("check-business-seat-subscription");
         if (!cancelled) {
-          queryClient.invalidateQueries({ queryKey: ["myBusiness"] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.business.allMine });
         }
       } catch (err) {
         report(err, { severity: "warning", tags: { source: "BusinessTeam.seatSubscriptionSync" } });
@@ -82,7 +83,7 @@ const BusinessTeam = () => {
   }, [searchParams, setSearchParams]);
 
   const { data: members, isLoading: membersLoading } = useQuery({
-    queryKey: ["businessMembers", business?.business_id],
+    queryKey: queryKeys.business.members(business?.business_id),
     queryFn: async (): Promise<Member[]> => {
       if (!business) return [];
       const { data, error } = await supabase
@@ -182,7 +183,7 @@ const BusinessTeam = () => {
         toast.success(`Invite emailed to ${email}.`);
       }
       setInviteEmail("");
-      queryClient.invalidateQueries({ queryKey: ["businessMembers", business.business_id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.business.members(business.business_id) });
     } catch (err: any) {
       toast.error(err.message || "Failed to send invite");
     } finally {
@@ -211,7 +212,7 @@ const BusinessTeam = () => {
         .eq("id", memberId);
       if (error) throw error;
       toast.success("Member removed");
-      queryClient.invalidateQueries({ queryKey: ["businessMembers", business.business_id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.business.members(business.business_id) });
     } catch (err: any) {
       toast.error(err.message || "Failed to remove member");
     }

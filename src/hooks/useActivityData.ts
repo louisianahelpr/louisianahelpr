@@ -171,7 +171,7 @@ export function useActivityData(user: SupaUser | null) {
   const userId = user?.id;
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: userId ? queryKeys.activity(userId) : ["activity", "anon"],
+    queryKey: userId ? queryKeys.activity.byUser(userId) : ["activity", "anon"],
     queryFn: () => fetchActivityData(userId!),
     enabled: !!userId,
     staleTime: 60 * 1000,
@@ -187,7 +187,7 @@ export function useActivityData(user: SupaUser | null) {
     const invalidate = () => {
       if (debounce) clearTimeout(debounce);
       debounce = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.activity(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.activity.byUser(userId) });
       }, 800);
     };
     const channel = supabase

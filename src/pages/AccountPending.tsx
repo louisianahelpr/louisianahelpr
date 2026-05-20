@@ -9,6 +9,7 @@ import AppShell from "@/components/AppShell";
 import HelprMark from "@/components/HelprMark";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { queryKeys } from "@/lib/queryKeys";
 
 const StepRow = ({
   label,
@@ -107,7 +108,7 @@ const AccountPending = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
     }, 15000);
     return () => clearInterval(interval);
   }, [queryClient]);
@@ -145,11 +146,11 @@ const AccountPending = () => {
         }
       } catch { /* ignore */ }
 
-      await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-      await queryClient.refetchQueries({ queryKey: ["currentUser"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
+      await queryClient.refetchQueries({ queryKey: queryKeys.currentUser.all });
 
       const fresh = queryClient.getQueryData<{ profile: { approval_status?: string | null } | null }>(
-        ["currentUser", user?.id],
+        queryKeys.currentUser.byId(user?.id),
       );
       const status = fresh?.profile?.approval_status;
       if (status !== "approved" && status !== "denied") {

@@ -61,7 +61,7 @@ export async function fetchProfile(userId: string): Promise<SharedProfile | null
 
 export function useProfile(userId: string | null | undefined) {
   return useQuery({
-    queryKey: userId ? queryKeys.profile(userId) : ["profile", "none"],
+    queryKey: userId ? queryKeys.profile.byId(userId) : ["profile", "none"],
     queryFn: () => fetchProfile(userId!),
     enabled: !!userId,
     staleTime: 60_000, // 1 minute — profiles rarely change mid-session
@@ -77,5 +77,5 @@ export function useProfile(userId: string | null | undefined) {
 export function useInvalidateProfile() {
   const qc = useQueryClient();
   return (userId: string) =>
-    qc.invalidateQueries({ queryKey: queryKeys.profile(userId) });
+    qc.invalidateQueries({ queryKey: queryKeys.profile.byId(userId) });
 }

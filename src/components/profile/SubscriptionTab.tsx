@@ -9,6 +9,7 @@ import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queryKeys";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -86,7 +87,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     setRefreshing(true);
     try {
       await supabase.functions.invoke("check-pro-subscription");
-      await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
       toast.success("Subscription updated!");
     } catch {
       toast.error("Refresh failed");

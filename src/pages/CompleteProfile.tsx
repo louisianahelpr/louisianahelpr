@@ -15,6 +15,7 @@ import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
+import { queryKeys } from "@/lib/queryKeys";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
@@ -177,7 +178,7 @@ const CompleteProfile = () => {
       );
       if (error || !data || !(data.is_legacy_user === true || isProfileComplete(data))) return false;
 
-      queryClient.setQueryData(["currentUser", user.id], (current: any) => ({
+      queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: any) => ({
         ...(current ?? {}),
         profile: data,
         isAdmin: current?.isAdmin ?? false,
@@ -281,7 +282,7 @@ const CompleteProfile = () => {
       );
       if (updateErr) throw updateErr;
 
-      queryClient.setQueryData(["currentUser", user.id], (current: any) => ({
+      queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: any) => ({
         ...(current ?? {}),
         profile: {
           ...(current?.profile ?? profile ?? {}),
@@ -294,7 +295,7 @@ const CompleteProfile = () => {
       // *persisted* row, not just our optimistic cache. The small delay
       // gives Postgres + the realtime channel a beat to settle so the
       // very next route render reads the new values.
-      await queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
       await new Promise((r) => setTimeout(r, 800));
       toast.success("Profile complete — welcome to Helpr!");
       navigate("/dashboard", { replace: true });

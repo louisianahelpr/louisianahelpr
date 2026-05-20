@@ -30,12 +30,12 @@ export function usePrefetchUserData(userId: string | undefined) {
     idle(() => {
       // Data caches — 60s staleTime means revisits are instant.
       queryClient.prefetchQuery({
-        queryKey: queryKeys.referral(userId),
+        queryKey: queryKeys.referral.byUser(userId),
         queryFn: () => fetchReferralData(userId),
         staleTime: 60 * 1000,
       });
       queryClient.prefetchQuery({
-        queryKey: queryKeys.activity(userId),
+        queryKey: queryKeys.activity.byUser(userId),
         queryFn: () => fetchActivityData(userId),
         staleTime: 60 * 1000,
       });

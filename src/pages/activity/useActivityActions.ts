@@ -88,7 +88,7 @@ export function useActivityActions({
   const optimisticallyPatchJob = useCallback(
     (jobId: string, patch: Partial<Job>): ActivityData | undefined => {
       if (!user) return undefined;
-      const key = queryKeys.activity(user.id);
+      const key = queryKeys.activity.byUser(user.id);
       const snapshot = queryClient.getQueryData<ActivityData>(key);
       if (!snapshot) return undefined;
       queryClient.setQueryData<ActivityData>(key, (prev) => {
@@ -114,7 +114,7 @@ export function useActivityActions({
   const rollbackActivity = useCallback(
     (snapshot: ActivityData | undefined) => {
       if (!user || !snapshot) return;
-      queryClient.setQueryData<ActivityData>(queryKeys.activity(user.id), snapshot);
+      queryClient.setQueryData<ActivityData>(queryKeys.activity.byUser(user.id), snapshot);
     },
     [user, queryClient],
   );

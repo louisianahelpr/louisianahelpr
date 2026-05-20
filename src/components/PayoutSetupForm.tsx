@@ -10,6 +10,7 @@ import { report } from "@/lib/errorLogger";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
+import { queryKeys } from "@/lib/queryKeys";
 
 type PayoutMethod = {
   id: string;
@@ -35,7 +36,7 @@ export function PayoutSetupForm() {
   const [resetting, setResetting] = useState(false);
 
   const statusQuery = useQuery<AccountStatus | null>({
-    queryKey: ["payout-setup", "status"],
+    queryKey: queryKeys.payoutSetup.status(),
     queryFn: async () => {
       try {
         const res = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
@@ -50,7 +51,7 @@ export function PayoutSetupForm() {
   });
 
   const methodsQuery = useQuery<PayoutMethod[]>({
-    queryKey: ["payout-setup", "methods"],
+    queryKey: queryKeys.payoutSetup.methods(),
     queryFn: async () => {
       try {
         const res = await supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } });
@@ -69,8 +70,9 @@ export function PayoutSetupForm() {
   const statusLoading = statusQuery.isLoading && !statusQuery.data;
   const methodsLoading = methodsQuery.isLoading && !methodsQuery.data;
   const loadData = () => {
-    qc.invalidateQueries({ queryKey: ["payout-setup", "status"] });
-    qc.invalidateQueries({ queryKey: ["payout-setup", "methods"] });
+    // One prefix-match invalidate covers both the status and methods queries —
+    // both live under the ["payout-setup"] domain prefix.
+    qc.invalidateQueries({ queryKey: queryKeys.payoutSetup.all });
   };
 
   const handleOnboard = async () => {

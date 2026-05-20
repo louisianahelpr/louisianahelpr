@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { queryKeys } from "@/lib/queryKeys";
 
 export type SeatTier = "starter" | "crew" | "team" | "enterprise";
 
@@ -46,7 +47,7 @@ export const useMyBusiness = () => {
   const { user, isReady } = useAuthReady();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["myBusiness", user?.id],
+    queryKey: queryKeys.business.mine(user?.id),
     queryFn: () => fetchMyBusiness(user!.id),
     enabled: isReady && !!user,
     staleTime: 2 * 60 * 1000,

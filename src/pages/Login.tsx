@@ -13,6 +13,7 @@ import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import AuthShell from "@/components/auth/AuthShell";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import BuildStamp from "@/components/BuildStamp";
+import { queryKeys } from "@/lib/queryKeys";
 
 const LOGIN_TIMEOUT_MS = 15000;
 
@@ -85,7 +86,7 @@ const Login = () => {
       return;
     }
 
-    void queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
     setLoading(false);
     hapticSuccess();
     // Personalized greeting — fetch the user's first name for a warmer

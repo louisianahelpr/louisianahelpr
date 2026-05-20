@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { TimePickerSelect } from "@/components/TimePickerSelect";
+import { DatePickerField } from "@/components/DatePickerField";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,8 +104,22 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Date needed</Label>
-              <Input type="date" value={dateNeeded} onChange={(e) => setDateNeeded(e.target.value)} disabled={hasHelper} />
+              <Label htmlFor="edit-date-needed">Date needed</Label>
+              {hasHelper ? (
+                // When a helpr is locked in, the field is read-only. Show a
+                // disabled Input mirroring the locked state of the other
+                // fields in this dialog rather than a non-interactive
+                // DatePickerField (which has no `disabled` styling).
+                <Input id="edit-date-needed" type="date" value={dateNeeded} disabled readOnly />
+              ) : (
+                <DatePickerField
+                  id="edit-date-needed"
+                  value={dateNeeded}
+                  onChange={setDateNeeded}
+                  min={new Date().toISOString().split("T")[0]}
+                  placeholder="Choose a date"
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label>Start time</Label>

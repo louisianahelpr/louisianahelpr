@@ -60,12 +60,14 @@ export async function hideSplash() {
 }
 
 // Safety net: if something hangs in initNative(), force-hide the splash
-// after 4s so the app can never be stuck on a green screen. Fires once
-// at module import on native only.
+// after 1.5s so the app can never be stuck on a green screen. Tightened
+// from 4s — a brief blank flash is far better than 4 seconds of stuck
+// splash if React fails to mount in time. Fires once at module import on
+// native only.
 if (isNativePlatform) {
   setTimeout(() => {
     SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => {});
-  }, 4000);
+  }, 1500);
 }
 
 /**

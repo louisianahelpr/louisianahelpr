@@ -20,6 +20,10 @@ vi.mock("@sentry/react", () => ({
   linkedErrorsIntegration: () => ({ name: "linkedErrors" }),
   dedupeIntegration: () => ({ name: "dedupe" }),
   httpContextIntegration: () => ({ name: "httpContext" }),
+  // Replay only registers in prod builds; vitest runs in DEV mode so
+  // initSentry() won't actually invoke this — but the symbol must
+  // exist for the named import to resolve.
+  replayIntegration: (opts: unknown) => ({ name: "replay", opts }),
 }));
 
 beforeEach(() => {

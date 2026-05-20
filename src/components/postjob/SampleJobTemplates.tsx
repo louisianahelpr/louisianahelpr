@@ -1,0 +1,157 @@
+import { useState } from "react";
+import { sampleJobs, type SampleJob } from "@/data/sampleJobs";
+import { track } from "@/lib/analytics";
+
+interface SampleJobTemplatesProps {
+  /** Current title — used to detect when the customer has started typing. */
+  title: string;
+  /** Current category selection — non-default ("other") means they picked one. */
+  category: string;
+  // Form setters — match `usePostJobForm` return shape.
+  setTitle: (v: string) => void;
+  setDescription: (v: string) => void;
+  setCategory: (v: string) => void;
+  setBudget: (v: string) => void;
+  setEstimatedHours: (v: string) => void;
+}
+
+/**
+ * SampleJobTemplates — a horizontal scrolling row of pre-filled example
+ * jobs shown at the very top of the Post-a-Task form when it's still
+ * empty. Each chip pre-fills title, description, category, budget, and
+ * duration so first-time customers have a working starting point. The
+ * customer can still edit anything after a tap.
+ *
+ * Hides itself the moment the customer either:
+ *   1. Starts typing a title, OR
+ *   2. Picks a category manually (anything other than the default), OR
+ *   3. Taps "Or start from scratch" to dismiss.
+ *
+ * Mounted in `FormStep` above the sticky stepper.
+ */
+export function SampleJobTemplates({
+  title,
+  category,
+  setTitle,
+  setDescription,
+  setCategory,
+  setBudget,
+  setEstimatedHours,
+}: SampleJobTemplatesProps) {
+  const [dismissed, setDismissed] = useState(false);
+
+  // The row is only useful when the form is genuinely empty. Once the
+  // customer has typed in a title OR moved off the default category,
+  // we get out of their way — no mid-flow temptation.
+  const hasStarted = title.trim().length > 0 || category !== "other";
+  if (dismissed || hasStarted) return null;
+
+  const applyTemplate = (sample: SampleJob) => {
+    setCategory(sample.category);
+    setTitle(sample.title);
+    setDescription(sample.description);
+    setBudget(String(sample.typical_price));
+    // estimatedHours is stored as a stringified hours number (e.g. "1.5"),
+    // not minutes — convert from the template's minute count.
+    setEstimatedHours((sample.typical_duration_minutes / 60).toString());
+    track("sample_job_template_selected", { template_id: sample.id });
+    setDismissed(true);
+  };
+
+  const dismiss = () => {
+    track("sample_job_template_dismissed", {});
+    setDismissed(true);
+  };
+
+  return (
+    <section
+      aria-label="Start from a sample task"
+      className="rounded-2xl liquid-glass overflow-hidden"
+    >
+      <div className="flex items-center justify-between gap-3 px-4 pt-3">
+        <div className="min-w-0">
+          <p
+            className="font-serif italic uppercase text-ds-9"
+            style={{
+              color: "hsl(var(--burnt-sienna) / 0.78)",
+              letterSpacing: "0.18em",
+            }}
+          >
+            Not sure where to start?
+          </p>
+          <p
+            className="font-display italic font-bold mt-0.5"
+            style={{
+              fontSize: "0.95rem",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Start from a template
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="text-ds-11 font-sans font-semibold shrink-0 active:scale-95 transition-transform"
+          style={{ color: "hsl(var(--bark))" }}
+        >
+          Or start from scratch
+        </button>
+      </div>
+
+      {/* Horizontal scroll row — fixed-width cards keep tap targets stable
+          on narrow phones. -webkit-overflow-scrolling: touch via the
+          `overflow-x-auto` Tailwind class gives momentum on iOS. */}
+      <div
+        className="flex gap-2.5 px-4 pt-3 pb-4 overflow-x-auto"
+        style={{ scrollSnapType: "x mandatory" }}
+      >
+        {sampleJobs.map((sample) => (
+          <button
+            key={sample.id}
+            type="button"
+            onClick={() => applyTemplate(sample)}
+            aria-label={`Use template: ${sample.title}`}
+            className="shrink-0 w-44 rounded-xl text-left p-3 active:scale-[0.97] transition-all"
+            style={{
+              scrollSnapAlign: "start",
+              background: "hsl(var(--parchment) / 0.7)",
+              border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                "0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
+            }}
+          >
+            <span
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full text-base mb-2"
+              style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
+              aria-hidden
+            >
+              {sample.icon}
+            </span>
+            <p
+              className="font-sans font-semibold leading-tight"
+              style={{
+                fontSize: "0.85rem",
+                color: "hsl(var(--ink-deep))",
+              }}
+            >
+              {sample.title}
+            </p>
+            <p
+              className="font-serif italic mt-1 text-ds-11 tabular-nums"
+              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            >
+              typical ${sample.typical_price} · ~
+              {sample.typical_duration_minutes < 60
+                ? `${sample.typical_duration_minutes} min`
+                : `${Math.round((sample.typical_duration_minutes / 60) * 10) / 10} hr`}
+            </p>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}

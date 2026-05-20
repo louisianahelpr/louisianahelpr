@@ -102,6 +102,114 @@ describe("initSentry", () => {
   });
 });
 
+describe("beforeSend noise filter", () => {
+  async function getBeforeSend() {
+    const { initSentry } = await loadFresh();
+    initSentry();
+    const config = initMock.mock.calls[0][0] as {
+      beforeSend: (event: unknown) => unknown;
+    };
+    return config.beforeSend;
+  }
+
+  it("drops network blip errors (Load failed, Failed to fetch, AbortError)", async () => {
+    const beforeSend = await getBeforeSend();
+    const cases = [
+      { message: "TypeError: Load failed" },
+      { exception: { values: [{ value: "TypeError: Failed to fetch" }] } },
+      {
+        exception: {
+          values: [{ value: "NetworkError when attempting to fetch resource." }],
+        },
+      },
+      { exception: { values: [{ value: "AbortError: The user aborted a request." }] } },
+    ];
+    for (const event of cases) {
+      expect(beforeSend(event)).toBeNull();
+    }
+  });
+
+  it("drops browser-extension errors via stack frame URLs", async () => {
+    const beforeSend = await getBeforeSend();
+    const event = {
+      exception: {
+        values: [
+          {
+            value: "Cannot read properties of undefined (reading 'foo')",
+            stacktrace: {
+              frames: [
+                { filename: "chrome-extension://abcdef/content.js" },
+                { filename: "https://app.louisianahelpr.com/index.js" },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    expect(beforeSend(event)).toBeNull();
+  });
+
+  it("drops quota/storage errors common in private mode", async () => {
+    const beforeSend = await getBeforeSend();
+    expect(beforeSend({ message: "QuotaExceededError" })).toBeNull();
+    expect(
+      beforeSend({
+        exception: { values: [{ value: "DOMException: The operation is insecure." }] },
+      }),
+    ).toBeNull();
+  });
+
+  it("drops Capacitor 'not available on this platform' plugin errors", async () => {
+    const beforeSend = await getBeforeSend();
+    expect(
+      beforeSend({
+        exception: {
+          values: [{ value: "Haptics is not available on this platform." }],
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it("drops AuthSessionMissingError (expected control flow)", async () => {
+    const beforeSend = await getBeforeSend();
+    expect(
+      beforeSend({
+        exception: { values: [{ value: "AuthSessionMissingError: Auth session missing!" }] },
+      }),
+    ).toBeNull();
+  });
+
+  it("drops ResizeObserver loop warnings", async () => {
+    const beforeSend = await getBeforeSend();
+    expect(
+      beforeSend({ message: "ResizeObserver loop completed with undelivered notifications" }),
+    ).toBeNull();
+  });
+
+  it("keeps real application errors", async () => {
+    const beforeSend = await getBeforeSend();
+    const event = {
+      exception: {
+        values: [
+          {
+            value: "TypeError: Cannot read properties of null (reading 'id')",
+            stacktrace: {
+              frames: [{ filename: "https://app.louisianahelpr.com/assets/index.js" }],
+            },
+          },
+        ],
+      },
+    };
+    expect(beforeSend(event)).toEqual(event);
+  });
+
+  it("keeps events with no message and no exception value", async () => {
+    const beforeSend = await getBeforeSend();
+    const event = { exception: { values: [{}] } };
+    expect(beforeSend(event)).toEqual(event);
+  });
+});
+
 describe("captureException", () => {
   it("no-ops when Sentry is not initialized", async () => {
     const { captureException } = await loadFresh();

@@ -11,6 +11,8 @@ import { OptimizedImage } from "@/components/ui/optimized-image";
 import { getCityState } from "@/lib/locationUtils";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
+import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
+import { prefetchJobDialog } from "./prefetchJobDialog";
 import type { EnrichedJob } from "./types";
 
 interface JobCardProps {
@@ -81,6 +83,16 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     .slice(0, 2);
   const ratingDisplay = (job.posterReviewCount ?? 0) > 0 ? job.posterAvgRating?.toFixed(1) : null;
 
+  // Warm JobDetailDialog's two head-count queries in the ~80ms gap
+  // between touchstart and click on mobile — by the time the dialog's
+  // own useEffect fires the same queries, the request path (auth,
+  // RLS, PostgREST plan) is already hot. Hook is no-op'd for guests:
+  // their tap goes to /signup, not the dialog. Mouse/keyboard users
+  // get the same warm-up via the hook's onMouseEnter handler.
+  const prefetchHandlers = usePrefetchOnTouch(() =>
+    prefetchJobDialog(job.id, job.customer_id),
+  );
+
   // In the guest variant the card is wrapped in a /signup <Link> by the
   // caller (Jobs.tsx), so the card root must NOT be a nested interactive
   // element — drop role/tabIndex/handlers and let the Link own the tap.
@@ -97,6 +109,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             onSelect(job);
           }
         },
+        ...prefetchHandlers,
       };
 
   return (

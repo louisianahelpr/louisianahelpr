@@ -19,6 +19,11 @@ import type { AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 import { categories } from "@/components/postjob/DetailsSection";
 import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
+import { validateResult } from "@/lib/validateResult";
+import { jobRowSchema } from "@/lib/schemas";
+import type { Database } from "@/integrations/supabase/types";
+
+type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
 
 export type Step = "form" | "checkout";
 
@@ -118,11 +123,18 @@ export function usePostJobForm() {
   useEffect(() => {
     const rebookId = searchParams.get("rebook");
     if (rebookId) {
-      supabase.from("jobs").select("*").eq("id", rebookId).single().then(({ data, error }) => {
-        if (error || !data) {
+      supabase.from("jobs").select("*").eq("id", rebookId).single().then(({ data: raw, error }) => {
+        if (error || !raw) {
           toast.error("Couldn't load the previous job for rebooking — please fill in the details manually.");
           return;
         }
+        // Runtime Zod check at this Supabase boundary — see validateResult.ts.
+        // Logs schema drift to Sentry but still renders so the rebook flow
+        // isn't blocked by an additive backend column change. The schema
+        // is intentionally partial (.passthrough()) — we re-cast to the
+        // full Supabase Row type so downstream setters keep their types.
+        validateResult(jobRowSchema, raw, "usePostJobForm.rebookJobLoad");
+        const data = raw as JobRow;
         setTitle(data.title);
         setDescription(data.description);
         setCategory(data.category);

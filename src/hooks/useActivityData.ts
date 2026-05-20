@@ -6,6 +6,8 @@ import { formatName } from "@/lib/utils";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 import { queryKeys } from "@/lib/queryKeys";
+import { validateResult } from "@/lib/validateResult";
+import { helperApplicationsSchema } from "@/lib/schemas";
 
 export interface ActivityData {
   postedJobs: Job[];
@@ -40,6 +42,19 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
   // instead of a misleading "nothing here yet" empty state.
   const primaryError = postedRes.error || appsRes.error || directOffersRes.error;
   if (primaryError) throw primaryError;
+
+  // Runtime Zod check at one of the app's highest-stakes Supabase reads —
+  // see validateResult.ts. The applied-jobs list drives the entire helper
+  // Activity tab; a schema mismatch here means wrong status badges, stale
+  // proposed rates, or missing applications. Logged-only — the screen
+  // still renders the raw payload on drift.
+  if (appsRes.data) {
+    validateResult(
+      helperApplicationsSchema,
+      appsRes.data,
+      "useActivityData.applicationsForHelper",
+    );
+  }
 
   const startRequestedJobIds = new Set<string>();
   const postedJobs: Job[] = postedRes.data ?? [];

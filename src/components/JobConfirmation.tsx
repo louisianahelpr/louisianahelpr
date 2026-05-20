@@ -92,7 +92,7 @@ export function JobConfirmation({
   return (
     <>
       <div
-        className="rounded-2xl liquid-glass p-4 space-y-3"
+        className="rounded-2xl liquid-glass p-5 space-y-3"
         style={{
           background:
             "radial-gradient(80% 100% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%)",

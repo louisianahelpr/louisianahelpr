@@ -16,7 +16,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
         onBack={onBack}
       />
 
-      <div className="rounded-ds-md liquid-glass p-4">
+      <div className="rounded-ds-md liquid-glass p-5">
         <HelperAvailability userId={userId} />
       </div>
     </div>

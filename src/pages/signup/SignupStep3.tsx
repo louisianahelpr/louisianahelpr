@@ -388,7 +388,7 @@ export function SignupStep3(props: SignupStep3Props) {
         </div>
 
         {/* Licensed toggle */}
-        <div className="rounded-ds-md liquid-glass p-4 space-y-3">
+        <div className="rounded-ds-md liquid-glass p-5 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-0.5">
               <Label htmlFor="is-licensed" className="text-ds-13 font-semibold text-foreground flex items-center gap-1.5">
@@ -446,7 +446,7 @@ export function SignupStep3(props: SignupStep3Props) {
         </div>
 
         {/* Insured toggle */}
-        <div className="rounded-ds-md liquid-glass p-4 space-y-3">
+        <div className="rounded-ds-md liquid-glass p-5 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-0.5">
               <Label htmlFor="is-insured" className="text-ds-13 font-semibold text-foreground flex items-center gap-1.5">

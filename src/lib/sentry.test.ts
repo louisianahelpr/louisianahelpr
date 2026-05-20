@@ -8,11 +8,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const initMock = vi.fn();
 const setUserMock = vi.fn();
 const captureExceptionMock = vi.fn();
+const addIntegrationMock = vi.fn();
 
 vi.mock("@sentry/react", () => ({
   init: (...args: unknown[]) => initMock(...args),
   setUser: (...args: unknown[]) => setUserMock(...args),
   captureException: (...args: unknown[]) => captureExceptionMock(...args),
+  // addIntegration is used to register Session Replay on an idle tick
+  // *after* init() returns (cold-start perf — keeps Replay's ~38KB parse
+  // off the critical bundle-eval path). In DEV (vitest) the deferred
+  // block is gated behind import.meta.env.PROD so this stays unused,
+  // but the symbol must exist for the named import to resolve.
+  addIntegration: (...args: unknown[]) => addIntegrationMock(...args),
   // Stub the integration helpers — the real ones return objects but the
   // init mock doesn't actually wire them so just return placeholders.
   breadcrumbsIntegration: () => ({ name: "breadcrumbs" }),
@@ -31,6 +38,7 @@ beforeEach(() => {
   initMock.mockReset();
   setUserMock.mockReset();
   captureExceptionMock.mockReset();
+  addIntegrationMock.mockReset();
 });
 
 async function loadFresh() {

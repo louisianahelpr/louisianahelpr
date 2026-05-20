@@ -18,6 +18,14 @@
  * replay. Dev builds skip Replay entirely to keep the local bundle and
  * test surface small — errors still report in dev as before.
  *
+ * COLD-START PERF: Replay (~38KB of parse cost) is *registered* lazily
+ * via `requestIdleCallback` AFTER `init()` returns, so the heavy module
+ * graph isn't walked on the critical bundle-eval path. Sampling rates
+ * are still set on the initial `init()` config so semantics don't change
+ * — the integration just starts capturing a tick later. A 5s `timeout`
+ * fallback guarantees registration even if the browser never goes idle
+ * (e.g. busy main thread immediately after load).
+ *
  * We also skip `browserTracingIntegration`: it's the single heaviest
  * Sentry integration (~25KB gzip) and we don't consume the data — there
  * are zero custom `startSpan` / `startTransaction` calls in the app, so
@@ -28,6 +36,7 @@
 import {
   init,
   setUser,
+  addIntegration,
   captureException as sentryCaptureException,
   breadcrumbsIntegration,
   globalHandlersIntegration,
@@ -144,7 +153,12 @@ export function isBenignEvent(event: MinimalEvent | null | undefined): boolean {
 export function initSentry() {
   if (initialized || typeof window === "undefined" || !DSN) return;
   try {
-    // Session Replay is prod-only — see file header for rationale.
+    // Initial integration set is the minimal "always-on" tracking surface.
+    // Session Replay is registered *after* init() returns, on the next
+    // idle tick — see the deferred block below. Keeping it out of this
+    // array is the whole point of the cold-start perf fix: the Replay
+    // module graph is heavy (~38KB parse) and we don't want it walked
+    // on the main bundle-eval path.
     const integrations = [
       breadcrumbsIntegration(),
       globalHandlersIntegration(),
@@ -152,23 +166,6 @@ export function initSentry() {
       dedupeIntegration(),
       httpContextIntegration(),
     ];
-    if (import.meta.env.PROD) {
-      integrations.push(
-        // Privacy defaults:
-        // - maskAllText: true — every text node (incl. <input> values) is
-        //   redacted. Critical for Stripe PCI scope (card numbers, CVCs)
-        //   and Supabase magic-link tokens that may appear inline.
-        // - blockAllMedia: false — we DO want to see images/icons/SVGs
-        //   so the replay is legible enough to debug the UI surface.
-        // - networkDetailAllowUrls left at its default (empty) — replay
-        //   captures request URLs but NOT bodies/headers, so auth tokens
-        //   in Supabase responses or Stripe payloads can't leak.
-        replayIntegration({
-          maskAllText: true,
-          blockAllMedia: false,
-        }),
-      );
-    }
 
     init({
       dsn: DSN,
@@ -176,8 +173,8 @@ export function initSentry() {
       release: RELEASE,
       // Replace defaults with a minimal set. Skips Feedback (~15KB),
       // Replay-Canvas (~4KB), and BrowserTracing (~25KB) integrations
-      // that ship with @sentry/react by default. Replay is added back
-      // (prod only) above with conservative sampling.
+      // that ship with @sentry/react by default. Replay is registered
+      // separately (prod only, deferred) with conservative sampling.
       defaultIntegrations: false,
       integrations,
       // No tracing — we removed browserTracingIntegration above.
@@ -185,6 +182,8 @@ export function initSentry() {
       // tracing transport.
 
       // Session Replay sampling — conservative to keep quota predictable.
+      // Set on the initial config (NOT on the deferred addIntegration)
+      // so the sampling decision is in place by the time Replay starts.
       //   - 10% random session sample (gives us a visual archive of
       //     "normal" sessions for context, without ingesting everything).
       //   - 100% of sessions that hit an error (these are the ones we
@@ -208,6 +207,43 @@ export function initSentry() {
       },
     });
     initialized = true;
+
+    // Defer Replay registration off the critical path. Privacy defaults:
+    // - maskAllText: true — every text node (incl. <input> values) is
+    //   redacted. Critical for Stripe PCI scope (card numbers, CVCs)
+    //   and Supabase magic-link tokens that may appear inline.
+    // - blockAllMedia: false — we DO want to see images/icons/SVGs
+    //   so the replay is legible enough to debug the UI surface.
+    // - networkDetailAllowUrls left at its default (empty) — replay
+    //   captures request URLs but NOT bodies/headers, so auth tokens
+    //   in Supabase responses or Stripe payloads can't leak.
+    if (import.meta.env.PROD) {
+      const registerReplay = () => {
+        try {
+          addIntegration(
+            replayIntegration({
+              maskAllText: true,
+              blockAllMedia: false,
+            }),
+          );
+        } catch {
+          /* swallow — Replay failure must never break the app */
+        }
+      };
+      // requestIdleCallback isn't on Safari < 16.4 — fall back to a short
+      // setTimeout so iOS WebViews still get Replay coverage.
+      const ric = (window as unknown as {
+        requestIdleCallback?: (
+          cb: () => void,
+          opts?: { timeout?: number },
+        ) => number;
+      }).requestIdleCallback;
+      if (typeof ric === "function") {
+        ric(registerReplay, { timeout: 5000 });
+      } else {
+        setTimeout(registerReplay, 2000);
+      }
+    }
   } catch {
     /* swallow — error tracking must never break the app */
   }

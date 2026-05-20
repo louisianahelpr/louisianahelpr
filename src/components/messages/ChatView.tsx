@@ -19,6 +19,7 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
+import { FirstMessageChips } from "./FirstMessageChips";
 import type { Conversation, Message } from "./types";
 
 const renderMessageContent = (content: string) => {
@@ -137,6 +138,10 @@ export function ChatView({
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Once the user taps any first-message chip the row hides for the rest
+  // of this conversation — it's only meant to break the empty-thread
+  // ice, not stick around as the chat actually starts.
+  const [chipsDismissed, setChipsDismissed] = useState(false);
 
   // Pull-to-refresh for the chat thread — reuses the same hook +
   // wrapper every other scrollable surface uses. The hook owns its own
@@ -484,6 +489,21 @@ export function ChatView({
             <div ref={bottomRef} />
           </div>
           </PullToRefreshWrapper>
+
+          {/* First-message chips — three ice-breaker suggestions shown
+              ONLY when the thread is brand-new (zero messages) and the
+              user hasn't already picked one this session. Dismissed
+              after one tap so a fresh thread doesn't keep nudging the
+              user once they've started typing. */}
+          {!chatLoadError && messages.length === 0 && !chipsDismissed && (
+            <FirstMessageChips
+              viewerRole={activeConvo.viewerIsPoster ? "customer" : "helper"}
+              onPick={(text) => {
+                setDraft(text);
+                setChipsDismissed(true);
+              }}
+            />
+          )}
 
           {/* Quick replies — populate the input instead of sending instantly */}
           <div className="pt-1">

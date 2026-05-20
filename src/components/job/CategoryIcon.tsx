@@ -3,10 +3,10 @@
  * Lucide glyph that appears on JobCard, JobDetailDialog, JobFilters,
  * and the PostJob category picker.
  *
- * The icon mapping itself still lives in `activityConstants.ts`
- * (`categoryIcons`) so the cross-table consistency test there continues
- * to catch any drift between `categoryLabels`, `categoryIcons`, and
- * `categoryColors`. This component centralizes:
+ * The icon mapping itself lives in `src/lib/categoryIcons.ts` (the
+ * canonical map) so non-activity surfaces (landing pages, marketing
+ * mockups) can reuse it without dragging in the activity constants
+ * module. This component centralizes:
  *   1. The fallback path — every consumer was duplicating
  *      `categoryIcons[job.category] ?? categoryIcons.other`. Forgetting
  *      the fallback rendered `undefined` and crashed the row.
@@ -16,12 +16,10 @@
  *   3. A typed `JobCategory` union derived from the canonical labels
  *      map, so TS now catches typos (e.g. `"yardwork"` vs `"yard_work"`).
  */
-import { Briefcase, type LucideProps } from "lucide-react";
+import type { LucideProps } from "lucide-react";
 
-import {
-  categoryIcons,
-  categoryLabels,
-} from "@/components/activity/activityConstants";
+import { categoryLabels } from "@/components/activity/activityConstants";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 
 /**
  * Canonical job-category union. Derived from `categoryLabels` keys so
@@ -64,7 +62,7 @@ export function CategoryIcon({
   "aria-label": ariaLabel,
   ...iconProps
 }: CategoryIconProps) {
-  const Icon = categoryIcons[category] ?? Briefcase;
+  const Icon = getCategoryIcon(category);
   // Prefer an explicit caller label, fall back to the canonical English
   // label, then to the raw slug. Decorative-only usage (where the label
   // sits next to the icon) should pass `aria-hidden` and we'll drop the

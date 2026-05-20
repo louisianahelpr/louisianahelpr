@@ -2,15 +2,13 @@ import { useEffect, useRef } from "react";
 import {
   Sparkles,
   Search,
-  Leaf,
-  Truck,
-  Wrench,
   ClipboardList,
   Users,
   CheckCircle,
   type LucideIcon,
 } from "lucide-react";
 import ConnectedHIcon from "@/components/ConnectedHIcon";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 
 /**
  * PhoneCluster — three iPhone-shaped mockups arranged in a fanned showcase.
@@ -192,11 +190,14 @@ const WelcomeScreen = ({ scale = 1 }: { scale?: number }) => (
 
 /* ---------- Screen B: Dashboard (main, center phone) ---------- */
 const DashboardScreen = ({ scale = 1 }: { scale?: number }) => {
+  // Sourced from the canonical `job_category` icon map so the marketing
+  // mockup never drifts from in-app surfaces (JobCard / JobFilters /
+  // PostJob picker).
   const cats: { Icon: IconType; label: string }[] = [
-    { Icon: Leaf, label: "Yard" },
-    { Icon: Sparkles, label: "Cleaning" },
-    { Icon: Truck, label: "Moving" },
-    { Icon: Wrench, label: "Handyman" },
+    { Icon: getCategoryIcon("yard_work"), label: "Yard" },
+    { Icon: getCategoryIcon("cleaning"), label: "Cleaning" },
+    { Icon: getCategoryIcon("moving"), label: "Moving" },
+    { Icon: getCategoryIcon("handyman"), label: "Handyman" },
   ];
   return (
     <div className="relative flex-1 flex flex-col">

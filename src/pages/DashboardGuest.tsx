@@ -9,6 +9,11 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import JobCard from "@/components/dashboard/JobCard";
+// Live payout ticker (#87) — sits above the Browse Tasks header so
+// guests see proof of real recent payouts before they start scanning
+// the job feed. Lazy-loaded so guests on slow networks aren't blocked
+// on the supabase chunk for the ticker before they see jobs.
+const PayoutTicker = lazy(() => import("@/components/landing/PayoutTicker"));
 
 // Lazy-load the map so the ~45KB leaflet bundle only ships when guests
 // actually toggle to map view. List view stays cheap by default.
@@ -297,6 +302,17 @@ const DashboardGuest = () => {
         </div>
       }
     >
+            {/* Payout ticker (#87) — thin social-proof strip above the
+                Browse Tasks header. Hides itself silently when there's
+                no recent payout data or the public RPC isn't deployed
+                yet, so a quiet platform shows zero visual weight here
+                instead of an empty placeholder strip. */}
+            <div className="shrink-0 px-4 pt-2.5">
+              <Suspense fallback={null}>
+                <PayoutTicker />
+              </Suspense>
+            </div>
+
             {/* Header row — title block + view toggle + search button.
                 Padding tightened (py-2.5) so the hero → "Browse Tasks" →
                 feed cadence reads as one continuous rhythm, not three

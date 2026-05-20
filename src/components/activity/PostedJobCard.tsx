@@ -316,7 +316,7 @@ function PostedJobCardInner({
               return (!hasTipped || !hasReviewed) ? (
                 <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15">
                   <span className="text-ds-11 text-muted-foreground">
-                    {!hasTipped && !hasReviewed ? "Tap to tip & review" : !hasTipped ? "Tap to leave a tip" : "Tap to leave a review"}
+                    {!hasTipped && !hasReviewed ? "Tip & review" : !hasTipped ? "Leave a tip" : "Leave a review"}
                   </span>
                 </div>
               ) : null;

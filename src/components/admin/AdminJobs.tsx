@@ -355,7 +355,7 @@ const AdminJobs = () => {
         })}
         {filteredJobs.length === 0 && (
           <p className="text-center text-muted-foreground py-8">
-            {filter === "flagged" ? "No flagged jobs found 🎉" : "No jobs found"}
+            {filter === "flagged" ? "No flagged jobs found" : "No jobs found"}
           </p>
         )}
       </div>

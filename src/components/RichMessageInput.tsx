@@ -96,7 +96,7 @@ export const RichMessageInput = ({
 
   const handleShareLocation = async () => {
     if (!navigator.geolocation) {
-      toast.error("Geolocation not supported");
+      toast.error("This device can't share location.");
       return;
     }
     // Soft pre-prompt before triggering the OS permission dialog.

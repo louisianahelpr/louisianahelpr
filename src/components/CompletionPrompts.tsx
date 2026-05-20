@@ -51,7 +51,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     try {
       await navigator.clipboard.writeText(referralLink);
       setReferralCopied(true);
-      toast.success("Link copied — paste it anywhere.");
+      toast.success("Link copied.");
       setTimeout(() => setReferralCopied(false), 2000);
     } catch {
       toast.error("Couldn't copy. Try long-pressing the link.");

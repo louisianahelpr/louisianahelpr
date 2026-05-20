@@ -73,8 +73,8 @@ const CommunityVoice = () => {
           </div>
 
           <blockquote className="editorial-quote text-center md:text-left">
-            &ldquo;I just typed in what I needed and the rest fell into place.
-            No headaches, just helpful neighbors.&rdquo;
+            &ldquo;I typed in what I needed. Three helprs applied within the
+            hour, and I picked one. That was it.&rdquo;
           </blockquote>
 
           {/* Attribution */}

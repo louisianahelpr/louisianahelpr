@@ -426,7 +426,7 @@ const ProfilePage = () => {
     if (updErr) toast.error("Failed to save ID");
     else {
       setProfile(prev => prev ? ({ ...prev, id_document_url: path, idv_status: "pending" }) : prev);
-      toast.success("ID submitted for review");
+      toast.success("ID sent in — we'll let you know when it's cleared.");
     }
     setIdUploading(false);
   };

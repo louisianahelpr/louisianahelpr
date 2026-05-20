@@ -97,7 +97,7 @@ const AdminCredentialQueue = () => {
 
       {rows.length === 0 ? (
         <div className="rounded-2xl liquid-glass p-10 text-center text-ds-11 text-muted-foreground">
-          No pending credentials. 🎉
+          No pending credentials.
         </div>
       ) : (
         <div className="space-y-3">

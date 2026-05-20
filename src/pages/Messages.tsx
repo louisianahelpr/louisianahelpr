@@ -16,6 +16,7 @@ import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { archiveConversation, isArchived } from "@/lib/archivedConversations";
 import { requireOnline } from "@/lib/requireOnline";
+import { getMessageAttachmentSignedUrls, isImageMime } from "@/lib/messageAttachments";
 
 import type { Conversation, Message } from "@/components/messages/types";
 import { ChatView } from "@/components/messages/ChatView";
@@ -147,16 +148,33 @@ const Messages = () => {
     const otherIds = [...new Set([...convoMap.values()].map((c) => c.otherUserId))];
     const jobIds = [...new Set([...convoMap.values()].map((c) => c.jobId))];
 
-    const [profilesRes, jobsRes] = await Promise.all([
+    // Collect the image-attachment paths up-front so we can batch the
+    // signed-URL resolution into ONE `createSignedUrls` call alongside
+    // the profile / job RPCs — replaces N per-row round-trips that
+    // <LastMessageImageThumb> used to fire on mount (N+1 across every
+    // image-last-message conversation in the inbox).
+    const imageThumbPaths: string[] = [];
+    for (const v of convoMap.values()) {
+      const last = v.messages[0];
+      if (last.attachment_url && isImageMime(last.attachment_mime)) {
+        imageThumbPaths.push(last.attachment_url);
+      }
+    }
+
+    const [profilesRes, jobsRes, thumbUrlMap] = await Promise.all([
       supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
       supabase.from("jobs").select("id, title, status, customer_id").in("id", jobIds),
+      getMessageAttachmentSignedUrls(imageThumbPaths),
     ]);
 
     const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
     const avatarMap = new Map<string, string | null>(profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || []);
     const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id }]) || []);
 
-    const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => ({
+    const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => {
+      const last = v.messages[0];
+      const lastIsImage = !!last.attachment_url && isImageMime(last.attachment_mime);
+      return {
       otherUserId: v.otherUserId,
       otherUserName: profileMap.get(v.otherUserId) || "User",
       otherUserAvatarUrl: avatarMap.get(v.otherUserId) ?? null,
@@ -166,16 +184,24 @@ const Messages = () => {
       // Track whether the current user is the poster on this job so the
       // chat can render poster-specific quick replies (vs helper-specific).
       viewerIsPoster: jobMap.get(v.jobId)?.customer_id === uid,
-      lastMessage: v.messages[0].content,
-      lastAt: v.messages[0].created_at,
+      lastMessage: last.content,
+      lastAt: last.created_at,
       unread: v.messages.filter((m) => m.receiver_id === uid && !m.read).length,
       // Rich-preview metadata for the inbox row: who sent the last
       // message (drives the "You: " prefix) and whether it carried an
       // attachment (drives the image-thumbnail preview).
-      lastMessageSenderId: v.messages[0].sender_id,
-      lastMessageAttachmentPath: v.messages[0].attachment_url,
-      lastMessageAttachmentMime: v.messages[0].attachment_mime,
-    }));
+      lastMessageSenderId: last.sender_id,
+      lastMessageAttachmentPath: last.attachment_url,
+      lastMessageAttachmentMime: last.attachment_mime,
+      // Pre-resolved by the batched createSignedUrls call above so each
+      // ConversationRow can render its thumb without its own request.
+      // `null` for non-image attachments (row will skip the thumb branch).
+      lastMessageAttachmentSignedUrl:
+        lastIsImage && last.attachment_url
+          ? thumbUrlMap[last.attachment_url] ?? null
+          : null,
+    };
+    });
 
     convos.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
     // Drop locally-archived threads from the inbox. A thread auto-resurfaces

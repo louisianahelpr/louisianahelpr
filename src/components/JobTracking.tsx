@@ -17,7 +17,7 @@ const STATUSES = [
   { key: "done", label: "Done", icon: PartyPopper, color: "text-primary" },
 ];
 
-type TrackingData = {
+export type TrackingData = {
   id: string;
   status: string;
   latitude: number | null;
@@ -36,6 +36,7 @@ export function JobTracking({
   jobStatus,
   helperConfirmedAt: initialHelperConfirmedAt,
   posterConfirmedAt: initialPosterConfirmedAt,
+  initialTracking,
 }: {
   jobId: string;
   helperId: string | null;
@@ -46,8 +47,20 @@ export function JobTracking({
   jobStatus?: string;
   helperConfirmedAt?: string | null;
   posterConfirmedAt?: string | null;
+  /**
+   * Optional pre-fetched latest tracking row. When provided (including
+   * `null`, meaning "no tracking row exists yet"), the per-card initial
+   * `loadTracking()` round-trip is skipped — the parent has already
+   * batched-fetched tracking for every card on the page. Realtime
+   * subscriptions stay active so live updates after mount still flow.
+   * Pass `undefined` (the default) for legacy callers — the component
+   * falls back to its own per-mount fetch.
+   */
+  initialTracking?: TrackingData | null;
 }) {
-  const [tracking, setTracking] = useState<TrackingData | null>(null);
+  // Seed from the parent-batched tracking row when present so we don't
+  // fire one fetch per rendered card (N+1 across active jobs on Activity).
+  const [tracking, setTracking] = useState<TrackingData | null>(initialTracking ?? null);
   const [updating, setUpdating] = useState(false);
   const [helperConfirmedAt, setHelperConfirmedAt] = useState(initialHelperConfirmedAt);
   const [posterConfirmedAt, setPosterConfirmedAt] = useState(initialPosterConfirmedAt);
@@ -56,6 +69,12 @@ export function JobTracking({
   // Sync props
   useEffect(() => { setHelperConfirmedAt(initialHelperConfirmedAt); }, [initialHelperConfirmedAt]);
   useEffect(() => { setPosterConfirmedAt(initialPosterConfirmedAt); }, [initialPosterConfirmedAt]);
+  // Keep the batched-tracking prop in sync after activity refreshes — when
+  // the parent refetches its batched job_tracking rows, the new value flows
+  // back into the card (e.g. cache invalidation after a write).
+  useEffect(() => {
+    if (initialTracking !== undefined) setTracking(initialTracking);
+  }, [initialTracking]);
 
   const loadTracking = useCallback(async () => {
     if (!helperId) return;
@@ -77,7 +96,11 @@ export function JobTracking({
 
   useEffect(() => {
     if (!helperId) return;
-    loadTracking();
+    // Only fall back to a per-card fetch when the parent did NOT supply
+    // pre-fetched tracking. Activity surfaces always supply it (even as
+    // `null` to mean "no row yet"), so the initial query is eliminated;
+    // the realtime channel below still patches live updates after mount.
+    if (initialTracking === undefined) loadTracking();
 
     const channel = supabase
       .channel(`tracking-${jobId}-${channelNonce()}`)
@@ -104,6 +127,10 @@ export function JobTracking({
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
+    // `initialTracking` is read once when the effect runs to decide whether
+    // to skip the fallback fetch. Subsequent prop changes flow through the
+    // sync-effect above, not here — so it intentionally stays out of deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId, helperId, loadTracking]);
 
   const getLocation = async (): Promise<{ lat: number; lng: number } | null> => {

@@ -57,4 +57,10 @@ export type Conversation = {
   /** MIME of the last-message attachment. Used with `isImageMime` to
       decide whether to render a thumbnail preview vs treat as a file. */
   lastMessageAttachmentMime?: string | null;
+  /** Pre-resolved signed URL for the last-message image thumbnail, when
+      `lastMessageAttachmentPath` points at an image attachment. Batched
+      with `createSignedUrls` in `loadConversations` so the inbox doesn't
+      fire one round-trip per row (N+1 across image-last-message threads).
+      Stays absent for text-only or non-image attachments. */
+  lastMessageAttachmentSignedUrl?: string | null;
 };

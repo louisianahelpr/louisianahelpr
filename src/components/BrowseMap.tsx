@@ -26,6 +26,35 @@ import "leaflet/dist/leaflet.css";
 // can still flip back to Pins via the top-right toggle.
 const HEAT_AUTO_THRESHOLD = 50;
 
+// Persisted user choice for the Pins/Heat toggle. Stored in
+// localStorage so a helper who prefers Heat across sessions keeps it
+// without re-toggling on every map open. The presence of any stored
+// value also suppresses the auto-Heat-at-threshold behavior so we
+// never overwrite an explicit user preference.
+const LAYER_STORAGE_KEY = "helpr_browse_map_layer";
+type MapLayer = "pins" | "heat";
+
+function readStoredLayer(): MapLayer | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.localStorage.getItem(LAYER_STORAGE_KEY);
+    return v === "pins" || v === "heat" ? v : null;
+  } catch {
+    // localStorage can throw in privacy mode / sandboxed contexts —
+    // just fall back to "no preference stored".
+    return null;
+  }
+}
+
+function writeStoredLayer(layer: MapLayer): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LAYER_STORAGE_KEY, layer);
+  } catch {
+    // Swallow — the toggle still works in memory for this session.
+  }
+}
+
 // Fix Leaflet's default-icon-not-found problem when bundlers can't
 // resolve the asset paths. We use a small inline div-icon instead so
 // pins render reliably across web + Capacitor iOS.
@@ -226,12 +255,25 @@ function RecenterControl({ center, zoom }: { center: [number, number]; zoom: num
 export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta }: BrowseMapProps) {
   const [jobs, setJobs] = useState<MapJob[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"pins" | "heat">("pins");
+  // Initialize from localStorage so the user's last choice survives
+  // app restarts (and Capacitor cold starts).
+  const [view, setView] = useState<MapLayer>(() => readStoredLayer() ?? "pins");
   const [tilesLoading, setTilesLoading] = useState(true);
   // Track whether we've already auto-switched to Heat for this session
   // so the auto-switch fires once on first load only — manual flips
-  // back to Pins after that are respected.
-  const heatAutoApplied = useRef(false);
+  // back to Pins after that are respected. If there's a stored
+  // preference, treat auto-switch as already-applied so we never
+  // overwrite an explicit user choice with the density heuristic.
+  const heatAutoApplied = useRef(readStoredLayer() !== null);
+
+  const selectView = (next: MapLayer) => {
+    setView(next);
+    writeStoredLayer(next);
+    // Treat any manual selection as the user's explicit preference —
+    // freeze the auto-switch so a later high-density refresh doesn't
+    // flip them back.
+    heatAutoApplied.current = true;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -370,44 +412,63 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
        corners. Top corners stay rounded so the panel still reads as a
        distinct surface above the dock. */
     <div className="relative h-full w-full rounded-t-2xl overflow-hidden border border-b-0 border-border">
-      {/* Pins / Heat toggle — sits over the map, top-right. Heat is a
-          density bucket overlay (no extra dependency) so helpers can
-          spot job hotspots even when individual pins are clustered. */}
-      <div
-        className="absolute top-3 right-3 z-[400] flex items-center gap-0.5 p-0.5 rounded-full"
-        style={{
-          background: "hsla(0, 0%, 100%, 0.85)",
-          border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-          boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-        }}
-      >
-        {([
-          { key: "pins" as const, label: "Pins" },
-          { key: "heat" as const, label: "Heat" },
-        ]).map((opt) => {
-          const active = view === opt.key;
-          return (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => setView(opt.key)}
-              className="px-3 h-7 rounded-full text-[0.7rem] font-sans font-semibold transition-all"
-              style={
-                active
-                  ? {
-                      background: "hsl(var(--bark))",
-                      color: "hsl(var(--parchment))",
-                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
-                    }
-                  : { color: "hsl(var(--olivewood) / 0.7)" }
-              }
-            >
-              {opt.label}
-            </button>
-          );
-        })}
+      {/* Layer-toggle control card — top-right, surfaced prominently
+          so helpers can scan job concentration at a glance and flip
+          between individual Pins and the density Heat layer in one
+          tap. The "N jobs" badge above keeps the dataset size visible
+          in both modes so the toggle reads as a real scanning aid. */}
+      <div className="absolute top-3 right-3 z-[400] flex flex-col items-end gap-1.5">
+        <div
+          aria-hidden
+          data-testid="browse-map-job-count"
+          className="px-2.5 h-6 rounded-full flex items-center font-sans font-semibold text-[0.68rem] tracking-wide"
+          style={{
+            background: "hsla(0, 0%, 100%, 0.92)",
+            color: "hsl(var(--bark))",
+            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+            boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+        >
+          {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
+        </div>
+        <div
+          role="group"
+          aria-label="Map layer"
+          data-testid="browse-map-layer-toggle"
+          className="flex items-center gap-1 p-1 rounded-full bg-[hsl(var(--parchment)/0.9)]"
+          style={{
+            border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+            boxShadow: "0 6px 18px -6px hsl(var(--olivewood) / 0.28)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+        >
+          {([
+            { key: "pins" as const, label: "Pins" },
+            { key: "heat" as const, label: "Heat" },
+          ]).map((opt) => {
+            const active = view === opt.key;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => selectView(opt.key)}
+                aria-pressed={active}
+                aria-label={`${opt.label} layer`}
+                data-testid={`browse-map-layer-${opt.key}`}
+                className={
+                  active
+                    ? "px-3.5 h-8 rounded-full text-[0.78rem] font-sans font-semibold transition-all bg-[hsl(var(--bark))] text-white shadow-sm"
+                    : "px-3.5 h-8 rounded-full text-[0.78rem] font-sans font-semibold transition-all bg-[hsl(var(--parchment)/0.9)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--parchment))]"
+                }
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       {/* Subtle tile-load overlay — fades out once the OSM tiles
           report `load` so the first paint is a soft transition rather

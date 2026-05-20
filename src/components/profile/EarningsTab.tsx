@@ -25,6 +25,7 @@ import { report } from "@/lib/errorLogger";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
+import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -299,6 +300,11 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         onOpenChange={setExportDialogOpen}
         hideTrigger
       />
+
+      {/* One-time "you got paid" celebration. Pulls from the
+          payout_transfers ledger already loaded above, so no extra
+          Supabase read. Suppression is per-device via safeStorage. */}
+      <PayoutCelebration payouts={payoutLedger} />
 
       {/* ─── COMPACT DASHBOARD: Wallet + Stats ─── */}
       <section className="space-y-3">

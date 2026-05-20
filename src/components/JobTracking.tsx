@@ -130,7 +130,6 @@ export function JobTracking({
     // `initialTracking` is read once when the effect runs to decide whether
     // to skip the fallback fetch. Subsequent prop changes flow through the
     // sync-effect above, not here — so it intentionally stays out of deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId, helperId, loadTracking]);
 
   const getLocation = async (): Promise<{ lat: number; lng: number } | null> => {

@@ -44,7 +44,6 @@ export function GroupJobHelpers({
     // `initialHelpers` is read once on mount to decide whether to skip
     // the fallback fetch. Live updates flow through the sync-effect
     // below, not here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
   // Keep local helpers in sync when the parent re-supplies a fresh

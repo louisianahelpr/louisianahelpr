@@ -24,6 +24,7 @@ import {
   EscrowProgressBar,
   deriveEscrowStepFromJob,
 } from "@/components/payment/EscrowProgressBar";
+import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 
 interface PostedJobCardProps {
   /** The job + its embedded data — one row of the posted feed. */
@@ -548,6 +549,10 @@ function PostedJobCardInner({
                           <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
                         </Button>
                         <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                        <ShareJobButton
+                          job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
+                          className="flex-1"
+                        />
                         <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                       </div>
                     </>

@@ -77,7 +77,7 @@ export function HelperAvailabilityDisplay({ helperId, showEmpty = false, onSetUp
   }
 
   return (
-    <div className="rounded-ds-md liquid-glass p-4 space-y-3">
+    <div className="rounded-ds-md liquid-glass p-5 space-y-3">
       <div className="flex items-center gap-2">
         <Clock className="w-4 h-4 text-primary" />
         <h3 className="text-ds-13 font-semibold text-foreground">Availability</h3>

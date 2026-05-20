@@ -240,7 +240,7 @@ export function JobTracking({
   if (!helperId) return null;
 
   return (
-    <div className="rounded-2xl liquid-glass p-4 space-y-4">
+    <div className="rounded-2xl liquid-glass p-5 space-y-4">
       <div>
         <span
           className="font-serif italic uppercase inline-flex items-center gap-1.5"

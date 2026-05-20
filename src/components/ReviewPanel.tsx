@@ -441,7 +441,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-ds-md liquid-glass p-4 space-y-3">
+      <div className="rounded-ds-md liquid-glass p-5 space-y-3">
         <div className="flex items-center gap-3">
           <div className="flex">
             {[1, 2, 3, 4, 5].map((s) => (

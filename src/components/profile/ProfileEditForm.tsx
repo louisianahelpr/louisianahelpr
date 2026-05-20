@@ -205,7 +205,7 @@ export function ProfileEditForm({
       {/* Completion meter — the 3 post-signup enhancements (ZIP / ID
           verified / work photos) via the shared getProfileCompletion
           helper. Tints based on progress. */}
-      <div className="rounded-2xl liquid-glass p-4 space-y-2">
+      <div className="rounded-2xl liquid-glass p-5 space-y-2">
         <div className="flex items-center justify-between">
           <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
             Profile completion

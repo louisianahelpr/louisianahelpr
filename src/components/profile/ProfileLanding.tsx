@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
+import { avatarGradientFor } from "@/lib/avatarGradient";
+import { cn } from "@/lib/utils";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -218,7 +220,21 @@ export function ProfileLanding({
               type="button"
               onClick={() => onSelectTab("profile")}
               aria-label={hasPhoto ? "Edit profile" : "Add a profile photo"}
-              className="w-[88px] h-[88px] rounded-[26px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden active:scale-[0.98] transition-transform"
+              className={cn(
+                "w-[88px] h-[88px] rounded-[26px] squircle flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden active:scale-[0.98] transition-transform",
+                // When a real photo is present the gradient is hidden by
+                // the `<img>` overlay; when it isn't, the warm hashed
+                // gradient replaces the old flat `bg-primary/10` so each
+                // user has a recognizable placeholder. `--ink-deep` text
+                // + a hair of drop-shadow keeps initials readable on
+                // every variant in the palette.
+                hasPhoto
+                  ? "bg-primary/10 text-primary"
+                  : cn(
+                      "bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm",
+                      avatarGradientFor(profile?.id),
+                    ),
+              )}
               style={{
                 boxShadow:
                   tier === "elite"

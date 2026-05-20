@@ -27,6 +27,8 @@ import SaveHelperButton from "@/components/SaveHelperButton";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { avatarGradientFor } from "@/lib/avatarGradient";
+import { cn } from "@/lib/utils";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -331,7 +333,14 @@ const UserProfile = () => {
                 />
               ) : (
                 <div
-                  className="w-24 h-24 rounded-[28px] squircle bg-primary/10 text-primary flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold"
+                  className={cn(
+                    // Was a flat `bg-primary/10` — swap to the
+                    // deterministic warm-palette gradient hashed off the
+                    // helper's user id so each profile has a recognizable
+                    // signature when no avatar has been uploaded.
+                    "w-24 h-24 rounded-[28px] squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold",
+                    avatarGradientFor(userId),
+                  )}
                   style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
                 >
                   {initials}

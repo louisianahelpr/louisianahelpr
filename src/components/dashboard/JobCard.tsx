@@ -9,6 +9,8 @@ import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { transformedImageUrl } from "@/lib/imageUrl";
 import { getCityState } from "@/lib/locationUtils";
+import { avatarGradientFor } from "@/lib/avatarGradient";
+import { cn } from "@/lib/utils";
 import type { EnrichedJob } from "./types";
 
 interface JobCardProps {
@@ -122,9 +124,16 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           <a
             href={`/user/${job.customer_id}`}
             onClick={(e) => e.stopPropagation()}
-            className="block w-11 h-11 rounded-full flex items-center justify-center font-sans font-semibold text-[0.78rem] tracking-[0.06em] uppercase transition-transform hover:scale-105 overflow-hidden"
+            className={cn(
+              "block w-11 h-11 rounded-full flex items-center justify-center font-sans font-semibold text-[0.78rem] tracking-[0.06em] uppercase transition-transform hover:scale-105 overflow-hidden",
+              // When no real avatar is available, the gradient becomes
+              // the background. The `<img>` overlay (when present) sits
+              // on top and covers it. Hashed off `customer_id` so a
+              // poster who shows up in multiple feed cards reads as the
+              // same person.
+              !job.posterAvatarUrl && cn("bg-gradient-to-br", avatarGradientFor(job.customer_id)),
+            )}
             style={{
-              backgroundColor: "hsl(var(--bark) / 0.12)",
               // Tier halo around poster avatar: gold for Elite posters,
               // sienna for Pro, default subtle bark for free. Surfaces
               // subscriber posters in the helper's feed at a glance.
@@ -141,7 +150,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 job.posterSubscriptionTier === "elite" || job.posterSubscriptionTier === "pro"
                   ? "none"
                   : "1px solid hsl(var(--bark) / 0.22)",
-              color: "hsl(var(--bark))",
+              // Initials sit on the hashed gradient when no photo is
+              // present — `--ink-deep` keeps them legible across every
+              // gradient variant. Subtle text-shadow lifts them off the
+              // lighter parchment-leaning gradients.
+              color: "hsl(var(--ink-deep))",
+              textShadow: !job.posterAvatarUrl ? "0 1px 1px rgba(255, 255, 255, 0.4)" : undefined,
             }}
             aria-label={`View ${job.posterName}'s profile`}
           >

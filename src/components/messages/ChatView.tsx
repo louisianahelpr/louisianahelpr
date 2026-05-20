@@ -17,6 +17,8 @@ import { MessageAttachment } from "@/components/MessageAttachment";
 import { OnlineIndicator, TypingIndicator, ReadReceipt } from "@/components/ChatPresence";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { avatarGradientFor } from "@/lib/avatarGradient";
+import { cn } from "@/lib/utils";
 import type { Conversation, Message } from "./types";
 
 const renderMessageContent = (content: string) => {
@@ -191,9 +193,16 @@ export function ChatView({
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 self-center overflow-hidden"
+              className={cn(
+                "w-9 h-9 rounded-full flex items-center justify-center shrink-0 self-center overflow-hidden",
+                // When no profile photo is set, the warm hashed gradient
+                // (keyed off `otherUserId`) replaces the flat bark tint so
+                // the chat partner has a stable visual identity. The
+                // `<img>` overlay covers the gradient when a photo is set.
+                !activeConvo.otherUserAvatarUrl &&
+                  cn("bg-gradient-to-br", avatarGradientFor(activeConvo.otherUserId)),
+              )}
               style={{
-                backgroundColor: "hsl(var(--bark) / 0.12)",
                 border: "1px solid hsl(var(--bark) / 0.22)",
               }}
             >
@@ -206,7 +215,10 @@ export function ChatView({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--bark))" }}>
+                <span
+                  className="text-ds-13 font-bold drop-shadow-sm"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
                   {activeConvo.otherUserName.charAt(0).toUpperCase()}
                 </span>
               )}

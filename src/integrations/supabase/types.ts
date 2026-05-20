@@ -3096,6 +3096,10 @@ export type Database = {
         Args: { p_job_id: string }
         Returns: { action: string }
       }
+      reject_other_applications_on_accept: {
+        Args: { p_job_id: string; p_accepted_application_id: string }
+        Returns: undefined
+      }
       get_marketplace_activity_count: { Args: never; Returns: number }
       get_open_jobs_for_map: {
         Args: never

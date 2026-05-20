@@ -204,7 +204,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
                   }}
                 >
                   <span className="truncate max-w-[120px] font-sans font-medium">{file.name}</span>
-                  <button onClick={() => removeFile(i)} className="active:opacity-70" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  <button onClick={() => removeFile(i)} aria-label="Remove file" className="active:opacity-70" style={{ color: "hsl(var(--burnt-sienna))" }}>
                     <X className="w-3 h-3" />
                   </button>
                 </div>

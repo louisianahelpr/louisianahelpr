@@ -9,17 +9,6 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 
-// Columns shared by the curated `open_jobs_browse` view AND the fallback
-// direct-`jobs` query. Kept as a single string constant so both code paths
-// request exactly the same shape — drift here would crash the enrichment.
-// NOTE: `open_jobs_browse` masks latitude/longitude (security feature). The
-// fallback path queries `jobs` directly but still omits lat/lng + leaves the
-// `location` string blank, so the precise-location masking is preserved even
-// when the curated view is unavailable (we'd rather show jobs with no
-// location than leak a precise address).
-const JOB_COLUMNS_SHARED =
-  "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status";
-
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
 // initial paint stays cheap as the marketplace grows; later pages are fetched
 // on demand by the dashboard's IntersectionObserver sentinel.
@@ -145,16 +134,14 @@ export function useDashboardData() {
       // Phase 1: jobs page. Range is inclusive on both ends, so request
       // PAGE_SIZE + 1 rows to know whether another page exists without a count.
       //
-      // Two-stage fetch:
-      //   1) Try the curated `open_jobs_browse` view (masks precise location).
-      //   2) If that errors for ANY reason (view dropped, RLS regression,
-      //      transient PostgREST hiccup), fall back to a direct `jobs`
-      //      query so the user still sees something — and report() the
-      //      real error so we can see PostgrestError + status in
-      //      PostHog / error_logs next time it fires.
-      // Without (2) the dashboard renders ErrorState ("couldn't load
-      // nearby jobs") on any view-side failure, which is what TestFlight
-      // user is currently seeing.
+      // We query the curated `open_jobs_browse` view (masks precise location).
+      // If it errors, we report() and rethrow so React Query surfaces the
+      // honest error state to the user. (An earlier version had a fallback
+      // direct-`jobs` query, but `public.jobs` SELECT policies are
+      // participant-scoped — customer_id / helper_id / admin / offered_to_helper_id
+      // — so a typical browsing helper saw only jobs they posted themselves
+      // or were directly offered. Effectively empty, more confusing than the
+      // honest ErrorState.)
       let rawJobsRes: any[];
       try {
         rawJobsRes = unwrap(await supabase
@@ -165,7 +152,7 @@ export function useDashboardData() {
             // along with the precise location). Asking for them returned a
             // PostgREST 400 that silently emptied the dashboard. The
             // nearby-radius filter falls back to the location string match.
-            `${JOB_COLUMNS_SHARED}, location`,
+            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location",
           )
           .neq("payment_status", "abandoned")
           .order("boosted_at", { ascending: false, nullsFirst: false })
@@ -174,33 +161,10 @@ export function useDashboardData() {
       } catch (viewErr) {
         report(viewErr, {
           severity: "warning",
-          tags: { source: "dashboard.open_jobs_browse_error" },
-          context: {
-            offset,
-            user_id: user?.id ?? null,
-            // err message often includes the PostgrestError code +
-            // hint; redact() in errorLogger handles JWT/token redaction.
-            message: viewErr instanceof Error ? viewErr.message : String(viewErr),
-          },
+          tags: { area: "dashboard.open_jobs_browse_error" },
+          context: { offset, user_id: user?.id ?? null },
         });
-        // Fallback: query `jobs` table directly. Same status filter as the
-        // view (status = 'open' + payment_status != 'abandoned'). We omit
-        // `location` from the select (the view's whole purpose is to mask
-        // precise location, so leaking it from the fallback would defeat
-        // that). Downstream code coerces missing location → "" below.
-        const fallbackRows = unwrap(await supabase
-          .from("jobs")
-          .select(JOB_COLUMNS_SHARED)
-          .eq("status", "open")
-          .neq("payment_status", "abandoned")
-          .order("boosted_at", { ascending: false, nullsFirst: false })
-          .order("created_at", { ascending: false })
-          .range(offset, offset + PAGE_SIZE)) as any[];
-        // Strip / blank the location field on every row. `EnrichedJob.location`
-        // is typed as `string` (non-optional) and downstream UI reads
-        // `j.location.toLowerCase()` etc., so empty string keeps everything
-        // safe instead of `undefined` crashing the recommended-jobs scorer.
-        rawJobsRes = (fallbackRows ?? []).map((j: any) => ({ ...j, location: "" }));
+        throw viewErr;
       }
 
       const rawAll = ((rawJobsRes ?? []) as any[]).filter((j) => !blockedUserIds.has(j.customer_id));

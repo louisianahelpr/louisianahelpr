@@ -22,14 +22,34 @@
     <string>production</string>
 
     <!--
-      Universal Links — lets https://louisianahelpr.com/* deep-link
-      into the app instead of opening Safari.
-      Pairs with public/.well-known/apple-app-site-association.
+      Associated Domains: Universal Links + Shared Web Credentials.
+
+      `applinks:` — lets https://louisianahelpr.com/* deep-link into the
+      app instead of opening Safari.
+
+      `webcredentials:` — lets iOS's Password AutoFill (iCloud Keychain)
+      share saved credentials between Safari (on louisianahelpr.com) and
+      the in-app login/signup forms. Without this entry, iOS treats the
+      app and the website as unrelated identities and refuses to offer
+      "Save Password" or to auto-suggest the saved web credential in
+      the app's password fields — which is the behavior the user
+      reported: passwords don't save into iPhone Passwords from Helpr.
+
+      The autocomplete tokens on Login.tsx / Signup.tsx (`autoComplete=
+      "email"`, `"current-password"`, `"new-password"`) are necessary
+      but not sufficient on their own; iOS also requires the
+      `webcredentials` association below AND the matching block in
+      public/.well-known/apple-app-site-association.
+
+      Both apex and www are listed so AutoFill works regardless of
+      which host the saved password is filed under in Keychain.
     -->
     <key>com.apple.developer.associated-domains</key>
     <array>
         <string>applinks:louisianahelpr.com</string>
         <string>applinks:www.louisianahelpr.com</string>
+        <string>webcredentials:louisianahelpr.com</string>
+        <string>webcredentials:www.louisianahelpr.com</string>
     </array>
 
     <!--

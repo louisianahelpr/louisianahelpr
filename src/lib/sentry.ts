@@ -42,6 +42,97 @@ const RELEASE =
 
 let initialized = false;
 
+/**
+ * Patterns matched against `event.message` and the first exception's
+ * `value`. Anything that matches is dropped as benign noise so the
+ * Sentry issue stream surfaces real bugs faster.
+ *
+ * Each entry below covers a specific class of non-actionable error —
+ * see the comment on each pattern for the rationale.
+ */
+const BENIGN_MESSAGE_PATTERNS: RegExp[] = [
+  // Network blips — connection dropped mid-fetch, user went offline, etc.
+  // Not actionable: there's no bug, the request just didn't complete.
+  /Load failed/i,
+  /NetworkError when attempting to fetch resource/i,
+  /Failed to fetch/i,
+  /Network request failed/i,
+  // User-initiated aborts (navigation, AbortController). Expected flow.
+  /AbortError/i,
+  /The (?:user )?aborted a request/i,
+  /The operation was aborted/i,
+  // Private/Incognito mode storage refusals — legitimate browser policy,
+  // not a bug we can fix from JS.
+  /QuotaExceededError/i,
+  /The operation is insecure/i,
+  /IDBDatabase|IndexedDB.*(?:not allowed|denied|disabled)/i,
+  // Known harmless ResizeObserver warning — already in ignoreErrors but
+  // some browsers surface it with slightly different wording.
+  /ResizeObserver loop/i,
+  // Capacitor plugin "not available on this platform" — happens whenever
+  // a web build tries a native bridge (e.g. Haptics in a desktop browser).
+  // The caller already has a graceful fallback; the throw isn't a bug.
+  /not (?:available|implemented) on this platform/i,
+  /not implemented on web/i,
+  // Auth check on a logged-out user — expected control flow when the
+  // app calls `getUser()` before knowing whether there's a session.
+  /AuthSessionMissingError/i,
+  /Auth session missing/i,
+  // Stripe SDK occasionally surfaces these as "errors" on intentional
+  // flow exits (user cancelled the payment sheet, payment succeeded
+  // through a different code path, etc.).
+  /Stripe.*(?:cancelled|canceled|succeeded)/i,
+];
+
+const EXTENSION_URL_PATTERNS: RegExp[] = [
+  /chrome-extension:\/\//i,
+  /moz-extension:\/\//i,
+  /safari-extension:\/\//i,
+  /safari-web-extension:\/\//i,
+];
+
+interface MinimalStackFrame {
+  filename?: string;
+  abs_path?: string;
+}
+
+interface MinimalException {
+  value?: string;
+  stacktrace?: { frames?: MinimalStackFrame[] };
+}
+
+interface MinimalEvent {
+  message?: string;
+  exception?: { values?: MinimalException[] };
+}
+
+export function isBenignEvent(event: MinimalEvent | null | undefined): boolean {
+  if (!event) return false;
+
+  const firstException = event.exception?.values?.[0];
+  const candidates: string[] = [];
+  if (typeof event.message === "string") candidates.push(event.message);
+  if (typeof firstException?.value === "string") candidates.push(firstException.value);
+
+  for (const text of candidates) {
+    for (const pattern of BENIGN_MESSAGE_PATTERNS) {
+      if (pattern.test(text)) return true;
+    }
+  }
+
+  // Browser-extension stack frames — not our code, not actionable.
+  const frames = firstException?.stacktrace?.frames ?? [];
+  for (const frame of frames) {
+    const url = frame.filename ?? frame.abs_path ?? "";
+    if (!url) continue;
+    for (const pattern of EXTENSION_URL_PATTERNS) {
+      if (pattern.test(url)) return true;
+    }
+  }
+
+  return false;
+}
+
 export function initSentry() {
   if (initialized || typeof window === "undefined" || !DSN) return;
   try {
@@ -74,7 +165,7 @@ export function initSentry() {
         if (window.location.hostname === "localhost" && !import.meta.env.DEV) {
           return null;
         }
-        return event;
+        return isBenignEvent(event) ? null : event;
       },
     });
     initialized = true;

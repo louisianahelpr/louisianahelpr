@@ -22,6 +22,10 @@ import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import type { Application, AppliedApp } from "./activityConstants";
+import {
+  EscrowProgressBar,
+  deriveEscrowStepFromJob,
+} from "@/components/payment/EscrowProgressBar";
 
 interface AppliedJobCardProps {
   /** The application + its embedded job — one row of the applied feed. */
@@ -124,6 +128,11 @@ function AppliedJobCardInner({
 
   const isMinimalCard = isRejected || isCancelled;
 
+  // Escrow progress for the helper's view — same source of truth as the
+  // customer's PostedJobCard. Hides for jobs where escrow doesn't apply
+  // (pending applications, rejected/cancelled, no payment intent).
+  const escrowStep = isMinimalCard || isPending ? null : deriveEscrowStepFromJob(job);
+
   return (
         <div
           key={app.id}
@@ -166,6 +175,16 @@ function AppliedJobCardInner({
               {payout.toFixed(2)}
             </span>
           </div>
+
+          {/* Escrow progress — gives the helpr context on where the
+              customer's payment sits in the lifecycle (held / verified /
+              released). Sits above the action area for high context
+              without nudging. Hides itself when escrow does not apply. */}
+          {escrowStep && (
+            <div className="px-4 pt-3" onClick={(e) => e.stopPropagation()}>
+              <EscrowProgressBar currentStep={escrowStep} compact />
+            </div>
+          )}
 
           {/* Summary info line */}
           <div className="px-4 py-3 space-y-2.5">

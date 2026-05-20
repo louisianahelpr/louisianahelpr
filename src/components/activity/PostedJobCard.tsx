@@ -20,6 +20,10 @@ import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { type Job, type EnrichedApplication } from "./activityConstants";
+import {
+  EscrowProgressBar,
+  deriveEscrowStepFromJob,
+} from "@/components/payment/EscrowProgressBar";
 
 interface PostedJobCardProps {
   /** The job + its embedded data — one row of the posted feed. */
@@ -97,6 +101,10 @@ function PostedJobCardInner({
   const meta = completedJobMeta[job.id];
   const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
   const isExpanded = expandedJobId === job.id;
+  // Escrow progress lives above the action area — context, not a CTA.
+  // Returns null for pre-paid / cancelled jobs so the bar hides cleanly
+  // when escrow doesn't apply.
+  const escrowStep = deriveEscrowStepFromJob(job);
   return (
           <div
             key={job.id}
@@ -141,6 +149,16 @@ function PostedJobCardInner({
                 </span>
               </div>
             </div>
+
+            {/* Escrow progress — high-context status of the customer's
+                payment for this job. Sits above the action area (below
+                the title bar) so the poster reads it before any CTAs.
+                Hides itself when escrow does not apply. */}
+            {escrowStep && (
+              <div className="px-4 pt-3" onClick={(e) => e.stopPropagation()}>
+                <EscrowProgressBar currentStep={escrowStep} compact />
+              </div>
+            )}
 
             {/* Summary */}
             <div className="px-4 py-3 space-y-2.5">

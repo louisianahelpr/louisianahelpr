@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ImagePlus, X, Briefcase, Check } from "lucide-react";
+import { ImagePlus, X, Briefcase, Check, Plus } from "lucide-react";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { SectionCard } from "@/components/postjob/SectionCard";
@@ -208,20 +208,38 @@ export function DetailsSection({
       </div>
 
       {/* Image Upload — brand-aligned thumbnail grid. Active photo tiles
-          get a sienna-tint hover for delete; the empty Add tile uses the
-          parchment-glass dashed border treatment instead of generic gray. */}
+          get a sienna delete pill (always visible on touch, since there
+          is no hover state on mobile). The empty Add tile uses a
+          parchment "+" badge with a soft inset shadow so it reads as
+          tappable affordance, not chrome. Photos are now required
+          (issue #114): label + inline error reflect that. */}
       <div className="space-y-2.5">
         <div className="space-y-0.5">
-          <Label>Photos <span className="font-normal text-muted-foreground">(optional, max 5)</span></Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>
+              Photos <span className="text-destructive">*</span>{" "}
+              <span className="font-normal text-muted-foreground">(at least 1, up to 5)</span>
+            </Label>
+            {imageFiles.length > 0 && (
+              <span className="text-[0.66rem] tabular-nums text-muted-foreground">
+                {imageFiles.length}/5 photos
+              </span>
+            )}
+          </div>
           <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
             Posts with a photo get noticeably more applicants.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2.5">
+        {/* Fixed-tile grid — 80px tiles wrap into rows; auto-fill keeps
+            the "+" tile flush with photos at any photo count. */}
+        <div
+          className="grid gap-2.5"
+          style={{ gridTemplateColumns: "repeat(auto-fill, 80px)" }}
+        >
           {imagePreviews.map((src, i) => (
             <div
               key={i}
-              className="relative w-20 h-20 rounded-2xl overflow-hidden group"
+              className="relative w-20 h-20 rounded-2xl overflow-hidden"
               style={{
                 border: "0.5px solid hsl(var(--olivewood) / 0.18)",
                 boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
@@ -238,7 +256,7 @@ export function DetailsSection({
                 type="button"
                 onClick={() => onRemoveImage(i)}
                 aria-label="Remove photo"
-                className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 active:scale-90 transition-all"
+                className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center active:scale-90 transition-all"
                 style={{
                   background: "hsl(var(--burnt-sienna))",
                   color: "hsl(var(--parchment))",
@@ -251,19 +269,25 @@ export function DetailsSection({
           ))}
           {imageFiles.length < 5 && (
             <label
-              className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
+              aria-label={imageFiles.length === 0 ? "Add a photo (required)" : "Add another photo"}
+              className="w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
               style={{
-                background: "hsl(var(--parchment) / 0.4)",
-                border: "1.5px dashed hsl(var(--bark) / 0.30)",
+                background: "hsl(var(--parchment) / 0.7)",
+                border: "0.5px solid hsl(var(--bark) / 0.28)",
+                // Soft inset highlight + a tiny outer drop combine to
+                // read as a tappable parchment chip instead of a flat
+                // dashed placeholder.
+                boxShadow:
+                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                  "inset 0 -1px 2px 0 hsl(var(--olivewood) / 0.08), " +
+                  "0 1px 2px hsl(var(--olivewood) / 0.06)",
               }}
             >
-              <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-              <span
-                className="font-sans font-semibold mt-1"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
-              >
-                Add photo
-              </span>
+              <Plus
+                className="w-7 h-7"
+                style={{ color: "hsl(var(--bark))" }}
+                strokeWidth={2}
+              />
               <input
                 type="file"
                 accept="image/*"
@@ -274,6 +298,11 @@ export function DetailsSection({
             </label>
           )}
         </div>
+        {imageFiles.length === 0 && (
+          <p className="text-[0.7rem] leading-snug text-destructive">
+            Add at least one photo so helprs know what they're applying for.
+          </p>
+        )}
       </div>
     </SectionCard>
   );

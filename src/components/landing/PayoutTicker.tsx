@@ -14,9 +14,13 @@ import { useReducedMotion } from "@/lib/accessibility";
  * and auto-rotates every ROTATE_MS through up to 10 recent payouts
  * pulled from the public `get_recent_public_payouts()` RPC.
  *
- * Privacy: the RPC already redacts to first name + last initial,
- * round dollars (no cents), and "City" (not the helper's street
- * or exact location). The component just formats and rotates.
+ * Privacy: the RPC redacts the helper name to "First L." IN SQL
+ * (see migration 20260520204942_redact_public_payout_names.sql) and
+ * returns it as `display_name`. The client renders that value as-is
+ * — no raw `full_name` ever crosses the wire to an anonymous caller.
+ * Older callers / pre-migration deploys still emit `full_name`; we
+ * fall back to client-side `formatName()` so the ticker survives the
+ * window between merging the migration and `supabase db push`.
  *
  * Hidden states (renders `null` so the page lays out as if absent):
  *   - the RPC isn't deployed yet (PGRST202) — between merging the
@@ -41,8 +45,14 @@ import { useReducedMotion } from "@/lib/accessibility";
  *     non-interruptively. The visible ticker carries `aria-hidden`.
  */
 
+// The post-redaction RPC returns `display_name` (already redacted to
+// "First L." in SQL). `full_name` is kept optional so the client still
+// renders correctly against the OLD function definition during the
+// brief window between merging the new migration and `supabase db push`
+// landing it in prod — see the resolver below.
 type PayoutRow = {
-  full_name: string | null;
+  display_name?: string | null;
+  full_name?: string | null;
   amount_dollars: number;
   city: string | null;
   paid_at: string;
@@ -125,7 +135,13 @@ const PayoutTicker = () => {
   if (payouts.length === 0) return null;
 
   const current = payouts[Math.min(index, payouts.length - 1)];
-  const firstLast = formatName(current.full_name, "Someone");
+  // Prefer the SQL-redacted `display_name` (post-migration). Fall back to
+  // client-side `formatName(full_name)` for the pre-deploy window when the
+  // old function definition is still live and only emits `full_name`.
+  const firstLast =
+    (current.display_name ?? "").trim() !== ""
+      ? (current.display_name as string)
+      : formatName(current.full_name, "Someone");
   const amount = dollars.format(current.amount_dollars);
   const city = (current.city ?? "").trim();
   // formatDistanceToNow throws on invalid date strings; we guard so a

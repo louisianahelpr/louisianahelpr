@@ -68,7 +68,36 @@ describe("PayoutTicker", () => {
     });
   });
 
-  it("renders a single payout in 'First L. earned $X in City' shape", async () => {
+  it("renders a single payout in 'First L. earned $X in City' shape (SQL-redacted display_name)", async () => {
+    // Post-migration: the RPC returns display_name pre-redacted in SQL.
+    // The client renders it verbatim — no `formatName` call needed.
+    rpcMock.mockResolvedValueOnce({
+      data: [
+        {
+          display_name: "Maria S.",
+          amount_dollars: 47,
+          city: "Baton Rouge",
+          paid_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+        },
+      ],
+      error: null,
+    });
+    renderTicker();
+    await screen.findByText("Maria S.");
+    expect(screen.getByText("$47")).toBeInTheDocument();
+    expect(screen.getByText("Baton Rouge")).toBeInTheDocument();
+    // Relative time uses date-fns formatDistanceToNow with the
+    // suffix — we don't assert exact wording (locale variations),
+    // just that an "ago" suffix landed in the row.
+    expect(screen.getByText(/ago/)).toBeInTheDocument();
+  });
+
+  it("falls back to client-side formatName(full_name) during the pre-deploy window", async () => {
+    // Migration window: the new client ships before `supabase db push`
+    // has been run, so the old function definition still emits raw
+    // `full_name`. The client must redact on the fly so the ticker
+    // works (and the same "First L." privacy posture is enforced on
+    // render, even if the bytes-over-wire posture isn't yet).
     rpcMock.mockResolvedValueOnce({
       data: [
         {
@@ -81,14 +110,9 @@ describe("PayoutTicker", () => {
       error: null,
     });
     renderTicker();
-    // Name is split first + last initial via formatName ⇒ "Maria S."
     await screen.findByText("Maria S.");
     expect(screen.getByText("$47")).toBeInTheDocument();
     expect(screen.getByText("Baton Rouge")).toBeInTheDocument();
-    // Relative time uses date-fns formatDistanceToNow with the
-    // suffix — we don't assert exact wording (locale variations),
-    // just that an "ago" suffix landed in the row.
-    expect(screen.getByText(/ago/)).toBeInTheDocument();
   });
 
   it("rotates through multiple payouts on the 4s interval", async () => {
@@ -96,13 +120,13 @@ describe("PayoutTicker", () => {
     rpcMock.mockResolvedValueOnce({
       data: [
         {
-          full_name: "Alice Aaron",
+          display_name: "Alice A.",
           amount_dollars: 30,
           city: "Houma",
           paid_at: new Date().toISOString(),
         },
         {
-          full_name: "Bobby Bell",
+          display_name: "Bobby B.",
           amount_dollars: 90,
           city: "Lafayette",
           paid_at: new Date().toISOString(),
@@ -139,13 +163,13 @@ describe("PayoutTicker", () => {
     rpcMock.mockResolvedValueOnce({
       data: [
         {
-          full_name: "Alice Aaron",
+          display_name: "Alice A.",
           amount_dollars: 30,
           city: "Houma",
           paid_at: new Date().toISOString(),
         },
         {
-          full_name: "Bobby Bell",
+          display_name: "Bobby B.",
           amount_dollars: 90,
           city: "Lafayette",
           paid_at: new Date().toISOString(),

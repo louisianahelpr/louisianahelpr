@@ -1,3 +1,4 @@
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -57,27 +58,19 @@ export function BudgetSection({
     >
       <div className="space-y-3">
         <Label htmlFor="budget">Budget <span className="text-destructive">*</span></Label>
-        <div className="relative">
-          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-muted-foreground">$</span>
-          <Input
-            id="budget"
-            type="text"
-            inputMode="decimal"
-            value={budget}
-            onChange={(e) => {
-              // Keep digits and a single decimal point only — store as plain number string
-              const cleaned = e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*?)\..*/g, "$1");
-              setBudget(cleaned);
-            }}
-            onBlur={(e) => {
-              const n = parseFloat(e.target.value);
-              if (!Number.isNaN(n) && n > 0) setBudget(n.toFixed(2));
-            }}
-            placeholder="50.00"
-            className="pl-8 text-[15px] font-medium tabular-nums"
-            required
-          />
-        </div>
+        {/* CurrencyInput stores the value as a number, but the parent form
+            still keeps `budget` as a string (it's threaded through draft
+            persistence and validation that expect a string). Convert at
+            this boundary only — `""` ↔ `undefined`, else `toString()`. */}
+        <CurrencyInput
+          id="budget"
+          value={budget === "" ? undefined : Number.parseFloat(budget) || undefined}
+          onChange={(next) => setBudget(next === undefined ? "" : next.toString())}
+          placeholder="50.00"
+          className="text-[15px] font-medium"
+          required
+          aria-label="Job budget in dollars"
+        />
         {/* Smart Pricing Guidance — while the RPC is in flight show a
             quiet skeleton so the hint doesn't pop in jarringly; the form
             is never blocked on it. Once resolved, a live range (from real

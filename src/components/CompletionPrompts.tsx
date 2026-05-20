@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Star, Gift, PartyPopper, Heart, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { fetchReferralData } from "@/hooks/useReferralData";
@@ -25,7 +25,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [, setAlreadyReviewed] = useState(false);
-  const [customTip, setCustomTip] = useState("");
+  const [customTip, setCustomTip] = useState<number | undefined>(undefined);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
   const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
@@ -202,23 +202,19 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             <div className="space-y-2">
               <label htmlFor="custom-tip-amount" className="text-ds-13 font-medium text-foreground">Enter your tip</label>
               <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
-                  <Input
-                    id="custom-tip-amount"
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    value={customTip}
-                    onChange={(e) => setCustomTip(e.target.value)}
-                    min="1"
-                    className="pl-7 text-ds-17 font-semibold h-12"
-                  />
-                </div>
+                <CurrencyInput
+                  id="custom-tip-amount"
+                  className="flex-1 text-ds-17 font-semibold"
+                  placeholder="0.00"
+                  value={customTip}
+                  onChange={setCustomTip}
+                  min={1}
+                  aria-label="Custom tip amount in dollars"
+                />
                 <Button
                   className="h-12 px-6"
-                  onClick={() => sendTip(parseFloat(customTip))}
-                  disabled={saving || !customTip || parseFloat(customTip) <= 0}
+                  onClick={() => sendTip(customTip ?? 0)}
+                  disabled={saving || customTip === undefined || customTip <= 0}
                 >
                   {saving ? "..." : "Send"}
                 </Button>

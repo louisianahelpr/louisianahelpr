@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Gift } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,7 +16,7 @@ interface TipDialogProps {
 const SUGGESTED_AMOUNTS = [5, 10, 20];
 
 export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) {
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number | undefined>(undefined);
   const [sending, setSending] = useState(false);
 
   const handleSend = async (tipAmount: number) => {
@@ -113,36 +113,20 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
 
           {/* Custom amount */}
           <div className="flex gap-2">
-            <div className="relative flex-1">
-              <span
-                className="absolute left-3 top-1/2 -translate-y-1/2 font-display italic font-bold"
-                style={{ fontSize: "1.05rem", color: "hsl(var(--olivewood) / 0.55)" }}
-              >
-                $
-              </span>
-              <Input
-                id="tip-dialog-amount"
-                type="number"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                min="1"
-                className="pl-8 h-12 rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40"
-                style={{
-                  fontSize: "1.05rem",
-                  fontFamily: "Bodoni Moda, Garamond, serif",
-                  fontStyle: "italic",
-                  fontWeight: 700,
-                  color: "hsl(var(--ink-deep))",
-                }}
-              />
-            </div>
+            <CurrencyInput
+              id="tip-dialog-amount"
+              className="flex-1"
+              placeholder="0.00"
+              value={amount}
+              onChange={setAmount}
+              min={1}
+              aria-label="Tip amount in dollars"
+            />
             <Button
               variant="bark"
               className="h-12 px-5 rounded-ds-md"
-              onClick={() => handleSend(parseFloat(amount))}
-              disabled={sending || !amount}
+              onClick={() => handleSend(amount ?? 0)}
+              disabled={sending || amount === undefined || amount <= 0}
             >
               {sending ? "…" : "Send tip"}
             </Button>

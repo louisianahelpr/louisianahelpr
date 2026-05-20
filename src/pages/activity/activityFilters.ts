@@ -1,15 +1,19 @@
 import { useMemo } from "react";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 import { jobStatusLabel } from "@/lib/statusLabels";
+import { jobStatusColorClasses } from "@/lib/statusColors";
 
 /**
  * activityFilters — status-filter definitions and the memoized list/count
  * derivations for the Activity page.
  *
- * Filter keys that match a `job_status` enum value use `jobStatusLabel`
- * so chips read identically to the rest of the app (see #46). Keys that
- * are derived buckets ("direct_offer", "offered", "not_selected") keep
- * their custom copy — they aren't enum values.
+ * Filter keys that match a `job_status` enum value pull their label from
+ * `jobStatusLabel` (#46) AND their color classes from
+ * `jobStatusColorClasses` (`src/lib/statusColors.ts`) so the filter
+ * chip paints the same as the row chip a tap later. Keys that are
+ * derived buckets ("direct_offer", "offered", "not_selected", "pending"
+ * meaning "Applied") aren't enum values, so they keep a bespoke palette
+ * intentionally distinct from any single enum state.
  */
 
 export interface StatusFilter {
@@ -18,25 +22,35 @@ export interface StatusFilter {
   color: string;
 }
 
+// Derived-bucket palettes — these are NOT enum values, so they
+// deliberately read different from any single job_status. Kept inline
+// because the canonical statusColors map only covers enum values.
+const DERIVED_DIRECT_OFFER =
+  "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40";
+const DERIVED_OFFERED =
+  "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40";
+const DERIVED_PENDING_APPLIED = "bg-secondary text-secondary-foreground border-border";
+const DERIVED_NOT_SELECTED = "bg-destructive/15 text-destructive border-destructive/30";
+
 export const POSTED_STATUS_FILTERS: StatusFilter[] = [
-  { key: "open", label: jobStatusLabel("open"), color: "bg-primary/15 text-primary border-primary/30" },
-  { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
+  { key: "open",         label: jobStatusLabel("open"),         color: jobStatusColorClasses("open") },
+  { key: "direct_offer", label: "Direct Offers",                color: DERIVED_DIRECT_OFFER },
   // "Awaiting Helpr's Response" — the poster sent an offer; the helpr hasn't confirmed yet.
-  { key: "offered", label: "Awaiting Helpr's Response", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
-  { key: "accepted", label: jobStatusLabel("accepted"), color: "bg-primary/15 text-primary border-primary/30" },
-  { key: "in_progress", label: jobStatusLabel("in_progress"), color: "bg-accent/15 text-accent-foreground border-accent/30" },
-  { key: "completed", label: jobStatusLabel("completed"), color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
+  { key: "offered",      label: "Awaiting Helpr's Response",    color: DERIVED_OFFERED },
+  { key: "accepted",     label: jobStatusLabel("accepted"),     color: jobStatusColorClasses("accepted") },
+  { key: "in_progress",  label: jobStatusLabel("in_progress"),  color: jobStatusColorClasses("in_progress") },
+  { key: "completed",    label: jobStatusLabel("completed"),    color: jobStatusColorClasses("completed") },
 ];
 
 export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
-  { key: "pending", label: "Applied", color: "bg-secondary text-secondary-foreground border-border" },
-  { key: "direct_offer", label: "Direct Offers", color: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40" },
+  { key: "pending",      label: "Applied",                      color: DERIVED_PENDING_APPLIED },
+  { key: "direct_offer", label: "Direct Offers",                color: DERIVED_DIRECT_OFFER },
   // "Respond to Offer" — the poster selected me; I need to accept or decline.
-  { key: "offered", label: "Respond to Offer", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40" },
-  { key: "accepted", label: jobStatusLabel("accepted"), color: "bg-primary/15 text-primary border-primary/30" },
-  { key: "in_progress", label: jobStatusLabel("in_progress"), color: "bg-accent/15 text-accent-foreground border-accent/30" },
-  { key: "completed", label: jobStatusLabel("completed"), color: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/40" },
-  { key: "not_selected", label: "Not Selected", color: "bg-destructive/15 text-destructive border-destructive/30" },
+  { key: "offered",      label: "Respond to Offer",             color: DERIVED_OFFERED },
+  { key: "accepted",     label: jobStatusLabel("accepted"),     color: jobStatusColorClasses("accepted") },
+  { key: "in_progress",  label: jobStatusLabel("in_progress"),  color: jobStatusColorClasses("in_progress") },
+  { key: "completed",    label: jobStatusLabel("completed"),    color: jobStatusColorClasses("completed") },
+  { key: "not_selected", label: "Not Selected",                 color: DERIVED_NOT_SELECTED },
 ];
 
 export interface UseActivityFiltersArgs {

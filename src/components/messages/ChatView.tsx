@@ -20,6 +20,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
 import { jobStatusLabel } from "@/lib/statusLabels";
+import { jobStatusColor } from "@/lib/statusColors";
 import { FirstMessageChips } from "./FirstMessageChips";
 import type { Conversation, Message } from "./types";
 
@@ -243,32 +244,28 @@ export function ChatView({
                 </p>
                 {activeConvo.jobStatus && (() => {
                   const status = activeConvo.jobStatus;
-                  // Labels come from the canonical `jobStatusLabel` map
-                  // (see #46) so the chat header reads identically to
-                  // every other status chip in the app. Colors stay
-                  // bespoke here — this header sits against the warm
-                  // off-white paper texture, not a card surface, so the
-                  // semantic-token palette used by <StatusBadge> would
-                  // look washed out.
-                  const colors: Record<string, { color: string; bg: string }> = {
-                    open:                { color: "hsl(var(--bark))",               bg: "hsl(var(--bark) / 0.12)" },
-                    assigned:            { color: "hsl(var(--burnt-sienna))",       bg: "hsl(var(--burnt-sienna) / 0.12)" },
-                    in_progress:         { color: "hsl(var(--burnt-sienna))",       bg: "hsl(var(--burnt-sienna) / 0.12)" },
-                    completed:           { color: "hsl(var(--olivewood) / 0.9)",    bg: "hsl(var(--olivewood) / 0.1)" },
-                    cancelled:           { color: "hsl(var(--destructive))",        bg: "hsl(var(--destructive) / 0.1)" },
-                  };
-                  const palette = colors[status] ?? { color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.1)" };
+                  // Colors come from the canonical `jobStatusColor` map
+                  // (see `src/lib/statusColors.ts`) so the chat header
+                  // pill paints identically to every other status chip
+                  // in the app. Labels come from `jobStatusLabel` (#46).
+                  //
                   // `assigned` isn't in the job_status enum — it's a
                   // legacy conversation alias for the offered-not-yet-
-                  // confirmed window. Keep its bespoke "Awarded" copy.
-                  const label = status === "assigned" ? "Awarded" : jobStatusLabel(status);
-                  const chip = { label, color: palette.color, bg: palette.bg };
+                  // confirmed window. Keep its bespoke "Awarded" copy
+                  // and route its color through the sienna-tinted
+                  // `in_progress` slot so it reads as "in motion".
+                  const palette =
+                    status === "assigned"
+                      ? jobStatusColor("in_progress")
+                      : jobStatusColor(status);
+                  const label =
+                    status === "assigned" ? "Awarded" : jobStatusLabel(status);
                   return (
                     <span
                       className="text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
-                      style={{ color: chip.color, backgroundColor: chip.bg, letterSpacing: "0.08em" }}
+                      style={{ color: palette.text, backgroundColor: palette.bg, letterSpacing: "0.08em" }}
                     >
-                      {chip.label}
+                      {label}
                     </span>
                   );
                 })()}

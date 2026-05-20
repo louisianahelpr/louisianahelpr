@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import AdminUserNotes from "./AdminUserNotes";
 import UserVerificationHistory from "./UserVerificationHistory";
 import { type Profile, isVerifiedEmail, statusBadge, stripeBadge } from "./adminUserHelpers";
+import { jobStatusColorClasses } from "@/lib/statusColors";
 
 interface AdminUserDetailDialogProps {
   /** Profile being viewed — the dialog is open iff this is non-null. */
@@ -409,11 +410,7 @@ export function AdminUserDetailDialog({
                               <div key={j.id} className="p-3 rounded-lg bg-secondary/30 border border-border">
                                 <div className="flex items-start justify-between gap-2 mb-1">
                                   <p className="text-ds-13 font-medium text-foreground line-clamp-1">{j.title}</p>
-                                  <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
-                                    j.status === "completed" ? "bg-primary/10 text-primary" :
-                                    j.status === "cancelled" ? "bg-destructive/10 text-destructive" :
-                                    "bg-muted text-muted-foreground"
-                                  }`}>{j.status}</span>
+                                  <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${jobStatusColorClasses(j.status)}`}>{j.status}</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-2 text-ds-11 text-muted-foreground">
                                   <div className="flex items-center gap-2 flex-wrap">

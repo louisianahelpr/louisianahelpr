@@ -5,15 +5,18 @@ import { MapPin, DollarSign, Clock, ChevronLeft, ChevronRight, CalendarDays, Sea
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 import type { Database } from "@/integrations/supabase/types";
+import { jobStatusColorClasses } from "@/lib/statusColors";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
 const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
-  <div className={`rounded-ds-md border p-3 ${
-    job.status === "open" ? "bg-primary/10 text-primary border-primary/20" :
-    job.status === "in_progress" || job.status === "accepted" ? "bg-accent/20 text-accent-foreground border-accent/30" :
-    "border-border bg-card"
-  }`}>
+  // Card surface tint mirrors the canonical status palette so an "in
+  // progress" calendar entry reads in the same sienna family as the chip
+  // for that state elsewhere. Border is left to the canvas (`bg-card`)
+  // for terminal states so the calendar doesn't shout with cancelled
+  // jobs.
+  <div className={`rounded-ds-md border border-border/40 p-3 ${jobStatusColorClasses(job.status)}`}>
+
     <div className="flex items-start justify-between gap-3">
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap mb-1">

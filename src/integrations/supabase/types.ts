@@ -1631,6 +1631,36 @@ export type Database = {
         }
         Relationships: []
       }
+      nps_responses: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          score: number
+          triggered_at_jobs_completed: number | null
+          user_id: string
+          user_role: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          score: number
+          triggered_at_jobs_completed?: number | null
+          user_id: string
+          user_role?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          score?: number
+          triggered_at_jobs_completed?: number | null
+          user_id?: string
+          user_role?: string | null
+        }
+        Relationships: []
+      }
       parish_tax_rates: {
         Row: {
           id: string

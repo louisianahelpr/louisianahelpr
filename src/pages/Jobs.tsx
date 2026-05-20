@@ -118,7 +118,7 @@ const Jobs = () => {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: queryKeys.jobsOpen(),
+    queryKey: queryKeys.jobs.open(),
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<JobsPage> => {
       const offset = pageParam as number;

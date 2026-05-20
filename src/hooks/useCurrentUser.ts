@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { channelNonce } from "@/lib/realtimeChannel";
+import { queryKeys } from "@/lib/queryKeys";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -62,7 +63,7 @@ export const useCurrentUser = (): CurrentUser => {
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["currentUser", user?.id],
+    queryKey: queryKeys.currentUser.byId(user?.id),
     queryFn: () => fetchCurrentUser(user!.id),
     enabled: isReady && !!user,
     // Short staleTime so approval-status changes (made by an admin) get picked
@@ -94,7 +95,7 @@ export const useCurrentUser = (): CurrentUser => {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
         },
       )
       .subscribe();
@@ -105,7 +106,7 @@ export const useCurrentUser = (): CurrentUser => {
 
   const refresh = async () => {
     if (!user?.id) return;
-    await queryClient.invalidateQueries({ queryKey: ["currentUser", user.id] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
   };
 
   useEffect(() => {

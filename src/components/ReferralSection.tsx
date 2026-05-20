@@ -60,7 +60,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         toast.error(result.error);
       } else {
         toast.success(`$${result.amount.toFixed(2)} sent to your connected Stripe account!`);
-        await queryClient.invalidateQueries({ queryKey: queryKeys.referral(userId) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.referral.byUser(userId) });
       }
     } catch (err: any) {
       toast.error(err.message || "Cash-out failed. Please try again.");

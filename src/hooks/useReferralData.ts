@@ -63,7 +63,7 @@ export async function fetchReferralData(userId: string): Promise<ReferralData> {
 
 export function useReferralData(userId: string | undefined) {
   return useQuery({
-    queryKey: userId ? queryKeys.referral(userId) : ["referral", "anon"],
+    queryKey: userId ? queryKeys.referral.byUser(userId) : ["referral", "anon"],
     queryFn: () => fetchReferralData(userId!),
     enabled: !!userId,
     staleTime: 60 * 1000,

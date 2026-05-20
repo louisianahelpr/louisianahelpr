@@ -2,19 +2,11 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/UserAvatar";
 import { Crown, Star, TrendingUp, Sparkles, ExternalLink } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
-
-const getInitials = (name?: string | null) =>
-  (name || "?")
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
 interface HelperTier {
   user_id: string;
@@ -109,10 +101,13 @@ const AdminHelperTiers = () => {
             const Icon = TIER_ICON[helper.tier];
             return (
               <div key={helper.user_id} className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">
-                <Avatar className="w-10 h-10 shrink-0">
-                  <AvatarImage src={helper.avatar_url || undefined} />
-                  <AvatarFallback>{getInitials(helper.full_name)}</AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  userId={helper.user_id}
+                  src={helper.avatar_url}
+                  name={helper.full_name}
+                  pixelSize={40}
+                  className="w-10 h-10 shrink-0"
+                />
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-ds-13 text-foreground truncate">

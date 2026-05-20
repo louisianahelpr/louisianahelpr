@@ -1,0 +1,157 @@
+import type { EnrichedJob } from "@/components/dashboard/types";
+import { haversineMiles } from "@/lib/geo";
+
+/**
+ * Helper-side composite-score sort for the browse-jobs feed.
+ *
+ * A "Smart" default that floats high-conversion jobs to the top by mixing
+ * four signals every helper actually weighs when scanning the feed:
+ *
+ *  - **Recency**     — how fresh the post is (newer = stronger pull)
+ *  - **Budget**      — how much it pays (more = stronger pull, log-scaled
+ *                      so a $5000 job doesn't bury everything else)
+ *  - **Urgency**     — whether it carries an urgent_fee bonus or the
+ *                      requested date is within 48h
+ *  - **Proximity**   — if we know the helper's coords AND the job's coords,
+ *                      jobs nearer than 10/25 miles get a bonus
+ *
+ * Pure functions on already-fetched job rows; no async, no I/O. The
+ * scoring weights are intentionally hand-tuned constants — easy to read
+ * and adjust without spinning up an ML pipeline.
+ *
+ * Filtering (open-status, etc.) happens **before** sort by the consumer.
+ */
+
+export interface HelperLocation {
+  lat: number;
+  lng: number;
+}
+
+/** Recency half-life — score halves every ~4 days of age. */
+const RECENCY_HALFLIFE_MS = 4 * 24 * 60 * 60 * 1000;
+
+/** Urgent jobs (urgent_fee > 0 OR date_needed within this window) get +0.5. */
+const URGENT_WINDOW_MS = 48 * 60 * 60 * 1000;
+const URGENT_BONUS = 0.5;
+
+/** Proximity tiers (miles → flat bonus). */
+const NEAR_BONUS = 0.3;
+const NEAR_MILES = 10;
+const MID_BONUS = 0.15;
+const MID_MILES = 25;
+
+/**
+ * Recency component: 1.0 for a job posted right now, decaying exponentially
+ * with a 4-day half-life. A job posted 24h ago is ~0.84; 4 days ≈ 0.5;
+ * 8 days ≈ 0.25.
+ */
+function recencyScore(createdAt: string | null | undefined, now: number): number {
+  if (!createdAt) return 0;
+  const ts = new Date(createdAt).getTime();
+  if (!Number.isFinite(ts)) return 0;
+  const ageMs = Math.max(0, now - ts);
+  return Math.pow(0.5, ageMs / RECENCY_HALFLIFE_MS);
+}
+
+/**
+ * Log-scaled budget component. log10(budget+1) keeps the gap between $20
+ * and $100 meaningful (~0.4 vs ~0.7) while compressing $50 vs $5000 from
+ * 100x down to ~2.2x. Negative / zero budgets collapse to 0.
+ */
+function budgetScore(budget: number | null | undefined): number {
+  if (typeof budget !== "number" || !Number.isFinite(budget) || budget <= 0) return 0;
+  return Math.log10(budget + 1);
+}
+
+/**
+ * Urgency component — flat +0.5 if EITHER the job carries an urgent_fee
+ * bonus OR its date_needed falls inside the next 48h. The is_urgent
+ * boolean column is also honored for safety since posters set it.
+ */
+function urgencyBonus(
+  job: Pick<EnrichedJob, "urgent_fee" | "is_urgent" | "date_needed">,
+  now: number,
+): number {
+  if (typeof job.urgent_fee === "number" && job.urgent_fee > 0) return URGENT_BONUS;
+  if (job.is_urgent) return URGENT_BONUS;
+  if (job.date_needed) {
+    // date_needed is a calendar date — treat it as noon local to avoid
+    // timezone-edge "midnight is yesterday" weirdness, matching how the
+    // existing match-availability filter parses it.
+    const ts = new Date(job.date_needed + "T12:00:00").getTime();
+    if (Number.isFinite(ts)) {
+      const delta = ts - now;
+      if (delta <= URGENT_WINDOW_MS && delta >= -URGENT_WINDOW_MS) {
+        return URGENT_BONUS;
+      }
+    }
+  }
+  return 0;
+}
+
+/**
+ * Proximity component — only adds a bonus when BOTH the helper's
+ * coordinates AND the job's coordinates are known. No bonus is the
+ * neutral case (not a penalty) — helpers who haven't shared location
+ * still get a score that ranks by recency + budget + urgency alone.
+ */
+function proximityBonus(
+  job: Pick<EnrichedJob, "latitude" | "longitude">,
+  helperLocation: HelperLocation | null | undefined,
+): number {
+  if (!helperLocation) return 0;
+  const lat = job.latitude;
+  const lng = job.longitude;
+  if (typeof lat !== "number" || typeof lng !== "number") return 0;
+  const miles = haversineMiles(helperLocation.lat, helperLocation.lng, lat, lng);
+  if (miles <= NEAR_MILES) return NEAR_BONUS;
+  if (miles <= MID_MILES) return MID_BONUS;
+  return 0;
+}
+
+/**
+ * Composite "smart" score. Higher = surface first. Pure — caller passes
+ * `now` for deterministic tests; defaults to `Date.now()` in prod paths.
+ *
+ * The sum is intentionally unnormalized: each component has a small
+ * dynamic range and additive composition lets one strong signal carry a
+ * job up the list without any one signal dominating. Tweak weights here
+ * rather than in callers.
+ */
+export function smartScore(
+  job: Pick<
+    EnrichedJob,
+    "created_at" | "budget" | "urgent_fee" | "is_urgent" | "date_needed" | "latitude" | "longitude"
+  >,
+  helperLocation?: HelperLocation | null,
+  now: number = Date.now(),
+): number {
+  return (
+    recencyScore(job.created_at, now) +
+    budgetScore(job.budget) +
+    urgencyBonus(job, now) +
+    proximityBonus(job, helperLocation)
+  );
+}
+
+/**
+ * Returns a new array sorted by `smartScore` descending. Does not mutate
+ * the input. Status filtering is the caller's responsibility — this
+ * function ranks whatever it's given.
+ *
+ * Stable: ties keep input order, matching JS Array#sort spec on modern
+ * engines and the project's other sort helpers.
+ */
+export function sortJobsSmart<T extends Parameters<typeof smartScore>[0]>(
+  jobs: T[],
+  helperLocation?: HelperLocation | null,
+  now: number = Date.now(),
+): T[] {
+  return jobs
+    .map((job, index) => ({ job, index, score: smartScore(job, helperLocation, now) }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.index - b.index;
+    })
+    .map((entry) => entry.job);
+}

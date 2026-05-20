@@ -5,11 +5,23 @@
 // quality. Tests cover all filter branches and the sort-priority
 // invariants.
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { useDashboardFilters } from "./useDashboardFilters";
+
+// Smart-sort is now the persisted default. Wipe the storage key between
+// tests so each renderHook starts from a clean slate and existing tests
+// that expect the legacy "newest" ordering keep their assertions valid
+// after they explicitly opt into setSortBy("newest").
+beforeEach(() => {
+  try {
+    window.localStorage.removeItem("helpr_browse_sort");
+  } catch {
+    /* jsdom always provides localStorage; defensive */
+  }
+});
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -201,7 +213,9 @@ describe("useDashboardFilters — sort priority chain", () => {
       makeJob({ id: "j2", parish: "Orleans", created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString() }),
     ];
     const { result } = setup(jobs, { profile: { parish: null } as unknown as Profile });
-    // Default sortBy=newest, no parish filter, so j2 (newer) wins
+    // Opt into the legacy newest sort so this test asserts the no-parish
+    // fall-through deterministically (the new default is "smart").
+    act(() => result.current.setSortBy("newest"));
     expect(result.current.filteredJobs[0].id).toBe("j2");
   });
 
@@ -214,12 +228,13 @@ describe("useDashboardFilters — sort priority chain", () => {
     expect(result.current.filteredJobs[0].id).toBe("paid-poster");
   });
 
-  it("default sortBy=newest orders by created_at descending after priority tiers", () => {
+  it("sortBy='newest' orders by created_at descending after priority tiers", () => {
     const t1 = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const t2 = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const t3 = new Date(Date.now() - 90 * 60 * 1000).toISOString();
     const jobs = [makeJob({ id: "j1", created_at: t1 }), makeJob({ id: "j2", created_at: t2 }), makeJob({ id: "j3", created_at: t3 })];
     const { result } = setup(jobs);
+    act(() => result.current.setSortBy("newest"));
     // newest first: t2 > t1 > t3
     expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["j2", "j1", "j3"]);
   });
@@ -244,6 +259,62 @@ describe("useDashboardFilters — sort priority chain", () => {
     const { result } = setup(jobs);
     act(() => result.current.setSortBy("lowest_pay"));
     expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["low", "mid", "high"]);
+  });
+});
+
+describe("useDashboardFilters — smart-default sort + persistence", () => {
+  it("defaults sortBy to 'smart' on first open (no localStorage entry yet)", () => {
+    const { result } = setup([]);
+    expect(result.current.sortBy).toBe("smart");
+  });
+
+  it("persists the user's sort choice to localStorage", () => {
+    const { result } = setup([]);
+    act(() => result.current.setSortBy("highest_pay"));
+    expect(window.localStorage.getItem("helpr_browse_sort")).toBe("highest_pay");
+  });
+
+  it("re-hydrates the persisted sort on the next mount", () => {
+    window.localStorage.setItem("helpr_browse_sort", "ending_soon");
+    const { result } = setup([]);
+    expect(result.current.sortBy).toBe("ending_soon");
+  });
+
+  it("smart-sort ranks jobs by the composite score (recency + log-budget + urgency)", () => {
+    // All three clear the early-access delay; smart should float the
+    // rich+urgent recent job above a stale low-budget job.
+    const now = Date.now();
+    const jobs = [
+      makeJob({
+        id: "stale-cheap",
+        budget: 20,
+        created_at: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      }),
+      makeJob({
+        id: "fresh-rich-urgent",
+        budget: 500,
+        urgent_fee: 50,
+        created_at: new Date(now - 60 * 60 * 1000).toISOString(),
+      }),
+      makeJob({
+        id: "fresh-mid",
+        budget: 75,
+        created_at: new Date(now - 90 * 60 * 1000).toISOString(),
+      }),
+    ];
+    // Elite tier so the 60-min-old job clears the 20-min delay.
+    const { result } = setup(jobs, { helprTier: "elite" });
+    expect(result.current.sortBy).toBe("smart");
+    // urgent_fee>0 carries is_urgent semantics in the global priority
+    // chain too, so the fresh+rich+urgent job lands at the top.
+    expect(result.current.filteredJobs[0].id).toBe("fresh-rich-urgent");
+    // After the urgent winner, smart score should pick fresh-mid over
+    // stale-cheap (newer + higher budget).
+    expect(result.current.filteredJobs.map((j) => j.id)).toEqual([
+      "fresh-rich-urgent",
+      "fresh-mid",
+      "stale-cheap",
+    ]);
   });
 });
 

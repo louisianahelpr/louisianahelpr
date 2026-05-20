@@ -1,8 +1,36 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { haversineMiles, parseNearbyFilter } from "@/lib/geo";
 import { useUserLocation } from "@/hooks/useUserLocation";
+import { sortJobsSmart } from "@/lib/smartSort";
+
+// Persisted browse-feed sort key. Stored in localStorage so a helper's
+// pick survives reloads; defaults to "smart" the very first time the
+// browse feed is opened so signal-ranked jobs surface before time-only.
+const BROWSE_SORT_STORAGE_KEY = "helpr_browse_sort";
+const DEFAULT_BROWSE_SORT = "smart";
+
+function readPersistedSort(): string {
+  if (typeof window === "undefined") return DEFAULT_BROWSE_SORT;
+  try {
+    const stored = window.localStorage.getItem(BROWSE_SORT_STORAGE_KEY);
+    return stored && stored.length > 0 ? stored : DEFAULT_BROWSE_SORT;
+  } catch {
+    // localStorage can throw in Safari private mode / sandboxed contexts;
+    // fall back to the smart default rather than crash the dashboard.
+    return DEFAULT_BROWSE_SORT;
+  }
+}
+
+function writePersistedSort(value: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(BROWSE_SORT_STORAGE_KEY, value);
+  } catch {
+    // Same fallback — silently ignore write failures.
+  }
+}
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -19,7 +47,11 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
-  const [sortBy, setSortBy] = useState<string>("newest");
+  const [sortBy, setSortByRaw] = useState<string>(() => readPersistedSort());
+  const setSortBy = useCallback((next: string) => {
+    setSortByRaw(next);
+    writePersistedSort(next);
+  }, []);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [expiresWithin, setExpiresWithin] = useState("");
@@ -41,6 +73,29 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     setMatchAvailability(false);
     setBoostedOnly(false);
   };
+
+  // Smart-sort proximity input — reuse the helper's coords ONLY when the
+  // location filter has already prompted-and-resolved them. We never
+  // trigger the OS location prompt just for sort ranking; if coords
+  // aren't already known the smart score falls back to recency + budget
+  // + urgency, which still ranks well without the proximity bonus.
+  const helperLocationForSort = useMemo(
+    () => (userLoc.status === "ready" ? { lat: userLoc.lat, lng: userLoc.lng } : null),
+    [userLoc],
+  );
+
+  // When sorting by Smart we pre-rank the prefiltered list with the
+  // composite score so the per-pair comparator below can fall back to
+  // "earlier index wins" (i.e. preserve the smart order) on ties. The
+  // global priorities (urgent / boost / parish / poster-sub) still
+  // override that, which keeps Smart consistent with the other modes.
+  const smartIndexByJobId = useMemo(() => {
+    if (sortBy !== "smart") return null;
+    const ranked = sortJobsSmart(allJobs, helperLocationForSort);
+    const map = new Map<string, number>();
+    ranked.forEach((j, i) => map.set(j.id, i));
+    return map;
+  }, [sortBy, allJobs, helperLocationForSort]);
 
   const filteredJobs = useMemo(() => allJobs
     .filter((job) => {
@@ -112,12 +167,20 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         if (!aPosterSub && bPosterSub) return 1;
       }
       switch (sortBy) {
+        case "smart": {
+          // Use the pre-computed rank map so the comparator stays O(1).
+          // Unknown ids (shouldn't happen because the map is built from
+          // `allJobs`) fall to the end of the list rather than crashing.
+          const ai = smartIndexByJobId?.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+          const bi = smartIndexByJobId?.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+          return ai - bi;
+        }
         case "highest_pay": return b.budget - a.budget;
         case "lowest_pay": return a.budget - b.budget;
         case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, profile?.parish]);
+    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, profile?.parish, smartIndexByJobId]);
 
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";

@@ -17,6 +17,7 @@ import { formatDistanceToNow, differenceInHours } from "date-fns";
 import type { EnrichedJob } from "./types";
 import { JobPosterCard } from "./JobPosterCard";
 import { PhotoLightbox } from "./PhotoLightbox";
+import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -623,6 +624,14 @@ const JobDetailDialog = ({
               />
             </Button>
           )}
+          {/* Share — helpers occasionally want to forward a great job
+              to another helper. Matches the icon-row sizing of its
+              neighbours (Flag · Save · Message). */}
+          <ShareJobButton
+            variant="icon"
+            job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
+            ariaLabel="Share this job with another helpr"
+          />
           <Button
             variant="ghost"
             size="icon"

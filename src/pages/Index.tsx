@@ -25,6 +25,11 @@ const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 import HeroSection from "@/components/landing/HeroSection";
 const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
 const CommunityVoice = lazy(() => import("@/components/landing/CommunityVoice"));
+// PayoutTicker is below the fold (it lives between the hero and the
+// city strip) so it's safe to lazy-load — keeps the supabase chunk
+// out of the LCP path. The ticker hides itself on empty / errored
+// data, so a render-failure of the chunk degrades cleanly to nothing.
+const PayoutTicker = lazy(() => import("@/components/landing/PayoutTicker"));
 
 const SITE_URL = "https://www.louisianahelpr.com";
 
@@ -178,6 +183,18 @@ const Index = () => {
         <Navbar />
       </Suspense>
       <HeroSection />
+
+      {/* Live payout ticker (#87) — single-line social-proof strip
+          between the hero CTAs and the city strip, telling prospective
+          helpers "real people are getting paid here right now."
+          Self-hides when there's no recent payout data OR when the
+          public RPC hasn't been pushed yet (PGRST202 fallback), so a
+          fresh / quiet platform doesn't show an empty placeholder. */}
+      <div className="px-5 sm:px-8 lg:px-12 pt-10 sm:pt-12 lg:pt-14">
+        <Suspense fallback={null}>
+          <PayoutTicker />
+        </Suspense>
+      </div>
 
       {/* City strip — sense-of-place transition between hero and process,
           replacing the previous "hugs the marquee" placement inside the

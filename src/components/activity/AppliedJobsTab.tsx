@@ -59,7 +59,7 @@ export const AppliedJobsTab = ({
     if (error) {
       toast.error("Failed to withdraw application");
     } else {
-      toast.success(`Successfully withdrawn from "${jobTitle}"`);
+      toast.success(`Withdrawn from "${jobTitle}".`);
     }
     setWithdrawingAppId(null);
     setWithdrawTarget(null);
@@ -101,7 +101,7 @@ export const AppliedJobsTab = ({
           icon={Send}
           eyebrow="No applications"
           title="Nothing in this view yet."
-          body="Browse open tasks near you and apply — your applications will land here."
+          body="Browse open tasks near you and apply — they'll collect here as you go."
           action={
             <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md btn-press">
               <Send className="w-4 h-4 mr-1.5" /> Browse tasks

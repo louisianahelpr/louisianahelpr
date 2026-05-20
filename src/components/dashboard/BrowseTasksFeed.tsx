@@ -204,7 +204,7 @@ export function BrowseTasksFeed({
                     "New jobs post throughout the day. Helprs often check in around lunch and after work.",
                     "Most posts go up on weekday evenings. Pull down to refresh anytime.",
                     "Saved a search? Helpr will ping you the moment a matching job hits the board.",
-                    "Quiet days happen. The neighborhood circles back — usually before sundown.",
+                    "Quiet days happen. The feed usually picks back up by evening.",
                   ];
                   return tips[new Date().getHours() % tips.length];
                 })()

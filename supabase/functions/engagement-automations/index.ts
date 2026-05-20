@@ -29,27 +29,25 @@ const h1 = (t: string) => `<h1 style="font-size:22px;font-weight:bold;color:hsl(
 
 // Welcome drip step 1: Welcome to Helpr (Day 1)
 function dripStep1(name: string) {
-  const subject = "Welcome to Helpr — we're glad you're here! 🎉"
+  const subject = "You're in. Here's where to start on Helpr."
   const html = wrapEmail(`
     ${h1("Welcome to Helpr!")}
-    ${p(`Hey ${name || "there"}, thanks for joining the Helpr community! We're excited to have you on board.`)}
-    ${p("Whether you're here to post tasks and get things done, or to pick up jobs and start earning — you're in the right place.")}
-    ${p("Here's what you can do right now:")}
+    ${p(`Hey ${name || "there"} — your account is set up. Two things you can do today:`)}
     <ul style="font-size:15px;color:hsl(160,6%,50%);line-height:1.8;padding-left:20px;margin:0 0 16px">
       <li><strong>Post a task</strong> — describe what you need and set your budget</li>
       <li><strong>Browse jobs</strong> — find opportunities near you</li>
-      <li><strong>Connect</strong> — message helpers or customers directly</li>
+      <li><strong>Connect</strong> — message helprs or customers directly</li>
     </ul>
     ${btn("Go to Dashboard", `${SITE_URL}/dashboard`)}
-    ${p("We're here if you need anything. Welcome aboard! 💚")}
+    ${p("Reach out anytime at admin@louisianahelpr.com.")}
   `)
-  const text = `Hey ${name || "there"}, welcome to Helpr! Post tasks, browse jobs, and connect with your community: ${SITE_URL}/dashboard`
+  const text = `Hey ${name || "there"} — your account is set up. Post tasks, browse jobs, and connect with your community: ${SITE_URL}/dashboard`
   return { subject, html, text }
 }
 
 // Welcome drip step 2: Explore the platform (Day 3)
 function dripStep2(name: string) {
-  const subject = "Ready to explore? Here's how Helpr works 🔍"
+  const subject = "A quick tour of how Helpr works."
   const html = wrapEmail(`
     ${h1("Explore what Helpr has to offer")}
     ${p(`Hey ${name || "there"}, now that you're set up, here's what you can do:`)}
@@ -66,7 +64,7 @@ function dripStep2(name: string) {
 
 // Welcome drip step 3: Tips for success (Day 7)
 function dripStep3(name: string) {
-  const subject = "Pro tips for getting the most out of Helpr 💪"
+  const subject = "Four things great helprs do."
   const html = wrapEmail(`
     ${h1("Tips from the community")}
     ${p(`Hey ${name || "there"}, here are some quick tips from successful Helpr users:`)}
@@ -77,7 +75,7 @@ function dripStep3(name: string) {
       <li><strong>Stay safe</strong> — always communicate through the platform</li>
     </ol>
     ${btn("Start Now", `${SITE_URL}/dashboard`)}
-    ${p("We're here if you need anything. Happy Helpr-ing! 🤝")}
+    ${p("Questions? admin@louisianahelpr.com.")}
   `)
   const text = `Hey ${name || "there"}, pro tips: Be specific, respond quickly, leave reviews, stay safe. Start now: ${SITE_URL}/dashboard`
   return { subject, html, text }
@@ -85,13 +83,13 @@ function dripStep3(name: string) {
 
 // Re-engagement email
 function reEngagementEmail(name: string) {
-  const subject = "We miss you! New tasks are waiting on Helpr 👋"
+  const subject = "New tasks are open in your area."
   const html = wrapEmail(`
     ${h1("New tasks are waiting for you!")}
     ${p(`Hey ${name || "there"}, it's been a while since we've seen you on Helpr.`)}
     ${p("There are new tasks posted in your area — whether you're looking for help or looking to earn, now's a great time to check in.")}
     ${btn("See What's New", `${SITE_URL}/dashboard`)}
-    ${p("We'd love to have you back. 💚")}
+    ${p("Pull up the feed when you're ready.")}
   `)
   const text = `Hey ${name || "there"}, it's been a while! New tasks are waiting on Helpr. Check them out: ${SITE_URL}/dashboard`
   return { subject, html, text }
@@ -263,16 +261,14 @@ Deno.serve(async (_req) => {
         continue
       }
 
-      const subject = emailCount === 1
-        ? "Don't forget — your Helpr account is ready! 🎉"
-        : "Your Helpr account is waiting for you 👋"
+      const subject = "Your Helpr account is approved — ready when you are."
 
       const htmlContent = wrapEmail(`
         ${h1("Your account is approved!")}
         ${p(`Hey ${user.full_name || "there"}, just a reminder — your Helpr account has been approved and is ready to go!`)}
         ${p("Browse tasks, post jobs, or connect with people in your area. It only takes a minute to get started.")}
         ${btn("Browse Jobs", `${SITE_URL}/dashboard`)}
-        ${p("We'd love to see you on the platform. 💚")}
+        ${p("Open the app whenever you're ready to post or browse.")}
       `)
       const textContent = `Hey ${user.full_name || "there"}, your Helpr account is approved! Browse jobs and get started: ${SITE_URL}/dashboard`
 

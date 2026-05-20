@@ -127,7 +127,7 @@ export function ConversationList({
                 icon={MessageSquare}
                 eyebrow="Quiet for now"
                 title="No messages yet."
-                body="Apply to a task or accept a helpr's offer — your conversations will land here."
+                body="Apply to a task or accept a helpr's offer — conversations appear here once they start."
                 action={
                   <BarkPillButton onClick={() => navigate("/dashboard")}>
                     Browse tasks

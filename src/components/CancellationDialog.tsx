@@ -162,7 +162,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           );
         }
       } else {
-        toast.success("Job cancelled successfully.");
+        toast.success("Job cancelled.");
       }
 
       onCancelled();

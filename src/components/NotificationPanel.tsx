@@ -7,6 +7,7 @@ import { Bell, Check, CheckCheck, Info, AlertTriangle, DollarSign, Users, Star, 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { isPushSupported, registerServiceWorker, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
 import { useRequestPushPermission } from "@/lib/nativePush";
+import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -203,7 +204,11 @@ const NotificationPanel = () => {
       setPushEnabled(true);
       toast.success("Push notifications enabled!");
     } else {
-      toast.error("Notifications permission denied. Enable in browser settings.");
+      toast.error(
+        Capacitor.isNativePlatform()
+          ? "Notifications are off. Turn them on in your device settings."
+          : "Notifications are off. Turn them on in your browser settings.",
+      );
     }
   };
 

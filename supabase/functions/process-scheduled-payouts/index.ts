@@ -110,8 +110,8 @@ serve(async (req) => {
         console.error(`Helper ${job.helper_id} has no Stripe Connect for job ${job.id}`);
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
-          title: "⚠️ Payout account required",
-          message: `Your payout of $${helperPayout.toFixed(2)} for "${job.title}" is waiting. Set up your payout account in your profile.`,
+          title: "Payout account required",
+          message: `$${helperPayout.toFixed(2)} from "${job.title}" is ready, but your payout account isn't set up yet. Add it in Profile → Payments.`,
           type: "warning", link: "/profile?tab=payment",
         });
         results.push({ job_id: job.id, status: "no_connect_account" });

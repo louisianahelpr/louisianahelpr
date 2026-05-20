@@ -31,13 +31,13 @@ export const InviteEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Text style={logo}>Helpr</Text>
-        <Heading style={h1}>You've been invited! 🤝</Heading>
+        <Heading style={h1}>You've been invited to Helpr.</Heading>
         <Text style={text}>
-          You've been invited to join{' '}
+          A neighbor invited you to join{' '}
           <Link href={siteUrl} style={linkStyle}>
             <strong>Helpr</strong>
           </Link>
-          . Click the button below to accept and create your account.
+          . Tap below to accept and set up your account.
         </Text>
         <Button style={button} href={confirmationUrl}>
           Accept Invitation

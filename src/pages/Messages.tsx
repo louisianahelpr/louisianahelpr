@@ -532,7 +532,7 @@ const Messages = () => {
           })),
         );
       }
-      toast.error("Your account has been banned for violating platform rules.");
+      toast.error("Your account is banned. Contact admin@louisianahelpr.com if you think this was a mistake.");
     } else {
       await supabase.from("user_violations").insert({
         user_id: userId, violation_type: "off_platform",

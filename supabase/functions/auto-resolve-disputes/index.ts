@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
       notifications.push({
         user_id: job.customer_id,
         title: "Dispute auto-resolved",
-        message: `The dispute on "${job.title}" was not resolved or escalated within 72 hours. Per platform policy, payment has been released to the helper.`,
+        message: `The dispute on "${job.title}" was not resolved or escalated within 72 hours. Per platform policy, payment has been released to the helpr.`,
         type: "warning",
         link: "/my-posts?filter=completed",
       });
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
           notifications.push({
             user_id: admin.user_id,
             title: "⚠️ Dispute auto-resolved",
-            message: `Dispute on "${job.title}" expired without poster action. Payment auto-released to helper.`,
+            message: `Dispute on "${job.title}" expired without poster action. Payment auto-released to helpr.`,
             type: "warning",
             link: "/admin",
           });

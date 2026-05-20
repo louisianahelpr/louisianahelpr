@@ -203,7 +203,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
           variant="inline"
           icon={Star}
           title="No reviews yet"
-          body="Complete a job and your customer's words will land here."
+          body="Complete a job and your customer's words will show up here."
           action={
             /* How-reviews-work disclosure — opens a small popover with
                the 4 rating dimensions so new helprs know what's being

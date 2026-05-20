@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
           user_id: h.user_id,
           // Category emoji in the title for faster glance recognition.
           title: `${emoji} Match for you${job.is_urgent ? " · Urgent" : ""}`,
-          message: `${job.title} in ${job.location} · $${job.budget}. Tap to apply before someone else.`,
+          message: `${job.title} in ${job.location} · $${job.budget}. Tap to review and apply.`,
           type: "job_match",
           link: `/dashboard?quickApply=${job.id}`,
           read: false,

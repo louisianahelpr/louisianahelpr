@@ -33,13 +33,13 @@ export const SignupEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Text style={logo}>Helpr</Text>
-        <Heading style={h1}>Welcome aboard! 🎉</Heading>
+        <Heading style={h1}>Confirm your email to get started.</Heading>
         <Text style={text}>
-          Thanks for signing up for{' '}
+          Tap the button below to verify your email so we can finish setting up your{' '}
           <Link href={siteUrl} style={linkStyle}>
             <strong>Helpr</strong>
-          </Link>
-          ! We're excited to have you.
+          </Link>{' '}
+          account.
         </Text>
         <Text style={text}>
           Please verify your email (

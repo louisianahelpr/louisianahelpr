@@ -37,7 +37,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       // Elite perk path — server flipped the boost flags directly and
       // returned `free: true`. No Stripe redirect needed.
       if (data?.free) {
-        toast.success(data.message || "Job boosted — included with Elite");
+        toast.success(data.message || "Job boosted — your post will lead the feed.");
         onBoosted?.();
         onClose();
         return;

@@ -446,7 +446,7 @@ export function useActivityActions({
               .single();
             const afterPhotos = jobData?.proof_after_urls || [];
             if (afterPhotos.length === 0) {
-              toast.error("After-photos are required for jobs $50+. Please upload proof photos before marking complete.", { duration: 6000 });
+              toast.error("Upload an after-photo before marking jobs $50+ complete.", { duration: 6000 });
               return;
             }
           }

@@ -91,7 +91,7 @@ const DataRights = () => {
       const { error } = await supabase.functions.invoke("delete-own-account");
       if (error) throw error;
       hapticSuccess();
-      toast.success("Your account has been deleted. Goodbye 👋");
+      toast.success("Your account has been deleted.");
       await supabase.auth.signOut();
       window.location.href = "/";
     } catch (err: any) {

@@ -78,7 +78,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
       !currentFilters.locationFilter
     ) {
       hapticError();
-      toast.error("Set at least one filter before saving");
+      toast.error("Set at least one filter so the search has something to match on.");
       return;
     }
     hapticMedium();
@@ -98,7 +98,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
       return;
     }
     hapticSuccess();
-    toast.success("Search saved — you'll be notified of matching jobs");
+    toast.success("Search saved — we'll ping you when a matching job posts.");
     setName("");
     load();
   };

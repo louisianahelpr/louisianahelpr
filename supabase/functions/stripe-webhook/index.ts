@@ -493,8 +493,8 @@ serve(async (req) => {
                 logStep("✅ Auto-approved helper via Stripe verification", { userId: helperProfile.user_id });
                 await supabase.from("notifications").insert({
                   user_id: helperProfile.user_id,
-                  title: "🎉 Welcome to Helpr!",
-                  message: "Your identity is verified and your payout account is ready. You're approved to start accepting jobs!",
+                  title: "Welcome in.",
+                  message: "Your identity and payout account are set. You're cleared to accept jobs.",
                   type: "success",
                   link: "/dashboard",
                 });
@@ -630,7 +630,7 @@ serve(async (req) => {
         postSlackOpsAlert({
           kind: "payout_failed",
           severity: "warning",
-          title: "Helper payout failed",
+          title: "Helpr payout failed",
           message: `Stripe transfer ${transfer.id} did not succeed.`,
           fields: {
             "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
@@ -656,7 +656,7 @@ serve(async (req) => {
         postSlackOpsAlert({
           kind: "payout_reversed",
           severity: "warning",
-          title: "Helper payout reversed",
+          title: "Helpr payout reversed",
           message: `Stripe transfer ${transfer.id} was reversed. Investigate and reconcile.`,
           fields: {
             "Amount": `$${(transfer.amount / 100).toFixed(2)}`,

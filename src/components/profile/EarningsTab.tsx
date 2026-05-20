@@ -27,6 +27,7 @@ import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
+import { HelperStreakBadge } from "@/components/profile/HelperStreakBadge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -306,6 +307,16 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           payout_transfers ledger already loaded above, so no extra
           Supabase read. Suppression is per-device via safeStorage. */}
       <PayoutCelebration payouts={payoutLedger} />
+
+      {/* Motivational pill — consecutive 5-star reviews. Self-hides
+          below a 3-streak so it only appears when it actually means
+          something. Sits above the forecast so the helper sees their
+          "you're on a roll" cue before the projected total. */}
+      {helperId && (
+        <div className="flex">
+          <HelperStreakBadge helperId={helperId} />
+        </div>
+      )}
 
       {/* Forward-looking "Projected by Sunday" card. Sums net take across
           accepted/in-progress jobs whose date_needed falls in the current

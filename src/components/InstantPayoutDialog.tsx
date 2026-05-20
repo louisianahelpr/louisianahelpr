@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Zap, Loader2, Clock } from "lucide-react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 
 interface Props {
   open: boolean;
@@ -83,7 +84,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
 
         {loading ? (
           <div className="py-8 flex justify-center">
-            <Loader2 className="w-6 h-6 animate-spin" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+            <HelprSpinner size={32} delay={0} />
           </div>
         ) : error ? (
           <div

@@ -26,6 +26,7 @@ import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
+import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -305,6 +306,17 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           payout_transfers ledger already loaded above, so no extra
           Supabase read. Suppression is per-device via safeStorage. */}
       <PayoutCelebration payouts={payoutLedger} />
+
+      {/* Forward-looking "Projected by Sunday" card. Sums net take across
+          accepted/in-progress jobs whose date_needed falls in the current
+          week. Only renders for approved helpers — pre-onboarding helpers
+          have no earnings yet so a $0 forecast is just noise. Placed at
+          the very top of the tab so the helper sees their pipeline before
+          the historical ledger. */}
+      <EarningsForecastCard
+        helperId={helperId}
+        enabled={profile?.approval_status === "approved"}
+      />
 
       {/* ─── COMPACT DASHBOARD: Wallet + Stats ─── */}
       <section className="space-y-3">

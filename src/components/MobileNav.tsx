@@ -160,23 +160,28 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         triggerGate(label.toLowerCase());
         return;
       }
-      // Tab-switch haptic — subtle confirmation on every nav tap (only
-      // fires on native iOS/Android; web no-op via safe wrapper).
-      hapticLight();
+      // Tab-switch haptic — only fires when the press actually moves the
+      // user somewhere. Tapping the tab you're already on (a true no-op)
+      // shouldn't buzz, otherwise it teaches users the haptic is decoupled
+      // from navigation. `hapticLight` itself is web-safe (no-op + try/catch).
       // If we're inside this tab's stack but not on its root, pop back to root.
       if (!isGuest && inStack && location.pathname !== path) {
+        hapticLight();
         navigate(path);
         return;
       }
       if (!isGuest && path === "/profile" && location.pathname === "/profile" && location.search) {
+        hapticLight();
         navigate("/profile");
         return;
       }
       if (location.pathname !== effectivePath) {
+        hapticLight();
         navigate(effectivePath);
         return;
       }
       if (location.search || location.hash) {
+        hapticLight();
         navigate(effectivePath);
       }
     };

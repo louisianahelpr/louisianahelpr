@@ -14,6 +14,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness, type SeatTier } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BusinessVerificationCard from "@/components/business/BusinessVerificationCard";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 
 interface Member {
   id: string;
@@ -113,7 +114,7 @@ const BusinessTeam = () => {
   if (businessLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <HelprSpinner size={32} />
       </div>
     );
   }

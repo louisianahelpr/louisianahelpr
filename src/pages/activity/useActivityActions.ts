@@ -11,6 +11,7 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { fetchProfile } from "@/hooks/useProfile";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
+import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { queryKeys } from "@/lib/queryKeys";
 import type { ActivityData } from "@/hooks/useActivityData";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
@@ -46,6 +47,7 @@ export function useActivityActions({
 }: UseActivityActionsArgs) {
   const queryClient = useQueryClient();
   const { checkHelperStripeConnect } = useStripeConnectCheck();
+  const triggerPushNudge = usePushPermissionNudge();
 
   // UI state
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
@@ -328,6 +330,11 @@ export function useActivityActions({
           .not("helper_confirmed_at", "is", null);
         if ((count ?? 0) <= 1) {
           track(AhaEvent.FirstJobAccepted, { job_id: app.job_id, ...ppoProps });
+          // First-acceptance push nudge — best moment to ask a helper to
+          // turn on notifications: they now care about new-job pings and
+          // customer messages on this job. The hook self-suppresses if
+          // permission is already granted or the user dismissed recently.
+          void triggerPushNudge("helper-first-accept");
         }
       } catch { /* analytics must never break the flow */ }
       toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");

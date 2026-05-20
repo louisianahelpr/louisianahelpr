@@ -6,6 +6,7 @@ import { BadgeCheck } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 import { track, AhaEvent } from "@/lib/analytics";
+import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
@@ -28,7 +29,7 @@ const Signup = () => {
   usePageTitle("Sign Up — Helpr");
   // Funnel event: user landed on signup page (top of activation funnel)
   useEffect(() => {
-    track(AhaEvent.SignupStarted, { source: "web" });
+    track(AhaEvent.SignupStarted, { source: "web", ...ppoTrackingProps() });
   }, []);
   const [searchParams] = useSearchParams();
   const isBusinessSignup = searchParams.get("type") === "business";
@@ -190,7 +191,14 @@ const Signup = () => {
     }
 
     setStep2Errors(errors);
-    if (Object.keys(errors).length > 0) return false;
+    if (Object.keys(errors).length > 0) {
+      track(AhaEvent.SignupStepValidationFailed, {
+        step: 2,
+        error_fields: Object.keys(errors),
+        ...ppoTrackingProps(),
+      });
+      return false;
+    }
     return true;
   };
 
@@ -364,7 +372,7 @@ const Signup = () => {
         }
       } catch (e) { report(e, { tags: { source: "Signup.inviteLinking" } }); }
 
-      track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim() });
+      track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim(), ...ppoTrackingProps() });
       hapticSuccess();
       toast.success("Account created! Check your email and click the verification link to continue.");
       navigate("/signup-pending", { state: { email } });
@@ -497,6 +505,7 @@ const Signup = () => {
             onContinue={async () => {
               if (!(await validateAboutYouStep())) return;
               setStep2Errors({});
+              track(AhaEvent.SignupStepCompleted, { step: 2, ...ppoTrackingProps() });
               setStep(3);
             }}
           />
@@ -521,6 +530,7 @@ const Signup = () => {
             labelCls={labelCls}
             onContinue={async () => {
               if (!(await validateAccountStep())) return;
+              track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });
               setStep(2);
             }}
           />

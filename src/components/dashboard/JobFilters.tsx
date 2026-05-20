@@ -3,13 +3,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
-  X, MapPin, Clock, ChevronDown, MoreHorizontal, ArrowUpRight,
+  X, MapPin, Clock, ChevronDown, ArrowUpRight,
   ArrowUpDown, LayoutGrid, CalendarRange, Rocket,
   type LucideIcon,
 } from "lucide-react";
 import {
-  categoryLabels, categoryIcons, categoryColors,
+  categoryLabels, categoryColors,
 } from "@/components/activity/activityConstants";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { hapticLight } from "@/lib/haptics";
 
 export { categoryLabels };
@@ -99,7 +100,6 @@ const CategoryContent = ({
   <div className="-mx-2 px-2 overflow-x-auto scrollbar-hide">
     <div className="flex items-center gap-1.5 pb-0.5 w-max">
       {Object.entries(categoryLabels).map(([key, label]) => {
-        const Icon = categoryIcons[key] ?? MoreHorizontal;
         const isActive = selectedCategory === key;
         const titleColor = (categoryColors[key] || categoryColors.other).title;
         return (
@@ -108,7 +108,12 @@ const CategoryContent = ({
             onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
             className={`${chipBase} shrink-0 ${isActive ? chipActive : chipIdle}`}
           >
-            <Icon className={`w-2.5 h-2.5 ${isActive ? "" : titleColor}`} strokeWidth={2.25} />
+            <CategoryIcon
+              category={key}
+              aria-hidden
+              className={`w-2.5 h-2.5 ${isActive ? "" : titleColor}`}
+              strokeWidth={2.25}
+            />
             {label}
           </button>
         );

@@ -4,7 +4,8 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
-import { categoryLabels, categoryColors, categoryIcons } from "@/components/activity/activityConstants";
+import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { transformedImageUrl } from "@/lib/imageUrl";
 import { getCityState } from "@/lib/locationUtils";
@@ -158,18 +159,18 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               posterInitials
             )}
           </a>
-          {(() => {
-            const CategoryIcon = categoryIcons[job.category] || categoryIcons.other;
-            return (
-              <span
-                aria-label={categoryLabels[job.category] || job.category}
-                className={`absolute -top-0.5 -left-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-card bg-card ${catStyle.title}`}
-                style={{ boxShadow: "0 0 0 0.5px hsl(var(--bark) / 0.18)" }}
-              >
-                <CategoryIcon className="w-2.5 h-2.5" strokeWidth={2.25} />
-              </span>
-            );
-          })()}
+          <span
+            aria-label={categoryLabels[job.category] || job.category}
+            className={`absolute -top-0.5 -left-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-card bg-card ${catStyle.title}`}
+            style={{ boxShadow: "0 0 0 0.5px hsl(var(--bark) / 0.18)" }}
+          >
+            <CategoryIcon
+              category={job.category}
+              aria-hidden
+              className="w-2.5 h-2.5"
+              strokeWidth={2.25}
+            />
+          </span>
         </div>
 
         {/* Center: title · location · date · rating */}

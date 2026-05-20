@@ -2,7 +2,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ImagePlus, X, Briefcase, Check } from "lucide-react";
-import { categoryIcons, categoryColors } from "@/components/activity/activityConstants";
+import { categoryColors } from "@/components/activity/activityConstants";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { SectionCard } from "@/components/postjob/SectionCard";
 
 export const categories = [
@@ -103,7 +104,6 @@ export function DetailsSection({
             the selection reads instantly. */}
         <div className="grid grid-cols-2 gap-2">
           {categories.map((c) => {
-            const Icon = categoryIcons[c.value] ?? Briefcase;
             const colors = categoryColors[c.value];
             const active = category === c.value;
             return (
@@ -142,7 +142,12 @@ export function DetailsSection({
                       : undefined
                   }
                 >
-                  <Icon className="w-3.5 h-3.5 text-white/90" strokeWidth={2.25} />
+                  <CategoryIcon
+                    category={c.value}
+                    aria-hidden
+                    className="w-3.5 h-3.5 text-white/90"
+                    strokeWidth={2.25}
+                  />
                 </span>
                 <span
                   className="font-sans font-semibold leading-tight truncate"

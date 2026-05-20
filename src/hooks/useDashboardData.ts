@@ -7,6 +7,18 @@ import { aggregateRatings } from "@/lib/reviewStats";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { report } from "@/lib/errorLogger";
+
+// Columns shared by the curated `open_jobs_browse` view AND the fallback
+// direct-`jobs` query. Kept as a single string constant so both code paths
+// request exactly the same shape — drift here would crash the enrichment.
+// NOTE: `open_jobs_browse` masks latitude/longitude (security feature). The
+// fallback path queries `jobs` directly but still omits lat/lng + leaves the
+// `location` string blank, so the precise-location masking is preserved even
+// when the curated view is unavailable (we'd rather show jobs with no
+// location than leak a precise address).
+const JOB_COLUMNS_SHARED =
+  "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
 // initial paint stays cheap as the marketplace grows; later pages are fetched
@@ -38,23 +50,65 @@ export function useDashboardData() {
     queryFn: async () => {
       if (!user) return null;
       const userId = user.id;
-      const [feeRes, availRes, appliedRes, blocksRes] = await Promise.all([
-        supabase.rpc("get_public_platform_settings"),
-        supabase
-          .from("helper_availability")
-          .select("day_of_week, is_available, start_time, end_time")
-          .eq("helper_id", userId)
-          .is("specific_date", null)
-          .order("day_of_week"),
-        supabase
-          .from("applications")
-          .select("job_id")
-          .eq("helper_id", userId),
-        supabase
-          .from("user_blocks")
-          .select("blocker_id, blocked_id")
-          .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
-      ]);
+      // Wrap in try/catch so a network-level failure in any of the four
+      // sub-queries is surfaced via report() (PostHog + error_logs) instead
+      // of a silent partial state. We RETHROW so React Query flips into its
+      // error state — callers downstream depend on `ctx` being either
+      // fully-formed or absent.
+      let feeRes, availRes, appliedRes, blocksRes;
+      try {
+        [feeRes, availRes, appliedRes, blocksRes] = await Promise.all([
+          supabase.rpc("get_public_platform_settings"),
+          supabase
+            .from("helper_availability")
+            .select("day_of_week, is_available, start_time, end_time")
+            .eq("helper_id", userId)
+            .is("specific_date", null)
+            .order("day_of_week"),
+          supabase
+            .from("applications")
+            .select("job_id")
+            .eq("helper_id", userId),
+          supabase
+            .from("user_blocks")
+            .select("blocker_id, blocked_id")
+            .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
+        ]);
+      } catch (ctxErr) {
+        report(ctxErr, {
+          severity: "warning",
+          tags: { source: "dashboard.ctx_query" },
+          context: { user_id: userId },
+        });
+        throw ctxErr;
+      }
+
+      // Promise.all doesn't reject on Supabase PostgrestError shapes — those
+      // come back as { data: null, error }. Spot-check each result so we
+      // don't silently treat a failed sub-query as "empty" — and so PostHog/
+      // error_logs sees the real PostgrestError next time this fires.
+      const subResults = [
+        { sub: "get_public_platform_settings", error: feeRes.error },
+        { sub: "helper_availability", error: availRes.error },
+        { sub: "applications", error: appliedRes.error },
+        { sub: "user_blocks", error: blocksRes.error },
+      ];
+      for (const { sub, error } of subResults) {
+        if (!error) continue;
+        report(new Error(`dashboard.ctx sub-query failed: ${sub}: ${error.message ?? "unknown"}`), {
+          severity: "warning",
+          tags: { source: "dashboard.ctx_subquery", sub },
+          context: {
+            user_id: userId,
+            code: error.code,
+            message: error.message,
+            details: error.details,
+          },
+        });
+      }
+      // Don't throw on sub-errors — degrade gracefully. Empty defaults
+      // below give the user a usable dashboard (no availability flag, no
+      // blocks, etc.) instead of an outright error state.
 
       const feeRow = Array.isArray(feeRes.data) ? (feeRes.data)[0] : null;
       const platformFee = feeRow?.helper_fee_percent ?? 10;
@@ -90,22 +144,64 @@ export function useDashboardData() {
 
       // Phase 1: jobs page. Range is inclusive on both ends, so request
       // PAGE_SIZE + 1 rows to know whether another page exists without a count.
-      // unwrap throws on a failed fetch so React Query flips to its error
-      // state and the dashboard shows ErrorState, not a blank "quiet" feed.
-      const rawJobsRes = unwrap(await supabase
-        .from("open_jobs_browse")
-        .select(
-          // NOTE: open_jobs_browse view does NOT expose latitude/longitude
-          // (the underlying jobs table has them, but the view masks them
-          // along with the precise location). Asking for them returned a
-          // PostgREST 400 that silently emptied the dashboard. The
-          // nearby-radius filter falls back to the location string match.
-          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status",
-        )
-        .neq("payment_status", "abandoned")
-        .order("boosted_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE));
+      //
+      // Two-stage fetch:
+      //   1) Try the curated `open_jobs_browse` view (masks precise location).
+      //   2) If that errors for ANY reason (view dropped, RLS regression,
+      //      transient PostgREST hiccup), fall back to a direct `jobs`
+      //      query so the user still sees something — and report() the
+      //      real error so we can see PostgrestError + status in
+      //      PostHog / error_logs next time it fires.
+      // Without (2) the dashboard renders ErrorState ("couldn't load
+      // nearby jobs") on any view-side failure, which is what TestFlight
+      // user is currently seeing.
+      let rawJobsRes: any[];
+      try {
+        rawJobsRes = unwrap(await supabase
+          .from("open_jobs_browse")
+          .select(
+            // NOTE: open_jobs_browse view does NOT expose latitude/longitude
+            // (the underlying jobs table has them, but the view masks them
+            // along with the precise location). Asking for them returned a
+            // PostgREST 400 that silently emptied the dashboard. The
+            // nearby-radius filter falls back to the location string match.
+            `${JOB_COLUMNS_SHARED}, location`,
+          )
+          .neq("payment_status", "abandoned")
+          .order("boosted_at", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .range(offset, offset + PAGE_SIZE)) as any[];
+      } catch (viewErr) {
+        report(viewErr, {
+          severity: "warning",
+          tags: { source: "dashboard.open_jobs_browse_error" },
+          context: {
+            offset,
+            user_id: user?.id ?? null,
+            // err message often includes the PostgrestError code +
+            // hint; redact() in errorLogger handles JWT/token redaction.
+            message: viewErr instanceof Error ? viewErr.message : String(viewErr),
+          },
+        });
+        // Fallback: query `jobs` table directly. Same status filter as the
+        // view (status = 'open' + payment_status != 'abandoned'). We omit
+        // `location` from the select (the view's whole purpose is to mask
+        // precise location, so leaking it from the fallback would defeat
+        // that). Downstream code coerces missing location → "" below.
+        const fallbackRows = unwrap(await supabase
+          .from("jobs")
+          .select(JOB_COLUMNS_SHARED)
+          .eq("status", "open")
+          .neq("payment_status", "abandoned")
+          .order("boosted_at", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .range(offset, offset + PAGE_SIZE)) as any[];
+        // Strip / blank the location field on every row. `EnrichedJob.location`
+        // is typed as `string` (non-optional) and downstream UI reads
+        // `j.location.toLowerCase()` etc., so empty string keeps everything
+        // safe instead of `undefined` crashing the recommended-jobs scorer.
+        rawJobsRes = (fallbackRows ?? []).map((j: any) => ({ ...j, location: "" }));
+      }
 
       const rawAll = ((rawJobsRes ?? []) as any[]).filter((j) => !blockedUserIds.has(j.customer_id));
       const hasMore = rawAll.length > PAGE_SIZE;

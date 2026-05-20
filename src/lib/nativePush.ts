@@ -20,6 +20,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { report } from "@/lib/errorLogger";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
+import {
+  isPushSupported,
+  registerServiceWorker,
+  requestPushPermission as requestWebPushPermission,
+} from "@/lib/pushNotifications";
 
 let listenersAttached = false;
 
@@ -207,16 +212,31 @@ export async function requestPushPermission(): Promise<boolean> {
 
 /**
  * Hook-friendly variant: shows the in-app rationale dialog FIRST, then
- * (on confirm) triggers the native iOS/Android permission prompt.
- * Use this from any component that wants to prompt for push.
+ * (on confirm) triggers the OS-level permission prompt.
+ *
+ * Works on both native (Capacitor PushNotifications.requestPermissions)
+ * and web (Notification.requestPermission, after registering /sw-push.js).
+ * Using the same hook for both keeps the rationale UX consistent, which
+ * is also what App Review looks for on the native side.
+ *
+ * Returns false on platforms that don't support notifications at all
+ * (e.g. SSR or a browser without the Notification API).
  */
 export function useRequestPushPermission() {
   const { request } = usePermissionRationale();
   return async (): Promise<boolean> => {
-    if (!isNativePlatform) return false;
+    if (isNativePlatform) {
+      let granted = false;
+      await request("notifications", async () => {
+        granted = await requestPushPermission();
+      });
+      return granted;
+    }
+    if (!isPushSupported()) return false;
     let granted = false;
     await request("notifications", async () => {
-      granted = await requestPushPermission();
+      await registerServiceWorker();
+      granted = await requestWebPushPermission();
     });
     return granted;
   };

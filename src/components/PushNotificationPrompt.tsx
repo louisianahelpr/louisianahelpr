@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
-import { isPushSupported, requestPushPermission, registerServiceWorker } from "@/lib/pushNotifications";
+import { isPushSupported } from "@/lib/pushNotifications";
 import { safeStorage } from "@/lib/safeStorage";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { useRequestPushPermission } from "@/lib/nativePush";
@@ -23,32 +23,48 @@ const snooze = () => {
 export const PushNotificationPrompt = () => {
   const [show, setShow] = useState(false);
   const [, setPermission] = useState<string>("default");
-  const requestNativePush = useRequestPushPermission();
+  const requestPush = useRequestPushPermission();
 
   useEffect(() => {
+    if (isSnoozed()) return;
+
     if (isNativePlatform) {
-      if (!isSnoozed()) setShow(true);
-      return;
+      // Mirror the web branch's behavior: only surface the banner when
+      // the OS permission is still undecided ("prompt"). Previously this
+      // path called setShow(true) unconditionally, which pestered users
+      // who had already granted for 30 days and re-prompted users who
+      // had already denied (iOS short-circuits the second request, so
+      // tapping Enable felt broken).
+      let cancelled = false;
+      (async () => {
+        try {
+          const { PushNotifications } = await import("@capacitor/push-notifications");
+          const status = await PushNotifications.checkPermissions();
+          if (!cancelled && status.receive === "prompt") setShow(true);
+        } catch {
+          // If the plugin import or permission check fails we silently
+          // skip the banner rather than show a broken one.
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
     }
 
     if (!isPushSupported()) return;
     const currentPermission = Notification.permission;
     setPermission(currentPermission);
 
-    if (currentPermission === "default" && !isSnoozed()) {
+    if (currentPermission === "default") {
       setShow(true);
     }
   }, []);
 
   const handleEnable = async () => {
-    if (isNativePlatform) {
-      const granted = await requestNativePush();
-      setPermission(granted ? "granted" : "denied");
-    } else {
-      await registerServiceWorker();
-      const granted = await requestPushPermission();
-      setPermission(granted ? "granted" : "denied");
-    }
+    // Single code path — the hook handles both native and web, and
+    // shows the rationale dialog before the OS prompt on both.
+    const granted = await requestPush();
+    setPermission(granted ? "granted" : "denied");
     snooze();
     setShow(false);
   };

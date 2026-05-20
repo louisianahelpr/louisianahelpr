@@ -5,7 +5,8 @@ import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
 import { Bell, Check, CheckCheck, Info, AlertTriangle, DollarSign, Users, Star, BellRing, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, Megaphone } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { isPushSupported, registerServiceWorker, requestPushPermission, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
+import { isPushSupported, registerServiceWorker, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
+import { useRequestPushPermission } from "@/lib/nativePush";
 import { toast } from "sonner";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -102,6 +103,7 @@ const NotificationPanel = () => {
   // the "All caught up" empty state, which would wrongly suggest the
   // user has no notifications.
   const [loadError, setLoadError] = useState(false);
+  const requestPush = useRequestPushPermission();
 
   const loadNotifications = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -193,7 +195,10 @@ const NotificationPanel = () => {
   }, []);
 
   const enablePush = async () => {
-    const granted = await requestPushPermission();
+    // Routes through usePermissionRationale → rationale dialog first,
+    // then the actual OS prompt. Keeps web parity with the native side
+    // and matches the dashboard PushNotificationPrompt UX.
+    const granted = await requestPush();
     if (granted) {
       setPushEnabled(true);
       toast.success("Push notifications enabled!");

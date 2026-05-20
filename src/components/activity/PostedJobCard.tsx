@@ -14,8 +14,9 @@ import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
-import { JobTracking } from "@/components/JobTracking";
+import { JobTracking, type TrackingData } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
+import type { GroupHelperLite } from "@/hooks/useActivityData";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
@@ -59,6 +60,15 @@ interface PostedJobCardProps {
   /** Per-job applicant fetch error, for inline retry. */
   applicantErrors: Record<string, boolean>;
   onBoostJob: (jobId: string) => void;
+  /** Pre-fetched latest tracking row for this job, threaded down to
+      <JobTracking> so the card doesn't fire its own SELECT on mount.
+      `null` = pre-fetched and no row exists yet; `undefined` = not
+      pre-fetched (the child falls back to its own per-mount query). */
+  initialTracking?: TrackingData | null;
+  /** Pre-fetched group-helper rows for this job (only relevant for active
+      group jobs), threaded into <GroupJobHelpers> to skip its own 2-query
+      waterfall on mount. */
+  initialGroupHelpers?: GroupHelperLite[];
 }
 
 /**
@@ -98,6 +108,8 @@ function PostedJobCardInner({
   loadingApplicants,
   applicantErrors,
   onBoostJob,
+  initialTracking,
+  initialGroupHelpers,
 }: PostedJobCardProps) {
   const navigate = useNavigate();
   const meta = completedJobMeta[job.id];
@@ -284,7 +296,7 @@ function PostedJobCardInner({
               {/* Visible live tracking */}
               {(job.status === "accepted" || job.status === "in_progress") && job.helper_id && (
                 <div onClick={(e) => e.stopPropagation()}>
-                  <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} />
+                  <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} />
                 </div>
               )}
 
@@ -368,7 +380,7 @@ function PostedJobCardInner({
               {(job.status === "in_progress" || job.status === "accepted") && (
                 <div className="px-4 pb-3 space-y-3">
                   <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
-                  {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} />}
+                  {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} initialHelpers={initialGroupHelpers} />}
                   
                 </div>
               )}

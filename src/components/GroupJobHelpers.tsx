@@ -15,17 +15,42 @@ export function GroupJobHelpers({
   jobId,
   helpersNeeded,
   isOwner,
+  initialHelpers,
 }: {
   jobId: string;
   helpersNeeded: number;
   isOwner: boolean;
+  /**
+   * Optional pre-fetched group-helper rows for this job. When provided
+   * (including an empty array), the per-card initial 2-query waterfall
+   * (group_job_helpers + profiles) is skipped — the parent has already
+   * batched-fetched group helpers across every active group-job card on
+   * the page. `undefined` (the default) falls back to the legacy
+   * per-mount fetch for callers outside the Activity surface.
+   */
+  initialHelpers?: GroupHelper[];
 }) {
-  const [helpers, setHelpers] = useState<GroupHelper[]>([]);
+  // Seed from the parent-batched rows when present so we don't fire two
+  // queries per group-job card on every Activity render.
+  const [helpers, setHelpers] = useState<GroupHelper[]>(initialHelpers ?? []);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    loadHelpers();
+    // Only fall back to a per-card fetch when the parent did NOT supply
+    // pre-fetched data. Activity surfaces always supply it (even as an
+    // empty array meaning "no rows yet"), so the initial round-trip is
+    // eliminated.
+    if (initialHelpers === undefined) loadHelpers();
+    // `initialHelpers` is read once on mount to decide whether to skip
+    // the fallback fetch. Live updates flow through the sync-effect
+    // below, not here.
   }, [jobId]);
+
+  // Keep local helpers in sync when the parent re-supplies a fresh
+  // batch — e.g. after the activity cache invalidates and refetches.
+  useEffect(() => {
+    if (initialHelpers !== undefined) setHelpers(initialHelpers);
+  }, [initialHelpers]);
 
   const loadHelpers = async () => {
     const { data, error } = await supabase

@@ -100,6 +100,36 @@ export async function getMessageAttachmentSignedUrl(
   return data.signedUrl;
 }
 
+/**
+ * Batched signed-URL resolver — one network round-trip for an arbitrary
+ * number of message-attachment paths. Replaces N per-row
+ * `getMessageAttachmentSignedUrl` calls on the inbox list, where every
+ * image-last-message conversation used to fire its own request.
+ *
+ * Returns a `path → signedUrl` map. Missing entries (the storage SDK
+ * may return per-path errors inside an otherwise-successful batch) are
+ * simply absent from the result; callers should `?? null` on lookup.
+ *
+ * De-dupes input paths (the same image may legitimately appear on two
+ * conversations) and short-circuits on an empty input.
+ */
+export async function getMessageAttachmentSignedUrls(
+  paths: string[],
+  expiresInSeconds = 60 * 5,
+): Promise<Record<string, string>> {
+  const unique = Array.from(new Set(paths.filter(Boolean)));
+  if (unique.length === 0) return {};
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrls(unique, expiresInSeconds);
+  if (error || !data) return {};
+  const out: Record<string, string> = {};
+  for (const row of data) {
+    if (row.path && row.signedUrl && !row.error) out[row.path] = row.signedUrl;
+  }
+  return out;
+}
+
 export function getMessageAttachmentFilename(path: string, fallback = "Attachment"): string {
   if (!path) return fallback;
   const last = path.split("/").pop() || fallback;

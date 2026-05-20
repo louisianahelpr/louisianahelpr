@@ -9,6 +9,8 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { VirtualList } from "@/components/VirtualList";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
+import type { TrackingData } from "@/components/JobTracking";
+import type { GroupHelperLite } from "@/hooks/useActivityData";
 
 interface PostedJobsTabProps {
   jobs: Job[];
@@ -18,6 +20,11 @@ interface PostedJobsTabProps {
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
   startRequestedJobIds: Set<string>;
+  /** Batched per-card tracking + group-helper data, pre-fetched by
+      useActivityData. Hoisted here so each <JobTracking>/<GroupJobHelpers>
+      doesn't re-fetch on mount (N+1 across active cards). */
+  latestTracking: Record<string, TrackingData | null>;
+  groupHelpersByJob: Record<string, GroupHelperLite[]>;
   userId: string;
   onBoost: (jobId: string) => void;
   onEdit: (job: Job) => void;
@@ -45,7 +52,8 @@ interface PostedJobsTabProps {
 
 export const PostedJobsTab = ({
   jobs, applicantCounts, expandedJobId, setExpandedJobId,
-  helperNames, completedJobMeta, startRequestedJobIds, userId,
+  helperNames, completedJobMeta, startRequestedJobIds,
+  latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
   onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart, onConfirmArrival, onConfirmWorking,
   onLoadApplications, selectedJob, setSelectedJob, applications,
@@ -89,6 +97,13 @@ export const PostedJobsTab = ({
             helperNames={helperNames}
             completedJobMeta={completedJobMeta}
             startRequestedJobIds={startRequestedJobIds}
+            // `latestTracking[job.id]` may legitimately be `null` ("we
+            // looked, no row exists") — the card forwards that down so
+            // <JobTracking> skips its own initial fetch. If the key is
+            // absent (e.g. a not-yet-active job), the card passes
+            // `undefined` and JobTracking falls back to its own query.
+            initialTracking={latestTracking[job.id]}
+            initialGroupHelpers={groupHelpersByJob[job.id]}
             userId={userId}
             onBoost={onBoost}
             onEdit={onEdit}

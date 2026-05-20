@@ -5,9 +5,26 @@ import { channelNonce } from "@/lib/realtimeChannel";
 import { formatName } from "@/lib/utils";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
+import type { TrackingData } from "@/components/JobTracking";
 import { queryKeys } from "@/lib/queryKeys";
 import { validateResult } from "@/lib/validateResult";
 import { helperApplicationsSchema } from "@/lib/schemas";
+
+/** Pre-fetched per-job side data — replaces what used to be one Supabase
+    round-trip per rendered card. `null` means "we looked and there is no
+    row yet"; absent means "we never looked" (handled gracefully by the
+    consumer components). */
+export interface GroupHelperLite {
+  id: string;
+  job_id: string;
+  helper_id: string;
+  status: string;
+  /** Nullable per the generated DB types (has a server default but the
+      column accepts NULL). Forwarded as-is to the legacy GroupJobHelpers
+      shape, which never read this field. */
+  joined_at: string | null;
+  helperName: string;
+}
 
 export interface ActivityData {
   postedJobs: Job[];
@@ -18,6 +35,16 @@ export interface ActivityData {
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
   declinedJobIds: Set<string>;
   helperReviewedJobIds: Set<string>;
+  /** Latest job_tracking row per job_id. Pre-fetched here so each
+      <JobTracking> card on the page doesn't fire its own query (N+1
+      across all active/in-progress jobs). `null` keys mean the job has
+      no tracking row yet. */
+  latestTracking: Record<string, TrackingData | null>;
+  /** Enriched group-helper rows per job_id, only populated for the
+      poster's active group jobs. Pre-fetched so <GroupJobHelpers> doesn't
+      fire its 2-query waterfall (group_job_helpers + profiles) per
+      rendered group-job card. */
+  groupHelpersByJob: Record<string, GroupHelperLite[]>;
 }
 
 const EMPTY: ActivityData = {
@@ -29,6 +56,8 @@ const EMPTY: ActivityData = {
   completedJobMeta: {},
   declinedJobIds: new Set(),
   helperReviewedJobIds: new Set(),
+  latestTracking: {},
+  groupHelpersByJob: {},
 };
 
 export async function fetchActivityData(userId: string): Promise<ActivityData> {
@@ -154,6 +183,127 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
     appliedApps = [...synthetic.filter((s) => !existingIds.has(s.job_id)), ...appliedApps];
   }
 
+  // --- Batched per-job side-data, hoisted from per-card useEffects ---
+  //
+  // (1) Latest job_tracking row per active/in-progress job. Replaces the
+  //     N per-card SELECTs that the old <JobTracking> mount triggered
+  //     across every "Confirmed", "In Progress", "Disputed" card on the
+  //     Activity tab (both helper and poster sides).
+  //
+  // (2) Group-helpers per active/in-progress group job on the poster
+  //     side. Replaces the 2-query waterfall (group_job_helpers + then a
+  //     profiles lookup) that <GroupJobHelpers> fired per card.
+  const trackingJobIds = new Set<string>();
+  const groupHelperJobIds = new Set<string>();
+  const isActiveStatus = (s: string | null | undefined) =>
+    s === "accepted" || s === "in_progress" || s === "disputed";
+  for (const j of postedJobs) {
+    if (isActiveStatus(j.status)) {
+      trackingJobIds.add(j.id);
+      if (j.is_group_job) groupHelperJobIds.add(j.id);
+    }
+  }
+  for (const a of appliedApps) {
+    if (a.job && isActiveStatus(a.job.status) && a.status === "accepted") {
+      trackingJobIds.add(a.job_id);
+    }
+  }
+
+  const latestTracking: Record<string, TrackingData | null> = {};
+  const groupHelpersByJob: Record<string, GroupHelperLite[]> = {};
+
+  if (trackingJobIds.size > 0 || groupHelperJobIds.size > 0) {
+    const trackingPromise =
+      trackingJobIds.size > 0
+        ? supabase
+            .from("job_tracking")
+            // Pull every tracking row for the relevant job set in one query;
+            // we'll keep just the latest per job_id below. Activity feeds
+            // have small active-job counts, so the extra rows are cheap
+            // compared with N round-trips.
+            .select("id, job_id, status, latitude, longitude, eta_minutes, updated_at, created_at")
+            .in("job_id", [...trackingJobIds])
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [] as Array<{
+            id: string;
+            job_id: string;
+            status: string;
+            latitude: number | null;
+            longitude: number | null;
+            eta_minutes: number | null;
+            updated_at: string;
+            created_at?: string;
+          }>, error: null });
+
+    const groupHelpersPromise =
+      groupHelperJobIds.size > 0
+        ? supabase
+            .from("group_job_helpers")
+            .select("id, job_id, helper_id, status, joined_at")
+            .in("job_id", [...groupHelperJobIds])
+        : Promise.resolve({ data: [] as Array<{
+            id: string;
+            job_id: string;
+            helper_id: string;
+            status: string;
+            joined_at: string;
+          }>, error: null });
+
+    const [trackingRes, groupHelpersRes] = await Promise.all([
+      trackingPromise,
+      groupHelpersPromise,
+    ]);
+
+    // Pre-seed every active job with `null` so the consumer can tell
+    // "not pre-fetched" (key absent) from "pre-fetched, no row yet"
+    // (key present, value null) — that distinction is what lets
+    // <JobTracking> skip its initial round-trip.
+    for (const id of trackingJobIds) latestTracking[id] = null;
+    if (!trackingRes.error) {
+      for (const row of trackingRes.data ?? []) {
+        // Rows arrive newest-first per `order("created_at", desc)`, so
+        // the first row seen per job_id is the latest.
+        if (latestTracking[row.job_id] == null) {
+          latestTracking[row.job_id] = {
+            id: row.id,
+            status: row.status,
+            latitude: row.latitude,
+            longitude: row.longitude,
+            eta_minutes: row.eta_minutes,
+            // Generated types mark `updated_at` nullable (the column has a
+            // server default), but every insert/update on this table writes
+            // a fresh ISO string — so the value here is effectively
+            // non-null. Fall back to the row's created_at (always set) to
+            // satisfy the consumer's `string` shape.
+            updated_at: row.updated_at ?? row.created_at ?? new Date().toISOString(),
+          };
+        }
+      }
+    }
+
+    if (!groupHelpersRes.error && (groupHelpersRes.data ?? []).length > 0) {
+      const rows = groupHelpersRes.data!;
+      const helperIds = [...new Set(rows.map((r) => r.helper_id))];
+      // Batch the profile lookup for every group helper across every job —
+      // one round-trip, regardless of how many group-job cards are open.
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", helperIds);
+      const nameMap = new Map(
+        profiles?.map((p) => [p.user_id, formatName(p.full_name, "Helpr")]) ?? [],
+      );
+      for (const row of rows) {
+        const enriched: GroupHelperLite = {
+          ...row,
+          helperName: nameMap.get(row.helper_id) || "Helpr",
+        };
+        if (!groupHelpersByJob[row.job_id]) groupHelpersByJob[row.job_id] = [];
+        groupHelpersByJob[row.job_id].push(enriched);
+      }
+    }
+  }
+
   return {
     postedJobs,
     appliedApps,
@@ -163,6 +313,8 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
     completedJobMeta,
     declinedJobIds,
     helperReviewedJobIds,
+    latestTracking,
+    groupHelpersByJob,
   };
 }
 
@@ -230,6 +382,8 @@ export function useActivityData(user: SupaUser | null) {
     completedJobMeta: merged.completedJobMeta,
     declinedJobIds: merged.declinedJobIds,
     helperReviewedJobIds: merged.helperReviewedJobIds,
+    latestTracking: merged.latestTracking,
+    groupHelpersByJob: merged.groupHelpersByJob,
     refresh,
   };
 }

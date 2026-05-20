@@ -16,7 +16,7 @@ import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
-import { JobTracking } from "@/components/JobTracking";
+import { JobTracking, type TrackingData } from "@/components/JobTracking";
 import { WhatToBringChecklist } from "@/components/jobs/WhatToBringChecklist";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
@@ -34,6 +34,12 @@ interface AppliedJobCardProps {
   expandedJobId: string | null;
   setExpandedJobId: (id: string | null) => void;
   helperReviewedJobIds: Set<string>;
+  /** Pre-fetched latest tracking row for this job. `null` = pre-fetched
+      and no row exists yet; `undefined` = not pre-fetched (the child
+      <JobTracking> falls back to its own per-mount query). Hoisting this
+      up to useActivityData eliminates an N+1 across confirmed/in-progress
+      cards on the helper's Activity tab. */
+  initialTracking?: TrackingData | null;
   userId: string;
   /** Job-lifecycle handlers, owned by the parent ActivityTab. */
   onHelperResponse: (app: Application, accept: boolean) => void;
@@ -82,6 +88,7 @@ function AppliedJobCardInner({
   expandedJobId,
   setExpandedJobId,
   helperReviewedJobIds,
+  initialTracking,
   userId,
   onHelperResponse,
   onComplete,
@@ -455,7 +462,7 @@ function AppliedJobCardInner({
               {/* Job countdown */}
               <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
               {/* Tracking — only active on the day of the job */}
-              <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} />
+              <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} />
               {/* Job confirmation for helper */}
               <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
               {/* Category-aware "what to bring" checklist — quiet pre-job
@@ -471,7 +478,7 @@ function AppliedJobCardInner({
           {isActive && (
             <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
               {/* Live tracking for in-progress jobs */}
-              <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} />
+              <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} />
 
               {/* What-to-bring checklist — still useful during the job
                   itself (e.g. "did I bring the bug spray?"). Stays

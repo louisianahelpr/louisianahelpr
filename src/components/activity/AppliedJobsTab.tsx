@@ -10,12 +10,17 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { VirtualList } from "@/components/VirtualList";
 import { type Application, type AppliedApp, type Job } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
+import type { TrackingData } from "@/components/JobTracking";
 
 interface AppliedJobsTabProps {
   apps: AppliedApp[];
   expandedJobId: string | null;
   setExpandedJobId: (id: string | null) => void;
   helperReviewedJobIds: Set<string>;
+  /** Batched per-job tracking rows, pre-fetched by useActivityData and
+      threaded down to <JobTracking> so each active card doesn't re-fetch
+      on mount (N+1 across confirmed/in-progress cards). */
+  latestTracking: Record<string, TrackingData | null>;
   userId: string;
   onHelperResponse: (app: Application, accept: boolean) => void;
   onComplete: (jobId: string) => void;
@@ -29,7 +34,7 @@ interface AppliedJobsTabProps {
 
 export const AppliedJobsTab = ({
   apps, expandedJobId, setExpandedJobId,
-  helperReviewedJobIds, userId, onHelperResponse,
+  helperReviewedJobIds, latestTracking, userId, onHelperResponse,
   onComplete, completingJobId,
   onResolveRevision, onHelperReview, onDispute, onRefresh,
 }: AppliedJobsTabProps) => {
@@ -130,6 +135,12 @@ export const AppliedJobsTab = ({
             expandedJobId={expandedJobId}
             setExpandedJobId={setExpandedJobId}
             helperReviewedJobIds={helperReviewedJobIds}
+            // `latestTracking[app.job_id]` may legitimately be `null`
+            // ("we looked, no row exists") — the card forwards that into
+            // <JobTracking> so it skips its own initial fetch. If the
+            // job_id key is absent (not pre-fetched), JobTracking falls
+            // back to its own query.
+            initialTracking={latestTracking[app.job_id]}
             userId={userId}
             onHelperResponse={onHelperResponse}
             onComplete={onComplete}

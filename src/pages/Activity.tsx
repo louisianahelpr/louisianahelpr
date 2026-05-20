@@ -51,7 +51,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const {
     loading, loadError, postedJobs, appliedApps, applicantCounts,
     startRequestedJobIds, helperNames, completedJobMeta,
-    helperReviewedJobIds, refresh,
+    helperReviewedJobIds, latestTracking, groupHelpersByJob, refresh,
   } = useActivityData(user);
 
   // Customer-first-bid push nudge — fires the high-intent re-ask the
@@ -191,6 +191,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               helperNames={helperNames}
               completedJobMeta={completedJobMeta}
               startRequestedJobIds={startRequestedJobIds}
+              latestTracking={latestTracking}
+              groupHelpersByJob={groupHelpersByJob}
               userId={user!.id}
               onBoost={actions.setBoostJobId}
               onEdit={actions.setEditJob}
@@ -223,6 +225,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               expandedJobId={actions.expandedJobId}
               setExpandedJobId={actions.setExpandedJobId}
               helperReviewedJobIds={helperReviewedJobIds}
+              latestTracking={latestTracking}
               userId={user!.id}
               onHelperResponse={actions.handleHelperResponse}
               onComplete={actions.completeJob}

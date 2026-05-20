@@ -59,27 +59,25 @@ export const categoryColors: Record<string, { badge: string; title: string; dot:
 };
 
 /**
- * Status badge classes — mapped onto semantic design tokens so every
- * status pill inherits the brand palette automatically if the CSS vars
- * change. Do not use raw Tailwind color literals here; use the tokens
- * defined in index.css `:root` (--success, --warning, --error, --info).
+ * @deprecated — use `jobStatusColorClasses` from `@/lib/statusColors`
+ * directly. This export is the original per-surface status-pill map; it
+ * has been re-pointed at the canonical color taxonomy so any legacy
+ * consumer paints identically to the rest of the app.
  *
- *   open               → info     (available, neutral-positive)
- *   accepted           → warning  (in motion, needs attention)
- *   in_progress        → warning  (active work)
- *   revision_requested → warning  (needs action — distinct label handles it)
- *   completed          → success  (done, affirming)
- *   cancelled          → error    (terminal negative)
- *   disputed           → error    (elevated negative)
+ * Why kept: the activity-constants test asserts every `job_status` enum
+ * value has a row here. Removing it would silently lose that tripwire.
+ * New code: import `jobStatusColorClasses(status)` instead.
  */
+import { jobStatusColorClasses } from "@/lib/statusColors";
+
 export const statusBadge: Record<string, string> = {
-  open:               "bg-info/15 text-info",
-  accepted:           "bg-warning/15 text-warning",
-  in_progress:        "bg-warning/15 text-warning",
-  revision_requested: "bg-warning/20 text-warning",
-  completed:          "bg-success/15 text-success",
-  cancelled:          "bg-error/10 text-error",
-  disputed:           "bg-error/15 text-error",
+  open:               jobStatusColorClasses("open"),
+  accepted:           jobStatusColorClasses("accepted"),
+  in_progress:        jobStatusColorClasses("in_progress"),
+  revision_requested: jobStatusColorClasses("revision_requested"),
+  completed:          jobStatusColorClasses("completed"),
+  cancelled:          jobStatusColorClasses("cancelled"),
+  disputed:           jobStatusColorClasses("disputed"),
 };
 
 export type EnrichedApplication = Application & {

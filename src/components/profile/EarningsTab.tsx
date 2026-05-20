@@ -30,6 +30,7 @@ import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard"
 import { HelperStreakBadge } from "@/components/profile/HelperStreakBadge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
+import { jobStatusColorClasses } from "@/lib/statusColors";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -48,17 +49,12 @@ interface PayoutLedgerRow {
   jobs: { title?: string } | null;
 }
 
-// Status pill colors — bark for "in motion/done" states, sienna for
-// "action needed", destructive only for genuine failure.
-const statusColors: Record<string, string> = {
-  open: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
-  accepted: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
-  in_progress: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
-  revision_requested: "bg-[hsl(var(--gold-warm)/0.16)] text-[hsl(var(--gold-warm))]",
-  completed: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
-  cancelled: "bg-destructive/10 text-destructive",
-};
-
+// Payout-status pills are a separate concern from job-status chips: this
+// table is the Stripe payout pipeline (`paid` / `in_transit` / `pending`
+// / `failed` / `canceled`), not the `job_status` enum. Job-status chips
+// in the earnings list below route through the canonical
+// `jobStatusColorClasses` from `@/lib/statusColors` so they paint the
+// same as every other status chip in the app.
 const payoutStatusColors: Record<string, string> = {
   paid: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
   in_transit: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
@@ -682,7 +678,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                           <h3 className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                             {job.title}
                           </h3>
-                          <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[job.status] || ""}`}>{job.status.replace("_", " ")}</span>
+                          <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium capitalize ${jobStatusColorClasses(job.status)}`}>{job.status.replace("_", " ")}</span>
                         </div>
                         <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
                           {job.location} <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span> {new Date(job.date_needed).toLocaleDateString()}

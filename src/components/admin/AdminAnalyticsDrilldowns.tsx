@@ -3,6 +3,7 @@ import { Loader2, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
+import { jobStatusColorClasses } from "@/lib/statusColors";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -219,13 +220,9 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
   const filtered = filter === "all" ? jobs : jobs.filter(j => j.status === filter);
   const total = filtered.reduce((s, j) => s + (showFees ? (j.platform_fee_amount || 0) : j.budget), 0);
 
-  const statusColor: Record<string, string> = {
-    open: "bg-primary/10 text-primary",
-    accepted: "bg-accent/20 text-accent-foreground",
-    in_progress: "bg-accent/20 text-accent-foreground",
-    completed: "bg-secondary text-secondary-foreground",
-    cancelled: "bg-destructive/10 text-destructive",
-  };
+  // Job-status pill colors are unified via the canonical
+  // `jobStatusColorClasses` map in `@/lib/statusColors` so this admin
+  // drilldown reads the same as every other status chip in the app.
 
   return (
     <div className="space-y-3">
@@ -257,7 +254,7 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
-                <Badge className={`text-ds-11 capitalize ${statusColor[j.status] || ""}`}>{j.status.replace("_", " ")}</Badge>
+                <Badge className={`text-ds-11 capitalize ${jobStatusColorClasses(j.status)}`}>{j.status.replace("_", " ")}</Badge>
                 <span className="text-ds-13 font-semibold text-foreground">${j.budget}</span>
               </div>
             </div>

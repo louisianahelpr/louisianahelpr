@@ -31,18 +31,9 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
+import { jobStatusColorClasses } from "@/lib/statusColors";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-
-const statusColors: Record<string, string> = {
-  completed: "bg-secondary text-secondary-foreground",
-  open: "bg-primary/10 text-primary",
-  in_progress: "bg-accent/20 text-accent-foreground",
-  cancelled: "bg-destructive/10 text-destructive",
-  accepted: "bg-primary/10 text-primary",
-  disputed: "bg-destructive/10 text-destructive",
-  revision_requested: "bg-accent/20 text-accent-foreground",
-};
 
 const UserProfile = () => {
   usePageTitle("User Profile — Helpr");
@@ -648,7 +639,7 @@ const UserProfile = () => {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-ds-13 font-bold text-primary">${job.budget}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${jobStatusColorClasses(job.status)}`}>{job.status.replace("_", " ")}</span>
                   </div>
                 </div>
               )) : (
@@ -671,7 +662,7 @@ const UserProfile = () => {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-ds-13 font-bold text-primary">${job.budget}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusColors[job.status] || "bg-muted text-muted-foreground"}`}>{job.status.replace("_", " ")}</span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${jobStatusColorClasses(job.status)}`}>{job.status.replace("_", " ")}</span>
                   </div>
                 </div>
               )) : (

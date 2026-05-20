@@ -12,6 +12,7 @@ import {
   isImageMime,
 } from "@/lib/messageAttachments";
 import { jobStatusLabel } from "@/lib/statusLabels";
+import { jobStatusColor } from "@/lib/statusColors";
 import type { Conversation } from "./types";
 
 interface ConversationRowProps {
@@ -112,22 +113,26 @@ const ConversationRowBase = ({
     ageDay < 7 ? `${ageDay}d` :
     new Date(c.lastAt).toLocaleDateString([], { month: "short", day: "numeric" });
   // Status chip — inline next to the job title. Labels come from the
-  // canonical `jobStatusLabel` (see #46) so the chip reads identically
-  // here, in the chat-header pill, and in every <StatusBadge>. Colors
-  // stay bespoke — the row sits on a translucent paper texture where
-  // the semantic-token palette looks washed out.
+  // canonical `jobStatusLabel` (#46); colors come from the canonical
+  // `jobStatusColor` map (`src/lib/statusColors.ts`). Same state, same
+  // chip everywhere it appears — chat header, this row, activity card,
+  // earnings list. No bespoke per-surface palette.
   //
   // `assigned` isn't in the job_status enum — it's a legacy
   // conversation-row alias for the offered-not-yet-confirmed window.
-  // Keep its bespoke "Awarded" copy.
+  // Keep its bespoke "Awarded" copy and route its color through the
+  // sienna-tinted `in_progress` slot so it reads as "in motion".
   const statusChip = c.jobStatus && (() => {
     const s = c.jobStatus;
-    if (s === "open") return { label: jobStatusLabel("open"), color: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.12)" };
-    if (s === "assigned") return { label: "Awarded", color: "hsl(var(--burnt-sienna))", bg: "hsl(var(--burnt-sienna) / 0.12)" };
-    if (s === "in_progress") return { label: jobStatusLabel("in_progress"), color: "hsl(var(--burnt-sienna))", bg: "hsl(var(--burnt-sienna) / 0.12)" };
-    if (s === "completed") return { label: jobStatusLabel("completed"), color: "hsl(var(--olivewood) / 0.9)", bg: "hsl(var(--olivewood) / 0.10)" };
-    if (s === "cancelled") return { label: jobStatusLabel("cancelled"), color: "hsl(var(--destructive))", bg: "hsl(var(--destructive) / 0.10)" };
-    return null;
+    const allowed: Record<string, true> = {
+      open: true, accepted: true, in_progress: true, completed: true,
+      cancelled: true, revision_requested: true, disputed: true, assigned: true,
+    };
+    if (!allowed[s]) return null;
+    const palette =
+      s === "assigned" ? jobStatusColor("in_progress") : jobStatusColor(s);
+    const label = s === "assigned" ? "Awarded" : jobStatusLabel(s);
+    return { label, color: palette.text, bg: palette.bg };
   })();
 
   // Rich-preview derivations.

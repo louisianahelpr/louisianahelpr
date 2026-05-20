@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { channelNonce } from "@/lib/realtimeChannel";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -78,12 +79,12 @@ export const useCurrentUser = (): CurrentUser => {
   // so the UI reflects the new status without a manual reload.
   useEffect(() => {
     if (!user?.id) return;
-    const channelNonce =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random()}`;
+    // Use the canonical channelNonce() helper so this hook stays in lockstep
+    // with the rest of the codebase — a divergent inline impl would silently
+    // drift if the helper later picks up extra guarantees (e.g. monotonic
+    // suffix, instance counter) that we'd want everywhere.
     const channel = supabase
-      .channel(`profile-self-${user.id}-${channelNonce}`)
+      .channel(`profile-self-${user.id}-${channelNonce()}`)
       .on(
         "postgres_changes",
         {

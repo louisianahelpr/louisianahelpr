@@ -244,70 +244,48 @@ const DashboardGuest = () => {
       </header>
       }
       titleCard={
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
-          {/* Hero copy — eyebrow + a right-sized headline (no longer the
-              whole viewport) + a single tight subline. */}
-          <div className="min-w-0">
-            <span
-              className="font-serif italic uppercase text-ds-9"
-              style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+        // Compact hero strip — eyebrow + a right-sized headline + a single
+        // tight subline. The in-card "Sign up free" CTA and "Already on
+        // Helpr? Log in" link were removed 2026-05-19 because the page
+        // header (rendered above) already shows both `Log in` and `Sign up`
+        // buttons in the corner. Duplicating them here doubled the card's
+        // height and dominated the guest dashboard without adding any new
+        // conversion path. If A/B testing later shows the corner CTAs are
+        // missed by guest users, reintroduce a single inline link rather
+        // than the full bark Button + secondary text-link stack.
+        <div className="min-w-0">
+          <span
+            className="font-serif italic uppercase text-ds-9"
+            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          >
+            A first look
+          </span>
+          <h1
+            className="leading-[1.12] mt-0.5"
+            style={{
+              fontFamily: '"Bodoni Moda", Georgia, serif',
+              fontStyle: "italic",
+              fontWeight: 700,
+              fontSize: "clamp(1.05rem, 1.1vw + 0.35rem, 1.2rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.022em",
+            }}
+          >
+            Need help, or want to{" "}
+            <em
+              className="signature"
+              style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}
             >
-              A first look
-            </span>
-            {/* Hero headline — keeps the .text-section-title DS typography
-                (Bodoni Moda italic 700) but pinned to a smaller, balanced
-                size: the DS clamp (max 1.5rem) read as oversized here and
-                dominated the guest landing. Replicating the family/weight
-                inline lets us go below the DS class's !important size. */}
-            <h1
-              className="leading-[1.12] mt-0.5"
-              style={{
-                fontFamily: '"Bodoni Moda", Georgia, serif',
-                fontStyle: "italic",
-                fontWeight: 700,
-                fontSize: "clamp(1.05rem, 1.1vw + 0.35rem, 1.2rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.022em",
-              }}
-            >
-              Need help, or want to{" "}
-              <em
-                className="signature"
-                style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}
-              >
-                earn
-              </em>
-              ?
-            </h1>
-            <p
-              className="font-serif italic mt-1 text-ds-11 leading-snug"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-            >
-              Post a task in a minute, or browse what your neighbors need.
-            </p>
-          </div>
-          {/* Prominent in-content CTA — the real conversion driver, not the
-              small corner button. Light cream text on the deep-olive bark
-              fill; "Log in" sits beneath as a quiet secondary. */}
-          <div className="flex flex-col items-stretch gap-1.5 shrink-0 sm:items-end">
-            <Button
-              variant="bark"
-              size="sm"
-              onClick={() => navigate("/signup")}
-              className="w-full sm:w-auto rounded-ds-md px-6 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
-              style={{ color: "hsl(var(--parchment))" }}
-            >
-              Sign up free
-            </Button>
-            <button
-              type="button"
-              onClick={() => navigate("/login")}
-              className="text-ds-11 font-sans font-semibold btn-press transition-colors hover:underline self-center sm:self-end"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-            >
-              Already on Helpr? Log in
-            </button>
-          </div>
+              earn
+            </em>
+            ?
+          </h1>
+          <p
+            className="font-serif italic mt-1 text-ds-11 leading-snug"
+            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            Post a task in a minute, or browse what your neighbors need.
+          </p>
         </div>
       }
     >

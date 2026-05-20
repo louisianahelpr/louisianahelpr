@@ -100,7 +100,10 @@ serve(async (req) => {
     if (recordErr || !record) throw new Error("Failed to create payout record");
 
     try {
-      // Transfer the fee to the platform account first
+      // Transfer the fee to the platform account first.
+      // Idempotency: keyed off the persisted instant_payouts.id so any retry —
+      // network blip, function-restart mid-flight, client double-tap — reuses
+      // the same Stripe Transfer instead of double-charging the helper.
       await stripe.transfers.create(
         {
           amount: feeCents,
@@ -113,13 +116,19 @@ serve(async (req) => {
             type: "instant_payout_fee",
           },
         },
-        { stripeAccount: profile.stripe_account_id }
+        {
+          stripeAccount: profile.stripe_account_id,
+          idempotencyKey: `instant-payout-transfer-${record.id}`,
+        }
       ).catch(async () => {
         // Transfer may fail on older Connect setups; fall back to recording fee only
         // (fee is still effectively retained since we only pay out netCents)
       });
 
-      // Execute the instant payout for net amount
+      // Execute the instant payout for net amount.
+      // Same idempotency rationale as the transfer above. The key includes the
+      // instant_payouts row id, so a retry inside the same logical attempt
+      // collapses safely while a brand-new attempt (new row) gets its own key.
       const payout = await stripe.payouts.create(
         {
           amount: netCents,
@@ -133,7 +142,10 @@ serve(async (req) => {
             fee_cents: String(feeCents),
           },
         },
-        { stripeAccount: profile.stripe_account_id }
+        {
+          stripeAccount: profile.stripe_account_id,
+          idempotencyKey: `instant-payout-payout-${record.id}`,
+        }
       );
 
       await supabaseAdmin

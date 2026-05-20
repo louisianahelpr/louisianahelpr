@@ -20,7 +20,7 @@ import { JobTracking } from "@/components/JobTracking";
 import { WhatToBringChecklist } from "@/components/jobs/WhatToBringChecklist";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { transformedImageUrl } from "@/lib/imageUrl";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import type { Application, AppliedApp } from "./activityConstants";
 
 interface AppliedJobCardProps {
@@ -233,7 +233,7 @@ function AppliedJobCardInner({
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                       {/* Thumbnail strip — fixed 96x64 (w-24 h-16) box,
                           already CLS-safe. Request a matching thumbnail. */}
-                      <img loading="lazy" decoding="async" src={transformedImageUrl(url, { width: 96, height: 64 })} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                      <OptimizedImage src={url} width={96} height={64} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                     </a>
                   ))}
                 </div>
@@ -774,7 +774,7 @@ function AppliedJobCardInner({
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
                       {/* Thumbnail strip — fixed 96x64 (w-24 h-16) box,
                           already CLS-safe. Request a matching thumbnail. */}
-                      <img loading="lazy" decoding="async" src={transformedImageUrl(url, { width: 96, height: 64 })} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                      <OptimizedImage src={url} width={96} height={64} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                     </a>
                   ))}
                 </div>

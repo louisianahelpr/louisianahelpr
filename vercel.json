@@ -1,8 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|_vercel/).*)", "destination": "/index.html" }
   ],
+  "images": {
+    "sizes": [16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    "formats": ["image/avif", "image/webp"],
+    "minimumCacheTTL": 31536000,
+    "remotePatterns": [
+      { "protocol": "https", "hostname": "fncmgoasalhdgfwzhsqa.supabase.co" }
+    ]
+  },
   "headers": [
     {
       "source": "/(.*)",

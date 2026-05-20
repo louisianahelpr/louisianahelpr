@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatName } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 /**
  * Your Helprs — a horizontal quick-rebook strip on the Dashboard.
@@ -79,11 +80,17 @@ export function YourHelpersRow() {
                 }}
               >
                 {h.avatar_url ? (
-                  <img
-                    loading="lazy"
-                    decoding="async"
+                  <OptimizedImage
+                    // 56px circle (w-14 h-14) — request a 56px thumbnail and
+                    // let the Vercel edge serve AVIF/WebP.
                     src={h.avatar_url}
+                    width={56}
+                    height={56}
                     alt=""
+                    // Above-the-fold on the Dashboard: this strip is among
+                    // the first content the user sees, so request eager +
+                    // high-priority fetches to improve LCP.
+                    priority
                     className="w-full h-full object-cover"
                   />
                 ) : (

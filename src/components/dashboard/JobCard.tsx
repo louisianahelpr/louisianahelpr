@@ -7,7 +7,7 @@ import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { transformedImageUrl } from "@/lib/imageUrl";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import { getCityState } from "@/lib/locationUtils";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
@@ -160,12 +160,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             aria-label={`View ${job.posterName}'s profile`}
           >
             {job.posterAvatarUrl ? (
-              <img
-                loading="lazy"
-                decoding="async"
+              <OptimizedImage
                 // Avatar renders into a fixed 44px (w-11 h-11) circle — request
-                // a matching thumbnail instead of the raw multi-MB upload.
-                src={transformedImageUrl(job.posterAvatarUrl, { width: 44, height: 44 })}
+                // a matching thumbnail (via Supabase render + Vercel edge) rather
+                // than the raw multi-MB upload.
+                src={job.posterAvatarUrl}
+                width={44}
+                height={44}
                 alt=""
                 className="w-full h-full object-cover"
               />

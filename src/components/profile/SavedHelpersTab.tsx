@@ -22,6 +22,7 @@ import { formatName } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
+import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -355,6 +356,16 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                       )}
                     </div>
                   </div>
+
+                  {/* Condensed review wall (#86) — 0-2 recent quotes so
+                      the trust signal lives on the rebook surface, not
+                      just the deep-link profile. Renders nothing when
+                      the helpr has no visible reviews. */}
+                  <PublicReviewWall
+                    helperId={h.helper_id}
+                    variant="condensed"
+                    onSeeAll={() => navigate(`/user/${h.helper_id}?tab=reviews`)}
+                  />
 
                   <div className="flex items-center gap-2">
                     <Button

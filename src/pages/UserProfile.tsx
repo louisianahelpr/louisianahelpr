@@ -20,6 +20,7 @@ import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import CredentialBadge from "@/components/CredentialBadge";
 import BusinessBadge from "@/components/BusinessBadge";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
+import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -531,6 +532,26 @@ const UserProfile = () => {
               </div>
             );
           })()}
+
+          {/* Recent reviews — public trust-signal wall (#86). Always
+              visible on other-user profiles so prospective posters see
+              quotes from past customers without having to expand the
+              full reviews tab. Owner sees the existing toggle only. */}
+          {!isOwnProfile && (
+            <PublicReviewWall
+              helperId={userId!}
+              totalReviewCount={stats.reviewCount}
+              onSeeAll={
+                stats.reviewCount > 5
+                  ? () => {
+                      setShowReviews(true);
+                      setShowPostedJobs(false);
+                      setShowWorkedJobs(false);
+                    }
+                  : undefined
+              }
+            />
+          )}
 
           {/* Reviews expanded inline */}
           {showReviews && (

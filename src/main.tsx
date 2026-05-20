@@ -80,12 +80,19 @@ void hydrateStorage();
   const loadAnalytics = () => {
     void (async () => {
       try {
-        const [{ initSentry, setSentryUser }, { initPostHog, identifyUser, resetUser }, { supabase }] =
-          await Promise.all([
-            import("./lib/sentry"),
-            import("./lib/posthog"),
-            import("./integrations/supabase/client"),
-          ]);
+        const [
+          { initSentry, setSentryUser },
+          { initPostHog, identifyUser, resetUser },
+          { supabase },
+          { queryClient },
+          { removePersistedClient },
+        ] = await Promise.all([
+          import("./lib/sentry"),
+          import("./lib/posthog"),
+          import("./integrations/supabase/client"),
+          import("./lib/queryClient"),
+          import("./lib/queryPersister"),
+        ]);
 
         initSentry();
         initPostHog();
@@ -106,6 +113,16 @@ void hydrateStorage();
           } else if (event === "SIGNED_OUT") {
             resetUser();
             setSentryUser(null);
+            // Wipe React Query cache + persisted IndexedDB cache so the next
+            // user on this device doesn't rehydrate the prior user's data
+            // (Stripe payouts, admin payout ledger, job history,
+            // notification logs). The persister has a 24h maxAge — without
+            // these calls a shared-device sign-out would leak for a day.
+            // Several query keys do already user-scope themselves (see
+            // queryKeys.ts) but anything keyed only by a literal string
+            // would otherwise survive. Belt + suspenders.
+            queryClient.clear();
+            void removePersistedClient();
           }
         });
       } catch {

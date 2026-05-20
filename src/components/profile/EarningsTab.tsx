@@ -31,6 +31,7 @@ import { HelperStreakBadge } from "@/components/profile/HelperStreakBadge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import { jobStatusColorClasses } from "@/lib/statusColors";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -121,7 +122,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     connected: false, payouts_enabled: false, available: [], pending: [], payouts: [],
   };
   const { data: stripeData, isLoading: stripeLoading, isFetching, refetch } = useQuery<StripePayoutData>({
-    queryKey: ["stripe-payouts"],
+    // User-scoped: the persisted IDB cache (24h) would otherwise rehydrate
+    // the prior helper's Stripe balance + payout history on a shared device.
+    queryKey: queryKeys.stripePayouts.byUser(helperId),
     queryFn: async () => {
       try {
         const { data, error } = await supabase.functions.invoke<StripePayoutData>("stripe-payouts", { body: {} });
@@ -132,6 +135,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         return FALLBACK_STRIPE;
       }
     },
+    enabled: !!helperId,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
@@ -161,7 +165,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   const refreshing = isFetching && !stripeLoading;
   const handleRefresh = () => {
-    qc.invalidateQueries({ queryKey: ["stripe-payouts"] });
+    // Prefix invalidate — matches any user-scoped stripe-payouts key the
+    // current session may have cached.
+    qc.invalidateQueries({ queryKey: queryKeys.stripePayouts.all });
     refetch();
   };
 

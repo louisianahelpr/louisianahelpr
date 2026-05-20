@@ -11,6 +11,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { unwrap } from "@/lib/supabaseResult";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -21,21 +23,25 @@ type StatusFilter = "all" | "open" | "in_progress" | "completed" | "cancelled";
 const JobHistory = () => {
   usePageTitle("Job History — Helpr");
   const navigate = useNavigate();
+  const { user } = useAuthReady();
+  const userId = user?.id;
   const [tab, setTab] = useState<HistoryTab>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   // React Query: cached for 30s, instant on revisit, refresh in background.
+  // Key is user-scoped: the IDB persister keeps successful queries for 24h,
+  // so a bare ["job-history"] would rehydrate the prior user's posts/work
+  // history into the next user's session on a shared device.
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["job-history"],
+    queryKey: queryKeys.jobHistory.byUser(userId),
+    enabled: !!userId,
     staleTime: 30_000,
     gcTime: 5 * 60_000,
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) { navigate("/login"); return { posted: [] as Job[], worked: [] as Job[] }; }
+      if (!userId) { navigate("/login"); return { posted: [] as Job[], worked: [] as Job[] }; }
       const [postedRes, workedRes] = await Promise.all([
-        supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("jobs").select("*").eq("helper_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("jobs").select("*").eq("customer_id", userId).order("created_at", { ascending: false }),
+        supabase.from("jobs").select("*").eq("helper_id", userId).order("created_at", { ascending: false }),
       ]);
       const posted = unwrap(postedRes) as Job[];
       const worked = unwrap(workedRes) as Job[];

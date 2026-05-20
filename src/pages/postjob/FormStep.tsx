@@ -4,6 +4,7 @@ import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
+import { SampleJobTemplates } from "@/components/postjob/SampleJobTemplates";
 import { DirectOfferBanner } from "./DirectOfferBanner";
 import { DraftPrompt } from "./DraftPrompt";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
@@ -102,6 +103,20 @@ export function FormStep({ form }: FormStepProps) {
       )}
 
       {atOpenJobLimit && <OpenJobLimitNotice />}
+
+      {/* Sample-job templates — a row of pre-filled example jobs for
+          first-time customers who don't know what details or budget are
+          reasonable. Self-hides the moment the customer starts typing or
+          picks a category, so it never tempts mid-flow. */}
+      <SampleJobTemplates
+        title={form.title}
+        category={form.category}
+        setTitle={form.setTitle}
+        setDescription={form.setDescription}
+        setCategory={form.setCategory}
+        setBudget={form.setBudget}
+        setEstimatedHours={form.setEstimatedHours}
+      />
 
       {/* AI Job Builder — secondary helper, collapsed by default. */}
       <AiJobBuilder

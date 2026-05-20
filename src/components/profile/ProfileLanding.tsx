@@ -13,6 +13,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
+import HelperTierBadge from "@/components/profile/HelperTierBadge";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -334,9 +335,27 @@ export function ProfileLanding({
               </p>
             )}
             {/* Earned trust badges — only the EARNED ones render, so the
-                row reads as proof, not a checklist of gaps. */}
-            {earnedBadges.length > 0 && (
+                row reads as proof, not a checklist of gaps. The
+                verification-ladder badge (#112) lives alongside them as
+                the headline trust signal — tap reveals what the tier
+                means and the exact gap to the next rung, which makes
+                this the one self-facing surface where progression hints
+                drive behavior. Self-hides at tier 0. */}
+            {(earnedBadges.length > 0 || profile) && (
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                <HelperTierBadge
+                  profile={{
+                    approval_status: profile?.approval_status ?? null,
+                    idv_status: profile?.idv_status ?? null,
+                    stripe_account_id: profile?.stripe_account_id ?? null,
+                  }}
+                  stats={{
+                    completedJobs: completedCount,
+                    avgRating: avgRating ?? 0,
+                    reviewCount,
+                  }}
+                  size="sm"
+                />
                 {earnedBadges.map((b) => (
                   <span
                     key={b.label}

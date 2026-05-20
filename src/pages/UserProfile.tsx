@@ -21,6 +21,7 @@ import CredentialBadge from "@/components/CredentialBadge";
 import BusinessBadge from "@/components/BusinessBadge";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
+import HelperTierBadge from "@/components/profile/HelperTierBadge";
 
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -82,7 +83,16 @@ const UserProfile = () => {
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!),
-        supabase.from("profiles").select("id_document_url").eq("user_id", userId!).single(),
+        // Verification-ladder inputs (#112): grab the trust signals while
+        // we're already touching this row. `get_safe_profiles` doesn't
+        // expose these, but the profiles RLS policy already permits SELECT
+        // on any approved row (that's the same gate `id_document_url`
+        // relies on), so a direct select is fine.
+        supabase
+          .from("profiles")
+          .select("id_document_url, approval_status, idv_status, stripe_account_id")
+          .eq("user_id", userId!)
+          .maybeSingle(),
       ]);
 
       const postedJobs = postedRes.data || [];
@@ -141,6 +151,13 @@ const UserProfile = () => {
         workedJobs,
         responseMetrics,
         isIdVerified: !!idCheckRes.data?.id_document_url,
+        // Verification-ladder inputs — passed straight through to
+        // HelperTierBadge. Null-safe if the row read was blocked.
+        tierProfile: {
+          approval_status: idCheckRes.data?.approval_status ?? null,
+          idv_status: idCheckRes.data?.idv_status ?? null,
+          stripe_account_id: idCheckRes.data?.stripe_account_id ?? null,
+        },
       };
     },
   });
@@ -152,6 +169,7 @@ const UserProfile = () => {
   const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }>;
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
   const isIdVerified = data?.isIdVerified ?? false;
+  const tierProfile = data?.tierProfile ?? null;
   const loading = isLoading && !data;
 
   // Computed up-front so the loading skeleton can render the same
@@ -434,6 +452,16 @@ const UserProfile = () => {
               )}
               <HelperBadges badges={badges} />
               <div className="pt-2 flex flex-wrap justify-center gap-1.5">
+                {/* Verification ladder (#112) — sits with credentials
+                    because both answer "should I trust this person?",
+                    separate from the performance badges above. The
+                    component self-hides at tier 0, so fresh signups
+                    don't get a placeholder pill. */}
+                <HelperTierBadge
+                  profile={tierProfile}
+                  stats={stats}
+                  size="md"
+                />
                 <CredentialBadge credentials={profile as any} size="md" />
                 <BusinessBadge userId={userId!} size="md" />
               </div>

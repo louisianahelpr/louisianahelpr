@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,13 @@ import { Star, Gift, PartyPopper, Heart, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { fetchReferralData } from "@/hooks/useReferralData";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+
+// NpsPrompt is mounted as the final step in the post-completion sequence —
+// after review/tip/share. It self-gates on eligibility (2nd qualifying job
+// + no prior submission + no 90-day local cooldown), so most invocations
+// resolve to nothing. Lazy-loaded so it only enters the bundle when a job
+// completes.
+const NpsPrompt = lazy(() => import("@/components/feedback/NpsPrompt").then((m) => ({ default: m.NpsPrompt })));
 
 type CompletionPromptsProps = {
   jobId: string;
@@ -19,7 +26,7 @@ type CompletionPromptsProps = {
 };
 
 export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, userId, onDone }: CompletionPromptsProps) => {
-  const [step, setStep] = useState<"review" | "tip" | "share" | null>("review");
+  const [step, setStep] = useState<"review" | "tip" | "share" | "nps" | null>("review");
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState("");
@@ -242,7 +249,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       {/* Share Prompt — peak emotional moment. Job is done, both parties
           are happy. Best time to ask for a referral. Hidden if we
           couldn't load a referral code (offline / first-time edge). */}
-      <Dialog open={step === "share"} onOpenChange={() => { setStep(null); onDone(); }}>
+      <Dialog open={step === "share"} onOpenChange={() => setStep("nps")}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
@@ -273,10 +280,22 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setStep(null); onDone(); }}>Maybe later</Button>
+            <Button variant="ghost" onClick={() => setStep("nps")}>Maybe later</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* NPS prompt — terminal step. Self-gates on eligibility (2nd
+          qualifying completed job + no prior submission + no local
+          cooldown). For users who don't qualify it resolves to a no-op
+          and immediately calls onDone(); for those who do, it shows the
+          bottom-sheet survey and onDone() runs once they submit/dismiss.
+          Either way the dialog stack closes correctly. */}
+      {step === "nps" && (
+        <Suspense fallback={null}>
+          <NpsPrompt userId={userId} onClose={() => { setStep(null); onDone(); }} />
+        </Suspense>
+      )}
     </>
   );
 };

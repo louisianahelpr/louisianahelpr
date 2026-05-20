@@ -108,10 +108,20 @@ const ProtectedRoute = ({
     });
   }, [allowUnapproved, isLoading, location.pathname, profile, user?.id]);
 
-  if (isLoading) {
-    // Use the calm, static brand-mark + skeleton fallback (same one the
-    // per-route Suspense boundary uses) instead of the spinning H, which
-    // felt overwhelming on a 2-3s cold cellular load.
+  // Block ONLY on the session being unknown. Once we have a `user` (the
+  // session resolved), render children optimistically and let the profile
+  // arrive in the background. Profile-based gates below fail-open while the
+  // profile is loading; once it lands, the resulting re-render fires any
+  // redirect that applies. This shaves 1-3s off cold-start dashboard paint
+  // on cellular, where the profile fetch dominates first-paint latency.
+  //
+  // The brief flash visible to a banned/denied user before the redirect is
+  // acceptable: all mutation endpoints enforce server-side RLS, so they
+  // cannot *act* on the page in that window — only see it.
+  if (isLoading && !user) {
+    // Cold-start moment only: no session known yet. Use the calm, static
+    // brand-mark + skeleton fallback (same one the per-route Suspense
+    // boundary uses) instead of the spinning H.
     return <RouteSuspenseFallback />;
   }
 
@@ -120,60 +130,62 @@ const ProtectedRoute = ({
     return <Navigate to="/login" replace />;
   }
 
-  // Banned users — explain the situation, never bounce back to /login.
-  if (
-    profile?.ban_status &&
-    ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)
-  ) {
-    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-banned", reason: profile.ban_status });
-    return <Navigate to="/account-banned" replace />;
-  }
-
-  if (!allowUnapproved) {
-    // `denied` is a hard stop on every non-`allowUnapproved` route. It is
-    // NOT relaxed by `allowPending` — progressive activation only opens the
-    // app for users still inside the verification window, never for those
-    // who have already been rejected.
-    if (profile?.approval_status === "denied") {
-      if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-denied", reason: "approval-denied" });
-      return <Navigate to="/account-denied" replace />;
+  // Profile-based gates: only fire once the profile has actually loaded.
+  // While `profile` is still null we fall through to render the children
+  // optimistically; the next render (after the profile fetch lands) will
+  // re-evaluate these guards and navigate away if needed.
+  if (profile) {
+    // Banned users — explain the situation, never bounce back to /login.
+    if (
+      profile.ban_status &&
+      ["banned", "temp_banned", "permanently_banned"].includes(profile.ban_status)
+    ) {
+      if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-banned", reason: profile.ban_status });
+      return <Navigate to="/account-banned" replace />;
     }
 
-    // Progressive-activation routes (`allowPending`) let a pending or
-    // email-unconfirmed user through so they can browse/save/apply while
-    // they wait. Every other route still bounces them to /account-pending.
-    if (!allowPending) {
-      // Stage 1: Email verification (auth user is the source of truth)
-      if (user && !user.email_confirmed_at) {
-        if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "email-unconfirmed" });
-        return <Navigate to="/account-pending" replace />;
+    if (!allowUnapproved) {
+      // `denied` is a hard stop on every non-`allowUnapproved` route. It is
+      // NOT relaxed by `allowPending` — progressive activation only opens
+      // the app for users still inside the verification window, never for
+      // those who have already been rejected.
+      if (profile.approval_status === "denied") {
+        if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-denied", reason: "approval-denied" });
+        return <Navigate to="/account-denied" replace />;
       }
-      if (profile?.approval_status === "pending") {
-        if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "approval-pending" });
-        return <Navigate to="/account-pending" replace />;
+
+      // Progressive-activation routes (`allowPending`) let a pending or
+      // email-unconfirmed user through so they can browse/save/apply while
+      // they wait. Every other route still bounces them to /account-pending.
+      if (!allowPending) {
+        // Stage 1: Email verification (auth user is the source of truth)
+        if (!user.email_confirmed_at) {
+          if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "email-unconfirmed" });
+          return <Navigate to="/account-pending" replace />;
+        }
+        if (profile.approval_status === "pending") {
+          if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "approval-pending" });
+          return <Navigate to="/account-pending" replace />;
+        }
       }
+    }
+
+    // Stage 2: Universal "Big 7" verification gate.
+    // Legacy users (created before the cutoff) bypass the gate entirely.
+    const isLegacy = profile.is_legacy_user === true;
+    if (
+      !isLegacy &&
+      user.email_confirmed_at &&
+      !isProfileComplete(profile) &&
+      !PROFILE_GATE_ALLOWED.has(location.pathname)
+    ) {
+      if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/complete-profile", reason: "profile-incomplete" });
+      return <Navigate to="/complete-profile" replace />;
     }
   }
 
-  // Stage 2: Universal "Big 7" verification gate.
-  // Legacy users (created before the cutoff) bypass the gate entirely.
-  // IMPORTANT: only redirect when we actually have a profile row in hand. If
-  // the profile fetch timed out or RLS hiccupped (`profile === null`), we
-  // **fail open** so legacy users don't get bounced to /complete-profile on
-  // a slow network or transient error. The gate will re-evaluate on the
-  // next render once the profile loads.
-  const isLegacy = profile?.is_legacy_user === true;
-  if (
-    profile &&
-    !isLegacy &&
-    user.email_confirmed_at &&
-    !isProfileComplete(profile) &&
-    !PROFILE_GATE_ALLOWED.has(location.pathname)
-  ) {
-    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/complete-profile", reason: "profile-incomplete" });
-    return <Navigate to="/complete-profile" replace />;
-  }
-
+  // Either profile is loaded and every gate passed, or profile is still
+  // loading and we are rendering optimistically — either way, show children.
   return <>{children}</>;
 };
 

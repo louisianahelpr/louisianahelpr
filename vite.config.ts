@@ -113,39 +113,54 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
+        // PRECACHE = critical-path first-paint files ONLY. Everything else
+        // (route chunks, dialog chunks, vendor chunks not in the entry's
+        // static graph, all src/assets/ imagery, social/marketing PNGs in
+        // public/) falls through to the runtimeCaching rules below and is
+        // cached on first use with StaleWhileRevalidate.
+        //
+        // Why: the previous globPatterns (`**/*.{js,css,…}` with a few
+        // ignores) precached 231 entries / 5260 KiB on every first visit —
+        // before the SW was even useful — and downloaded all 800+ KB
+        // social-media images, every lazy route chunk, every dialog chunk
+        // etc. up front. Trimmed precache is now <1 MB; the boot files the
+        // browser is already fetching to render landing are the only ones
+        // covered, and the SW just keeps them warm for repeat visits.
+        //
         // Deliberately exclude `html` from precache. When index.html was
         // precached, a stale SW kept serving the old HTML (which references
         // old hashed bundle URLs) for hours after a deploy — users had to
         // manually unregister the SW to see updates. The navigation handler
         // below now NetworkFirst's HTML so deploys take effect on next reload.
-        globPatterns: ["**/*.{js,css,ico,png,svg,jpg,jpeg,webp,woff,woff2}"],
-        // Don't precache heavy admin-only chunks. They're lazy-loaded behind
-        // an auth gate and would otherwise bloat the SW cache for every
-        // public visitor (Lighthouse flags them as unused JS on landing).
-        globIgnores: [
-          "**/assets/charts-*.js",
-          "**/assets/Admin*-*.js",
-          // framer-motion is only used inside Dashboard / Community and a few
-          // dialogs that mount post-login. The landing page has zero motion
-          // imports, but the SW would otherwise fetch this 42 KB chunk on the
-          // first visit and Lighthouse attributes the load + a misleading
-          // forced-reflow source to it. Defer the cache fetch to actual use.
-          "**/assets/motion-*.js",
-          // PostHog (analytics) + Sentry (error tracking) are deferred
-          // until first user interaction (see main.tsx). Precaching them
-          // would re-ship ~322 KB on a cold landing visit and undo that
-          // deferral, so keep them out of the SW cache too.
-          "**/assets/posthog-*.js",
-          "**/assets/sentry-*.js",
-          // app-icon-1024.png is the 1024×1024 source the iOS icon
-          // generator reads (scripts/generate-ios-icons.mjs). It lives in
-          // public/ so the script can find it, but nothing in the web app
-          // references it — precaching it would add ~700 KB of dead weight
-          // to every visitor's SW cache.
-          "app-icon-1024.png",
+        globPatterns: [
+          // Entry chunks: the <script src=…> and the entry stylesheet the
+          // index.html ships. Both are fetched on every cold load.
+          "assets/index-*.js",
+          "assets/index-*.css",
+          // React + React DOM + scheduler + jsx-runtime — statically
+          // imported by the entry chunk, so the browser fetches this on
+          // every cold load regardless. Keeping it in the precache lets
+          // repeat visits boot fully offline.
+          "assets/react-vendor-*.js",
+          // Favicon + PWA icon set referenced from index.html / the web
+          // manifest. Tiny (<50 KB total), needed for tab + install UI.
+          "favicon.ico",
+          "favicon-16.png",
+          "favicon-32.png",
+          "apple-touch-icon.png",
+          "pwa-192x192-v2.png",
+          "pwa-512x512-v2.png",
         ],
-        // Bump the per-file precache limit so the main bundle still fits.
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // Drop sourcemaps (never fetched by the browser) and the unrelated
+        // `assets/index.es-*.js` vendor chunk (jspdf etc.) that happens to
+        // share the `index` prefix — it's not part of the entry graph.
+        globIgnores: ["**/*.map", "assets/index.es-*.js"],
+        // 1 MiB ceiling on per-file precache. The trimmed boot set is well
+        // under this (~23 KB entry JS, ~150 KB entry CSS, ~132 KB
+        // react-vendor, ~45 KB total icons). If a future bundle balloons
+        // past 1 MiB it fails loudly at build time rather than silently
+        // re-shipping multi-MB precache.
+        maximumFileSizeToCacheInBytes: 1024 * 1024,
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
@@ -171,24 +186,36 @@ export default defineConfig(({ mode }) => ({
               expiration: { maxEntries: 50, maxAgeSeconds: 300 },
             },
           },
-          // Hashed/fingerprinted build assets are immutable. Serve from cache
-          // for up to a year on repeat visits, regardless of upstream
-          // Cache-Control headers (Lighthouse "Use efficient cache lifetimes").
+          // Hashed/fingerprinted build assets not in the precache (route
+          // chunks like Dashboard / Profile / PostJob, dialog chunks, vendor
+          // chunks like motion / posthog / sentry / charts, all
+          // `src/assets/` imagery emitted under `/assets/`, etc.). Fetched
+          // on demand on first use, cached SWR so repeat visits are fast
+          // while updates still propagate in the background.
+          //
+          // SWR is safe here because filenames are content-hashed: a new
+          // deploy produces new URLs (no stale-version risk for a given
+          // URL), and the revalidate step just keeps the cache pruned. The
+          // expiration cap (50 entries / 30 days) bounds total disk usage
+          // — older entries are evicted LRU when the cap is hit.
           {
             urlPattern: ({ url, sameOrigin }) =>
               sameOrigin && /\/assets\/.*-[A-Za-z0-9_-]{8,}\.(js|css|webp|png|jpg|jpeg|svg|woff2?)$/.test(url.pathname),
-            handler: "CacheFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "static-assets",
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          // Static images at the site root (splash icon, PWA icons, etc.)
+          // Static images at the site root not covered above (splash icon,
+          // OG/social images, marketing PNGs like helpr-wordmark, the
+          // 800-KB app-icon-1024 used by the iOS icon generator script,
+          // etc.). Same SWR + 50/30d caps.
           {
             urlPattern: ({ url, sameOrigin }) =>
               sameOrigin && /\.(png|webp|jpg|jpeg|svg|ico)$/.test(url.pathname),
-            handler: "CacheFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "static-images",
               expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },

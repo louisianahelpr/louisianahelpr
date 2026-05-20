@@ -42,11 +42,18 @@ export default defineConfig({
     {
       name: "happy-path",
       // Local-preview smoke tests with mocked Supabase. Mobile viewport
-      // — matches the Mobile viewport spot-check config and is what
-      // the majority of Helpr users hit.
+      // (375x812 ≈ iPhone X/12/13/14), matching the existing Mobile
+      // viewport spot-check config. We deliberately use Chromium, not
+      // WebKit — CI only installs the Chromium browser and the React
+      // bundle behaves identically across engines on a desktop emulator.
       testDir: "./e2e/happy-path",
       use: {
-        ...devices["iPhone 12"],
+        ...devices["Desktop Chrome"],
+        viewport: { width: 375, height: 812 },
+        isMobile: false, // Chromium can't combine isMobile=true with non-webkit
+        hasTouch: true,
+        userAgent:
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
         // Override the deployed baseURL with the local Vite preview.
         baseURL: process.env.HAPPY_PATH_BASE_URL || "http://localhost:4173",
       },

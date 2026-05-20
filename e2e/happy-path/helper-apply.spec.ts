@@ -33,8 +33,13 @@ const OPEN_JOB = {
   location: "New Orleans, LA",
   status: "open",
   payment_status: "paid",
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
+  // useDashboardFilters has a 20-minute "early access" delay for free
+  // helpers — anything posted in the last 20 minutes is hidden from
+  // non-subscribers (the perk that justifies the Basic/Pro/Elite tier).
+  // The smoke test simulates a free helper, so the job must be older
+  // than 20 minutes or the feed filter drops it.
+  created_at: new Date(Date.now() - 30 * 60_000).toISOString(),
+  updated_at: new Date(Date.now() - 30 * 60_000).toISOString(),
   is_urgent: false,
   urgent_fee: 0,
   is_flexible_schedule: false,
@@ -82,11 +87,32 @@ test.describe("helper browse-and-apply happy path", () => {
       ],
     });
 
+    const logs: string[] = [];
+    page.on("pageerror", (e) => logs.push(`pageerror: ${e.message}`));
+    page.on("console", (msg) => logs.push(`console.${msg.type()}: ${msg.text()}`));
+    page.on("requestfinished", async (req) => {
+      const url = req.url();
+      if (url.includes("supabase.co")) {
+        const resp = await req.response();
+        logs.push(`req: ${req.method()} ${url} → ${resp?.status()}`);
+      }
+    });
+    page.on("requestfailed", (req) => {
+      if (req.url().includes("supabase.co")) {
+        logs.push(`failed: ${req.method()} ${req.url()} → ${req.failure()?.errorText}`);
+      }
+    });
+
     await page.goto("/dashboard");
 
     // The job title must surface in the feed — covers both the JobCard
     // and the section-heading code paths.
-    await expect(page.getByText(OPEN_JOB.title)).toBeVisible({ timeout: 15_000 });
+    try {
+      await expect(page.getByText(OPEN_JOB.title)).toBeVisible({ timeout: 15_000 });
+    } catch (e) {
+      console.log("DEBUG logs during /dashboard:\n" + logs.join("\n"));
+      throw e;
+    }
 
     // Axe check at the helper's primary action surface.
     await checkA11y(page);

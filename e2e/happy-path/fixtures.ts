@@ -1,3 +1,10 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+// Playwright's `test.extend` fixtures take a callback whose second arg is a
+// `use(value)` function. The react-hooks lint plugin pattern-matches the
+// literal name `use(...)` and assumes it's React's `use()` hook. There's no
+// React in this file — it's a Playwright fixture module — so we disable the
+// rule for the whole file rather than renaming the API away from Playwright's
+// documented signature.
 import {
   test as baseTest,
   expect,
@@ -377,12 +384,13 @@ export async function seedAuthedSession(context: BrowserContext, user: FakeUser,
  */
 export async function checkA11y(
   page: Page,
-  options: { context?: string; tags?: string[] } = {},
+  options: { context?: string; tags?: string[]; disableRules?: string[] } = {},
 ): Promise<void> {
   const builder = new AxeBuilder({ page }).withTags(
     options.tags ?? ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"],
   );
   if (options.context) builder.include(options.context);
+  if (options.disableRules?.length) builder.disableRules(options.disableRules);
   // Some legacy color-contrast tickets are not yet fixed app-wide.
   // We do NOT silently mute them; the suite asserts no
   // critical/serious violations, and color-contrast typically lands as

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star, Users, Wrench } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { VirtualList } from "@/components/VirtualList";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
@@ -58,6 +59,7 @@ export const PostedJobsTab = ({
       <EmptyState
         variant="inline"
         icon={Wrench}
+        illustration={<EmptyStateIllustration variant="posts" />}
         title="No posts yet in this view"
         body="Post your first task and we'll match you with vetted Louisiana helprs nearby."
         action={

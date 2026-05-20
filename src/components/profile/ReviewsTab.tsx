@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Star, Info, ArrowDownAZ, ArrowUpAZ, CalendarClock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import {
   Popover,
   PopoverContent,
@@ -202,6 +203,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
         <EmptyState
           variant="inline"
           icon={Star}
+          illustration={<EmptyStateIllustration variant="reviews" />}
           title="No reviews yet"
           body="Complete a job and your customer's words will show up here."
           action={

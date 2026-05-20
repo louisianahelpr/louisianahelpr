@@ -56,18 +56,53 @@ describe("validateResult", () => {
     expect(result).toBe(drifted);
 
     // Sentry receives a structured drift report with the context label
-    // and the offending payload as extra.
+    // and a PII-safe shape summary (NOT the raw payload — that would
+    // leak user emails, names, locations, etc. on a single drift).
     await waitForSentryCall(captureMessageMock);
     expect(captureMessageMock).toHaveBeenCalledOnce();
     const [message, options] = captureMessageMock.mock.calls[0] as [
       string,
-      { level: string; extra: { issues: unknown; sample: unknown } },
+      { level: string; extra: { issues: unknown; shape: unknown } },
     ];
     expect(message).toBe("Schema drift at test.drifted");
     expect(options.level).toBe("error");
-    expect(options.extra.sample).toBe(drifted);
+    // The raw payload must NEVER appear in the captured extras.
+    expect(options.extra).not.toHaveProperty("sample");
+    // Shape captures top-level keys and redacted type tags only.
+    expect(options.extra.shape).toEqual({
+      id: "<redacted-string>",
+      count: "<redacted-string>",
+    });
     expect(Array.isArray(options.extra.issues)).toBe(true);
     expect((options.extra.issues as unknown[]).length).toBeGreaterThan(0);
+  });
+
+  it("summarizes arrays of rows without leaking row contents", async () => {
+    const { validateResult } = await import("./validateResult");
+    const rowSchema = z.object({ id: z.string(), email: z.string() });
+    const schema = z.array(rowSchema);
+    // Two rows, one with the wrong type — triggers drift.
+    const drifted = [
+      { id: "u1", email: "alice@example.com" },
+      { id: "u2", email: 12345 },
+    ];
+    validateResult(schema, drifted, "test.array-drift");
+
+    await waitForSentryCall(captureMessageMock);
+    const [, options] = captureMessageMock.mock.calls[0] as [
+      string,
+      { extra: { shape: { _array: boolean; length: number; first_keys: string[] | null } } },
+    ];
+    // No row values should appear anywhere in the shape summary.
+    const serialized = JSON.stringify(options.extra.shape);
+    expect(serialized).not.toContain("alice@example.com");
+    expect(serialized).not.toContain("u1");
+    expect(serialized).not.toContain("u2");
+    expect(options.extra.shape).toEqual({
+      _array: true,
+      length: 2,
+      first_keys: ["id", "email"],
+    });
   });
 
   it("does not throw when Sentry itself fails — observability never breaks the caller", async () => {

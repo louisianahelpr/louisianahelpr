@@ -1,19 +1,8 @@
 import { useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes of inactivity
-
-// Supabase client is dynamically imported (NOT statically) to keep the
-// ~205KB supabase-js chunk out of the entry bundle. This hook only fires
-// after 30 minutes of inactivity, so the import latency is invisible.
-// Without this, App.tsx -> SessionManager -> useSessionTimeout pulled
-// supabase into the critical path and blocked first paint on the chunk's
-// top-level await (keychainStorageAdapter hydratePromise) on native cold
-// starts. See src/integrations/supabase/client.ts.
-async function getSupabase() {
-  const { supabase } = await import("@/integrations/supabase/client");
-  return supabase;
-}
 
 export const useSessionTimeout = () => {
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -22,7 +11,6 @@ export const useSessionTimeout = () => {
     const resetTimer = () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(async () => {
-        const supabase = await getSupabase();
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           await supabase.auth.signOut();

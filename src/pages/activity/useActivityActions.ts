@@ -299,7 +299,19 @@ export function useActivityActions({
         toast.error("Couldn't accept the job — please try again.");
         return;
       }
-      await supabase.from("applications").update({ status: "rejected" }).eq("job_id", app.job_id).neq("id", app.id);
+      // Helper-side reject of the losing applicants. The direct UPDATE this
+      // used to issue was RLS-filtered to zero rows (applications.UPDATE only
+      // permits the customer), so other applicants got stuck in "pending"
+      // forever. Goes through a SECURITY DEFINER RPC that re-validates the
+      // caller is the accepted helper. PGRST202 fallback covers the window
+      // between merge and the manual `supabase db push` to prod.
+      const { error: rejectErr } = await supabase.rpc("reject_other_applications_on_accept", {
+        p_job_id: app.job_id,
+        p_accepted_application_id: app.id,
+      });
+      if (rejectErr && rejectErr.code !== "PGRST202") {
+        console.warn("Failed to auto-reject other applications", rejectErr);
+      }
       hapticSuccess();
       // Funnel: helper accepted an offer — closes the "applied → hired" gap
       // in the helper funnel that previously had zero instrumentation.

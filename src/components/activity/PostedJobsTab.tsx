@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
-import { transformedImageUrl } from "@/lib/imageUrl";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star, Users, Wrench } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
@@ -170,12 +170,13 @@ export const PostedJobsTab = ({
                         }}
                       >
                         {app.profiles?.avatar_url ? (
-                          <img
-                            loading="lazy"
-                            decoding="async"
+                          <OptimizedImage
                             // Helper avatar renders into a fixed 44px (w-11 h-11)
-                            // circle — request a matching thumbnail.
-                            src={transformedImageUrl(app.profiles.avatar_url, { width: 44, height: 44 })}
+                            // circle — request a matching thumbnail via the
+                            // Vercel edge (AVIF/WebP) on web.
+                            src={app.profiles.avatar_url}
+                            width={44}
+                            height={44}
                             alt=""
                             className="w-full h-full object-cover"
                           />

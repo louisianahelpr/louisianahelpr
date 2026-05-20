@@ -18,7 +18,7 @@ import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { transformedImageUrl } from "@/lib/imageUrl";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 
 interface PostedJobCardProps {
@@ -334,7 +334,7 @@ function PostedJobCardInner({
                         <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
                           {/* Thumbnail strip — fixed 112x80 (w-28 h-20) box,
                               already CLS-safe. Request a matching thumbnail. */}
-                          <img loading="lazy" decoding="async" src={transformedImageUrl(url, { width: 112, height: 80 })} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                          <OptimizedImage src={url} width={112} height={80} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                         </a>
                       ))}
                     </div>

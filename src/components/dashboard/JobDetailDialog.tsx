@@ -9,7 +9,7 @@ import {
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { getCityState } from "@/lib/locationUtils";
-import { transformedImageUrl } from "@/lib/imageUrl";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { haversineMiles } from "@/lib/geo";
 import { getParishCentroid } from "@/lib/parishCentroids";
@@ -224,9 +224,10 @@ const JobDetailDialog = ({
               }}
             >
               {/* 16:9 cover inside a max-w-lg (512px) dialog — request a
-                  ~512x288 thumbnail instead of the raw upload. The wrapper
-                  is `aspect-video`, so the box is already CLS-safe. */}
-              <img loading="lazy" decoding="async" src={transformedImageUrl(photos[0], { width: 512, height: 288 })} alt="Cover" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                  ~512x288 thumbnail (via Supabase render + Vercel edge)
+                  instead of the raw upload. The wrapper is `aspect-video`,
+                  so the box is already CLS-safe. */}
+              <OptimizedImage src={photos[0]} width={512} height={288} alt="Cover" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
               {photos.length > 1 && (
                 <span
                   className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold"

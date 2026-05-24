@@ -155,7 +155,11 @@ const WelcomeScreen = ({ scale = 1 }: { scale?: number }) => (
         className="rounded-ds-sm flex items-center justify-center gap-1"
         style={{
           height: `${28 * scale}px`,
-          backgroundColor: "hsl(var(--sage))",
+          // Sage on parchment is only ~3.6:1 — fails WCAG AA for normal
+          // text. Use the darker `bark` token (also used by the real hero
+          // primary CTA) so the in-phone mockup mirrors that contrast
+          // pairing and clears the 4.5:1 threshold.
+          backgroundColor: "hsl(var(--bark))",
           color: "hsl(var(--parchment))",
           boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)",
         }}
@@ -364,13 +368,15 @@ const DashboardScreen = ({ scale = 1 }: { scale?: number }) => {
             </div>
           ))}
         </div>
-        {/* CTA */}
+        {/* CTA — `bark` rather than `sage` so the parchment label clears
+            WCAG AA (4.5:1). Sage/parchment is only ~3.6:1, which axe flags
+            and fails contrast in the rendered marketing screenshot. */}
         <div
           className="mt-auto rounded-ds-sm flex items-center justify-center"
           style={{
             gap: `${0.3 * scale}rem`,
             height: `${30 * scale}px`,
-            backgroundColor: "hsl(var(--sage))",
+            backgroundColor: "hsl(var(--bark))",
             color: "hsl(var(--parchment))",
             boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)",
           }}
@@ -588,7 +594,13 @@ const PhoneCluster = () => {
   return (
     <div
       ref={clusterRef}
-      className="relative mx-auto md:mx-0 md:ml-auto"
+      // `overflow-hidden` clips the rotated phone bounding boxes so they
+      // can't leak past the cluster's right edge at narrow viewports
+      // (320 px iPhone-SE-1) and trigger the responsive audit's
+      // "element overflows viewport" rule. The rotation transforms are
+      // purely decorative — clipping a sub-pixel of the side phones'
+      // shadow doesn't change the visual.
+      className="relative mx-auto md:mx-0 md:ml-auto overflow-hidden"
       style={{
         width: "100%",
         maxWidth: "440px",

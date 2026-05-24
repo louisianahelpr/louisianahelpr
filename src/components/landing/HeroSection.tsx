@@ -218,10 +218,14 @@ const HeroSection = () => {
             <span className="text-display-eyebrow">Made in Louisiana</span>
 
             {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on "Partner."
-                Letter-spacing animates on scroll. */}
+                Letter-spacing animates on scroll. `break-words` + a smaller
+                step at the 320-class viewport prevent the long unbreakable
+                word "Louisiana's" from pushing past the right edge on a
+                320 px iPhone-SE-1 — the pre-fix value (2.75 rem) measured a
+                line-box width of ~308 px against a 280 px content column. */}
             <h1
               ref={headlineRef}
-              className="font-display font-black leading-[1.0] text-balance mt-4 sm:mt-5 text-[2.75rem] sm:text-5xl lg:text-6xl xl:text-7xl"
+              className="font-display font-black leading-[1.0] text-balance break-words mt-4 sm:mt-5 text-[2.25rem] sm:text-5xl lg:text-6xl xl:text-7xl"
               style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
             >
               Louisiana&rsquo;s Local Task{" "}
@@ -309,7 +313,11 @@ const HeroSection = () => {
               I download it?" loop that the phone mockups open. */}
           <div className="md:col-span-5 md:mt-16 lg:mt-20">
             <PhoneCluster />
-            <div className="mt-8 sm:mt-10 flex items-center justify-center md:justify-end gap-3">
+            {/* App Store badges — `flex-wrap` lets each pill drop onto its
+                own row on the tightest viewports (320 px iPhone-SE-1 and
+                similar) where two side-by-side badges + container padding
+                otherwise total ~330 px and push past the viewport. */}
+            <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center md:justify-end gap-3">
               <a
                 href="https://apps.apple.com/us/app/helpr/id6754470134"
                 target="_blank"

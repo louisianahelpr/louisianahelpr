@@ -45,13 +45,51 @@ const CategoryBento = ({ onSelect }: CategoryBentoProps) => {
       <div className="category-marquee items-center gap-3 sm:gap-3.5">
         {loop.map((c, i) => {
           const Icon = c.icon;
+          // The marquee duplicates the category list in the DOM so the
+          // translateX(0 → -50%) animation loops seamlessly. The duplicate
+          // half (i >= categories.length) is a *purely visual* clone — we
+          // strip it from the accessibility tree (aria-hidden + inert) and
+          // render it as a non-interactive <div> so screen-readers don't
+          // see double-counted controls and axe doesn't flag aria-hidden
+          // elements that contain focusable descendants.
+          const isClone = i >= categories.length;
+          const sharedClassName =
+            "liquid-glass inline-flex items-center gap-2.5 px-5 py-3 rounded-full text-ds-13 sm:text-ds-15 font-sans font-medium tracking-tight whitespace-nowrap shrink-0 transition-transform duration-200 hover:-translate-y-0.5";
+          if (isClone) {
+            return (
+              <div
+                key={`${c.label}-${i}`}
+                aria-hidden="true"
+                // `inert` is the modern way to tell the browser this whole
+                // subtree (and any focusable children) is non-interactive.
+                // React 19 typings expose it natively; on React 18 we cast
+                // through the DOM attribute style so TS doesn't complain.
+                {...({ inert: "" } as Record<string, string>)}
+                tabIndex={-1}
+                className={sharedClassName}
+                style={{ color: "hsl(var(--olivewood))", pointerEvents: "none" }}
+              >
+                <Icon
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: "hsl(var(--bark))" }}
+                  strokeWidth={1.5}
+                />
+                {c.label}
+                <span
+                  className="text-ds-11 sm:text-[13px] font-normal"
+                  style={{ color: "hsl(var(--stormy-sky))" }}
+                >
+                  · {c.nearby} nearby
+                </span>
+              </div>
+            );
+          }
           return (
             <button
               key={`${c.label}-${i}`}
               type="button"
               onClick={onSelect}
-              aria-hidden={i >= categories.length}
-              className="liquid-glass inline-flex items-center gap-2.5 px-5 py-3 rounded-full text-ds-13 sm:text-ds-15 font-sans font-medium tracking-tight whitespace-nowrap shrink-0 transition-transform duration-200 hover:-translate-y-0.5"
+              className={sharedClassName}
               style={{ color: "hsl(var(--olivewood))" }}
             >
               <Icon

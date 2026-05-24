@@ -258,7 +258,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                   letterSpacing: "-0.02em",
                 }}
               >
-                You earned {formatUsdCents(totalCents)} <span aria-hidden>💰</span>
+                You earned {formatUsdCents(totalCents)}
               </h3>
               <p
                 className="font-serif italic truncate"

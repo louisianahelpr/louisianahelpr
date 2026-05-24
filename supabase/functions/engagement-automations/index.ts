@@ -67,7 +67,7 @@ function dripStep3(name: string) {
   const subject = "Four things great helprs do."
   const html = wrapEmail(`
     ${h1("Tips from the community")}
-    ${p(`Hey ${name || "there"}, here are some quick tips from successful Helpr users:`)}
+    ${p(`Hey ${name || "there"} — four things the helprs who get rebooked do well:`)}
     <ol style="font-size:15px;color:hsl(160,6%,50%);line-height:1.8;padding-left:20px;margin:0 0 16px">
       <li><strong>Be specific</strong> — detailed descriptions attract better matches</li>
       <li><strong>Respond quickly</strong> — fast replies lead to faster help</li>
@@ -85,8 +85,8 @@ function dripStep3(name: string) {
 function reEngagementEmail(name: string) {
   const subject = "New tasks are open in your area."
   const html = wrapEmail(`
-    ${h1("New tasks are waiting for you!")}
-    ${p(`Hey ${name || "there"}, it's been a while since we've seen you on Helpr.`)}
+    ${h1("New tasks are open in your area.")}
+    ${p(`Hey ${name || "there"}, it's been a minute — here's what's open near you.`)}
     ${p("There are new tasks posted in your area — whether you're looking for help or looking to earn, now's a great time to check in.")}
     ${btn("See What's New", `${SITE_URL}/dashboard`)}
     ${p("Pull up the feed when you're ready.")}

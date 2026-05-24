@@ -312,7 +312,7 @@ export function PublicReviewWall({
           className="font-serif italic text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
-          No reviews yet — be the first to work with this helpr.
+          No reviews yet — they're new on Helpr.
         </p>
       </div>
     );

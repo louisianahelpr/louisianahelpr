@@ -77,7 +77,7 @@ export function SampleJobTemplates({
               letterSpacing: "0.18em",
             }}
           >
-            Not sure where to start?
+            Common around here
           </p>
           <p
             className="font-display italic font-bold mt-0.5"

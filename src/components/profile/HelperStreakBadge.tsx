@@ -95,8 +95,8 @@ export function HelperStreakBadge({ helperId, className }: HelperStreakBadgeProp
   const label = `${displayCount} 5-star streak`;
   const tooltipCopy =
     streak >= MAX_DISPLAY
-      ? `${MAX_DISPLAY}+ customers in a row rated you 5 stars — legendary.`
-      : `${streak} customer${streak === 1 ? "" : "s"} in a row rated you 5 stars — keep it up!`;
+      ? `${MAX_DISPLAY}+ five-star reviews in a row — that's a track record.`
+      : `${streak} five-star review${streak === 1 ? "" : "s"} in a row. Nice run.`;
 
   return (
     <Popover>

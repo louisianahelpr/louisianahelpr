@@ -18,13 +18,17 @@
  * replay. Dev builds skip Replay entirely to keep the local bundle and
  * test surface small — errors still report in dev as before.
  *
- * COLD-START PERF: Replay (~38KB of parse cost) is *registered* lazily
- * via `requestIdleCallback` AFTER `init()` returns, so the heavy module
- * graph isn't walked on the critical bundle-eval path. Sampling rates
- * are still set on the initial `init()` config so semantics don't change
- * — the integration just starts capturing a tick later. A 5s `timeout`
- * fallback guarantees registration even if the browser never goes idle
- * (e.g. busy main thread immediately after load).
+ * COLD-START PERF: Replay (~70KB gzip of code + parse) is *code-split*
+ * via a dynamic `import("@sentry-internal/replay")` inside a deferred
+ * `requestIdleCallback` AFTER `init()` returns, so the heavy module
+ * graph isn't downloaded OR walked on the critical bundle-eval path.
+ * Importing the integration factory from `@sentry-internal/replay`
+ * directly (rather than via `@sentry/react`'s barrel) keeps the static
+ * graph free of replay code so Vite emits a separate `sentry-replay`
+ * chunk. Sampling rates are still set on the initial `init()` config so
+ * semantics don't change — the integration just starts capturing a tick
+ * later. A 5s `timeout` fallback guarantees registration even if the
+ * browser never goes idle (e.g. busy main thread immediately after load).
  *
  * We also skip `browserTracingIntegration`: it's the single heaviest
  * Sentry integration (~25KB gzip) and we don't consume the data — there
@@ -43,7 +47,6 @@ import {
   linkedErrorsIntegration,
   dedupeIntegration,
   httpContextIntegration,
-  replayIntegration,
 } from "@sentry/react";
 
 const DSN =
@@ -219,16 +222,28 @@ export function initSentry() {
     //   in Supabase responses or Stripe payloads can't leak.
     if (import.meta.env.PROD) {
       const registerReplay = () => {
-        try {
-          addIntegration(
-            replayIntegration({
-              maskAllText: true,
-              blockAllMedia: false,
-            }),
-          );
-        } catch {
-          /* swallow — Replay failure must never break the app */
-        }
+        // Dynamic import from `@sentry-internal/replay` (the real package
+        // — `@sentry/react` just re-exports from it) so Vite emits a
+        // separate `sentry-replay` chunk that is NOT fetched on first
+        // paint. Importing via `@sentry/react`'s barrel would keep the
+        // replay module graph reachable from the static import above and
+        // defeat the code-split.
+        import("@sentry-internal/replay")
+          .then(({ replayIntegration }) => {
+            try {
+              addIntegration(
+                replayIntegration({
+                  maskAllText: true,
+                  blockAllMedia: false,
+                }),
+              );
+            } catch {
+              /* swallow — Replay failure must never break the app */
+            }
+          })
+          .catch(() => {
+            /* swallow — Replay chunk download failure must never break the app */
+          });
       };
       // requestIdleCallback isn't on Safari < 16.4 — fall back to a short
       // setTimeout so iOS WebViews still get Replay coverage.

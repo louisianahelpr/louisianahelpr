@@ -358,6 +358,19 @@ export default defineConfig(({ mode }) => ({
           // dynamically imported AFTER first paint via requestIdleCallback in
           // main.tsx. Splitting them shaves ~70KB off the LCP-blocking main
           // chunk on the landing page.
+          //
+          // Session Replay (@sentry-internal/replay, replay-canvas) and the
+          // Feedback widget are dynamic-imported separately from sentry.ts —
+          // give them their own chunk so they don't fetch alongside the core
+          // SDK on the deferred Sentry chunk. Without this rule the rule
+          // below would catch them and lump them back into "sentry",
+          // re-bloating the chunk that runs on first idle tick.
+          if (
+            id.includes("@sentry-internal/replay") ||
+            id.includes("@sentry-internal/feedback")
+          ) {
+            return "sentry-replay";
+          }
           if (id.includes("@sentry") || id.includes("sentry-internal")) return "sentry";
           if (id.includes("posthog-js")) return "posthog";
         },

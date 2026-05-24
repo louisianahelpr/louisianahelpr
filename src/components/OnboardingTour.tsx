@@ -199,7 +199,12 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <Progress value={progress} className="h-1.5" />
+            <Progress
+              value={progress}
+              className="h-1.5"
+              aria-label="Onboarding tour progress"
+              aria-valuetext={`Step ${state.currentStep + 1} of ${steps.length}`}
+            />
           </div>
 
           {/* Content */}

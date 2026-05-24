@@ -157,7 +157,15 @@ export function SignupStep1({
           <span className="w-full border-t border-border/60" />
         </div>
         <div className="relative flex justify-center text-ds-11 uppercase">
-          <span className="bg-card px-2 text-muted-foreground">or</span>
+          {/* The OR divider sits on the `.bg-card` glass surface, which is
+              promoted to a semi-transparent fill globally (see index.css
+              `:where(.bg-card)`). `text-muted-foreground` (stormy-sky)
+              against that translucent paint falls below WCAG AA 4.5:1
+              — axe-core flags this as the only `color-contrast` violation
+              on /signup. Bump to `text-foreground` (olivewood) which sits
+              comfortably above the threshold while still reading as
+              quiet "divider" type. */}
+          <span className="bg-card px-2 text-foreground/80">or</span>
         </div>
       </div>
 

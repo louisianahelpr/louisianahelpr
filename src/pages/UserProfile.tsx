@@ -32,6 +32,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
 import { jobStatusColorClasses } from "@/lib/statusColors";
+import { queryKeys } from "@/lib/queryKeys";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -51,7 +52,7 @@ const UserProfile = () => {
 
   // React Query: cached for 60s, instant on revisit, refresh in background.
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["user-profile", userId],
+    queryKey: queryKeys.userProfile.byId(userId),
     enabled: !!userId,
     staleTime: 60_000,
     gcTime: 5 * 60_000,

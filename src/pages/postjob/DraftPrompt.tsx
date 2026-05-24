@@ -12,8 +12,12 @@ interface DraftPromptProps {
  */
 export function DraftPrompt({ onLoad, onDismiss }: DraftPromptProps) {
   return (
-    <div className="rounded-2xl liquid-glass p-4 flex items-center justify-between gap-3">
-      <div className="min-w-0">
+    // Stack the button cluster below the text on narrow phones (≤sm).
+    // The two-button row + uppercase letter-spaced text together
+    // overflowed a 320px viewport; wrapping recovers headroom without
+    // shrinking either control. On sm+ we keep the side-by-side layout.
+    <div className="rounded-2xl liquid-glass p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="min-w-0 break-words">
         <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
           Picking up where you left off
         </p>
@@ -24,7 +28,7 @@ export function DraftPrompt({ onLoad, onDismiss }: DraftPromptProps) {
           Pick up where you stopped, or start fresh.
         </p>
       </div>
-      <div className="flex gap-2 shrink-0">
+      <div className="flex flex-wrap gap-2 sm:shrink-0">
         <Button variant="outline" size="sm" onClick={onDismiss}>
           Start fresh
         </Button>

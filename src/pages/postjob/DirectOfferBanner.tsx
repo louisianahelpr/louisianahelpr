@@ -16,7 +16,7 @@ export function DirectOfferBanner({ offerToHelperName, onCancel }: DirectOfferBa
       <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
         <UserCheck className="w-4 h-4 text-primary" />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 break-words">
         <p className="text-ds-13 font-semibold text-foreground">
           Direct offer to {offerToHelperName || "your saved helpr"}
         </p>

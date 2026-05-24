@@ -213,8 +213,14 @@ const HeroSection = () => {
             the taller left column so they sit in the middle of the row. */}
         <div className="grid md:grid-cols-12 gap-10 md:gap-12 lg:gap-16 items-center">
 
-          {/* LEFT 60% — branding only. Buttons moved below the marquee. */}
-          <div className="md:col-span-7">
+          {/* LEFT 60% — branding only. Buttons moved below the marquee.
+              `min-w-0` overrides the CSS-grid default of `min-width: auto`,
+              which otherwise lets the column expand to the H1's min-content
+              size (Bodoni Moda renders "Louisiana's" at ~280px at the 2.25rem
+              <sm step). Without it the grid item — and every child of it
+              (h1, subhead, CTAs) — bursts 8px past the 320 px viewport even
+              though the section has `px-5`. */}
+          <div className="md:col-span-7 min-w-0">
             <span className="text-display-eyebrow">Made in Louisiana</span>
 
             {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on "Partner."
@@ -310,8 +316,11 @@ const HeroSection = () => {
 
           {/* RIGHT 40% — fanned cluster of 3 phone mockups + App Store
               badges below. The badges close the "this is an app, where do
-              I download it?" loop that the phone mockups open. */}
-          <div className="md:col-span-5 md:mt-16 lg:mt-20">
+              I download it?" loop that the phone mockups open.
+              `min-w-0` for the same reason as the LEFT column — the inner
+              `PhoneCluster` has fixed-width phone children whose min-content
+              would otherwise stretch this grid track past the container. */}
+          <div className="md:col-span-5 md:mt-16 lg:mt-20 min-w-0">
             <PhoneCluster />
             {/* App Store badges — `flex-wrap` lets each pill drop onto its
                 own row on the tightest viewports (320 px iPhone-SE-1 and

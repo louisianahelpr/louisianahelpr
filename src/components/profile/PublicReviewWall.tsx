@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * PublicReviewWall — a vertical stack of the helper's most recent
@@ -209,7 +210,7 @@ export function PublicReviewWall({
   const limit = condensed ? CONDENSED_LIMIT : DEFAULT_LIMIT;
 
   const { data, isLoading } = useQuery<ResolvedReview[]>({
-    queryKey: ["public-review-wall", helperId, limit],
+    queryKey: queryKeys.publicReviewWall.byHelper(helperId, limit),
     enabled: !!helperId,
     // Reviews don't change minute-by-minute; a 5-min cache keeps the
     // profile snappy on revisit without staleness that posters notice.

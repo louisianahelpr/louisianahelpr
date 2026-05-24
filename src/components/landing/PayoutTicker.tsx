@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { useReducedMotion } from "@/lib/accessibility";
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * PayoutTicker — thin one-line social-proof strip showing recent
@@ -74,7 +75,7 @@ const PayoutTicker = () => {
   const reduceMotion = useReducedMotion();
 
   const { data: rows } = useQuery<PayoutRow[]>({
-    queryKey: ["public-payouts-ticker"],
+    queryKey: queryKeys.publicPayouts.ticker(),
     queryFn: async () => {
       // Use a typed-as-any handle so this compiles regardless of
       // whether `supabase/types.ts` has been regenerated against the

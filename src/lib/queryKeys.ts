@@ -17,14 +17,11 @@
  * When adding a key: prefer extending an existing domain over inventing a
  * new top-level entry. Domains map to product areas, not data tables.
  *
- * TODO(follow-up): sweep the remaining call sites that still use literal
- * arrays — admin pages (`helper-verifications`, `admin-payout-ledger`,
- * `admin-notification-logs`), dashboard sub-queries (`dashboardContext`,
- * `dashboardJobs`, `proTier`, `savedSearches`, `lastApplication`,
- * `savedJobs`), profile sub-tabs (`credentials`, `stripe-payouts`,
- * `payout-transfers`), `savedHelpers`, `job-history`, `user-profile`, and
- * `guestDashboardJobs`. This PR intentionally migrates only the
- * highest-traffic sites to establish the pattern.
+ * A handful of legacy literal-array shapes (e.g. `["dashboardContext",
+ * userId]`) predate this file and are still in use across the cache, so
+ * the corresponding factory entries preserve those exact tuples rather
+ * than re-prefixing under a shared domain string. Changing the shape
+ * would invalidate every existing in-flight cache entry that uses it.
  */
 export const queryKeys = {
   currentUser: {
@@ -35,6 +32,15 @@ export const queryKeys = {
   profile: {
     all: ["profile"] as const,
     byId: (userId: string) => ["profile", userId] as const,
+  },
+  /**
+   * Public-facing profile lookup for /user/:userId. Distinct from
+   * `profile` (the signed-in user's own row) because the data shape is
+   * also different — public view aggregates reviews/jobs/applications.
+   */
+  userProfile: {
+    all: ["user-profile"] as const,
+    byId: (userId: string | undefined | null) => ["user-profile", userId] as const,
   },
   jobs: {
     all: ["jobs"] as const,
@@ -91,11 +97,95 @@ export const queryKeys = {
     byUser: (userId: string | undefined | null) => ["stripe-payouts", userId] as const,
   },
   /**
+   * payout_transfers ledger — the authoritative record of every
+   * stripe.transfers.create() to a helper. User-scoped so a shared
+   * device can't surface the prior helper's ledger after sign-out.
+   */
+  payoutTransfers: {
+    all: ["payout-transfers"] as const,
+    byHelper: (helperId: string | undefined | null) => ["payout-transfers", helperId] as const,
+  },
+  /**
+   * Helper-side profile credentials (license, insurance). Keyed by
+   * userId so two helpers on the same device don't share cached
+   * docs/status.
+   */
+  credentials: {
+    all: ["credentials"] as const,
+    byUser: (userId: string) => ["credentials", userId] as const,
+  },
+  /** Customer's saved/favorited helpers for one-tap re-booking. */
+  savedHelpers: {
+    all: ["savedHelpers"] as const,
+    byUser: (userId: string | undefined | null) => ["savedHelpers", userId] as const,
+  },
+  /**
+   * Five-star streak count surfaced on the helper's earnings tab. The
+   * value is read out-of-band by useHelperMilestones via the cache, so
+   * the key shape MUST stay `[<prefix>, helperId]` for that getQueryData
+   * lookup to hit.
+   */
+  helperStreak: {
+    all: ["helper-five-star-streak"] as const,
+    byHelper: (helperId: string | undefined | null) => ["helper-five-star-streak", helperId] as const,
+  },
+  /** Forward-looking 7-day schedule strip on the earnings tab. */
+  helperSchedule: {
+    all: ["helper-schedule-strip"] as const,
+    forWindow: (
+      helperId: string | undefined | null,
+      startISO: string,
+      endISO: string,
+    ) => ["helper-schedule-strip", helperId, startISO, endISO] as const,
+  },
+  /** Projected weekly earnings (accepted/in-progress jobs in window). */
+  earningsForecast: {
+    all: ["earnings-forecast"] as const,
+    forWindow: (
+      helperId: string | undefined | null,
+      startISO: string,
+      endISO: string,
+    ) => ["earnings-forecast", helperId, startISO, endISO] as const,
+  },
+  /** Public review wall rendered on /user/:userId. */
+  publicReviewWall: {
+    all: ["public-review-wall"] as const,
+    byHelper: (helperId: string | undefined | null, limit: number) =>
+      ["public-review-wall", helperId, limit] as const,
+  },
+  /** Landing-page payout ticker — public, no user param. */
+  publicPayouts: {
+    all: ["public-payouts-ticker"] as const,
+    ticker: () => ["public-payouts-ticker"] as const,
+  },
+  /**
+   * Dashboard slices. Each key intentionally keeps the legacy
+   * `["dashboardContext", userId]`-style shape rather than re-prefixing
+   * under a shared "dashboard" string — Dashboard.tsx's onSettled
+   * predicate matches `q.queryKey?.[0]` against those literals, and the
+   * cache is already populated with them.
+   */
+  dashboard: {
+    context: (userId: string | undefined | null) => ["dashboardContext", userId] as const,
+    jobs: (userId: string | undefined | null) => ["dashboardJobs", userId] as const,
+    proTier: (userId: string | undefined | null) => ["proTier", userId] as const,
+    savedSearches: (userId: string | undefined | null) => ["savedSearches", userId] as const,
+    lastApplication: (userId: string | undefined | null) => ["lastApplication", userId] as const,
+    savedJobs: (userId: string | undefined | null) => ["savedJobs", userId] as const,
+    guestJobs: () => ["guestDashboardJobs"] as const,
+  },
+  /**
    * Admin-only queries — keyed by the *admin's* user.id so two admins
    * on the same device don't share cached views, and so the persister
    * doesn't surface admin data to a non-admin who logs in afterwards.
    * These additionally opt out of disk persistence via
    * `meta: { persist: false }` at the call site for extra defense.
+   *
+   * `helperVerifications` and `helperVerificationActors` are keyed by
+   * the AUDITED user (not the admin) because the underlying data is
+   * the same regardless of which admin is looking — RLS already gates
+   * SELECT, so a same-device admin handoff is the only concern, and
+   * the persister's signout sweep handles that.
    */
   admin: {
     all: ["admin"] as const,
@@ -105,5 +195,9 @@ export const queryKeys = {
       adminId: string | undefined | null,
       filters: { category: string; status: string; channel: string; page: number },
     ) => ["admin-notification-logs", adminId, filters] as const,
+    notificationLogsAll: ["admin-notification-logs"] as const,
+    helperVerifications: (userId: string) => ["helper-verifications", userId] as const,
+    helperVerificationActors: (actorIdsKey: string) =>
+      ["helper-verifications-actors", actorIdsKey] as const,
   },
 } as const;

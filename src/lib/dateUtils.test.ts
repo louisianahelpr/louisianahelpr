@@ -31,4 +31,17 @@ describe("parseLocalDate", () => {
     expect(d.getMonth()).toBe(1);
     expect(d.getDate()).toBe(29);
   });
+
+  it("tolerates a leading ISO timestamp by stripping the time component", () => {
+    // Defensive: PostgREST emits DATE columns as YYYY-MM-DD, but a
+    // misconfigured caller passing a full ISO timestamp must not produce
+    // an Invalid Date — downstream `.toISOString()` would throw, which
+    // is what crashed JobDetailDialog in the e2e suite (#325 fallout).
+    const d = parseLocalDate("2026-04-12T05:00:00.000Z");
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(3);
+    expect(d.getDate()).toBe(12);
+    // Must be a real Date, not NaN.
+    expect(Number.isNaN(d.getTime())).toBe(false);
+  });
 });

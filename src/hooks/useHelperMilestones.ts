@@ -9,6 +9,7 @@ import {
   selectNewMilestones,
   type HelperMilestoneStats,
 } from "@/lib/helperMilestones";
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * useHelperMilestones — fires one-shot retention toasts for helper
@@ -31,13 +32,11 @@ import {
  *   another node in the EarningsTab tree.
  *
  * Why the five-star streak comes from the React Query cache
- * - HelperStreakBadge already runs the canonical streak query with
- *   the `["helper-five-star-streak", helperId]` key. Reading the
+ * - HelperStreakBadge already runs the canonical streak query keyed
+ *   by `queryKeys.helperStreak.byHelper(helperId)`. Reading the
  *   cached value here means we share the same fetch — no extra
  *   Supabase round-trip just to fire a celebration.
  */
-
-const STREAK_QUERY_KEY = "helper-five-star-streak";
 
 interface UseHelperMilestonesArgs {
   /** The signed-in helper's user id. When empty, the hook no-ops. */
@@ -84,7 +83,7 @@ export function useHelperMilestones({
     // resolved yet, treat the streak as 0 — the streak milestone will
     // simply fire on a later visit once the cache warms.
     const cachedStreak =
-      qc.getQueryData<number>([STREAK_QUERY_KEY, helperId]) ?? 0;
+      qc.getQueryData<number>(queryKeys.helperStreak.byHelper(helperId)) ?? 0;
 
     const stats: HelperMilestoneStats = {
       completedJobCount,

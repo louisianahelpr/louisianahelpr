@@ -80,7 +80,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
         <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}>
           <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 break-words">
           <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
             Faster start
           </p>

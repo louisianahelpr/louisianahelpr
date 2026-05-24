@@ -10,7 +10,7 @@
 // (the same lightweight pattern the signup skill picker uses) — no
 // cmdk / Command primitive dependency.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { LOUISIANA_CITIES } from "@/lib/louisianaCities";
@@ -28,6 +28,10 @@ const titleCase = (s: string) =>
 export function CityAutocomplete({ id, value, onChange, className }: CityAutocompleteProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
+  // Stable id for the suggestion listbox so the combobox input can wire
+  // up aria-controls — axe flags aria-expanded / aria-autocomplete on a
+  // plain textbox; combobox role + aria-controls is the canonical fix.
+  const listboxId = useId();
 
   // Sync local query when the parent value changes externally — draft
   // restore, the LA smart-default seed, AI Job Builder fill, etc.
@@ -87,12 +91,18 @@ export function CityAutocomplete({ id, value, onChange, className }: CityAutocom
         maxLength={100}
         autoComplete="off"
         aria-label="City"
+        // aria-expanded + aria-autocomplete + aria-controls are only
+        // valid on role="combobox" (axe `aria-allowed-attr`). Setting
+        // the role keeps the typeahead semantics correct.
+        role="combobox"
         aria-autocomplete="list"
         aria-expanded={showList}
+        aria-controls={listboxId}
         className={className}
       />
       {showList && (
         <ul
+          id={listboxId}
           className="absolute z-30 left-0 right-0 mt-1 rounded-ds-md border border-border bg-card shadow-lg overflow-hidden"
           role="listbox"
         >

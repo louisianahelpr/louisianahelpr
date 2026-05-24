@@ -95,6 +95,18 @@ for (const screen of SCREENS) {
       };
 
       try {
+        // Block the workbox service worker from registering in the test
+        // context. Without this, `dist/sw.js` activates mid-suite and emits
+        // a `/?_v=<timestamp>` version-bump redirect that white-screens
+        // every subsequent navigation in the same browser context. See
+        // issue #329.
+        await page.route("**/sw.js", (route) =>
+          route.fulfill({ status: 404, body: "" }),
+        );
+        await page.route("**/workbox-*.js", (route) =>
+          route.fulfill({ status: 404, body: "" }),
+        );
+
         await page.setViewportSize({ width: vp.width, height: 800 });
 
         if (screen.auth === "authed") {

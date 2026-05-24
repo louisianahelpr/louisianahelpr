@@ -37,7 +37,7 @@ export function SectionProgress({
 
   return (
     <div
-      className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
+      className="sticky z-30 -mx-4 px-4 pt-2 pb-2.5"
       style={{
         top: "calc(env(safe-area-inset-top, 0px) - 0.25rem)",
         background:
@@ -46,11 +46,16 @@ export function SectionProgress({
         WebkitBackdropFilter: "blur(6px)",
       }}
     >
+      {/*
+        Use role="group" (not "progressbar"). A progressbar must not
+        contain interactive descendants — each step here is a tappable
+        button that scroll-jumps to the section, which axe correctly
+        flags as `nested-interactive`. The group still announces a
+        descriptive name + step-completion count to screen readers,
+        and each button carries aria-current="step" when active.
+      */}
       <div
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={sections.length}
-        aria-valuenow={doneCount}
+        role="group"
         aria-label={`Post a task — ${doneCount} of ${sections.length} sections complete`}
         className="flex items-center"
       >

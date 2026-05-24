@@ -213,15 +213,25 @@ const HeroSection = () => {
             the taller left column so they sit in the middle of the row. */}
         <div className="grid md:grid-cols-12 gap-10 md:gap-12 lg:gap-16 items-center">
 
-          {/* LEFT 60% — branding only. Buttons moved below the marquee. */}
-          <div className="md:col-span-7">
+          {/* LEFT 60% — branding only. Buttons moved below the marquee.
+              `min-w-0` overrides the CSS-grid default of `min-width: auto`,
+              which otherwise lets the column expand to the H1's min-content
+              size (Bodoni Moda renders "Louisiana's" at ~280px at the 2.25rem
+              <sm step). Without it the grid item — and every child of it
+              (h1, subhead, CTAs) — bursts 8px past the 320 px viewport even
+              though the section has `px-5`. */}
+          <div className="md:col-span-7 min-w-0">
             <span className="text-display-eyebrow">Made in Louisiana</span>
 
             {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on "Partner."
-                Letter-spacing animates on scroll. */}
+                Letter-spacing animates on scroll. `break-words` + a smaller
+                step at the 320-class viewport prevent the long unbreakable
+                word "Louisiana's" from pushing past the right edge on a
+                320 px iPhone-SE-1 — the pre-fix value (2.75 rem) measured a
+                line-box width of ~308 px against a 280 px content column. */}
             <h1
               ref={headlineRef}
-              className="font-display font-black leading-[1.0] text-balance mt-4 sm:mt-5 text-[2.75rem] sm:text-5xl lg:text-6xl xl:text-7xl"
+              className="font-display font-black leading-[1.0] text-balance break-words mt-4 sm:mt-5 text-[2.25rem] sm:text-5xl lg:text-6xl xl:text-7xl"
               style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
             >
               Louisiana&rsquo;s Local Task{" "}
@@ -306,10 +316,17 @@ const HeroSection = () => {
 
           {/* RIGHT 40% — fanned cluster of 3 phone mockups + App Store
               badges below. The badges close the "this is an app, where do
-              I download it?" loop that the phone mockups open. */}
-          <div className="md:col-span-5 md:mt-16 lg:mt-20">
+              I download it?" loop that the phone mockups open.
+              `min-w-0` for the same reason as the LEFT column — the inner
+              `PhoneCluster` has fixed-width phone children whose min-content
+              would otherwise stretch this grid track past the container. */}
+          <div className="md:col-span-5 md:mt-16 lg:mt-20 min-w-0">
             <PhoneCluster />
-            <div className="mt-8 sm:mt-10 flex items-center justify-center md:justify-end gap-3">
+            {/* App Store badges — `flex-wrap` lets each pill drop onto its
+                own row on the tightest viewports (320 px iPhone-SE-1 and
+                similar) where two side-by-side badges + container padding
+                otherwise total ~330 px and push past the viewport. */}
+            <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center md:justify-end gap-3">
               <a
                 href="https://apps.apple.com/us/app/helpr/id6754470134"
                 target="_blank"

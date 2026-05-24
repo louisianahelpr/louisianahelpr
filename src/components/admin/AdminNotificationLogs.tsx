@@ -103,7 +103,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notification_logs" }, () => {
         // Prefix invalidate — matches every (adminId, filters) variant
         // currently cached for this admin's session.
-        if (page === 0) qc.invalidateQueries({ queryKey: ["admin-notification-logs"] });
+        if (page === 0) qc.invalidateQueries({ queryKey: queryKeys.admin.notificationLogsAll });
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };

@@ -40,6 +40,7 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { requireOnline } from "@/lib/requireOnline";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
+import { queryKeys } from "@/lib/queryKeys";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -138,7 +139,7 @@ const Dashboard = () => {
   // ("we're watching for X") rather than confusing. Cached via React
   // Query so it isn't re-fetched on every Dashboard mount.
   const { data: topSavedSearch = null } = useQuery({
-    queryKey: ["savedSearches", user?.id],
+    queryKey: queryKeys.dashboard.savedSearches(user?.id),
     queryFn: async () => {
       const data = unwrap(await supabase
         .from("saved_searches")
@@ -173,7 +174,7 @@ const Dashboard = () => {
   const subActive = subExpiresAt ? new Date(subExpiresAt) > new Date() : false;
   const isPaidSubscriber = !!profile && subActive && subTier !== "free";
   const { data: lastApplicationAt } = useQuery({
-    queryKey: ["lastApplication", user?.id],
+    queryKey: queryKeys.dashboard.lastApplication(user?.id),
     queryFn: async () => {
       const data = unwrap(await supabase
         .from("applications")
@@ -234,7 +235,7 @@ const Dashboard = () => {
   // `savedJobIds` state (below), which handleToggleSave mutates
   // optimistically as the user saves/unsaves jobs.
   const { data: savedJobsData } = useQuery({
-    queryKey: ["savedJobs", user?.id],
+    queryKey: queryKeys.dashboard.savedJobs(user?.id),
     queryFn: async () => {
       const data = unwrap(await supabase
         .from("saved_jobs")
@@ -275,10 +276,10 @@ const Dashboard = () => {
     onMutate: async ({ jobId, saved, userId }) => {
       // Cancel any in-flight refetch so it can't overwrite our optimistic
       // value after we've applied it.
-      await queryClient.cancelQueries({ queryKey: ["savedJobs", userId] });
-      const previousSavedJobs = queryClient.getQueryData<string[]>(["savedJobs", userId]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.dashboard.savedJobs(userId) });
+      const previousSavedJobs = queryClient.getQueryData<string[]>(queryKeys.dashboard.savedJobs(userId));
       const previousLocal = savedJobIds;
-      queryClient.setQueryData<string[]>(["savedJobs", userId], (prev) => {
+      queryClient.setQueryData<string[]>(queryKeys.dashboard.savedJobs(userId), (prev) => {
         const current = prev ?? [];
         if (saved) return current.includes(jobId) ? current : [...current, jobId];
         return current.filter((id) => id !== jobId);
@@ -292,7 +293,7 @@ const Dashboard = () => {
     },
     onError: (_err, vars, context) => {
       if (context) {
-        queryClient.setQueryData(["savedJobs", vars.userId], context.previousSavedJobs);
+        queryClient.setQueryData(queryKeys.dashboard.savedJobs(vars.userId), context.previousSavedJobs);
         setSavedJobIds(context.previousLocal);
       }
       toast.error("Couldn't save that job right now — give it another try?");
@@ -361,11 +362,11 @@ const Dashboard = () => {
       if (error) throw error as Error & { code?: string };
     },
     onMutate: async ({ jobId, helperId }) => {
-      await queryClient.cancelQueries({ queryKey: ["dashboardContext", helperId] });
-      const previousContext = queryClient.getQueryData(["dashboardContext", helperId]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.dashboard.context(helperId) });
+      const previousContext = queryClient.getQueryData(queryKeys.dashboard.context(helperId));
       // Optimistically widen appliedJobIds so the feed filter drops this
       // job from every loaded page of the infinite query immediately.
-      queryClient.setQueryData(["dashboardContext", helperId], (prev: any) => {
+      queryClient.setQueryData(queryKeys.dashboard.context(helperId), (prev: any) => {
         if (!prev) return prev;
         const nextApplied = new Set<string>(prev.appliedJobIds ?? []);
         nextApplied.add(jobId);
@@ -377,7 +378,7 @@ const Dashboard = () => {
       hapticError();
       // Roll the appliedJobIds set back so the card re-appears in the feed.
       if (context) {
-        queryClient.setQueryData(["dashboardContext", context.userId], context.previousContext);
+        queryClient.setQueryData(queryKeys.dashboard.context(context.userId), context.previousContext);
       }
       const code = (err as { code?: string } | null)?.code;
       if (code === "23505") {

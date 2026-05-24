@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * HelperStreakBadge — small motivational nudge that rewards a string of
@@ -63,7 +64,7 @@ interface HelperStreakBadgeProps {
 
 export function HelperStreakBadge({ helperId, className }: HelperStreakBadgeProps) {
   const { data: streak = 0 } = useQuery<number>({
-    queryKey: ["helper-five-star-streak", helperId],
+    queryKey: queryKeys.helperStreak.byHelper(helperId),
     queryFn: async () => {
       // Pull the most recent reviews (capped) so a helper with thousands
       // of jobs doesn't haul the whole history just for a badge. We rely

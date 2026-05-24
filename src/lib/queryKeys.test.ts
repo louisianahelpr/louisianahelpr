@@ -128,6 +128,119 @@ describe("queryKeys", () => {
         filters,
       ]);
     });
+
+    it("notificationLogsAll is the prefix every filter variant shares", () => {
+      const filters = { category: "all", status: "all", channel: "all", page: 0 };
+      expect(queryKeys.admin.notificationLogsAll).toEqual(["admin-notification-logs"]);
+      expect(queryKeys.admin.notificationLogs("admin-1", filters)[0]).toBe(
+        queryKeys.admin.notificationLogsAll[0],
+      );
+    });
+
+    it("helperVerifications key shape: ['helper-verifications', userId]", () => {
+      expect(queryKeys.admin.helperVerifications("user-1")).toEqual([
+        "helper-verifications",
+        "user-1",
+      ]);
+    });
+
+    it("helperVerificationActors key shape: ['helper-verifications-actors', csv]", () => {
+      expect(queryKeys.admin.helperVerificationActors("a,b,c")).toEqual([
+        "helper-verifications-actors",
+        "a,b,c",
+      ]);
+    });
+  });
+
+  describe("userProfile", () => {
+    it("byId key shape: ['user-profile', userId]", () => {
+      expect(queryKeys.userProfile.byId("user-1")).toEqual(["user-profile", "user-1"]);
+    });
+  });
+
+  describe("credentials", () => {
+    it("byUser key shape: ['credentials', userId]", () => {
+      expect(queryKeys.credentials.byUser("user-1")).toEqual(["credentials", "user-1"]);
+    });
+  });
+
+  describe("savedHelpers", () => {
+    it("byUser key shape: ['savedHelpers', userId]", () => {
+      expect(queryKeys.savedHelpers.byUser("user-1")).toEqual(["savedHelpers", "user-1"]);
+    });
+  });
+
+  describe("payoutTransfers", () => {
+    it("byHelper key shape: ['payout-transfers', helperId]", () => {
+      expect(queryKeys.payoutTransfers.byHelper("helper-1")).toEqual([
+        "payout-transfers",
+        "helper-1",
+      ]);
+    });
+  });
+
+  describe("helperStreak", () => {
+    it("byHelper key shape: ['helper-five-star-streak', helperId]", () => {
+      // Shape MUST stay [<prefix>, helperId] — useHelperMilestones reads
+      // this value out of the cache via getQueryData using the same key.
+      expect(queryKeys.helperStreak.byHelper("helper-1")).toEqual([
+        "helper-five-star-streak",
+        "helper-1",
+      ]);
+    });
+  });
+
+  describe("helperSchedule", () => {
+    it("forWindow key shape includes start + end ISO bounds", () => {
+      expect(
+        queryKeys.helperSchedule.forWindow("helper-1", "2026-05-01", "2026-05-07"),
+      ).toEqual(["helper-schedule-strip", "helper-1", "2026-05-01", "2026-05-07"]);
+    });
+  });
+
+  describe("earningsForecast", () => {
+    it("forWindow key shape includes start + end ISO bounds", () => {
+      expect(
+        queryKeys.earningsForecast.forWindow("helper-1", "2026-05-01", "2026-05-07"),
+      ).toEqual(["earnings-forecast", "helper-1", "2026-05-01", "2026-05-07"]);
+    });
+  });
+
+  describe("publicReviewWall", () => {
+    it("byHelper key shape: ['public-review-wall', helperId, limit]", () => {
+      expect(queryKeys.publicReviewWall.byHelper("helper-1", 5)).toEqual([
+        "public-review-wall",
+        "helper-1",
+        5,
+      ]);
+    });
+  });
+
+  describe("publicPayouts", () => {
+    it("ticker key shape: ['public-payouts-ticker']", () => {
+      expect(queryKeys.publicPayouts.ticker()).toEqual(["public-payouts-ticker"]);
+    });
+  });
+
+  describe("dashboard", () => {
+    it("preserves legacy literal shapes (cache compatibility)", () => {
+      // Each entry below is the EXACT tuple the legacy literal-array
+      // call site used. Drift here would invalidate every existing
+      // in-flight entry in clients running the old shape.
+      expect(queryKeys.dashboard.context("user-1")).toEqual(["dashboardContext", "user-1"]);
+      expect(queryKeys.dashboard.jobs("user-1")).toEqual(["dashboardJobs", "user-1"]);
+      expect(queryKeys.dashboard.proTier("user-1")).toEqual(["proTier", "user-1"]);
+      expect(queryKeys.dashboard.savedSearches("user-1")).toEqual([
+        "savedSearches",
+        "user-1",
+      ]);
+      expect(queryKeys.dashboard.lastApplication("user-1")).toEqual([
+        "lastApplication",
+        "user-1",
+      ]);
+      expect(queryKeys.dashboard.savedJobs("user-1")).toEqual(["savedJobs", "user-1"]);
+      expect(queryKeys.dashboard.guestJobs()).toEqual(["guestDashboardJobs"]);
+    });
   });
 
   describe("isolation invariants", () => {

@@ -35,43 +35,72 @@ interface CategoryBentoProps {
  * with a "X nearby" sub-label so the platform reads as populated). The
  * list is duplicated in the DOM so the CSS animation translate(0 → -50%)
  * loops seamlessly. Pauses on hover, skipped on prefers-reduced-motion.
+ *
+ * Why one outer `<button>` wrapping decorative `<div>` pills (not one
+ * `<button>` per pill): the marquee track is `width: max-content` and
+ * spans ~4000 px even on a 320 px viewport, so every pill the animation
+ * places beyond the container right edge had `getBoundingClientRect()`
+ * extending past the viewport. The responsive audit's per-element overflow
+ * heuristic flagged them all as "off-canvas controls". `overflow: hidden`
+ * on the container clips the *paint*, not the layout rect. Because every
+ * pill triggers the same `onSelect` (post-job CTA), we collapse the
+ * semantics into one focusable `<button>` wrapper — same UX, but only the
+ * wrapper's rect is queried (and that rect is the container's rect,
+ * fully inside the viewport at every breakpoint).
  */
 const CategoryBento = ({ onSelect }: CategoryBentoProps) => {
   const loop = [...categories, ...categories];
 
+  const pillClassName =
+    "liquid-glass inline-flex items-center gap-2.5 px-5 py-3 rounded-full text-ds-13 sm:text-ds-15 font-sans font-medium tracking-tight whitespace-nowrap shrink-0 transition-transform duration-200 hover:-translate-y-0.5";
+
   return (
-    <div className="category-marquee-container overflow-hidden">
+    // Single outer button wraps the whole marquee surface. The visible
+    // pills are decorative (`<div>`) — they share one click target. An
+    // explicit aria-label keeps the accessible name short and intent-led
+    // instead of concatenating every visible pill label.
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-label="Browse jobs by category"
+      className="category-marquee-container block w-full text-left overflow-hidden cursor-pointer bg-transparent border-0 p-0 m-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--burnt-sienna))] focus-visible:ring-offset-2 rounded-md"
+    >
       <div className="category-marquee-float">
-      <div className="category-marquee items-center gap-3 sm:gap-3.5">
-        {loop.map((c, i) => {
-          const Icon = c.icon;
-          return (
-            <button
-              key={`${c.label}-${i}`}
-              type="button"
-              onClick={onSelect}
-              aria-hidden={i >= categories.length}
-              className="liquid-glass inline-flex items-center gap-2.5 px-5 py-3 rounded-full text-ds-13 sm:text-ds-15 font-sans font-medium tracking-tight whitespace-nowrap shrink-0 transition-transform duration-200 hover:-translate-y-0.5"
-              style={{ color: "hsl(var(--olivewood))" }}
-            >
-              <Icon
-                className="w-4 h-4 shrink-0"
-                style={{ color: "hsl(var(--bark))" }}
-                strokeWidth={1.5}
-              />
-              {c.label}
-              <span
-                className="text-ds-11 sm:text-[13px] font-normal"
-                style={{ color: "hsl(var(--stormy-sky))" }}
+        <div
+          aria-hidden="true"
+          className="category-marquee items-center gap-3 sm:gap-3.5"
+        >
+          {loop.map((c, i) => {
+            const Icon = c.icon;
+            // Every pill renders as a non-interactive `<div>` — the
+            // surrounding `<button>` carries the semantics + keyboard
+            // handler. Both the original and the duplicate half stay
+            // visually identical so the seamless 0→-50% scroll loop
+            // works the same as before.
+            return (
+              <div
+                key={`${c.label}-${i}`}
+                className={pillClassName}
+                style={{ color: "hsl(var(--olivewood))" }}
               >
-                · {c.nearby} nearby
-              </span>
-            </button>
-          );
-        })}
+                <Icon
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: "hsl(var(--bark))" }}
+                  strokeWidth={1.5}
+                />
+                {c.label}
+                <span
+                  className="text-ds-11 sm:text-[13px] font-normal"
+                  style={{ color: "hsl(var(--stormy-sky))" }}
+                >
+                  · {c.nearby} nearby
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
-      </div>
-    </div>
+    </button>
   );
 };
 

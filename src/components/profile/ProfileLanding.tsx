@@ -742,8 +742,16 @@ export function ProfileLanding({
                     {group.title}
                   </h2>
                   {groupNeedsAction && (
+                    // Decorative red dot — purely a visual cue that one of
+                    // the rows below needs action. Each row that needs
+                    // action already renders the visible text "Action
+                    // needed" (see below), so the dot adds no information
+                    // for AT users. `aria-hidden` keeps it out of the a11y
+                    // tree and avoids the aria-prohibited-attr violation
+                    // that an `aria-label` on a generic <span> would
+                    // produce.
                     <span
-                      aria-label="Action needed"
+                      aria-hidden="true"
                       className="w-1.5 h-1.5 rounded-full bg-destructive"
                     />
                   )}

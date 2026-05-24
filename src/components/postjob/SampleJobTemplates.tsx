@@ -100,22 +100,21 @@ export function SampleJobTemplates({
         </button>
       </div>
 
-      {/* Horizontal scroll row — fixed-width cards keep tap targets stable
-          on narrow phones. -webkit-overflow-scrolling: touch via the
-          `overflow-x-auto` Tailwind class gives momentum on iOS. */}
-      <div
-        className="flex gap-2.5 px-4 pt-3 pb-4 overflow-x-auto"
-        style={{ scrollSnapType: "x mandatory" }}
-      >
+      {/* Responsive template grid — two-column wrapping rows on every
+          viewport. Avoids a horizontal-overflow scroller that pushed cards
+          past the viewport edge (and tripped the responsive audit at
+          320/375/414/768w even though the section's `overflow-hidden`
+          clipped them visually). Cards now share row width and wrap to
+          the next line, so every card is fully on-screen at all widths. */}
+      <div className="grid grid-cols-2 gap-2.5 px-4 pt-3 pb-4">
         {sampleJobs.map((sample) => (
           <button
             key={sample.id}
             type="button"
             onClick={() => applyTemplate(sample)}
             aria-label={`Use template: ${sample.title}`}
-            className="shrink-0 w-44 rounded-xl text-left p-3 active:scale-[0.97] transition-all"
+            className="w-full min-w-0 rounded-xl text-left p-3 active:scale-[0.97] transition-all"
             style={{
-              scrollSnapAlign: "start",
               background: "hsl(var(--parchment) / 0.7)",
               border: "0.5px solid hsl(var(--olivewood) / 0.22)",
               boxShadow:

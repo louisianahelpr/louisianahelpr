@@ -77,8 +77,6 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
         disabled && "opacity-50 pointer-events-none",
       )}
       style={{ height: ITEM_HEIGHT * 3 }}
-      role="listbox"
-      aria-label={ariaLabel}
     >
       <div
         aria-hidden
@@ -89,7 +87,15 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
         ref={ref}
         onScroll={handleScroll}
         data-allow-scroll="true"
-        className="h-full overflow-y-auto scroll-smooth no-scrollbar snap-y snap-mandatory overscroll-contain touch-pan-y native-scroll-area"
+        // axe `scrollable-region-focusable`: the scrollable element must
+        // itself be keyboard-reachable. Move role="listbox" + aria-label
+        // onto this div (it's the real listbox region) and expose it as
+        // a tab stop so a keyboard user can land on the picker and then
+        // arrow-scroll its options.
+        role="listbox"
+        aria-label={ariaLabel}
+        tabIndex={disabled ? -1 : 0}
+        className="h-full overflow-y-auto scroll-smooth no-scrollbar snap-y snap-mandatory overscroll-contain touch-pan-y native-scroll-area focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
         style={{
           scrollSnapType: "y mandatory",
           scrollPaddingTop: ITEM_HEIGHT,

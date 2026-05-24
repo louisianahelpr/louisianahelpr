@@ -72,8 +72,8 @@ export function EmptyState({
     <div
       className={
         isDock
-          ? "flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-4 px-6 py-8 rounded-t-2xl"
-          : "flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-4 px-6 py-12 rounded-2xl"
+          ? "flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-4 px-4 sm:px-6 py-8 rounded-t-2xl"
+          : "flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-4 px-4 sm:px-6 py-12 rounded-2xl"
       }
       style={cardStyle}
     >
@@ -98,11 +98,16 @@ export function EmptyState({
           <Icon className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
         </div>
       )}
-      <div className="space-y-1.5">
+      {/* w-full + min-w-0 lets the text column shrink to the card's
+          available width at 320w so long titles wrap instead of
+          forcing the column wider than the viewport. Without these,
+          flex-col + items-center keeps children at their natural
+          inline width and they overflow off the right edge. */}
+      <div className="w-full min-w-0 space-y-1.5">
         {eyebrow && <span className="text-display-eyebrow">{eyebrow}</span>}
         {title && (
           <p
-            className="font-display italic font-bold leading-tight"
+            className="font-display italic font-bold leading-tight break-words"
             style={{
               fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
               color: "hsl(var(--ink-deep))",
@@ -113,7 +118,7 @@ export function EmptyState({
           </p>
         )}
         <p
-          className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
+          className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto break-words"
           style={{ color: "hsl(var(--olivewood) / 0.7)" }}
         >
           {body}

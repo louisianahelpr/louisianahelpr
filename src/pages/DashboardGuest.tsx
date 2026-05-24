@@ -23,6 +23,7 @@ const BrowseMap = lazy(() =>
 import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
+import { queryKeys } from "@/lib/queryKeys";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import HelprMark from "@/components/HelprMark";
@@ -71,7 +72,7 @@ const DashboardGuest = () => {
 
   // Public open-jobs feed — no auth required (open_jobs_browse view is RLS-public).
   const { data: jobs = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ["guestDashboardJobs"],
+    queryKey: queryKeys.dashboard.guestJobs(),
     queryFn: async (): Promise<EnrichedJob[]> => {
       const { data: rawJobs, error } = await supabase
         .from("open_jobs_browse")

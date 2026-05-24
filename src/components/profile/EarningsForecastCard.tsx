@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -107,7 +108,7 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
   const { startISO, endISO, end } = useMemo(() => currentWeekRange(), []);
 
   const { data, isLoading } = useQuery<ForecastData>({
-    queryKey: ["earnings-forecast", helperId, startISO, endISO],
+    queryKey: queryKeys.earningsForecast.forWindow(helperId, startISO, endISO),
     queryFn: async () => {
       // Filter at the DB level — never fetch the entire helper history
       // just to slice client-side. RLS already restricts SELECT on

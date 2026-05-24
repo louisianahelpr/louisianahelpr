@@ -1,4 +1,4 @@
-import { memo, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -6,10 +6,10 @@ import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
-  Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Calendar, Timer, Wrench,
+  Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Wrench,
   Share2, RotateCw,
 } from "lucide-react";
-import { formatDistanceToNow, differenceInHours } from "date-fns";
+import { differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -17,9 +17,7 @@ import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
-import { getCityState } from "@/lib/locationUtils";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { OptimizedImage } from "@/components/ui/optimized-image";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import {
   EscrowProgressBar,
@@ -27,6 +25,10 @@ import {
 } from "@/components/payment/EscrowProgressBar";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { DisputeLink } from "@/components/jobs/DisputeLink";
+import { JobCardShell } from "./JobCardShell";
+import { JobCardTitleBar } from "./JobCardTitleBar";
+import { JobCardMetaRow } from "./JobCardMetaRow";
+import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 
 interface PostedJobCardProps {
   /** The job + its embedded data — one row of the posted feed. */
@@ -120,49 +122,13 @@ function PostedJobCardInner({
   // when escrow doesn't apply.
   const escrowStep = deriveEscrowStepFromJob(job);
   return (
-          <div
-            key={job.id}
-            className={`group rounded-2xl liquid-glass overflow-hidden relative hover:shadow-md transition-all duration-200 ${isFullyCompleted ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
-            onClick={isFullyCompleted ? () => setExpandedJobId(isExpanded ? null : job.id) : undefined}
-            {...(isFullyCompleted && {
-              role: "button",
-              tabIndex: 0,
-              "aria-expanded": isExpanded,
-              onKeyDown: (e: ReactKeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setExpandedJobId(isExpanded ? null : job.id);
-                }
-              },
-            })}
+          <JobCardShell
+            expandable={isFullyCompleted}
+            expanded={isExpanded}
+            onToggle={() => setExpandedJobId(isExpanded ? null : job.id)}
+            className="group relative"
           >
-            {/* Top bar — brand-aligned title + payout chip. Uses
-                font-display italic to match the rest of the app's job
-                surfaces (detail dialog, card, profile). */}
-            <div
-              className="w-full px-4 py-2.5 flex items-center justify-between text-left"
-              style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
-            >
-              <h3
-                className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
-                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-              >
-                {job.title}
-              </h3>
-              <div className="flex items-center gap-2 shrink-0 ml-3">
-                <span
-                  className="inline-flex items-center gap-0.5 font-display italic font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-full"
-                  style={{
-                    background: "hsl(var(--burnt-sienna) / 0.10)",
-                    color: "hsl(var(--burnt-sienna))",
-                    letterSpacing: "-0.015em",
-                  }}
-                >
-                  <DollarSign className="w-3.5 h-3.5" strokeWidth={2.25} />
-                  {job.budget}
-                </span>
-              </div>
-            </div>
+            <JobCardTitleBar title={job.title} amount={String(job.budget)} />
 
             {/* Escrow progress — high-context status of the customer's
                 payment for this job. Sits above the action area (below
@@ -176,28 +142,16 @@ function PostedJobCardInner({
 
             {/* Summary */}
             <div className="px-4 py-3 space-y-2.5">
-              <div className="flex items-center gap-2.5 flex-wrap text-ds-11 text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3 shrink-0" />
-                  {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                  {!job.start_time ? " · Flexible time" : ` · ${new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`}
-                </span>
-                {(() => {
-                  const cityState = getCityState(job.location);
-                  return (
-                    <a onClick={(e) => e.stopPropagation()} href={job.latitude && job.longitude ? `https://www.google.com/maps?q=${job.latitude},${job.longitude}` : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
-                      <MapPin className="w-3 h-3 shrink-0" /><span className="truncate max-w-[140px]">{cityState}</span>
-                    </a>
-                  );
-                })()}
-                {job.estimated_hours && (
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {job.estimated_hours}h</span>
-                )}
-                {job.expires_at && !job.helper_id && (() => {
-                  const expiryText = new Date(job.expires_at) <= new Date() ? "Expired" : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left";
-                  const isExpiringSoon = differenceInHours(new Date(job.expires_at), new Date()) < 24;
-                  return (<span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}><Timer className="w-3 h-3 shrink-0" /> {expiryText}</span>);
-                })()}
+              <JobCardMetaRow
+                dateNeeded={job.date_needed}
+                startTime={job.start_time}
+                flexibleLabel="Flexible time"
+                location={job.location}
+                latitude={job.latitude}
+                longitude={job.longitude}
+                estimatedHours={job.estimated_hours}
+                expiresAt={!job.helper_id ? job.expires_at : null}
+              >
                 {(applicantCounts[job.id] || 0) > 0 && job.status === "open" && (
                   <span className="flex items-center gap-1 text-primary font-medium"><Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}</span>
                  )}
@@ -207,7 +161,7 @@ function PostedJobCardInner({
                  {job.is_group_job && (
                    <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} helprs` : "Group task"}</span>
                  )}
-               </div>
+               </JobCardMetaRow>
             {(job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() || job.special_requirements?.trim()) && (
               <div className="space-y-1.5">
                 {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
@@ -361,15 +315,7 @@ function PostedJobCardInner({
                 {(job.photos || []).length > 0 && (
                   <div>
                     <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {(job.photos || []).map((url, i) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                          {/* Thumbnail strip — fixed 112x80 (w-28 h-20) box,
-                              already CLS-safe. Request a matching thumbnail. */}
-                          <OptimizedImage src={url} width={112} height={80} alt={`Photo ${i + 1}`} className="w-28 h-20 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                        </a>
-                      ))}
-                    </div>
+                    <JobCardPhotoStrip urls={job.photos || []} size="md" />
                   </div>
                 )}
 
@@ -867,7 +813,7 @@ function PostedJobCardInner({
               </div>
             </div>
             )}
-          </div>
+          </JobCardShell>
   );
 }
 

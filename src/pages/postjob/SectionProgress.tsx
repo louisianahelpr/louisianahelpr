@@ -37,7 +37,7 @@ export function SectionProgress({
 
   return (
     <div
-      className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
+      className="sticky z-30 -mx-4 px-4 pt-2 pb-2.5"
       style={{
         top: "calc(env(safe-area-inset-top, 0px) - 0.25rem)",
         background:

@@ -1,4 +1,4 @@
-import { memo, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -6,27 +6,28 @@ import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  MapPin, DollarSign, CheckCircle2, Star, MessageSquare, Users, AlertTriangle,
-  RefreshCw, Clock, Calendar, Timer, ThumbsUp, ThumbsDown, Send, XCircle,
+  CheckCircle2, Star, MessageSquare, Users, AlertTriangle,
+  RefreshCw, ThumbsUp, ThumbsDown, Send, XCircle,
   Paperclip, FileText, Trash2, Pencil, Check, X, ChevronRight,
 } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
-import { formatDistanceToNow, differenceInHours } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
 import { WhatToBringChecklist } from "@/components/jobs/WhatToBringChecklist";
-import { getCityState } from "@/lib/locationUtils";
-import { parseLocalDate } from "@/lib/dateUtils";
-import { OptimizedImage } from "@/components/ui/optimized-image";
 import type { Application, AppliedApp, Job } from "./activityConstants";
 import {
   EscrowProgressBar,
   deriveEscrowStepFromJob,
 } from "@/components/payment/EscrowProgressBar";
 import { DisputeLink } from "@/components/jobs/DisputeLink";
+import { JobCardShell } from "./JobCardShell";
+import { JobCardTitleBar } from "./JobCardTitleBar";
+import { JobCardMetaRow } from "./JobCardMetaRow";
+import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 
 interface AppliedJobCardProps {
   /** The application + its embedded job — one row of the applied feed. */
@@ -145,47 +146,16 @@ function AppliedJobCardInner({
   const escrowStep = isMinimalCard || isPending ? null : deriveEscrowStepFromJob(job);
 
   return (
-        <div
-          key={app.id}
-          className={`rounded-2xl liquid-glass overflow-hidden hover:shadow-md transition-all duration-200 ${!isMinimalCard ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
-          onClick={!isMinimalCard ? () => setExpandedJobId(isExpanded ? null : app.job_id) : undefined}
-          {...(!isMinimalCard && {
-            role: "button",
-            tabIndex: 0,
-            "aria-expanded": isExpanded,
-            onKeyDown: (e: ReactKeyboardEvent) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setExpandedJobId(isExpanded ? null : app.job_id);
-              }
-            },
-          })}
+        <JobCardShell
+          expandable={!isMinimalCard}
+          expanded={isExpanded}
+          onToggle={() => setExpandedJobId(isExpanded ? null : app.job_id)}
         >
-          {/* Header — italic display title + payout chip (matches poster
-              surfaces across the app). */}
-          <div
-            className="w-full px-4 py-2.5 flex items-center justify-between text-left"
-            style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
-          >
-            <h3
-              className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
-              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-            >
-              {job.title || "Task"}
-            </h3>
-            <span
-              className="inline-flex items-center gap-0.5 font-display italic font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-full shrink-0 ml-3"
-              title={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
-              style={{
-                background: "hsl(var(--burnt-sienna) / 0.10)",
-                color: "hsl(var(--burnt-sienna))",
-                letterSpacing: "-0.015em",
-              }}
-            >
-              <DollarSign className="w-3.5 h-3.5" strokeWidth={2.25} />
-              {payout.toFixed(2)}
-            </span>
-          </div>
+          <JobCardTitleBar
+            title={job.title || "Task"}
+            amount={payout.toFixed(2)}
+            amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
+          />
 
           {/* Escrow progress — gives the helpr context on where the
               customer's payment sits in the lifecycle (held / verified /
@@ -199,34 +169,15 @@ function AppliedJobCardInner({
 
           {/* Summary info line */}
           <div className="px-4 py-3 space-y-2.5">
-            <div className="flex items-center gap-2.5 flex-wrap text-ds-11 text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Calendar className="w-3 h-3 shrink-0" />
-                {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                {!job.start_time ? " · Flexible" : ` · ${new Date(`2000-01-01T${job.start_time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`}
-              </span>
-              <a
-                onClick={(e) => e.stopPropagation()}
-                href={job.latitude && job.longitude ? `https://www.google.com/maps?q=${job.latitude},${job.longitude}` : `https://www.google.com/maps/search/${encodeURIComponent(job.location)}`}
-                target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-primary transition-colors"
-              >
-                <MapPin className="w-3 h-3 shrink-0" /><span className="truncate max-w-[140px]">{getCityState(job.location)}</span>
-              </a>
-              {job.estimated_hours && (
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {job.estimated_hours}h</span>
-              )}
-              {isPending && job.expires_at && !job.helper_id && (() => {
-                const expired = new Date(job.expires_at!) <= new Date();
-                const expiringSoon = differenceInHours(new Date(job.expires_at!), new Date()) < 24;
-                const text = expired ? "Expired" : formatDistanceToNow(new Date(job.expires_at!), { addSuffix: false }) + " left";
-                return (
-                  <span className={`flex items-center gap-1 ${expiringSoon ? "text-destructive font-medium" : ""}`}>
-                    <Timer className="w-3 h-3 shrink-0" /> {text}
-                  </span>
-                );
-              })()}
-            </div>
+            <JobCardMetaRow
+              dateNeeded={job.date_needed}
+              startTime={job.start_time}
+              location={job.location}
+              latitude={job.latitude}
+              longitude={job.longitude}
+              estimatedHours={job.estimated_hours}
+              expiresAt={isPending && !job.helper_id ? job.expires_at : null}
+            />
 
             {/* Description preview — collapsed to keep cards compact.
                 Full details live on the job page (chevron link below). */}
@@ -257,17 +208,7 @@ function AppliedJobCardInner({
           {/* Pending expandable section */}
           {!isMinimalCard && isPending && isExpanded && (
             <div className="px-4 pb-3 space-y-2">
-              {(job.photos || []).length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {(job.photos || []).map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                      {/* Thumbnail strip — fixed 96x64 (w-24 h-16) box,
-                          already CLS-safe. Request a matching thumbnail. */}
-                      <OptimizedImage src={url} width={96} height={64} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                    </a>
-                  ))}
-                </div>
-              )}
+              <JobCardPhotoStrip urls={job.photos || []} size="sm" stopPropagation />
 
               {/* Your application message — editable */}
               <div className="rounded-ds-sm bg-primary/5 border border-primary/15 p-2" onClick={(e) => e.stopPropagation()}>
@@ -818,17 +759,7 @@ function AppliedJobCardInner({
           {/* Footer: extra details (photos, requirements, group/recurring) */}
           {!isMinimalCard && (!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.is_recurring || job.is_group_job) && (
             <div className="px-4 py-2.5 border-t border-border/20 space-y-2">
-              {(job.photos || []).length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {(job.photos || []).map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                      {/* Thumbnail strip — fixed 96x64 (w-24 h-16) box,
-                          already CLS-safe. Request a matching thumbnail. */}
-                      <OptimizedImage src={url} width={96} height={64} alt={`Photo ${i + 1}`} className="w-24 h-16 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                    </a>
-                  ))}
-                </div>
-              )}
+              <JobCardPhotoStrip urls={job.photos || []} size="sm" />
               {job.is_recurring && (
                 <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                   <RefreshCw className="w-3 h-3 text-primary" />
@@ -843,7 +774,7 @@ function AppliedJobCardInner({
               )}
             </div>
           )}
-        </div>
+        </JobCardShell>
   );
 }
 

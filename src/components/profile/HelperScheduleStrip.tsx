@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Database } from "@/integrations/supabase/types";
 
 type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
@@ -113,7 +114,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
   const { startISO, endISO, days } = useMemo(() => buildWindow(), []);
 
   const { data: jobs = [], isLoading } = useQuery<StripJob[]>({
-    queryKey: ["helper-schedule-strip", helperId, startISO, endISO],
+    queryKey: queryKeys.helperSchedule.forWindow(helperId, startISO, endISO),
     queryFn: async () => {
       // Filter at the DB level — RLS already restricts SELECT on these
       // statuses to the helper themselves. We pull only the columns the

@@ -83,7 +83,6 @@ test.describe("helper browse-and-apply happy path", () => {
         mockTable("saved_jobs", []),
         mockTable("saved_searches", []),
         mockTable("reviews", []),
-        mockTable("profiles", []),
       ],
     });
 
@@ -134,7 +133,6 @@ test.describe("helper browse-and-apply happy path", () => {
         mockTable("saved_jobs", []),
         mockTable("saved_searches", []),
         mockTable("reviews", []),
-        mockTable("profiles", []),
       ],
     });
 

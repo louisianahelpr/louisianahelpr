@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * Your Helprs — a horizontal quick-rebook strip on the Dashboard.
@@ -31,7 +32,7 @@ export function YourHelpersRow() {
   const { user } = useCurrentUser();
 
   const { data: helpers } = useQuery({
-    queryKey: ["savedHelpers", user?.id],
+    queryKey: queryKeys.savedHelpers.byUser(user?.id),
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_my_saved_helpers");
       if (error) throw error;

@@ -145,7 +145,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // stripe.transfers.create() call to this helper. RLS already restricts
   // SELECT to `auth.uid() = helper_id` so no extra filter needed here.
   const { data: payoutLedger = [] } = useQuery<PayoutLedgerRow[]>({
-    queryKey: ["payout-transfers", helperId],
+    queryKey: queryKeys.payoutTransfers.byHelper(helperId),
     queryFn: async () => {
       if (!helperId) return [];
       const { data, error } = await supabase.from("payout_transfers")

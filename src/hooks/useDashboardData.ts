@@ -8,6 +8,7 @@ import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-quer
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
+import { queryKeys } from "@/lib/queryKeys";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
 // initial paint stays cheap as the marketplace grows; later pages are fetched
@@ -35,7 +36,7 @@ export function useDashboardData() {
   // Lightweight per-user context (settings + availability + applied jobs + blocks).
   // Cached separately so it doesn't re-fetch when the next page of jobs loads.
   const { data: ctx, isLoading: ctxLoading } = useQuery({
-    queryKey: ["dashboardContext", user?.id],
+    queryKey: queryKeys.dashboard.context(user?.id),
     queryFn: async () => {
       if (!user) return null;
       const userId = user.id;
@@ -124,7 +125,7 @@ export function useDashboardData() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["dashboardJobs", user?.id],
+    queryKey: queryKeys.dashboard.jobs(user?.id),
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<JobsPage> => {
       const offset = pageParam as number;
@@ -248,7 +249,7 @@ export function useDashboardData() {
 
   // Pro tier — separate lightweight query so it doesn't block dashboard
   const { data: proData } = useQuery({
-    queryKey: ["proTier", user?.id],
+    queryKey: queryKeys.dashboard.proTier(user?.id),
     queryFn: async () => {
       // unwrap surfaces an edge-function failure as the query's error state
       // instead of silently treating the user as a non-subscriber.
@@ -295,8 +296,8 @@ export function useDashboardData() {
   const refresh = useCallback(async () => {
     await Promise.all([
       refreshCurrentUser(),
-      queryClient.invalidateQueries({ queryKey: ["dashboardContext", user?.id] }),
-      queryClient.invalidateQueries({ queryKey: ["dashboardJobs", user?.id] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.context(user?.id) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.jobs(user?.id) }),
     ]);
   }, [user, queryClient, refreshCurrentUser]);
 

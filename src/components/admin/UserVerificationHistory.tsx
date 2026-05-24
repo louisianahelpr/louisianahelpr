@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { History, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { formatName } from "@/lib/utils";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface VerificationRow {
   id: string;
@@ -34,7 +35,7 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
   // generated client types. RLS already allows admins to read all rows
   // and users to read their own.
   const { data: rows = [], isLoading } = useQuery<VerificationRow[]>({
-    queryKey: ["helper-verifications", userId],
+    queryKey: queryKeys.admin.helperVerifications(userId),
     queryFn: async () => {
       const { data, error } = await supabase.from("helper_verifications")
         .select("id, changed_at, changed_by, field, old_value, new_value")
@@ -53,7 +54,7 @@ const UserVerificationHistory = ({ userId }: { userId: string }) => {
   // Resolve actor names in a single batched fetch.
   const actorIds = [...new Set(rows.map((r) => r.changed_by).filter((id): id is string => !!id))];
   const { data: actors = new Map<string, string>() } = useQuery({
-    queryKey: ["helper-verifications-actors", actorIds.sort().join(",")],
+    queryKey: queryKeys.admin.helperVerificationActors(actorIds.sort().join(",")),
     enabled: actorIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase

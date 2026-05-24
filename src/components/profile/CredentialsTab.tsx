@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ShieldCheck, Upload, FileText, X, BadgeCheck, Clock, AlertTriangle, Lock } from "lucide-react";
 import CredentialBadge from "@/components/CredentialBadge";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface CredentialFields {
   is_licensed: boolean;
@@ -43,7 +44,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
 
   // React Query cache — renders instantly on revisit, refetches in background.
   const { data: fetched } = useQuery({
-    queryKey: ["credentials", userId],
+    queryKey: queryKeys.credentials.byUser(userId),
     queryFn: async () => {
       const { data: row, error } = await supabase
         .from("profiles")
@@ -66,7 +67,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
   const insuredOn = data.is_insured;
 
   const patchCache = (patch: Partial<CredentialFields>) => {
-    qc.setQueryData<CredentialFields>(["credentials", userId], (prev) => ({
+    qc.setQueryData<CredentialFields>(queryKeys.credentials.byUser(userId), (prev) => ({
       ...(prev ?? EMPTY),
       ...patch,
     }));

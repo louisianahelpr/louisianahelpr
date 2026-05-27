@@ -3,10 +3,15 @@ name: iOS Beta (TestFlight)
 permissions:
   contents: read
 
-# Runs nightly, and on manual dispatch. The cheap ubuntu `check` job below
-# skips the macOS build on nights when main has no new commits, so idle
-# nights cost no runner minutes — macOS runners cost 10x Linux.
-# Manual run: Actions tab → "iOS Beta (TestFlight)" → "Run workflow".
+# DISABLED automatic cron — macos-15 runners are billed at the highest
+# tier on GitHub-hosted runners; even with the cheap ubuntu `check`
+# gatekeeper skipping no-op nights, days with merged commits burn ~$1.30
+# of macOS time apiece. This was the primary driver of an unexpected
+# ~$16 monthly bill on what is supposed to be a free-tier account.
+# Same pattern that prompted capacitor-check.yml's disable.
+#
+# Manual run remains: Actions tab → "iOS Beta (TestFlight)" → "Run workflow".
+# To re-enable nightly builds, uncomment the `schedule` block below.
 on:
   workflow_dispatch:
     inputs:
@@ -14,10 +19,10 @@ on:
         description: "Optional: force build number to be at least this value (use to skip past a 'Redundant Binary Upload' error from App Store Connect)"
         required: false
         default: ""
-  schedule:
-    # 08:00 UTC ≈ 03:00 America/Chicago — keeps TestFlight no more than a
-    # day behind main; the `check` job no-ops when main hasn't changed.
-    - cron: "0 8 * * *"
+  # schedule:
+  #   # 08:00 UTC ≈ 03:00 America/Chicago — keeps TestFlight no more than a
+  #   # day behind main; the `check` job no-ops when main hasn't changed.
+  #   - cron: "0 8 * * *"
 
 concurrency:
   group: ios-beta-${{ github.ref }}

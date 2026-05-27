@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Fastlane local-build artifacts (xcarchive, ipa, dSYMs). CI builds via
+# GitHub Actions don't produce this directory; only `bundle exec fastlane
+# ios beta` locally does, and the output is regenerated every run.
+build/
+
+# Fastlane gem lockfile — `bundle install` regenerates per machine, and
+# the workflows in .github/workflows/ run `bundle install` themselves
+# rather than relying on a committed lockfile.
+Gemfile.lock
+
 # TypeScript incremental build cache
 *.tsbuildinfo
 

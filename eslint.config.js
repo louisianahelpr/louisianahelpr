@@ -9,7 +9,7 @@ export default tseslint.config(
   // without this, `eslint .` lints a duplicate of the whole codebase per
   // worktree (slow) and reports `supabase/functions` errors the top-level
   // ignore can't match through the nested path.
-  { ignores: ["dist", ".claude/**", "supabase/functions/**", "playwright-fixture.ts", "playwright.config.ts"] },
+  { ignores: ["dist", "build", ".claude/**", "supabase/functions/**", "playwright-fixture.ts", "playwright.config.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

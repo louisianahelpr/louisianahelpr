@@ -34,9 +34,12 @@
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
+		<!--
+		  iPhone is portrait-only. UI is designed around the bottom-nav
+		  dock + 100dvh viewport lock; rotating to landscape breaks the
+		  layout. iPad keeps the full orientation set below.
+		-->
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>

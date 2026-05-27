@@ -15,7 +15,10 @@ dist-ssr
 # Fastlane local-build artifacts (xcarchive, ipa, dSYMs). CI builds via
 # GitHub Actions don't produce this directory; only `bundle exec fastlane
 # ios beta` locally does, and the output is regenerated every run.
+# Also catches `ios/App/build/sim/...` from the iOS Simulator smoke
+# harness (scripts/sim-smoke.sh).
 build/
+ios/App/build/
 
 # Fastlane gem lockfile — `bundle install` regenerates per machine, and
 # the workflows in .github/workflows/ run `bundle install` themselves

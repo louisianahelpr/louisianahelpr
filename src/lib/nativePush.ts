@@ -165,11 +165,19 @@ export function useNativePushSetup() {
         if (cancelled) return;
 
         // Universal Links / App Links — handle taps from outside the app.
+        // STRICT: only honor events whose host matches our actual Universal
+        // Links domains (see ios/App/App/App.entitlements `applinks:` entries).
+        // On TestFlight cold-install, Capacitor sometimes fires appUrlOpen
+        // with the install-source URL on initial launch — without this host
+        // guard, a stale `/login` or `/whatever` path would yank fresh-install
+        // users away from the guest dashboard they were just rendered onto.
+        const ALLOWED_HOSTS = new Set(["louisianahelpr.com", "www.louisianahelpr.com"]);
         const { App } = await import("@capacitor/app");
         await App.addListener("appUrlOpen", (event) => {
           try {
             const url = new URL(event.url);
             track(AhaEvent.AppOpenedFromDeepLink, { host: url.host, path: url.pathname });
+            if (!ALLOWED_HOSTS.has(url.host)) return;
             // Strip the host, keep the path + query so React Router can handle it.
             const internal = url.pathname + url.search;
             if (internal && internal !== "/") navigate(internal);

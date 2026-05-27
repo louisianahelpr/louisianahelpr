@@ -19,28 +19,33 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/jobs", // public marketing /jobs (uses Navbar + long page)
   "/support",
 
-  // Auth + onboarding flow — only the TALL multi-step / multi-card pages
-  // stay on document scroll so users can reach fields below the fold.
-  // Short auth pages (Login, ForgotPassword, etc.) use the viewport
-  // lock so iOS doesn't rubber-band the body around content that fits.
+  // Auth + onboarding flow — any AuthShell-based page that may exceed
+  // the viewport height on small devices (iPhone SE) or in landscape
+  // belongs here. AuthShell uses `min-h-screen` document scroll; if the
+  // route is NOT in this list, `html.app-shell { overflow: hidden }`
+  // clips anything below the fold and the user can't reach it. Only
+  // genuinely-short auth pages that always fit (Login at the moment)
+  // may safely stay off this list.
   "/signup",
+  "/signup-pending",
   "/complete-profile",
   "/account-pending",
+  "/account-denied",
+  "/account-banned",
+  "/forgot-password",
+  "/reset-password",
 
-  // In-app pages built around a tall `min-h-screen` layout. Without
-  // document scroll the html-level lock clips anything below the fold —
-  // Profile's tab list, Activity's job stream, PostJob's multi-step form,
-  // etc. Pages that have their own internal scroll container (Dashboard,
+  // In-app pages built around a `min-h-screen` document-scroll layout
+  // (PageHeader + tall content). Pages that render via AppShell /
+  // PageScaffold (Dashboard, Profile, Activity / My Jobs / My Posts,
   // Schedule, Availability, SavedHelpers, Messages) deliberately stay
-  // OFF this list so the bottom nav stays pinned.
-  "/profile",
-  "/user",        // /user/:userId
-  "/my-jobs",
-  "/my-posts",
-  "/activity",
-  "/post-job",
-  "/job-history",
-  "/business",    // /business/team
+  // OFF this list — their AppShell already provides an internal scroll
+  // container, and double-locking would let html overscroll bleed into
+  // AppShell's scroll surface (iOS double-rubber-band).
+  "/user",        // /user/:userId — UserProfile (PageHeader + min-h-screen)
+  "/post-job",    // PostJob (PageHeader + min-h-screen)
+  "/job-history", // JobHistory (PageHeader + min-h-screen)
+  "/business",    // BusinessTeam (PageHeader + min-h-screen)
 ];
 
 const isDocumentScrollRoute = (pathname: string) => {

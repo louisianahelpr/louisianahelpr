@@ -1,5 +1,4 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import HelprMark from "@/components/HelprMark";
 import { formatName } from "@/lib/utils";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -503,19 +502,23 @@ const ProfilePage = () => {
   };
 
   if (loading) {
+    // Loading state mirrors the loaded state's shell so there's no
+    // header jump when the skeleton resolves. Uses AppShell + the same
+    // DashboardHeader (which carries `.glass-header` → safe-area-top
+    // inset) so the HelprMark never overlaps the iOS status bar clock.
     return (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">
-        <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-          <div className="container mx-auto flex items-center gap-2 h-16 px-4">
-            <HelprMark to="/dashboard" size="md" />
-          </div>
-        </header>
-        <main className="mx-auto max-w-5xl px-5 py-4">
+      <AppShell
+        header={<DashboardHeader />}
+        scrollable={false}
+        contentClassName="overflow-hidden"
+        className="bg-premium-page"
+      >
+        <main className="container mx-auto px-5 lg:px-8 xl:px-12 py-4 flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-lg mx-auto">
             <ProfilePageSkeleton />
           </div>
         </main>
-      </div>
+      </AppShell>
     );
   }
 

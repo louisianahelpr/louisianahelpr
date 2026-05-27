@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient, type Query } from "@tanstack/rea
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
+import AppShell from "@/components/AppShell";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Clock, XCircle, Star, X, Search } from "lucide-react";
@@ -458,15 +459,19 @@ const Dashboard = () => {
   }, [confirmDismissJobId]);
 
   if (loading) {
+    // Loading state mirrors the loaded state's shell. `/dashboard` is a
+    // fixed-shell route (html.app-shell locks the viewport to 100dvh
+    // with overflow:hidden), so a `min-h-screen` body-scroll layout
+    // here would clip content past the fold — use AppShell, which owns
+    // the only correct internal scroll container, and pass the same
+    // DashboardHeader so there's no visual jump when the skeleton
+    // resolves into PageScaffold.
     return (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">
-        {/* Same DashboardHeader as the loaded state so the header doesn't
-            jump in height/styling when the skeleton resolves. */}
-        <DashboardHeader />
+      <AppShell header={<DashboardHeader />} className="bg-premium-page">
         <main className="container mx-auto px-5 lg:px-8 xl:px-12 py-4">
           <div className="max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto"><DashboardSkeleton /></div>
         </main>
-      </div>
+      </AppShell>
     );
   }
 
@@ -484,22 +489,28 @@ const Dashboard = () => {
 
   // Block banned users
   if (!isAdmin && (banStatus === "permanently_banned" || banStatus === "temp_banned")) {
+    // `/dashboard` is a fixed-shell route; an inline `min-h-screen`
+    // would be clipped by html.app-shell's overflow:hidden. AppShell
+    // gives this short message a 100dvh container with an internal
+    // scroll surface so the text never escapes the viewport.
     return (
-      <div className="min-h-screen bg-premium-page flex items-center justify-center px-4">
-        <div className="max-w-md text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-            <XCircle className="w-8 h-8 text-destructive" />
+      <AppShell reserveBottomNav={false} className="bg-premium-page">
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="max-w-md text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+              <XCircle className="w-8 h-8 text-destructive" />
+            </div>
+            <h1 className="text-page-title text-foreground text-ds-24">
+              Account {banStatus === "permanently_banned" ? "Permanently Banned" : "Temporarily Suspended"}
+            </h1>
+            <p className="text-muted-foreground">
+              {banStatus === "permanently_banned"
+                ? "Your account has been permanently banned for violating platform rules. Contact support if you believe this is an error."
+                : "Your account has been temporarily suspended. You'll regain access once the suspension period ends."}
+            </p>
           </div>
-          <h1 className="text-page-title text-foreground text-ds-24">
-            Account {banStatus === "permanently_banned" ? "Permanently Banned" : "Temporarily Suspended"}
-          </h1>
-          <p className="text-muted-foreground">
-            {banStatus === "permanently_banned"
-              ? "Your account has been permanently banned for violating platform rules. Contact support if you believe this is an error."
-              : "Your account has been temporarily suspended. You'll regain access once the suspension period ends."}
-          </p>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
@@ -517,9 +528,11 @@ const Dashboard = () => {
       await supabase.auth.signOut();
       navigate("/login", { replace: true });
     };
+    // `/dashboard` is a fixed-shell route — wrap in AppShell so the
+    // DashboardHeader carries the safe-area-top inset and the body
+    // never spills past html.app-shell's overflow:hidden.
     return (
-      <div className="min-h-screen bg-premium-page">
-        <DashboardHeader />
+      <AppShell header={<DashboardHeader />} reserveBottomNav={false} className="bg-premium-page">
         <main className="container mx-auto px-5 py-12">
           <div className="max-w-lg mx-auto text-center space-y-6">
             <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto"><XCircle className="w-8 h-8 text-destructive" /></div>
@@ -532,7 +545,7 @@ const Dashboard = () => {
             </div>
           </div>
         </main>
-      </div>
+      </AppShell>
     );
   }
 

@@ -40,6 +40,8 @@
 import {
   init,
   setUser,
+  setTag,
+  addBreadcrumb,
   addIntegration,
   captureException as sentryCaptureException,
   breadcrumbsIntegration,
@@ -48,6 +50,18 @@ import {
   dedupeIntegration,
   httpContextIntegration,
 } from "@sentry/react";
+
+/**
+ * Audit #2 from the 2026-05-27 cold-launch regression triage: a tag that
+ * lets us write a Sentry alert rule for "any error during the cold-launch
+ * window on a fresh install." The window is the first 10s post-boot —
+ * long enough to cover the auth-ready resolution + first protected-route
+ * render, short enough to filter out steady-state errors that drown out
+ * the cold-launch signal we actually want to alert on.
+ *
+ * See `docs/sentry-cold-launch-alert.md` for the dashboard-side recipe.
+ */
+const COLD_LAUNCH_WINDOW_MS = 10_000;
 
 const DSN =
   (import.meta.env.VITE_SENTRY_DSN as string | undefined) ||
@@ -210,6 +224,7 @@ export function initSentry() {
       },
     });
     initialized = true;
+    markColdLaunchStart();
 
     // Defer Replay registration off the critical path. Privacy defaults:
     // - maskAllText: true — every text node (incl. <input> values) is
@@ -268,6 +283,53 @@ export function captureException(err: unknown, context?: Record<string, unknown>
   if (!initialized) return;
   try {
     sentryCaptureException(err, context ? { extra: context } : undefined);
+  } catch { /* ignore */ }
+}
+
+/**
+ * Mark the start of the cold-launch window so errors that occur within
+ * the next ~10s are tagged `cold_launch:true` in Sentry. The Sentry
+ * dashboard has an alert rule that fires when ≥1 of these arrive in a
+ * 1-hour window — fastest signal we have for "fresh install is broken
+ * for real users right now."
+ *
+ * Idempotent: calling twice during the same window is a no-op for the
+ * second call (the timeout from the first will already clear the tag).
+ *
+ * See `docs/sentry-cold-launch-alert.md` for the dashboard-side recipe.
+ */
+let coldLaunchTimerStarted = false;
+export function markColdLaunchStart() {
+  if (!initialized || coldLaunchTimerStarted) return;
+  coldLaunchTimerStarted = true;
+  try {
+    setTag("cold_launch", "true");
+    setTimeout(() => {
+      try { setTag("cold_launch", "false"); } catch { /* ignore */ }
+    }, COLD_LAUNCH_WINDOW_MS);
+  } catch { /* ignore */ }
+}
+
+/**
+ * Drop a Sentry breadcrumb for a key cold-launch phase. Visible on any
+ * error that fires during/after the phase — invaluable for diagnosing
+ * which step of the boot sequence broke.
+ *
+ * Call sites should match the actual cold-launch sequence:
+ *   - "init"                — `initSentry()` ran
+ *   - "auth-ready-resolved" — `useAuthReady` saw its first event
+ *   - "first-route-rendered"— `<App>` rendered its first non-Suspense child
+ *   - "native-redirect-decided" — `NativeRedirect` picked /dashboard or /browse
+ */
+export function markColdLaunchPhase(phase: string) {
+  if (!initialized) return;
+  try {
+    addBreadcrumb({
+      category: "cold-launch",
+      message: phase,
+      level: "info",
+      timestamp: Date.now() / 1000,
+    });
   } catch { /* ignore */ }
 }
 

@@ -12,6 +12,10 @@ let authBootstrapStarted = false;
 const authListeners = new Set<(snapshot: AuthSnapshot) => void>();
 
 const emitAuthSnapshot = (snapshot: AuthSnapshot) => {
+  // Sentry breadcrumb on the first isReady=true transition — gives any
+  // post-auth-ready error a clear "we got through the auth bootstrap"
+  // marker in the dashboard. One-shot via the prior snapshot check.
+  const justBecameReady = !authSnapshot.isReady && snapshot.isReady;
   authSnapshot = snapshot;
   if (DEBUG_AUTH) {
     console.log("[auth] snapshot", {
@@ -19,6 +23,11 @@ const emitAuthSnapshot = (snapshot: AuthSnapshot) => {
       hasUser: !!snapshot.user,
       userId: snapshot.user?.id ?? null,
     });
+  }
+  if (justBecameReady) {
+    void import("@/lib/sentry").then(({ markColdLaunchPhase }) =>
+      markColdLaunchPhase("auth-ready-resolved"),
+    );
   }
   authListeners.forEach((listener) => listener(snapshot));
 };

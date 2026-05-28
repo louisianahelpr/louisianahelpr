@@ -519,8 +519,12 @@ const DashboardGuest = () => {
                   // edge), matching the Dashboard / Messages pattern.
                   <div className="flex-1 min-h-full flex">
                     {isError ? (
+                    // "Nearby" was misleading — the open_jobs_browse feed
+                    // isn't location-gated, and the failures we've seen here
+                    // are server-side (see PR #357 for the authed-Dashboard
+                    // version of the same fix). Use the same honest copy.
                     <ErrorState
-                      title="We couldn't load nearby jobs."
+                      title="We couldn't load jobs."
                       onRetry={() => refetch()}
                     />
                     ) : (

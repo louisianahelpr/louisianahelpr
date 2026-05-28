@@ -507,7 +507,10 @@ const CompleteProfile = () => {
 
             {/* ID */}
             <div className="space-y-1.5">
-              <Label>Government-issued ID <span className="text-destructive">*</span></Label>
+              {/* htmlFor pairs the visible heading with the file input the
+                  wrapping <label> opens, so screen readers announce
+                  "Government-issued ID, file" instead of an unlabeled input. */}
+              <Label htmlFor="id-doc">Government-issued ID <span className="text-destructive">*</span></Label>
               <label
                 htmlFor="id-doc"
                 className="flex items-center gap-3 rounded-ds-md border border-dashed border-border p-3 cursor-pointer hover:bg-muted/40"

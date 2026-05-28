@@ -156,12 +156,18 @@ export function ApplyConfirmDialog({
           </div>
           {/* File attachments */}
           <div className="space-y-1.5 mt-2">
-            <label
+            {/* Was a bare <label> with no `htmlFor` — that fails the form-
+                control association rule. The file input below is wrapped
+                in its own inner <label> (which is the real picker
+                affordance), so this outer text is a section heading, not
+                an input label. Render as <p> so screen readers don't
+                announce it as an unfulfilled label promise. */}
+            <p
               className="font-serif italic uppercase block"
               style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
             >
               Certs or previous work — optional
-            </label>
+            </p>
             <div className="space-y-1.5">
               {applyFiles.map((file, i) => (
                 <div

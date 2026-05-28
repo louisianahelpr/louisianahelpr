@@ -315,7 +315,7 @@ const AccountPending = () => {
                 size="lg"
                 className="w-full gap-2 rounded-2xl"
               >
-                Explore Jobs While You Wait <ArrowRight className="w-4 h-4" />
+                Explore jobs while you wait <ArrowRight className="w-4 h-4" />
               </Button>
               <Button
                 onClick={handleSync}

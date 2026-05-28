@@ -20,10 +20,18 @@
 -- the join (`pt.helper_id = p.user_id`), the filter (status='paid',
 -- 14-day window), the LIMIT bounds, the SECURITY DEFINER posture,
 -- and the anon+authenticated grants are unchanged from the prior
--- migration — this is purely a name-redaction swap. CREATE OR REPLACE
--- preserves the existing function identity (same signature) so the
--- grants from 20260520175350_get_recent_public_payouts.sql carry
--- through and the RPC remains callable across the deploy.
+-- migration — this is purely a name-redaction swap.
+--
+-- Replay-safety: the prior version of this function (migration
+-- 20260520175350) returned `full_name text, ...`. Renaming an OUT
+-- column counts as a return-type change in Postgres, which CREATE OR
+-- REPLACE refuses with "cannot change return type of existing function
+-- (Row type defined by OUT parameters is different)". DROP FUNCTION IF
+-- EXISTS first so a from-scratch rebuild succeeds; the GRANTs are
+-- re-asserted explicitly below so dropping them with the function is
+-- fine. (Original comment claimed "same signature" — that was wrong.)
+
+DROP FUNCTION IF EXISTS public.get_recent_public_payouts(int);
 
 CREATE OR REPLACE FUNCTION public.get_recent_public_payouts(_limit int DEFAULT 10)
 RETURNS TABLE (

@@ -94,8 +94,18 @@ export function usePostJobForm() {
   const [offerToHelperName, setOfferToHelperName] = useState<string>("");
 
   useEffect(() => {
-    // Auth is already checked by ProtectedRoute — just fetch platform fee via safe RPC
-    supabase.rpc("get_public_platform_settings").then(({ data }) => {
+    // Auth is already checked by ProtectedRoute — just fetch platform fee via safe RPC.
+    // Surface failures explicitly so a grant regression on this RPC (which
+    // bricked the dashboard in PR #355) doesn't silently default the poster's
+    // service-fee display to 10% with zero observability.
+    supabase.rpc("get_public_platform_settings").then(({ data, error }) => {
+      if (error) {
+        report(error, {
+          severity: "error",
+          tags: { source: "usePostJobForm.platformFeeFetch" },
+        });
+        return;
+      }
       const row = Array.isArray(data) ? data[0] : null;
       if (row) {
         // Use customer_fee_percent as the poster-facing fee (service fee at checkout)

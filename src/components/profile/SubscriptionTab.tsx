@@ -275,10 +275,15 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               {opt.label}
               {opt.save && (
                 <span
+                  // `bg-burnt-sienna-soft` is a non-existent Tailwind class
+                  // (brand tokens aren't extended in tailwind.config.ts —
+                  // see the CLAUDE.md footgun note) so it compiled to no
+                  // background. The inactive `style` block below already
+                  // supplies the real background via `hsl(var(--burnt-sienna)
+                  // / 0.14)`, so dropping the dead class is purely cleanup
+                  // — no visual change.
                   className={`text-[9px] font-bold tracking-wider px-1 py-0.5 rounded ${
-                    active
-                      ? "bg-primary-foreground/20 text-primary-foreground"
-                      : "bg-burnt-sienna-soft"
+                    active ? "bg-primary-foreground/20 text-primary-foreground" : ""
                   }`}
                   style={
                     !active

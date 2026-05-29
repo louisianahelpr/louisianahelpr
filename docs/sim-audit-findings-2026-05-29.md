@@ -227,3 +227,23 @@ as needing product judgment (not mechanical):
 - Helper-side browse (jobs from *other* users) not tested — would require a second account
 - Apply / accept / complete / review / dispute flows not exercised
 - Push notifications, deep links, OAuth (Apple/Google) — not exercised on this pass
+
+---
+
+## Resolution — code fixes applied (follow-up session)
+
+The live-on-sim UI findings have been triaged and fixed in code. The
+backend/dashboard hardening items (H1–H4) stand as documented — they are
+Supabase dashboard toggles + CI work, not code changes, and remain the
+highest-leverage follow-ups.
+
+| Finding | Disposition | Change |
+| --- | --- | --- |
+| **S1** Posts action row clips "Cancel" → "Cance" | **Fixed** | `PostedJobCard`'s open-job action row is now a 2×2 grid (`grid-cols-2`) instead of a 4-up flex row. Boost / Edit / Share / Cancel each get a full-width `h-11` cell — no label clipping at any phone width (the single row overflowed even at iPhone-17-Pro width). |
+| **S2 / H5** "Finish your profile" stuck at 0% | **Fixed** | Not a stat bug — `getProfileCompletion` was *enhancement-only* by design, so a fully-onboarded account read 0%. The **percentage** now also counts the seven core signup fields (name / photo / bio / DOB / phone / city / ID doc) so a finished profile reads mostly-complete and climbs; the **checklist** still lists only the three actionable enhancements (ZIP / ID verified / work photos). Applied to both the Profile-landing and Edit-Profile meters via the shared helper. |
+| **S3** Profile card city + tenure over-truncate | **Fixed** | The location line dropped its competing double-`truncate` (which clipped with empty headroom to the right). It now wraps to a second line on a narrow column; only an unusually long city ellipsizes, and the short "New member"/"Since …" tenure travels as one `shrink-0` group. |
+| **S4** Posts card title truncates a short single line | **Fixed** | `JobCardTitleBar` title is `line-clamp-2` instead of `truncate`, so titles wrap to two lines before ellipsizing (shared by poster + helper cards). |
+| **S5** Notification bell "does nothing" | **Not a bug** | The bell in `DashboardHeader` *is* `<NotificationPanel>`, a working `Sheet` + `SheetTrigger`. The non-response was the missed tap the audit suspected ("verify on real device"). No code change. |
+| **S7** Bottom-nav highlight on non-tab routes | **Not a bug** | "Posts card → history" and "Profile → Edit profile" are *in-page tab switches that stay on `/profile`* (`onSelectTab`), not route changes — so the bottom-nav indicator correctly tracks the active section. No code change. |
+
+`npm run typecheck && npm run lint && npm run build` all pass after the changes.

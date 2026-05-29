@@ -503,16 +503,21 @@ function PostedJobCardInner({
                           </p>
                         </div>
                       )}
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" disabled={!!isBoosted} onClick={() => onBoost(job.id)}>
+                      {/* 2×2 grid: four equal full-width buttons. A single
+                          row crammed all four (Boost / Edit / Share / Cancel)
+                          past the card width on a phone, clipping "Cancel"
+                          to "Cance". The grid gives every label room with
+                          comfortable h-11 tap targets. */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" disabled={!!isBoosted} onClick={() => onBoost(job.id)}>
                           <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
                         </Button>
-                        <Button size="sm" className="flex-1 bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                        <Button size="sm" className="w-full bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
                         <ShareJobButton
                           job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-                          className="flex-1"
+                          className="w-full"
                         />
-                        <Button size="sm" className="flex-1 bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                        <Button size="sm" className="w-full bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                       </div>
                     </>
                     );

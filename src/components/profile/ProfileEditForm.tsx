@@ -181,13 +181,26 @@ export function ProfileEditForm({
   };
 
   // ─── Profile completion meter ──────────────────────────────────────
-  // Shared getProfileCompletion helper — tracks only post-signup
-  // enhancements (signup already requires photo / phone / bio / etc).
-  // Fed the live form values so the meter updates as the user edits.
+  // Shared getProfileCompletion helper. The checklist tracks only the
+  // post-signup enhancements (ZIP / ID / work photos), but the percentage
+  // also counts the core signup fields so a finished profile never reads
+  // as 0%. Core flags use the live form values where this form edits them
+  // (bio / phone / city) and the saved row otherwise (name / avatar / DOB
+  // / ID doc persist outside the text-field save bar).
+  const coreComplete = [
+    !!profile?.full_name?.trim(),
+    !!profile?.avatar_url,
+    bioOk,
+    !!profile?.date_of_birth,
+    !!phone.trim(),
+    !!location.trim(),
+    !!profile?.id_document_url,
+  ];
   const completion = getProfileCompletion({
     zipCode,
     idvStatus: idStatus,
     portfolioCount: portfolioUrls.length,
+    core: coreComplete,
   });
   const completionPct = completion.pct;
 
@@ -235,7 +248,7 @@ export function ProfileEditForm({
             }}
           />
         </div>
-        {completionPct < 100 && (
+        {completion.nextLabel && (
           <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
             Next:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>

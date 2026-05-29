@@ -67,6 +67,11 @@ export const AhaEvent = {
   ErrorShown: "error_shown",
   PermissionDenied: "permission_denied",
   AppCrashed: "app_crashed",
+  // Forced /login bounce from ProtectedRoute when the profile fetch fails.
+  // Pair with a Sentry rule on `tags.source: ProtectedRoute.profileFetchError`
+  // so the next has_role-style regression pages within minutes instead of
+  // taking hours to diagnose (see PR #355, PR #358).
+  ForcedLogoutBounce: "forced_logout_bounce",
 } as const;
 
 type EventName = typeof AhaEvent[keyof typeof AhaEvent] | (string & {});

@@ -66,7 +66,12 @@ export function useDashboardData() {
         ]);
       } catch (ctxErr) {
         report(ctxErr, {
-          severity: "warning",
+          // "error" not "warning" — this throw bricks the dashboard for every
+          // signed-in user. The Sentry alert rule for `permission denied for`
+          // (added 2026-05-28 after PR #355 / #358 missed paging on exactly
+          // this code path) filters on level=error, so leaving it at warning
+          // re-creates the silent-regression we just paid for.
+          severity: "error",
           tags: { source: "dashboard.ctx_query" },
           context: { user_id: userId },
         });
@@ -86,7 +91,12 @@ export function useDashboardData() {
       for (const { sub, error } of subResults) {
         if (!error) continue;
         report(new Error(`dashboard.ctx sub-query failed: ${sub}: ${error.message ?? "unknown"}`), {
-          severity: "warning",
+          // Promoted from "warning" — the get_public_platform_settings RPC
+          // here is the same one that bricks the post-job form (see
+          // usePostJobForm.ts). Treat any subquery failure on the dashboard
+          // ctx fetch as a real error so the new "permission denied for"
+          // alert rule catches it.
+          severity: "error",
           tags: { source: "dashboard.ctx_subquery", sub },
           context: {
             user_id: userId,
@@ -161,7 +171,11 @@ export function useDashboardData() {
           .range(offset, offset + PAGE_SIZE)) as any[];
       } catch (viewErr) {
         report(viewErr, {
-          severity: "warning",
+          // "error" — a thrown open_jobs_browse query bricks the entire
+          // BrowseTasksFeed for every signed-in user (PR #355 / #358
+          // symptom). The 2026-05-28 alert rule for "permission denied for"
+          // filters on level=error.
+          severity: "error",
           tags: { area: "dashboard.open_jobs_browse_error" },
           context: { offset, user_id: user?.id ?? null },
         });

@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { RouteSuspenseFallback } from "@/components/RouteSuspenseFallback";
+import { report } from "@/lib/errorLogger";
+import { track, AhaEvent } from "@/lib/analytics";
 
 const DEBUG_AUTH = import.meta.env.DEV;
 
@@ -141,6 +143,18 @@ const ProtectedRoute = ({
   // serving any unguarded protected UI.
   if (isError && !profile) {
     if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/login", reason: "profile-fetch-error" });
+    // Observability — this exact bounce silently absorbed PR #355 + #358
+    // for hours before manual diagnosis. Reporting it gives Sentry a
+    // dedicated tag to alert on, and the analytics event powers the
+    // PostHog dashboard-pageview funnel-drop anomaly. Note: useCurrentUser
+    // has already retried 2x and reported the underlying PostgrestError;
+    // this is the *behavioral* signal (user was bounced) on top of that.
+    report(new Error("ProtectedRoute: forced /login bounce after profile fetch error"), {
+      severity: "error",
+      tags: { source: "ProtectedRoute.profileFetchError" },
+      context: { path: location.pathname, userId: user.id },
+    });
+    track(AhaEvent.ForcedLogoutBounce, { reason: "profile_fetch_error", path: location.pathname });
     return <Navigate to="/login" replace />;
   }
 

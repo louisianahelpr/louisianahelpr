@@ -273,7 +273,7 @@ const UserProfile = () => {
               <SaveHelperButton helperId={userId!} customerId={currentUserId} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-ds-md h-9 w-9 shrink-0" aria-label="More options">
+                  <Button variant="ghost" size="icon" className="rounded-ds-md h-10 w-10 shrink-0" aria-label="More options">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>

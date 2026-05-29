@@ -16,10 +16,11 @@ describe("useAppShellViewport", () => {
 
   // The "app-shell" class on <html> locks the viewport to 100dvh +
   // overflow:hidden, forcing pages to use AppShell's internal scroll
-  // container. Marketing, long-form, and the TALL auth pages (Signup,
-  // CompleteProfile) need normal document scroll. SHORT auth pages
-  // (Login, ForgotPassword) deliberately KEEP the lock so iOS doesn't
-  // rubber-band the body around content that already fits the screen.
+  // container. Marketing, long-form, and the auth/onboarding pages that
+  // may exceed the viewport on small devices (Signup, CompleteProfile,
+  // ForgotPassword, ResetPassword) need normal document scroll. Only
+  // genuinely-short auth pages (Login) deliberately KEEP the lock so iOS
+  // doesn't rubber-band the body around content that already fits.
 
   it("removes app-shell on the marketing root /", () => {
     document.documentElement.classList.add("app-shell"); // start locked
@@ -38,15 +39,15 @@ describe("useAppShellViewport", () => {
     expect(document.documentElement.classList.contains("app-shell")).toBe(false);
   });
 
-  it("ADDS app-shell on /forgot-password (short auth page — viewport-locked)", () => {
+  it("removes app-shell on /forgot-password (AuthShell page that may exceed viewport)", () => {
+    document.documentElement.classList.add("app-shell");
     renderHook(() => useAppShellViewport(), { wrapper: wrapperFor("/forgot-password") });
-    expect(document.documentElement.classList.contains("app-shell")).toBe(true);
+    expect(document.documentElement.classList.contains("app-shell")).toBe(false);
   });
 
-  it("removes app-shell on /profile (tall multi-tab page)", () => {
-    document.documentElement.classList.add("app-shell");
+  it("ADDS app-shell on /profile (Profile landing uses AppShell's internal scroll)", () => {
     renderHook(() => useAppShellViewport(), { wrapper: wrapperFor("/profile") });
-    expect(document.documentElement.classList.contains("app-shell")).toBe(false);
+    expect(document.documentElement.classList.contains("app-shell")).toBe(true);
   });
 
   it("removes app-shell on /user/:id sub-routes (startsWith match)", () => {
@@ -65,9 +66,10 @@ describe("useAppShellViewport", () => {
     expect(document.documentElement.classList.contains("app-shell")).toBe(true);
   });
 
-  it("ADDS app-shell on /admin (no document-scroll route hits it)", () => {
+  it("removes app-shell on /admin (min-h-screen document-scroll dashboard)", () => {
+    document.documentElement.classList.add("app-shell");
     renderHook(() => useAppShellViewport(), { wrapper: wrapperFor("/admin") });
-    expect(document.documentElement.classList.contains("app-shell")).toBe(true);
+    expect(document.documentElement.classList.contains("app-shell")).toBe(false);
   });
 
   it("does NOT match /loginX (avoids false-positive on prefix overlap)", () => {

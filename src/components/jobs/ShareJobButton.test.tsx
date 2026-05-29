@@ -89,7 +89,7 @@ describe("ShareJobButton", () => {
     });
     expect(capacitorShareMock).toHaveBeenCalledWith({
       title: "Move couch upstairs",
-      text: "Looking for help: Move couch upstairs. Take a look on Louisiana Helpr →",
+      text: "Move couch upstairs — posted on Louisiana Helpr.",
       url: "https://example.test/dashboard?job=abc-123",
       dialogTitle: "Share this job",
     });
@@ -111,7 +111,7 @@ describe("ShareJobButton", () => {
     });
     expect(navigatorShare).toHaveBeenCalledWith({
       title: "Move couch upstairs",
-      text: "Looking for help: Move couch upstairs. Take a look on Louisiana Helpr →",
+      text: "Move couch upstairs — posted on Louisiana Helpr.",
       url: "https://example.test/dashboard?job=abc-123",
     });
     expect(capacitorShareMock).not.toHaveBeenCalled();
@@ -132,7 +132,7 @@ describe("ShareJobButton", () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith("https://example.test/dashboard?job=abc-123");
     });
-    expect(toastSuccessMock).toHaveBeenCalledWith("Link copied — paste to share");
+    expect(toastSuccessMock).toHaveBeenCalledWith("Link copied. Paste it anywhere.");
     expect(capacitorShareMock).not.toHaveBeenCalled();
   });
 

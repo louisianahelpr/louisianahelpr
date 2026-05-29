@@ -227,3 +227,32 @@ as needing product judgment (not mechanical):
 - Helper-side browse (jobs from *other* users) not tested — would require a second account
 - Apply / accept / complete / review / dispute flows not exercised
 - Push notifications, deep links, OAuth (Apple/Google) — not exercised on this pass
+
+---
+
+## Resolution — code fixes applied (follow-up session)
+
+The live-on-sim UI findings (S1–S7) have been triaged and fixed in code,
+along with the code-actionable hardening items (H3 highest-reach sweep,
+H6 polish). The dashboard-only items remain as documented: H1 (Supabase
+GitHub-integration toggle) and H2 (Sentry alert rules) are dashboard
+config, and H4 (CI grant guard) is a separate CI task — none can be done
+from application code.
+
+| Finding | Disposition | Change |
+| --- | --- | --- |
+| **S1** Posts action row clips "Cancel" → "Cance" | **Fixed** | `PostedJobCard`'s open-job action row is now a 2×2 grid (`grid-cols-2`) instead of a 4-up flex row. Boost / Edit / Share / Cancel each get a full-width `h-11` cell — no label clipping at any phone width (the single row overflowed even at iPhone-17-Pro width). |
+| **S2 / H5** "Finish your profile" stuck at 0% | **Fixed** | Not a stat bug — `getProfileCompletion` was *enhancement-only* by design, so a fully-onboarded account read 0%. The **percentage** now also counts the seven core signup fields (name / photo / bio / DOB / phone / city / ID doc) so a finished profile reads mostly-complete and climbs; the **checklist** still lists only the three actionable enhancements (ZIP / ID verified / work photos). Applied to both the Profile-landing and Edit-Profile meters via the shared helper. |
+| **S3** Profile card city + tenure over-truncate | **Fixed** | The location line dropped its competing double-`truncate` (which clipped with empty headroom to the right). It now wraps to a second line on a narrow column; only an unusually long city ellipsizes, and the short "New member"/"Since …" tenure travels as one `shrink-0` group. |
+| **S4** Posts card title truncates a short single line | **Fixed** | `JobCardTitleBar` title is `line-clamp-2` instead of `truncate`, so titles wrap to two lines before ellipsizing (shared by poster + helper cards). |
+| **S5** Notification bell "does nothing" | **Not a bug** | The bell in `DashboardHeader` *is* `<NotificationPanel>`, a working `Sheet` + `SheetTrigger`. The non-response was the missed tap the audit suspected ("verify on real device"). No code change. |
+| **S7** Bottom-nav highlight on non-tab routes | **Not a bug** | "Posts card → history" and "Profile → Edit profile" are *in-page tab switches that stay on `/profile`* (`onSelectTab`), not route changes — so the bottom-nav indicator correctly tracks the active section. No code change. |
+
+**Hardening items addressed in code (follow-up):**
+
+| Item | Disposition | Change |
+| --- | --- | --- |
+| **H3** — dropped-Supabase-error sweep (highest-reach) | **Partially done** | `useActivityData.ts` (4 profile-enrichment fetches) and `Messages.tsx` `logViolation` (prior-count + 2 admin-notify fetches) now `report()` their errors instead of swallowing them. Enrichment stays non-fatal (degrades to fallback names) but is now observable — the `get_safe_profiles` grant-regression class would surface in Sentry / `error_logs`. The remaining lower-reach sites in the §H3 inventory are still open. |
+| **H6** — polish follow-ups | **Done** (3 of 4) | NotFound back-button falls back to `/` on cold deep-links; `/admin` added to `DOCUMENT_SCROLL_ROUTES` to match its `min-h-screen` layout; `SecurityTab` email-change uses a branded in-app dialog instead of native `prompt()`. The Signup-Step-1 "toasts one-by-one" item remains open. |
+
+`npm run typecheck && npm run lint && npm run build` all pass after the changes.

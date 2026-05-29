@@ -9,6 +9,7 @@ import type { TrackingData } from "@/components/JobTracking";
 import { queryKeys } from "@/lib/queryKeys";
 import { validateResult } from "@/lib/validateResult";
 import { helperApplicationsSchema } from "@/lib/schemas";
+import { report } from "@/lib/errorLogger";
 
 /** Pre-fetched per-job side data — replaces what used to be one Supabase
     round-trip per rendered card. `null` means "we looked and there is no
@@ -104,7 +105,11 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
 
     const helperIds = [...new Set(postedJobs.filter((j) => j.helper_id).map((j) => j.helper_id!))];
     if (helperIds.length > 0) {
-      const { data: helperProfiles } = await supabase.rpc("get_safe_profiles", { user_ids: helperIds });
+      const { data: helperProfiles, error: helperProfilesError } = await supabase.rpc("get_safe_profiles", { user_ids: helperIds });
+      // Enrichment, not primary data — a failed name lookup degrades to the
+      // "Helpr" fallback rather than blanking the tab, but must still be
+      // observable (this RPC's grant has silently vanished before).
+      if (helperProfilesError) report(helperProfilesError, { severity: "warning", tags: { source: "useActivityData.helperNames" } });
       helperProfiles?.forEach((p: any) => {
         helperNames[p.user_id] = formatName(p.full_name, "Helpr");
       });
@@ -152,7 +157,8 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
     declinedJobIds = new Set<string>((violationsRes.data || []).map((v: any) => v.job_id).filter(Boolean));
     let posterNameMap = new Map<string, string>();
     if (posterIds.length > 0) {
-      const { data: profiles } = await supabase.rpc("get_safe_profiles", { user_ids: posterIds });
+      const { data: profiles, error: posterProfilesError } = await supabase.rpc("get_safe_profiles", { user_ids: posterIds });
+      if (posterProfilesError) report(posterProfilesError, { severity: "warning", tags: { source: "useActivityData.posterNames" } });
       posterNameMap = new Map(profiles?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
     }
     appliedApps = appsRes.data.map((a) => {
@@ -163,7 +169,8 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
 
   if (directOffersRes.data && directOffersRes.data.length > 0) {
     const directPosterIds = [...new Set(directOffersRes.data.map((j: any) => j.customer_id))];
-    const { data: directPosterProfiles } = await supabase.rpc("get_safe_profiles", { user_ids: directPosterIds });
+    const { data: directPosterProfiles, error: directPosterError } = await supabase.rpc("get_safe_profiles", { user_ids: directPosterIds });
+    if (directPosterError) report(directPosterError, { severity: "warning", tags: { source: "useActivityData.directOfferPosterNames" } });
     const directPosterNames = new Map(directPosterProfiles?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
     const synthetic: AppliedApp[] = directOffersRes.data.map((job: any) => ({
       id: `direct-${job.id}`,
@@ -286,10 +293,11 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
       const helperIds = [...new Set(rows.map((r) => r.helper_id))];
       // Batch the profile lookup for every group helper across every job —
       // one round-trip, regardless of how many group-job cards are open.
-      const { data: profiles } = await supabase
+      const { data: profiles, error: groupHelperProfilesError } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", helperIds);
+      if (groupHelperProfilesError) report(groupHelperProfilesError, { severity: "warning", tags: { source: "useActivityData.groupHelperNames" } });
       const nameMap = new Map(
         profiles?.map((p) => [p.user_id, formatName(p.full_name, "Helpr")]) ?? [],
       );

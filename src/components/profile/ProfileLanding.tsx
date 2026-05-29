@@ -140,10 +140,24 @@ export function ProfileLanding({
   // tracks only post-signup enhancements (signup already requires
   // photo / name / phone / bio / city / ID doc).
   const portfolioUrls: string[] = (profile?.portfolio_urls ?? []) as string[];
+  // Core signup fields (the "Big 7" gate) — already satisfied by every
+  // normally-onboarded account. They count toward the percentage so a
+  // finished profile reads as mostly-complete instead of a discouraging
+  // 0%; the checklist below still lists only the actionable enhancements.
+  const coreComplete = [
+    !!profile?.full_name?.trim(),
+    !!profile?.avatar_url,
+    (profile?.bio?.trim().length ?? 0) >= 20,
+    !!profile?.date_of_birth,
+    !!profile?.phone?.trim(),
+    !!profile?.location?.trim(),
+    !!profile?.id_document_url,
+  ];
   const completion = getProfileCompletion({
     zipCode: profile?.zip_code,
     idvStatus: profile?.idv_status,
     portfolioCount: portfolioUrls.length,
+    core: coreComplete,
   });
   const completionPct = completion.pct;
 
@@ -323,14 +337,18 @@ export function ProfileLanding({
               )}
             </div>
             {profile?.location && (
-              <p className="text-ds-11 text-muted-foreground flex items-center gap-1 mt-1 truncate">
+              // Wraps to a second line on a narrow column instead of
+              // double-truncating; only an unusually long city ever
+              // ellipsizes, and the short "New member"/"Since …" tenure
+              // stays intact (it travels as one shrink-0 group).
+              <p className="text-ds-11 text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5 mt-1">
                 <MapPin className="w-3 h-3 shrink-0" />
-                <span className="truncate">{profile.location}</span>
+                <span className="truncate max-w-full min-w-0">{profile.location}</span>
                 {memberSinceLabel && (
-                  <>
+                  <span className="shrink-0 inline-flex items-center gap-1">
                     <span className="opacity-50">·</span>
-                    <span className="truncate">{memberSinceLabel}</span>
-                  </>
+                    <span>{memberSinceLabel}</span>
+                  </span>
                 )}
               </p>
             )}
@@ -604,8 +622,8 @@ export function ProfileLanding({
           Completion checklist. Sits right under the header (the most
           sensible spot — it's the user's own next action), as a quiet
           collapsed disclosure rather than permanent clutter. The whole
-          block is HIDDEN once the profile is 100% complete. */}
-      {completionPct < 100 && (
+          block is HIDDEN once every actionable enhancement is done. */}
+      {completion.nextLabel !== null && (
         <div
           className="liquid-glass shrink-0 overflow-hidden"
           style={{

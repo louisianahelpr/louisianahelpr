@@ -46,6 +46,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/post-job",    // PostJob (PageHeader + min-h-screen)
   "/job-history", // JobHistory (PageHeader + min-h-screen)
   "/business",    // BusinessTeam (PageHeader + min-h-screen)
+  "/admin",       // Admin dashboard (min-h-screen document-scroll + sidebar)
 ];
 
 const isDocumentScrollRoute = (pathname: string) => {

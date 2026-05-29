@@ -197,11 +197,14 @@ const Signup = () => {
     const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
     if (Object.keys(errors).length === 0 && normalizedPhone.length === 10) {
       const lastSeven = normalizedPhone.slice(-7);
-      const { data: existing } = await supabase
+      const { data: existing, error: dedupeError } = await supabase
         .from("profiles")
         .select("user_id")
         .ilike("phone", `%${lastSeven}%`)
         .limit(5);
+      // A failed lookup must not silently wave a duplicate phone through —
+      // surface it (the check still fails open, as before, but observably).
+      if (dedupeError) report(dedupeError, { severity: "warning", tags: { source: "Signup.phoneDedupe.lookup" } });
       if (existing && existing.length > 0) {
         errors.phone = "This phone number is already associated with an account. Please log in instead.";
         // Monitor false-positive rate — multiple matches likely means our
@@ -229,13 +232,30 @@ const Signup = () => {
   };
 
   // Validates the "Account credentials + agreements" content (UI step 1).
+  // Collects ALL problems and surfaces them in one toast, so the user sees
+  // every issue on a single Continue tap instead of the old "fix one, tap
+  // again, get the next" loop (mirrors validateAboutYouStep).
   const validateAccountStep = async () => {
-    if (!email.trim()) { toast.error("Email is required"); return false; }
-    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
-    if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
-    if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }
-    if (password !== confirmPassword) { toast.error("Passwords do not match"); return false; }
-    if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
+    const errors: Record<string, string> = {};
+    if (!email.trim()) errors.email = "Email is required";
+    if (!(password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password))) {
+      errors.password = "Password must be 8+ characters with an uppercase letter and a number";
+    }
+    if (password !== confirmPassword) errors.confirmPassword = "Passwords do not match";
+    if (!acceptedPolicies) errors.acceptedPolicies = "You must agree to the platform rules, terms, and privacy policy";
+
+    const messages = Object.values(errors);
+    if (messages.length > 0) {
+      toast.error(messages.length === 1 ? messages[0] : "Please fix a few things to continue", {
+        description: messages.length > 1 ? messages.join(" · ") : undefined,
+      });
+      track(AhaEvent.SignupStepValidationFailed, {
+        step: 1,
+        error_fields: Object.keys(errors),
+        ...ppoTrackingProps(),
+      });
+      return false;
+    }
     return true;
   };
 
@@ -387,7 +407,8 @@ const Signup = () => {
 
       // Auto-accept any pending invite for this email
       try {
-        const { data: invites } = await supabase.rpc("get_pending_invite_for_email", { _email: email });
+        const { data: invites, error: invitesError } = await supabase.rpc("get_pending_invite_for_email", { _email: email });
+        if (invitesError) report(invitesError, { severity: "warning", tags: { source: "Signup.inviteLinking.lookup" } });
         if (invites && invites.length > 0) {
           for (const inv of invites) {
             await supabase

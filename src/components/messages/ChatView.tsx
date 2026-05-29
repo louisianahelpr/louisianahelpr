@@ -349,7 +349,8 @@ export function ChatView({
                     className="font-serif italic text-[0.82rem] max-w-[260px]"
                     style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                   >
-                    Check your connection and try again.
+                    Tap Retry. If it sticks, our end is having a hiccup —
+                    not yours.
                   </p>
                 </div>
                 <Button variant="outline" size="sm" className="rounded-full" onClick={onRetryLoad}>

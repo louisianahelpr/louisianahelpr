@@ -26,7 +26,12 @@ interface ErrorStateProps {
 export function ErrorState({
   eyebrow = "Something went wrong",
   title = "We couldn't load this.",
-  body = "Check your connection and try again — this is usually a momentary hiccup.",
+  // Default body avoids blaming the user's connection — many of the
+  // failures we see in error_logs are server-side (RLS regressions, RPC
+  // grant misses, edge-function timeouts), so "check your connection" sent
+  // users hunting for a problem that wasn't theirs to fix. See PR #357 for
+  // the dashboard-specific fix this generalizes.
+  body = "Tap Try again. If it sticks, our end is having a hiccup — not yours.",
   onRetry,
   retryLabel = "Try again",
 }: ErrorStateProps) {

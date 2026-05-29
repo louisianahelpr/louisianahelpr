@@ -42,17 +42,17 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
           </div>
           <div className="flex items-center gap-1 -mr-1">
             {isAdmin && (
-              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="btn-press rounded-ds-md h-9 w-9" aria-label="Admin panel" style={{ color: "hsl(var(--olivewood))" }}>
+              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="btn-press rounded-ds-md h-10 w-10" aria-label="Admin panel" style={{ color: "hsl(var(--olivewood))" }}>
                 <Shield className="w-4 h-4" />
               </Button>
             )}
             <NotificationPanel />
             {onMenuClick && (
-              <Button variant="ghost" size="icon" onClick={onMenuClick} className="lg:hidden hover:bg-muted btn-press rounded-ds-md h-9 w-9" aria-label="Open menu">
+              <Button variant="ghost" size="icon" onClick={onMenuClick} className="lg:hidden hover:bg-muted btn-press rounded-ds-md h-10 w-10" aria-label="Open menu">
                 <Menu className="w-4 h-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-ds-md h-9 w-9" aria-label="Log out">
+            <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-ds-md h-10 w-10" aria-label="Log out">
               <LogOut className="w-4 h-4" />
             </Button>
           </div>

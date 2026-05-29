@@ -130,8 +130,8 @@ export function ProfileLanding({
     tier === "elite"
       ? "Elite plan — top visibility"
       : tier === "pro"
-        ? "Pro plan — bump to Elite for max reach"
-        : "Free plan — upgrade for more visibility";
+        ? "Pro plan — upgrade to Elite"
+        : "Free plan — get more reach";
 
   // ─── Portfolio gallery + completion meter ──────────────────────────
   // portfolio_urls is on profiles (text[]). Gallery shows up to 6 inline
@@ -175,7 +175,7 @@ export function ProfileLanding({
     {
       title: "Money",
       items: [
-        { key: "payment", label: "Payout & Payments", icon: <CreditCard className="w-5 h-5" />, desc: "Bank account, payment methods & summary", needsAction: stripeNeedsAction },
+        { key: "payment", label: "Payout & Payments", icon: <CreditCard className="w-5 h-5" />, desc: "Bank account, cards & earnings", needsAction: stripeNeedsAction },
         { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc },
         { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits" },
       ],
@@ -184,7 +184,7 @@ export function ProfileLanding({
       title: "Settings & Support",
       items: [
         { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login", needsAction: idvNeedsAction },
-        { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history" },
+        { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "Violations, strikes & history" },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
         { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
       ],

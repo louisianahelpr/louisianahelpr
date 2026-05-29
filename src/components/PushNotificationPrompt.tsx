@@ -99,7 +99,7 @@ export const PushNotificationPrompt = () => {
           className="flex-1 min-w-0 truncate font-sans font-semibold"
           style={{ fontSize: "0.8rem", color: "hsl(var(--ink-deep))" }}
         >
-          Turn on notifications for job matches &amp; messages.
+          Turn on job &amp; message alerts.
         </p>
         <button
           type="button"

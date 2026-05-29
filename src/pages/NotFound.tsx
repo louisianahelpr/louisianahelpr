@@ -1,4 +1,4 @@
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft } from "lucide-react";
@@ -14,6 +14,7 @@ const NotFound = () => {
     robots: "noindex",
   });
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     report(new Error(`404 — non-existent route: ${location.pathname}`), {
@@ -72,7 +73,10 @@ const NotFound = () => {
             <Button
               variant="outline"
               className="rounded-ds-md"
-              onClick={() => window.history.back()}
+              // A bare history.back() is a no-op on a cold deep-link / direct
+              // landing where this 404 is the first history entry — fall back
+              // to home so the button always does something.
+              onClick={() => (window.history.length <= 1 ? navigate("/") : window.history.back())}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Go back

@@ -13,25 +13,26 @@ env:
 # so regressions are caught before they hit main.
 
 on:
-  # DISABLED automatic triggers — was burning Actions minutes on every push/PR.
-  # Run manually from the Actions tab before major releases.
-  # To re-enable, uncomment the push / pull_request blocks.
-  #
-  # push:
-  #   branches: [main]
-  #   paths-ignore:
-  #     - "**/*.md"
-  #     - "docs/**"
-  #     - "fastlane/metadata/**"
-  #     - ".github/dependabot.yml"
-  #     - "LICENSE"
-  # pull_request:
-  #   branches: [main]
-  #   paths-ignore:
-  #     - "**/*.md"
-  #     - "docs/**"
-  #     - "fastlane/metadata/**"
-  #     - "LICENSE"
+  # Runs on ubuntu-latest (1x billing multiplier — cheap, unlike the
+  # macOS ios-beta runners). Vitest was rotting silently because nothing
+  # ran it in CI; this gates lint/type-check/build/test on every PR so
+  # regressions are caught before they reach main. Docs-only changes are
+  # skipped via paths-ignore to avoid wasting minutes.
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "fastlane/metadata/**"
+      - ".github/dependabot.yml"
+      - "LICENSE"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "fastlane/metadata/**"
+      - "LICENSE"
   workflow_dispatch:
 
 # Cancel superseded runs on the same ref to avoid burning minutes on stale commits.
@@ -62,12 +63,10 @@ jobs:
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: ESLint
-        run: npm run lint || true
-        continue-on-error: true
+        run: npm run lint
 
       - name: TypeScript type check
-        run: npx tsc -b --noEmit || true
-        continue-on-error: true
+        run: npx tsc -b --noEmit
 
       - name: Production build
         # Public Vite vars are committed in .env (publishable keys only — safe to expose).

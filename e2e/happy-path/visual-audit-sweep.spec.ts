@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 // Pre-TestFlight visual + a11y evidence sweep.
 //
 // Captures screenshots + axe-core violation reports for 10 key screens at

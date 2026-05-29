@@ -130,7 +130,7 @@ export const SaveHelperButton = ({
       size="icon"
       onClick={toggle}
       disabled={working}
-      className={`rounded-ds-md h-9 w-9 shrink-0 ${className}`}
+      className={`rounded-ds-md h-10 w-10 shrink-0 ${className}`}
       aria-label={saved ? "Unsave helpr" : "Save helpr"}
       title={saved ? "Saved — tap to remove" : "Save this helpr"}
     >

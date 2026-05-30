@@ -1,4 +1,3 @@
-import { useTheme } from "next-themes";
 import { Toaster as Sonner, toast } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
@@ -6,12 +5,12 @@ type ToasterProps = React.ComponentProps<typeof Sonner>;
 // Brand-aligned toast styling — translucent parchment surface with
 // olivewood hairline border, font-serif italic body, and stage-tinted
 // icon colors (bark for success, sienna for error/warning).
+// The app is light-only (dark mode was removed), so the toaster is
+// hardcoded to the light theme.
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="light"
       className="toaster group"
       toastOptions={{
         unstyled: false,

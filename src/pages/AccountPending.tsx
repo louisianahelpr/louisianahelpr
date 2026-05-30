@@ -217,8 +217,8 @@ const AccountPending = () => {
   );
 
   return (
-    <AppShell header={header} reserveBottomNav={true} scrollable={false}>
-      <div className="h-full w-full flex items-center justify-center px-5 py-4 overflow-hidden">
+    <AppShell header={header} reserveBottomNav={true}>
+      <div className="min-h-full w-full flex items-center justify-center px-5 py-4">
         {loading ? (
           <SkeletonCard />
         ) : !emailVerified ? (
@@ -257,7 +257,7 @@ const AccountPending = () => {
           </div>
         ) : (
           // ---------- Verification Center ----------
-          <div className="w-full max-w-md h-full flex flex-col justify-between gap-4 overflow-hidden">
+          <div className="w-full max-w-md flex flex-col gap-4">
             {/* Status hero */}
             <div className="shrink-0 bg-white dark:bg-card rounded-[24px] shadow-[0_24px_60px_-20px_hsl(0_0%_0%/0.18),0_8px_24px_-12px_hsl(0_0%_0%/0.12)] border border-black/5 p-5 sm:p-6">
               <div className="flex flex-col items-center text-center">

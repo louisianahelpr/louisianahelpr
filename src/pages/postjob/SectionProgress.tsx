@@ -39,7 +39,11 @@ export function SectionProgress({
     <div
       className="sticky z-30 -mx-4 px-4 pt-2 pb-2.5"
       style={{
-        top: "calc(env(safe-area-inset-top, 0px) - 0.25rem)",
+        // Pin just below the pinned brand top-nav (safe-area inset + the
+        // glass-header's 3rem content row) so the rail clears the bar
+        // instead of sliding behind it. The -0.25rem keeps a soft overlap
+        // for the gradient blend.
+        top: "calc(env(safe-area-inset-top, 0px) + 3rem - 0.25rem)",
         background:
           "linear-gradient(to bottom, hsla(38, 18%, 97%, 0.97) 72%, hsla(38, 18%, 97%, 0))",
         backdropFilter: "blur(6px)",

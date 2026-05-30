@@ -1,4 +1,5 @@
 import BackButton from "@/components/BackButton";
+import HelprMark from "@/components/HelprMark";
 import type { ReactNode } from "react";
 
 interface PageHeaderProps {
@@ -12,27 +13,42 @@ interface PageHeaderProps {
   onBack?: () => void;
   rightSlot?: ReactNode;
   hideBack?: boolean;
+  /** Render the pinned brand top-nav bar (Helpr·LA wordmark on the left),
+      matching the primary pages (Dashboard). Use on document-scroll pages
+      that should keep the standard sticky top nav rather than dropping
+      straight into the title block. */
+  showBrand?: boolean;
 }
 
-const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false }: PageHeaderProps) => {
+const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false, showBrand = false }: PageHeaderProps) => {
 
   // When no rightSlot is provided, skip the empty 48px sticky bar and let
   // the title block absorb the safe-area-top padding instead. Pages like
   // PostJob were paying ~100px of dead space at the top of the viewport
   // for a header bar that had nothing in it.
+  //
+  // `showBrand` opts a page back into the pinned top nav — the brand mark
+  // on the left and any rightSlot controls on the right — so it matches the
+  // Dashboard's sticky header instead of feeling chromeless.
+  const showBar = showBrand || !!rightSlot;
   return (
     <>
-      {rightSlot && (
+      {showBar && (
         <header className="glass-header sticky top-0 z-50">
-          <div className="mx-auto flex h-12 max-w-5xl lg:max-w-6xl 2xl:max-w-7xl items-center justify-end gap-2 px-5 lg:px-8 xl:px-12">
-            <div className="flex items-center gap-1 shrink-0">{rightSlot}</div>
+          <div className="mx-auto flex h-12 max-w-5xl lg:max-w-6xl 2xl:max-w-7xl items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
+            {showBrand ? (
+              <HelprMark to="/dashboard" size="sm" />
+            ) : (
+              <span />
+            )}
+            {rightSlot && <div className="flex items-center gap-1 shrink-0">{rightSlot}</div>}
           </div>
         </header>
       )}
 
       <div
         className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pt-3 pb-2"
-        style={!rightSlot ? { paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" } : undefined}
+        style={!showBar ? { paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" } : undefined}
       >
         <div className="flex items-start gap-3 mb-1">
           {!hideBack && <BackButton onClick={onBack} />}

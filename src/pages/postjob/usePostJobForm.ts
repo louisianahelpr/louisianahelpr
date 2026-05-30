@@ -18,6 +18,7 @@ import { hapticSuccess } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
 import type { AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 import { categories } from "@/components/postjob/DetailsSection";
+import type { SampleJob } from "@/data/sampleJobs";
 import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { validateResult } from "@/lib/validateResult";
@@ -26,7 +27,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
 
-export type Step = "form" | "checkout";
+export type Step = "entry" | "form" | "checkout";
 
 /**
  * usePostJobForm — owns all of the Post-a-Task form state, side effects,
@@ -50,7 +51,12 @@ export function usePostJobForm() {
   const [idvDialogOpen, setIdvDialogOpen] = useState(false);
   const [idvStatus, setIdvStatus] = useState<string | undefined>(undefined);
   const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
-  const [step, setStep] = useState<Step>("form");
+  // Deep-link arrivals (one-tap rebook, direct offer to a saved helpr) come
+  // in with the intent already chosen, so they skip the entry landing and
+  // drop straight into the pre-filled form. Everyone else sees the
+  // start-fresh / draft / template choice first, which declutters the page.
+  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo"));
+  const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");
@@ -171,12 +177,15 @@ export function usePostJobForm() {
       return;
     }
 
-    // Show draft prompt instead of auto-loading
-    if (hasDraft && !draftLoaded) {
+    // Show draft prompt instead of auto-loading — only on the deep-link
+    // path that skips the entry landing (rebook/offer). When the entry
+    // screen is shown, it owns the "Load draft" choice, so the in-form
+    // prompt would be a redundant second draft control.
+    if (skipEntry && hasDraft && !draftLoaded) {
       setShowDraftPrompt(true);
       setDraftLoaded(true);
     }
-  }, [searchParams, hasDraft, draftLoaded]);
+  }, [searchParams, hasDraft, draftLoaded, skipEntry]);
 
   // Smart defaults — prefill the state to LA (every Helpr job is in
   // Louisiana) and the city from the poster's saved profile location.
@@ -603,9 +612,60 @@ export function usePostJobForm() {
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
+    } else if (step === "form" && !skipEntry) {
+      // Back out of the form to the entry landing — unless the form was
+      // reached via a deep link that has no entry screen behind it.
+      setStep("entry");
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
     } else {
       navigate("/dashboard");
     }
+  };
+
+  // ── Entry-landing choices ──────────────────────────────────────────────
+  // The entry screen offers three ways into the form so the page no longer
+  // dumps the full multi-step form on the user at once.
+
+  /** "Start fresh" — current behavior, an empty form. */
+  const startFresh = () => {
+    track("post_job_entry_choice", { choice: "start_fresh" });
+    setStep("form");
+  };
+
+  /** "Load draft" — restore the saved draft, then enter the form. */
+  const loadDraftAndContinue = () => {
+    track("post_job_entry_choice", { choice: "load_draft" });
+    loadDraft();
+    setStep("form");
+  };
+
+  /**
+   * "Use a template" — enter the form; the SampleJobTemplates row at the
+   * top of the empty form is the template picker. When a specific template
+   * is passed (from the entry screen's template cards) it's applied here so
+   * the user lands on a pre-filled form.
+   */
+  const useTemplate = (apply?: () => void) => {
+    track("post_job_entry_choice", { choice: "use_template" });
+    apply?.();
+    setStep("form");
+  };
+
+  /**
+   * Pre-fills the form from a sample-job template. Mirrors the field
+   * mapping in SampleJobTemplates so a template picked on the entry screen
+   * lands the user on an identical pre-filled form.
+   */
+  const applyTemplateFields = (sample: SampleJob) => {
+    setCategory(sample.category);
+    setTitle(sample.title);
+    setDescription(sample.description);
+    setBudget(String(sample.typical_price));
+    // estimatedHours is stored as a stringified hours number, not minutes.
+    setEstimatedHours((sample.typical_duration_minutes / 60).toString());
+    track("sample_job_template_selected", { template_id: sample.id });
   };
 
   // Restores a previously-saved draft into the form fields.
@@ -667,6 +727,12 @@ export function usePostJobForm() {
     showDraftPrompt,
     loadDraft,
     dismissDraftPrompt,
+    // entry landing
+    hasDraft,
+    startFresh,
+    loadDraftAndContinue,
+    useTemplate,
+    applyTemplateFields,
     // details fields
     title,
     setTitle,

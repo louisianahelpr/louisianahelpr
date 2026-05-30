@@ -140,7 +140,7 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
                   <span
                     className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-sans font-semibold uppercase tracking-wider"
                     style={{
-                      background: "hsl(var(--burnt-sienna) / 0.12)",
+                      background: "hsl(var(--burnt-sienna) / 0.06)",
                       color: "hsl(var(--burnt-sienna))",
                     }}
                   >

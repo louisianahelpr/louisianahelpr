@@ -1,12 +1,13 @@
-import { useState } from "react";
 import { sampleJobs, type SampleJob } from "@/data/sampleJobs";
 import { track } from "@/lib/analytics";
 
 interface SampleJobTemplatesProps {
-  /** Current title — used to detect when the customer has started typing. */
-  title: string;
-  /** Current category selection — non-default ("other") means they picked one. */
-  category: string;
+  /** When false the panel is hidden. Parent toggles this via the
+   *  "Use a template" tab at the top of the form. */
+  open: boolean;
+  /** Called after a template is applied or the panel is dismissed, so the
+   *  parent can collapse the tab. */
+  onClose: () => void;
   // Form setters — match `usePostJobForm` return shape.
   setTitle: (v: string) => void;
   setDescription: (v: string) => void;
@@ -16,35 +17,24 @@ interface SampleJobTemplatesProps {
 }
 
 /**
- * SampleJobTemplates — a horizontal scrolling row of pre-filled example
- * jobs shown at the very top of the Post-a-Task form when it's still
- * empty. Each chip pre-fills title, description, category, budget, and
- * duration so first-time customers have a working starting point. The
- * customer can still edit anything after a tap.
+ * SampleJobTemplates — a grid of pre-filled example jobs. Each chip
+ * pre-fills title, description, category, budget, and duration so a
+ * customer has a working starting point; everything stays editable.
  *
- * Hides itself the moment the customer either:
- *   1. Starts typing a title, OR
- *   2. Picks a category manually (anything other than the default), OR
- *   3. Taps "Or start from scratch" to dismiss.
- *
- * Mounted in `FormStep` above the sticky stepper.
+ * Visibility is controlled by the parent: it renders only when the
+ * "Use a template" tab is active (`open`). Applying a template or tapping
+ * "Hide templates" calls `onClose` so the tab collapses.
  */
 export function SampleJobTemplates({
-  title,
-  category,
+  open,
+  onClose,
   setTitle,
   setDescription,
   setCategory,
   setBudget,
   setEstimatedHours,
 }: SampleJobTemplatesProps) {
-  const [dismissed, setDismissed] = useState(false);
-
-  // The row is only useful when the form is genuinely empty. Once the
-  // customer has typed in a title OR moved off the default category,
-  // we get out of their way — no mid-flow temptation.
-  const hasStarted = title.trim().length > 0 || category !== "other";
-  if (dismissed || hasStarted) return null;
+  if (!open) return null;
 
   const applyTemplate = (sample: SampleJob) => {
     setCategory(sample.category);
@@ -55,12 +45,12 @@ export function SampleJobTemplates({
     // not minutes — convert from the template's minute count.
     setEstimatedHours((sample.typical_duration_minutes / 60).toString());
     track("sample_job_template_selected", { template_id: sample.id });
-    setDismissed(true);
+    onClose();
   };
 
   const dismiss = () => {
     track("sample_job_template_dismissed", {});
-    setDismissed(true);
+    onClose();
   };
 
   return (
@@ -96,7 +86,7 @@ export function SampleJobTemplates({
           className="text-ds-11 font-sans font-semibold shrink-0 active:scale-95 transition-transform"
           style={{ color: "hsl(var(--bark))" }}
         >
-          Or start from scratch
+          Hide templates
         </button>
       </div>
 

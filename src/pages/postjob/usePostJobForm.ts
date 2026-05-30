@@ -664,6 +664,7 @@ export function usePostJobForm() {
     offerToHelperName,
     clearOffer,
     // draft prompt
+    hasDraft,
     showDraftPrompt,
     loadDraft,
     dismissDraftPrompt,

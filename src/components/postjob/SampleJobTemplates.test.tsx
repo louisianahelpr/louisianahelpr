@@ -9,8 +9,7 @@ vi.mock("@/lib/analytics", () => ({
 }));
 
 interface RenderOptions {
-  title?: string;
-  category?: string;
+  open?: boolean;
 }
 
 function renderTemplates(opts: RenderOptions = {}) {
@@ -21,14 +20,11 @@ function renderTemplates(opts: RenderOptions = {}) {
     setBudget: vi.fn(),
     setEstimatedHours: vi.fn(),
   };
+  const onClose = vi.fn();
   const result = render(
-    <SampleJobTemplates
-      title={opts.title ?? ""}
-      category={opts.category ?? "other"}
-      {...setters}
-    />,
+    <SampleJobTemplates open={opts.open ?? true} onClose={onClose} {...setters} />,
   );
-  return { ...setters, ...result };
+  return { ...setters, onClose, ...result };
 }
 
 describe("SampleJobTemplates", () => {
@@ -36,8 +32,8 @@ describe("SampleJobTemplates", () => {
     trackMock.mockReset();
   });
 
-  it("renders the template row when the form is empty", () => {
-    renderTemplates();
+  it("renders the template grid when open", () => {
+    renderTemplates({ open: true });
     expect(screen.getByText(/Start from a template/i)).toBeInTheDocument();
     // Every sample should render a tappable button.
     for (const sample of sampleJobs) {
@@ -47,18 +43,13 @@ describe("SampleJobTemplates", () => {
     }
   });
 
-  it("hides itself once the customer has typed a title", () => {
-    renderTemplates({ title: "Mow my lawn" });
+  it("renders nothing when not open", () => {
+    renderTemplates({ open: false });
     expect(screen.queryByText(/Start from a template/i)).toBeNull();
   });
 
-  it("hides itself once the customer has picked a non-default category", () => {
-    renderTemplates({ category: "cleaning" });
-    expect(screen.queryByText(/Start from a template/i)).toBeNull();
-  });
-
-  it("pre-fills every form field and fires analytics when a template is tapped", () => {
-    const { setTitle, setDescription, setCategory, setBudget, setEstimatedHours } =
+  it("pre-fills every form field, fires analytics, and closes when a template is tapped", () => {
+    const { setTitle, setDescription, setCategory, setBudget, setEstimatedHours, onClose } =
       renderTemplates();
     const sample = sampleJobs[0];
 
@@ -77,21 +68,13 @@ describe("SampleJobTemplates", () => {
     expect(trackMock).toHaveBeenCalledWith("sample_job_template_selected", {
       template_id: sample.id,
     });
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it("dismisses after pre-filling so the row doesn't tempt mid-flow", () => {
-    renderTemplates();
-    const sample = sampleJobs[0];
-    fireEvent.click(
-      screen.getByRole("button", { name: new RegExp(`Use template: ${sample.title}`, "i") }),
-    );
-    expect(screen.queryByText(/Start from a template/i)).toBeNull();
-  });
-
-  it('dismisses when the customer taps "Or start from scratch"', () => {
-    renderTemplates();
-    fireEvent.click(screen.getByRole("button", { name: /Or start from scratch/i }));
-    expect(screen.queryByText(/Start from a template/i)).toBeNull();
+  it('closes and tracks dismissal when the customer taps "Hide templates"', () => {
+    const { onClose } = renderTemplates();
+    fireEvent.click(screen.getByRole("button", { name: /Hide templates/i }));
+    expect(onClose).toHaveBeenCalled();
     expect(trackMock).toHaveBeenCalledWith("sample_job_template_dismissed", {});
   });
 });

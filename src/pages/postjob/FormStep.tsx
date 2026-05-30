@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FileText, LayoutTemplate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { LogisticsSection } from "@/components/postjob/LogisticsSection";
@@ -6,7 +7,6 @@ import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
 import { SampleJobTemplates } from "@/components/postjob/SampleJobTemplates";
 import { DirectOfferBanner } from "./DirectOfferBanner";
-import { DraftPrompt } from "./DraftPrompt";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { SectionProgress, type PostJobSectionId } from "./SectionProgress";
 import type { usePostJobForm } from "./usePostJobForm";
@@ -31,6 +31,10 @@ export function FormStep({ form }: FormStepProps) {
   const logisticsRef = useRef<HTMLDivElement>(null);
   const budgetRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState<PostJobSectionId>("details");
+  // The blank form is the default. Two small tabs sit above it: "Pick up
+  // draft" (only when a saved draft exists) restores it in one tap, and
+  // "Use a template" reveals the sample-job grid.
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const refs = useMemo(
     () => ({ details: detailsRef, logistics: logisticsRef, budget: budgetRef }),
@@ -98,19 +102,60 @@ export function FormStep({ form }: FormStepProps) {
         />
       )}
 
-      {form.showDraftPrompt && (
-        <DraftPrompt onLoad={form.loadDraft} onDismiss={form.dismissDraftPrompt} />
-      )}
-
       {atOpenJobLimit && <OpenJobLimitNotice />}
 
-      {/* Sample-job templates — a row of pre-filled example jobs for
-          first-time customers who don't know what details or budget are
-          reasonable. Self-hides the moment the customer starts typing or
-          picks a category, so it never tempts mid-flow. */}
+      {/* Two small tabs above the blank form — a quick way to pull in a
+          saved draft or start from a template, without a separate landing
+          step. The draft tab only appears when a draft actually exists. */}
+      <div className="flex items-center gap-2">
+        {form.hasDraft && (
+          <button
+            type="button"
+            onClick={form.loadDraft}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-sans font-semibold active:scale-95 transition-all"
+            style={{
+              fontSize: "0.8rem",
+              color: "hsl(var(--bark))",
+              background: "hsl(var(--parchment) / 0.7)",
+              border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.06)",
+            }}
+          >
+            <FileText className="w-3.5 h-3.5" aria-hidden />
+            Pick up draft
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowTemplates((v) => !v)}
+          aria-pressed={showTemplates}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-sans font-semibold active:scale-95 transition-all"
+          style={{
+            fontSize: "0.8rem",
+            color: showTemplates ? "hsl(var(--burnt-sienna))" : "hsl(var(--bark))",
+            background: showTemplates
+              ? "hsl(var(--burnt-sienna) / 0.12)"
+              : "hsl(var(--parchment) / 0.7)",
+            border: showTemplates
+              ? "0.5px solid hsl(var(--burnt-sienna) / 0.35)"
+              : "0.5px solid hsl(var(--olivewood) / 0.22)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+              "0 1px 2px hsl(var(--olivewood) / 0.06)",
+          }}
+        >
+          <LayoutTemplate className="w-3.5 h-3.5" aria-hidden />
+          Use a template
+        </button>
+      </div>
+
+      {/* Sample-job templates — revealed by the "Use a template" tab.
+          Applying one (or hiding) collapses the panel. */}
       <SampleJobTemplates
-        title={form.title}
-        category={form.category}
+        open={showTemplates}
+        onClose={() => setShowTemplates(false)}
         setTitle={form.setTitle}
         setDescription={form.setDescription}
         setCategory={form.setCategory}

@@ -92,6 +92,7 @@ export default {
         "ds-9": ["9px", { lineHeight: "1.45", letterSpacing: "0.04em" }],
         "ds-10": ["10px", { lineHeight: "1.45", letterSpacing: "0.02em" }],
         "ds-11": ["11px", { lineHeight: "1.45", letterSpacing: "0" }],
+        "ds-12": ["12px", { lineHeight: "1.45", letterSpacing: "0" }],
         "ds-13": ["13px", { lineHeight: "1.45", letterSpacing: "0" }],
         "ds-15": ["15px", { lineHeight: "1.5", letterSpacing: "0" }],
         "ds-17": ["17px", { lineHeight: "1.5", letterSpacing: "0" }],

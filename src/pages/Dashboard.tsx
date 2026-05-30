@@ -583,7 +583,9 @@ const Dashboard = () => {
                 // name reads tall, so a hero-sized base made the card
                 // bulk up. This sits the greeting card at the same
                 // visual height as those tabs' title cards.
-                fontSize: "clamp(1.1rem, 1.3vw + 0.4rem, 1.3rem)",
+                // Matches the "Browse Tasks" h2 size (1.25rem) so the
+                // greeting and the feed heading read at the same scale.
+                fontSize: "1.25rem",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.025em",
                 // Looser leading so the Beth Ellen script descenders

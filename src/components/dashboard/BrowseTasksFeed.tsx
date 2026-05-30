@@ -157,7 +157,7 @@ export function BrowseTasksFeed({
         pullDistance={pullDistance}
         refreshing={refreshing}
         isPulling={isPulling}
-        className="flex-1 min-h-0 overscroll-contain scrollbar-hide pb-0"
+        className="flex-1 min-h-0 flex flex-col overscroll-contain scrollbar-hide pb-0"
         style={view === "map" ? { display: "none" } : undefined}
       >
       {/* Job list — rendered directly in the PageScaffold panel (which is

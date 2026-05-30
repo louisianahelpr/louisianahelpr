@@ -76,16 +76,11 @@ export function ConversationList({
       header={<DashboardHeader />}
       titleCard={
           <div className="flex flex-col leading-none">
-            <h1
-              className="font-display font-bold leading-tight"
-              style={{
-                fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
-              }}
-            >
-              Messages
-            </h1>
+            {/* Canonical page-title — same `.text-page-title` (Bodoni Moda
+                italic 700, --headline-hero) used by the Activity tabs
+                (My Posts / My Jobs) so the four signed-in title cards read
+                as one family. */}
+            <h1 className="text-page-title leading-tight">Messages</h1>
             {/* Count chip — hidden on an empty inbox (a "0 threads"
                 badge over the empty-state card is noise). */}
             {!isEmpty && (
@@ -113,7 +108,7 @@ export function ConversationList({
             >
               <div className="flex flex-col leading-none">
                 <span
-                  className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+                  className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
                   Conversations

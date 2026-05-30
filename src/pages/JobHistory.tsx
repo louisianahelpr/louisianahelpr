@@ -8,6 +8,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { StatusBadge } from "@/components/StatusBadge";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { unwrap } from "@/lib/supabaseResult";
@@ -148,6 +149,11 @@ const JobHistory = () => {
               eyebrow="Quiet archive"
               title="Nothing here yet."
               body="Completed and closed jobs will collect in your archive."
+              action={
+                <BarkPillButton onClick={() => navigate("/dashboard")}>
+                  Browse open jobs
+                </BarkPillButton>
+              }
             />
           ) : (
             <div className="space-y-3">

@@ -272,23 +272,24 @@ const NotificationPanel = () => {
               top-right via Sheet primitive). pr-12 reserves room so
               long titles can't run under the close. */}
           <SheetTitle
-            className="font-display italic font-bold text-left pr-12"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+            className="text-page-title text-left pr-12"
           >
             Notifications
           </SheetTitle>
-          <div className="flex items-center gap-2">
-            {pushSupported && !pushEnabled && (
-              <Button variant="ghost" size="sm" onClick={enablePush} className="text-ds-11 text-primary h-7 px-2">
-                <BellRing className="w-3.5 h-3.5 mr-1" /> Enable push
-              </Button>
-            )}
-            {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={markAllRead} className="text-ds-11 text-muted-foreground h-7 px-2 ml-auto">
-                <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
-              </Button>
-            )}
-          </div>
+          {(unreadCount > 0 || (pushSupported && !pushEnabled)) && (
+            <div className="flex items-center gap-2">
+              {pushSupported && !pushEnabled && (
+                <Button variant="ghost" size="sm" onClick={enablePush} className="text-ds-11 text-primary h-7 px-2">
+                  <BellRing className="w-3.5 h-3.5 mr-1" /> Enable push
+                </Button>
+              )}
+              {unreadCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={markAllRead} className="text-ds-11 text-muted-foreground h-7 px-2 ml-auto">
+                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
+                </Button>
+              )}
+            </div>
+          )}
           {/* Filter pills — All / Unread. Lets users triage in feeds
               with volume; auto-falls-back to "All" when the active
               filter would render nothing (so unread→empty doesn't
@@ -476,7 +477,7 @@ const NotificationPanel = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p
-                                className="font-display italic font-bold leading-tight truncate"
+                                className="min-w-0 flex-1 font-display italic font-bold leading-tight truncate"
                                 style={{
                                   fontSize: "0.92rem",
                                   color: !n.read ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",

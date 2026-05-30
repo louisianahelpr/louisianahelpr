@@ -34,7 +34,7 @@
   /* Named brand tokens — referenced directly by components. */
   --parchment:    38 18% 97%;   /* paper white / alabaster — barely-warm cream
                                     that reads as light without going pure white */
-  --ivory-sand:   36 35% 84%;   /* #E4D6C5 — surface (cards) */
+  --ivory-sand:   36 35% 87%;   /* surface (cards) — lightened from 84% so muted-foreground text clears WCAG AA 4.5:1 on cards */
   --sand:         38 39% 76%;   /* #D6C7AD — soft border / quiet surface */
   --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
   --sage:         78 9% 53%;    /* #8C947D — primary accent */

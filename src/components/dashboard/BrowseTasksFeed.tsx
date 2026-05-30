@@ -1,9 +1,9 @@
-import { lazy, Suspense, useCallback, useRef, useEffect, useState } from "react";
+import { Fragment, lazy, Suspense, useCallback, useRef, useEffect, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Star, Search, Bell } from "lucide-react";
+import { Star, Search, Bell, Plus, MapPin, Users, RefreshCw, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/lib/accessibility";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -30,6 +30,10 @@ interface BrowseTasksFeedProps {
   /** Dashboard filter state (from useDashboardFilters). */
   filters: ReturnType<typeof useDashboardFilters>;
   user: SupaUser | null;
+  /** User's home parish (from profile) — used to localize the quiet-board
+   *  landing headline ("No jobs in {area} right now"). Null falls back to
+   *  "your area". */
+  areaLabel: string | null;
   /** Full loaded feed — only `.length` is read, for the error-state guard. */
   allJobs: EnrichedJob[];
   /** True once the open-jobs fetch has failed. */
@@ -73,6 +77,7 @@ export function BrowseTasksFeed({
   view,
   filters,
   user,
+  areaLabel,
   allJobs,
   loadError,
   refresh,
@@ -189,63 +194,54 @@ export function BrowseTasksFeed({
         />
       </div>
       ) : filters.filteredJobs.length === 0 ? (
-      <div className="px-4 pt-4 flex-1 min-h-0 flex">
-        <EmptyState
-          icon={Search}
-          eyebrow={filters.hasFilters ? "No matches" : "All quiet — for now"}
-          title={filters.hasFilters ? "No jobs match your filters." : "Nothing today, neighbor."}
-          body={
-            filters.hasFilters
-              ? filters.boostedOnly
+      filters.hasFilters ? (
+        // Filtered to nothing — the honest, useful action is to loosen the
+        // filters, so keep the compact EmptyState with a single "Clear" CTA.
+        <div className="px-4 pt-4 flex-1 min-h-0 flex">
+          <EmptyState
+            icon={Search}
+            eyebrow="No matches"
+            title="No jobs match your filters."
+            body={
+              filters.boostedOnly
                 ? "No boosted jobs right now — try clearing the filter to see all open work."
                 : "Try widening your parish, raising your budget, or clearing a filter."
-              : (() => {
-                  // Rotating friendly tip — picks one of 4 every hour so
-                  // the empty state feels alive on repeat visits instead
-                  // of static. Deterministic per hour keeps it from
-                  // flickering on every render.
-                  const tips = [
-                    "New jobs post throughout the day. Helprs often check in around lunch and after work.",
-                    "Most posts go up on weekday evenings. Pull down to refresh anytime.",
-                    "Saved a search? Helpr will ping you the moment a matching job hits the board.",
-                    "Quiet days happen. The feed usually picks back up by evening.",
-                  ];
-                  return tips[new Date().getHours() % tips.length];
-                })()
-          }
-          action={
-            filters.hasFilters ? (
+            }
+            action={
               <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
                 Clear filters
               </Button>
-            ) : user ? (
-              // Quiet feed — the most useful thing a signed-in helper can
-              // do is turn a saved search into a live alert so they stop
-              // having to re-check an empty board. "Get notified" is the
-              // primary CTA; posting a job is the secondary link below.
-              <div className="flex flex-col items-center gap-2">
-                <BarkPillButton
-                  onClick={() => window.dispatchEvent(new Event("open-saved-searches"))}
-                >
-                  <Bell className="w-4 h-4 mr-2" strokeWidth={2} aria-hidden="true" />
-                  Get notified of new jobs
-                </BarkPillButton>
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/post-job")}
-                  className="text-ds-11 text-muted-foreground hover:text-foreground rounded-ds-md btn-press"
-                >
-                  Or post a job
-                </Button>
-              </div>
-            ) : (
+            }
+          />
+        </div>
+      ) : user ? (
+        // Genuinely-quiet board for a signed-in user. Rather than a bare
+        // "nothing here" card that reads as broken, give the home a real
+        // landing: a localized headline, a primary "post a task" action,
+        // a few quick actions, and a 3-step explainer so the screen always
+        // has somewhere to go.
+        <QuietBoardLanding
+          areaLabel={areaLabel}
+          onPost={() => navigate("/post-job")}
+          onAlert={() => window.dispatchEvent(new Event("open-saved-searches"))}
+          onInvite={() => navigate("/profile?tab=referral")}
+          onRefresh={refresh}
+        />
+      ) : (
+        <div className="px-4 pt-4 flex-1 min-h-0 flex">
+          <EmptyState
+            icon={Search}
+            eyebrow="All quiet — for now"
+            title="Nothing today, neighbor."
+            body="New jobs post throughout the day — check back soon, or post the first one yourself."
+            action={
               <BarkPillButton onClick={() => navigate("/post-job")}>
                 Post the first job
               </BarkPillButton>
-            )
-          }
-        />
-      </div>
+            }
+          />
+        </div>
+      )
       ) : (() => {
         const visibleJobs = filters.filteredJobs
           .filter(j => !dismissedJobIds.has(j.id))
@@ -404,5 +400,190 @@ export function BrowseTasksFeed({
         </div>
       </PullToRefreshWrapper>
     </>
+  );
+}
+
+/**
+ * QuietBoardLanding — the signed-in, no-jobs, no-filters home state.
+ *
+ * Replaces the old single "Nothing today" card, which left the logged-in
+ * home reading as a near-empty void. Instead the screen always has
+ * structure and a path forward: a localized headline, a primary
+ * "post a task" card, a short list of quick actions, and a 3-step
+ * explainer of how Helpr works.
+ */
+function QuietBoardLanding({
+  areaLabel,
+  onPost,
+  onAlert,
+  onInvite,
+  onRefresh,
+}: {
+  areaLabel: string | null;
+  onPost: () => void;
+  onAlert: () => void;
+  onInvite: () => void;
+  onRefresh: () => void;
+}) {
+  const where = areaLabel?.trim() ? areaLabel.trim() : "your area";
+  const quickActions = [
+    {
+      key: "alert",
+      icon: Bell,
+      label: "Set a job alert",
+      sub: "Get pinged the moment matching work lands",
+      onClick: onAlert,
+    },
+    {
+      key: "invite",
+      icon: Users,
+      label: "Invite neighbors",
+      sub: "More people nearby means more jobs on the board",
+      onClick: onInvite,
+    },
+    {
+      key: "refresh",
+      icon: RefreshCw,
+      label: "Refresh the board",
+      sub: "Check for jobs posted just now",
+      onClick: onRefresh,
+    },
+  ];
+  const steps = [
+    { n: 1, label: "Post" },
+    { n: 2, label: "Match" },
+    { n: 3, label: "Get it done" },
+  ];
+
+  return (
+    <div
+      className="px-4 pt-6 flex flex-col gap-5"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)" }}
+    >
+      {/* Hero */}
+      <div className="flex flex-col items-center text-center gap-3">
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center"
+          style={{
+            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+            backdropFilter: "blur(16px) saturate(150%)",
+            WebkitBackdropFilter: "blur(16px) saturate(150%)",
+            border: "1px solid hsl(var(--olivewood) / 0.10)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+              "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
+          }}
+        >
+          <MapPin className="w-7 h-7" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+        </div>
+        <div className="space-y-1">
+          <p
+            className="font-display italic font-bold leading-tight break-words"
+            style={{
+              fontSize: "clamp(1.15rem, 1.5vw + 0.5rem, 1.4rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            No jobs in {where} right now
+          </p>
+          <p
+            className="font-serif italic text-ds-13 leading-relaxed max-w-xs mx-auto"
+            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            The board's quiet — but it fills up fast. Here's how to get ahead of it.
+          </p>
+        </div>
+      </div>
+
+      {/* Primary action — post a task */}
+      <div
+        className="rounded-2xl liquid-glass px-4 py-5 flex flex-col items-center text-center gap-3"
+        style={{
+          backgroundImage:
+            "radial-gradient(80% 100% at 50% 0%, hsl(var(--burnt-sienna) / 0.07) 0%, transparent 60%)",
+        }}
+      >
+        <p className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+          Need something done? Be the first to post.
+        </p>
+        <BarkPillButton onClick={onPost}>
+          <Plus className="w-4 h-4 mr-2" strokeWidth={2.5} aria-hidden="true" />
+          Post a task
+        </BarkPillButton>
+      </div>
+
+      {/* Quick actions */}
+      <div className="space-y-2">
+        <span className="text-display-eyebrow px-1">Quick actions</span>
+        <div className="rounded-2xl liquid-glass overflow-hidden">
+          {quickActions.map(({ key, icon: Icon, label, sub, onClick }, i) => (
+            <button
+              key={key}
+              type="button"
+              onClick={onClick}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[hsl(var(--olivewood)/0.05)] btn-press"
+              style={i > 0 ? { borderTop: "1px solid hsl(var(--olivewood) / 0.08)" } : undefined}
+            >
+              <span
+                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: "hsl(var(--bark) / 0.10)" }}
+              >
+                <Icon className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={2} />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span
+                  className="block font-sans font-semibold text-ds-13"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
+                  {label}
+                </span>
+                <span
+                  className="block font-serif italic text-ds-11 truncate"
+                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                >
+                  {sub}
+                </span>
+              </span>
+              <ChevronRight
+                className="w-4 h-4 shrink-0"
+                style={{ color: "hsl(var(--olivewood) / 0.4)" }}
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* How Helpr works */}
+      <div className="space-y-2">
+        <span className="text-display-eyebrow px-1">How Helpr works</span>
+        <div className="rounded-2xl liquid-glass px-3 py-4 flex items-center justify-between">
+          {steps.map((s, i) => (
+            <Fragment key={s.n}>
+              <div className="flex flex-col items-center gap-1.5 flex-1">
+                <span
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-sans font-bold text-ds-12"
+                  style={{ backgroundColor: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
+                >
+                  {s.n}
+                </span>
+                <span
+                  className="font-sans font-medium text-ds-11"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
+                  {s.label}
+                </span>
+              </div>
+              {i < steps.length - 1 && (
+                <ChevronRight
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: "hsl(var(--olivewood) / 0.3)" }}
+                />
+              )}
+            </Fragment>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

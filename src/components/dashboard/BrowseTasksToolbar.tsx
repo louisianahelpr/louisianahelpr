@@ -176,13 +176,14 @@ export function BrowseTasksToolbar({
         {(() => {
           // When there are zero open jobs AND no active filters, the
           // toolbar (saved-searches / search / filters) has nothing
-          // useful to do. Dim it (opacity 50%, no pointer events) so
-          // the eye doesn't get pulled to dead controls on an empty
-          // screen. Still rendered for layout continuity.
+          // useful to do. Soften it (no pointer events) so the eye isn't
+          // pulled to dead controls — but keep it legible (opacity 65, not
+          // 40) so the icons read as intentionally resting, not broken /
+          // ghosted-out. Still rendered for layout continuity.
           const isEmptyAndUnfiltered = filters.filteredJobs.length === 0 && !filters.hasFilters;
           return (
             <div
-              className={`flex items-center gap-1 transition-opacity ${isEmptyAndUnfiltered ? "opacity-40 pointer-events-none" : ""}`}
+              className={`flex items-center gap-1 transition-opacity ${isEmptyAndUnfiltered ? "opacity-60 pointer-events-none" : ""}`}
               aria-hidden={isEmptyAndUnfiltered ? "true" : undefined}
             >
               {filters.hasFilters && (

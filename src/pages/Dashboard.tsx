@@ -743,6 +743,7 @@ const Dashboard = () => {
               view={view}
               filters={filters}
               user={user}
+              areaLabel={profile?.parish ?? null}
               allJobs={allJobs}
               loadError={loadError}
               refresh={refresh}

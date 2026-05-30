@@ -14,6 +14,7 @@ import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
 import PageTransition from "@/components/PageTransition";
 import OfflineBanner from "@/components/OfflineBanner";
+import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
@@ -309,24 +310,29 @@ const App = () => (
         Skip to content
       </a>
       <BrowserRouter>
-        <ScrollToTop />
-        <SessionManager />
-        <NativeLaunchRouter />
-        <OfflineBanner />
-        <Suspense fallback={null}>
-          <StrikeBanner />
-        </Suspense>
-        <main
-          id="main-content"
-          className="w-full max-w-full no-scrollbar"
-        >
-          <RoutedBoundary />
-        </main>
-        <Suspense fallback={null}>
-          <MobileNav />
-          <PermissionRationaleDialog />
-        </Suspense>
-        <SpeedInsightsRouted />
+        {/* Provider wraps the banner (publisher of its measured height) and
+            the page content (AppShell reads the offset to reserve space).
+            See src/lib/offlineBannerLayout.tsx. */}
+        <OfflineBannerLayoutProvider>
+          <ScrollToTop />
+          <SessionManager />
+          <NativeLaunchRouter />
+          <OfflineBanner />
+          <Suspense fallback={null}>
+            <StrikeBanner />
+          </Suspense>
+          <main
+            id="main-content"
+            className="w-full max-w-full no-scrollbar"
+          >
+            <RoutedBoundary />
+          </main>
+          <Suspense fallback={null}>
+            <MobileNav />
+            <PermissionRationaleDialog />
+          </Suspense>
+          <SpeedInsightsRouted />
+        </OfflineBannerLayoutProvider>
       </BrowserRouter>
       <Analytics />
     </QueryClientProvider>

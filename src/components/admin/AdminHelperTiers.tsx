@@ -7,6 +7,7 @@ import { Crown, Star, TrendingUp, Sparkles, ExternalLink } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { unwrap } from "@/lib/supabaseResult";
 
 interface HelperTier {
   user_id: string;
@@ -45,10 +46,10 @@ const AdminHelperTiers = () => {
     key: ["admin-helper-tiers"],
     fallback: [],
     fetcher: async () => {
-      const { data, error } = await supabase.rpc("get_helper_tiers", { p_limit: 50 });
-      if (error) return [];
       // RPC row shape differs from the local HelperTier type (column
-      // naming / nullability) — cast at the boundary.
+      // naming / nullability) — cast at the boundary. unwrap() surfaces a
+      // failed RPC as the query's error state instead of a silent empty list.
+      const data = unwrap(await supabase.rpc("get_helper_tiers", { p_limit: 50 }));
       return (data as HelperTier[]) || [];
     },
   });

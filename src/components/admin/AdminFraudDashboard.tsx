@@ -10,6 +10,7 @@ import { CheckCircle2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { logAdminAction } from "@/lib/adminAudit";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { unwrap } from "@/lib/supabaseResult";
 
 interface FraudFlag {
   id: string;
@@ -57,8 +58,8 @@ const AdminFraudDashboard = () => {
 
       if (filter !== "all") query = query.eq("flag_type", filter);
 
-      const { data } = await query;
-      if (!data) return [];
+      const data = unwrap(await query);
+      if (!data || data.length === 0) return [];
 
       const userIds = [...new Set(data.map((f: any) => f.user_id))];
       const { data: profiles } = await supabase

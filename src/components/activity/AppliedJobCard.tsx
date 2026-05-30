@@ -201,7 +201,7 @@ function AppliedJobCardInner({
               </p>
             )}
             {isMinimalCard && (
-              <p className="text-ds-11 text-muted-foreground/70 italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
+              <p className="text-ds-11 text-muted-foreground italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
             )}
           </div>
 

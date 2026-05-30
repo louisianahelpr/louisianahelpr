@@ -297,16 +297,38 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             nav so any content scrolling up the page softly blurs as it
             passes through this band, not just under the centered pill.
             The mask gradient fades the blur to zero at the top so the
-            transition into clear content above is smooth. */}
+            transition into clear content above is smooth.
+
+            The band must be at least as tall as the page-content scroll
+            clearance the fixed-shell pages reserve for the dock
+            (calc(safe-area-inset-bottom + 96px) — see PageScaffold /
+            Profile / Messages). If the curtain were shorter, the last
+            ~28px of reserved space would sit *above* the frost, so the
+            panel/cards would read as ending in a hard horizontal line
+            over bare page background rather than fading continuously
+            under the glass. We anchor the band's top to that same
+            clearance value (measured from the bottom of the viewport,
+            i.e. the bottom of this `bottom-0` nav minus its own
+            safe-area padding) and stretch the mask fade across the full
+            band so there is no perceptible cutoff edge. */}
         <div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 pointer-events-none"
+          className="absolute inset-x-0 pointer-events-none"
           style={{
-            top: "-16px",
+            // Anchor the band to the bottom of the viewport (this nav is
+            // `fixed bottom-0`; its `paddingBottom` is the safe-area inset,
+            // so `bottom: -safe-area` puts the curtain's lower edge at the
+            // true screen bottom) and give it a fixed height that covers
+            // the full dock clearance the pages reserve (safe-area + 96px)
+            // plus a 24px overhang so the fade begins in clear content.
+            bottom: "calc(-1 * env(safe-area-inset-bottom, 0px))",
+            height: "calc(env(safe-area-inset-bottom, 0px) + 96px + 24px)",
             backdropFilter: "blur(32px) saturate(170%)",
             WebkitBackdropFilter: "blur(32px) saturate(170%)",
-            maskImage: "linear-gradient(to top, black 55%, transparent 100%)",
-            WebkitMaskImage: "linear-gradient(to top, black 55%, transparent 100%)",
+            // Longer fade (35% solid → transparent) so the blur ramps in
+            // gradually across the band instead of snapping on partway up.
+            maskImage: "linear-gradient(to top, black 35%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",
             background: "linear-gradient(to top, hsla(38, 18%, 97%, 0.55), hsla(38, 18%, 97%, 0))",
           }}
         />

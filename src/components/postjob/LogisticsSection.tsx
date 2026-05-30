@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { MapPin, Shield, Repeat, Users } from "lucide-react";
 import { SectionCard } from "@/components/postjob/SectionCard";
+import { todayLocalISO } from "@/lib/dateUtils";
 
 // Rough count of how many times a recurring job will run between the
 // start date and the end date at the chosen interval. Used to preview
@@ -138,7 +139,7 @@ export function LogisticsSection({
           id="date"
           value={dateNeeded}
           onChange={setDateNeeded}
-          min={new Date().toISOString().split("T")[0]}
+          min={todayLocalISO()}
           placeholder="Choose a date"
         />
       </div>
@@ -261,7 +262,7 @@ export function LogisticsSection({
                 <DatePickerField
                   value={recurrenceEndDate}
                   onChange={setRecurrenceEndDate}
-                  min={dateNeeded || new Date().toISOString().split("T")[0]}
+                  min={dateNeeded || todayLocalISO()}
                   placeholder="Choose an end date"
                 />
               </div>

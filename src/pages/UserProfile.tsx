@@ -33,6 +33,7 @@ import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { queryKeys } from "@/lib/queryKeys";
+import { unwrap } from "@/lib/supabaseResult";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -57,11 +58,31 @@ const UserProfile = () => {
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     queryFn: async () => {
+      // `get_safe_profiles` only returns *approved*, non-banned rows, so
+      // it deliberately hides profiles that aren't public yet. That's
+      // correct for viewing other people — but it also hid the viewer's
+      // OWN profile from the "How others see you" preview whenever their
+      // account was still pending approval, surfacing a false "User not
+      // found". When the requested id is the current user's, fall back to
+      // a direct self-select (the profiles RLS policy already permits the
+      // owner to read their own row regardless of approval_status).
       const profileRes = await supabase.rpc("get_safe_profiles", { user_ids: [userId!] });
-      if (!profileRes.data || profileRes.data.length === 0) {
+      if (profileRes.error) throw profileRes.error;
+      let prof = (profileRes.data?.[0] ?? null) as any;
+
+      if (!prof && userId === currentUserId) {
+        prof = unwrap(
+          await supabase
+            .from("profiles")
+            .select("user_id, full_name, avatar_url, bio, location, skills, hourly_rate, subscription_tier, portfolio_urls, created_at")
+            .eq("user_id", userId!)
+            .maybeSingle(),
+        );
+      }
+
+      if (!prof) {
         return { profile: null as Profile | null };
       }
-      const prof = profileRes.data[0] as any;
 
       // Unified user model — every user can apply OR post. Always fetch
       // applications; the metrics section just hides itself if empty.

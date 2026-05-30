@@ -497,24 +497,27 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
   accent: "primary" | "accent" | "destructive";
   onClick?: () => void;
 }) => {
+  // Icon tint mirrors the metric color. Note: `accent` uses `text-accent`
+  // (burnt sienna), NOT `text-accent-foreground` (which is white and was
+  // rendering near-invisible on the light `bg-accent/10` tile).
   const accentClasses = {
     primary: "bg-primary/10 text-primary",
-    accent: "bg-accent/10 text-accent-foreground",
+    accent: "bg-accent/15 text-accent",
     destructive: "bg-destructive/10 text-destructive",
   }[accent];
 
   return (
     <button
       onClick={onClick}
-      className="rounded-ds-md liquid-glass p-4 sm:p-5 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+      className="rounded-ds-md liquid-glass p-3 sm:p-4 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
     >
-      <div className="flex items-center justify-between mb-2 sm:mb-3">
-        <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-ds-sm flex items-center justify-center", accentClasses)}>
-          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+      <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+        <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm flex items-center justify-center", accentClasses)}>
+          <Icon className="w-4 h-4 sm:w-[1.125rem] sm:h-[1.125rem]" strokeWidth={2.25} />
         </div>
         {trend && (
           <span className={cn(
-            "text-ds-11 sm:text-ds-11 font-semibold px-2 py-1 rounded-md flex items-center gap-0.5",
+            "text-ds-10 sm:text-ds-11 font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
             trend.up ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
           )}>
             {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -522,8 +525,8 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
           </span>
         )}
       </div>
-      <p className="text-ds-20 sm:text-ds-24 font-bold text-foreground tabular-nums leading-tight">{value}</p>
-      <p className="text-ds-11 sm:text-ds-11 text-muted-foreground mt-1 sm:mt-1.5 leading-tight">{label}</p>
+      <p className="text-ds-18 sm:text-ds-20 font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      <p className="text-ds-11 text-muted-foreground mt-0.5 leading-tight">{label}</p>
     </button>
   );
 };
@@ -542,7 +545,7 @@ const PriorityAlert = ({ label, count, color, onClick }: {
   >
     <span className={cn(
       "w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm flex items-center justify-center text-ds-11 sm:text-ds-13 font-bold tabular-nums shrink-0",
-      color === "destructive" ? "bg-destructive/15 text-destructive" : "bg-accent/15 text-accent-foreground"
+      color === "destructive" ? "bg-destructive/15 text-destructive" : "bg-accent/20 text-accent"
     )}>
       {count}
     </span>
@@ -703,7 +706,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
   const revenueTrend = computeTrend(stats.revenue30d, stats.revenuePrev30d);
 
   return (
-    <div className="space-y-5 sm:space-y-6 w-full">
+    <div className="space-y-4 sm:space-y-5 w-full">
       {/* Greeting — editorial 3-line header on its own glass plate.
           Matches the dashboard / activity / messages top-box pattern. */}
       <div
@@ -738,7 +741,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       </div>
 
       {/* KPI Summary cards */}
-      <div className="grid grid-cols-2 gap-4 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
 
         <KpiCard
           label="Pending Users"
@@ -798,7 +801,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       {/* Financial Health — full width */}
       <div className="space-y-2 sm:space-y-3">
         <p className="text-ds-10 sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
-        <div className="grid grid-cols-2 gap-4 sm:gap-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />

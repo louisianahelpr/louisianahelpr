@@ -15,6 +15,8 @@ import { useMyBusiness, type SeatTier } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BusinessVerificationCard from "@/components/business/BusinessVerificationCard";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { EmptyState } from "@/components/ui/EmptyState";
+import PageHeader from "@/components/PageHeader";
 import { queryKeys } from "@/lib/queryKeys";
 
 interface Member {
@@ -122,15 +124,18 @@ const BusinessTeam = () => {
 
   if (!business) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-5">
-        <Card className="p-8 max-w-md text-center">
-          <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h1 className="text-ds-20 font-bold mb-2">No business account</h1>
-          <p className="text-ds-11 text-muted-foreground mb-6">
-            You're not part of a business. Sign up as a business to manage a team.
-          </p>
-          <Button onClick={() => navigate("/for-business")}>Learn more</Button>
-        </Card>
+      <div className="min-h-screen bg-premium-page pb-safe-nav">
+        <PageHeader eyebrow="Helpr Business" title="Manage team" onBack={() => navigate(-1)} />
+        <div className="mx-auto max-w-md px-5 pt-4">
+          <EmptyState
+            variant="inline"
+            icon={Building2}
+            eyebrow="No business account"
+            title="You're not part of a business"
+            body="Sign up as a business to add teammates and manage jobs together under one account."
+            action={<Button onClick={() => navigate("/for-business")}>Learn more</Button>}
+          />
+        </div>
       </div>
     );
   }

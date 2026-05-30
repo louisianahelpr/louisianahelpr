@@ -157,31 +157,16 @@ export function BrowseTasksFeed({
         pullDistance={pullDistance}
         refreshing={refreshing}
         isPulling={isPulling}
-        className="flex-1 min-h-0 overscroll-contain scrollbar-hide px-3 pt-3 pb-0"
+        className="flex-1 min-h-0 overscroll-contain scrollbar-hide pb-0"
         style={view === "map" ? { display: "none" } : undefined}
       >
-        {/* Always-visible elevated content box. Empty state and the
-            job list both render INSIDE this box so the dashboard
-            never reads as "bare rows on the page" — the box is the
-            identity of the Browse Tasks area. Bottom corners
-            drop their radius so the box reads as continuing under
-            the floating dock. */}
-        <div
-          className="liquid-glass glass-paper-mesh min-h-full overflow-hidden"
-          style={{
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
-            borderBottom: "none",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-              "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-              "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
-          }}
-        >
-      {/* Job list */}
+      {/* Job list — rendered directly in the PageScaffold panel (which is
+          already a frosted liquid-glass surface), mirroring the Messages /
+          Activity layout. No nested glass box: the panel IS the Browse
+          Tasks surface, so the home page reads as two clean cards (title
+          card + panel) like every other tab. */}
       {loadError && allJobs.length === 0 ? (
-      <div className="px-4 pt-4 flex-1 min-h-0 flex">
+      <div className="px-3 pt-4 flex-1 min-h-0 flex">
         <ErrorState
           title="We couldn't load jobs."
           body="Pull down to refresh, or tap Try again. If it sticks, our end is having a hiccup — not yours."
@@ -189,7 +174,7 @@ export function BrowseTasksFeed({
         />
       </div>
       ) : filters.filteredJobs.length === 0 ? (
-      <div className="px-4 pt-4 flex-1 min-h-0 flex">
+      <div className="px-3 pt-4 flex-1 min-h-0 flex">
         <EmptyState
           icon={Search}
           eyebrow={filters.hasFilters ? "No matches" : "All quiet — for now"}
@@ -386,7 +371,6 @@ export function BrowseTasksFeed({
           </>
         );
       })()}
-        </div>
       </PullToRefreshWrapper>
     </>
   );

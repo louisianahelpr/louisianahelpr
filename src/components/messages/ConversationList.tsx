@@ -66,6 +66,14 @@ export function ConversationList({
   // one clean panel.
   const isEmpty = !loading && !loadError && conversations.length === 0;
 
+  // Show the thread count ONLY once a load has resolved with real
+  // threads. During the first load `loading` is true while
+  // `conversations` is still [], so keying the chip off `!isEmpty` would
+  // flash "0 threads" before the list arrives, then snap to "N threads"
+  // — the screen-jump the user reported. Gating on this flag keeps the
+  // title card stable: no count during the skeleton, the real count after.
+  const showThreadCount = !loading && !loadError && conversations.length > 0;
+
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { if (userId) await loadConversations(userId); },
@@ -86,9 +94,9 @@ export function ConversationList({
             >
               Messages
             </h1>
-            {/* Count chip — hidden on an empty inbox (a "0 threads"
-                badge over the empty-state card is noise). */}
-            {!isEmpty && (
+            {/* Count chip — shown only once loaded with real threads, so
+                it never flashes "0 threads" during the skeleton load. */}
+            {showThreadCount && (
               <p
                 className="mt-1 truncate font-sans font-semibold uppercase"
                 style={{

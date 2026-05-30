@@ -557,7 +557,7 @@ const Dashboard = () => {
     <>
     <PageScaffold
       animate
-      panelElevation="flat"
+      panelElevation="raised"
       className="animate-in fade-in-0 duration-500"
       header={
         <>

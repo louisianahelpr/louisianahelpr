@@ -17,7 +17,6 @@ import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import AdminSidebar, { AdminNavItem } from "@/components/admin/AdminSidebar";
 import AdminParishActivity from "@/components/admin/AdminParishActivity";
 import NotificationPanel from "@/components/NotificationPanel";
-import ThemeToggle from "@/components/ThemeToggle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
 import HelprMark from "@/components/HelprMark";
@@ -389,8 +388,6 @@ const Admin = () => {
                 {/* Admin badge — click to open/close sidebar */}
                 <AdminBadgeToggle />
 
-
-                <ThemeToggle />
                 <NotificationPanel />
                 <Button variant="ghost" size="icon" onClick={() => setShowLogoutDialog(true)} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-ds-md h-9 w-9" aria-label="Log out">
                   <LogOut className="w-4 h-4" />

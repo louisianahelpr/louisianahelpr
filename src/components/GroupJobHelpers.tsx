@@ -117,10 +117,21 @@ export function GroupJobHelpers({
   const filledSlots = helpers.filter((h) => h.status === "accepted").length;
 
   return (
-    <div className="rounded-ds-md liquid-glass p-5 space-y-3">
-      <h3 className="text-ds-13 font-semibold text-foreground flex items-center gap-2">
-        <Users className="w-4 h-4 text-primary" /> Group Job
-      </h3>
+    <div className="rounded-2xl liquid-glass p-5 space-y-3">
+      <div>
+        <span
+          className="font-serif italic uppercase inline-flex items-center gap-1.5"
+          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+        >
+          <Users className="w-3 h-3" /> Crew
+        </span>
+        <h3
+          className="font-display italic font-bold leading-tight mt-1 text-headline-card"
+          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+        >
+          Group job
+        </h3>
+      </div>
       <div className="flex items-center gap-2">
         <div className="h-2 flex-1 rounded-full bg-secondary overflow-hidden">
           <div
@@ -142,7 +153,7 @@ export function GroupJobHelpers({
                   {(h.helperName || "?")[0].toUpperCase()}
                 </div>
                 <span className="text-ds-13 text-foreground">{h.helperName}</span>
-                <span className={`text-ds-11 px-1.5 py-0.5 rounded-full ${
+                <span className={`text-ds-11 capitalize px-1.5 py-0.5 rounded-full ${
                   h.status === "accepted" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground"
                 }`}>
                   {h.status}

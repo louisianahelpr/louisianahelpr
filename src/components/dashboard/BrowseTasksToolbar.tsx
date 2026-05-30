@@ -133,17 +133,12 @@ export function BrowseTasksToolbar({
   }
   const showRecapRow = recapChips.length >= 3;
 
-  // When the board is empty AND unfiltered, the whole toolbar header
-  // (eyebrow + "Browse Tasks" title + search/filter controls) is pure
-  // noise stacked above the empty-state card — there's nothing to browse,
-  // search, or filter. Hide it so the home page reads as one clean panel
-  // (title card + empty state), exactly like the Messages / Activity tabs.
-  const isEmptyAndUnfiltered = filters.filteredJobs.length === 0 && !filters.hasFilters;
-
   return (
     <>
-      {/* Header row — hidden on the quiet, unfiltered board (see above) */}
-      {!isEmptyAndUnfiltered && (
+      {/* Header row — always shown. Even on a quiet, unfiltered board the
+          search + saved-searches + category filters stay available so a
+          helper can hunt for work (or set up a saved search to be pinged)
+          rather than just staring at an empty feed. */}
       <div
         className="shrink-0 flex items-center justify-between px-4 py-3"
         style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
@@ -181,8 +176,7 @@ export function BrowseTasksToolbar({
             </span>
           )}
         </div>
-        {(
-            <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1">
               {filters.hasFilters && (
                 <Button variant="ghost" size="sm" onClick={filters.clearFilters} className="text-ds-11 text-muted-foreground hover:text-destructive h-8 rounded-ds-md btn-press">
                   <X className="w-3 h-3 mr-1" /> Clear
@@ -228,10 +222,8 @@ export function BrowseTasksToolbar({
                   </span>
                 )}
               </Button>
-            </div>
-        )}
+        </div>
       </div>
-      )}
 
       {/* Active-filter recap chip row — only when 3+ filters are
           simultaneously active. With fewer, the input controls below

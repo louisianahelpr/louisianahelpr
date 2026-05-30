@@ -21,7 +21,6 @@ import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
-import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 // Dialogs and overlays — none are visible on first paint. Each is code-split
@@ -567,12 +566,7 @@ const Dashboard = () => {
           </Suspense>
         </>
       }
-      aboveTitle={
-        <>
-          <BroadcastBanner />
-          <PushNotificationPrompt />
-        </>
-      }
+      aboveTitle={<BroadcastBanner />}
       titleCard={
         <>
             {/* Condensed greeting — the greeting + date eyebrow are folded
@@ -584,13 +578,17 @@ const Dashboard = () => {
             <h1
               className="font-display italic font-bold truncate"
               style={{
-                fontSize: "clamp(1.25rem, 1.6vw + 0.4rem, 1.5rem)",
+                // Compact greeting — kept smaller than the Messages /
+                // Posts / Jobs page titles on purpose: the script first
+                // name reads tall, so a hero-sized base made the card
+                // bulk up. This sits the greeting card at the same
+                // visual height as those tabs' title cards.
+                fontSize: "clamp(1.1rem, 1.3vw + 0.4rem, 1.3rem)",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.025em",
                 // Looser leading so the Beth Ellen script descenders
                 // ("y", "g", "p" tails) on the signature first name
-                // clear the date eyebrow below without the brittle
-                // `paddingBottom: 0.1em` workaround.
+                // clear the date eyebrow below.
                 lineHeight: 1.25,
               }}
             >

@@ -84,16 +84,10 @@ export function ConversationList({
       header={<DashboardHeader />}
       titleCard={
           <div className="flex flex-col leading-none">
-            <h1
-              className="font-display font-bold leading-tight"
-              style={{
-                fontSize: "clamp(1.5rem, 2vw + 0.5rem, 1.85rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
-              }}
-            >
-              Messages
-            </h1>
+            {/* Canonical page title — identical to My Posts / My Jobs
+                (.text-page-title) so the Messages / Jobs / Posts title
+                cards are the same size and alignment, no variation. */}
+            <h1 className="text-page-title leading-tight">Messages</h1>
             {/* Count chip — shown only once loaded with real threads, so
                 it never flashes "0 threads" during the skeleton load. */}
             {showThreadCount && (

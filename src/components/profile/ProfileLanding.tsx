@@ -130,8 +130,8 @@ export function ProfileLanding({
     tier === "elite"
       ? "Elite plan — top visibility"
       : tier === "pro"
-        ? "Pro plan — bump to Elite for max reach"
-        : "Free plan — upgrade for more visibility";
+        ? "Pro plan — upgrade to Elite"
+        : "Free plan — tap to upgrade";
 
   // ─── Portfolio gallery + completion meter ──────────────────────────
   // portfolio_urls is on profiles (text[]). Gallery shows up to 6 inline
@@ -175,7 +175,7 @@ export function ProfileLanding({
     {
       title: "Money",
       items: [
-        { key: "payment", label: "Payout & Payments", icon: <CreditCard className="w-5 h-5" />, desc: "Bank account, payment methods & summary", needsAction: stripeNeedsAction },
+        { key: "payment", label: "Payout & Payments", icon: <CreditCard className="w-5 h-5" />, desc: "Bank account & payment methods", needsAction: stripeNeedsAction },
         { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc },
         { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits" },
       ],

@@ -213,8 +213,8 @@ const UserProfile = () => {
         />
         <main className="container mx-auto px-5 py-6">
           <div className="max-w-lg mx-auto space-y-5">
-            <div className="rounded-2xl liquid-glass p-6 text-center space-y-3">
-              <div className="w-20 h-20 rounded-full bg-muted animate-pulse mx-auto" />
+            <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
+              <div className="w-24 h-24 rounded-[28px] squircle bg-muted animate-pulse mx-auto" />
               <div className="h-6 w-40 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-24 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-64 bg-muted animate-pulse mx-auto rounded" />
@@ -463,7 +463,11 @@ const UserProfile = () => {
                   ))}
                 </div>
               )}
-              <HelperBadges badges={badges} />
+              {badges.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-1 mt-3">
+                  <HelperBadges badges={badges} />
+                </div>
+              )}
               <div className="pt-2 flex flex-wrap justify-center gap-1.5">
                 {/* Verification ladder (#112) — sits with credentials
                     because both answer "should I trust this person?",

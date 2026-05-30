@@ -3,7 +3,7 @@ import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Star, Search, Bell } from "lucide-react";
+import { Star, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/lib/accessibility";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -184,31 +184,18 @@ export function BrowseTasksFeed({
               ? filters.boostedOnly
                 ? "No boosted jobs right now — try clearing the filter to see all open work."
                 : "Try widening your parish, raising your budget, or clearing a filter."
-              : "New jobs post throughout the day. Post the first one, or we'll ping you the moment work lands."
+              : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
           }
           action={
+            // Filtered: offer a way out. Quiet but unfiltered authenticated
+            // board: no CTA — posting lives in the bottom nav and the
+            // notify opt-in lives elsewhere, so repeating them here was
+            // redundant. Only the (rare) signed-out fallback keeps a CTA.
             filters.hasFilters ? (
               <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
                 Clear filters
               </Button>
-            ) : user ? (
-              // Quiet feed — one clear primary (post a task drives the
-              // liquidity that fills the board) with a quiet secondary for
-              // helpers who'd rather wait for a match to be pinged to them.
-              <div className="flex flex-col items-center gap-2">
-                <BarkPillButton onClick={() => navigate("/post-job")}>
-                  Post a task
-                </BarkPillButton>
-                <Button
-                  variant="ghost"
-                  onClick={() => window.dispatchEvent(new Event("open-saved-searches"))}
-                  className="text-ds-11 text-muted-foreground hover:text-foreground rounded-ds-md btn-press"
-                >
-                  <Bell className="w-3.5 h-3.5 mr-1.5" strokeWidth={2} aria-hidden="true" />
-                  Or get notified of new jobs
-                </Button>
-              </div>
-            ) : (
+            ) : user ? undefined : (
               <BarkPillButton onClick={() => navigate("/post-job")}>
                 Post the first job
               </BarkPillButton>

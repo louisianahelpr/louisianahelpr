@@ -59,6 +59,13 @@ export function ConversationList({
   const navigate = useNavigate();
   const [showAllConvos, setShowAllConvos] = useState(false);
 
+  // Empty inbox (loaded, no error, zero threads). When there's nothing
+  // to list, the "0 threads" count chip and the redundant secondary
+  // "Conversations / All threads" header are pure noise stacked above
+  // the empty-state card — both are hidden so the empty state reads as
+  // one clean panel.
+  const isEmpty = !loading && !loadError && conversations.length === 0;
+
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { if (userId) await loadConversations(userId); },
@@ -79,44 +86,51 @@ export function ConversationList({
             >
               Messages
             </h1>
-            <p
-              className="mt-1 truncate font-sans font-semibold uppercase"
-              style={{
-                fontSize: "0.62rem",
-                letterSpacing: "0.16em",
-                color: "hsl(var(--olivewood) / 0.55)",
-              }}
-            >
-              {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
-            </p>
+            {/* Count chip — hidden on an empty inbox (a "0 threads"
+                badge over the empty-state card is noise). */}
+            {!isEmpty && (
+              <p
+                className="mt-1 truncate font-sans font-semibold uppercase"
+                style={{
+                  fontSize: "0.62rem",
+                  letterSpacing: "0.16em",
+                  color: "hsl(var(--olivewood) / 0.55)",
+                }}
+              >
+                {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
+              </p>
+            )}
           </div>
       }
     >
           {/* Inner header — eyebrow + title row mirroring the
-              Posts/Jobs bottom-box header pattern. */}
-          <div
-            className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
-            style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
-          >
-            <div className="flex flex-col leading-none">
-              <span
-                className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
-                style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
-              >
-                Conversations
-              </span>
-              <h2
-                className="font-display italic font-bold leading-tight mt-1"
-                style={{
-                  fontSize: "1.25rem",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.018em",
-                }}
-              >
-                All threads
-              </h2>
+              Posts/Jobs bottom-box header pattern. Hidden on an empty
+              inbox so the empty state reads as a single clean panel. */}
+          {!isEmpty && (
+            <div
+              className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
+              style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+            >
+              <div className="flex flex-col leading-none">
+                <span
+                  className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+                  style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+                >
+                  Conversations
+                </span>
+                <h2
+                  className="font-display italic font-bold leading-tight mt-1"
+                  style={{
+                    fontSize: "1.25rem",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.018em",
+                  }}
+                >
+                  All threads
+                </h2>
+              </div>
             </div>
-          </div>
+          )}
           {!loading && loadError && conversations.length === 0 ? (
             <div className="px-3 pt-4 flex-1 min-h-0 flex">
               <ErrorState

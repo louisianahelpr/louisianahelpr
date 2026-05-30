@@ -123,6 +123,17 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeStatusFilters = tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS;
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
+  // "Truly empty" — the underlying list has zero items (not merely
+  // filtered down to none). When there's nothing at all, the secondary
+  // "Posted tasks / Open" header with its search + status-filter has
+  // nothing to act on, and the "0 tasks" count chip is pure noise. Both
+  // are hidden so the empty state reads as a single, clean panel. When
+  // items exist but the active filter hides them all, we keep the header
+  // so the user can clear/change the filter that's hiding their tasks.
+  const sourceCount = tab === "posted" ? postedJobs.length : appliedApps.length;
+  const filteredCount = tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length;
+  const isTrulyEmpty = sourceCount === 0;
+
   return (
     <>
       <PageScaffold
@@ -132,33 +143,40 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               <h1 className="text-page-title leading-tight">
                 {tab === "posted" ? "My Posts" : "My Jobs"}
               </h1>
-              <p
-                className="mt-1 truncate font-sans font-semibold uppercase"
-                style={{
-                  fontSize: "0.62rem",
-                  letterSpacing: "0.16em",
-                  color: "hsl(var(--olivewood) / 0.55)",
-                }}
-              >
-                {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length)}{" "}
-                {(tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length) === 1 ? "task" : "tasks"}
-              </p>
+              {/* Count chip — hidden when the list is truly empty (a
+                  "0 tasks" badge over an empty-state card is noise). */}
+              {!isTrulyEmpty && (
+                <p
+                  className="mt-1 truncate font-sans font-semibold uppercase"
+                  style={{
+                    fontSize: "0.62rem",
+                    letterSpacing: "0.16em",
+                    color: "hsl(var(--olivewood) / 0.55)",
+                  }}
+                >
+                  {filteredCount} {filteredCount === 1 ? "task" : "tasks"}
+                </p>
+              )}
             </div>
         }
       >
-          <ActivityHeader
-            tab={tab}
-            activeStatusFilters={activeStatusFilters}
-            activeCounts={activeCounts}
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-            filterOpen={filterOpen}
-            setFilterOpen={setFilterOpen}
-            searchOpen={searchOpen}
-            setSearchOpen={setSearchOpen}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-          />
+          {/* Secondary header (status title + search/filter) is hidden
+              when there's nothing to act on — see `isTrulyEmpty`. */}
+          {!isTrulyEmpty && (
+            <ActivityHeader
+              tab={tab}
+              activeStatusFilters={activeStatusFilters}
+              activeCounts={activeCounts}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              filterOpen={filterOpen}
+              setFilterOpen={setFilterOpen}
+              searchOpen={searchOpen}
+              setSearchOpen={setSearchOpen}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+            />
+          )}
 
           <PullToRefreshWrapper
             ref={containerRef}

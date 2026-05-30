@@ -31,6 +31,10 @@ const AccountBanned = () => {
   const isPermanent = banStatus === "permanently_banned";
   const isTemp = banStatus === "temp_banned";
 
+  // Eyebrow must track the actual ban state — a hardcoded "Suspended"
+  // read wrong above a "permanently banned" headline.
+  const eyebrowLabel = isPermanent ? "Banned" : isTemp ? "Suspended" : "Under review";
+
   const headline = isPermanent
     ? "Account permanently banned"
     : isTemp
@@ -64,7 +68,7 @@ const AccountBanned = () => {
         </div>
 
         <div className="space-y-2">
-          <span className="text-display-eyebrow">Suspended</span>
+          <span className="text-display-eyebrow">{eyebrowLabel}</span>
           <h1 className="text-page-title leading-tight mt-1">
             {headline}.
           </h1>
@@ -125,17 +129,6 @@ const AccountBanned = () => {
             </Button>
           </Link>
         </div>
-
-        <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
-          Need help? Email us at{" "}
-          <a
-            href="mailto:admin@louisianahelpr.com"
-            className="font-semibold hover:underline"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            admin@louisianahelpr.com
-          </a>
-        </p>
       </div>
 
       <div className="text-center mt-5">

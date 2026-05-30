@@ -17,8 +17,13 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"start" | "end">("start");
 
+  // Compact display: drop the ":00" minutes so a full range
+  // ("9 AM – 5 PM") fits the narrow pill in the availability row at
+  // 375px instead of truncating the end time to "9:00 AM – 5:…".
+  // The picker tabs below still show the full formatTime12 value.
+  const compact = (t: string) => formatTime12(t).replace(":00", "");
   const display =
-    start && end ? `${formatTime12(start)} – ${formatTime12(end)}` : "Set hours";
+    start && end ? `${compact(start)} – ${compact(end)}` : "Set hours";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -27,7 +32,7 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
           type="button"
           disabled={disabled}
           className={cn(
-            "inline-flex items-center gap-2 h-11 px-4 rounded-2xl border border-input glass-field text-[14px] font-semibold tabular-nums text-foreground transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "inline-flex items-center gap-1.5 h-11 px-3 rounded-2xl border border-input glass-field text-[14px] font-semibold tabular-nums text-foreground transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             disabled && "opacity-50 pointer-events-none",
             className,
           )}

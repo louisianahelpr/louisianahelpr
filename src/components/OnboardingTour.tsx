@@ -174,14 +174,19 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
       />
 
       {/* Tour card — proper dialog semantics so screen readers announce
-          it as a modal and focus is trapped inside via the dialog role. */}
+          it as a modal and focus is trapped inside via the dialog role.
+          The centering translate lives on this OUTER wrapper and the
+          `animate-in zoom-in-95` lives on the INNER card. Keeping them on
+          the same element lets the animation's `from` keyframe transform
+          clobber `-translate-x-1/2 -translate-y-1/2`, which rendered the
+          card off-center / clipped off the right edge at 375px. */}
       <div
-        className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md animate-in fade-in-0 zoom-in-95 duration-300"
+        className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md"
         role="dialog"
         aria-modal="true"
         aria-labelledby="onboarding-tour-title"
       >
-        <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden">
+        <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
           {/* Progress bar */}
           <div className="px-5 pt-4 pb-1">
             <div className="flex items-center justify-between mb-2">

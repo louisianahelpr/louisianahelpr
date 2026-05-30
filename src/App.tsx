@@ -25,7 +25,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 
 // Toaster, Sonner and TooltipProvider pull in sonner + @radix-ui/react-toast +
-// @radix-ui/react-tooltip + @floating-ui + next-themes (~14 KB gzipped of
+// @radix-ui/react-tooltip + @floating-ui (~14 KB gzipped of
 // otherwise-unused JS on the landing page where no toast fires and no tooltip
 // is visible). Lazy-loading them keeps the libs out of the critical entry
 // bundle — they hydrate after first paint when the wrappers actually mount.

@@ -142,7 +142,11 @@ const NotificationPreferences = () => {
         }}
       >
         {saving && (
-          <Loader2 className="w-4 h-4 animate-spin absolute left-3 top-3" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+          <Loader2
+            className="w-3.5 h-3.5 animate-spin absolute left-1/2 -translate-x-1/2 top-1.5 z-10"
+            style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+            aria-label="Saving"
+          />
         )}
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <span
@@ -167,8 +171,8 @@ const NotificationPreferences = () => {
             visually aligns with the App switches in the rows below.
             Email-column slot stays empty — push master only gates
             push, not email. */}
-        <div className={`flex items-center gap-7 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
-          <div className="w-11 flex justify-center">
+        <div className={`flex items-center gap-6 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
+          <div className="w-[51px] flex justify-center">
             <Switch
               checked={prefs.push_enabled}
               onCheckedChange={() => toggle("push_enabled")}
@@ -176,7 +180,7 @@ const NotificationPreferences = () => {
               aria-label="Push notifications master toggle"
             />
           </div>
-          <div className="w-11" aria-hidden />
+          <div className="w-[51px]" aria-hidden />
         </div>
       </div>
 
@@ -191,18 +195,18 @@ const NotificationPreferences = () => {
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)",
         }}
       >
-        <div className="flex items-center gap-7">
+        <div className="flex items-center gap-6">
           <div
-            className="flex items-center justify-center gap-1 w-11 font-serif italic uppercase"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.16em" }}
+            className="flex items-center justify-center gap-1 w-[51px] font-serif italic uppercase"
+            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.12em" }}
           >
-            <Smartphone className="w-3 h-3" /> App
+            <Smartphone className="w-3 h-3 shrink-0" /> App
           </div>
           <div
-            className="flex items-center justify-center gap-1 w-11 font-serif italic uppercase"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.16em" }}
+            className="flex items-center justify-center gap-1 w-[51px] font-serif italic uppercase"
+            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.12em" }}
           >
-            <Mail className="w-3 h-3" /> Email
+            <Mail className="w-3 h-3 shrink-0" /> Email
           </div>
         </div>
       </div>
@@ -239,8 +243,8 @@ const NotificationPreferences = () => {
             </p>
           </div>
         </div>
-        <div className={`flex items-center gap-7 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
-          <div className="w-11 flex justify-center">
+        <div className={`flex items-center gap-6 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
+          <div className="w-[51px] flex justify-center">
             <Switch
               checked={prefs.match_digest_mode}
               onCheckedChange={() => toggle("match_digest_mode")}
@@ -251,7 +255,7 @@ const NotificationPreferences = () => {
           {/* Email column placeholder — digest is a push-only delivery
               mode, but the dash keeps the two-column grid visually
               honest so the row reads as "app only, intentionally". */}
-          <div className="w-11 flex justify-center" aria-hidden>
+          <div className="w-[51px] flex justify-center" aria-hidden>
             <span
               className="font-serif"
               style={{ color: "hsl(var(--olivewood) / 0.35)", fontSize: "0.85rem" }}
@@ -289,8 +293,8 @@ const NotificationPreferences = () => {
               {item.label}
             </Label>
           </div>
-          <div className={`flex items-center gap-7 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
-            <div className="w-11 flex justify-center">
+          <div className={`flex items-center gap-6 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
+            <div className="w-[51px] flex justify-center">
               <Switch
                 checked={prefs[item.key] && prefs.push_enabled}
                 onCheckedChange={() => toggle(item.key)}
@@ -298,7 +302,7 @@ const NotificationPreferences = () => {
                 aria-label={`${item.label} push`}
               />
             </div>
-            <div className="w-11 flex justify-center">
+            <div className="w-[51px] flex justify-center">
               <Switch
                 checked={prefs[item.emailKey]}
                 onCheckedChange={() => toggle(item.emailKey)}

@@ -227,6 +227,20 @@ html.app-shell body {
   overscroll-behavior: none;
 }
 
+/* Offline / back-online banner space reservation.
+   The banner (src/components/OfflineBanner.tsx) is `position: fixed; top: 0`
+   so it can paint over the notch. On document-scroll pages the page lives in
+   normal flow inside #root, so padding #root down by the banner's measured
+   CONTENT height pushes the header below the banner instead of letting the
+   banner overlay/slice it. Fixed AppShell pages ignore this padding and read
+   the offset in JS instead (see AppShell + offlineBannerLayout). The offset
+   is already net of env(safe-area-inset-top) — the banner reports its
+   content-row height, and the page header still owns the inset — so there's
+   no double-count. */
+html.offline-banner-visible #root {
+  padding-top: var(--offline-banner-offset, 0px);
+}
+
 /* Even on document-scroll routes (Signup, etc.), suppress iOS body
    rubber-band so pulling down past the top doesn't bounce the whole
    screen. Internal scroll containers stay unaffected. */

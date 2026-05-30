@@ -6,10 +6,16 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import HelprMark from "@/components/HelprMark";
 import { cn } from "@/lib/utils";
+import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // This nav is `position: fixed; top: 0`, so the global OfflineBanner (also
+  // fixed at top:0) would overlay it. The `#root` padding that reserves space
+  // for the banner on document-scroll pages can't move a fixed element, so
+  // shift the nav's own top down by the banner's reserved height. 0 normally.
+  const bannerOffset = useOfflineBannerOffset();
 
   // Toggle the Heritage Gold border-bottom + linen surface once the user
   // scrolls past the immersive hero. While at the top of the page, the nav
@@ -35,6 +41,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
         // platform. Pad by the safe-area top inset (clamped to 0.25rem so the
         // logo isn't flush on browsers that report a zero inset).
         paddingTop: "max(env(safe-area-inset-top), 0.25rem)",
+        top: bannerOffset ? `${bannerOffset}px` : undefined,
       }}
     >
       <div

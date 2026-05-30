@@ -1,5 +1,6 @@
 import { ReactNode, CSSProperties, forwardRef } from "react";
 import { cn } from "@/lib/utils";
+import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 
 interface AppShellProps {
   /** Optional fixed header (back button + title, tabs, etc.) */
@@ -43,13 +44,26 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
       ? "calc(env(safe-area-inset-bottom, 0px) + 96px)"
       : "env(safe-area-inset-bottom, 0px)";
 
+    // The global OfflineBanner is `position: fixed; top: 0`. Because this
+    // shell is also `fixed inset-0`, the banner would overlay the header.
+    // `#root` padding (which fixes the document-scroll pages) can't move a
+    // fixed element, so we shift this shell's own top down by the banner's
+    // reserved height and shrink its height to match — keeping the 100dvh
+    // lock intact. 0 when the banner is hidden, so this is a no-op normally.
+    const bannerOffset = useOfflineBannerOffset();
+
     return (
       <div
         className={cn(
-          "fixed inset-0 flex flex-col bg-background overflow-hidden",
+          "fixed inset-x-0 bottom-0 flex flex-col bg-background overflow-hidden",
           className,
         )}
-        style={{ height: "100dvh" }}
+        style={{
+          top: bannerOffset ? `${bannerOffset}px` : 0,
+          height: bannerOffset
+            ? `calc(100dvh - ${bannerOffset}px)`
+            : "100dvh",
+        }}
       >
         {header ? (
           // The header itself owns the top safe-area inset, applied exactly

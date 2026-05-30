@@ -137,6 +137,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   return (
     <>
       <PageScaffold
+        animate
         header={<DashboardHeader />}
         titleCard={
             <div className="flex flex-col leading-none">

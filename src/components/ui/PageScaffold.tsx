@@ -40,7 +40,8 @@ interface PageScaffoldProps {
    *  by Messages / Activity / guest; "flat" is the lighter shadow used
    *  when the panel nests its own elevated content box (Dashboard). */
   panelElevation?: "raised" | "flat";
-  /** Stagger the title card + panel in with framer-motion (Dashboard). */
+  /** Play the shared page-entry transition (title card + panel rise in
+   *  together, matching the `ds-page-in` keyframe used elsewhere). */
   animate?: boolean;
   /** Extra classes appended to the scaffold root (e.g. a CSS mount fade). */
   className?: string;
@@ -103,11 +104,19 @@ export function PageScaffold({
     boxShadow: PANEL_SHADOW[panelElevation],
   };
 
+  // Single unified page-entry: title card + panel rise together with the
+  // exact same opacity/translate/timing as the `ds-page-in` keyframe used
+  // by the non-scaffold pages (PostJob etc.), so every screen enters the
+  // same way instead of some pages staggering and others snapping.
+  const PAGE_IN = {
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
+  };
+
   const titleEl = animate ? (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      {...PAGE_IN}
       className={TITLE_CARD_CLASS}
       style={TITLE_CARD_STYLE}
     >
@@ -121,9 +130,7 @@ export function PageScaffold({
 
   const panelEl = animate ? (
     <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
+      {...PAGE_IN}
       className={PANEL_CLASS}
       style={panelStyle}
     >

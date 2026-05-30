@@ -256,23 +256,16 @@ export function FormStep({ form }: FormStepProps) {
           />
         </div>
 
-        {/* Submit — sticky so it stays reachable while the poster
-            scrolls the long form. The sticky bottom offset clears the
-            floating MobileNav dock; a parchment gradient backdrop keeps
-            form content legible as it scrolls behind. The label is
-            contextual: it names the next unfinished chapter until every
+        {/* Submit — sits at the natural end of the form (not sticky) so it
+            never floats over and obscures the section fields above it. The
+            poster scrolls the form top-to-bottom and the contextual CTA is
+            the last thing they reach. Bottom padding clears the floating
+            MobileNav dock so the button is never tucked under it. The label
+            is contextual: it names the next unfinished chapter until every
             required field is in, then becomes "Review & pay". */}
         <div
-          className="sticky z-20 -mx-4 px-4 pt-3 pb-1"
-          style={{
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 84px)",
-            // Parchment gradient tokenized so palette tweaks propagate.
-            // Was hard-coded `hsla(38, 18%, 97%, ...)` matching the
-            // parchment token — using the var directly keeps them in
-            // sync if the token ever shifts.
-            background:
-              "linear-gradient(to top, hsl(var(--parchment) / 0.96) 55%, hsl(var(--parchment) / 0))",
-          }}
+          className="pt-1"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
         >
           <Button
             variant="bark"

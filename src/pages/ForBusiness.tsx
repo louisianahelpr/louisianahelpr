@@ -66,7 +66,7 @@ const ForBusiness = () => {
               ].map((row, i) => (
                 <div
                   key={i}
-                  className="liquid-glass flex items-start gap-3 px-4 py-3"
+                  className="liquid-glass flex items-center gap-3 px-4 py-3"
                 >
                   <div
                     className="w-9 h-9 rounded-ds-md flex items-center justify-center shrink-0"
@@ -74,7 +74,7 @@ const ForBusiness = () => {
                   >
                     <row.icon className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
                   </div>
-                  <p className="text-ds-13 font-sans pt-1.5 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>{row.text}</p>
+                  <p className="text-ds-13 font-sans leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>{row.text}</p>
                 </div>
               ))}
             </div>

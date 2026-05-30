@@ -34,6 +34,11 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/account-banned",
   "/forgot-password",
   "/reset-password",
+  // Post-checkout confirmation — AuthShell (`min-h-screen` document scroll)
+  // with a tall lifecycle list + CTA. Off this list, `html.app-shell`'s
+  // `overflow: hidden` clipped the "Back to dashboard" button below the
+  // fold on iPhone SE, leaving the user stranded on the screen.
+  "/payment-success",
 
   // In-app pages built around a `min-h-screen` document-scroll layout
   // (PageHeader + tall content). Pages that render via AppShell /

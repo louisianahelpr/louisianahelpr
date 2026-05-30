@@ -37,7 +37,7 @@ const renderMessageContent = (content: string) => {
           decoding="async"
           src={url}
           alt="Shared photo"
-          className="max-w-full rounded-ds-sm cursor-pointer hover:opacity-90 transition-opacity"
+          className="max-w-full max-h-64 object-cover rounded-ds-sm cursor-pointer hover:opacity-90 transition-opacity"
           onClick={() => window.open(url, "_blank")}
         />
         {caption && <p>{caption}</p>}
@@ -290,14 +290,23 @@ export function ChatView({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          {/* Community rules banner — compact */}
+          {/* Community rules banner — compact. Dark ink-on-sienna-tint
+              copy: the prior `text-accent-foreground` was pure white, which
+              ghosted out against the light parchment page showing through
+              the translucent sienna fill. */}
           {!bannerDismissed && (
-            <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
-              <AlertTriangle className="w-3 h-3 text-accent-foreground mt-[3px] shrink-0" />
-              <p className="text-ds-11 leading-snug text-accent-foreground flex-1">
+            <div
+              className="rounded-md px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5"
+              style={{
+                backgroundColor: "hsl(var(--burnt-sienna) / 0.1)",
+                border: "1px solid hsl(var(--burnt-sienna) / 0.28)",
+              }}
+            >
+              <AlertTriangle className="w-3 h-3 mt-[3px] shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
+              <p className="text-ds-11 leading-snug flex-1" style={{ color: "hsl(var(--ink-deep))" }}>
                 Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then permanent ban.
               </p>
-              <button onClick={() => setBannerDismissed(true)} className="text-accent-foreground/60 hover:text-accent-foreground shrink-0 mt-0.5" aria-label="Dismiss">
+              <button onClick={() => setBannerDismissed(true)} className="shrink-0 -my-1 -mr-1 p-1.5 flex items-center justify-center transition-opacity hover:opacity-100 opacity-60" style={{ color: "hsl(var(--ink-deep))" }} aria-label="Dismiss">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>

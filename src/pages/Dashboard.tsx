@@ -575,25 +575,10 @@ const Dashboard = () => {
                 pushed the feed down; the old standalone "stat of the day"
                 paragraph (a 3rd line) is dropped — the job count it echoed
                 already appears in the eyebrow below. */}
-            <h1
-              className="font-display italic font-bold truncate"
-              style={{
-                // Compact greeting — kept smaller than the Messages /
-                // Posts / Jobs page titles on purpose: the script first
-                // name reads tall, so a hero-sized base made the card
-                // bulk up. This sits the greeting card at the same
-                // visual height as those tabs' title cards.
-                // Matches the "Browse Tasks" h2 size (1.25rem) so the
-                // greeting and the feed heading read at the same scale.
-                fontSize: "1.25rem",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
-                // Looser leading so the Beth Ellen script descenders
-                // ("y", "g", "p" tails) on the signature first name
-                // clear the date eyebrow below.
-                lineHeight: 1.25,
-              }}
-            >
+            {/* Canonical page title — same hero size as the Messages /
+                Posts / Jobs headers (`.text-page-title`) so the greeting
+                matches those tabs exactly. */}
+            <h1 className="text-page-title truncate">
               {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
               <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>{firstName}</em>.
             </h1>

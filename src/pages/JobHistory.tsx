@@ -106,7 +106,7 @@ const JobHistory = () => {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex-1 px-3 py-2 rounded-md text-ds-13 font-medium transition-colors ${
+                className={`flex-1 min-h-[44px] px-3 py-2 rounded-md text-ds-13 font-medium transition-colors ${
                   tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -121,7 +121,7 @@ const JobHistory = () => {
               <button
                 key={s.key}
                 onClick={() => setStatusFilter(s.key)}
-                className={`px-3 py-1.5 rounded-full text-ds-11 font-medium transition-colors ${
+                className={`inline-flex items-center min-h-[36px] px-3.5 py-1.5 rounded-full text-ds-11 font-medium transition-colors ${
                   statusFilter === s.key
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -161,22 +161,24 @@ const JobHistory = () => {
               {jobs.map((job) => (
                 <div key={`${job.id}-${job._source}`} className="rounded-ds-md liquid-glass p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h2 className="font-semibold text-foreground">{job.title}</h2>
-                        <StatusBadge status={job.status} className="text-ds-11" />
-                        <span className="text-ds-11 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
+                        <h2 className="font-semibold text-foreground break-words">{job.title}</h2>
+                        <StatusBadge status={job.status} className="text-ds-11 shrink-0" />
+                        <span className="text-ds-11 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium shrink-0">
                           {job._source === "posted" ? "Posted" : "Worked"}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground mt-1">
-                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
-                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
-                        <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-ds-11 text-muted-foreground mt-1">
+                        <span className="flex items-center gap-1 min-w-0"><MapPin className="w-3 h-3 shrink-0" /> <span className="truncate">{job.location}</span></span>
+                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3 shrink-0" /> {new Date(job.date_needed).toLocaleDateString()}</span>
+                        <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3 shrink-0" /> ${job.budget}</span>
                       </div>
-                      <p className="text-ds-11 text-muted-foreground mt-2 line-clamp-1">{job.description}</p>
+                      {job.description?.trim() && (
+                        <p className="text-ds-11 text-muted-foreground mt-2 line-clamp-1">{job.description}</p>
+                      )}
                     </div>
-                    <p className="text-ds-11 text-muted-foreground whitespace-nowrap">
+                    <p className="text-ds-11 text-muted-foreground whitespace-nowrap shrink-0">
                       {new Date(job.created_at).toLocaleDateString()}
                     </p>
                   </div>

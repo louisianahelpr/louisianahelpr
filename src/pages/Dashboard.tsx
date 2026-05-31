@@ -577,7 +577,7 @@ const Dashboard = () => {
             {/* Canonical page title — same hero size as the Messages /
                 Posts / Jobs headers (`.text-page-title`) so the greeting
                 matches those tabs exactly. */}
-            <h1 className="text-page-title truncate">
+            <h1 className="text-page-title">
               {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
               <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>{firstName}</em>.
             </h1>

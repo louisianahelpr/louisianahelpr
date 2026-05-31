@@ -32,9 +32,14 @@
  */
 :root {
   /* Named brand tokens — referenced directly by components. */
-  --parchment:    38 18% 97%;   /* paper white / alabaster — barely-warm cream
-                                    that reads as light without going pure white */
-  --ivory-sand:   36 35% 87%;   /* surface (cards) — lightened from 84% so muted-foreground text clears WCAG AA 4.5:1 on cards */
+  --parchment:    36 16% 91%;   /* page canvas — a soft warm greige, deepened
+                                    well below the near-white card surface so
+                                    cards read as distinctly elevated tiles.
+                                    Held at hue 36 / sat 16% so the added depth
+                                    stays a neutral warm grey, never yellow.
+                                    ~7.5pt darker than the card (98.5%) for
+                                    unmistakable figure-ground separation. */
+  --ivory-sand:   40 38% 98.5%; /* surface (cards) — a crisp, barely-warm white. At this lightness the warmth reads as "ivory paper," never yellow, and the card sits clearly BRIGHTER than the page so it pops as an elevated surface instead of blending into the parchment wash. */
   --sand:         38 39% 76%;   /* #D6C7AD — soft border / quiet surface */
   --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
   --sage:         78 9% 53%;    /* #8C947D — primary accent */
@@ -91,6 +96,22 @@
   --sidebar-border:             38 25% 65%;
   --sidebar-ring:               var(--sage);
   --radius: 0.5rem;
+
+  /* Card elevation — the soft, layered drop-shadow that lifts content
+     cards (JobCard, skeletons, CompleteProfile panels) off the page.
+     Previously referenced but never defined, so `shadow-[var(--card-shadow)]`
+     resolved to empty and every card rendered flat. A three-stop shadow
+     (tight contact + mid ambient + wide soft) reads as a real surface
+     floating above the canvas rather than a same-tone panel painted onto
+     it — the single biggest lever for visual hierarchy. */
+  --card-shadow:
+    0 1px 2px hsl(var(--olivewood) / 0.10),
+    0 10px 22px -8px hsl(var(--olivewood) / 0.18),
+    0 26px 50px -18px hsl(var(--olivewood) / 0.14);
+  --card-hover-shadow:
+    0 2px 5px hsl(var(--olivewood) / 0.13),
+    0 16px 32px -8px hsl(var(--olivewood) / 0.22),
+    0 34px 64px -18px hsl(var(--olivewood) / 0.18);
 
   /* Legacy token names kept as aliases so existing components don't need
      a sweeping rewrite. They now resolve to the new brand palette. */
@@ -801,15 +822,21 @@ button {
    - Toast / Sonner notifications have their own bg utilities.
    - Inputs / textareas / selects use `--input`, not `--card`. */
 :where(.bg-card) {
-  background-color: hsla(0, 0%, 100%, 0.42);
-  backdrop-filter: blur(20px) saturate(170%);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
-  border-color: hsla(0, 0%, 100%, 0.55);
+  /* Solid, crisp content surface — NOT translucent glass. The
+     everywhere-glass experiment made every card a 42%-opaque white over
+     the same warm page, so all surfaces collapsed into one muddy beige
+     wash with no hierarchy. A solid near-white card (`--card`) with a
+     fine warm hairline and the layered `--card-shadow` reads as a real
+     elevated tile — the timeless "white card floating on a warm canvas"
+     look, with brand color reserved for accents (category rail, price,
+     CTAs) so those actually pop. Chrome that should stay frosted (header,
+     dock, modals) uses `.liquid-glass` / `.glass-*` directly, not
+     `bg-card`, so it is unaffected. */
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border) / 0.7);
   box-shadow:
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.7),
-    0 1px 2px hsl(var(--olivewood) / 0.04),
-    0 12px 24px -6px hsl(var(--olivewood) / 0.08),
-    0 28px 56px -14px hsl(var(--olivewood) / 0.1);
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.6),
+    var(--card-shadow);
 }
 
 /* Keep the bento-tile feature card opaque — it's already glass-y

@@ -108,7 +108,7 @@ export function FormStep({ form }: FormStepProps) {
           saved draft or start from a template, without a separate landing
           step. The draft tab only appears when a draft actually exists. */}
       <div className="flex items-center gap-2">
-        {form.hasDraft && (
+        {form.hasDraft && !form.draftConsumed && (
           <button
             type="button"
             onClick={form.loadDraft}

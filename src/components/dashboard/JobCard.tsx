@@ -204,7 +204,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         {/* Center: title · location · date · rating */}
         <div className="min-w-0 flex-1 space-y-1">
           <h3
-            className="font-display italic font-bold text-foreground leading-tight line-clamp-2"
+            className="font-display italic font-bold text-foreground leading-tight line-clamp-3"
             style={{
               // Bumped from 0.95rem so the title is the clear focal
               // point of the card — it should lead a browse feed, not

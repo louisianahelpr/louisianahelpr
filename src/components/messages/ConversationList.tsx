@@ -70,9 +70,13 @@ export function ConversationList({
   // threads. During the first load `loading` is true while
   // `conversations` is still [], so keying the chip off `!isEmpty` would
   // flash "0 threads" before the list arrives, then snap to "N threads"
-  // — the screen-jump the user reported. Gating on this flag keeps the
+  // — the screen-jump the user reported. Gating on `!loading` keeps the
   // title card stable: no count during the skeleton, the real count after.
-  const showThreadCount = !loading && !loadError && conversations.length > 0;
+  // We intentionally do NOT gate on `loadError`: a transient refresh
+  // failure still leaves the existing threads rendered (the error state
+  // only takes over when `conversations.length === 0`), so the count must
+  // stay to match what's on screen.
+  const showThreadCount = !loading && conversations.length > 0;
 
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({

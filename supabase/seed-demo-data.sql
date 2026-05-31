@@ -210,13 +210,16 @@ BEGIN
   END IF;
 END $$;
 
--- ---------- 8. Mark demo jobs as paid -------------------------------------
+-- ---------- 8. Mark demo jobs as escrow-funded -----------------------------
 -- The Browse feed query applies `.neq("payment_status", "abandoned")`, and
 -- in SQL `NULL <> 'abandoned'` is NULL (not true), so any job left with a
 -- NULL payment_status is silently filtered OUT of Browse. A real posted job
--- is escrow-funded at checkout (webhook sets payment_status='paid'), so we
--- stamp the demo jobs the same way — otherwise none of them show up.
-UPDATE jobs SET payment_status = 'paid' WHERE description LIKE '[demo]%';
+-- is escrow-funded at checkout (the Stripe webhook sets payment_status='escrow'
+-- on the job once checkout confirms), so we stamp the demo jobs the same way —
+-- otherwise none of them show up. NOTE: 'paid' is NOT a valid jobs
+-- payment_status (jobs_payment_status_check allows only unpaid/escrow/
+-- payout_pending/released/refunded/cancelled/abandoned) and would abort the seed.
+UPDATE jobs SET payment_status = 'escrow' WHERE description LIKE '[demo]%';
 
 COMMIT;
 

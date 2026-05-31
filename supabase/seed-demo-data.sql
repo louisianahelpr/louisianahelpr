@@ -210,6 +210,14 @@ BEGIN
   END IF;
 END $$;
 
+-- ---------- 8. Mark demo jobs as paid -------------------------------------
+-- The Browse feed query applies `.neq("payment_status", "abandoned")`, and
+-- in SQL `NULL <> 'abandoned'` is NULL (not true), so any job left with a
+-- NULL payment_status is silently filtered OUT of Browse. A real posted job
+-- is escrow-funded at checkout (webhook sets payment_status='paid'), so we
+-- stamp the demo jobs the same way — otherwise none of them show up.
+UPDATE jobs SET payment_status = 'paid' WHERE description LIKE '[demo]%';
+
 COMMIT;
 
 -- ============================================================================

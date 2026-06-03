@@ -88,12 +88,14 @@ export function ConversationList({
       header={<DashboardHeader />}
       titleCard={
           <div className="flex flex-col leading-none">
-            {/* Canonical page title — identical to My Posts / My Jobs
-                (.text-page-title) so the Messages / Jobs / Posts title
-                cards are the same size and alignment, no variation. */}
+            {/* Canonical page-title — same `.text-page-title` (Bodoni Moda
+                italic 700, --headline-hero) used by the Activity tabs
+                (My Posts / My Jobs) so the four signed-in title cards read
+                as one family. */}
             <h1 className="text-page-title leading-tight">Messages</h1>
-            {/* Count chip — shown only once loaded with real threads, so
-                it never flashes "0 threads" during the skeleton load. */}
+            {/* Count chip — gated on `showThreadCount` (!loading &&
+                length > 0) so it never flashes "0 threads" during the
+                skeleton load, the screen-jump the user reported. */}
             {showThreadCount && (
               <p
                 className="mt-1 truncate font-sans font-semibold uppercase"
@@ -119,7 +121,7 @@ export function ConversationList({
             >
               <div className="flex flex-col leading-none">
                 <span
-                  className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+                  className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
                   Conversations

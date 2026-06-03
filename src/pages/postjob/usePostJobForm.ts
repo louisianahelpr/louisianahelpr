@@ -80,6 +80,10 @@ export function usePostJobForm() {
   const [customerFee, setCustomerFee] = useState<number | null>(null);
   const salesTaxRate = 10;
   const [draftLoaded, setDraftLoaded] = useState(false);
+  // True once the user has restored the saved draft via loadDraft. The inline
+  // "Pick up draft" pill hides after this so an accidental re-tap can't replace
+  // the in-progress form with the (autosave-refreshed) snapshot.
+  const [draftConsumed, setDraftConsumed] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
   // AI Job Builder state moved into the AiJobBuilder component itself.
@@ -629,6 +633,7 @@ export function usePostJobForm() {
     setRecurrenceEndDate(draft.recurrenceEndDate);
 
     setShowDraftPrompt(false);
+    setDraftConsumed(true);
     toast.success("Draft restored!");
   };
 
@@ -664,6 +669,8 @@ export function usePostJobForm() {
     offerToHelperName,
     clearOffer,
     // draft prompt
+    hasDraft,
+    draftConsumed,
     showDraftPrompt,
     loadDraft,
     dismissDraftPrompt,

@@ -135,7 +135,10 @@ export function BrowseTasksToolbar({
 
   return (
     <>
-      {/* Header row */}
+      {/* Header row — always shown. Even on a quiet, unfiltered board the
+          search + saved-searches + category filters stay available so a
+          helper can hunt for work (or set up a saved search to be pinged)
+          rather than just staring at an empty feed. */}
       <div
         className="shrink-0 flex items-center justify-between px-4 py-3"
         style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
@@ -173,18 +176,7 @@ export function BrowseTasksToolbar({
             </span>
           )}
         </div>
-        {(() => {
-          // When there are zero open jobs AND no active filters, the
-          // toolbar (saved-searches / search / filters) has nothing
-          // useful to do. Dim it (opacity 50%, no pointer events) so
-          // the eye doesn't get pulled to dead controls on an empty
-          // screen. Still rendered for layout continuity.
-          const isEmptyAndUnfiltered = filters.filteredJobs.length === 0 && !filters.hasFilters;
-          return (
-            <div
-              className={`flex items-center gap-1 transition-opacity ${isEmptyAndUnfiltered ? "opacity-40 pointer-events-none" : ""}`}
-              aria-hidden={isEmptyAndUnfiltered ? "true" : undefined}
-            >
+        <div className="flex items-center gap-1">
               {filters.hasFilters && (
                 <Button variant="ghost" size="sm" onClick={filters.clearFilters} className="text-ds-11 text-muted-foreground hover:text-destructive h-8 rounded-ds-md btn-press">
                   <X className="w-3 h-3 mr-1" /> Clear
@@ -230,9 +222,7 @@ export function BrowseTasksToolbar({
                   </span>
                 )}
               </Button>
-            </div>
-          );
-        })()}
+        </div>
       </div>
 
       {/* Active-filter recap chip row — only when 3+ filters are

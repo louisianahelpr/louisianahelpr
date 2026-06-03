@@ -83,28 +83,28 @@ export const PushNotificationPrompt = () => {
        row of icon + label + Enable + dismiss. Dismissal persists via the
        same `safeStorage` snooze used by the old card. */
     <div
-      className="rounded-full liquid-glass pl-3 pr-1.5 py-1.5 animate-in fade-in slide-in-from-top-1 duration-300"
+      className="rounded-full liquid-glass pl-2.5 pr-1 py-1 animate-in fade-in slide-in-from-top-1 duration-300"
       style={{
         backgroundImage:
-          "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%)",
+          "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.06) 0%, transparent 55%)",
       }}
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         <Bell
-          className="w-4 h-4 shrink-0"
+          className="w-3.5 h-3.5 shrink-0"
           strokeWidth={2.25}
-          style={{ color: "hsl(var(--bark))" }}
+          style={{ color: "hsl(var(--bark) / 0.85)" }}
         />
         <p
-          className="flex-1 min-w-0 truncate font-sans font-semibold"
-          style={{ fontSize: "0.8rem", color: "hsl(var(--ink-deep))" }}
+          className="flex-1 min-w-0 truncate font-sans font-medium"
+          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.85)" }}
         >
-          Turn on notifications for job matches &amp; messages.
+          Notify me about new jobs.
         </p>
         <button
           type="button"
           onClick={handleEnable}
-          className="shrink-0 h-8 px-3.5 rounded-full text-[0.72rem] font-sans font-semibold active:scale-[0.97] transition-transform"
+          className="shrink-0 h-6 px-3 rounded-full text-[0.68rem] font-sans font-semibold active:scale-[0.97] transition-transform"
           style={{
             background: "hsl(var(--bark))",
             color: "hsl(var(--parchment))",
@@ -113,7 +113,7 @@ export const PushNotificationPrompt = () => {
             boxShadow:
               "inset 0 1px 0 0 rgba(255,255,255,0.12), " +
               "0 1px 2px hsl(var(--bark) / 0.18), " +
-              "0 6px 14px -6px hsl(var(--bark) / 0.45)",
+              "0 4px 10px -6px hsl(var(--bark) / 0.4)",
           }}
         >
           Enable
@@ -122,9 +122,9 @@ export const PushNotificationPrompt = () => {
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss"
-          className="shrink-0 h-8 w-8 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-[0.95] transition"
+          className="shrink-0 h-6 w-6 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-[0.95] transition"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-3 h-3" />
         </button>
       </div>
     </div>

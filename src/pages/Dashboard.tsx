@@ -21,7 +21,6 @@ import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
-import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 // Dialogs and overlays — none are visible on first paint. Each is code-split
@@ -557,8 +556,7 @@ const Dashboard = () => {
     <>
     <PageScaffold
       animate
-      panelElevation="flat"
-      className="animate-in fade-in-0 duration-500"
+      panelElevation="raised"
       header={
         <>
           <DashboardHeader />
@@ -567,12 +565,7 @@ const Dashboard = () => {
           </Suspense>
         </>
       }
-      aboveTitle={
-        <>
-          <BroadcastBanner />
-          <PushNotificationPrompt />
-        </>
-      }
+      aboveTitle={<BroadcastBanner />}
       titleCard={
         <>
             {/* Condensed greeting — the greeting + date eyebrow are folded
@@ -581,19 +574,10 @@ const Dashboard = () => {
                 pushed the feed down; the old standalone "stat of the day"
                 paragraph (a 3rd line) is dropped — the job count it echoed
                 already appears in the eyebrow below. */}
-            <h1
-              className="font-display italic font-bold truncate"
-              style={{
-                fontSize: "clamp(1.25rem, 1.6vw + 0.4rem, 1.5rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
-                // Looser leading so the Beth Ellen script descenders
-                // ("y", "g", "p" tails) on the signature first name
-                // clear the date eyebrow below without the brittle
-                // `paddingBottom: 0.1em` workaround.
-                lineHeight: 1.25,
-              }}
-            >
+            {/* Canonical page title — same hero size as the Messages /
+                Posts / Jobs headers (`.text-page-title`) so the greeting
+                matches those tabs exactly. */}
+            <h1 className="text-page-title">
               {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
               <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>{firstName}</em>.
             </h1>

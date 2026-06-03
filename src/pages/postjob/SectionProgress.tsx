@@ -39,7 +39,10 @@ export function SectionProgress({
     <div
       className="sticky z-30 -mx-4 px-4 pt-2 pb-2.5"
       style={{
-        top: "calc(env(safe-area-inset-top, 0px) - 0.25rem)",
+        // Stick just below PostJob's sticky brand header (glass-header,
+        // h-14 = 3.5rem, plus its own safe-area-top inset) so the rail
+        // never slides up behind the brand bar.
+        top: "calc(env(safe-area-inset-top, 0px) + 3.5rem - 0.25rem)",
         background:
           "linear-gradient(to bottom, hsla(38, 18%, 97%, 0.97) 72%, hsla(38, 18%, 97%, 0))",
         backdropFilter: "blur(6px)",

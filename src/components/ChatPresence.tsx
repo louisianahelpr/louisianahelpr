@@ -1,11 +1,16 @@
-export const OnlineIndicator = ({ isOnline }: { isOnline: boolean }) => (
-  <span
-    className={`inline-block w-2 h-2 rounded-full ${
-      isOnline ? "bg-green-500" : "bg-muted-foreground/30"
-    }`}
-    title={isOnline ? "Online" : "Offline"}
-  />
-);
+/**
+ * Presence dot. Online is the assumed default, so we render nothing when the
+ * other user is online — a dot only appears (muted) when they're offline.
+ */
+export const OnlineIndicator = ({ isOnline }: { isOnline: boolean }) => {
+  if (isOnline) return null;
+  return (
+    <span
+      className="inline-block w-2 h-2 rounded-full bg-muted-foreground/30"
+      title="Offline"
+    />
+  );
+};
 
 export const TypingIndicator = () => (
   <div className="flex items-center gap-1 text-ds-11 text-muted-foreground px-4 py-1">

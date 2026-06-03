@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { categories, type Job } from "./activityConstants";
+import { todayLocalISO } from "@/lib/dateUtils";
 
 interface EditJobDialogProps {
   job: Job | null;
@@ -116,7 +117,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
                   id="edit-date-needed"
                   value={dateNeeded}
                   onChange={setDateNeeded}
-                  min={new Date().toISOString().split("T")[0]}
+                  min={todayLocalISO()}
                   placeholder="Choose a date"
                 />
               )}

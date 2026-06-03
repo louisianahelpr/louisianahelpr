@@ -6,6 +6,7 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
+import { todayLocalISO } from "@/lib/dateUtils";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -66,7 +67,9 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
   const month = currentMonth.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date().toISOString().split("T")[0];
+  // Local "today" (NOT UTC) so the highlighted cell + "Upcoming" filter
+  // match the user's actual day. See todayLocalISO.
+  const today = todayLocalISO();
   const days: (number | null)[] = [];
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);

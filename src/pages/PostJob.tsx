@@ -15,6 +15,7 @@ const PostJob = () => {
       {form.redirecting && <RedirectingOverlay />}
 
       <PageHeader
+        showBrand
         eyebrow={form.step === "checkout" ? "Almost there" : "New request"}
         title={form.step === "checkout" ? "Order summary" : "What do you need done?"}
         meta={form.step === "checkout" ? "Review and pay to publish" : "The more detail, the better."}

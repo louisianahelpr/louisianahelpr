@@ -228,7 +228,7 @@ const DashboardGuest = () => {
   return (
     <PageScaffold
       maxWidth="narrow"
-      className="animate-in fade-in-0 duration-500"
+      animate
       header={
         /* Header — matches DashboardHeader's frosted-glass treatment, with
            guest-only Log in / Sign up actions in place of the menu/notif/etc. */

@@ -61,9 +61,10 @@ const triggerBase =
   "inline-flex items-center justify-between gap-1.5 h-9 pl-3 pr-2.5 rounded-full text-[12px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap shrink-0";
 
 const sortOptions = [
-  // "Smart" is the default — a composite recency + budget + urgency +
-  // proximity score. See src/lib/smartSort.ts.
-  { value: "smart", label: "Smart" },
+  // "Best match" (value "smart") is the default — a composite recency +
+  // budget + urgency + proximity score. See src/lib/smartSort.ts. The
+  // user-facing label avoids the opaque "Smart" jargon.
+  { value: "smart", label: "Best match" },
   { value: "newest", label: "Newest" },
   { value: "highest_pay", label: "Highest pay" },
   { value: "lowest_pay", label: "Lowest pay" },

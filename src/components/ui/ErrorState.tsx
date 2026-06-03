@@ -13,6 +13,8 @@ interface ErrorStateProps {
   onRetry?: () => void;
   /** Label for the retry button. */
   retryLabel?: string;
+  /** Card treatment — forwarded to EmptyState. Defaults to `dock`. */
+  variant?: "dock" | "inline";
 }
 
 /**
@@ -34,10 +36,12 @@ export function ErrorState({
   body = "Tap Try again. If it sticks, our end is having a hiccup — not yours.",
   onRetry,
   retryLabel = "Try again",
+  variant = "dock",
 }: ErrorStateProps) {
   return (
     <EmptyState
       icon={AlertTriangle}
+      variant={variant}
       eyebrow={eyebrow}
       title={title}
       body={body}

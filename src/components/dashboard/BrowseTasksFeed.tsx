@@ -3,7 +3,7 @@ import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Star, Search, Bell } from "lucide-react";
+import { Star, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/lib/accessibility";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -157,31 +157,16 @@ export function BrowseTasksFeed({
         pullDistance={pullDistance}
         refreshing={refreshing}
         isPulling={isPulling}
-        className="flex-1 min-h-0 overscroll-contain scrollbar-hide px-3 pt-3 pb-0"
+        className="flex-1 min-h-0 flex flex-col overscroll-contain scrollbar-hide pb-0"
         style={view === "map" ? { display: "none" } : undefined}
       >
-        {/* Always-visible elevated content box. Empty state and the
-            job list both render INSIDE this box so the dashboard
-            never reads as "bare rows on the page" — the box is the
-            identity of the Browse Tasks area. Bottom corners
-            drop their radius so the box reads as continuing under
-            the floating dock. */}
-        <div
-          className="liquid-glass glass-paper-mesh min-h-full overflow-hidden"
-          style={{
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
-            borderBottom: "none",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-              "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-              "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
-          }}
-        >
-      {/* Job list */}
+      {/* Job list — rendered directly in the PageScaffold panel (which is
+          already a frosted liquid-glass surface), mirroring the Messages /
+          Activity layout. No nested glass box: the panel IS the Browse
+          Tasks surface, so the home page reads as two clean cards (title
+          card + panel) like every other tab. */}
       {loadError && allJobs.length === 0 ? (
-      <div className="px-4 pt-4 flex-1 min-h-0 flex">
+      <div className="px-3 pt-4 flex-1 min-h-0 flex">
         <ErrorState
           title="We couldn't load jobs."
           body="Pull down to refresh, or tap Try again. If it sticks, our end is having a hiccup — not yours."
@@ -189,7 +174,7 @@ export function BrowseTasksFeed({
         />
       </div>
       ) : filters.filteredJobs.length === 0 ? (
-      <div className="px-4 pt-4 flex-1 min-h-0 flex">
+      <div className="px-3 pt-4 flex-1 min-h-0 flex">
         <EmptyState
           icon={Search}
           eyebrow={filters.hasFilters ? "No matches" : "All quiet — for now"}
@@ -199,46 +184,18 @@ export function BrowseTasksFeed({
               ? filters.boostedOnly
                 ? "No boosted jobs right now — try clearing the filter to see all open work."
                 : "Try widening your parish, raising your budget, or clearing a filter."
-              : (() => {
-                  // Rotating friendly tip — picks one of 4 every hour so
-                  // the empty state feels alive on repeat visits instead
-                  // of static. Deterministic per hour keeps it from
-                  // flickering on every render.
-                  const tips = [
-                    "New jobs post throughout the day. Helprs often check in around lunch and after work.",
-                    "Most posts go up on weekday evenings. Pull down to refresh anytime.",
-                    "Saved a search? Helpr will ping you the moment a matching job hits the board.",
-                    "Quiet days happen. The feed usually picks back up by evening.",
-                  ];
-                  return tips[new Date().getHours() % tips.length];
-                })()
+              : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
           }
           action={
+            // Filtered: offer a way out. Quiet but unfiltered authenticated
+            // board: no CTA — posting lives in the bottom nav and the
+            // notify opt-in lives elsewhere, so repeating them here was
+            // redundant. Only the (rare) signed-out fallback keeps a CTA.
             filters.hasFilters ? (
               <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
                 Clear filters
               </Button>
-            ) : user ? (
-              // Quiet feed — the most useful thing a signed-in helper can
-              // do is turn a saved search into a live alert so they stop
-              // having to re-check an empty board. "Get notified" is the
-              // primary CTA; posting a job is the secondary link below.
-              <div className="flex flex-col items-center gap-2">
-                <BarkPillButton
-                  onClick={() => window.dispatchEvent(new Event("open-saved-searches"))}
-                >
-                  <Bell className="w-4 h-4 mr-2" strokeWidth={2} aria-hidden="true" />
-                  Get notified of new jobs
-                </BarkPillButton>
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/post-job")}
-                  className="text-ds-11 text-muted-foreground hover:text-foreground rounded-ds-md btn-press"
-                >
-                  Or post a job
-                </Button>
-              </div>
-            ) : (
+            ) : user ? undefined : (
               <BarkPillButton onClick={() => navigate("/post-job")}>
                 Post the first job
               </BarkPillButton>
@@ -401,7 +358,6 @@ export function BrowseTasksFeed({
           </>
         );
       })()}
-        </div>
       </PullToRefreshWrapper>
     </>
   );

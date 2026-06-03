@@ -1,16 +1,13 @@
 import { memo, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, DollarSign, Star, Zap, Rocket, Clock, Timer, Users, Repeat, Lock,
+  MapPin, Calendar, Star, Zap, Rocket, Clock, Timer, Users, Repeat, Lock,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { OptimizedImage } from "@/components/ui/optimized-image";
 import { getCityState } from "@/lib/locationUtils";
-import { avatarGradientFor } from "@/lib/avatarGradient";
-import { cn } from "@/lib/utils";
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
 import { prefetchJobDialog } from "./prefetchJobDialog";
 import type { EnrichedJob } from "./types";
@@ -72,15 +69,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // Stagger entry via CSS animation-delay — avoids pulling framer-motion into
   // the dashboard's hot list path (saves ~42KB on iOS cold start).
   const entryDelay = `${Math.min(index * 70, 500)}ms`;
-  // Poster initials for the avatar fallback (no avatar URL on the
-  // EnrichedJob shape — we keep this lightweight by deriving from name).
-  const posterInitials = (job.posterName || "User")
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
   const ratingDisplay = (job.posterReviewCount ?? 0) > 0 ? job.posterAvgRating?.toFixed(1) : null;
 
   // Warm JobDetailDialog's two head-count queries in the ~80ms gap
@@ -115,108 +103,169 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   return (
     <div
       style={{ animationDelay: entryDelay, animationFillMode: "both" }}
-      className="animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary overflow-hidden"
+      className="animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       {...interactiveProps}
     >
-      {/* Category rail — vertical color stripe down the left edge of
-          the card. Makes the feed scannable: same category jobs read as
-          a cluster, different categories pop visually. Color comes from
-          the category's `dot` class so it matches the existing icon. */}
+      {/* Category badge — overhangs the top-left corner like a ribbon.
+          Lives OUTSIDE the clipped inner surface below, so it sticks out
+          past the card edge instead of being chopped by the rounded clip.
+          The poster avatar moved to the job-detail view (JobPosterCard)
+          so the feed card stays uncluttered. */}
       <span
-        aria-hidden
-        className={`absolute left-0 top-0 bottom-0 w-1 ${catStyle.dot}`}
-      />
-      <div className="w-full px-3.5 py-3 flex items-center gap-3">
-        {/* Avatar with category icon badge — poster initials in a
-            Bark-tinted glass circle, with a small category-icon chip on
-            the top-left. The colored category rail (left edge of the
-            card) already carries the category color at full strength,
-            so this chip stays a quiet neutral circle: the icon merely
-            identifies the category, it doesn't add a second color block. */}
-        <div className="relative shrink-0">
-          <a
-            href={`/user/${job.customer_id}`}
-            onClick={(e) => e.stopPropagation()}
-            className={cn(
-              "block w-11 h-11 rounded-full flex items-center justify-center font-sans font-semibold text-[0.78rem] tracking-[0.06em] uppercase transition-transform hover:scale-105 overflow-hidden",
-              // When no real avatar is available, the gradient becomes
-              // the background. The `<img>` overlay (when present) sits
-              // on top and covers it. Hashed off `customer_id` so a
-              // poster who shows up in multiple feed cards reads as the
-              // same person.
-              !job.posterAvatarUrl && cn("bg-gradient-to-br", avatarGradientFor(job.customer_id)),
-            )}
-            style={{
-              // Tier halo around poster avatar: gold for Elite posters,
-              // sienna for Pro, default subtle bark for free. Surfaces
-              // subscriber posters in the helper's feed at a glance.
-              // Kept deliberately quiet — a 1px tinted ring at reduced
-              // opacity, so it's a soft cue rather than a sixth competing
-              // accent in the row.
-              boxShadow:
-                job.posterSubscriptionTier === "elite"
-                  ? "0 0 0 1px hsl(var(--gold-warm) / 0.7), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)"
-                  : job.posterSubscriptionTier === "pro"
-                    ? "0 0 0 1px hsl(var(--burnt-sienna) / 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)"
-                    : "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5)",
-              border:
-                job.posterSubscriptionTier === "elite" || job.posterSubscriptionTier === "pro"
-                  ? "none"
-                  : "1px solid hsl(var(--bark) / 0.22)",
-              // Initials sit on the hashed gradient when no photo is
-              // present — `--ink-deep` keeps them legible across every
-              // gradient variant. Subtle text-shadow lifts them off the
-              // lighter parchment-leaning gradients.
-              color: "hsl(var(--ink-deep))",
-              textShadow: !job.posterAvatarUrl ? "0 1px 1px rgba(255, 255, 255, 0.4)" : undefined,
-            }}
-            aria-label={`View ${job.posterName}'s profile`}
-          >
-            {job.posterAvatarUrl ? (
-              <OptimizedImage
-                // Avatar renders into a fixed 44px (w-11 h-11) circle — request
-                // a matching thumbnail (via Supabase render + Vercel edge) rather
-                // than the raw multi-MB upload.
-                src={job.posterAvatarUrl}
-                width={44}
-                height={44}
-                alt=""
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              posterInitials
-            )}
-          </a>
-          <span
-            aria-label={categoryLabels[job.category] || job.category}
-            className={`absolute -top-0.5 -left-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-card bg-card ${catStyle.title}`}
-            style={{ boxShadow: "0 0 0 0.5px hsl(var(--bark) / 0.18)" }}
-          >
-            <CategoryIcon
-              category={job.category}
-              aria-hidden
-              className="w-2.5 h-2.5"
-              strokeWidth={2.25}
-            />
-          </span>
-        </div>
+        className={`absolute -top-2 left-0 z-20 inline-flex items-center gap-1 pl-2.5 pr-2 py-0.5 rounded-l-md rounded-r-full border text-[10px] font-semibold leading-none shadow-sm ${catStyle.badge}`}
+      >
+        <CategoryIcon
+          category={job.category}
+          aria-hidden
+          className="w-2.5 h-2.5 shrink-0"
+          strokeWidth={2.25}
+        />
+        <span className="font-serif italic">{categoryLabels[job.category] || job.category}</span>
+      </span>
 
-        {/* Center: title · location · date · rating */}
-        <div className="min-w-0 flex-1 space-y-1">
+      {/* Clipped inner surface — rounds the rail, body, and guest CTA to
+          the card shape. Separate from the root so the overhanging badge
+          above isn't chopped. */}
+      <div className="relative rounded-2xl overflow-hidden">
+        {/* Category rail — vertical color stripe down the left edge. */}
+        <span
+          aria-hidden
+          className={`absolute left-0 top-0 bottom-0 w-1.5 ${catStyle.dot}`}
+        />
+        <div className="w-full px-3.5 pt-4 pb-3">
+        {/* Title leads the top row and wraps to at most two lines (never
+            cut off mid-word); the price tile sits opposite it. */}
+        <div className="flex items-start justify-between gap-3">
           <h3
-            className="font-display italic font-bold text-foreground leading-tight line-clamp-3"
+            className="font-display italic font-bold text-foreground leading-tight line-clamp-2 flex-1 min-w-0"
             style={{
-              // Bumped from 0.95rem so the title is the clear focal
-              // point of the card — it should lead a browse feed, not
-              // sit visually under the price tile.
               fontSize: "1.05rem",
               color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.014em",
+              letterSpacing: "-0.02em",
             }}
           >
             {job.title}
           </h3>
-          <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap text-[10.5px] text-muted-foreground leading-tight">
+
+          {/* Right column: price tile with Boosted / Urgent badges
+              overlapping its top edge. */}
+          <div className="relative shrink-0 flex flex-col items-end">
+          {/* Badge cluster — both Boosted and Urgent sit at the top-right
+              corner of the price tile. Stacked horizontally with Urgent
+              (alarm cue) inner-most so it reads first when both apply. */}
+          {(job.isBoosted || job.is_urgent) && (
+            // Sits just inside the card's rounded edge so the cluster
+            // isn't clipped by the root `overflow-hidden` (which is kept
+            // so the colored category rail stays inside the rounded
+            // corners). Previously `-top-2 -right-2` got chopped.
+            <div className="absolute -top-1 -right-1 z-10 flex items-center gap-1">
+              {job.isBoosted && (
+                <span
+                  aria-label="Boosted"
+                  className="boosted-shimmer boosted-pulse inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider"
+                  style={{
+                    color: "color-mix(in srgb, hsl(var(--gold-warm)) 58%, #000 42%)",
+                    border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
+                    boxShadow:
+                      "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                      "inset 0 -1px 1px 0 hsl(var(--gold-warm) / 0.20), " +
+                      "0 1px 2px hsl(var(--gold-warm) / 0.20), " +
+                      "0 4px 10px -3px hsl(var(--gold-warm) / 0.34)",
+                  }}
+                >
+                  <Rocket className="w-2.5 h-2.5" strokeWidth={2.25}
+                    style={{ color: "hsl(var(--gold-warm))", fill: "hsl(var(--gold-warm) / 0.35)" }} />
+                  Boosted
+                </span>
+              )}
+              {job.is_urgent && (() => {
+                // Urgent badge doubles as a liquidity signal — when the
+                // poster attached an urgent_fee, the badge spells the
+                // bonus out ("+$15 URGENT") so the helpr sees the extra
+                // pay, not just an alarm cue. Falls back to plain
+                // "URGENT" when no bonus was set.
+                const bonus = Number(job.urgent_fee ?? 0);
+                // At most one looping animation per card: Boosted (a paid
+                // promotion) is the higher-priority signal, so when a job
+                // is both Boosted and Urgent the Urgent badge stays static
+                // — it's still fully present, just not a second animation
+                // competing for the eye.
+                const urgentAnimates = !job.isBoosted;
+                return (
+                  <span
+                    aria-label={bonus > 0 ? `Urgent — $${bonus.toFixed(0)} bonus` : "Urgent"}
+                    className={`${urgentAnimates ? "urgent-pulse " : ""}inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[8px] font-bold uppercase tracking-wider`}
+                    style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
+                  >
+                    <Zap className="w-2.5 h-2.5 text-accent fill-accent" />
+                    {bonus > 0 ? `+$${bonus.toFixed(0)} Urgent` : "Urgent"}
+                  </span>
+                );
+              })()}
+            </div>
+          )}
+          {/* Price chip — quiet warm-parchment surface with a single
+              hairline border, so the job title leads the card. */}
+          <div
+            className="flex flex-col items-center px-2.5 py-1.5 rounded-ds-md"
+            style={{
+              // Embossed cream tile — a soft top-lit gradient + inner
+              // highlight and a low ambient shadow lift the price off the
+              // card so it reads as a pressed plaque, not a flat tint box.
+              background:
+                "linear-gradient(165deg, hsl(40 44% 99%) 0%, hsl(36 30% 95%) 55%, hsl(34 26% 92%) 100%)",
+              border: "0.5px solid hsl(var(--bark) / 0.18)",
+              boxShadow:
+                "inset 0 1px 0 0 rgba(255, 255, 255, 0.75), " +
+                "inset 0 -1px 1px 0 hsl(var(--olivewood) / 0.06), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.10), " +
+                "0 3px 7px -2px hsl(var(--olivewood) / 0.12)",
+            }}
+          >
+            <span
+              className="font-display leading-none tabular-nums"
+              style={{
+                fontWeight: 800,
+                fontSize: "0.95rem",
+                color: "hsl(var(--bark))",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {/* Literal `$` glyph (not the lucide icon) pulled tight to the
+                  digits so the amount reads as one confident figure — the
+                  icon left a visible "$ 85.50" gap. */}
+              <span
+                style={{ fontSize: "0.7em", verticalAlign: "0.08em", marginRight: "0.5px", opacity: 0.8 }}
+              >
+                $
+              </span>
+              {earnings}
+            </span>
+            {!isGuest && (job.urgent_fee ?? 0) > 0 && (
+              <span
+                className="font-sans font-semibold mt-0.5 text-[10px] tracking-[0.04em]"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                incl. ${Number(job.urgent_fee).toFixed(0)} urgent bonus
+              </span>
+            )}
+            <span
+              className="text-[10px] uppercase mt-0.5 font-sans"
+              style={{
+                color: "hsl(45 8% 56%)",
+                letterSpacing: "0.16em",
+                fontWeight: 600,
+              }}
+            >
+              {isGuest ? "Budget" : "You earn"}
+            </span>
+          </div>
+          </div>
+        </div>
+
+        {/* Meta row — category lives in the badge above, so this leads
+            with location. */}
+        <div className="mt-2.5 flex items-center gap-x-2 gap-y-0.5 flex-wrap text-[10.5px] text-muted-foreground leading-tight">
             <span className="flex items-center gap-1">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
               <span className="truncate max-w-[110px] font-serif italic">{cityState}</span>
@@ -293,110 +342,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           </div>
         </div>
 
-        {/* Right column: price tile with Boosted / Urgent badges
-            overlapping its top edge — same notification-stamp pattern
-            as the category icon over the avatar. */}
-        <div className="relative shrink-0 flex flex-col items-end">
-        {/* Badge cluster — both Boosted and Urgent sit at the top-right
-            corner of the price tile. Stacked horizontally with Urgent
-            (alarm cue) inner-most so it reads first when both apply. */}
-        {(job.isBoosted || job.is_urgent) && (
-          // Sits just inside the card's rounded edge so the cluster
-          // isn't clipped by the root `overflow-hidden` (which is kept
-          // so the colored category rail stays inside the rounded
-          // corners). Previously `-top-2 -right-2` got chopped.
-          <div className="absolute -top-1 -right-1 z-10 flex items-center gap-1">
-            {job.isBoosted && (
-              <span
-                aria-label="Boosted"
-                className="boosted-shimmer boosted-pulse inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider"
-                style={{
-                  color: "color-mix(in srgb, hsl(var(--gold-warm)) 58%, #000 42%)",
-                  border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
-                  boxShadow:
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                    "inset 0 -1px 1px 0 hsl(var(--gold-warm) / 0.20), " +
-                    "0 1px 2px hsl(var(--gold-warm) / 0.20), " +
-                    "0 4px 10px -3px hsl(var(--gold-warm) / 0.34)",
-                }}
-              >
-                <Rocket className="w-2.5 h-2.5" strokeWidth={2.25}
-                  style={{ color: "hsl(var(--gold-warm))", fill: "hsl(var(--gold-warm) / 0.35)" }} />
-                Boosted
-              </span>
-            )}
-            {job.is_urgent && (() => {
-              // Urgent badge doubles as a liquidity signal — when the
-              // poster attached an urgent_fee, the badge spells the
-              // bonus out ("+$15 URGENT") so the helpr sees the extra
-              // pay, not just an alarm cue. Falls back to plain
-              // "URGENT" when no bonus was set.
-              const bonus = Number(job.urgent_fee ?? 0);
-              // At most one looping animation per card: Boosted (a paid
-              // promotion) is the higher-priority signal, so when a job
-              // is both Boosted and Urgent the Urgent badge stays static
-              // — it's still fully present, just not a second animation
-              // competing for the eye.
-              const urgentAnimates = !job.isBoosted;
-              return (
-                <span
-                  aria-label={bonus > 0 ? `Urgent — $${bonus.toFixed(0)} bonus` : "Urgent"}
-                  className={`${urgentAnimates ? "urgent-pulse " : ""}inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[8px] font-bold uppercase tracking-wider`}
-                  style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
-                >
-                  <Zap className="w-2.5 h-2.5 text-accent fill-accent" />
-                  {bonus > 0 ? `+$${bonus.toFixed(0)} Urgent` : "Urgent"}
-                </span>
-              );
-            })()}
-          </div>
-        )}
-        {/* Price chip — calmed down from the old achievement-badge
-            treatment (gradient + blur + double inner-shadow + gold
-            inset, which made it the heaviest element on the card).
-            Now a quiet warm-parchment surface with a single hairline
-            border, so the job title leads the row instead. */}
-        <div
-          className="flex flex-col items-center px-2.5 py-1.5 rounded-ds-md"
-          style={{
-            background: "hsl(var(--bark) / 0.05)",
-            border: "0.5px solid hsl(var(--bark) / 0.16)",
-          }}
-        >
-          <span
-            className="flex items-center font-display leading-none tabular-nums"
-            style={{
-              fontWeight: 800,
-              fontSize: "0.95rem",
-              color: "hsl(var(--bark))",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            <DollarSign className="w-3.5 h-3.5" strokeWidth={2.25} />
-            {earnings}
-          </span>
-          {!isGuest && (job.urgent_fee ?? 0) > 0 && (
-            <span
-              className="font-sans font-semibold mt-0.5 text-[10px] tracking-[0.04em]"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
-              incl. ${Number(job.urgent_fee).toFixed(0)} urgent bonus
-            </span>
-          )}
-          <span
-            className="text-[10px] uppercase mt-0.5 font-sans"
-            style={{
-              color: "hsl(var(--olivewood) / 0.85)",
-              letterSpacing: "0.16em",
-              fontWeight: 600,
-            }}
-          >
-            {isGuest ? "Budget" : "You earn"}
-          </span>
-        </div>
-        </div>
-      </div>
-
       {/* Guest CTA — a persistent (never hover-gated) "Sign up to apply"
           affordance pinned to the card foot. Phones have no hover state,
           so the old opacity-0/group-hover overlay was permanently
@@ -419,6 +364,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           </span>
         </div>
       )}
+      </div>
     </div>
   );
 };

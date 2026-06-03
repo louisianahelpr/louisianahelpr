@@ -23,39 +23,35 @@ export const categoryLabels: Record<string, string> = {
 export const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));
 
 /**
- * Category palette — warm-brand only. All entries are tints or lightness
- * variations of the four brand hues: sage (stone), bark (deep olive),
- * burnt-sienna (orange), and gold-warm (amber). No fuchsia, cyan, teal,
- * sky, pink, or rose — those break the earthy system.
- *
- * Mapping rationale (brand hue → Tailwind analog):
- *   sage        → stone  (muted warm neutral, olive-green adjacent)
- *   bark        → stone-7xx (deeper grounded olive)
- *   burnt-sienna → orange (warm earthy red-orange)
- *   gold-warm   → amber  (antique gold)
- *
- *   cleaning    → stone light      (fresh, neutral)
- *   yard_work   → stone deep       (earthy, grounded)
- *   moving      → amber medium     (warm gold energy)
- *   errands     → amber light      (bright warm movement)
- *   handyman    → orange medium    (sienna tools)
- *   painting    → orange light     (warm creative)
- *   delivery    → amber deep       (rich transit gold)
- *   pet_care    → stone medium     (soft, warm neutral)
- *   assembly    → orange deep      (precise, structured)
- *   other       → stone muted      (neutral default)
+ * Category palette — one distinct hue per category so the feed is
+ * instantly scannable, but every hue is deliberately desaturated
+ * (28–50% saturation, dusty mid-tone text on a pale wash) so the spread
+ * reads as a refined, earthy set rather than a bright primary rainbow.
+ * Custom HSL arbitrary values are used instead of Tailwind's named
+ * shades because the named -600/-700 steps are too saturated to feel
+ * muted. Each hue is mapped to the category it evokes:
+ *   cleaning  → dusty teal     (fresh / sanitised)
+ *   yard_work → muted green    (grass / outdoors)
+ *   moving    → warm amber      (cardboard / boxes)
+ *   errands   → soft olive-lime (quick / on-the-go)
+ *   handyman  → clay sienna     (tools)
+ *   painting  → dusty rose      (colour / creative)
+ *   delivery  → slate blue      (transit / motion)
+ *   pet_care  → muted mauve     (soft / friendly)
+ *   assembly  → brick red       (precise / build)
+ *   other     → warm stone      (neutral default)
  */
 export const categoryColors: Record<string, { badge: string; title: string; dot: string }> = {
-  cleaning:  { badge: "bg-stone-50 text-stone-600 border-stone-200/60",  title: "text-stone-600",  dot: "bg-stone-500/65" },
-  yard_work: { badge: "bg-stone-100 text-stone-700 border-stone-300/60", title: "text-stone-700",  dot: "bg-stone-700/65" },
-  moving:    { badge: "bg-amber-50 text-amber-700 border-amber-200/60",  title: "text-amber-700",  dot: "bg-amber-700/65" },
-  errands:   { badge: "bg-amber-100 text-amber-600 border-amber-300/60", title: "text-amber-600",  dot: "bg-amber-600/65" },
-  handyman:  { badge: "bg-orange-50 text-orange-700 border-orange-200/60", title: "text-orange-700", dot: "bg-orange-700/65" },
-  painting:  { badge: "bg-orange-100 text-orange-600 border-orange-300/60", title: "text-orange-600", dot: "bg-orange-600/65" },
-  delivery:  { badge: "bg-amber-50 text-amber-800 border-amber-200/60",  title: "text-amber-800",  dot: "bg-amber-800/65" },
-  pet_care:  { badge: "bg-stone-50 text-stone-500 border-stone-200/60",  title: "text-stone-500",  dot: "bg-stone-400/65" },
-  assembly:  { badge: "bg-orange-50 text-orange-800 border-orange-200/60", title: "text-orange-800", dot: "bg-orange-800/65" },
-  other:     { badge: "bg-stone-100 text-stone-500 border-stone-200/60", title: "text-stone-500",  dot: "bg-stone-400/55" },
+  cleaning:  { badge: "bg-[hsl(180_30%_94%)] text-[hsl(182_26%_33%)] border-[hsl(180_22%_80%)]",  title: "text-[hsl(182_26%_33%)]", dot: "bg-[hsl(182_28%_44%)]" },
+  yard_work: { badge: "bg-[hsl(140_28%_94%)] text-[hsl(142_28%_31%)] border-[hsl(140_22%_78%)]",  title: "text-[hsl(142_28%_31%)]", dot: "bg-[hsl(142_30%_40%)]" },
+  moving:    { badge: "bg-[hsl(38_46%_93%)] text-[hsl(32_42%_37%)] border-[hsl(36_38%_78%)]",     title: "text-[hsl(32_42%_37%)]",  dot: "bg-[hsl(34_44%_47%)]" },
+  errands:   { badge: "bg-[hsl(75_32%_92%)] text-[hsl(74_32%_30%)] border-[hsl(74_26%_76%)]",     title: "text-[hsl(74_32%_30%)]",  dot: "bg-[hsl(73_32%_40%)]" },
+  handyman:  { badge: "bg-[hsl(22_50%_93%)] text-[hsl(18_44%_41%)] border-[hsl(20_42%_80%)]",     title: "text-[hsl(18_44%_41%)]",  dot: "bg-[hsl(19_46%_49%)]" },
+  painting:  { badge: "bg-[hsl(352_40%_94%)] text-[hsl(350_32%_46%)] border-[hsl(351_30%_84%)]",  title: "text-[hsl(350_32%_46%)]", dot: "bg-[hsl(350_34%_55%)]" },
+  delivery:  { badge: "bg-[hsl(214_34%_94%)] text-[hsl(214_28%_42%)] border-[hsl(214_26%_82%)]",  title: "text-[hsl(214_28%_42%)]", dot: "bg-[hsl(214_30%_51%)]" },
+  pet_care:  { badge: "bg-[hsl(278_26%_94%)] text-[hsl(278_22%_48%)] border-[hsl(278_22%_84%)]",  title: "text-[hsl(278_22%_48%)]", dot: "bg-[hsl(278_24%_57%)]" },
+  assembly:  { badge: "bg-[hsl(6_44%_94%)] text-[hsl(6_40%_46%)] border-[hsl(6_36%_84%)]",        title: "text-[hsl(6_40%_46%)]",   dot: "bg-[hsl(6_42%_53%)]" },
+  other:     { badge: "bg-[hsl(40_14%_92%)] text-[hsl(40_9%_42%)] border-[hsl(40_12%_80%)]",      title: "text-[hsl(40_9%_42%)]",   dot: "bg-[hsl(40_10%_55%)]" },
 };
 
 /**

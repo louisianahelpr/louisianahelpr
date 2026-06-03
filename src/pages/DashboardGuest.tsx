@@ -229,6 +229,7 @@ const DashboardGuest = () => {
     <PageScaffold
       maxWidth="narrow"
       animate
+      titleCardClassName="!py-3 lg:!py-3.5"
       header={
         /* Header — matches DashboardHeader's frosted-glass treatment, with
            guest-only Log in / Sign up actions in place of the menu/notif/etc. */
@@ -238,7 +239,7 @@ const DashboardGuest = () => {
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              variant="ghost"
+              variant="outline"
               onClick={() => navigate("/login")}
               className="text-ds-11 h-11 rounded-ds-md font-sans font-semibold"
               style={{ color: "hsl(var(--ink-deep))" }}

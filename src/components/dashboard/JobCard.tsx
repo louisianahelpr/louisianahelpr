@@ -112,7 +112,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           The poster avatar moved to the job-detail view (JobPosterCard)
           so the feed card stays uncluttered. */}
       <span
-        className={`absolute -top-2 left-0 z-20 inline-flex items-center gap-1 pl-2.5 pr-2 py-0.5 rounded-l-md rounded-r-full border text-[10px] font-semibold leading-none shadow-sm ${catStyle.badge}`}
+        className={`absolute -top-2 left-0 z-20 inline-flex items-center gap-1 pl-2.5 pr-2 py-0.5 rounded-l-none rounded-r-full border text-[10px] font-semibold leading-none shadow-sm ${catStyle.badge}`}
       >
         <CategoryIcon
           category={job.category}

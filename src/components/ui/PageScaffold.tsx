@@ -43,6 +43,10 @@ interface PageScaffoldProps {
   /** Play the shared page-entry transition (title card + panel rise in
    *  together, matching the `ds-page-in` keyframe used elsewhere). */
   animate?: boolean;
+  /** Extra classes appended to the title card (e.g. a tighter `py` when
+   *  the card holds only a single-line headline and the default padding
+   *  leaves it floating in dead space). */
+  titleCardClassName?: string;
   /** Extra classes appended to the scaffold root (e.g. a CSS mount fade). */
   className?: string;
 }
@@ -51,11 +55,15 @@ const TITLE_CARD_CLASS =
   "liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden";
 
 const TITLE_CARD_STYLE: CSSProperties = {
-  // Soft copper glow upper-right + faint verdigris lower-left so the card
-  // reads as a textured pane rather than a flat panel.
+  // Title card matches the panel below — the same crisp near-white
+  // surface — so the two stacked cards read as one cohesive material
+  // instead of a warm band sitting on a cool panel. Very faint copper /
+  // verdigris corner glows keep the card from reading as a flat block
+  // without tinting it away from the panel's colour.
+  backgroundColor: "hsl(40 30% 99% / 0.97)",
   backgroundImage:
-    "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
-    "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
+    "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.05) 0%, transparent 55%), " +
+    "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 80% / 0.12) 0%, transparent 60%)",
   boxShadow:
     "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
     "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
@@ -89,7 +97,11 @@ export function PageScaffold({
   panelElevation = "raised",
   animate = false,
   className,
+  titleCardClassName,
 }: PageScaffoldProps) {
+  const titleCardClass = titleCardClassName
+    ? `${TITLE_CARD_CLASS} ${titleCardClassName}`
+    : TITLE_CARD_CLASS;
   const columnWidth =
     maxWidth === "narrow"
       ? "max-w-3xl lg:max-w-5xl"
@@ -101,6 +113,11 @@ export function PageScaffold({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     borderBottom: "none",
+    // Crisp near-opaque white surface. `.liquid-glass`'s 42%-white wash
+    // reads as muted beige over the warm page gradient, so the panel
+    // blended into the canvas; a bright cool-white panel pops off the
+    // page and reads a clear step cooler than the warm title card above.
+    backgroundColor: "hsl(40 30% 99% / 0.97)",
     boxShadow: PANEL_SHADOW[panelElevation],
   };
 
@@ -117,13 +134,13 @@ export function PageScaffold({
   const titleEl = animate ? (
     <motion.div
       {...PAGE_IN}
-      className={TITLE_CARD_CLASS}
+      className={titleCardClass}
       style={TITLE_CARD_STYLE}
     >
       {titleCard}
     </motion.div>
   ) : (
-    <div className={TITLE_CARD_CLASS} style={TITLE_CARD_STYLE}>
+    <div className={titleCardClass} style={TITLE_CARD_STYLE}>
       {titleCard}
     </div>
   );

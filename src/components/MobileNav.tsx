@@ -196,12 +196,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         onTouchStart={() => !locked && prefetchRoute(effectivePath)}
         aria-label={locked ? `${label} — locked until your account is approved` : label}
         aria-current={isActive ? "page" : undefined}
-        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-colors duration-200 btn-press ${
-          isActive
-            ? ""
-            : "text-muted-foreground hover:text-foreground"
-        } ${locked ? "opacity-50" : ""}`}
-        style={isActive ? { color: "hsl(var(--bark))" } : undefined}
+        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-colors duration-200 btn-press ${locked ? "opacity-50" : ""}`}
+        style={{ color: isActive ? "hsl(var(--bark))" : "hsl(48 9% 47%)" }}
       >
         {/* Sliding active pill — single shared layoutId across all items
             so the pill animates between tabs when you switch. Sits BEHIND
@@ -213,15 +209,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             layoutId="mobile-nav-pill"
             className="absolute inset-x-2 inset-y-1 rounded-full pointer-events-none"
             style={{
+              // Luminous cream glass lens — a lit-from-above frosted pill with
+              // a warm gold-tinted base, replacing the old flat olive wash. The
+              // bark-colored icon + label ride on top, so the contrast reads
+              // crisp and modern (iOS-dock-like) rather than olive-on-olive.
               background:
-                "radial-gradient(120% 120% at 30% 25%, hsl(var(--bark) / 0.18) 0%, hsl(var(--bark) / 0.1) 70%, hsl(var(--bark) / 0.06) 100%)",
-              border: "0.5px solid hsl(var(--bark) / 0.22)",
+                "radial-gradient(120% 120% at 30% 18%, hsl(45 55% 99% / 0.98) 0%, hsl(42 40% 96% / 0.9) 50%, hsl(var(--gold-warm) / 0.22) 100%)",
+              border: "0.5px solid hsl(var(--bark) / 0.16)",
               boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.35), " +
-                "inset 0 -1px 1px 0 hsl(var(--bark) / 0.1), " +
-                "0 1px 2px hsl(var(--bark) / 0.12), " +
-                "0 6px 14px -4px hsl(var(--bark) / 0.25), " +
-                "0 12px 22px -8px hsl(var(--bark) / 0.18)",
+                "inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95), " +
+                "inset 0 -1.5px 2px 0 hsl(var(--bark) / 0.12), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.14), " +
+                "0 6px 14px -4px hsl(var(--olivewood) / 0.22), " +
+                "0 12px 22px -8px hsl(var(--olivewood) / 0.16)",
             }}
             transition={{ type: "spring", stiffness: 380, damping: 32 }}
             aria-hidden
@@ -234,9 +234,14 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             fill={isActive ? "hsl(var(--bark) / 0.18)" : "none"}
           />
           {locked && (
-            <span className="absolute -bottom-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-muted border border-background flex items-center justify-center">
-              <Lock className="w-2 h-2 text-muted-foreground" strokeWidth={3} />
-            </span>
+            // Quiet padlock — no filled chip/ring (that read as a noisy
+            // alert dot to a first-time guest). Just a small low-contrast
+            // glyph tucked at the corner that says "locked" without shouting.
+            <Lock
+              className="absolute -bottom-1 -right-2 w-2.5 h-2.5"
+              strokeWidth={2.25}
+              style={{ color: "hsl(48 9% 47% / 0.6)" }}
+            />
           )}
           {showBadge && (
             <span
@@ -329,7 +334,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             // gradually across the band instead of snapping on partway up.
             maskImage: "linear-gradient(to top, black 35%, transparent 100%)",
             WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",
-            background: "linear-gradient(to top, hsla(38, 18%, 97%, 0.55), hsla(38, 18%, 97%, 0))",
+            background: "linear-gradient(to top, hsla(40, 28%, 99%, 0.6), hsla(40, 28%, 99%, 0))",
           }}
         />
         <div className="relative mx-3 mb-3 flex items-end gap-2.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl md:mx-auto md:px-8 xl:px-12">
@@ -404,11 +409,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
                 className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
                 style={{
-                  background: "hsl(var(--bark))",
+                  // Lit-from-top orb — a radial highlight in the upper-left
+                  // fading to a deeper olive at the base gives the puck real
+                  // sphere-like dimension instead of a flat disc.
+                  background:
+                    "radial-gradient(125% 125% at 32% 22%, hsl(76 20% 44%) 0%, hsl(var(--bark)) 46%, hsl(66 25% 19%) 100%)",
                   color: "hsl(var(--parchment))",
-                  border: "1px solid hsl(70 22% 24%)",
+                  border: "1px solid hsl(66 26% 18%)",
                   boxShadow:
-                    "inset 0 1px 0 0 rgba(255, 255, 255, 0.10), " +
+                    "inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.28), " +
+                    "inset 0 -2px 3px 0 hsl(66 28% 14% / 0.45), " +
                     "0 1px 2px hsl(70 20% 18% / 0.22), " +
                     "0 8px 18px -6px hsl(var(--bark) / 0.55), " +
                     "0 18px 36px -12px hsl(var(--bark) / 0.4), " +

@@ -250,11 +250,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 incl. ${Number(job.urgent_fee).toFixed(0)} urgent bonus
               </span>
             )}
+            {/* De-emphasized unit label — repeats on every card, so it's
+                kept small + low-contrast so the dollar figure above carries
+                the weight and the caption recedes into a quiet annotation. */}
             <span
-              className="text-[10px] uppercase mt-0.5 font-sans"
+              className="text-[9px] uppercase mt-0.5 font-sans"
               style={{
-                color: "hsl(45 8% 56%)",
-                letterSpacing: "0.16em",
+                color: "hsl(45 8% 64%)",
+                letterSpacing: "0.1em",
                 fontWeight: 600,
               }}
             >
@@ -308,7 +311,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <span className="hidden [@media(min-width:360px)]:flex items-center gap-1 opacity-80">
                 <Clock className="w-2.5 h-2.5 shrink-0" />
                 <span className="font-serif italic">
-                  {formatDistanceToNow(new Date(job.created_at), { addSuffix: false })} ago
+                  Posted {formatDistanceToNow(new Date(job.created_at), { addSuffix: false })} ago
                 </span>
               </span>
             </>

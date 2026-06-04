@@ -308,23 +308,23 @@ const DashboardGuest = () => {
                 no recent payout data or the public RPC isn't deployed
                 yet, so a quiet platform shows zero visual weight here
                 instead of an empty placeholder strip. */}
-            <div className="shrink-0 px-4 pt-2.5">
+            <div className="shrink-0 px-4 pt-1 empty:pt-0">
               <Suspense fallback={null}>
                 <PayoutTicker />
               </Suspense>
             </div>
 
             {/* Header row — title block + view toggle + search button.
-                Padding tightened (py-2.5) so the hero → "Browse Tasks" →
-                feed cadence reads as one continuous rhythm, not three
-                loosely-stacked blocks. */}
+                Top padding trimmed so the hero card and this "Browse Tasks"
+                block read as one tight unit (the empty payout-ticker wrapper
+                above collapses via `empty:pt-0` when no payout data shows). */}
             <div
-              className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5"
+              className="shrink-0 flex items-center justify-between gap-3 px-4 pt-1.5 pb-2.5"
               style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
               <div className="flex flex-col leading-none min-w-0">
                 <span
-                  className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
+                  className="font-serif italic tracking-[0.16em] uppercase text-[11px]"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
                   {hasFilters
@@ -334,7 +334,7 @@ const DashboardGuest = () => {
                 <h2
                   className="font-display italic font-bold leading-tight mt-0.5"
                   style={{
-                    fontSize: "1.1rem",
+                    fontSize: "1.3rem",
                     color: "hsl(var(--ink-deep))",
                     letterSpacing: "-0.018em",
                   }}

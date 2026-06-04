@@ -14,6 +14,11 @@ interface AuthShellProps {
       the Back link instead of the large centered wordmark + eyebrow.
       Saves vertical space on mobile multi-step flows. */
   compactHeader?: boolean;
+  /** Vertical anchoring of the content column. Defaults to "start"
+      (heading sits just below Back). "center" balances a short card
+      in the viewport so it doesn't float high with dead space below —
+      use only for genuinely short, single-card screens. */
+  align?: "start" | "center";
   maxWidth?: "sm" | "md" | "lg" | "2xl";
 }
 
@@ -30,10 +35,12 @@ const AuthShell = ({
   hideBack = false,
   hideHeader = false,
   compactHeader = false,
+  align = "start",
   maxWidth = "lg",
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
+  const alignClass = align === "center" ? "items-center" : "items-start";
 
   return (
     <div className="min-h-screen page-warmth relative">
@@ -44,7 +51,7 @@ const AuthShell = ({
           the Back link. `items-start` keeps the heading sitting just
           below Back with consistent, intentional spacing — and the top
           padding is trimmed on `sm:` so the gap stays tight there too. */}
-      <div className={`relative z-10 flex items-start justify-center px-5 pb-10 sm:px-8 sm:pb-16 ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
+      <div className={`relative z-10 flex ${alignClass} justify-center min-h-screen px-5 pb-10 sm:px-8 sm:pb-16 ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
         <div className={`w-full ${widthMap[maxWidth]}`}>
           {showCompactTopBar ? (
             <div className="mb-4 flex items-center justify-between gap-3">

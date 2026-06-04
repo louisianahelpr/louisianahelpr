@@ -8,6 +8,7 @@ import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 import { ArrowLeft, Mail, Loader2 } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import HelprMark from "@/components/HelprMark";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
@@ -69,7 +70,10 @@ const ForgotPassword = () => {
   };
 
   return (
-    <AuthShell eyebrow="Reset your password" maxWidth="sm">
+    <AuthShell hideHeader hideBack align="center" maxWidth="sm">
+      <div className="flex justify-center mb-6">
+        <HelprMark to={null} size="lg" emblemOnly />
+      </div>
       <div className="liquid-glass p-6 sm:p-8 space-y-6">
         {sent ? (
           <div className="text-center space-y-4">
@@ -82,9 +86,9 @@ const ForgotPassword = () => {
             <h1 className="text-page-title leading-tight">
               Check your inbox.
             </h1>
-            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               We sent a reset link to{" "}
-              <span className="font-semibold not-italic" style={{ color: "hsl(var(--olivewood))" }}>
+              <span className="font-semibold" style={{ color: "hsl(var(--olivewood))" }}>
                 {email}
               </span>
               . It expires in 1 hour.
@@ -123,7 +127,7 @@ const ForgotPassword = () => {
               <h1 className="text-page-title leading-tight mt-2">
                 We'll send you a link.
               </h1>
-              <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.01em" }}>
                 Enter the email tied to your account and check your inbox.
               </p>
             </div>
@@ -143,7 +147,7 @@ const ForgotPassword = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15"
+                  className="rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]"
                 />
               </div>
               <Button

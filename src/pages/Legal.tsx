@@ -869,15 +869,35 @@ const Legal = () => {
         border: "1px solid hsl(var(--bark) / 0.16)",
       }}
     >
-      {VALID_TABS.map((t) => (
-        <TabsTrigger
-          key={t}
-          value={t}
-          className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
-        >
-          {TAB_LABELS[t]}
-        </TabsTrigger>
-      ))}
+      {VALID_TABS.map((t) => {
+        const isActive = t === tab;
+        return (
+          <TabsTrigger
+            key={t}
+            value={t}
+            className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none transition-all duration-200"
+            style={
+              isActive
+                ? {
+                    // Active pill reads as a lifted, dimensional chip rather
+                    // than a flat fill: a top-to-bottom bark gradient, a hairline
+                    // inner highlight catching light along the top edge, and a
+                    // soft colored drop shadow that floats it off the track.
+                    background:
+                      "linear-gradient(180deg, hsl(var(--bark) / 0.94) 0%, hsl(var(--bark)) 100%)",
+                    color: "hsl(var(--parchment))",
+                    boxShadow:
+                      "inset 0 1px 0 hsl(var(--parchment) / 0.28), " +
+                      "0 2px 6px -1px hsl(var(--bark) / 0.45), " +
+                      "0 1px 2px hsl(var(--olivewood) / 0.28)",
+                  }
+                : { color: "hsl(var(--olivewood))" }
+            }
+          >
+            {TAB_LABELS[t]}
+          </TabsTrigger>
+        );
+      })}
     </TabsList>
   );
 
@@ -906,31 +926,34 @@ const Legal = () => {
     </>
   );
 
-  // NATIVE: AppShell gives a real pinned header sibling (NOT position:fixed),
-  // so it can't detach during iOS momentum scroll and policy text can never
-  // ghost into the notch. The header carries its own status-bar inset; only
-  // the panels scroll, inside AppShell's internal container.
+  // NATIVE: AppShell's internal scroll container dodges the iOS bug where a
+  // document-scroll `position: fixed` header detaches during momentum scroll
+  // and lets text ghost into the notch. The only pinned element is a thin
+  // opaque status-bar cap (carrying the safe-area inset) so scrolled content
+  // is masked under the notch; the back button, title, and tabs live INSIDE
+  // the scroll body, so they scroll away with the page rather than locking.
   if (isNativePlatform) {
-    const header = (
+    const statusBarCap = (
       <div
-        className="px-5 pb-3"
+        aria-hidden
         style={{
-          paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+          paddingTop: "env(safe-area-inset-top, 0px)",
           background: "hsl(38 18% 97%)",
-          borderBottom: "1px solid hsl(var(--bark) / 0.10)",
         }}
-      >
-        <div className="max-w-2xl mx-auto space-y-3">
-          {headerRow}
-          {tabBar}
-        </div>
-      </div>
+      />
     );
     return (
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <AppShell header={header} className="bg-premium-page" contentClassName="bg-premium-page">
-          <div className="px-5 pt-4">
+        <AppShell
+          header={statusBarCap}
+          reserveBottomNav={false}
+          className="bg-premium-page"
+          contentClassName="bg-premium-page"
+        >
+          <div className="px-5 pt-3">
             <div className="max-w-2xl mx-auto space-y-4">
+              {headerRow}
+              {tabBar}
               {tagline}
               {panels}
             </div>

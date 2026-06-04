@@ -133,7 +133,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           />
           <span className="font-serif italic">{categoryLabels[job.category] || job.category}</span>
         </span>
-        <div className="w-full px-3.5 pt-9 pb-3">
+        <div className="w-full px-3.5 pt-7 pb-3">
         {/* Title leads the top row and wraps to at most two lines (never
             cut off mid-word); the price tile sits opposite it. */}
         <div className="flex items-start justify-between gap-3">

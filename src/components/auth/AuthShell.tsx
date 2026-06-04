@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { ReactNode } from "react";
+import HelprMark from "@/components/HelprMark";
 
 interface AuthShellProps {
   children: ReactNode;
@@ -83,29 +84,7 @@ const AuthShell = ({
           {showCompactTopBar ? (
             <div className="mb-4 flex items-center justify-between gap-3">
               {!hideBack ? backLink : <span />}
-              <Link to="/" className="inline-flex items-baseline gap-0.5" aria-label="Helpr LA home">
-                <span
-                  className="font-display italic font-bold leading-none"
-                  style={{
-                    fontSize: "1.25rem",
-                    color: "hsl(var(--olivewood))",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  Helpr
-                </span>
-                <span
-                  className="font-display italic font-bold leading-none"
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "hsl(var(--burnt-sienna))",
-                    letterSpacing: "0.22em",
-                    marginLeft: "0.18em",
-                  }}
-                >
-                  · LA
-                </span>
-              </Link>
+              <HelprMark size="sm" emblemOnly />
             </div>
           ) : (
             !hideBack && align !== "center" && (

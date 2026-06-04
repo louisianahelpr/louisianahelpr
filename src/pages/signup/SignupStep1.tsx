@@ -56,7 +56,7 @@ export function SignupStep1({
   onContinue,
 }: SignupStep1Props) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Business-mode banner — when ?type=business is set, confirm the user
           is on the company path (and give them an escape hatch back to
           personal). The everyday entry point is the quiet footer link below,

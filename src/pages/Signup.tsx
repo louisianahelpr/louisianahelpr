@@ -409,15 +409,12 @@ const Signup = () => {
     }
   };
 
-  const totalSteps = 3;
-  const stepLabels = ["Account", "About you", "Optional"];
-  // Crisper field surface than the old washed `bg-white/60 border-white/70`,
-  // which muddied to grey over the champagne page. A near-opaque warm fill,
-  // a defined bark-tinted edge, a hairline inset, and a bark focus ring make
-  // the inputs read as deliberate cards that match the polished aesthetic.
+  // Match the Login screen's field styling exactly so the two auth screens
+  // read as one set. (The `pl-10`/`pr-10` icon padding is appended at each
+  // call site, mirroring Login.)
   const inputCls =
-    "rounded-2xl bg-white/85 dark:bg-white/5 border-[hsl(var(--bark)/0.18)] dark:border-white/15 text-[hsl(var(--ink-deep))] shadow-[inset_0_1px_2px_hsl(var(--olivewood)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.45)] focus-visible:!border-[hsl(var(--bark)/0.5)] focus-visible:!ring-[hsl(var(--bark)/0.22)] transition-[border-color,box-shadow]";
-  const labelCls = "text-ds-13 font-sans font-semibold text-[hsl(var(--ink-deep))]";
+    "rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]";
+  const labelCls = "text-ds-13 font-sans font-medium";
 
   const stepHeading =
     step === 1
@@ -431,53 +428,29 @@ const Signup = () => {
   return (
     <AuthShell compactHeader maxWidth="2xl">
       <div className="text-center mb-4 space-y-1.5">
-        <span className="text-display-eyebrow">{isBusinessSignup ? "Business · " : ""}Step {step} of {totalSteps}</span>
-        <h1 className="text-page-title leading-tight mt-1">
+        <h1
+          className="font-display italic font-bold leading-tight"
+          style={{
+            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
+            color: "hsl(var(--ink-deep))",
+            letterSpacing: "-0.03em",
+          }}
+        >
           {stepHeading.title}
         </h1>
         <p
-          className="font-serif italic"
+          className="font-sans"
           style={{
             fontSize: "0.95rem",
             color: "hsl(var(--olivewood) / 0.7)",
+            letterSpacing: "0.01em",
           }}
         >
           {stepHeading.subtitle}
         </p>
       </div>
-      <div className="pb-12">
-          <div className="liquid-glass px-6 sm:px-8 py-6 sm:py-7 space-y-6">
-            {/* Step progress — a slim segmented bar instead of numbered
-                circles. The heading already says "Step X of Y", so the
-                bar's only job is a quiet visual sense of how far along you
-                are. The current segment label rides alongside it. */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                {stepLabels.map((label, i) => {
-                  const stepNum = i + 1;
-                  const filled = stepNum <= step;
-                  return (
-                    <span
-                      key={label}
-                      className="h-1 flex-1 rounded-full overflow-hidden transition-colors"
-                      style={{ background: "hsl(var(--olivewood) / 0.14)" }}
-                    >
-                      <span
-                        className="block h-full rounded-full transition-all duration-300"
-                        style={{
-                          width: filled ? "100%" : "0%",
-                          background: "hsl(var(--bark))",
-                        }}
-                      />
-                    </span>
-                  );
-                })}
-              </div>
-              <p className="text-ds-11 font-medium text-[hsl(var(--olivewood)/0.7)]">
-                {stepLabels[step - 1]}
-              </p>
-            </div>
-
+      <div className="pb-8">
+          <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
             {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}
             {import.meta.env.DEV && (
               <div className="rounded-ds-sm border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">

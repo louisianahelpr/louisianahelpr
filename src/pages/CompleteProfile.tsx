@@ -350,8 +350,7 @@ const CompleteProfile = () => {
   }
 
   return (
-    <div className="min-h-screen page-warmth relative">
-      <div aria-hidden className="mesh-gradient-global" />
+    <div className="min-h-screen bg-premium-page relative">
       <div className="relative z-10 flex items-start justify-center px-5 py-8 sm:py-12 pt-[calc(env(safe-area-inset-top)+24px)]">
         <div className="w-full max-w-md pb-12">
           <div className="text-center mb-7">

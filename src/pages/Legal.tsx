@@ -1,16 +1,14 @@
-import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
   Receipt, Database, Eye, Lock, Trash2, Cookie, FileText, Users, Crown,
   Wallet, Building2, Siren, ListChecks, Briefcase, Handshake,
-  ShieldAlert, ShieldCheck, Search, X,
+  ShieldAlert, ShieldCheck,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BackButton from "@/components/BackButton";
-import { PolicyRowItem, PolicySection, PolicySearchContext } from "@/components/policy/CollapsedPolicy";
+import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 type TabKey = "terms" | "community" | "privacy";
@@ -39,6 +37,26 @@ const PAGE_CANONICALS: Record<TabKey, string> = {
   terms: "https://www.louisianahelpr.com/legal",
   community: "https://www.louisianahelpr.com/legal?tab=community",
   privacy: "https://www.louisianahelpr.com/legal?tab=privacy",
+};
+
+// Single source of truth for the policy revision date shown in the
+// header chip — must be bumped whenever any tab's terms change so the
+// chip never claims a stale "current" revision.
+const LAST_UPDATED = "Mar 2026";
+
+// Short editorial line shown under the tab strip so each policy view
+// opens with a human, plain-English framing instead of a blank jump
+// straight into dense sections.
+const TAB_TAGLINES: Record<TabKey, string> = {
+  terms: "The agreement you accept when you use Helpr.",
+  community: "How we keep jobs fair, safe, and accountable.",
+  privacy: "What we collect, why, and the control you keep.",
+};
+
+const TAB_LABELS: Record<TabKey, string> = {
+  terms: "Terms",
+  community: "Community",
+  privacy: "Privacy",
 };
 
 const TldrCard = ({ items }: { items: string[] }) => (
@@ -97,7 +115,6 @@ const TermsContent = () => (
       icon={Building2}
       title="Eligibility & accounts"
       subtitle="Who can use Helpr and how accounts work"
-      defaultOpen
     >
       <PolicyRowItem
         icon={FileText}
@@ -288,7 +305,6 @@ const CommunityContent = () => (
       icon={Briefcase}
       title="Posting & accepting jobs"
       subtitle="Setting up the work — limits, edits, and what's locked"
-      defaultOpen
     >
       <PolicyRowItem
         icon={DollarSign}
@@ -329,7 +345,6 @@ const CommunityContent = () => (
       icon={Handshake}
       title="What you owe each other"
       subtitle="Cancel windows, response times, and showing up"
-      defaultOpen
     >
       <PolicyRowItem
         icon={CheckCircle}
@@ -630,7 +645,6 @@ const PrivacyContent = () => (
       icon={Database}
       title="Information we collect"
       subtitle="Account, ID, location, payments, and messages"
-      defaultOpen
     >
       <PolicyRowItem
         icon={Database}
@@ -794,7 +808,11 @@ const Legal = () => {
   const [params, setParams] = useSearchParams();
   const tabParam = (params.get("tab") || "terms") as TabKey;
   const tab: TabKey = VALID_TABS.includes(tabParam) ? tabParam : "terms";
-  const [query, setQuery] = useState("");
+
+  // Offset that reserves the fixed Navbar height (its `h-12` content plus
+  // the status-bar safe-area inset). Shared by the top spacer and the
+  // sticky tab band so both line up flush under the nav.
+  const navOffset = "calc(3.5rem + env(safe-area-inset-top, 0px))";
 
   // usePageMeta is keyed on every field, so switching tabs re-runs the
   // effect and updates title, description, and canonical together.
@@ -815,142 +833,101 @@ const Legal = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
-      {/* Spacer below the fixed Navbar. The Navbar is `h-12` content
-          (3rem) sitting under `max(env(safe-area-inset-top), 0.25rem)`,
-          so it occupies roughly `3.5rem + env(safe-area-inset-top)` of
-          screen. The spacer must include that safe-area term — a plain
-          `h-14` lacks it, so on a notched iPhone the page header slid
-          up behind the translucent nav. This value also matches the
-          sticky tabs' `top:` offset below, so both align cleanly. */}
-      <div
-        aria-hidden
-        style={{ height: "calc(3.5rem + env(safe-area-inset-top, 0px))" }}
-      />
+      {/* Spacer below the fixed Navbar — reserves its `h-12` content plus
+          the status-bar safe-area inset. Matches the sticky tabs' `top:`
+          offset below so both align flush under the nav. */}
+      <div aria-hidden style={{ height: navOffset }} />
 
       <main className="container mx-auto px-5 pt-4 pb-8">
         <div className="max-w-2xl mx-auto space-y-4">
-          <div>
-            <div className="flex items-start gap-3">
-              {/* No explicit `to` — BackButton falls back to history.back()
-                  which works for both authenticated users coming from
-                  /profile?tab=legal and unauthenticated visitors coming
-                  from the signup agreement checkbox. */}
-              <BackButton />
-              <div className="flex flex-col leading-none min-w-0 flex-1">
+          <div className="flex items-start gap-3">
+            {/* No explicit `to` — BackButton falls back to history.back()
+                which works for both authenticated users coming from
+                /profile?tab=legal and unauthenticated visitors coming
+                from the signup agreement checkbox. */}
+            <BackButton />
+            <div className="flex flex-col leading-none min-w-0 flex-1">
+              <span
+                className="font-serif italic uppercase text-[0.62rem]"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Compliance &amp; disclosures
+              </span>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <h1 className="text-page-title leading-tight">Legal</h1>
+                {/* "Last updated" chip — a tabular-nums chip so users can
+                    quickly verify they're reading the current revision.
+                    Sourced from the single LAST_UPDATED constant. */}
                 <span
-                  className="font-serif italic uppercase text-[0.62rem]"
-                  style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.66rem] font-sans font-semibold tabular-nums uppercase tracking-wider"
+                  style={{
+                    background: "hsl(var(--bark) / 0.10)",
+                    color: "hsl(var(--bark))",
+                    border: "1px solid hsl(var(--bark) / 0.22)",
+                  }}
                 >
-                  Compliance & disclosures
+                  Updated · {LAST_UPDATED}
                 </span>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <h1 className="text-page-title leading-tight">
-                    Legal
-                  </h1>
-                  {/* "Last updated" chip — promoted from a fading-italic
-                      subtitle to a tabular-nums chip so users can quickly
-                      verify they're reading the current revision. Used
-                      a lot when posters reference a clause to a helpr. */}
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.66rem] font-sans font-semibold tabular-nums uppercase tracking-wider"
-                    style={{
-                      background: "hsl(var(--bark) / 0.10)",
-                      color: "hsl(var(--bark))",
-                      border: "1px solid hsl(var(--bark) / 0.22)",
-                    }}
-                  >
-                    Updated · Mar 2026
-                  </span>
-                </div>
               </div>
             </div>
           </div>
 
-          <PolicySearchContext.Provider value={query}>
-            <Tabs value={tab} onValueChange={setTab} className="w-full">
-              {/* Sticky tabs + search — stay pinned at the top of the
-                  scroll area (just below the fixed Navbar) so the user
-                  can switch between Terms / Community / Privacy and
-                  filter without losing their place in long policy docs.
-                  The frosted-blur background bleeds the page warmth
-                  through so it doesn't read as a hard band. */}
-              <div
-                className="sticky z-30 -mx-5 px-5 pt-2 pb-3 space-y-2.5"
+          <Tabs value={tab} onValueChange={setTab} className="w-full">
+            {/* Sticky tab switcher — stays pinned at the top of the scroll
+                area (just below the fixed Navbar on web) so the user can
+                switch tabs without losing their place. Background is fully
+                opaque so policy text scrolling underneath is masked cleanly
+                rather than ghosting through a translucent band. */}
+            <div
+              className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
+              style={{
+                top: navOffset,
+                background: "hsl(38 18% 97%)",
+                borderBottom: "1px solid hsl(var(--bark) / 0.10)",
+              }}
+            >
+              <TabsList
+                className="grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto"
                 style={{
-                  top: "calc(3.5rem + env(safe-area-inset-top, 0px))",
-                  background:
-                    "linear-gradient(to bottom, hsla(38, 18%, 97%, 0.92), hsla(38, 18%, 97%, 0.78))",
-                  backdropFilter: "blur(14px) saturate(150%)",
-                  WebkitBackdropFilter: "blur(14px) saturate(150%)",
+                  background: "hsl(var(--bark) / 0.06)",
+                  border: "1px solid hsl(var(--bark) / 0.16)",
                 }}
               >
-                <TabsList
-                  className="grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto"
-                  style={{
-                    background: "hsl(var(--bark) / 0.06)",
-                    border: "1px solid hsl(var(--bark) / 0.16)",
-                  }}
-                >
+                {VALID_TABS.map((t) => (
                   <TabsTrigger
-                    value="terms"
+                    key={t}
+                    value={t}
                     className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
                   >
-                    Terms
+                    {TAB_LABELS[t]}
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="community"
-                    className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
-                  >
-                    Community
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="privacy"
-                    className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
-                  >
-                    Privacy
-                  </TabsTrigger>
-                </TabsList>
+                ))}
+              </TabsList>
+            </div>
 
-                {/* In-page search across this tab's section titles +
-                    item labels. Auto-expands matching sections via the
-                    PolicySearchContext provider. */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    aria-label={`Search ${tab}`}
-                    placeholder={`Search ${tab}…`}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="pl-9 pr-9 h-10 rounded-ds-md bg-white/70 border-border/60"
-                  />
-                  {query && (
-                    <button
-                      type="button"
-                      onClick={() => setQuery("")}
-                      aria-label="Clear search"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 active:scale-[0.94] transition-all"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
+            {/* Per-tab editorial tagline — gives each policy view a warm,
+                plain-English framing line instead of jumping cold into
+                dense sections. */}
+            <p
+              className="mt-3 px-1 font-serif italic leading-snug text-ds-15"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              {TAB_TAGLINES[tab]}
+            </p>
 
-              {/* Safe-area bottom padding on each tab so the long legal body
-                  can scroll fully past the floating dock + FAB on iPhone
-                  without clipping the last paragraph. */}
-              <TabsContent value="terms" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
-                <TermsContent />
-              </TabsContent>
-              <TabsContent value="community" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
-                <CommunityContent />
-              </TabsContent>
-              <TabsContent value="privacy" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}>
-                <PrivacyContent />
-              </TabsContent>
-            </Tabs>
-          </PolicySearchContext.Provider>
+            {/* Safe-area bottom padding on each tab so the long legal body
+                can scroll fully past the floating dock + FAB on iPhone
+                without clipping the last paragraph. */}
+            <TabsContent value="terms" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+              <TermsContent />
+            </TabsContent>
+            <TabsContent value="community" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+              <CommunityContent />
+            </TabsContent>
+            <TabsContent value="privacy" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+              <PrivacyContent />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>

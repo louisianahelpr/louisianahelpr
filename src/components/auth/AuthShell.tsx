@@ -63,8 +63,7 @@ const AuthShell = ({
   );
 
   return (
-    <div className="min-h-screen page-warmth relative">
-      <div aria-hidden className="mesh-gradient-global" />
+    <div className="min-h-screen bg-premium-page relative">
       {/* Anchor the content to the TOP on every viewport. A prior
           `sm:items-center` vertically-centered the whole block on tablet/
           desktop, leaving the heading floating in dead space well below

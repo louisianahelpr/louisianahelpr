@@ -8,7 +8,14 @@ import HelprMark from "@/components/HelprMark";
 import { cn } from "@/lib/utils";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 
-const Navbar = forwardRef<HTMLElement>((_props, ref) => {
+interface NavbarProps {
+  /** Hide the right-side menu (desktop links + mobile hamburger). Used by
+      in-app pages (e.g. Legal opened from Profile on native) where the
+      marketing menu — How it works / Get started / Log in — is redundant. */
+  hideMenu?: boolean;
+}
+
+const Navbar = forwardRef<HTMLElement, NavbarProps>(({ hideMenu = false }, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   // This nav is `position: fixed; top: 0`, so the global OfflineBanner (also

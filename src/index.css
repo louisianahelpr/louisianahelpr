@@ -1351,9 +1351,12 @@ button {
    read as carved out of the same paper, not pasted on a flat background. */
 .page-warmth {
   background-color: hsl(var(--background));
+  /* Unified app canvas — identical champagne gradient to `.bg-premium-page`
+     so every surface (marketing, auth, signed-in) reads as the same paper.
+     Previously this layered darker `--secondary` radial washes, which made
+     auth/onboarding screens read heavier than the dashboard. */
   background-image:
-    radial-gradient(ellipse 90% 60% at 50% 0%, hsl(var(--secondary) / 0.35) 0%, transparent 55%),
-    radial-gradient(ellipse 80% 50% at 100% 100%, hsl(var(--secondary) / 0.25) 0%, transparent 60%);
+    linear-gradient(135deg, #F5F5F0 0%, #E8E2D9 100%);
   background-attachment: fixed;
 }
 

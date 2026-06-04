@@ -79,7 +79,7 @@ const AuthShell = ({
           {backLink}
         </div>
       )}
-      <div className={`relative z-10 flex ${alignClass} justify-center min-h-screen px-5 pb-10 sm:px-8 sm:pb-16 ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
+      <div className={`relative z-10 flex ${alignClass} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-16"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
         <div className={`w-full ${widthMap[maxWidth]}`}>
           {showCompactTopBar ? (
             <div className="mb-4 flex items-center justify-between gap-3">

@@ -1,15 +1,17 @@
+import { useState, useEffect, useRef, useContext, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
   Receipt, Database, Eye, Lock, Trash2, Cookie, FileText, Users, Crown,
   Wallet, Building2, Siren, ListChecks, Briefcase, Handshake,
-  ShieldAlert, ShieldCheck,
+  ShieldAlert, ShieldCheck, Search, X, type LucideIcon,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import AppShell from "@/components/AppShell";
 import { isNativePlatform } from "@/lib/nativeInit";
 import BackButton from "@/components/BackButton";
-import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
+import { PolicyRowItem, PolicySection, PolicySearchContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
@@ -61,7 +63,28 @@ const TAB_LABELS: Record<TabKey, string> = {
   privacy: "Privacy",
 };
 
-const TldrCard = ({ items }: { items: string[] }) => (
+// One glyph per tab, echoing the iconography used inside the section
+// cards (Scale = agreement, Users = community, Lock = privacy) so the
+// strip is scannable at a glance.
+const TAB_ICONS: Record<TabKey, LucideIcon> = {
+  terms: Scale,
+  community: Users,
+  privacy: Lock,
+};
+
+// While a policy search is active, editorial chrome (the TLDR summary,
+// the privacy callout, the "contact support" footer) is noise — it isn't
+// a search result. These helpers collapse it so the results read as a
+// tight list of matching sections.
+const HideOnSearch = ({ children }: { children: ReactNode }) => {
+  const query = useContext(PolicySearchContext);
+  return query.trim() ? null : <>{children}</>;
+};
+
+const TldrCard = ({ items }: { items: string[] }) => {
+  const query = useContext(PolicySearchContext);
+  if (query.trim()) return null;
+  return (
   <div
     className="rounded-2xl p-5 space-y-3"
     style={{
@@ -98,7 +121,8 @@ const TldrCard = ({ items }: { items: string[] }) => (
       ))}
     </ul>
   </div>
-);
+  );
+};
 
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
 const TermsContent = () => (
@@ -280,12 +304,14 @@ const TermsContent = () => (
       />
     </PolicySection>
 
-    <p
-      className="text-center pt-2 pb-4 text-ds-11 font-sans"
-      style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-    >
-      Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
-    </p>
+    <HideOnSearch>
+      <p
+        className="text-center pt-2 pb-4 text-ds-11 font-sans"
+        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+      >
+        Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
+      </p>
+    </HideOnSearch>
   </div>
 );
 
@@ -590,12 +616,14 @@ const CommunityContent = () => (
       />
     </PolicySection>
 
-    <p
-      className="text-center pt-2 pb-4 text-ds-11 font-sans"
-      style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-    >
-      Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
-    </p>
+    <HideOnSearch>
+      <p
+        className="text-center pt-2 pb-4 text-ds-11 font-sans"
+        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+      >
+        Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
+      </p>
+    </HideOnSearch>
   </div>
 );
 
@@ -606,34 +634,36 @@ const PrivacyContent = () => (
         it's the single highest-trust question users have about a
         marketplace handling their ID + location, so it earns its own
         surface above the TLDR rather than sitting as bullet #3. */}
-    <div
-      className="rounded-2xl p-4 flex items-start gap-3"
-      style={{
-        background: "hsl(var(--bark) / 0.08)",
-        border: "1px solid hsl(var(--bark) / 0.30)",
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-          "0 6px 14px -6px hsl(var(--bark) / 0.22)",
-      }}
-    >
+    <HideOnSearch>
       <div
-        className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-        style={{ background: "hsl(var(--bark) / 0.15)", color: "hsl(var(--bark))" }}
+        className="rounded-2xl p-4 flex items-start gap-3"
+        style={{
+          background: "hsl(var(--bark) / 0.08)",
+          border: "1px solid hsl(var(--bark) / 0.30)",
+          boxShadow:
+            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+            "0 6px 14px -6px hsl(var(--bark) / 0.22)",
+        }}
       >
-        <ShieldCheck className="w-4 h-4" strokeWidth={2.25} />
-      </div>
-      <div className="min-w-0">
-        <p
-          className="font-display italic font-bold leading-tight"
-          style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+        <div
+          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ background: "hsl(var(--bark) / 0.15)", color: "hsl(var(--bark))" }}
         >
-          We never sell your data.
-        </p>
-        <p className="font-serif italic mt-1 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
-          Other users only see your first name, photo, and ratings. ID documents stay encrypted and are accessed only during verification.
-        </p>
+          <ShieldCheck className="w-4 h-4" strokeWidth={2.25} />
+        </div>
+        <div className="min-w-0">
+          <p
+            className="font-display italic font-bold leading-tight"
+            style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+          >
+            We never sell your data.
+          </p>
+          <p className="font-serif italic mt-1 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            Other users only see your first name, photo, and ratings. ID documents stay encrypted and are accessed only during verification.
+          </p>
+        </div>
       </div>
-    </div>
+    </HideOnSearch>
 
     <TldrCard
       items={[
@@ -796,12 +826,14 @@ const PrivacyContent = () => (
       />
     </PolicySection>
 
-    <p
-      className="text-center pt-2 pb-4 text-ds-11 font-sans"
-      style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-    >
-      Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
-    </p>
+    <HideOnSearch>
+      <p
+        className="text-center pt-2 pb-4 text-ds-11 font-sans"
+        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+      >
+        Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
+      </p>
+    </HideOnSearch>
   </div>
 );
 
@@ -811,9 +843,44 @@ const Legal = () => {
   const tabParam = (params.get("tab") || "terms") as TabKey;
   const tab: TabKey = VALID_TABS.includes(tabParam) ? tabParam : "terms";
 
+  // Cross-section policy search. The query feeds PolicySearchContext, which
+  // every PolicySection / PolicyRowItem self-filters against. `hasResults`
+  // is derived after render by counting the section cards that survived the
+  // filter, so we can show a clean empty state when nothing matches.
+  const [query, setQuery] = useState("");
+  const contentRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [hasResults, setHasResults] = useState(true);
+
   // WEB: the marketing Navbar owns the top; the tab band sticks just below it
   // in normal document flow. NATIVE renders via AppShell instead (see below).
   const webBandStickyTop = "calc(3.5rem + env(safe-area-inset-top, 0px))";
+
+  // Switching tabs is a fresh document: drop any active search and jump back
+  // to the top (native scrolls AppShell's internal container; web scrolls the
+  // window). Without this, deep-scrolling Privacy then tapping Terms would
+  // land you mid-page.
+  useEffect(() => {
+    setQuery("");
+    if (isNativePlatform) {
+      scrollRef.current?.scrollTo({ top: 0 });
+    } else {
+      window.scrollTo({ top: 0 });
+    }
+  }, [tab]);
+
+  // Count surviving section cards once the filtered tree has painted.
+  useEffect(() => {
+    if (!query.trim()) {
+      setHasResults(true);
+      return;
+    }
+    const raf = requestAnimationFrame(() => {
+      const n = contentRef.current?.querySelectorAll("[data-policy-section]").length ?? 0;
+      setHasResults(n > 0);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [query, tab]);
 
   // usePageMeta is keyed on every field, so switching tabs re-runs the
   // effect and updates title, description, and canonical together.
@@ -871,34 +938,81 @@ const Legal = () => {
     >
       {VALID_TABS.map((t) => {
         const isActive = t === tab;
+        const Icon = TAB_ICONS[t];
         return (
           <TabsTrigger
             key={t}
             value={t}
-            className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none transition-all duration-200"
-            style={
-              isActive
-                ? {
-                    // Active pill reads as a lifted, dimensional chip rather
-                    // than a flat fill: a top-to-bottom bark gradient, a hairline
-                    // inner highlight catching light along the top edge, and a
-                    // soft colored drop shadow that floats it off the track.
-                    background:
-                      "linear-gradient(180deg, hsl(var(--bark) / 0.94) 0%, hsl(var(--bark)) 100%)",
-                    color: "hsl(var(--parchment))",
-                    boxShadow:
-                      "inset 0 1px 0 hsl(var(--parchment) / 0.28), " +
-                      "0 2px 6px -1px hsl(var(--bark) / 0.45), " +
-                      "0 1px 2px hsl(var(--olivewood) / 0.28)",
-                  }
-                : { color: "hsl(var(--olivewood))" }
-            }
+            className="relative h-9 inline-flex items-center justify-center gap-1.5 rounded-xl text-ds-13 font-sans font-semibold leading-none transition-colors duration-200"
+            style={{ color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
           >
-            {TAB_LABELS[t]}
+            {/* A single lifted pill that slides between tabs via framer's
+                shared-layout (`layoutId`) — only the active trigger mounts it,
+                so switching tabs animates the pill across rather than hopping.
+                Gradient + inset highlight + soft drop shadow give it depth. */}
+            {isActive && (
+              <motion.span
+                layoutId="legalTabPill"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                className="absolute inset-0 rounded-xl"
+                style={{
+                  background:
+                    "linear-gradient(180deg, hsl(var(--bark) / 0.94) 0%, hsl(var(--bark)) 100%)",
+                  boxShadow:
+                    "inset 0 1px 0 hsl(var(--parchment) / 0.28), " +
+                    "0 2px 6px -1px hsl(var(--bark) / 0.45), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.28)",
+                }}
+              />
+            )}
+            <Icon className="relative w-3.5 h-3.5 shrink-0" strokeWidth={2.25} />
+            <span className="relative">{TAB_LABELS[t]}</span>
           </TabsTrigger>
         );
       })}
     </TabsList>
+  );
+
+  const searchBar = (
+    <div className="relative">
+      <Search
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+        style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+      />
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={`Search ${TAB_LABELS[tab].toLowerCase()}…`}
+        className="w-full h-10 rounded-xl pl-9 pr-9 text-ds-13 font-sans bg-card outline-none transition-shadow focus:ring-2"
+        style={{
+          border: "1px solid hsl(var(--bark) / 0.18)",
+          color: "hsl(var(--ink-deep))",
+        }}
+      />
+      {query && (
+        <button
+          type="button"
+          onClick={() => setQuery("")}
+          aria-label="Clear search"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
+          style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+
+  const noResults = (
+    <div className="text-center py-12 px-6">
+      <p className="font-display font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+        No matches for “{query.trim()}”
+      </p>
+      <p className="mt-1 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+        Try a different term or clear the search.
+      </p>
+    </div>
   );
 
   // Per-tab editorial tagline + the three policy panels. Shared by both
@@ -914,16 +1028,30 @@ const Legal = () => {
   );
   const panels = (
     <>
-      <TabsContent value="terms" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+      <TabsContent value="terms" className="mt-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
         <TermsContent />
       </TabsContent>
-      <TabsContent value="community" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+      <TabsContent value="community" className="mt-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
         <CommunityContent />
       </TabsContent>
-      <TabsContent value="privacy" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+      <TabsContent value="privacy" className="mt-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
         <PrivacyContent />
       </TabsContent>
     </>
+  );
+
+  // Search input + filtered policy tree, shared by both layouts. The
+  // PolicySearchContext provider drives the self-filtering sections; the
+  // tagline is editorial framing so it hides while a query is active.
+  const body = (
+    <PolicySearchContext.Provider value={query}>
+      {searchBar}
+      <div ref={contentRef} className="space-y-4">
+        {!query.trim() && tagline}
+        {panels}
+        {query.trim() && !hasResults && noResults}
+      </div>
+    </PolicySearchContext.Provider>
   );
 
   // NATIVE: AppShell's internal scroll container dodges the iOS bug where a
@@ -945,6 +1073,7 @@ const Legal = () => {
     return (
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <AppShell
+          ref={scrollRef}
           header={statusBarCap}
           reserveBottomNav={false}
           className="bg-premium-page"
@@ -954,8 +1083,7 @@ const Legal = () => {
             <div className="max-w-2xl mx-auto space-y-4">
               {headerRow}
               {tabBar}
-              {tagline}
-              {panels}
+              {body}
             </div>
           </div>
         </AppShell>
@@ -985,8 +1113,7 @@ const Legal = () => {
             >
               {tabBar}
             </div>
-            {tagline}
-            {panels}
+            {body}
           </div>
         </main>
       </Tabs>

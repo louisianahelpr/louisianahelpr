@@ -1,4 +1,4 @@
-import { useState, useMemo, createContext, useContext, type ReactNode } from "react";
+import { useState, useMemo, createContext, useContext, Children, isValidElement, type ReactNode } from "react";
 import { ChevronDown, type LucideIcon } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -97,10 +97,19 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
 
   // A section is "hit" when its own title/subtitle match, OR when at
   // least one PolicyRowItem child matches (the section is the gateway
-  // to find the matching row). Children matching is implicit: matching
-  // PolicyRowItem children render normally while non-matching ones
-  // hide themselves via their own self-filter.
-  const sectionHit = matches(query, `${title} ${subtitle}`);
+  // to find the matching row). We inspect children's `title`/`searchText`
+  // props directly so a non-matching section can fully remove itself
+  // during search instead of rendering an empty open card.
+  const childMatches = Children.toArray(children).some((child) => {
+    if (!isValidElement(child)) return false;
+    const props = child.props as Partial<PolicyRow>;
+    return matches(query, `${props.title ?? ""} ${props.searchText ?? ""}`);
+  });
+  const sectionHit = matches(query, `${title} ${subtitle}`) || childMatches;
+
+  // While searching, a section that matches nothing (header or any row)
+  // removes itself entirely so the results read as a tight list.
+  if (isSearching && !sectionHit) return null;
 
   // Force-open while searching so matching rows are visible without
   // the user having to tap each section header. Outside of search,
@@ -114,6 +123,7 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
           by a crisp burnt-sienna left accent edge + a small "Caution"
           chip in the header, so all cards on the page read as one set. */}
       <div
+        data-policy-section
         className="rounded-2xl border border-border bg-card squircle overflow-hidden transition-colors"
         style={{
           // Soft lift matching the TLDR summary card so every surface on the
@@ -162,11 +172,6 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
           <div className="px-2 pb-2 pt-1 space-y-0.5 border-t border-border/50">{children}</div>
         </CollapsibleContent>
       </div>
-      {/* When searching and neither the section header nor any child
-          matched, the section still renders so the layout stays stable —
-          but it can show a faint "(no matches)" hint. Keeping it out
-          for now to avoid noise; uncomment if testers ask for it. */}
-      {isSearching && !sectionHit && null}
     </Collapsible>
   );
 };

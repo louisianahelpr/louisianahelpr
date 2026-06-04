@@ -106,33 +106,34 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       className="animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       {...interactiveProps}
     >
-      {/* Category badge — overhangs the top-left corner like a ribbon.
-          Lives OUTSIDE the clipped inner surface below, so it sticks out
-          past the card edge instead of being chopped by the rounded clip.
-          The poster avatar moved to the job-detail view (JobPosterCard)
-          so the feed card stays uncluttered. */}
-      <span
-        className={`absolute -top-2 left-0 z-20 inline-flex items-center gap-1 pl-2.5 pr-2 py-0.5 rounded-l-none rounded-r-full border text-[10px] font-semibold leading-none shadow-sm ${catStyle.badge}`}
-      >
-        <CategoryIcon
-          category={job.category}
-          aria-hidden
-          className="w-2.5 h-2.5 shrink-0"
-          strokeWidth={2.25}
-        />
-        <span className="font-serif italic">{categoryLabels[job.category] || job.category}</span>
-      </span>
-
       {/* Clipped inner surface — rounds the rail, body, and guest CTA to
-          the card shape. Separate from the root so the overhanging badge
-          above isn't chopped. */}
+          the card shape. The category tab + rail both live inside this clip
+          so they share the card's rounded top-left corner and read as one
+          continuous shape. */}
       <div className="relative rounded-2xl overflow-hidden">
-        {/* Category rail — vertical color stripe down the left edge. */}
+        {/* Category rail — vertical color stripe down the left edge. The
+            tab below sits flush on top of it (same left edge) so the tab's
+            flat left side flows straight into the rail with no gap. */}
         <span
           aria-hidden
           className={`absolute left-0 top-0 bottom-0 w-1.5 ${catStyle.dot}`}
         />
-        <div className="w-full px-3.5 pt-4 pb-3">
+        {/* Category tab — anchored at the top-left, flat left edge (squared)
+            continuing the rail, rounded pill nose on the right. The poster
+            avatar moved to the job-detail view (JobPosterCard) so the feed
+            card stays uncluttered. */}
+        <span
+          className={`absolute top-0 left-0 z-20 inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-[10px] font-semibold leading-none shadow-sm ${catStyle.badge}`}
+        >
+          <CategoryIcon
+            category={job.category}
+            aria-hidden
+            className="w-2.5 h-2.5 shrink-0"
+            strokeWidth={2.25}
+          />
+          <span className="font-serif italic">{categoryLabels[job.category] || job.category}</span>
+        </span>
+        <div className="w-full px-3.5 pt-9 pb-3">
         {/* Title leads the top row and wraps to at most two lines (never
             cut off mid-word); the price tile sits opposite it. */}
         <div className="flex items-start justify-between gap-3">

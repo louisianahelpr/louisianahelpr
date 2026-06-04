@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { BadgeCheck } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -412,8 +411,13 @@ const Signup = () => {
 
   const totalSteps = 3;
   const stepLabels = ["Account", "About you", "Optional"];
-  const inputCls = "rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15";
-  const labelCls = "text-ds-13 font-sans font-medium";
+  // Crisper field surface than the old washed `bg-white/60 border-white/70`,
+  // which muddied to grey over the champagne page. A near-opaque warm fill,
+  // a defined bark-tinted edge, a hairline inset, and a bark focus ring make
+  // the inputs read as deliberate cards that match the polished aesthetic.
+  const inputCls =
+    "rounded-2xl bg-white/85 dark:bg-white/5 border-[hsl(var(--bark)/0.18)] dark:border-white/15 text-[hsl(var(--ink-deep))] shadow-[inset_0_1px_2px_hsl(var(--olivewood)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.45)] focus-visible:!border-[hsl(var(--bark)/0.5)] focus-visible:!ring-[hsl(var(--bark)/0.22)] transition-[border-color,box-shadow]";
+  const labelCls = "text-ds-13 font-sans font-semibold text-[hsl(var(--ink-deep))]";
 
   const stepHeading =
     step === 1
@@ -443,35 +447,35 @@ const Signup = () => {
       </div>
       <div className="pb-12">
           <div className="liquid-glass px-6 sm:px-8 py-6 sm:py-7 space-y-6">
-            {/* Step progress */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
+            {/* Step progress — a slim segmented bar instead of numbered
+                circles. The heading already says "Step X of Y", so the
+                bar's only job is a quiet visual sense of how far along you
+                are. The current segment label rides alongside it. */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
                 {stepLabels.map((label, i) => {
                   const stepNum = i + 1;
-                  const isDone = stepNum < step;
-                  const isActive = stepNum === step;
+                  const filled = stepNum <= step;
                   return (
-                    <div key={label} className="flex-1 flex flex-col items-center gap-1.5">
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-ds-11 font-semibold transition-colors ${
-                        isDone ? "bg-primary text-primary-foreground" :
-                        isActive ? "bg-primary/15 text-primary border-2 border-primary" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
-                        {isDone ? <BadgeCheck className="w-3.5 h-3.5" /> : stepNum}
-                      </div>
-                      <span className={`text-ds-10 font-medium text-center ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
-                        {label}
-                      </span>
-                    </div>
+                    <span
+                      key={label}
+                      className="h-1 flex-1 rounded-full overflow-hidden transition-colors"
+                      style={{ background: "hsl(var(--olivewood) / 0.14)" }}
+                    >
+                      <span
+                        className="block h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: filled ? "100%" : "0%",
+                          background: "hsl(var(--bark))",
+                        }}
+                      />
+                    </span>
                   );
                 })}
               </div>
-              <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${(step / totalSteps) * 100}%` }}
-                />
-              </div>
+              <p className="text-ds-11 font-medium text-[hsl(var(--olivewood)/0.7)]">
+                {stepLabels[step - 1]}
+              </p>
             </div>
 
             {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}

@@ -523,11 +523,11 @@ const DashboardGuest = () => {
               >
                 {isLoading ? (
                   <div
-                    className="space-y-3"
+                    className="space-y-2.5"
                     style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
                   >
                     {Array.from({ length: 4 }).map((_, i) => (
-                      <Skeleton key={i} className="h-44 w-full rounded-2xl" />
+                      <Skeleton key={i} className="h-40 w-full rounded-2xl" />
                     ))}
                   </div>
                 ) : filteredJobs.length === 0 ? (
@@ -566,7 +566,7 @@ const DashboardGuest = () => {
                   </div>
                 ) : (
                   <div
-                    className="space-y-3 animate-in fade-in-0 duration-500"
+                    className="space-y-2.5 animate-in fade-in-0 duration-500"
                     style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
                   >
                     {filteredJobs.map((job, idx) => (

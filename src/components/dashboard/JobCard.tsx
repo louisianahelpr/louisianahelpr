@@ -152,7 +152,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           />
           <span className="font-serif italic">{categoryLabels[job.category] || job.category}</span>
         </span>
-        <div className="w-full px-3.5 pt-7 pb-3">
+        <div className="w-full px-3.5 pt-6 pb-2.5">
         {/* Title leads the top row and wraps to at most two lines (never
             cut off mid-word); the price tile sits opposite it. */}
         <div className="flex items-start justify-between gap-3">
@@ -294,7 +294,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}
-        <div className="mt-2.5 flex items-center gap-x-2 gap-y-0.5 flex-wrap text-[10.5px] text-muted-foreground leading-tight">
+        <div className="mt-2 flex items-center gap-x-2 gap-y-0.5 flex-wrap text-[10.5px] text-muted-foreground leading-tight">
             {isNew && (
               <span
                 className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase"

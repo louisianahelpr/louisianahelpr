@@ -324,7 +324,7 @@ const DashboardGuest = () => {
                 >
                   {hasFilters
                     ? `Filtered · ${activeFilterCount} active`
-                    : "Near you"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
+                    : "Available"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
                 </span>
                 <h2
                   className="font-display italic font-bold leading-tight mt-0.5"
@@ -565,6 +565,7 @@ const DashboardGuest = () => {
                         onSelect={requireSignup}
                         onToggleSave={requireSignup}
                         index={idx}
+                        guestPricing
                       />
                     ))}
                   </div>

@@ -33,6 +33,15 @@ interface JobCardProps {
    * unset, so its behaviour is unchanged.
    */
   variant?: "default" | "guest";
+  /**
+   * Show the gross posted budget + neutral "Budget" label instead of the
+   * helper-side "You earn" net-pay figure — WITHOUT adopting the full
+   * `variant="guest"` treatment (which also pins a "Sign up to apply" lock
+   * footer to every card). Used by the native guest dashboard, where the
+   * "Need help, or want to earn?" framing is two-sided, so a one-sided
+   * "You earn" label misreads for a visitor who wants to post/hire.
+   */
+  guestPricing?: boolean;
 }
 
 // Category colors apply ONLY to the category badge pill at the top of
@@ -40,8 +49,11 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default" }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false }: JobCardProps) => {
   const isGuest = variant === "guest";
+  // Show the gross posted budget (vs the helper's net take-home) whenever
+  // the full guest variant is active OR the lighter guestPricing flag is set.
+  const showBudget = isGuest || guestPricing;
   // Per-helpr take-home: gross share minus the platform's commission, plus
   // the customer-paid urgent bonus. Matches JobDetailDialog math 1:1.
   // (The 10% sales tax on the platform commission is paid by the platform,
@@ -52,9 +64,16 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   const commission = perHelperBudget * (effectiveFee / 100);
   const netEarnings = perHelperBudget - commission + (job.urgent_fee ?? 0);
   // Guests have no fee tier yet — show the gross posted budget rather
-  // than a helpr-specific net-pay figure.
-  const earnings = (isGuest ? job.budget : netEarnings).toFixed(2);
+  // than a helpr-specific net-pay figure. Drop a whole-dollar amount's
+  // trailing ".00" so round prices ($126) read cleaner than the cents-laden
+  // ones that genuinely need them ($85.50) — cents shown only when non-zero.
+  const amountCents = Math.round((showBudget ? job.budget : netEarnings) * 100);
+  const earnings = amountCents % 100 === 0 ? String(amountCents / 100) : (amountCents / 100).toFixed(2);
   const catStyle = categoryColors[job.category] || categoryColors.other;
+
+  // Freshness signal: a job posted within the last 48h gets a "New" chip in
+  // the meta row so a browsing guest sees the feed is live, not stale.
+  const isNew = differenceInHours(new Date(), new Date(job.created_at)) < 48;
 
   const cityState = getCityState(job.location);
 
@@ -242,7 +261,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </span>
               {earnings}
             </span>
-            {!isGuest && (job.urgent_fee ?? 0) > 0 && (
+            {!showBudget && (job.urgent_fee ?? 0) > 0 && (
               <span
                 className="font-sans font-semibold mt-0.5 text-[10px] tracking-[0.04em]"
                 style={{ color: "hsl(var(--burnt-sienna))" }}
@@ -261,7 +280,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 fontWeight: 600,
               }}
             >
-              {isGuest ? "Budget" : "You earn"}
+              {showBudget ? "Budget" : "You earn"}
             </span>
           </div>
           </div>
@@ -270,6 +289,18 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}
         <div className="mt-2.5 flex items-center gap-x-2 gap-y-0.5 flex-wrap text-[10.5px] text-muted-foreground leading-tight">
+            {isNew && (
+              <span
+                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase"
+                style={{
+                  background: "hsl(var(--burnt-sienna) / 0.12)",
+                  color: "hsl(var(--burnt-sienna))",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                New
+              </span>
+            )}
             <span className="flex items-center gap-1">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
               <span className="truncate max-w-[110px] font-serif italic">{cityState}</span>

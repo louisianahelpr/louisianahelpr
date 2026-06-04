@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2 } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import HelprMark from "@/components/HelprMark";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -70,7 +69,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader hideBack align="center" maxWidth="sm">
+    <AuthShell hideHeader align="center" backTo="/login" backLabel="Back to sign in" maxWidth="sm">
       <div className="flex justify-center mb-6">
         <HelprMark to={null} size="lg" emblemOnly />
       </div>
@@ -163,16 +162,6 @@ const ForgotPassword = () => {
           </>
         )}
       </div>
-
-      <p className="text-center mt-6">
-        <Link
-          to="/login"
-          className="text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity inline-flex items-center gap-1.5"
-          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-        >
-          <ArrowLeft className="w-3 h-3" /> Back to sign in
-        </Link>
-      </p>
     </AuthShell>
   );
 };

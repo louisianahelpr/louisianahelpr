@@ -7,6 +7,11 @@ interface AuthShellProps {
   children: ReactNode;
   eyebrow?: string;
   hideBack?: boolean;
+  /** Override the Back link target. Defaults to home ("/" on web,
+      "/browse" on native). */
+  backTo?: string;
+  /** Override the Back link label. Defaults to "Back to home" / "Back". */
+  backLabel?: string;
   /** When true, hides the Helpr·LA wordmark + eyebrow block above
       the slot. Useful when the inner card has its own headline. */
   hideHeader?: boolean;
@@ -33,6 +38,8 @@ const AuthShell = ({
   children,
   eyebrow = "Your Local Task Partner",
   hideBack = false,
+  backTo,
+  backLabel,
   hideHeader = false,
   compactHeader = false,
   align = "start",
@@ -41,6 +48,19 @@ const AuthShell = ({
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
   const alignClass = align === "center" ? "items-center" : "items-start";
+  const resolvedBackTo = backTo ?? (isNativePlatform ? "/browse" : "/");
+  const resolvedBackLabel = backLabel ?? (isNativePlatform ? "Back" : "Back to home");
+
+  const backLink = (
+    <Link
+      to={resolvedBackTo}
+      className="inline-flex items-center gap-1.5 text-ds-11 font-sans tracking-wide hover:opacity-80 active:opacity-60 active:scale-[0.97] transition-all"
+      style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+    >
+      <ArrowLeft className="w-3.5 h-3.5" />
+      {resolvedBackLabel}
+    </Link>
+  );
 
   return (
     <div className="min-h-screen page-warmth relative">
@@ -51,20 +71,19 @@ const AuthShell = ({
           the Back link. `items-start` keeps the heading sitting just
           below Back with consistent, intentional spacing — and the top
           padding is trimmed on `sm:` so the gap stays tight there too. */}
+      {/* When the column is vertically centered the in-flow Back link
+          would drift to the middle with it, so pin it to the top-left
+          of the viewport instead. */}
+      {align === "center" && !hideBack && (
+        <div className="absolute left-5 sm:left-8 top-[calc(env(safe-area-inset-top)+24px)] sm:top-12 z-20">
+          {backLink}
+        </div>
+      )}
       <div className={`relative z-10 flex ${alignClass} justify-center min-h-screen px-5 pb-10 sm:px-8 sm:pb-16 ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
         <div className={`w-full ${widthMap[maxWidth]}`}>
           {showCompactTopBar ? (
             <div className="mb-4 flex items-center justify-between gap-3">
-              {!hideBack ? (
-                <Link
-                  to={isNativePlatform ? "/browse" : "/"}
-                  className="inline-flex items-center gap-1.5 text-ds-11 font-sans tracking-wide hover:opacity-80 active:opacity-60 active:scale-[0.97] transition-all"
-                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  {isNativePlatform ? "Back" : "Back to home"}
-                </Link>
-              ) : <span />}
+              {!hideBack ? backLink : <span />}
               <Link to="/" className="inline-flex items-baseline gap-0.5" aria-label="Helpr LA home">
                 <span
                   className="font-display italic font-bold leading-none"
@@ -90,17 +109,8 @@ const AuthShell = ({
               </Link>
             </div>
           ) : (
-            !hideBack && (
-              <div className="mb-5">
-                <Link
-                  to={isNativePlatform ? "/browse" : "/"}
-                  className="inline-flex items-center gap-1.5 text-ds-11 font-sans tracking-wide hover:opacity-80 active:opacity-60 active:scale-[0.97] transition-all"
-                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  {isNativePlatform ? "Back" : "Back to home"}
-                </Link>
-              </div>
+            !hideBack && align !== "center" && (
+              <div className="mb-5">{backLink}</div>
             )
           )}
 

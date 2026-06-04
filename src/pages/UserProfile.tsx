@@ -661,7 +661,7 @@ const UserProfile = () => {
                 <div key={job.id} className="rounded-ds-md liquid-glass p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-ds-13 font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-muted-foreground text-ds-11">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                    <p className="text-muted-foreground text-ds-11">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace(/_/g, " ")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-ds-13 font-bold text-primary">${job.budget}</span>
@@ -684,7 +684,7 @@ const UserProfile = () => {
                 <div key={job.id} className="rounded-ds-md liquid-glass p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-ds-13 font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-muted-foreground text-ds-11">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                    <p className="text-muted-foreground text-ds-11">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace(/_/g, " ")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-ds-13 font-bold text-primary">${job.budget}</span>

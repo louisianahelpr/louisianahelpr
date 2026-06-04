@@ -78,7 +78,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
   const upcomingJobs = allJobs.filter((j) => j.date_needed >= today).sort((a, b) => a.date_needed.localeCompare(b.date_needed)).slice(0, 10);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ProfileTabHeader
         eyebrow="Calendar"
         title="My schedule"

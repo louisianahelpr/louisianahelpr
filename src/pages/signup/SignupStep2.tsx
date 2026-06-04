@@ -337,7 +337,7 @@ export function SignupStep2(props: SignupStep2Props) {
       </section>
 
       <div className="flex gap-3">
-        <Button variant="outline" className="flex-1 rounded-ds-md" onClick={onBack}>
+        <Button variant="outline" size="lg" className="flex-1 rounded-ds-md" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </Button>
         <Button

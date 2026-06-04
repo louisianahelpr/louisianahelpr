@@ -582,11 +582,12 @@ export function SignupStep3(props: SignupStep3Props) {
       </div>
 
       <div className="flex gap-3">
-        <Button variant="outline" className="flex-1 rounded-ds-md" onClick={onBack}>
+        <Button variant="outline" size="lg" className="flex-1 rounded-ds-md" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </Button>
         <Button
           variant="bark"
+          size="lg"
           className="flex-1 rounded-ds-md"
           onClick={() => {
             if (isLicensed && !licenseFile) { toast.error("Please upload your license or turn off the Licensed toggle"); return; }

@@ -119,7 +119,7 @@ const DataRights = () => {
         <p className="text-ds-11 text-muted-foreground">
           Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
           Use the controls below to exercise them. For all other privacy questions email{" "}
-          <a href="mailto:privacy@louisianahelpr.com" className="text-primary underline">privacy@louisianahelpr.com</a>.
+          <a href="mailto:privacy@louisianahelpr.com" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>privacy@louisianahelpr.com</a>.
         </p>
 
         {/* Export */}

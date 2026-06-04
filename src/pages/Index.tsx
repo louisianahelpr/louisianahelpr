@@ -218,7 +218,7 @@ const Index = () => {
 
       {/* 120px breathing room before the footer so the FAQ accordion
           doesn't crash into the footer surface. */}
-      <div aria-hidden className="h-30" style={{ height: "120px" }} />
+      <div aria-hidden style={{ height: "120px" }} />
 
       <Footer />
     </div>

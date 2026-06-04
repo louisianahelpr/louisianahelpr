@@ -215,7 +215,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
   }
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4">
       <ProfileTabHeader
         eyebrow="Concierge"
         title="Help &amp; support"

@@ -24,7 +24,7 @@ const ForBusiness = () => {
   });
 
   return (
-    <div className="relative min-h-screen page-warmth">
+    <div className="relative min-h-screen page-warmth pb-safe-nav">
       <div aria-hidden className="mesh-gradient-global" />
       <Navbar />
       <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />

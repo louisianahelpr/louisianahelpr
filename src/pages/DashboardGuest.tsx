@@ -290,7 +290,7 @@ const DashboardGuest = () => {
             >
               <div className="flex flex-col leading-none min-w-0">
                 <span
-                  className="font-serif italic tracking-[0.16em] uppercase text-[11px]"
+                  className="font-serif italic tracking-[0.16em] uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
                   {hasFilters
@@ -300,7 +300,7 @@ const DashboardGuest = () => {
                 <h2
                   className="font-display italic font-bold leading-tight mt-0.5"
                   style={{
-                    fontSize: "1.3rem",
+                    fontSize: "1.25rem",
                     color: "hsl(var(--ink-deep))",
                     letterSpacing: "-0.018em",
                   }}

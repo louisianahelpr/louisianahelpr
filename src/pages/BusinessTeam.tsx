@@ -256,7 +256,7 @@ const BusinessTeam = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-page">
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
       <div className="container mx-auto px-5 py-6 max-w-3xl">
         <button
           onClick={() => navigate(-1)}

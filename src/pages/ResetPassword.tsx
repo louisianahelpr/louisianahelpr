@@ -51,7 +51,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <AuthShell eyebrow="Set a new password" maxWidth="sm">
+    <AuthShell eyebrow="Set a new password" maxWidth="sm" align="center">
       <div className="liquid-glass p-6 sm:p-8 space-y-6">
         <div className="text-center space-y-2">
           <span className="text-display-eyebrow">Reset password</span>

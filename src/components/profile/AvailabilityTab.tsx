@@ -8,7 +8,7 @@ interface AvailabilityTabProps {
 
 export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ProfileTabHeader
         eyebrow="Hours"
         title="Availability"
@@ -16,7 +16,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
         onBack={onBack}
       />
 
-      <div className="rounded-ds-md liquid-glass p-5">
+      <div className="rounded-2xl liquid-glass p-5">
         <HelperAvailability userId={userId} />
       </div>
     </div>

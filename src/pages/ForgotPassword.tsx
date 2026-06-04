@@ -162,17 +162,17 @@ const ForgotPassword = () => {
             </form>
           </>
         )}
-
-        <p className="text-center text-ds-11 pt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-          <Link
-            to="/login"
-            className="font-semibold hover:underline inline-flex items-center gap-1"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            <ArrowLeft className="w-3 h-3" /> Back to sign in
-          </Link>
-        </p>
       </div>
+
+      <p className="text-center mt-6">
+        <Link
+          to="/login"
+          className="text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity inline-flex items-center gap-1.5"
+          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+        >
+          <ArrowLeft className="w-3 h-3" /> Back to sign in
+        </Link>
+      </p>
     </AuthShell>
   );
 };

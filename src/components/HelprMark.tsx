@@ -9,6 +9,9 @@ interface HelprMarkProps {
   size?: "sm" | "md" | "lg";
   /** Hide the "·LA" suffix when space is tight. */
   hideSuffix?: boolean;
+  /** Render only the wrought-iron H emblem, without the "Helpr·LA"
+   *  wordmark — used as a standalone brand crest (e.g. auth screens). */
+  emblemOnly?: boolean;
   className?: string;
 }
 
@@ -17,6 +20,10 @@ const sizeMap = {
   md: { logo: "h-6", helpr: "1.45rem", la: "0.95rem" },
   lg: { logo: "h-9", helpr: "1.85rem", la: "1.2rem" },
 };
+
+// Standalone-crest heights — the emblem carries the whole mark on its
+// own here, so it's sized up a step from its inline-wordmark height.
+const emblemSizeMap = { sm: "h-8", md: "h-10", lg: "h-14" };
 
 /**
  * Helpr·LA wordmark — wrought-iron H emblem (Garden District ironwork
@@ -27,16 +34,17 @@ const sizeMap = {
  * via webp at the right resolution per size. No surrounding frosted-glass
  * tile — the wrought iron is detailed enough to hold its own.
  */
-export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, className = "" }: HelprMarkProps) => {
+export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnly = false, className = "" }: HelprMarkProps) => {
   const s = sizeMap[size];
+  const logoClass = emblemOnly ? emblemSizeMap[size] : s.logo;
   const inner = (
     <>
       <img
-        src={size === "lg" ? helprLogoMd : helprLogoSm}
+        src={size === "lg" || emblemOnly ? helprLogoMd : helprLogoSm}
         srcSet={`${helprLogoSm} 96w, ${helprLogoMd} 256w`}
         sizes={size === "lg" ? "56px" : size === "md" ? "40px" : "32px"}
         alt="Helpr"
-        className={`${s.logo} w-auto select-none transition-transform duration-200 group-hover:scale-105`}
+        className={`${logoClass} w-auto select-none transition-transform duration-200 group-hover:scale-105`}
         style={{
           // Subtle drop shadow so the wrought iron lifts off the
           // parchment / glass canvas instead of reading as a flat
@@ -46,6 +54,7 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, className
         }}
         draggable={false}
       />
+      {!emblemOnly && (
       <span className="inline-flex items-baseline gap-0.5">
         <span
           className="font-serif italic leading-none"
@@ -75,6 +84,7 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, className
           </span>
         )}
       </span>
+      )}
     </>
   );
 

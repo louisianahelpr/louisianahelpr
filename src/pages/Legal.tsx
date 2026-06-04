@@ -885,28 +885,27 @@ const Legal = () => {
                 }}
               >
                 <TabsList
-                  className="grid w-full grid-cols-3 rounded-2xl p-1 h-12"
+                  className="grid w-full grid-cols-3 rounded-2xl p-1 h-12 gap-1"
                   style={{
-                    background: "hsla(0, 0%, 100%, 0.55)",
-                    border: "1px solid hsla(0, 0%, 100%, 0.6)",
-                    backdropFilter: "blur(20px) saturate(170%)",
+                    background: "hsl(var(--bark) / 0.06)",
+                    border: "1px solid hsl(var(--bark) / 0.16)",
                   }}
                 >
                   <TabsTrigger
                     value="terms"
-                    className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
+                    className="rounded-xl text-ds-13 font-sans font-semibold text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
                   >
                     Terms
                   </TabsTrigger>
                   <TabsTrigger
                     value="community"
-                    className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
+                    className="rounded-xl text-ds-13 font-sans font-semibold text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
                   >
                     Community
                   </TabsTrigger>
                   <TabsTrigger
                     value="privacy"
-                    className="rounded-ds-md text-ds-13 font-sans font-semibold text-muted-foreground data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-foreground"
+                    className="rounded-xl text-ds-13 font-sans font-semibold text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
                   >
                     Privacy
                   </TabsTrigger>

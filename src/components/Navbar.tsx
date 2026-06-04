@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sparkles, Briefcase, Building2, ArrowRight } from "lucide-react";
 import { useState, useEffect, forwardRef } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { prefetchRoute } from "@/lib/routePrefetch";
@@ -129,10 +129,15 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="hover:bg-muted btn-press rounded-ds-md h-10 w-10"
+                className="btn-press rounded-xl h-10 w-10"
+                style={{
+                  background: "hsl(var(--bark) / 0.08)",
+                  border: "1px solid hsl(var(--bark) / 0.22)",
+                  color: "hsl(var(--bark))",
+                }}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
               >
-                {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                {mobileOpen ? <X className="w-5 h-5" strokeWidth={2.25} /> : <Menu className="w-5 h-5" strokeWidth={2.25} />}
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -144,7 +149,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
               }}
             >
               <div
-                className="flex items-center gap-2 pb-5 mb-2"
+                className="flex flex-col gap-1 pb-5 mb-2"
                 style={{
                   borderBottom: "1px solid hsl(var(--burnt-sienna) / 0.4)",
                 }}
@@ -152,10 +157,16 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                 {/* HelprMark again — to=null since we're inside a Sheet
                     and a Link would close the menu via navigation. */}
                 <HelprMark to={null} size="md" />
+                <span
+                  className="font-serif italic uppercase text-[0.62rem]"
+                  style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                >
+                  Louisiana&rsquo;s task marketplace
+                </span>
               </div>
               <Link
                 to="/#how-it-works"
-                className="block font-sans font-semibold py-3 min-h-[44px] flex items-center transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
                 style={{
                   fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
@@ -163,11 +174,12 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                 }}
                 onClick={() => setMobileOpen(false)}
               >
+                <Sparkles className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
                 How it works
               </Link>
               <Link
                 to="/browse"
-                className="block font-sans font-semibold py-3 min-h-[44px] flex items-center transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
                 style={{
                   fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
@@ -175,11 +187,12 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                 }}
                 onClick={() => setMobileOpen(false)}
               >
+                <Briefcase className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
                 Jobs
               </Link>
               <Link
                 to="/for-business"
-                className="block font-sans font-semibold py-3 min-h-[44px] flex items-center transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
                 style={{
                   fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
@@ -187,7 +200,8 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                 }}
                 onClick={() => setMobileOpen(false)}
               >
-                For Business
+                <Building2 className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
+                Business
               </Link>
               <div className="flex flex-col gap-3 mt-auto pt-6">
                 <Button
@@ -212,17 +226,19 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                 <Button
                   asChild
                   size="lg"
-                  className="btn-liquid-fill w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                  className="btn-liquid-fill group w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                   style={{
                     color: "hsl(var(--parchment))",
-                    backgroundColor: "hsl(var(--sage))",
-                    border: "1px solid hsl(var(--sage))",
+                    backgroundColor: "hsl(var(--bark))",
+                    backgroundImage: "none",
+                    border: "1px solid hsl(var(--bark))",
                     boxShadow:
                       "inset 0 1px 0 0 rgba(255,255,255,0.25), 0 1px 2px rgba(0,0,0,0.04), 0 8px 32px -8px rgba(0,0,0,0.06)",
                   }}
                 >
                   <Link to="/signup" onClick={() => setMobileOpen(false)}>
                     Get started
+                    <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
                   </Link>
                 </Button>
               </div>

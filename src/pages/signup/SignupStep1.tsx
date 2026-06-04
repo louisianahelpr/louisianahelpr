@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Check, Circle, X } from "lucide-react";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 
@@ -66,7 +66,7 @@ export function SignupStep1({
         <div className="space-y-2">
           <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
           <div className="relative">
-            <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+            <Input id="password" type={showPassword ? "text" : "password"} placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -83,17 +83,17 @@ export function SignupStep1({
             const hasLength = password.length >= 8;
             const hasUpper = /[A-Z]/.test(password);
             const hasNumber = /\d/.test(password);
-            const Check = ({ ok, label }: { ok: boolean; label: string }) => (
+            const Req = ({ ok, label }: { ok: boolean; label: string }) => (
               <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
-                <span aria-hidden>{ok ? "✓" : "○"}</span>
+                {ok ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />}
                 {label}
               </span>
             );
             return (
               <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
-                <Check ok={hasLength} label="8+ chars" />
-                <Check ok={hasUpper} label="Uppercase" />
-                <Check ok={hasNumber} label="Number" />
+                <Req ok={hasLength} label="8+ chars" />
+                <Req ok={hasUpper} label="Uppercase" />
+                <Req ok={hasNumber} label="Number" />
               </div>
             );
           })()}
@@ -112,8 +112,10 @@ export function SignupStep1({
             </button>
           </div>
           {confirmPassword && (
-            <p className={`text-ds-11 ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
-              {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
+            <p className={`inline-flex items-center gap-1 text-ds-11 ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
+              {password === confirmPassword
+                ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden /> Passwords match</>
+                : <><X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden /> Passwords do not match</>}
             </p>
           )}
         </div>

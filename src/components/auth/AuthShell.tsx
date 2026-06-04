@@ -82,9 +82,9 @@ const AuthShell = ({
       <div className={`relative z-10 flex ${alignClass} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-16"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
         <div className={`w-full ${widthMap[maxWidth]}`}>
           {showCompactTopBar ? (
-            <div className="mb-4 flex items-center justify-between gap-3">
-              {!hideBack ? backLink : <span />}
-              <HelprMark size="sm" emblemOnly />
+            <div className="relative mb-4 flex items-center justify-center min-h-7">
+              {!hideBack && <div className="absolute left-0">{backLink}</div>}
+              <HelprMark to={null} size="md" emblemOnly />
             </div>
           ) : (
             !hideBack && align !== "center" && (

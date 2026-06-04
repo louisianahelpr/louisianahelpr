@@ -416,14 +416,16 @@ const Signup = () => {
     "rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]";
   const labelCls = "text-ds-13 font-sans font-medium";
 
+  // Short, single-line titles that mirror the Login screen's heading,
+  // each paired with a brief subtitle (kept, per request, but trimmed).
   const stepHeading =
     step === 1
       ? isBusinessSignup
-        ? { title: "Set up your business.", subtitle: "Create your company account — invite your team next." }
-        : { title: "Welcome to the neighborhood.", subtitle: "A few minutes now — then everything's set." }
+        ? { title: "Set up your business.", subtitle: "Invite your team and bill jobs to one card." }
+        : { title: "Welcome, neighbor.", subtitle: "Create your account to get started." }
       : step === 2
-      ? { title: "Tell us about you.", subtitle: "A photo and a few basics help neighbors trust who they're hiring." }
-      : { title: "Make your profile stand out.", subtitle: "Optional — skip anything that doesn't apply." };
+      ? { title: "Tell us about you.", subtitle: "A few basics so neighbors know who they're hiring." }
+      : { title: "Finishing touches.", subtitle: "Optional — skip anything that doesn't apply." };
 
   return (
     <AuthShell compactHeader maxWidth="2xl">
@@ -450,7 +452,10 @@ const Signup = () => {
         </p>
       </div>
       <div className="pb-8">
-          <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
+          {/* No liquid-glass card here — the form sits directly on the page
+              so the tall signup column doesn't read as a heavy floating box.
+              Field padding is kept so input width still matches Login. */}
+          <div className="px-6 sm:px-8 py-1 space-y-4">
             {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}
             {import.meta.env.DEV && (
               <div className="rounded-ds-sm border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">

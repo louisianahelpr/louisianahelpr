@@ -1,12 +1,13 @@
 import { memo, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Star, Zap, Rocket, Clock, Timer, Users, Repeat, Lock,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { parseLocalDate } from "@/lib/dateUtils";
+import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCityState } from "@/lib/locationUtils";
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
 import { prefetchJobDialog } from "./prefetchJobDialog";
@@ -155,7 +156,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         <div className="w-full px-3.5 pt-6 pb-2.5">
         {/* Title leads the top row and wraps to at most two lines (never
             cut off mid-word); the price tile sits opposite it. */}
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <h3
             className="font-display italic font-bold text-foreground leading-tight line-clamp-2 flex-1 min-w-0"
             style={{
@@ -224,22 +225,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               })()}
             </div>
           )}
-          {/* Price chip — quiet warm-parchment surface with a single
-              hairline border, so the job title leads the card. */}
+          {/* Price chip — quiet flat warm-parchment tint with a single
+              hairline border (no emboss), so the job title leads the card
+              and the price sits as a calm secondary figure. */}
           <div
             className="flex flex-col items-center px-2.5 py-1.5 rounded-ds-md"
             style={{
-              // Embossed cream tile — a soft top-lit gradient + inner
-              // highlight and a low ambient shadow lift the price off the
-              // card so it reads as a pressed plaque, not a flat tint box.
-              background:
-                "linear-gradient(165deg, hsl(40 44% 99%) 0%, hsl(36 30% 95%) 55%, hsl(34 26% 92%) 100%)",
+              background: "hsl(38 34% 94%)",
               border: "0.5px solid hsl(var(--bark) / 0.18)",
-              boxShadow:
-                "inset 0 1px 0 0 rgba(255, 255, 255, 0.75), " +
-                "inset 0 -1px 1px 0 hsl(var(--olivewood) / 0.06), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.10), " +
-                "0 3px 7px -2px hsl(var(--olivewood) / 0.12)",
             }}
           >
             <span
@@ -247,7 +240,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               style={{
                 fontWeight: 800,
                 fontSize: "0.95rem",
-                color: "hsl(var(--bark))",
+                color: "color-mix(in srgb, hsl(var(--bark)) 86%, #000 14%)",
                 letterSpacing: "-0.02em",
               }}
             >
@@ -257,7 +250,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   (0.82em) and near-baseline so the sign and number read as one
                   matched price tag rather than a tiny raised superscript. */}
               <span
-                style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px", opacity: 0.92 }}
+                style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}
               >
                 $
               </span>
@@ -312,14 +305,36 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <span className="truncate max-w-[110px] font-serif italic">{cityState}</span>
             </span>
             <span className="opacity-30">·</span>
-            <span className="flex items-center gap-1">
-              <Calendar className="w-2.5 h-2.5 shrink-0" />
-              <span className="font-serif italic">
-                {!job.start_time && !job.date_needed
-                  ? "Flexible"
-                  : `Due ${parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`}
+            {/* Date and time are separate meta chips, each with its own icon
+                (calendar / clock), matching the weight of the rest of the row.
+                "Due" is dropped — the date is self-evidently the day the work
+                must be done. The time chip only renders when a start_time is set. */}
+            {!job.date_needed && !job.start_time ? (
+              <span className="flex items-center gap-1">
+                <Calendar className="w-2.5 h-2.5 shrink-0" />
+                <span className="font-serif italic">Flexible</span>
               </span>
-            </span>
+            ) : (
+              <>
+                {job.date_needed && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-2.5 h-2.5 shrink-0" />
+                    <span className="font-serif italic">
+                      {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                    </span>
+                  </span>
+                )}
+                {job.start_time && (
+                  <>
+                    <span className="opacity-30">·</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 shrink-0" />
+                      <span className="font-serif italic">{formatTime12(job.start_time)}</span>
+                    </span>
+                  </>
+                )}
+              </>
+            )}
             {expiryText && (
               <>
                 <span className="opacity-30">·</span>
@@ -338,20 +353,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 </span>
               </>
             )}
-            {/* Age chip is the lowest-value field in the row — hide it
-                on the smallest phones (<360px) so the meta row doesn't
-                wrap to three lines. `xs` breakpoint isn't defined in
-                tailwind.config, so an arbitrary media-query class is
-                used instead. */}
-            <>
-              <span className="opacity-30 hidden [@media(min-width:360px)]:inline">·</span>
-              <span className="hidden [@media(min-width:360px)]:flex items-center gap-1 opacity-80">
-                <Clock className="w-2.5 h-2.5 shrink-0" />
-                <span className="font-serif italic">
-                  Posted {formatDistanceToNow(new Date(job.created_at), { addSuffix: false })} ago
-                </span>
-              </span>
-            </>
+            {/* "Posted X ago" was dropped from the row — it was the same on
+                every card (no decision value) and added a third wrapped line
+                on small phones. Freshness is still signalled by the "New"
+                chip (<48h) at the head of the row. */}
             {job.is_group_job && (
               <>
                 <span className="opacity-30">·</span>

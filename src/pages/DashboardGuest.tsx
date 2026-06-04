@@ -229,7 +229,6 @@ const DashboardGuest = () => {
     <PageScaffold
       maxWidth="narrow"
       animate
-      titleCardClassName="!py-2.5 lg:!py-3"
       header={
         /* Header — matches DashboardHeader's frosted-glass treatment, with
            guest-only Log in / Sign up actions in place of the menu/notif/etc. */
@@ -268,50 +267,6 @@ const DashboardGuest = () => {
           </div>
         </div>
       </header>
-      }
-      titleCard={
-        // Compact hero strip — a single inline headline. The in-card
-        // "Sign up free" CTA and "Already on Helpr? Log in" link were
-        // removed 2026-05-19 because the page header (rendered above)
-        // already shows both `Log in` and `Sign up` buttons in the corner.
-        // Duplicating them here doubled the card's height and dominated
-        // the guest dashboard without adding any new conversion path.
-        //
-        // The "A first look" eyebrow and the "Post a task in a minute…"
-        // subline were dropped 2026-05-20 (TestFlight 19 feedback: "the
-        // top bar that says like need help is still too big"). The
-        // subline was redundant with the browse feed rendered directly
-        // below the card; the eyebrow consumed a full line for no real
-        // signal. If A/B testing later shows the corner CTAs are missed
-        // by guest users, reintroduce a single inline link rather than
-        // the full bark Button + secondary text-link stack.
-        //
-        // 2026-06-03: an inline "Sign up free" link was tried here, but it
-        // sat directly under the header's own "Sign up" button and read as a
-        // duplicate CTA. Removed again — the header owns the sign-up action;
-        // this strip stays a single quiet headline that frames the feed.
-        <div className="min-w-0">
-          <h1
-            className="leading-[1.12]"
-            style={{
-              fontFamily: '"Bodoni Moda", Georgia, serif',
-              fontStyle: "italic",
-              fontWeight: 600,
-              fontSize: "clamp(0.95rem, 0.8vw + 0.35rem, 1.05rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.022em",
-            }}
-          >
-            Need help, or want to{" "}
-            <em
-              className="signature"
-              style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}
-            >
-              earn
-            </em>
-            ?
-          </h1>
-        </div>
       }
     >
             {/* Payout ticker (#87) — thin social-proof strip above the

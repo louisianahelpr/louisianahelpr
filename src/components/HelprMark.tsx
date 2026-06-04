@@ -64,7 +64,7 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, className
             style={{
               fontSize: s.la,
               fontWeight: 400,
-              color: "hsl(var(--burnt-sienna) / 0.85)",
+              color: "hsl(var(--burnt-sienna))",
               // Same airy small-caps tracking we use for metadata
               // throughout the app — high-end editorial feel.
               letterSpacing: "0.22em",

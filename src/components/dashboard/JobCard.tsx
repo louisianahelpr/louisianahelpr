@@ -253,9 +253,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             >
               {/* Literal `$` glyph (not the lucide icon) pulled tight to the
                   digits so the amount reads as one confident figure — the
-                  icon left a visible "$ 85.50" gap. */}
+                  icon left a visible "$ 85.50" gap. Sized close to the digits
+                  (0.82em) and near-baseline so the sign and number read as one
+                  matched price tag rather than a tiny raised superscript. */}
               <span
-                style={{ fontSize: "0.7em", verticalAlign: "0.08em", marginRight: "0.5px", opacity: 0.8 }}
+                style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px", opacity: 0.92 }}
               >
                 $
               </span>
@@ -269,19 +271,23 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 incl. ${Number(job.urgent_fee).toFixed(0)} urgent bonus
               </span>
             )}
-            {/* De-emphasized unit label — repeats on every card, so it's
-                kept small + low-contrast so the dollar figure above carries
-                the weight and the caption recedes into a quiet annotation. */}
-            <span
-              className="text-[9px] uppercase mt-0.5 font-sans"
-              style={{
-                color: "hsl(45 8% 64%)",
-                letterSpacing: "0.1em",
-                fontWeight: 600,
-              }}
-            >
-              {showBudget ? "Budget" : "You earn"}
-            </span>
+            {/* "You earn" disambiguates the helpr's net take-home from the
+                gross posted budget, so it stays. The guest/poster "Budget"
+                caption was dropped — the figure is self-evidently the posted
+                budget there, and repeating the word down every card was noise
+                that also made the price tile tower over one-line titles. */}
+            {!showBudget && (
+              <span
+                className="text-[9px] uppercase mt-0.5 font-sans"
+                style={{
+                  color: "hsl(45 8% 64%)",
+                  letterSpacing: "0.1em",
+                  fontWeight: 600,
+                }}
+              >
+                You earn
+              </span>
+            )}
           </div>
           </div>
         </div>
@@ -311,7 +317,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <span className="font-serif italic">
                 {!job.start_time && !job.date_needed
                   ? "Flexible"
-                  : parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                  : `Due ${parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`}
               </span>
             </span>
             {expiryText && (

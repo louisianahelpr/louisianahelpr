@@ -336,7 +336,7 @@ const DashboardGuest = () => {
                 >
                   {hasFilters
                     ? `Filtered · ${activeFilterCount} active`
-                    : "Available"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
+                    : `${filteredJobs.length} ${filteredJobs.length === 1 ? "task" : "tasks"} available`}
                 </span>
                 <h2
                   className="font-display italic font-bold leading-tight mt-0.5"

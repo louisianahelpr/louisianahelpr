@@ -275,12 +275,13 @@ const DashboardGuest = () => {
         // by guest users, reintroduce a single inline link rather than
         // the full bark Button + secondary text-link stack.
         //
-        // 2026-06-03: reintroduced exactly that — one baseline-aligned
-        // "Sign up free" text link sharing the headline row, so it adds a
-        // conversion path with zero extra card height.
-        <div className="min-w-0 flex items-baseline justify-between gap-3">
+        // 2026-06-03: an inline "Sign up free" link was tried here, but it
+        // sat directly under the header's own "Sign up" button and read as a
+        // duplicate CTA. Removed again — the header owns the sign-up action;
+        // this strip stays a single quiet headline that frames the feed.
+        <div className="min-w-0">
           <h1
-            className="leading-[1.12] min-w-0"
+            className="leading-[1.12]"
             style={{
               fontFamily: '"Bodoni Moda", Georgia, serif',
               fontStyle: "italic",
@@ -299,14 +300,6 @@ const DashboardGuest = () => {
             </em>
             ?
           </h1>
-          <button
-            type="button"
-            onClick={requireSignup}
-            className="shrink-0 whitespace-nowrap text-[11px] font-semibold tracking-tight transition-opacity active:opacity-60"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            Sign up free →
-          </button>
         </div>
       }
     >

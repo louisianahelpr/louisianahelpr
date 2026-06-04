@@ -885,7 +885,7 @@ const Legal = () => {
                 }}
               >
                 <TabsList
-                  className="grid w-full grid-cols-3 items-stretch gap-1 rounded-2xl p-1 h-11"
+                  className="grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto"
                   style={{
                     background: "hsl(var(--bark) / 0.06)",
                     border: "1px solid hsl(var(--bark) / 0.16)",
@@ -893,19 +893,19 @@ const Legal = () => {
                 >
                   <TabsTrigger
                     value="terms"
-                    className="h-full inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
+                    className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
                   >
                     Terms
                   </TabsTrigger>
                   <TabsTrigger
                     value="community"
-                    className="h-full inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
+                    className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
                   >
                     Community
                   </TabsTrigger>
                   <TabsTrigger
                     value="privacy"
-                    className="h-full inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
+                    className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
                   >
                     Privacy
                   </TabsTrigger>

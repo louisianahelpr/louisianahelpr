@@ -111,9 +111,9 @@ const Login = () => {
 
   return (
     <AuthShell hideHeader>
-      <div className="text-center mb-5 space-y-2">
-        <div className="flex justify-center mb-6">
-          <HelprMark to={null} size="lg" emblemOnly />
+      <div className="text-center mb-4 space-y-1.5">
+        <div className="flex justify-center mb-3">
+          <HelprMark to={null} size="md" emblemOnly />
         </div>
         <h1
           className="font-display italic font-bold leading-tight"
@@ -137,8 +137,8 @@ const Login = () => {
         </p>
       </div>
 
-      <div className="liquid-glass px-6 sm:px-8 py-6 sm:py-7 space-y-5">
-        <form onSubmit={handleLogin} className="space-y-4">
+      <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
+        <form onSubmit={handleLogin} className="space-y-3.5">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
             <div className="relative">
@@ -227,26 +227,38 @@ const Login = () => {
           <GoogleSignInButton label="Sign in with Google" />
         </div>
 
-        <p className="text-center text-ds-11 font-sans pt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-          New to Helpr?{" "}
-          <Link
-            to="/signup"
-            className="font-semibold hover:underline"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            Create an account
-          </Link>
-        </p>
+        <div className="space-y-1.5 pt-1">
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            New to Helpr?{" "}
+            <Link
+              to="/signup"
+              className="font-semibold hover:underline"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Create an account
+            </Link>
+          </p>
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            Have a business?{" "}
+            <Link
+              to="/signup?type=business"
+              className="font-semibold hover:underline"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Business sign-up
+            </Link>
+          </p>
+        </div>
       </div>
 
-      <p className="text-center text-ds-11 font-sans leading-relaxed px-2 mt-3" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+      <p className="text-center text-ds-11 font-sans leading-relaxed px-2 mt-2.5" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
         By signing in you agree to our{" "}
         <Link to="/terms" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Terms</Link>
         {" · "}
         <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy Policy</Link>
       </p>
 
-      <div className="mt-3 mb-2">
+      <div className="mt-2">
         <BuildStamp />
       </div>
     </AuthShell>

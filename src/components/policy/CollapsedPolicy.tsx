@@ -118,7 +118,7 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
         style={
           warning
             ? { borderLeft: "3px solid hsl(var(--burnt-sienna) / 0.55)" }
-            : undefined
+            : { borderLeft: "3px solid hsl(var(--bark) / 0.35)" }
         }
       >
         <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">

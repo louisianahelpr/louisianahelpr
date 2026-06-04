@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Eye, EyeOff, Check, Circle, X } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Check, Circle, X, Mail, Lock, Building2 } from "lucide-react";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 
@@ -31,6 +31,8 @@ export interface SignupStep1Props {
   setAcceptedPolicies: (v: boolean) => void;
   inputCls: string;
   labelCls: string;
+  /** True when the URL carries ?type=business — drives the account-type toggle. */
+  isBusinessSignup: boolean;
   /** Called when the user clicks Continue — parent runs validation, then advances step. */
   onContinue: () => void | Promise<void>;
 }
@@ -50,10 +52,35 @@ export function SignupStep1({
   setAcceptedPolicies,
   inputCls,
   labelCls,
+  isBusinessSignup,
   onContinue,
 }: SignupStep1Props) {
   return (
     <div className="space-y-6">
+      {/* Business-mode banner — when ?type=business is set, confirm the user
+          is on the company path (and give them an escape hatch back to
+          personal). The everyday entry point is the quiet footer link below,
+          not an up-front toggle. */}
+      {isBusinessSignup && (
+        <div
+          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
+          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
+        >
+          <Building2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+          <div className="space-y-0.5">
+            <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+              Business account
+            </p>
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Invite your team and bill jobs to one card.{" "}
+              <Link to="/signup" replace className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
+                Personal instead?
+              </Link>
+            </p>
+          </div>
+        </div>
+      )}
+
       <section className="space-y-3">
         <div className="space-y-2">
           {/* Single email field — confirm-email was removed since
@@ -61,12 +88,16 @@ export function SignupStep1({
               already catches typos. The double field was 2014-era
               friction that costs activations without preventing errors. */}
           <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
-          <Input id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.5)" }} strokeWidth={1.75} />
+            <Input id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={`${inputCls} pl-10`} />
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
           <div className="relative">
-            <Input id="password" type={showPassword ? "text" : "password"} placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.5)" }} strokeWidth={1.75} />
+            <Input id="password" type={showPassword ? "text" : "password"} placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pl-10 pr-10`} autoComplete="new-password" />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -101,7 +132,11 @@ export function SignupStep1({
         <div className="space-y-2">
           <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
           <div className="relative">
-            <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.5)" }} strokeWidth={1.75} />
+            <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pl-10 ${confirmPassword && password === confirmPassword ? "pr-16" : "pr-10"}`} autoComplete="new-password" />
+            {confirmPassword && password === confirmPassword && (
+              <Check className="absolute right-9 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+            )}
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -153,6 +188,11 @@ export function SignupStep1({
       >
         Continue <ArrowRight className="w-4 h-4 ml-1" />
       </Button>
+      {!acceptedPolicies && (
+        <p className="text-ds-11 text-center text-muted-foreground -mt-2">
+          Check the box above to continue.
+        </p>
+      )}
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -175,6 +215,20 @@ export function SignupStep1({
         <GoogleSignInButton label="Sign up with Google" />
         <AppleSignInButton label="Sign up with Apple" />
       </div>
+
+      {/* Quiet business escape hatch — the everyday way a company owner finds
+          the business path, without forcing every visitor through an up-front
+          Personal/Business choice. Hidden in business mode (the banner above
+          already offers the reverse switch). Same-route ?type= flip keeps the
+          parent form mounted, so typed email/password survive the switch. */}
+      {!isBusinessSignup && (
+        <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          Setting up for a company?{" "}
+          <Link to="/signup?type=business" replace className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            Switch to business sign-up
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

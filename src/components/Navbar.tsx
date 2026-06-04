@@ -128,8 +128,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
-                size="icon"
-                className="btn-press rounded-xl h-10 w-10"
+                className="btn-press rounded-xl h-10 px-3 gap-1.5 font-sans font-semibold text-ds-13"
                 style={{
                   background: "hsl(var(--bark) / 0.08)",
                   border: "1px solid hsl(var(--bark) / 0.22)",
@@ -138,6 +137,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
               >
                 {mobileOpen ? <X className="w-5 h-5" strokeWidth={2.25} /> : <Menu className="w-5 h-5" strokeWidth={2.25} />}
+                Menu
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -146,6 +146,11 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
               style={{
                 backgroundColor: "hsl(var(--parchment))",
                 color: "hsl(var(--olivewood))",
+                // Push content below the status bar / dynamic island — the
+                // sheet is full-height, so without the safe-area top inset the
+                // HelprMark header clips behind the notch on iOS.
+                paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.5rem)",
+                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)",
               }}
             >
               <div

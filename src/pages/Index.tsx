@@ -25,6 +25,7 @@ const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 import HeroSection from "@/components/landing/HeroSection";
 const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
 const CommunityVoice = lazy(() => import("@/components/landing/CommunityVoice"));
+const BusinessCTASection = lazy(() => import("@/components/landing/BusinessCTASection"));
 // PayoutTicker is below the fold (it lives between the hero and the
 // city strip) so it's safe to lazy-load — keeps the supabase chunk
 // out of the LCP path. The ticker hides itself on empty / errored
@@ -214,6 +215,10 @@ const Index = () => {
       </Suspense>
       <Suspense fallback={<div className="h-96" />}>
         <CommunityVoice />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <BusinessCTASection />
       </Suspense>
 
       {/* 120px breathing room before the footer so the FAQ accordion

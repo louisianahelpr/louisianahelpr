@@ -417,7 +417,9 @@ const Signup = () => {
 
   const stepHeading =
     step === 1
-      ? { title: "Welcome to the neighborhood.", subtitle: "A few minutes now — then everything's set." }
+      ? isBusinessSignup
+        ? { title: "Set up your business.", subtitle: "Create your company account — invite your team next." }
+        : { title: "Welcome to the neighborhood.", subtitle: "A few minutes now — then everything's set." }
       : step === 2
       ? { title: "Tell us about you.", subtitle: "A photo and a few basics help neighbors trust who they're hiring." }
       : { title: "Make your profile stand out.", subtitle: "Optional — skip anything that doesn't apply." };
@@ -425,7 +427,7 @@ const Signup = () => {
   return (
     <AuthShell compactHeader maxWidth="2xl">
       <div className="text-center mb-4 space-y-1.5">
-        <span className="text-display-eyebrow">Step {step} of {totalSteps}</span>
+        <span className="text-display-eyebrow">{isBusinessSignup ? "Business · " : ""}Step {step} of {totalSteps}</span>
         <h1 className="text-page-title leading-tight mt-1">
           {stepHeading.title}
         </h1>
@@ -554,6 +556,7 @@ const Signup = () => {
             setAcceptedPolicies={setAcceptedPolicies}
             inputCls={inputCls}
             labelCls={labelCls}
+            isBusinessSignup={isBusinessSignup}
             onContinue={async () => {
               if (!(await validateAccountStep())) return;
               track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });

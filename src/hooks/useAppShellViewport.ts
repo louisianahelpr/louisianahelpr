@@ -23,9 +23,9 @@ const DOCUMENT_SCROLL_ROUTES = [
   // the viewport height on small devices (iPhone SE) or in landscape
   // belongs here. AuthShell uses `min-h-screen` document scroll; if the
   // route is NOT in this list, `html.app-shell { overflow: hidden }`
-  // clips anything below the fold and the user can't reach it. Only
-  // genuinely-short auth pages that always fit (Login at the moment)
-  // may safely stay off this list.
+  // clips anything below the fold and the user can't reach it. Login is
+  // deliberately OFF this list — it's tuned to fit a single non-scrolling
+  // viewport (see Login.tsx's compact spacing).
   "/signup",
   "/signup-pending",
   "/complete-profile",

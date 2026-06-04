@@ -885,7 +885,7 @@ const Legal = () => {
                 }}
               >
                 <TabsList
-                  className="grid w-full grid-cols-3 rounded-2xl p-1 h-12 gap-1"
+                  className="grid w-full grid-cols-3 items-stretch gap-1 rounded-2xl p-1 h-11"
                   style={{
                     background: "hsl(var(--bark) / 0.06)",
                     border: "1px solid hsl(var(--bark) / 0.16)",
@@ -893,19 +893,19 @@ const Legal = () => {
                 >
                   <TabsTrigger
                     value="terms"
-                    className="rounded-xl text-ds-13 font-sans font-semibold text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
+                    className="h-full inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
                   >
                     Terms
                   </TabsTrigger>
                   <TabsTrigger
                     value="community"
-                    className="rounded-xl text-ds-13 font-sans font-semibold text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
+                    className="h-full inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
                   >
                     Community
                   </TabsTrigger>
                   <TabsTrigger
                     value="privacy"
-                    className="rounded-xl text-ds-13 font-sans font-semibold text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
+                    className="h-full inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
                   >
                     Privacy
                   </TabsTrigger>

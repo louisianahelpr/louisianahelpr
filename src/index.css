@@ -400,6 +400,14 @@ button {
     animation: none;
     transform: rotate(-3deg);
   }
+
+  /* Collapsible/accordion expand-collapse (Legal policy sections, etc.)
+     snaps open/closed instead of animating its height for users who've
+     asked the OS to reduce motion. */
+  .animate-accordion-down,
+  .animate-accordion-up {
+    animation: none !important;
+  }
 }
 
 /* ----- 2026 premium surface system (Garden District Stone, restrained) ----- */

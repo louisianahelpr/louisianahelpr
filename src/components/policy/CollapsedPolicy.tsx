@@ -8,6 +8,45 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 // without having to thread the prop through every JSX call site.
 export const PolicySearchContext = createContext<string>("");
 
+// During a cross-tab search the Legal page renders all three policy tabs
+// at once; this carries the human label of the tab a section belongs to
+// ("Terms", "Community Rules", "Privacy") so each result can show where it
+// lives. Empty string = normal single-tab browsing (no origin chip).
+export const PolicyTabContext = createContext<string>("");
+
+// Wrap any case-insensitive occurrences of `query` in the given text with a
+// highlight <mark>, so search results visibly point at the matched term.
+const highlight = (text: string, query: string): React.ReactNode => {
+  const q = query.trim();
+  if (!q) return text;
+  const lower = text.toLowerCase();
+  const ql = q.toLowerCase();
+  if (!lower.includes(ql)) return text;
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  let i = lower.indexOf(ql);
+  while (i !== -1) {
+    if (i > cursor) parts.push(text.slice(cursor, i));
+    parts.push(
+      <mark
+        key={i}
+        style={{
+          background: "hsl(var(--burnt-sienna) / 0.22)",
+          color: "inherit",
+          borderRadius: "2px",
+          padding: "0 1px",
+        }}
+      >
+        {text.slice(i, i + q.length)}
+      </mark>,
+    );
+    cursor = i + q.length;
+    i = lower.indexOf(ql, cursor);
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return <>{parts}</>;
+};
+
 export type PolicyRow = {
   icon: LucideIcon;
   title: string;
@@ -61,7 +100,7 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
               $5 minimum, $5,000 maximum") read in full instead of
               truncating to "$5,00…". */}
           <span className="text-ds-13 font-semibold text-foreground line-clamp-2 leading-snug">
-            {title}
+            {isSearching ? highlight(title, query) : title}
           </span>
         </span>
         {/* ChevronDown that rotates 180° on open — matches the parent
@@ -92,6 +131,7 @@ interface PolicySectionProps {
 
 export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpen = false, children }: PolicySectionProps) => {
   const query = useContext(PolicySearchContext);
+  const tabLabel = useContext(PolicyTabContext);
   const isSearching = !!query.trim();
   const [open, setOpen] = useState(defaultOpen);
 
@@ -149,8 +189,24 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
               <Icon className="w-4 h-4" strokeWidth={2.25} />
             </span>
             <span className="min-w-0">
-              <span className="flex items-center gap-2">
-                <p className="font-display font-bold text-foreground leading-tight text-ds-15">{title}</p>
+              <span className="flex items-center gap-2 flex-wrap">
+                <p className="font-display font-bold text-foreground leading-tight text-ds-15">
+                  {isSearching ? highlight(title, query) : title}
+                </p>
+                {/* During a cross-tab search, mark which policy this section
+                    lives under so results spanning all three tabs stay
+                    legible. Only shown when a tab origin is supplied. */}
+                {isSearching && tabLabel && (
+                  <span
+                    className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-sans font-semibold uppercase tracking-wider"
+                    style={{
+                      background: "hsl(var(--bark) / 0.10)",
+                      color: "hsl(var(--bark))",
+                    }}
+                  >
+                    {tabLabel}
+                  </span>
+                )}
                 {warning && (
                   <span
                     className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-sans font-semibold uppercase tracking-wider"
@@ -163,7 +219,9 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
                   </span>
                 )}
               </span>
-              <p className="text-ds-11 text-muted-foreground line-clamp-2 leading-snug">{subtitle}</p>
+              <p className="text-ds-11 text-muted-foreground line-clamp-2 leading-snug">
+                {isSearching ? highlight(subtitle, query) : subtitle}
+              </p>
             </span>
           </span>
           <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${effectiveOpen ? "rotate-180" : ""}`} />

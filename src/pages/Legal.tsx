@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useContext, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
   Receipt, Database, Eye, Lock, Trash2, Cookie, FileText, Users, Crown,
@@ -11,7 +11,7 @@ import Navbar from "@/components/Navbar";
 import AppShell from "@/components/AppShell";
 import { isNativePlatform } from "@/lib/nativeInit";
 import BackButton from "@/components/BackButton";
-import { PolicyRowItem, PolicySection, PolicySearchContext } from "@/components/policy/CollapsedPolicy";
+import { PolicyRowItem, PolicySection, PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
@@ -43,10 +43,15 @@ const PAGE_CANONICALS: Record<TabKey, string> = {
   privacy: "https://www.louisianahelpr.com/legal?tab=privacy",
 };
 
-// Single source of truth for the policy revision date shown in the
-// header chip — must be bumped whenever any tab's terms change so the
-// chip never claims a stale "current" revision.
-const LAST_UPDATED = "Mar 2026";
+// Per-tab revision date shown in the header chip. Each policy revises on
+// its own schedule, so the chip reflects the active tab's date rather than
+// implying all three changed together — bump only the tab you actually
+// edited.
+const LAST_UPDATED: Record<TabKey, string> = {
+  terms: "Mar 2026",
+  community: "Mar 2026",
+  privacy: "Mar 2026",
+};
 
 // Short editorial line shown under the tab strip so each policy view
 // opens with a human, plain-English framing instead of a blank jump
@@ -70,6 +75,14 @@ const TAB_ICONS: Record<TabKey, LucideIcon> = {
   terms: Scale,
   community: Users,
   privacy: Lock,
+};
+
+// Full origin labels for the per-result chip shown during a cross-tab
+// search ("Community Rules" rather than the terse strip label "Community").
+const TAB_ORIGIN_LABELS: Record<TabKey, string> = {
+  terms: "Terms",
+  community: "Community Rules",
+  privacy: "Privacy",
 };
 
 // While a policy search is active, editorial chrome (the TLDR summary,
@@ -837,6 +850,15 @@ const PrivacyContent = () => (
   </div>
 );
 
+// Tab → content element, used by the cross-tab search view (which renders
+// all three at once). Outside of search, the panels render these inside
+// their respective Radix TabsContent instead.
+const TAB_CONTENT: Record<TabKey, ReactNode> = {
+  terms: <TermsContent />,
+  community: <CommunityContent />,
+  privacy: <PrivacyContent />,
+};
+
 /* ─────────────────────────  PAGE  ───────────────────────── */
 const Legal = () => {
   const [params, setParams] = useSearchParams();
@@ -851,6 +873,11 @@ const Legal = () => {
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasResults, setHasResults] = useState(true);
+  const isSearching = !!query.trim();
+
+  // Users who ask the OS to reduce motion get the pill snapped into place
+  // rather than spring-sliding between tabs.
+  const reduceMotion = useReducedMotion();
 
   // WEB: the marketing Navbar owns the top; the tab band sticks just below it
   // in normal document flow. NATIVE renders via AppShell instead (see below).
@@ -921,7 +948,7 @@ const Legal = () => {
               border: "1px solid hsl(var(--bark) / 0.22)",
             }}
           >
-            Updated · {LAST_UPDATED}
+            Updated · {LAST_UPDATED[tab]}
           </span>
         </div>
       </div>
@@ -953,7 +980,7 @@ const Legal = () => {
             {isActive && (
               <motion.span
                 layoutId="legalTabPill"
-                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                 className="absolute inset-0 rounded-xl"
                 style={{
                   background:
@@ -983,7 +1010,7 @@ const Legal = () => {
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder={`Search ${TAB_LABELS[tab].toLowerCase()}…`}
+        placeholder="Search all policies…"
         className="w-full h-10 rounded-xl pl-9 pr-9 text-ds-13 font-sans bg-card outline-none transition-shadow focus:ring-2"
         style={{
           border: "1px solid hsl(var(--bark) / 0.18)",
@@ -1047,9 +1074,26 @@ const Legal = () => {
     <PolicySearchContext.Provider value={query}>
       {searchBar}
       <div ref={contentRef} className="space-y-4">
-        {!query.trim() && tagline}
-        {panels}
-        {query.trim() && !hasResults && noResults}
+        {isSearching ? (
+          // Cross-tab results: render all three policies at once so a query
+          // surfaces matches wherever they live. Each surviving section
+          // carries a PolicyTabContext origin chip; non-matching sections
+          // self-remove, and editorial chrome (TLDR / callouts / footer)
+          // hides on search, leaving a tight result list.
+          <>
+            {VALID_TABS.map((t) => (
+              <PolicyTabContext.Provider key={t} value={TAB_ORIGIN_LABELS[t]}>
+                {TAB_CONTENT[t]}
+              </PolicyTabContext.Provider>
+            ))}
+            {!hasResults && noResults}
+          </>
+        ) : (
+          <>
+            {tagline}
+            {panels}
+          </>
+        )}
       </div>
     </PolicySearchContext.Provider>
   );

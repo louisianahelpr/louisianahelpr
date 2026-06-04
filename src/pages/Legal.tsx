@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
@@ -7,6 +6,7 @@ import {
   ShieldAlert, ShieldCheck,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import AppShell from "@/components/AppShell";
 import { isNativePlatform } from "@/lib/nativeInit";
 import BackButton from "@/components/BackButton";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
@@ -811,27 +811,8 @@ const Legal = () => {
   const tabParam = (params.get("tab") || "terms") as TabKey;
   const tab: TabKey = VALID_TABS.includes(tabParam) ? tabParam : "terms";
 
-  // NATIVE: the back button, title, and tab switcher live in ONE
-  // position:fixed bar locked to the very top — it never scrolls, so the tabs
-  // stay put and the bar's opaque env() top-padding masks the notch as one
-  // continuous surface. We measure the bar's real rendered height and pad the
-  // scroll content by it so nothing hides underneath (env() height on an empty
-  // spacer collapses to 0 in this WebView, so a measured offset is the only
-  // reliable path). WEB: the marketing Navbar owns the top and the tab band
-  // just sticks below it in normal flow.
-  const chromeRef = useRef<HTMLDivElement>(null);
-  const [chromeH, setChromeH] = useState(0);
-  useEffect(() => {
-    if (!isNativePlatform) return;
-    const el = chromeRef.current;
-    if (!el) return;
-    const measure = () => setChromeH(el.offsetHeight);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
+  // WEB: the marketing Navbar owns the top; the tab band sticks just below it
+  // in normal document flow. NATIVE renders via AppShell instead (see below).
   const webBandStickyTop = "calc(3.5rem + env(safe-area-inset-top, 0px))";
 
   // usePageMeta is keyed on every field, so switching tabs re-runs the
@@ -900,82 +881,89 @@ const Legal = () => {
     </TabsList>
   );
 
-  return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {/* Web keeps the marketing Navbar; native drops it (the app has its own
-          back button inside the fixed chrome below). */}
-      {!isNativePlatform && <Navbar />}
+  // Per-tab editorial tagline + the three policy panels. Shared by both
+  // layouts; the bottom safe-area padding lets the long body scroll fully past
+  // the floating dock + FAB on iPhone without clipping the last paragraph.
+  const tagline = (
+    <p
+      className="px-1 font-serif italic leading-snug text-ds-15"
+      style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+    >
+      {TAB_TAGLINES[tab]}
+    </p>
+  );
+  const panels = (
+    <>
+      <TabsContent value="terms" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+        <TermsContent />
+      </TabsContent>
+      <TabsContent value="community" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+        <CommunityContent />
+      </TabsContent>
+      <TabsContent value="privacy" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+        <PrivacyContent />
+      </TabsContent>
+    </>
+  );
 
+  // NATIVE: AppShell gives a real pinned header sibling (NOT position:fixed),
+  // so it can't detach during iOS momentum scroll and policy text can never
+  // ghost into the notch. The header carries its own status-bar inset; only
+  // the panels scroll, inside AppShell's internal container.
+  if (isNativePlatform) {
+    const header = (
+      <div
+        className="px-5 pb-3"
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+          background: "hsl(38 18% 97%)",
+          borderBottom: "1px solid hsl(var(--bark) / 0.10)",
+        }}
+      >
+        <div className="max-w-2xl mx-auto space-y-3">
+          {headerRow}
+          {tabBar}
+        </div>
+      </div>
+    );
+    return (
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        {/* NATIVE: one fixed, locked top bar (back + title + tabs). It never
-            scrolls, leaves no rest-state gap, and its opaque env() top-padding
-            masks the notch. The scroll content is padded by its measured
-            height so nothing hides beneath it. */}
-        {isNativePlatform && (
-          <div
-            ref={chromeRef}
-            className="fixed top-0 left-0 right-0 z-40 px-5 pb-3"
-            style={{
-              paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
-              background: "hsl(38 18% 97%)",
-              borderBottom: "1px solid hsl(var(--bark) / 0.10)",
-            }}
-          >
-            <div className="max-w-2xl mx-auto space-y-3">
-              {headerRow}
-              {tabBar}
+        <AppShell header={header} className="bg-premium-page" contentClassName="bg-premium-page">
+          <div className="px-5 pt-4">
+            <div className="max-w-2xl mx-auto space-y-4">
+              {tagline}
+              {panels}
             </div>
           </div>
-        )}
+        </AppShell>
+      </Tabs>
+    );
+  }
 
+  // WEB: long-form document scroll (SEO). Marketing Navbar at top, tab band
+  // sticks just below it.
+  return (
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
+      <Navbar />
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <main
           className="container mx-auto px-5 pb-8"
-          style={{
-            paddingTop: isNativePlatform
-              ? `${chromeH}px`
-              : "calc(3.5rem + env(safe-area-inset-top, 0px) + 1rem)",
-          }}
+          style={{ paddingTop: "calc(3.5rem + env(safe-area-inset-top, 0px) + 1rem)" }}
         >
           <div className="max-w-2xl mx-auto space-y-4">
-            {/* WEB: header + a sticky tab band live in normal flow (the band
-                pins just below the fixed Navbar). Native renders these in the
-                fixed chrome above instead. */}
-            {!isNativePlatform && (
-              <>
-                {headerRow}
-                <div
-                  className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
-                  style={{
-                    top: webBandStickyTop,
-                    background: "hsl(38 18% 97%)",
-                    borderBottom: "1px solid hsl(var(--bark) / 0.10)",
-                  }}
-                >
-                  {tabBar}
-                </div>
-              </>
-            )}
-
-            {/* Per-tab editorial tagline — a warm, plain-English framing line
-                instead of jumping cold into dense sections. */}
-            <p
-              className="px-1 font-serif italic leading-snug text-ds-15"
-              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            {headerRow}
+            <div
+              className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
+              style={{
+                top: webBandStickyTop,
+                background: "hsl(38 18% 97%)",
+                borderBottom: "1px solid hsl(var(--bark) / 0.10)",
+              }}
             >
-              {TAB_TAGLINES[tab]}
-            </p>
-
-            {/* Safe-area bottom padding so the long legal body scrolls fully
-                past the floating dock + FAB on iPhone without clipping. */}
-            <TabsContent value="terms" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
-              <TermsContent />
-            </TabsContent>
-            <TabsContent value="community" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
-              <CommunityContent />
-            </TabsContent>
-            <TabsContent value="privacy" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
-              <PrivacyContent />
-            </TabsContent>
+              {tabBar}
+            </div>
+            {tagline}
+            {panels}
           </div>
         </main>
       </Tabs>

@@ -115,11 +115,16 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
           chip in the header, so all cards on the page read as one set. */}
       <div
         className="rounded-2xl border border-border bg-card squircle overflow-hidden transition-colors"
-        style={
-          warning
-            ? { borderLeft: "3px solid hsl(var(--burnt-sienna) / 0.55)" }
-            : { borderLeft: "3px solid hsl(var(--bark) / 0.35)" }
-        }
+        style={{
+          // Soft lift matching the TLDR summary card so every surface on the
+          // page reads as one lifted material rather than flat-white rows
+          // floating below a shadowed summary.
+          boxShadow:
+            "0 1px 2px hsl(var(--olivewood) / 0.05), 0 6px 14px -8px hsl(var(--olivewood) / 0.12)",
+          borderLeft: warning
+            ? "3px solid hsl(var(--burnt-sienna) / 0.55)"
+            : "3px solid hsl(var(--bark) / 0.35)",
+        }}
       >
         <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">
           <span className="flex items-center gap-3 min-w-0">

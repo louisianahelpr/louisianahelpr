@@ -236,21 +236,32 @@ const DashboardGuest = () => {
         <header className="glass-header sticky top-0 z-50 shrink-0">
         <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
           <HelprMark to="/" size="md" />
-          <div className="flex items-center gap-2">
+          {/* Both header actions are deliberately un-filled so the only
+              solid-green element on the guest dashboard is the bottom "+"
+              FAB (the app-wide primary action, which gates guests to signup
+              anyway). Log in is a plain text link; Sign up is a quiet
+              bark-tinted outline pill — clearly the CTA of the two, without
+              competing with the FAB as a second filled-green target. */}
+          <div className="flex items-center gap-1">
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
               onClick={() => navigate("/login")}
               className="text-ds-11 h-11 rounded-ds-md font-sans font-semibold"
-              style={{ color: "hsl(var(--ink-deep))" }}
+              style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
             >
               Log in
             </Button>
             <Button
-              variant="bark"
+              variant="outline"
               size="sm"
               onClick={() => navigate("/signup")}
-              className="text-ds-11 h-11 rounded-ds-md"
+              className="text-ds-11 h-11 rounded-ds-md font-sans font-semibold"
+              style={{
+                color: "hsl(var(--bark))",
+                borderColor: "hsl(var(--bark) / 0.45)",
+                background: "hsl(var(--bark) / 0.05)",
+              }}
             >
               Sign up
             </Button>

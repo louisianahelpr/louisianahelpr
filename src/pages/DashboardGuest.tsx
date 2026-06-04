@@ -229,7 +229,7 @@ const DashboardGuest = () => {
     <PageScaffold
       maxWidth="narrow"
       animate
-      titleCardClassName="!py-3 lg:!py-3.5"
+      titleCardClassName="!py-2.5 lg:!py-3"
       header={
         /* Header — matches DashboardHeader's frosted-glass treatment, with
            guest-only Log in / Sign up actions in place of the menu/notif/etc. */
@@ -274,9 +274,13 @@ const DashboardGuest = () => {
         // signal. If A/B testing later shows the corner CTAs are missed
         // by guest users, reintroduce a single inline link rather than
         // the full bark Button + secondary text-link stack.
-        <div className="min-w-0">
+        //
+        // 2026-06-03: reintroduced exactly that — one baseline-aligned
+        // "Sign up free" text link sharing the headline row, so it adds a
+        // conversion path with zero extra card height.
+        <div className="min-w-0 flex items-baseline justify-between gap-3">
           <h1
-            className="leading-[1.12]"
+            className="leading-[1.12] min-w-0"
             style={{
               fontFamily: '"Bodoni Moda", Georgia, serif',
               fontStyle: "italic",
@@ -295,6 +299,14 @@ const DashboardGuest = () => {
             </em>
             ?
           </h1>
+          <button
+            type="button"
+            onClick={requireSignup}
+            className="shrink-0 whitespace-nowrap text-[11px] font-semibold tracking-tight transition-opacity active:opacity-60"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            Sign up free →
+          </button>
         </div>
       }
     >

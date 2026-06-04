@@ -154,7 +154,7 @@ const Index = () => {
   // visitors don't pay the 50 KiB Supabase tax for a code path they never hit.
   if (isNative) {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <Suspense fallback={<div className="min-h-screen bg-premium-page" />}>
         <NativeRedirect />
       </Suspense>
     );

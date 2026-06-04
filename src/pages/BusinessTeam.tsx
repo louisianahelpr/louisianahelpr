@@ -116,7 +116,7 @@ const BusinessTeam = () => {
 
   if (businessLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-premium-page">
         <HelprSpinner size={32} />
       </div>
     );

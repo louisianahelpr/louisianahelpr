@@ -423,10 +423,13 @@ button {
    `.is-scrolled` on the nav element to enable. (Intentionally not wired by
    default — we want the hero to flow uninterrupted to the top edge.) */
 .glass-nav.is-scrolled {
-  /* SCROLLED STATE — frosted glass per spec: white/80 + 12 px blur, plus a
-     full-strength Heritage Gold 1 px hairline along the bottom. The
-     gradient from the top state is overridden by this solid background. */
-  background: rgba(255, 255, 255, 0.8);
+  /* SCROLLED STATE — fully opaque warm surface (matched to the sticky tab
+     band on Legal, `hsl(38 18% 97%)`) plus a full-strength Heritage Gold 1 px
+     hairline along the bottom. Opaque rather than the old white/80: in the
+     iOS WKWebView, backdrop-filter blur over scrolling content repaints
+     unreliably, so a translucent nav let page text ghost through above any
+     sticky sub-header. An opaque fill masks it cleanly on every platform. */
+  background: hsl(38 18% 97%);
   backdrop-filter: blur(12px) saturate(140%);
   -webkit-backdrop-filter: blur(12px) saturate(140%);
   border-bottom: 1px solid hsl(var(--heritage-gold));
@@ -1062,11 +1065,11 @@ button {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  /* Champagne flow — soft linear gradient from warm white (#F5F5F0) to
-     soft sand (#E8E2D9). Replaces the previous radial tan glow that was
+  /* Champagne flow — soft linear gradient from near-white (#FAF9F5) to
+     light champagne (#F4F1EA). Replaces the previous radial tan glow that was
      reading as "spotlight." Desaturated 20 % overall — the olive + white
      glass cards now have proper contrast against this calmer canvas. */
-  background: linear-gradient(135deg, #F5F5F0 0%, #E8E2D9 100%);
+  background: linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
   z-index: 0;
 }
 
@@ -1356,7 +1359,7 @@ button {
      Previously this layered darker `--secondary` radial washes, which made
      auth/onboarding screens read heavier than the dashboard. */
   background-image:
-    linear-gradient(135deg, #F5F5F0 0%, #E8E2D9 100%);
+    linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
   background-attachment: fixed;
 }
 
@@ -1367,7 +1370,7 @@ button {
 .bg-premium-page {
   background-color: hsl(var(--background));
   background-image:
-    linear-gradient(135deg, #F5F5F0 0%, #E8E2D9 100%);
+    linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
   background-attachment: fixed;
 }
 

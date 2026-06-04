@@ -231,16 +231,16 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           <div
             className="flex flex-col items-center px-2.5 py-1.5 rounded-ds-md"
             style={{
-              background: "hsl(38 34% 94%)",
-              border: "0.5px solid hsl(var(--bark) / 0.18)",
+              background: "hsl(var(--bark) / 0.10)",
+              border: "0.5px solid hsl(var(--bark) / 0.28)",
             }}
           >
             <span
               className="font-display leading-none tabular-nums"
               style={{
                 fontWeight: 800,
-                fontSize: "0.95rem",
-                color: "color-mix(in srgb, hsl(var(--bark)) 86%, #000 14%)",
+                fontSize: "1.05rem",
+                color: "hsl(var(--bark))",
                 letterSpacing: "-0.02em",
               }}
             >

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
@@ -6,6 +7,7 @@ import {
   ShieldAlert, ShieldCheck,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { isNativePlatform } from "@/lib/nativeInit";
 import BackButton from "@/components/BackButton";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -809,10 +811,28 @@ const Legal = () => {
   const tabParam = (params.get("tab") || "terms") as TabKey;
   const tab: TabKey = VALID_TABS.includes(tabParam) ? tabParam : "terms";
 
-  // Offset that reserves the fixed Navbar height (its `h-12` content plus
-  // the status-bar safe-area inset). Shared by the top spacer and the
-  // sticky tab band so both line up flush under the nav.
-  const navOffset = "calc(3.5rem + env(safe-area-inset-top, 0px))";
+  // NATIVE: the back button, title, and tab switcher live in ONE
+  // position:fixed bar locked to the very top — it never scrolls, so the tabs
+  // stay put and the bar's opaque env() top-padding masks the notch as one
+  // continuous surface. We measure the bar's real rendered height and pad the
+  // scroll content by it so nothing hides underneath (env() height on an empty
+  // spacer collapses to 0 in this WebView, so a measured offset is the only
+  // reliable path). WEB: the marketing Navbar owns the top and the tab band
+  // just sticks below it in normal flow.
+  const chromeRef = useRef<HTMLDivElement>(null);
+  const [chromeH, setChromeH] = useState(0);
+  useEffect(() => {
+    if (!isNativePlatform) return;
+    const el = chromeRef.current;
+    if (!el) return;
+    const measure = () => setChromeH(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const webBandStickyTop = "calc(3.5rem + env(safe-area-inset-top, 0px))";
 
   // usePageMeta is keyed on every field, so switching tabs re-runs the
   // effect and updates title, description, and canonical together.
@@ -830,94 +850,123 @@ const Legal = () => {
     setParams(nextParams, { replace: true });
   };
 
+  // Back button + title block. No explicit `to` — BackButton falls back to
+  // history.back(), which works for authenticated users from /profile?tab=legal
+  // and unauthenticated visitors from the signup agreement checkbox.
+  const headerRow = (
+    <div className="flex items-start gap-3">
+      <BackButton />
+      <div className="flex flex-col leading-none min-w-0 flex-1">
+        <span
+          className="font-serif italic uppercase text-[0.62rem]"
+          style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+        >
+          Compliance &amp; disclosures
+        </span>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <h1 className="text-page-title leading-tight">Legal</h1>
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.66rem] font-sans font-semibold tabular-nums uppercase tracking-wider"
+            style={{
+              background: "hsl(var(--bark) / 0.10)",
+              color: "hsl(var(--bark))",
+              border: "1px solid hsl(var(--bark) / 0.22)",
+            }}
+          >
+            Updated · {LAST_UPDATED}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const tabBar = (
+    <TabsList
+      className="grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto"
+      style={{
+        background: "hsl(var(--bark) / 0.06)",
+        border: "1px solid hsl(var(--bark) / 0.16)",
+      }}
+    >
+      {VALID_TABS.map((t) => (
+        <TabsTrigger
+          key={t}
+          value={t}
+          className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
+        >
+          {TAB_LABELS[t]}
+        </TabsTrigger>
+      ))}
+    </TabsList>
+  );
+
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <Navbar />
-      {/* Spacer below the fixed Navbar — reserves its `h-12` content plus
-          the status-bar safe-area inset. Matches the sticky tabs' `top:`
-          offset below so both align flush under the nav. */}
-      <div aria-hidden style={{ height: navOffset }} />
+      {/* Web keeps the marketing Navbar; native drops it (the app has its own
+          back button inside the fixed chrome below). */}
+      {!isNativePlatform && <Navbar />}
 
-      <main className="container mx-auto px-5 pt-4 pb-8">
-        <div className="max-w-2xl mx-auto space-y-4">
-          <div className="flex items-start gap-3">
-            {/* No explicit `to` — BackButton falls back to history.back()
-                which works for both authenticated users coming from
-                /profile?tab=legal and unauthenticated visitors coming
-                from the signup agreement checkbox. */}
-            <BackButton />
-            <div className="flex flex-col leading-none min-w-0 flex-1">
-              <span
-                className="font-serif italic uppercase text-[0.62rem]"
-                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-              >
-                Compliance &amp; disclosures
-              </span>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <h1 className="text-page-title leading-tight">Legal</h1>
-                {/* "Last updated" chip — a tabular-nums chip so users can
-                    quickly verify they're reading the current revision.
-                    Sourced from the single LAST_UPDATED constant. */}
-                <span
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.66rem] font-sans font-semibold tabular-nums uppercase tracking-wider"
-                  style={{
-                    background: "hsl(var(--bark) / 0.10)",
-                    color: "hsl(var(--bark))",
-                    border: "1px solid hsl(var(--bark) / 0.22)",
-                  }}
-                >
-                  Updated · {LAST_UPDATED}
-                </span>
-              </div>
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
+        {/* NATIVE: one fixed, locked top bar (back + title + tabs). It never
+            scrolls, leaves no rest-state gap, and its opaque env() top-padding
+            masks the notch. The scroll content is padded by its measured
+            height so nothing hides beneath it. */}
+        {isNativePlatform && (
+          <div
+            ref={chromeRef}
+            className="fixed top-0 left-0 right-0 z-40 px-5 pb-3"
+            style={{
+              paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+              background: "hsl(38 18% 97%)",
+              borderBottom: "1px solid hsl(var(--bark) / 0.10)",
+            }}
+          >
+            <div className="max-w-2xl mx-auto space-y-3">
+              {headerRow}
+              {tabBar}
             </div>
           </div>
+        )}
 
-          <Tabs value={tab} onValueChange={setTab} className="w-full">
-            {/* Sticky tab switcher — stays pinned at the top of the scroll
-                area (just below the fixed Navbar on web) so the user can
-                switch tabs without losing their place. Background is fully
-                opaque so policy text scrolling underneath is masked cleanly
-                rather than ghosting through a translucent band. */}
-            <div
-              className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
-              style={{
-                top: navOffset,
-                background: "hsl(38 18% 97%)",
-                borderBottom: "1px solid hsl(var(--bark) / 0.10)",
-              }}
-            >
-              <TabsList
-                className="grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto"
-                style={{
-                  background: "hsl(var(--bark) / 0.06)",
-                  border: "1px solid hsl(var(--bark) / 0.16)",
-                }}
-              >
-                {VALID_TABS.map((t) => (
-                  <TabsTrigger
-                    key={t}
-                    value={t}
-                    className="h-9 inline-flex items-center justify-center rounded-xl text-ds-13 font-sans font-semibold leading-none text-[hsl(var(--olivewood))] transition-colors data-[state=active]:!bg-[hsl(var(--bark))] data-[state=active]:!text-[hsl(var(--parchment))] data-[state=active]:shadow-sm"
-                  >
-                    {TAB_LABELS[t]}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
+        <main
+          className="container mx-auto px-5 pb-8"
+          style={{
+            paddingTop: isNativePlatform
+              ? `${chromeH}px`
+              : "calc(3.5rem + env(safe-area-inset-top, 0px) + 1rem)",
+          }}
+        >
+          <div className="max-w-2xl mx-auto space-y-4">
+            {/* WEB: header + a sticky tab band live in normal flow (the band
+                pins just below the fixed Navbar). Native renders these in the
+                fixed chrome above instead. */}
+            {!isNativePlatform && (
+              <>
+                {headerRow}
+                <div
+                  className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
+                  style={{
+                    top: webBandStickyTop,
+                    background: "hsl(38 18% 97%)",
+                    borderBottom: "1px solid hsl(var(--bark) / 0.10)",
+                  }}
+                >
+                  {tabBar}
+                </div>
+              </>
+            )}
 
-            {/* Per-tab editorial tagline — gives each policy view a warm,
-                plain-English framing line instead of jumping cold into
-                dense sections. */}
+            {/* Per-tab editorial tagline — a warm, plain-English framing line
+                instead of jumping cold into dense sections. */}
             <p
-              className="mt-3 px-1 font-serif italic leading-snug text-ds-15"
+              className="px-1 font-serif italic leading-snug text-ds-15"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
               {TAB_TAGLINES[tab]}
             </p>
 
-            {/* Safe-area bottom padding on each tab so the long legal body
-                can scroll fully past the floating dock + FAB on iPhone
-                without clipping the last paragraph. */}
+            {/* Safe-area bottom padding so the long legal body scrolls fully
+                past the floating dock + FAB on iPhone without clipping. */}
             <TabsContent value="terms" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
               <TermsContent />
             </TabsContent>
@@ -927,9 +976,9 @@ const Legal = () => {
             <TabsContent value="privacy" className="mt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
               <PrivacyContent />
             </TabsContent>
-          </Tabs>
-        </div>
-      </main>
+          </div>
+        </main>
+      </Tabs>
     </div>
   );
 };

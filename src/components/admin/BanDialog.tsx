@@ -69,17 +69,19 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
 
     try {
       if (banType === "warning") {
-        await supabase.from("user_violations").insert({
+        const { error: vErr } = await supabase.from("user_violations").insert({
           user_id: profile.user_id,
           violation_type: "admin_warning",
           description: reason.trim(),
           action_taken: "warning",
           reported_by: user.id,
         });
-        await supabase
+        if (vErr) throw vErr;
+        const { error: pErr } = await supabase
           .from("profiles")
           .update({ ban_status: "final_warning" })
           .eq("user_id", profile.user_id);
+        if (pErr) throw pErr;
         await createNotification({
           user_id: profile.user_id,
           title: "⚠️ Warning from Admin",
@@ -97,24 +99,27 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
       } else if (banType === "temporary") {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + parseInt(duration));
-        await supabase.from("user_bans").insert({
+        const { error: bErr } = await supabase.from("user_bans").insert({
           user_id: profile.user_id,
           ban_type: "temporary",
           reason: reason.trim(),
           banned_by: user.id,
           expires_at: expiresAt.toISOString(),
         });
-        await supabase.from("user_violations").insert({
+        if (bErr) throw bErr;
+        const { error: vErr } = await supabase.from("user_violations").insert({
           user_id: profile.user_id,
           violation_type: "admin_action",
           description: reason.trim(),
           action_taken: "temp_ban",
           reported_by: user.id,
         });
-        await supabase
+        if (vErr) throw vErr;
+        const { error: pErr } = await supabase
           .from("profiles")
           .update({ ban_status: "temp_banned" })
           .eq("user_id", profile.user_id);
+        if (pErr) throw pErr;
         await createNotification({
           user_id: profile.user_id,
           title: "🚫 Temporary Ban",
@@ -124,23 +129,26 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         });
         toast.success(`User temporarily banned for ${duration} days.`);
       } else {
-        await supabase.from("user_bans").insert({
+        const { error: bErr } = await supabase.from("user_bans").insert({
           user_id: profile.user_id,
           ban_type: "permanent",
           reason: reason.trim(),
           banned_by: user.id,
         });
-        await supabase.from("user_violations").insert({
+        if (bErr) throw bErr;
+        const { error: vErr } = await supabase.from("user_violations").insert({
           user_id: profile.user_id,
           violation_type: "admin_action",
           description: reason.trim(),
           action_taken: "permanent_ban",
           reported_by: user.id,
         });
-        await supabase
+        if (vErr) throw vErr;
+        const { error: pErr } = await supabase
           .from("profiles")
           .update({ ban_status: "permanently_banned" })
           .eq("user_id", profile.user_id);
+        if (pErr) throw pErr;
         await createNotification({
           user_id: profile.user_id,
           title: "⛔ Account Permanently Banned",

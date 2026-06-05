@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, X } from "lucide-react";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 
 interface Broadcast {
   id: string;
@@ -35,6 +36,8 @@ const AdminBroadcasts = () => {
   const [type, setType] = useState("info");
   const [duration, setDuration] = useState("24"); // hours
   const [showForm, setShowForm] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -141,8 +144,15 @@ const AdminBroadcasts = () => {
   };
 
   const remove = async (id: string) => {
-    await supabase.from("broadcast_messages").delete().eq("id", id);
+    setDeleting(true);
+    const { error } = await supabase.from("broadcast_messages").delete().eq("id", id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Failed to remove broadcast");
+      return;
+    }
     setBroadcasts(prev => prev.filter(b => b.id !== id));
+    setConfirmDeleteId(null);
     toast.success("Broadcast removed");
   };
 
@@ -153,7 +163,7 @@ const AdminBroadcasts = () => {
 
   const typeBadge: Record<string, string> = {
     info: "bg-primary/10 text-primary",
-    warning: "bg-accent/10 text-accent-foreground",
+    warning: "bg-accent/10 text-accent",
     urgent: "bg-destructive/10 text-destructive",
     promo: "bg-primary/10 text-primary",
   };
@@ -275,7 +285,7 @@ const AdminBroadcasts = () => {
                 variant="ghost"
                 size="icon"
                 className="shrink-0 text-muted-foreground hover:text-destructive"
-                onClick={() => remove(b.id)}
+                onClick={() => setConfirmDeleteId(b.id)}
                 aria-label="Delete broadcast"
               >
                 <Trash2 className="w-4 h-4" />
@@ -284,6 +294,19 @@ const AdminBroadcasts = () => {
           ))}
         </div>
       )}
+
+      <BrandConfirmDialog
+        open={!!confirmDeleteId}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
+        title="Delete this broadcast?"
+        description="It will be removed for everyone immediately. This can't be undone."
+        primaryLabel={deleting ? "Deleting…" : "Delete broadcast"}
+        primaryTone="sienna"
+        primaryHaptic="error"
+        primaryDisabled={deleting}
+        onPrimary={(e) => { e.preventDefault(); if (confirmDeleteId) remove(confirmDeleteId); }}
+        secondaryLabel="Keep"
+      />
     </div>
   );
 };

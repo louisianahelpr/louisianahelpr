@@ -11,6 +11,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 
 interface PayoutBatch {
   helper_id: string;
@@ -52,6 +53,7 @@ const AdminPayoutBatches = () => {
   // batch list to a different account on the next sign-in.
   const queryKey = ["admin-payout-batches", adminId] as const;
   const [paying, setPaying] = useState<string | null>(null);
+  const [confirmBatch, setConfirmBatch] = useState<PayoutBatch | null>(null);
 
   const { data: batches, isInitialLoading, isFetching } = useInstantQuery<PayoutBatch[]>({
     key: queryKey,
@@ -214,7 +216,7 @@ const AdminPayoutBatches = () => {
                     size="sm"
                     className="mt-1"
                     disabled={paying === batch.helper_id || !batch.stripe_account_id}
-                    onClick={() => triggerPayout(batch)}
+                    onClick={() => setConfirmBatch(batch)}
                   >
                     <Send className="w-3 h-3 mr-1" />
                     {paying === batch.helper_id ? "Sending…" : "Pay out"}
@@ -283,6 +285,29 @@ const AdminPayoutBatches = () => {
           </div>
         </div>
       )}
+
+      <BrandConfirmDialog
+        open={!!confirmBatch}
+        onOpenChange={(open) => { if (!open) setConfirmBatch(null); }}
+        title="Send this payout?"
+        description={
+          confirmBatch
+            ? `This transfers $${Number(confirmBatch.total_payout).toFixed(2)} to ${confirmBatch.helper_name} for ${confirmBatch.job_count} job${confirmBatch.job_count > 1 ? "s" : ""} via Stripe. This moves real money and can't be undone here.`
+            : ""
+        }
+        primaryLabel={confirmBatch && paying === confirmBatch.helper_id ? "Sending…" : "Send payout"}
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        primaryDisabled={!!paying}
+        onPrimary={(e) => {
+          e.preventDefault();
+          if (!confirmBatch) return;
+          const batch = confirmBatch;
+          setConfirmBatch(null);
+          triggerPayout(batch);
+        }}
+        secondaryLabel="Cancel"
+      />
     </div>
   );
 };

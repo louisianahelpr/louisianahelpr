@@ -12,6 +12,7 @@ import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 interface IDVProfile {
@@ -40,6 +41,7 @@ const AdminIDVQueue = () => {
   const [activeTab, setActiveTab] = useState<string>("manual_review");
   const [actioning, setActioning] = useState<string | null>(null);
   const [selected, setSelected] = useState<IDVProfile | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ profile: IDVProfile; action: "approve" | "deny" } | null>(null);
 
   // Settings
   const [hybridEnabled, setHybridEnabled] = useState(false);
@@ -134,14 +136,17 @@ const AdminIDVQueue = () => {
       return;
     }
 
-    // In-app notification (auto-fires browser push via useRealtimePush)
-    await supabase.from("notifications").insert({
+    // In-app notification (auto-fires browser push via useRealtimePush).
+    // Best-effort: the approval already succeeded, so a failed notification
+    // shouldn't block the flow — log it instead of swallowing silently.
+    const { error: notifyErr } = await supabase.from("notifications").insert({
       user_id: p.user_id,
       title: "✅ Verification Successful",
       message: "An admin verified your identity. You're cleared to start using Helpr!",
       type: "success",
       link: "/dashboard",
     });
+    if (notifyErr) report(notifyErr, { tags: { source: "AdminIDVQueue.approveNotify" } });
 
     // Branded "Verification Successful" email
     try {
@@ -295,7 +300,7 @@ const AdminIDVQueue = () => {
                       <Button
                         size="sm"
                         variant="default"
-                        onClick={() => approveUser(p)}
+                        onClick={() => setConfirmAction({ profile: p, action: "approve" })}
                         disabled={actioning === p.user_id}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white"
                       >
@@ -304,7 +309,7 @@ const AdminIDVQueue = () => {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => denyUser(p)}
+                        onClick={() => setConfirmAction({ profile: p, action: "deny" })}
                         disabled={actioning === p.user_id}
                       >
                         Deny
@@ -338,6 +343,30 @@ const AdminIDVQueue = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <BrandConfirmDialog
+        open={!!confirmAction}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+        title={confirmAction?.action === "approve" ? "Approve this verification?" : "Deny this verification?"}
+        description={
+          confirmAction?.action === "approve"
+            ? `${formatName(confirmAction?.profile.full_name, "This user")} will be marked verified and cleared to use Helpr.`
+            : `${formatName(confirmAction?.profile.full_name, "This user")} will be denied. They'll be notified their identity couldn't be confirmed.`
+        }
+        primaryLabel={confirmAction?.action === "approve" ? "Approve" : "Deny"}
+        primaryTone={confirmAction?.action === "approve" ? "bark" : "sienna"}
+        primaryHaptic={confirmAction?.action === "approve" ? "success" : "error"}
+        primaryDisabled={!!actioning}
+        onPrimary={(e) => {
+          e.preventDefault();
+          if (!confirmAction) return;
+          const { profile, action } = confirmAction;
+          setConfirmAction(null);
+          if (action === "approve") approveUser(profile);
+          else denyUser(profile);
+        }}
+        secondaryLabel="Cancel"
+      />
     </div>
   );
 };

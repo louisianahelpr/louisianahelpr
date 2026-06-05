@@ -128,16 +128,11 @@ export function CheckoutStep({
       {/* Task Details Card */}
       <div className="rounded-2xl liquid-glass overflow-hidden">
         <div className="p-5 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="font-display font-bold text-foreground text-ds-15">{title}</h2>
-              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-ds-11 font-medium">
-                {categoryLabel}
-              </span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={onEdit} className="text-ds-11 text-muted-foreground">
-              <ChevronLeft className="w-3 h-3 mr-1" /> Edit
-            </Button>
+          <div>
+            <h2 className="font-display font-bold text-foreground text-ds-15">{title}</h2>
+            <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-ds-11 font-medium">
+              {categoryLabel}
+            </span>
           </div>
           <p className="text-ds-11 text-muted-foreground">{description}</p>
 

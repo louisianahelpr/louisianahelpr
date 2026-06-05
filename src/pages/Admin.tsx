@@ -273,6 +273,10 @@ const Admin = () => {
       if (debounce) clearTimeout(debounce);
       debounce = setTimeout(() => { loadStats(); loadUnreadCounts(); }, 500);
     };
+    // Deliberately unfiltered: unlike user-facing channels (which MUST be
+    // user-scoped per the realtime rule), the admin dashboard's whole job is
+    // to reflect platform-wide activity, so it watches every write to these
+    // tables. The debounce above keeps the resulting reload burst sane.
     const channel = supabase
       .channel(`admin-realtime-${channelNonce()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, debouncedReload)

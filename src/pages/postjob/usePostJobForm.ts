@@ -43,7 +43,6 @@ export function usePostJobForm() {
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
   // Preflight open-job count — checked at mount so the user learns
   // about the 5-job cap before filling the entire form.
   const [openJobCount, setOpenJobCount] = useState<number | null>(null);
@@ -79,7 +78,6 @@ export function usePostJobForm() {
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
   const salesTaxRate = 10;
-  const [draftLoaded, setDraftLoaded] = useState(false);
   // True once the user has restored the saved draft via loadDraft. The inline
   // "Pick up draft" pill hides after this so an accidental re-tap can't replace
   // the in-progress form with the (autosave-refreshed) snapshot.
@@ -169,18 +167,11 @@ export function usePostJobForm() {
         setSpecialRequirements(data.special_requirements || "");
         setIsRecurring(data.is_recurring || false);
         setRecurrenceInterval(data.recurrence_interval || "weekly");
-        setDraftLoaded(true);
         toast.info("Job details pre-filled from previous booking!");
       });
       return;
     }
-
-    // Show draft prompt instead of auto-loading
-    if (hasDraft && !draftLoaded) {
-      setShowDraftPrompt(true);
-      setDraftLoaded(true);
-    }
-  }, [searchParams, hasDraft, draftLoaded]);
+  }, [searchParams]);
 
   // Smart defaults — prefill the state to LA (every Helpr job is in
   // Louisiana) and the city from the poster's saved profile location.
@@ -632,14 +623,8 @@ export function usePostJobForm() {
     setIsRecurring(draft.isRecurring); setRecurrenceInterval(draft.recurrenceInterval);
     setRecurrenceEndDate(draft.recurrenceEndDate);
 
-    setShowDraftPrompt(false);
     setDraftConsumed(true);
     toast.success("Draft restored!");
-  };
-
-  const dismissDraftPrompt = () => {
-    clearDraft();
-    setShowDraftPrompt(false);
   };
 
   const clearOffer = () => {
@@ -671,9 +656,7 @@ export function usePostJobForm() {
     // draft prompt
     hasDraft,
     draftConsumed,
-    showDraftPrompt,
     loadDraft,
-    dismissDraftPrompt,
     // details fields
     title,
     setTitle,

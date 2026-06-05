@@ -448,7 +448,7 @@ const UserProfile = () => {
               )}
               {profile.skills && (
                 <div className="flex flex-wrap gap-1.5 justify-center mt-3">
-                  {profile.skills.split(",").map((s, i) => (
+                  {profile.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, i) => (
                     <span
                       key={i}
                       className="text-[0.7rem] font-sans font-semibold px-2 py-0.5 rounded-full"
@@ -458,7 +458,7 @@ const UserProfile = () => {
                         border: "0.5px solid hsl(var(--bark) / 0.20)",
                       }}
                     >
-                      {s.trim()}
+                      {s}
                     </span>
                   ))}
                 </div>
@@ -607,7 +607,7 @@ const UserProfile = () => {
                     <div className="flex items-center gap-2">
                       <div className="flex gap-0.5">
                         {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />
+                          <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
                         ))}
                       </div>
                       <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
@@ -620,7 +620,7 @@ const UserProfile = () => {
                         <div className="flex flex-col items-start gap-0.5">
                           <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
                           <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />)}
+                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
                           </div>
                         </div>
                       )}
@@ -628,7 +628,7 @@ const UserProfile = () => {
                         <div className="flex flex-col items-start gap-0.5">
                           <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
                           <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />)}
+                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
                           </div>
                         </div>
                       )}
@@ -636,7 +636,7 @@ const UserProfile = () => {
                         <div className="flex flex-col items-start gap-0.5">
                           <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
                           <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />)}
+                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
                           </div>
                         </div>
                       )}

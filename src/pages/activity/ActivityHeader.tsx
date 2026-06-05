@@ -69,7 +69,7 @@ export function ActivityHeader({
                 onClick={() => setSearchOpen(!searchOpen)}
                 aria-label="Search tasks"
                 aria-expanded={searchOpen}
-                className={`h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition ${
+                className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition ${
                   searchOpen || searchQuery
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -85,7 +85,7 @@ export function ActivityHeader({
                   <button
                     type="button"
                     aria-label="Filter by status"
-                    className={`h-8 w-8 rounded-ds-md btn-press flex items-center justify-center relative transition ${
+                    className={`h-9 w-9 rounded-ds-md btn-press flex items-center justify-center relative transition ${
                       filterOpen || statusFilter !== (tab === "applied" ? "pending" : "open")
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"

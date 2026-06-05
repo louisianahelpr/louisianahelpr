@@ -40,7 +40,7 @@ interface JobFiltersProps {
 }
 
 const chipBase =
-  "inline-flex items-center gap-1 px-2 rounded-full text-[9px] font-semibold tracking-tight transition-all duration-200 btn-press squircle border h-[22px]";
+  "inline-flex items-center gap-1 px-2.5 rounded-full text-[10px] font-semibold tracking-tight transition-all duration-200 btn-press squircle border h-8";
 const chipActive =
   "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]";
 const chipIdle =

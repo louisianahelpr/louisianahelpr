@@ -317,7 +317,7 @@ const DashboardGuest = () => {
                   type="button"
                   onClick={() => setView(view === "list" ? "map" : "list")}
                   aria-label={view === "list" ? "Switch to map view" : "Switch to list view"}
-                  className="h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  className="h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 >
                   {view === "list" ? <MapIcon className="w-4 h-4" /> : <List className="w-4 h-4" />}
                 </button>
@@ -328,7 +328,7 @@ const DashboardGuest = () => {
                       onClick={() => { setSearchOpen(!searchOpen); if (filtersOpen) setFiltersOpen(false); }}
                       aria-label="Search jobs"
                       aria-expanded={searchOpen}
-                      className={`h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition ${
+                      className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition ${
                         searchOpen || search
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -341,7 +341,7 @@ const DashboardGuest = () => {
                       onClick={() => { setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
                       aria-label={activeFilterCount ? `Filters (${activeFilterCount} active)` : "Filters"}
                       aria-expanded={filtersOpen}
-                      className={`h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition relative ${
+                      className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition relative ${
                         filtersOpen || activeFilterCount > 0
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"

@@ -261,7 +261,7 @@ const ConversationRowBase = ({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="p-1.5 rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0"
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0"
             onClick={(e) => e.stopPropagation()}
             aria-label="Conversation options"
           >

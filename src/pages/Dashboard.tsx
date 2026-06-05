@@ -613,7 +613,7 @@ const Dashboard = () => {
                 <button
                   type="button"
                   onClick={() => navigate("/profile?tab=notifications")}
-                  className="inline-flex min-w-0 max-w-full items-center gap-1.5 px-2.5 py-1 rounded-full active:opacity-70 transition-opacity"
+                  className="inline-flex min-h-[36px] min-w-0 max-w-full items-center gap-1.5 px-3 py-1.5 rounded-full active:opacity-70 transition-opacity"
                   style={{
                     background: "hsl(var(--burnt-sienna) / 0.10)",
                     border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",

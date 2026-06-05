@@ -18,6 +18,7 @@ import type { EnrichedJob } from "./types";
 import { JobPosterCard } from "./JobPosterCard";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
+import { report } from "@/lib/errorLogger";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -69,7 +70,10 @@ const JobDetailDialog = ({
       .from("applications")
       .select("id", { count: "exact", head: true })
       .eq("job_id", job.id)
-      .then(({ count }) => { if (!cancelled) setApplicationCount(count ?? 0); });
+      .then(({ count, error }) => {
+        if (error) report(error, { tags: { source: "JobDetailDialog.applicationCount" } });
+        if (!cancelled) setApplicationCount(count ?? 0);
+      });
     return () => { cancelled = true; };
   }, [job?.id]);
 
@@ -86,12 +90,13 @@ const JobDetailDialog = ({
       const { data: userRes } = await supabase.auth.getUser();
       const helperId = userRes?.user?.id;
       if (!helperId || cancelled) return;
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
         .eq("customer_id", job.customer_id)
         .eq("helper_id", helperId)
         .eq("status", "completed");
+      if (error) report(error, { tags: { source: "JobDetailDialog.repeatJobs" } });
       if (!cancelled) setRepeatJobs(count ?? 0);
     })();
     return () => { cancelled = true; };
@@ -337,10 +342,14 @@ const JobDetailDialog = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           {(() => {
             const dateNeeded = parseLocalDate(job.date_needed);
-            const dateStartIso = dateNeeded.toISOString().slice(0, 10).replace(/-/g, "");
-            const dateEnd = new Date(dateNeeded.getTime() + (job.estimated_hours ? Number(job.estimated_hours) * 3600 * 1000 : 24 * 3600 * 1000));
-            const dateEndIso = dateEnd.toISOString().slice(0, 10).replace(/-/g, "");
-            const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${dateStartIso}/${dateEndIso}&details=${encodeURIComponent(job.description.slice(0, 200))}&location=${encodeURIComponent(job.location)}`;
+            const dateValid = !isNaN(dateNeeded.getTime());
+            let calendarUrl: string | null = null;
+            if (dateValid) {
+              const dateStartIso = dateNeeded.toISOString().slice(0, 10).replace(/-/g, "");
+              const dateEnd = new Date(dateNeeded.getTime() + (job.estimated_hours ? Number(job.estimated_hours) * 3600 * 1000 : 24 * 3600 * 1000));
+              const dateEndIso = dateEnd.toISOString().slice(0, 10).replace(/-/g, "");
+              calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${dateStartIso}/${dateEndIso}&details=${encodeURIComponent(job.description.slice(0, 200))}&location=${encodeURIComponent(job.location)}`;
+            }
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
             // Distance estimate when both helpr coords + parish centroid available
             const parishCentroid = getParishCentroid(job.parish);
@@ -360,7 +369,7 @@ const JobDetailDialog = ({
               {
                 Icon: Calendar,
                 label: "Date",
-                value: dateNeeded.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+                value: dateValid ? dateNeeded.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—",
                 sub: job.start_time || null,
                 href: calendarUrl,
                 urgent: false,

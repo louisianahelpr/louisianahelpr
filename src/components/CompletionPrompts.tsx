@@ -8,6 +8,7 @@ import { Star, Gift, PartyPopper, Heart, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { fetchReferralData } from "@/hooks/useReferralData";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { report } from "@/lib/errorLogger";
 
 // NpsPrompt is mounted as the final step in the post-completion sequence —
 // after review/tip/share. It self-gates on eligibility (2nd qualifying job
@@ -75,7 +76,8 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
 
   useEffect(() => {
     // Check if already reviewed
-    supabase.from("reviews").select("id").eq("job_id", jobId).eq("reviewer_id", userId).then(({ data }) => {
+    supabase.from("reviews").select("id").eq("job_id", jobId).eq("reviewer_id", userId).then(({ data, error }) => {
+      if (error) report(error, { tags: { source: "CompletionPrompts.alreadyReviewed" } });
       if (data && data.length > 0) {
         setAlreadyReviewed(true);
         setStep("tip");
@@ -100,7 +102,8 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       toast.success("Review submitted! Thanks for your feedback.");
 
       // Check for repeat low ratings → auto-flag
-      const { data: allReviews } = await supabase.from("reviews").select("rating").eq("reviewee_id", revieweeId);
+      const { data: allReviews, error: allReviewsErr } = await supabase.from("reviews").select("rating").eq("reviewee_id", revieweeId);
+      if (allReviewsErr) report(allReviewsErr, { tags: { source: "CompletionPrompts.lowRatingCheck" } });
       if (allReviews) {
         const lowRatings = allReviews.filter(r => r.rating <= 2).length;
         if (lowRatings >= 3) {
@@ -114,7 +117,8 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
           });
           // Bulk-insert one row per admin instead of awaiting per admin.
           // For 5+ admins this difference is visible to the user (~1.5s vs ~300ms).
-          const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+          const { data: adminRoles, error: adminRolesErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+          if (adminRolesErr) report(adminRolesErr, { tags: { source: "CompletionPrompts.lowRatingNotifyAdmins" } });
           if (adminRoles?.length) {
             await supabase.from("notifications").insert(
               adminRoles.map((a: { user_id: string }) => ({
@@ -138,7 +142,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "tip", jobId, amount } });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       if (data?.url) window.location.href = data.url;
+      else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create tip";
       toast.error(message);

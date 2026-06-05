@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
@@ -37,6 +38,7 @@ export function PayoutSetupForm() {
   const [onboarding, setOnboarding] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const statusQuery = useQuery<AccountStatus | null>({
     queryKey: queryKeys.payoutSetup.status(userId),
@@ -141,7 +143,7 @@ export function PayoutSetupForm() {
   };
 
   const handleReset = async () => {
-    if (!confirm("This will delete your current Stripe account and create a fresh one. Continue?")) return;
+    setConfirmReset(false);
     setResetting(true);
     try {
       const returnUrl = window.location.href;
@@ -213,7 +215,7 @@ export function PayoutSetupForm() {
                     </div>
                   ) : (
                     <div className="w-10 h-10 rounded-ds-sm bg-accent/10 flex items-center justify-center">
-                      <CreditCard className="w-5 h-5 text-accent-foreground" />
+                      <CreditCard className="w-5 h-5 text-accent" />
                     </div>
                   )}
                   <div>
@@ -305,7 +307,7 @@ export function PayoutSetupForm() {
             )}
           </Button>
           {status?.connected && (
-            <Button variant="ghost" size="sm" onClick={handleReset} disabled={resetting} className="w-full text-ds-11 text-muted-foreground">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)} disabled={resetting} className="w-full text-ds-11 text-muted-foreground">
               {resetting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Resetting…</> : "Having issues? Reset & start fresh"}
             </Button>
           )}
@@ -327,7 +329,7 @@ export function PayoutSetupForm() {
                   </div>
                 ) : (
                   <div className="w-10 h-10 rounded-ds-sm bg-accent/10 flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-accent-foreground" />
+                    <CreditCard className="w-5 h-5 text-accent" />
                   </div>
                 )}
                 <div>
@@ -383,6 +385,19 @@ export function PayoutSetupForm() {
           </div>
         </>
       )}
+
+      <BrandConfirmDialog
+        open={confirmReset}
+        onOpenChange={setConfirmReset}
+        title="Reset your payout account?"
+        description="This deletes your current Stripe account and starts a fresh one. You'll need to complete onboarding again before payouts can run. Only do this if onboarding is stuck."
+        primaryLabel={resetting ? "Resetting…" : "Reset & start fresh"}
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        primaryDisabled={resetting}
+        onPrimary={(e) => { e.preventDefault(); handleReset(); }}
+        secondaryLabel="Cancel"
+      />
     </div>
   );
 }

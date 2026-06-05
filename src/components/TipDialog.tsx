@@ -30,7 +30,9 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
         body: { action: "tip", jobId, amount: tipAmount },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       if (data?.url) window.location.href = data.url;
+      else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err: any) {
       toast.error(err.message || "Failed to create tip");
     } finally {

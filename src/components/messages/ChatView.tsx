@@ -22,9 +22,10 @@ import { cn } from "@/lib/utils";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColor } from "@/lib/statusColors";
 import { FirstMessageChips } from "./FirstMessageChips";
+import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import type { Conversation, Message } from "./types";
 
-const renderMessageContent = (content: string) => {
+const renderMessageContent = (content: string, onImageClick: (url: string) => void) => {
   // Photo message
   if (content.startsWith("📷 ")) {
     const parts = content.slice(2).trim().split("\n");
@@ -38,7 +39,7 @@ const renderMessageContent = (content: string) => {
           src={url}
           alt="Shared photo"
           className="max-w-full rounded-ds-sm cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={() => window.open(url, "_blank")}
+          onClick={() => onImageClick(url)}
         />
         {caption && <p>{caption}</p>}
       </div>
@@ -140,6 +141,10 @@ export function ChatView({
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Single-photo lightbox for tapped chat images — keeps the photo inside
+  // the app's frosted viewer instead of punting to a system browser tab
+  // (window.open in a Capacitor WebView leaves the app).
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
   // Once the user taps any first-message chip the row hides for the rest
   // of this conversation — it's only meant to break the empty-thread
   // ice, not stick around as the chat actually starts.
@@ -429,7 +434,7 @@ export function ChatView({
                         mine={mine}
                       />
                     )}
-                    {m.content && renderMessageContent(m.content)}
+                    {m.content && renderMessageContent(m.content, setLightboxPhoto)}
                     {/* Report / delete — overlay sits INSIDE the bubble
                         top corner so it never clips off-screen on narrow
                         phones (<375px), which the old `-left-[52px]` /
@@ -548,6 +553,14 @@ export function ChatView({
         </div>
         </div>
       </main>
+      <PhotoLightbox
+        photos={lightboxPhoto ? [lightboxPhoto] : []}
+        lightboxIndex={lightboxPhoto ? 0 : null}
+        setLightboxIndex={(value) => {
+          const next = typeof value === "function" ? value(lightboxPhoto ? 0 : null) : value;
+          if (next === null) setLightboxPhoto(null);
+        }}
+      />
     </AppShell>
   );
 }

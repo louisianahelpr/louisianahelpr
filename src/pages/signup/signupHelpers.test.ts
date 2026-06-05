@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatPhone, ageFromDob } from "./signupHelpers";
+import { formatPhone, ageFromDob, suggestEmailCorrection, passwordStrength } from "./signupHelpers";
 
 describe("formatPhone", () => {
   it("returns empty string for no digits", () => {
@@ -51,5 +51,47 @@ describe("ageFromDob", () => {
   it("returns 0 for a baby born today", () => {
     const todayStr = new Date().toISOString().split("T")[0];
     expect(ageFromDob(todayStr)).toBe(0);
+  });
+});
+
+describe("suggestEmailCorrection", () => {
+  it("corrects common domain typos", () => {
+    expect(suggestEmailCorrection("jane@gmial.com")).toBe("jane@gmail.com");
+    expect(suggestEmailCorrection("jane@yaho.com")).toBe("jane@yahoo.com");
+    expect(suggestEmailCorrection("jane@hotmial.com")).toBe("jane@hotmail.com");
+    expect(suggestEmailCorrection("jane@outlok.com")).toBe("jane@outlook.com");
+  });
+
+  it("leaves an exact provider match untouched", () => {
+    expect(suggestEmailCorrection("jane@gmail.com")).toBeNull();
+    expect(suggestEmailCorrection("jane@icloud.com")).toBeNull();
+  });
+
+  it("does not touch legitimate custom domains (too far from any provider)", () => {
+    expect(suggestEmailCorrection("jane@louisianahelpr.com")).toBeNull();
+    expect(suggestEmailCorrection("jane@acmecorp.io")).toBeNull();
+  });
+
+  it("returns null for malformed input", () => {
+    expect(suggestEmailCorrection("jane")).toBeNull();
+    expect(suggestEmailCorrection("@gmail.com")).toBeNull();
+    expect(suggestEmailCorrection("jane@localhost")).toBeNull();
+  });
+});
+
+describe("passwordStrength", () => {
+  it("scores an empty password as 0 with no label", () => {
+    expect(passwordStrength("")).toEqual({ score: 0, label: "" });
+  });
+
+  it("rates a long-but-plain password as weak", () => {
+    expect(passwordStrength("abcdefgh").label).toBe("Weak");
+  });
+
+  it("climbs with length and variety, capping at 4 (Strong)", () => {
+    expect(passwordStrength("password").score).toBeGreaterThanOrEqual(1);
+    const strong = passwordStrength("Abcdef123!xyz");
+    expect(strong.score).toBe(4);
+    expect(strong.label).toBe("Strong");
   });
 });

@@ -1,4 +1,4 @@
-// SignupStep1 — "Create your account" step (UI step 1 of 3).
+// SignupStep1 — "Create your account" step (UI step 1 of 2).
 //
 // Extracted from src/pages/Signup.tsx. Owns no state of its own; every
 // field is a controlled input bound to props lifted into the parent.
@@ -7,26 +7,24 @@
 // Reusable input/label class constants are passed in so the parent stays
 // the single source of truth for form styling.
 
+import { useRef, useState, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Eye, EyeOff, Check, Circle, X, Mail, Lock, Building2 } from "lucide-react";
+import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock, Building2 } from "lucide-react";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
+import { suggestEmailCorrection, passwordStrength } from "./signupHelpers";
 
 export interface SignupStep1Props {
   email: string;
   setEmail: (v: string) => void;
   password: string;
   setPassword: (v: string) => void;
-  confirmPassword: string;
-  setConfirmPassword: (v: string) => void;
   showPassword: boolean;
   setShowPassword: (v: boolean) => void;
-  showConfirmPassword: boolean;
-  setShowConfirmPassword: (v: boolean) => void;
   acceptedPolicies: boolean;
   setAcceptedPolicies: (v: boolean) => void;
   inputCls: string;
@@ -42,12 +40,8 @@ export function SignupStep1({
   setEmail,
   password,
   setPassword,
-  confirmPassword,
-  setConfirmPassword,
   showPassword,
   setShowPassword,
-  showConfirmPassword,
-  setShowConfirmPassword,
   acceptedPolicies,
   setAcceptedPolicies,
   inputCls,
@@ -55,6 +49,67 @@ export function SignupStep1({
   isBusinessSignup,
   onContinue,
 }: SignupStep1Props) {
+  // The Continue button stays visually active even before the policies box is
+  // checked — a disabled grey button is a dead end the user can't learn from.
+  // Tapping it while unchecked shakes + highlights the agreement box instead,
+  // pointing them at the one thing they still have to do. `nudgeKey` re-mounts
+  // the animation so repeated taps replay the shake.
+  const [nudgeKey, setNudgeKey] = useState(0);
+  // Set once Continue is tapped — lets the email field surface a "required"
+  // error even before the user has typed anything.
+  const [attempted, setAttempted] = useState(false);
+  // True while a hardware Caps Lock is engaged (web/desktop only; harmless
+  // no-op on the iOS soft keyboard, which never reports the modifier).
+  const [capsLockOn, setCapsLockOn] = useState(false);
+
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  // Live field validity — mirrors the parent's validateAccountStep so the
+  // form can gate inline (focus the first bad field) instead of firing a
+  // stack of toasts on Continue.
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const passwordValid = password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password);
+  const emailSuggestion = emailValid ? suggestEmailCorrection(email) : null;
+
+  const handleContinue = () => {
+    setAttempted(true);
+    if (!emailValid) {
+      emailRef.current?.focus();
+      return;
+    }
+    if (!passwordValid) {
+      passwordRef.current?.focus();
+      return;
+    }
+    // Continue stays active even when unchecked — tapping it here shakes +
+    // highlights the agreement box instead of being a dead grey button.
+    // `nudgeKey` re-mounts the label so repeated taps replay the shake.
+    if (!acceptedPolicies) {
+      setNudgeKey((k) => k + 1);
+      return;
+    }
+    void onContinue();
+  };
+
+  // Enter walks the field chain (email → password → submit) so the form is
+  // fully keyboard-drivable on web.
+  const trackCaps = (e: KeyboardEvent<HTMLInputElement>) =>
+    setCapsLockOn(e.getModifierState?.("CapsLock") ?? false);
+  const onEmailKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      passwordRef.current?.focus();
+    }
+  };
+  const onPasswordKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    trackCaps(e);
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleContinue();
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Business-mode banner — when ?type=business is set, confirm the user
@@ -81,42 +136,92 @@ export function SignupStep1({
         </div>
       )}
 
-      <section className="space-y-3">
+      <section className="space-y-5">
         <div className="space-y-2">
           {/* Single email field — confirm-email was removed since
               email-verification (the click-the-link step after signup)
               already catches typos. The double field was 2014-era
               friction that costs activations without preventing errors. */}
-          <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
+          <Label htmlFor="email" className={labelCls}>Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.5)" }} strokeWidth={1.75} />
-            <Input id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={`${inputCls} pl-10`} />
+            <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" className={`${inputCls} pl-10 ${emailValid ? "pr-10" : ""}`} />
+            {emailValid && (
+              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+            )}
           </div>
+          {((email.length > 0 && !emailValid) || (attempted && !email.trim())) && (
+            <p className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+              <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+              {email.trim() ? "Enter a valid email address" : "Email is required"}
+            </p>
+          )}
+          {emailSuggestion && (
+            <button
+              type="button"
+              onClick={() => setEmail(emailSuggestion)}
+              className="block text-left text-ds-11 font-sans"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Did you mean <span className="font-semibold underline">{emailSuggestion}</span>?
+            </button>
+          )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
+          <Label htmlFor="password" className={labelCls}>Password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.5)" }} strokeWidth={1.75} />
-            <Input id="password" type={showPassword ? "text" : "password"} placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pl-10 pr-10`} autoComplete="new-password" />
+            <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={8} className={`${inputCls} pl-10 pr-10`} autoComplete="new-password" />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? "Hide passwords" : "Show passwords"}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+          {capsLockOn && (
+            <p className="inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              <ArrowBigUp className="w-3.5 h-3.5" strokeWidth={2} aria-hidden /> Caps Lock is on
+            </p>
+          )}
           {password.length > 0 && (() => {
+            // Strength meter — a quality nudge that sits above the hard
+            // requirement chips. Burnt-sienna for weak/fair, bark for good,
+            // green (primary) for strong.
+            const { score, label } = passwordStrength(password);
+            const barColor =
+              score >= 4 ? "hsl(var(--primary))" : score === 3 ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))";
+            return (
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1 flex-1">
+                  {[1, 2, 3, 4].map((i) => (
+                    <span
+                      key={i}
+                      className="h-1 flex-1 rounded-full transition-colors"
+                      style={{ background: i <= score ? barColor : "hsl(var(--olivewood) / 0.15)" }}
+                    />
+                  ))}
+                </div>
+                <span className="text-ds-11 font-sans w-10 text-right" style={{ color: barColor }}>
+                  {label}
+                </span>
+              </div>
+            );
+          })()}
+          {(() => {
             // Real-time checklist mirrors the validation in Signup.tsx so
             // the user knows exactly what's missing before they tap Continue
-            // (previously they'd hit Continue and get a generic toast).
+            // (previously they'd hit Continue and get a generic toast). Shown
+            // from the start (not just once the user types) so the password
+            // rules set expectations before the first keystroke.
             const hasLength = password.length >= 8;
             const hasUpper = /[A-Z]/.test(password);
             const hasNumber = /\d/.test(password);
             const Req = ({ ok, label }: { ok: boolean; label: string }) => (
               <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
-                {ok ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />}
+                {ok ? <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3 h-3" strokeWidth={2} aria-hidden />}
                 {label}
               </span>
             );
@@ -129,37 +234,20 @@ export function SignupStep1({
             );
           })()}
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.5)" }} strokeWidth={1.75} />
-            <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pl-10 ${confirmPassword && password === confirmPassword ? "pr-16" : "pr-10"}`} autoComplete="new-password" />
-            {confirmPassword && password === confirmPassword && (
-              <Check className="absolute right-9 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
-            )}
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-          {confirmPassword && (
-            <p className={`inline-flex items-center gap-1 text-ds-11 ${password === confirmPassword ? "text-primary" : "text-destructive"}`}>
-              {password === confirmPassword
-                ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden /> Passwords match</>
-                : <><X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden /> Passwords do not match</>}
-            </p>
-          )}
-        </div>
       </section>
 
       <label
+        key={nudgeKey}
         htmlFor="policies"
-        className="flex items-start gap-3 px-3 py-3 rounded-ds-md cursor-pointer hover:bg-white/30 transition-colors"
-        style={{ border: "1px solid hsl(var(--olivewood) / 0.12)" }}
+        className={`flex items-start gap-3 px-1.5 py-1 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !acceptedPolicies ? "animate-attention-nudge" : ""}`}
+        style={{
+          // Transparent default border keeps the layout stable when the
+          // burnt-sienna nudge border appears (no jump on the shake).
+          border:
+            nudgeKey > 0 && !acceptedPolicies
+              ? "1px solid hsl(var(--burnt-sienna) / 0.55)"
+              : "1px solid transparent",
+        }}
       >
         <Checkbox
           id="policies"
@@ -172,10 +260,9 @@ export function SignupStep1({
           style={{ color: "hsl(var(--olivewood) / 0.78)" }}
         >
           I agree to the{" "}
-          <Link to="/rules" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>,{" "}
-          <Link to="/terms" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Terms of Service</Link>, and{" "}
-          <Link to="/privacy" target="_blank" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy Policy</Link>.
-          I understand the cancellation, no-show, and dispute policies.
+          <Link to="/rules" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>,{" "}
+          <Link to="/terms" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Terms</Link>, and{" "}
+          <Link to="/privacy" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Privacy Policy</Link>.
         </span>
       </label>
 
@@ -183,52 +270,51 @@ export function SignupStep1({
         variant="bark"
         className="w-full rounded-ds-md"
         size="lg"
-        onClick={onContinue}
-        disabled={!acceptedPolicies}
+        onClick={handleContinue}
       >
         Continue <ArrowRight className="w-4 h-4 ml-1" />
       </Button>
-      {!acceptedPolicies && (
-        <p className="text-ds-11 text-center text-muted-foreground -mt-2">
-          Check the box above to continue.
-        </p>
-      )}
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-border/60" />
-        </div>
-        <div className="relative flex justify-center text-ds-11 uppercase">
-          {/* The OR divider sits on the `.bg-card` glass surface, which is
-              promoted to a semi-transparent fill globally (see index.css
-              `:where(.bg-card)`). `text-muted-foreground` (stormy-sky)
-              against that translucent paint falls below WCAG AA 4.5:1
-              — axe-core flags this as the only `color-contrast` violation
-              on /signup. Bump to `text-foreground` (olivewood) which sits
-              comfortably above the threshold while still reading as
-              quiet "divider" type. */}
-          <span className="bg-card px-2 text-foreground/80">or</span>
-        </div>
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
+        <span
+          className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+          style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+        >
+          or
+        </span>
+        <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
       </div>
 
       <div className="space-y-2">
-        <GoogleSignInButton label="Sign up with Google" />
         <AppleSignInButton label="Sign up with Apple" />
+        <GoogleSignInButton label="Sign up with Google" />
       </div>
 
-      {/* Quiet business escape hatch — the everyday way a company owner finds
-          the business path, without forcing every visitor through an up-front
-          Personal/Business choice. Hidden in business mode (the banner above
-          already offers the reverse switch). Same-route ?type= flip keeps the
-          parent form mounted, so typed email/password survive the switch. */}
-      {!isBusinessSignup && (
+      {/* Footer links — stacked inside the card so they mirror the Login
+          screen's footer block (which keeps "New to Helpr?" / "Have a
+          business?" inside its glass card). The "Log in" link is the
+          reciprocal of Login's "Create an account". The business switch is
+          the quiet everyday entry to the company path — hidden in business
+          mode (the banner above already offers the reverse switch). The
+          same-route ?type= flip keeps the parent form mounted, so typed
+          email/password survive the switch. */}
+      <div className="space-y-1.5 pt-1">
         <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-          Setting up for a company?{" "}
-          <Link to="/signup?type=business" replace className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-            Switch to business sign-up
+          Already have an account?{" "}
+          <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            Log in
           </Link>
         </p>
-      )}
+        {!isBusinessSignup && (
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            Setting up for a company?{" "}
+            <Link to="/signup?type=business" replace className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+              Switch to business sign-up
+            </Link>
+          </p>
+        )}
+      </div>
     </div>
   );
 }

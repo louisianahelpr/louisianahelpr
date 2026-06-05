@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
@@ -11,6 +11,10 @@ export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 // (v8's `caption`/`cell`/`head_cell`/`nav_button_*` and the IconLeft/
 // IconRight components were renamed in the v9 overhaul).
 function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
+  // In dropdown caption mode the month/year selects render a taller row than
+  // the single-line label, so the absolute-positioned arrows (which pin to the
+  // top) need to drop down to sit level with the "June 2008" row.
+  const isDropdown = props.captionLayout === "dropdown";
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -19,15 +23,23 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
         month_caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "font-display italic font-bold text-[0.95rem] tracking-tight text-[hsl(var(--ink-deep))]",
+        caption_label: "flex items-center gap-1 font-display italic font-bold text-[0.95rem] tracking-tight text-[hsl(var(--ink-deep))]",
+        // captionLayout="dropdown": the native <select> sits transparently on
+        // top of the styled label (which shows the value + a caret), so taps
+        // open the OS picker while the calendar keeps its own typography.
+        dropdowns: "flex items-center justify-center gap-1.5",
+        dropdown_root: "relative inline-flex items-center",
+        dropdown: "absolute inset-0 w-full h-full opacity-0 cursor-pointer",
         nav: "space-x-1 flex items-center",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
           "h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)] absolute left-1",
+          isDropdown && "top-[1.375rem]",
         ),
         button_next: cn(
           buttonVariants({ variant: "outline" }),
           "h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)] absolute right-1",
+          isDropdown && "top-[1.375rem]",
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",
@@ -47,12 +59,12 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         ...classNames,
       }}
       components={{
-        Chevron: ({ orientation }) =>
-          orientation === "left" ? (
-            <ChevronLeft className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          ),
+        Chevron: ({ orientation }) => {
+          if (orientation === "left") return <ChevronLeft className="h-4 w-4" />;
+          if (orientation === "right") return <ChevronRight className="h-4 w-4" />;
+          // up / down — the caret next to a dropdown caption
+          return <ChevronDown className="h-3.5 w-3.5 opacity-60" />;
+        },
       }}
       {...props}
     />

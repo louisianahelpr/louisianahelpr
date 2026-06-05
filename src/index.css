@@ -194,12 +194,19 @@ html.app-shell body {
    so it can paint over the notch. On document-scroll pages the page lives in
    normal flow inside #root, so padding #root down by the banner's measured
    CONTENT height pushes the header below the banner instead of letting the
-   banner overlay/slice it. Fixed AppShell pages ignore this padding and read
-   the offset in JS instead (see AppShell + offlineBannerLayout). The offset
-   is already net of env(safe-area-inset-top) — the banner reports its
-   content-row height, and the page header still owns the inset — so there's
-   no double-count. */
-html.offline-banner-visible #root {
+   banner overlay/slice it. Fixed AppShell pages must NOT get this padding —
+   they read the offset in JS and shift their own `top` (see AppShell +
+   offlineBannerLayout). The `:not(.app-shell)` guard is load-bearing: the
+   route-level <PageTransition> sets `will-change: transform`, which makes it
+   a containing block for AppShell's `position: fixed`, so #root padding WOULD
+   shift the fixed shell too — stacking on top of AppShell's own `top` offset
+   and double-counting (an empty safe-area-sized band above the header). The
+   `app-shell` class (html, set by useAppShellViewport for fixed-shell routes)
+   is exactly the "this page owns the offset itself" signal, so scope the
+   padding to document-scroll routes only. The offset is already net of
+   env(safe-area-inset-top) — the banner reports its content-row height, and
+   the page header still owns the inset — so there's no double-count. */
+html.offline-banner-visible:not(.app-shell) #root {
   padding-top: var(--offline-banner-offset, 0px);
 }
 
@@ -356,6 +363,27 @@ button {
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* Attention nudge — a short horizontal shake used to draw the eye to a
+   control the user must act on before proceeding (e.g. the unchecked
+   agreement box on signup when they tap Continue). Suppressed under
+   prefers-reduced-motion via the guard below. */
+@keyframes attention-nudge {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-5px); }
+  30% { transform: translateX(5px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+.animate-attention-nudge {
+  animation: attention-nudge 0.45s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-attention-nudge {
+    animation: none;
   }
 }
 

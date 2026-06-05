@@ -176,14 +176,20 @@ export function DetailsSection({
           <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
           <span className="text-[0.66rem] tabular-nums text-muted-foreground">{title.length}/{TITLE_MAX}</span>
         </div>
-        <Input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={titlePlaceholders[category] ?? titlePlaceholders.other}
-          required
-          maxLength={TITLE_MAX}
-        />
+        <div className="relative">
+          <Input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={titlePlaceholders[category] ?? titlePlaceholders.other}
+            required
+            maxLength={TITLE_MAX}
+            className={title.trim().length > 0 ? "pr-10" : ""}
+          />
+          {title.trim().length > 0 && (
+            <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+          )}
+        </div>
       </div>
 
       <div className="space-y-2.5">

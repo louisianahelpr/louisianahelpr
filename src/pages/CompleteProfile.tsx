@@ -160,6 +160,11 @@ const CompleteProfile = () => {
 
   const allComplete = checklist.every((c) => c.done);
 
+  const firstNameValid = firstName.trim().length > 0;
+  const lastNameValid = lastName.trim().length > 0;
+  const phoneValid = phone.replace(/\D/g, "").length === 10;
+  const cityValid = location.trim().length > 0;
+
   useEffect(() => {
     if (!user?.id || profile || isLoading) return;
     void refresh();
@@ -442,23 +447,33 @@ const CompleteProfile = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="firstName">First name <span className="text-destructive">*</span></Label>
-                <Input
-                  id="firstName"
-                  autoComplete="given-name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="rounded-ds-md"
-                />
+                <div className="relative">
+                  <Input
+                    id="firstName"
+                    autoComplete="given-name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className={`rounded-ds-md ${firstNameValid ? "pr-10" : ""}`}
+                  />
+                  {firstNameValid && (
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  )}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="lastName">Last name <span className="text-destructive">*</span></Label>
-                <Input
-                  id="lastName"
-                  autoComplete="family-name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="rounded-ds-md"
-                />
+                <div className="relative">
+                  <Input
+                    id="lastName"
+                    autoComplete="family-name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className={`rounded-ds-md ${lastNameValid ? "pr-10" : ""}`}
+                  />
+                  {lastNameValid && (
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  )}
+                </div>
               </div>
             </div>
 
@@ -469,27 +484,37 @@ const CompleteProfile = () => {
 
             <div className="space-y-1.5">
               <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
-              <Input
-                id="phone"
-                type="tel"
-                autoComplete="tel"
-                placeholder="(225) 555-0123"
-                value={phone}
-                onChange={(e) => setPhone(formatPhone(e.target.value))}
-                className="rounded-ds-md"
-              />
+              <div className="relative">
+                <Input
+                  id="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="(225) 555-0123"
+                  value={phone}
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
+                  className={`rounded-ds-md ${phoneValid ? "pr-10" : ""}`}
+                />
+                {phoneValid && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
-              <Input
-                id="city"
-                autoComplete="address-level2"
-                placeholder="Baton Rouge"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="rounded-ds-md"
-              />
+              <div className="relative">
+                <Input
+                  id="city"
+                  autoComplete="address-level2"
+                  placeholder="Baton Rouge"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className={`rounded-ds-md ${cityValid ? "pr-10" : ""}`}
+                />
+                {cityValid && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">

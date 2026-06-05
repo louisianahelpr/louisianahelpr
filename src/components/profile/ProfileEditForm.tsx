@@ -79,6 +79,8 @@ export function ProfileEditForm({
     ? { label: "Action needed", cls: "bg-destructive/10 text-destructive" }
     : { label: "Not uploaded", cls: "bg-muted text-muted-foreground" };
   const bioOk = bio.trim().length >= 20;
+  const phoneValid = phone.replace(/\D/g, "").length >= 10;
+  const locationValid = location.trim().length > 0;
 
   // Dirty check — the Save bar drives only the text fields (avatar /
   // ID / portfolio persist on their own). Disabled when nothing in
@@ -341,12 +343,22 @@ export function ProfileEditForm({
           <div className="space-y-3">
             <div>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
-              <Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
+              <div className="relative">
+                <Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
+                {phoneValid && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
                 <Label htmlFor="location" className="text-ds-11 mb-1.5 block">City</Label>
-                <Input id="location" autoComplete="address-level2" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-10" />
+                <div className="relative">
+                  <Input id="location" autoComplete="address-level2" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className={`h-10 ${locationValid ? "pr-10" : ""}`} />
+                  {locationValid && (
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  )}
+                </div>
               </div>
               <div>
                 <Label htmlFor="zipCode" className="text-ds-11 mb-1.5 block">ZIP</Label>
@@ -558,7 +570,7 @@ export function ProfileEditForm({
                   cursor: saving || idle ? "not-allowed" : "pointer",
                 }}
               >
-                {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? "✓ Saved" : idle ? "Up to date" : "Save changes"}
+                {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" strokeWidth={3} /> Saved</>) : idle ? "Up to date" : "Save changes"}
               </button>
             );
           })()}

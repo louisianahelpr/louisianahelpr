@@ -123,7 +123,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               className="bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40"
             />
             {emailError && (
-              <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              <p className="text-ds-11 font-serif italic" role="alert" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 {emailError}
               </p>
             )}

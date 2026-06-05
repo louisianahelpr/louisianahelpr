@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createNotification } from "@/lib/notifications";
+import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
@@ -71,6 +72,9 @@ interface PostedJobCardProps {
       group jobs), threaded into <GroupJobHelpers> to skip its own 2-query
       waterfall on mount. */
   initialGroupHelpers?: GroupHelperLite[];
+  /** Refetch the posted-jobs feed after an inline mutation (dispute
+      resolve/escalate) instead of a full-page reload. */
+  onActionComplete: () => void;
 }
 
 /**
@@ -112,6 +116,7 @@ function PostedJobCardInner({
   onBoostJob,
   initialTracking,
   initialGroupHelpers,
+  onActionComplete,
 }: PostedJobCardProps) {
   const navigate = useNavigate();
   const meta = completedJobMeta[job.id];
@@ -791,16 +796,17 @@ function PostedJobCardInner({
                             if (error) { toast.error("Failed to resolve"); return; }
                             if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
                             toast.success("Dispute resolved — payment released to helpr");
-                            window.location.reload();
+                            onActionComplete();
                           }}><CheckCircle2 className="w-4 h-4 mr-1" /> Mark Resolved</Button>
                           <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={async (e) => {
                             e.stopPropagation();
                             const { error } = await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id);
                             if (error) { toast.error("Failed to escalate"); return; }
-                            const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+                            const { data: adminRoles, error: adminErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+                            if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
                             if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
                             toast.success("Dispute escalated to admin for final decision");
-                            window.location.reload();
+                            onActionComplete();
                           }}><AlertTriangle className="w-4 h-4 mr-1" /> Escalate to Admin</Button>
                         </div>
                       )}

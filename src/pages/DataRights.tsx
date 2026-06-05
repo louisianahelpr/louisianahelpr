@@ -51,12 +51,20 @@ const DataRights = () => {
     if (!userId) return;
     setExporting(true);
     try {
-      const [{ data: profile }, { data: jobs }, { data: applications }, { data: reviews }] = await Promise.all([
+      const [profileRes, jobsRes, applicationsRes, reviewsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("jobs").select("*").or(`customer_id.eq.${userId},helper_id.eq.${userId}`),
         supabase.from("applications").select("*").eq("helper_id", userId),
         supabase.from("reviews").select("*").or(`reviewer_id.eq.${userId},reviewee_id.eq.${userId}`),
       ]);
+
+      const firstError = profileRes.error || jobsRes.error || applicationsRes.error || reviewsRes.error;
+      if (firstError) throw firstError;
+
+      const { data: profile } = profileRes;
+      const { data: jobs } = jobsRes;
+      const { data: applications } = applicationsRes;
+      const { data: reviews } = reviewsRes;
 
       const payload = {
         exported_at: new Date().toISOString(),
@@ -127,7 +135,7 @@ const DataRights = () => {
           <div className="flex items-start gap-3">
             <Download className="w-5 h-5 text-primary mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">
-              <h2 className="font-display font-semibold text-ds-17">Download your data</h2>
+              <h2 className="font-display italic font-semibold text-ds-17">Download your data</h2>
               <p className="text-ds-11 text-muted-foreground mt-1">
                 Get a complete copy of your Helpr data — profile, posted jobs, applications, and reviews — as a single JSON file.
               </p>
@@ -143,7 +151,7 @@ const DataRights = () => {
           <div className="flex items-start gap-3">
             <ShieldOff className="w-5 h-5 text-primary mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">
-              <h2 className="font-display font-semibold text-ds-17">Do not sell or share my personal information</h2>
+              <h2 className="font-display italic font-semibold text-ds-17">Do not sell or share my personal information</h2>
               <p className="text-ds-11 text-muted-foreground mt-1">
                 Helpr does not sell your data. This toggle additionally opts you out of any cross-context behavioral
                 advertising that may be enabled in the future.
@@ -158,7 +166,7 @@ const DataRights = () => {
           <div className="flex items-start gap-3">
             <Trash2 className="w-5 h-5 text-destructive mt-1 flex-shrink-0" aria-hidden />
             <div className="flex-1">
-              <h2 className="font-display font-semibold text-ds-17">Delete my account</h2>
+              <h2 className="font-display italic font-semibold text-ds-17">Delete my account</h2>
               <p className="text-ds-11 text-muted-foreground mt-1">
                 Permanently removes your profile, posted jobs, applications, messages, and personal information.
                 Financial records (completed payouts, tax records) are retained as required by IRS regulations.

@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, UserPlus, Trash2, Loader2, ArrowLeft, Crown, Mail, Sparkles, CreditCard, Send } from "lucide-react";
+import { Building2, UserPlus, Trash2, Loader2, ArrowLeft, Crown, Mail, Sparkles, CreditCard, Send, Check } from "lucide-react";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness, type SeatTier } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -52,6 +53,10 @@ const BusinessTeam = () => {
   const [inviting, setInviting] = useState(false);
   const [upgrading, setUpgrading] = useState<SeatTier | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; pending: boolean } | null>(null);
+  const [removing, setRemoving] = useState(false);
+
+  const inviteEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim());
 
   // Sync seat subscription on mount + after Stripe checkout return
   useEffect(() => {
@@ -99,10 +104,11 @@ const BusinessTeam = () => {
       const userIds = (data ?? []).map((m: any) => m.user_id).filter(Boolean);
       let profiles: any[] = [];
       if (userIds.length > 0) {
-        const { data: p } = await supabase
+        const { data: p, error: pErr } = await supabase
           .from("profiles")
           .select("user_id, full_name, email")
           .in("user_id", userIds);
+        if (pErr) throw pErr;
         profiles = p ?? [];
       }
 
@@ -208,18 +214,22 @@ const BusinessTeam = () => {
     }
   };
 
-  const handleRemove = async (memberId: string) => {
-    if (!confirm("Remove this team member?")) return;
+  const handleRemove = async () => {
+    if (!removeTarget) return;
+    setRemoving(true);
     try {
       const { error } = await supabase
         .from("business_members")
         .delete()
-        .eq("id", memberId);
+        .eq("id", removeTarget.id);
       if (error) throw error;
-      toast.success("Member removed");
+      toast.success(removeTarget.pending ? "Invite cancelled" : "Member removed");
       queryClient.invalidateQueries({ queryKey: queryKeys.business.members(business.business_id) });
+      setRemoveTarget(null);
     } catch (err: any) {
       toast.error(err.message || "Failed to remove member");
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -303,7 +313,7 @@ const BusinessTeam = () => {
               They'll get full access to post and manage jobs on behalf of {business.business_name}. All jobs are billed to your card on file.
             </p>
             <form onSubmit={handleInvite} className="flex gap-2">
-              <div className="flex-1">
+              <div className="flex-1 relative">
                 <Label htmlFor="invite-email" className="sr-only">Email</Label>
                 <Input
                   id="invite-email"
@@ -312,9 +322,13 @@ const BusinessTeam = () => {
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   disabled={remainingSlots <= 0}
+                  className={inviteEmailValid ? "pr-10" : undefined}
                 />
+                {inviteEmailValid && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                )}
               </div>
-              <Button type="submit" disabled={inviting || remainingSlots <= 0}>
+              <Button type="submit" disabled={inviting || remainingSlots <= 0 || !inviteEmailValid}>
                 {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Invite"}
               </Button>
             </form>
@@ -423,7 +437,7 @@ const BusinessTeam = () => {
                     {m.email && <p className="text-ds-11 text-muted-foreground">{m.email}</p>}
                   </div>
                   {business.is_owner && m.role !== "owner" && (
-                    <Button variant="ghost" size="icon" onClick={() => handleRemove(m.id)} aria-label="Remove team member">
+                    <Button variant="ghost" size="icon" onClick={() => setRemoveTarget({ id: m.id, pending: false })} aria-label="Remove team member">
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   )}
@@ -459,7 +473,7 @@ const BusinessTeam = () => {
                               <Send className="w-4 h-4 text-muted-foreground" />
                             </Button>
                           )}
-                          <Button variant="ghost" size="icon" onClick={() => handleRemove(m.id)} aria-label="Cancel pending invite">
+                          <Button variant="ghost" size="icon" onClick={() => setRemoveTarget({ id: m.id, pending: true })} aria-label="Cancel pending invite">
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>
@@ -472,6 +486,23 @@ const BusinessTeam = () => {
           )}
         </div>
       </div>
+
+      <BrandConfirmDialog
+        open={!!removeTarget}
+        onOpenChange={(open) => { if (!open) setRemoveTarget(null); }}
+        title={removeTarget?.pending ? "Cancel this invite?" : "Remove this team member?"}
+        description={
+          removeTarget?.pending
+            ? "They won't be able to join with this invite. You can re-invite them anytime."
+            : "They'll lose access to post and manage jobs for this business. You can re-invite them later."
+        }
+        primaryLabel={removing ? "Removing…" : (removeTarget?.pending ? "Cancel invite" : "Remove member")}
+        primaryTone="sienna"
+        primaryHaptic="error"
+        primaryDisabled={removing}
+        onPrimary={(e) => { e.preventDefault(); handleRemove(); }}
+        secondaryLabel="Keep"
+      />
     </div>
   );
 };

@@ -64,7 +64,7 @@ type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "p
 const ProfilePage = () => {
   usePageTitle("My Profile — Helpr");
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user: cachedUser, profile: cachedProfile, isLoading: authLoading, refresh: refreshCurrentUser } = useCurrentUser();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -75,28 +75,27 @@ const ProfilePage = () => {
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
 
-  // Sync tab to URL for bookmarkability and browser back
+  // Sync tab to URL for bookmarkability; React Router owns history so browser
+  // back/forward updates searchParams, which the effect below mirrors to state.
   useEffect(() => {
-    const newParams = new URLSearchParams(searchParams);
-    if (tab === "landing") {
-      newParams.delete("tab");
-    } else {
-      newParams.set("tab", tab);
-    }
-    const newUrl = newParams.toString() ? `?${newParams.toString()}` : window.location.pathname;
-    window.history.pushState(null, "", newUrl);
+    const current = (searchParams.get("tab") as Tab | null) || "landing";
+    if (current === tab) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (tab === "landing") next.delete("tab");
+        else next.set("tab", tab);
+        return next;
+      },
+      { replace: true },
+    );
   }, [tab]);
 
-  // Handle browser back/forward
+  // Mirror URL → state when back/forward (or a deep link) changes the tab param.
   useEffect(() => {
-    const handlePopState = () => {
-      const params = new URLSearchParams(window.location.search);
-      const urlTab = params.get("tab") as Tab | null;
-      setTab(urlTab || "landing");
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+    const urlTab = (searchParams.get("tab") as Tab | null) || "landing";
+    setTab((prev) => (prev === urlTab ? prev : urlTab));
+  }, [searchParams]);
 
   useEffect(() => {
     const urlTab = (searchParams.get("tab") as Tab) || "landing";

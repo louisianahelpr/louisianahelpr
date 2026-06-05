@@ -48,6 +48,8 @@ interface PostedJobsTabProps {
   inlineApplicants: Record<string, EnrichedApplication[]>;
   loadingApplicants: Record<string, boolean>;
   applicantErrors: Record<string, boolean>;
+  /** Refetch the feed after an inline card mutation (e.g. dispute action). */
+  onActionComplete: () => void;
 }
 
 export const PostedJobsTab = ({
@@ -59,6 +61,7 @@ export const PostedJobsTab = ({
   onLoadApplications, selectedJob, setSelectedJob, applications,
   onAcceptApplication, onLoadInlineApplicants,
   inlineApplicants, loadingApplicants, applicantErrors,
+  onActionComplete,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
 
@@ -124,6 +127,7 @@ export const PostedJobsTab = ({
             loadingApplicants={loadingApplicants}
             applicantErrors={applicantErrors}
             onBoostJob={onBoost}
+            onActionComplete={onActionComplete}
           />
         )}
       />

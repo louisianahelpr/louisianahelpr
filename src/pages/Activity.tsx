@@ -235,6 +235,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               inlineApplicants={actions.inlineApplicants}
               loadingApplicants={actions.loadingApplicants}
               applicantErrors={actions.applicantErrors}
+              onActionComplete={refresh}
             />
           )}
 

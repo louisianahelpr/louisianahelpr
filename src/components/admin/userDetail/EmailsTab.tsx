@@ -128,10 +128,10 @@ export function EmailsTab({
           </div>
           {(verificationOpens.length > 0 || verificationClicks.length > 0) ? (
             <div className="flex gap-4 pt-1">
-              <span className="flex items-center gap-1 text-ds-11 text-accent-foreground">
+              <span className="flex items-center gap-1 text-ds-11 text-accent">
                 <Eye className="w-3 h-3" /> {verificationOpens.length} open{verificationOpens.length !== 1 ? 's' : ''}
               </span>
-              <span className="flex items-center gap-1 text-ds-11 text-accent-foreground">
+              <span className="flex items-center gap-1 text-ds-11 text-accent">
                 <MousePointerClick className="w-3 h-3" /> {verificationClicks.length} click{verificationClicks.length !== 1 ? 's' : ''}
               </span>
             </div>

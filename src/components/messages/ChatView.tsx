@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw } from "lucide-react";
+import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -293,12 +293,12 @@ export function ChatView({
           {/* Community rules banner — compact */}
           {!bannerDismissed && (
             <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
-              <AlertTriangle className="w-3 h-3 text-accent-foreground mt-[3px] shrink-0" />
-              <p className="text-ds-11 leading-snug text-accent-foreground flex-1">
+              <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
+              <p className="text-ds-11 leading-snug text-accent flex-1">
                 Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then permanent ban.
               </p>
-              <button onClick={() => setBannerDismissed(true)} className="text-accent-foreground/60 hover:text-accent-foreground shrink-0 mt-0.5" aria-label="Dismiss">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <button onClick={() => setBannerDismissed(true)} className="-m-2 p-2 text-accent/60 hover:text-accent shrink-0 self-start" aria-label="Dismiss">
+                <X className="w-3 h-3" />
               </button>
             </div>
           )}

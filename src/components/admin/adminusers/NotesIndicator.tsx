@@ -28,7 +28,7 @@ export const NotesIndicator = ({ userId, notesSummary }: NotesIndicatorProps) =>
         <button
           type="button"
           onClick={(e) => e.stopPropagation()}
-          className="relative inline-flex items-center justify-center text-accent-foreground hover:text-primary transition-colors"
+          className="relative inline-flex items-center justify-center text-accent hover:text-primary transition-colors"
           aria-label={`${summary.count} admin note${summary.count > 1 ? "s" : ""}`}
         >
           <MessageCircle className="w-3.5 h-3.5" />

@@ -622,7 +622,7 @@ const TaxReserveCard = ({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-ds-sm flex items-center justify-center bg-accent/10 text-accent-foreground shrink-0">
+          <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-ds-sm flex items-center justify-center bg-accent/10 text-accent shrink-0">
             <Landmark className="w-4 h-4 sm:w-5 sm:h-5" />
           </span>
           <div className="min-w-0">
@@ -775,7 +775,7 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       {hasAlerts && (
         <div className="space-y-2 sm:space-y-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" />
+            <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
             <p className="text-ds-10 sm:text-ds-11 font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
           </div>
           <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">

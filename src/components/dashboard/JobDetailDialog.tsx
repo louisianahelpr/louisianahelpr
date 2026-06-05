@@ -188,7 +188,7 @@ const JobDetailDialog = ({
             {job.is_urgent && (
               <span
                 aria-label="Urgent"
-                className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[9px] font-bold uppercase tracking-wider"
+                className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[9px] font-bold uppercase tracking-wider"
                 style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
               >
                 <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
@@ -278,7 +278,7 @@ const JobDetailDialog = ({
           {photos.length === 0 && job.is_urgent && (
             <span
               aria-label="Urgent"
-              className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[9px] font-bold uppercase tracking-wider"
+              className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[9px] font-bold uppercase tracking-wider"
               style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
             >
               <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent

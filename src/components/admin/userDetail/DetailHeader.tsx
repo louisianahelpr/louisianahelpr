@@ -41,7 +41,7 @@ export function DetailHeader({
           {stripeBadge(viewProfile)}
 
           {(viewProfile.application_count || 1) > 1 && (
-            <Badge variant="outline" className="text-ds-10 bg-accent/10 text-accent-foreground border-accent/30">
+            <Badge variant="outline" className="text-ds-10 bg-accent/10 text-accent border-accent/30">
               Applied {viewProfile.application_count}x
             </Badge>
           )}

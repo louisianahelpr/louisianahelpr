@@ -215,7 +215,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 return (
                   <span
                     aria-label={bonus > 0 ? `Urgent — $${bonus.toFixed(0)} bonus` : "Urgent"}
-                    className={`${urgentAnimates ? "urgent-pulse " : ""}inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[8px] font-bold uppercase tracking-wider`}
+                    className={`${urgentAnimates ? "urgent-pulse " : ""}inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent text-[8px] font-bold uppercase tracking-wider`}
                     style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
                   >
                     <Zap className="w-2.5 h-2.5 text-accent fill-accent" />

@@ -9,6 +9,7 @@ import {
   CheckCircle2, Star, MessageSquare, Users, AlertTriangle,
   RefreshCw, ThumbsUp, ThumbsDown, Send, XCircle,
   Paperclip, FileText, Trash2, Pencil, Check, X, ChevronRight,
+  ChevronUp, ChevronDown,
 } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { formatDistanceToNow } from "date-fns";
@@ -456,7 +457,7 @@ function AppliedJobCardInner({
               {job.helper_completed_at && job.poster_completed_at && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-ds-sm bg-primary/10 border border-primary/20">
                   <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-ds-13 font-medium text-primary">Job complete ✓</span>
+                  <span className="text-ds-13 font-medium text-primary">Job complete</span>
                 </div>
               )}
 
@@ -481,7 +482,7 @@ function AppliedJobCardInner({
                   )}
                   {job.revision_completed_at ? (
                     <div className="space-y-2">
-                      <div className="text-ds-11 text-center px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium">✓ Marked as fixed — waiting for poster</div>
+                      <div className="text-ds-11 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium w-full"><Check className="w-3 h-3 shrink-0" strokeWidth={3} /> Marked as fixed — waiting for poster</div>
                       {job.revision_acceptance_deadline && (
                         <DeadlineCountdown
                           deadline={job.revision_acceptance_deadline}
@@ -707,7 +708,7 @@ function AppliedJobCardInner({
               />
               {job.payment_status === "released" && (
                 helperReviewedJobIds.has(app.job_id) ? (
-                  <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed ✓</Button>
+                  <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed</Button>
                 ) : (
                   <Button size="sm" variant="outline" className="w-full" onClick={() => onHelperReview(app.job_id, job.customer_id, app.posterName || "Poster")}>
                     <Star className="w-4 h-4 mr-1" /> Review Poster
@@ -740,8 +741,8 @@ function AppliedJobCardInner({
           {/* Fully done (reviewed) - collapsible */}
           {isFullyDone && (
             <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
-              <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Reviewed ✓</span>
-              <span className="text-ds-11 text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
+              <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Reviewed</span>
+              {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
             </div>
           )}
           {isFullyDone && isExpanded && (

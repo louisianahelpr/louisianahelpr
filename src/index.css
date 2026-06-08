@@ -517,6 +517,23 @@ button {
     0 56px 112px -24px rgba(20, 20, 18, 0.22);
 }
 
+/* Shared tactile press primitive — referenced by ~50 tappable elements but
+   never defined, so none of them reacted to touch until now. */
+.btn-press {
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-press:active {
+  transform: scale(0.96);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-press,
+  .btn-press:active {
+    transition: none;
+    transform: none;
+  }
+}
+
 /* Primary button — Jasper Green fill in editorial serif (Fraunces 700).
    1px inner top-edge highlight, soft Jasper-tinted shadow. Hover deepens
    to Forest tone and a subtle white "glint" sweeps across the surface. */

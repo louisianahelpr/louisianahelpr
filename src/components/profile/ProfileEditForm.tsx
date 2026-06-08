@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Loader2, Camera, ImagePlus, X, Check, MapPin } from "lucide-react";
+import { Upload, Loader2, Camera, ImagePlus, X, Check, MapPin, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import { lookupParishByZip } from "@/lib/parishLookup";
@@ -517,6 +518,28 @@ export function ProfileEditForm({
             disabled={portfolioUploading}
           />
         </div>
+
+        {/* Preview + autosave reassurance — closes the gap below the last
+            card and lets the user see their public profile exactly as
+            applicants do, then clarifies the save model so the sticky
+            bar's "Save changes" doesn't read as "nothing saved yet". */}
+        {profile?.user_id && (
+          <Link
+            to={`/user/${profile.user_id}`}
+            className="rounded-2xl liquid-glass p-4 flex items-center justify-center gap-2 text-ds-13 font-semibold active:scale-[0.98] transition-all"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            <Eye className="w-4 h-4" strokeWidth={2} aria-hidden />
+            Preview my public profile
+          </Link>
+        )}
+        <p
+          className="text-center font-serif italic px-6 leading-snug"
+          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.6)" }}
+        >
+          Photos &amp; ID save automatically. Other changes save when you tap{" "}
+          <span className="not-italic font-sans font-medium">Save changes</span>.
+        </p>
       </form>
 
       {/* Sticky save bar — keeps the primary action one-tap-away whether

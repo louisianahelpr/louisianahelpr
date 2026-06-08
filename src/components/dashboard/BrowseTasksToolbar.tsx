@@ -178,8 +178,23 @@ export function BrowseTasksToolbar({
         </div>
         <div className="flex items-center gap-1">
               {filters.hasFilters && (
-                <Button variant="ghost" size="sm" onClick={filters.clearFilters} className="text-ds-11 text-muted-foreground hover:text-destructive h-8 rounded-ds-md btn-press">
-                  <X className="w-3 h-3 mr-1" /> Clear
+                /* Strengthened affordance: solid burnt-sienna pill so the
+                   clear action is immediately visible when filters are active,
+                   not a ghosted text button easy to overlook. */
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={filters.clearFilters}
+                  className="btn-press h-8 rounded-full px-3 text-ds-11 font-semibold"
+                  style={{
+                    background: "hsl(var(--burnt-sienna) / 0.12)",
+                    color: "hsl(var(--burnt-sienna))",
+                    border: "1px solid hsl(var(--burnt-sienna) / 0.28)",
+                  }}
+                  aria-label={`Clear all ${filters.activeFilterCount} active filter${filters.activeFilterCount === 1 ? "" : "s"}`}
+                >
+                  <X className="w-3 h-3 mr-1" strokeWidth={2.5} />
+                  Clear {filters.activeFilterCount > 1 ? `(${filters.activeFilterCount})` : ""}
                 </Button>
               )}
               {user && (

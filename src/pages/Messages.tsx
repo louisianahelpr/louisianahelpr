@@ -223,11 +223,26 @@ const Messages = () => {
         setActiveConvo(match);
         navigate("/messages?chat=1", { replace: true });
       } else {
-        // No existing conversation — create a placeholder so user can start messaging
+        // No existing conversation — fetch profile + job to build a
+        // placeholder thread so the user can start messaging.
         const [profileRes, jobRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
           supabase.from("jobs").select("id, title, status, customer_id").eq("id", deepLinkJobId).maybeSingle(),
         ]);
+
+        // Guard: if neither the user profile nor the job record resolved,
+        // the deep-link target is a "dead" thread (deleted user + deleted
+        // job). Opening it would show "User / Job" placeholders and any
+        // send attempt would fail with a FK error — surface a clear error
+        // now instead of a silent broken thread.
+        const profileFound = !!(profileRes.data?.[0]);
+        const jobFound = !!(jobRes.data);
+        if (!profileFound && !jobFound) {
+          console.warn("[Messages] deep-link resolved to a dead thread — no profile and no job found", { deepLinkUserId, deepLinkJobId });
+          toast.error("This conversation link is no longer available.");
+          return;
+        }
+
         const name = profileRes.data?.[0]?.full_name || "User";
         const placeholder: Conversation = {
           otherUserId: deepLinkUserId,

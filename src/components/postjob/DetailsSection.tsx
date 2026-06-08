@@ -102,7 +102,7 @@ export function DetailsSection({
             doesn't bury the Photos + later sections under one picker.
             Active chip keeps the brand-color ring + adds a check so
             the selection reads instantly. */}
-        <div className="grid grid-cols-2 gap-2">
+        <div id="category-picker" className="grid grid-cols-2 gap-2">
           {categories.map((c) => {
             const colors = categoryColors[c.value];
             const active = category === c.value;
@@ -239,6 +239,7 @@ export function DetailsSection({
         {/* Fixed-tile grid — 80px tiles wrap into rows; auto-fill keeps
             the "+" tile flush with photos at any photo count. */}
         <div
+          id="photo-grid"
           className="grid gap-2.5"
           style={{ gridTemplateColumns: "repeat(auto-fill, 80px)" }}
         >

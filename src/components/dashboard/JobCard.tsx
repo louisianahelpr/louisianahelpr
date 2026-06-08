@@ -2,6 +2,7 @@ import { memo, type KeyboardEvent } from "react";
 import {
   MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock,
 } from "lucide-react";
+import { hapticLight } from "@/lib/haptics";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
@@ -107,13 +108,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   const interactiveProps = isGuest
     ? {}
     : {
-        onClick: () => onSelect(job),
+        onClick: () => { hapticLight(); onSelect(job); },
         role: "button" as const,
         tabIndex: 0,
         "aria-label": `View ${job.title} — $${job.budget}`,
         onKeyDown: (e: KeyboardEvent) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
+            hapticLight();
             onSelect(job);
           }
         },

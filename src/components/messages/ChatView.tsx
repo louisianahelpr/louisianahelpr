@@ -1,8 +1,8 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw, X } from "lucide-react";
+import { ArrowLeft, ChevronsDown, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -149,6 +149,12 @@ export function ChatView({
   // of this conversation — it's only meant to break the empty-thread
   // ice, not stick around as the chat actually starts.
   const [chipsDismissed, setChipsDismissed] = useState(false);
+  // Tracks whether the user is scrolled far enough from the bottom that
+  // we should show a "jump to newest" affordance. `true` = show button.
+  const [showJumpToBottom, setShowJumpToBottom] = useState(false);
+  // Stable ref to the scroll container for the jump handler and the
+  // scroll-position observer.
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Pull-to-refresh for the chat thread — reuses the same hook +
   // wrapper every other scrollable surface uses. The hook owns its own
@@ -168,9 +174,31 @@ export function ChatView({
       } else if (chatContainerRef) {
         (chatContainerRef as { current: HTMLDivElement | null }).current = node;
       }
+      // Keep our own stable reference for the jump-to-bottom handler.
+      scrollContainerRef.current = node;
     },
     [containerRef, chatContainerRef],
   );
+
+  // Track scroll position to show/hide the jump-to-newest button.
+  // 120px from the bottom is the threshold — any further up and the
+  // button appears so the user can get back without scrolling manually.
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setShowJumpToBottom(distFromBottom > 120);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Reset the jump button whenever the conversation changes so a stale
+  // "scrolled up" state from a previous thread doesn't bleed through.
+  useEffect(() => {
+    setShowJumpToBottom(false);
+  }, [activeConvo.jobId, activeConvo.otherUserId]);
 
   return (
     // Fixed-viewport lock + safe-area-top header inset come from AppShell,
@@ -199,7 +227,7 @@ export function ChatView({
               variant="ghost"
               size="icon"
               className="rounded-full h-9 w-9 shrink-0 self-center"
-              onClick={() => { setActiveConvo(null); setDraft(""); navigate("/messages", { replace: true }); }}
+              onClick={() => { setActiveConvo(null); setDraft(""); setLightboxPhoto(null); navigate("/messages", { replace: true }); }}
               aria-label="Back to conversations"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -457,7 +485,7 @@ export function ChatView({
                         <button
                           onClick={() => setDeleteMessageConfirm(m.id)}
                           className="flex items-center justify-center w-7 h-7 rounded-full backdrop-blur-sm"
-                          style={{ color: "hsl(var(--parchment) / 0.85)", background: "rgba(0, 0, 0, 0.18)" }}
+                          style={{ color: "hsl(var(--parchment))", background: "rgba(0, 0, 0, 0.38)" }}
                           title="Delete"
                           aria-label="Delete message"
                         >
@@ -503,6 +531,36 @@ export function ChatView({
             <div ref={bottomRef} />
           </div>
           </PullToRefreshWrapper>
+
+          {/* Jump-to-newest button — appears when the user is scrolled
+              more than 120px from the bottom. Tapping it smoothly
+              scrolls the thread back to the latest message so they
+              don't miss new arrivals. Hidden on empty threads. */}
+          {showJumpToBottom && messages.length > 0 && (
+            <div className="flex justify-center -mt-1 mb-1 pointer-events-none">
+              <button
+                type="button"
+                className="pointer-events-auto flex items-center gap-1 px-3 py-1 rounded-full text-ds-11 font-medium shadow-md transition-all active:scale-95"
+                style={{
+                  background: "hsl(var(--bark))",
+                  color: "hsl(var(--parchment))",
+                  boxShadow:
+                    "0 2px 8px hsl(var(--bark) / 0.28), " +
+                    "inset 0 1px 0 0 rgba(255,255,255,0.12)",
+                }}
+                aria-label="Jump to newest message"
+                onClick={() => {
+                  scrollContainerRef.current?.scrollTo({
+                    top: scrollContainerRef.current.scrollHeight,
+                    behavior: "smooth",
+                  });
+                }}
+              >
+                <ChevronsDown className="w-3 h-3" />
+                New messages
+              </button>
+            </div>
+          )}
 
           {/* First-message chips — three ice-breaker suggestions shown
               ONLY when the thread is brand-new (zero messages) and the

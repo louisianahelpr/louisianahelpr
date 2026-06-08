@@ -294,34 +294,52 @@ export function usePostJobForm() {
     return urls;
   };
 
+  /**
+   * Scroll the first invalid field into view so the user can see it even
+   * on a small screen (SE: 375×667, ~550px usable). Uses the element's
+   * native `id` attribute — every form field already has one. Focuses
+   * after scrolling when the element is focusable (inputs / textareas);
+   * non-focusable targets (divs used as scroll anchors) get scroll-only.
+   * `block: "center"` keeps the label visible above the field.
+   */
+  const scrollToField = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (typeof (el as HTMLInputElement).focus === "function" && el.tagName !== "DIV") {
+      setTimeout(() => (el as HTMLInputElement).focus(), 350);
+    }
+  };
+
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { toast.error("Task title is required"); return; }
-    if (!description.trim()) { toast.error("Description is required"); return; }
-    if (!category) { toast.error("Category is required"); return; }
+    if (!title.trim()) { toast.error("Task title is required"); scrollToField("title"); return; }
+    if (!description.trim()) { toast.error("Description is required"); scrollToField("description"); return; }
+    if (!category) { toast.error("Category is required"); scrollToField("category-picker"); return; }
     // At least one photo is required — posts with a photo dramatically
     // outperform photo-less ones for both applicant count and quote
     // accuracy, so we now gate submit on it (issue #114).
     if (imageFiles.length === 0) {
       toast.error("Add at least one photo so helprs know what they're applying for.");
+      scrollToField("photo-grid");
       return;
     }
-    if (!streetAddress.trim()) { toast.error("Street address is required"); return; }
-    if (!city.trim()) { toast.error("City is required"); return; }
-    if (!addrState.trim()) { toast.error("State is required"); return; }
-    if (!zipCode.trim()) { toast.error("Zip code is required"); return; }
-    if (!dateNeeded) { toast.error("Date needed is required"); return; }
+    if (!streetAddress.trim()) { toast.error("Street address is required"); scrollToField("streetAddress"); return; }
+    if (!city.trim()) { toast.error("City is required"); scrollToField("city"); return; }
+    if (!addrState.trim()) { toast.error("State is required"); scrollToField("state"); return; }
+    if (!zipCode.trim()) { toast.error("Zip code is required"); scrollToField("zipCode"); return; }
+    if (!dateNeeded) { toast.error("Date needed is required"); scrollToField("date"); return; }
     // Validate date is not in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(dateNeeded + "T00:00:00");
-    if (selectedDate < today) { toast.error("Date cannot be in the past"); return; }
-    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); return; }
-    if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); return; }
+    if (selectedDate < today) { toast.error("Date cannot be in the past"); scrollToField("date"); return; }
+    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); scrollToField("flexible"); return; }
+    if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); scrollToField("hours"); return; }
     // special_requirements is optional — no validation needed
-    if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
-    if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000."); return; }
-    if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent bonus must be at least $5"); return; }
+    if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); scrollToField("budget"); return; }
+    if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000."); scrollToField("budget"); return; }
+    if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent bonus must be at least $5"); scrollToField("custom-urgent-fee"); return; }
     setConfirmed(false);
     setStep("checkout");
   };
@@ -522,6 +540,9 @@ export function usePostJobForm() {
         toast.error(`Could not start payment: ${errorMsg}. Please try again.`);
         setRedirecting(false);
         setStep("checkout");
+        // Reset consent — payment failed, so the user must re-confirm
+        // before retrying (avoids a stale confirmation being reused).
+        setConfirmed(false);
         submittingRef.current = false;
         return;
       }
@@ -549,6 +570,8 @@ export function usePostJobForm() {
       setSaving(false);
       setRedirecting(false);
       setStep("checkout");
+      // Reset consent — same as the inline error path above.
+      setConfirmed(false);
       submittingRef.current = false;
     }
   };

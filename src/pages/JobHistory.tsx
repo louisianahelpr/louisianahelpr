@@ -169,10 +169,24 @@ const JobHistory = () => {
                           {job._source === "posted" ? "Posted" : "Worked"}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-ds-11 text-muted-foreground mt-1">
-                        <span className="flex items-center gap-1 min-w-0"><MapPin className="w-3 h-3 shrink-0" /> <span className="truncate">{job.location}</span></span>
-                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3 shrink-0" /> {new Date(job.date_needed).toLocaleDateString()}</span>
-                        <span className="flex items-center gap-1 font-medium text-foreground"><DollarSign className="w-3 h-3 shrink-0" /> ${job.budget}</span>
+                      {/* Meta row — two-line layout on SE (320 px): budget +
+                          date on the first line, full location below.
+                          On wider phones everything fits on one row. */}
+                      <div className="text-ds-11 text-muted-foreground mt-1 space-y-0.5">
+                        <div className="flex items-center flex-wrap gap-x-2.5 gap-y-0.5">
+                          <span className="flex items-center gap-1 font-semibold text-foreground">
+                            <DollarSign className="w-3 h-3 shrink-0" />${job.budget}
+                          </span>
+                          <span className="opacity-40">·</span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3 shrink-0" />
+                            {new Date(job.date_needed).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                          </span>
+                        </div>
+                        <span className="flex items-center gap-1 min-w-0">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{job.location}</span>
+                        </span>
                       </div>
                       {job.description?.trim() && (
                         <p className="text-ds-11 text-muted-foreground mt-2 line-clamp-1">{job.description}</p>

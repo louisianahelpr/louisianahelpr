@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,19 @@ const ResetPassword = () => {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  // Holds the id of the post-success redirect timer so we can cancel it if
+  // the user navigates away within the 1.5 s window — prevents a "navigate
+  // on unmounted component" warning and a phantom navigation to /dashboard.
+  const redirectTidRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTidRef.current !== null) {
+        window.clearTimeout(redirectTidRef.current);
+      }
+    };
+  }, []);
+
   const passwordValid = password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
   const confirmValid = confirm.length > 0 && confirm === password && passwordValid;
 
@@ -48,7 +61,7 @@ const ResetPassword = () => {
       toast.error(error.message);
     } else {
       toast.success("Password updated! Redirecting…");
-      setTimeout(() => navigate("/dashboard"), 1500);
+      redirectTidRef.current = window.setTimeout(() => navigate("/dashboard"), 1500);
     }
   };
 

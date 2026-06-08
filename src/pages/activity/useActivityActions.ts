@@ -57,6 +57,8 @@ export function useActivityActions({
   // Dialog state
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<EnrichedApplication[]>([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
+  const [applicationsError, setApplicationsError] = useState(false);
   const [inlineApplicants, setInlineApplicants] = useState<Record<string, EnrichedApplication[]>>({});
   const [loadingApplicants, setLoadingApplicants] = useState<Record<string, boolean>>({});
   const [applicantErrors, setApplicantErrors] = useState<Record<string, boolean>>({});
@@ -155,13 +157,18 @@ export function useActivityActions({
 
   const loadApplications = async (job: Job) => {
     setSelectedJob(job);
+    setApplicationsLoading(true);
+    setApplicationsError(false);
+    setApplications([]);
     try {
       const enriched = await fetchApplicants(job.id);
       setApplications(enriched);
     } catch {
       // A failed fetch must not read as "no applicants" — tell the truth.
-      setApplications([]);
+      setApplicationsError(true);
       toast.error("Couldn't pull up applicants right now — give it a second and try again?");
+    } finally {
+      setApplicationsLoading(false);
     }
   };
 
@@ -609,6 +616,8 @@ export function useActivityActions({
     // Dialog state
     selectedJob, setSelectedJob,
     applications,
+    applicationsLoading,
+    applicationsError,
     inlineApplicants,
     loadingApplicants,
     applicantErrors,

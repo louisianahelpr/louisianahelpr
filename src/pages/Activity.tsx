@@ -230,6 +230,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               selectedJob={actions.selectedJob}
               setSelectedJob={actions.setSelectedJob}
               applications={actions.applications}
+              applicationsLoading={actions.applicationsLoading}
+              applicationsError={actions.applicationsError}
               onAcceptApplication={actions.acceptApplication}
               onLoadInlineApplicants={actions.loadInlineApplicants}
               inlineApplicants={actions.inlineApplicants}

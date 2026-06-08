@@ -400,7 +400,7 @@ const ProfilePage = () => {
       parish: parish,
     }).eq("user_id", user.id);
     setSaving(false);
-    if (error) toast.error(error.message);
+    if (error) toast.error("We couldn't save your profile — please try again.");
     else {
       setFullName(merged);
       setJustSaved(true);

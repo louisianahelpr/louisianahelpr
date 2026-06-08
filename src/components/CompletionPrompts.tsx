@@ -96,7 +96,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     setSaving(false);
     if (error) {
       if (error.code === "23505") { toast.info("You've already reviewed this job"); setStep("tip"); }
-      else { hapticError(); toast.error(error.message); }
+      else { hapticError(); toast.error("We couldn't submit your review — please try again."); }
     } else {
       hapticSuccess();
       toast.success("Review submitted! Thanks for your feedback.");

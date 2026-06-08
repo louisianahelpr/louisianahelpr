@@ -528,6 +528,9 @@ const CompleteProfile = () => {
             <div className="space-y-1.5">
               <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-destructive">*</span></Label>
               <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={setDateOfBirth} />
+              {dateOfBirth && !ageOk && (
+                <p className="text-ds-11 text-destructive">You'll need to be 18 or older to join Helpr.</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -569,7 +572,18 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
+                <span
+                  className={cn(
+                    "text-ds-11 tabular-nums",
+                    bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground",
+                  )}
+                  aria-live="polite"
+                >
+                  {bio.trim().length}/20
+                </span>
+              </div>
               <Textarea
                 id="bio"
                 rows={3}

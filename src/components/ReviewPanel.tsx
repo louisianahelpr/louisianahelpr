@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
 import { maybeCelebrate } from "@/lib/celebrate";
-import { hapticSuccess, hapticError } from "@/lib/haptics";
+import { hapticLight, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { TipDialog } from "@/components/TipDialog";
 
@@ -80,7 +80,7 @@ const StarRow = ({
             type="button"
             role="radio"
             aria-checked={s === value}
-            onClick={() => onChange(s)}
+            onClick={() => { hapticLight(); onChange(s); }}
             onMouseEnter={() => setHover(s)}
             onMouseLeave={() => setHover(0)}
             className="p-0.5 active:scale-90 transition-transform"

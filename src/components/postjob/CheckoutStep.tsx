@@ -254,18 +254,24 @@ export function CheckoutStep({
         </div>
       </div>
 
-      {/* Confirmation Checkbox */}
-      <div className="flex items-start gap-3 rounded-ds-md liquid-glass p-4">
+      {/* Confirmation Checkbox — the full card is a <label> so tapping
+          anywhere on it toggles the checkbox. This makes the tap target
+          the full card height (well above 44px) instead of the ~20px
+          Checkbox element alone, satisfying WCAG 2.5.5 on SE screens. */}
+      <label
+        htmlFor="confirm-details"
+        className="flex items-start gap-3 rounded-ds-md liquid-glass p-4 cursor-pointer min-h-[44px]"
+      >
         <Checkbox
           id="confirm-details"
           checked={confirmed}
           onCheckedChange={(checked) => setConfirmed(checked === true)}
-          className="mt-0.5"
+          className="mt-0.5 shrink-0"
         />
-        <label htmlFor="confirm-details" className="text-ds-13 text-foreground cursor-pointer leading-snug">
+        <span className="text-ds-13 text-foreground leading-snug">
           I've reviewed all details above and confirm everything is correct. I understand the helpr's payout will be released after both parties confirm job completion.
-        </label>
-      </div>
+        </span>
+      </label>
 
       {/* Action Buttons */}
       <div className="space-y-3">

@@ -214,7 +214,7 @@ const UserProfile = () => {
         <main className="container mx-auto px-5 py-6">
           <div className="max-w-lg mx-auto space-y-5">
             <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
-              <div className="w-24 h-24 rounded-[28px] squircle bg-muted animate-pulse mx-auto" />
+              <div className="w-24 h-24 rounded-ds-pill squircle bg-muted animate-pulse mx-auto" />
               <div className="h-6 w-40 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-24 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-64 bg-muted animate-pulse mx-auto rounded" />
@@ -360,7 +360,7 @@ const UserProfile = () => {
                   decoding="async"
                   src={profile.avatar_url}
                   alt={`${displayName} profile picture`}
-                  className="w-24 h-24 rounded-[28px] squircle mx-auto object-cover"
+                  className="w-24 h-24 rounded-ds-pill squircle mx-auto object-cover"
                   style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
                 />
               ) : (
@@ -370,7 +370,7 @@ const UserProfile = () => {
                     // deterministic warm-palette gradient hashed off the
                     // helper's user id so each profile has a recognizable
                     // signature when no avatar has been uploaded.
-                    "w-24 h-24 rounded-[28px] squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold",
+                    "w-24 h-24 rounded-ds-pill squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold",
                     avatarGradientFor(userId),
                   )}
                   style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}

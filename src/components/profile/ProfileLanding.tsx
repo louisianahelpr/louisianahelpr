@@ -777,7 +777,7 @@ export function ProfileLanding({
                     />
                   )}
                 </div>
-                <div className="rounded-[20px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
+                <div className="rounded-ds-lg bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
                   {group.items.map((item, idx) => (
                     <button
                       key={item.label}
@@ -834,7 +834,7 @@ export function ProfileLanding({
             <button
               type="button"
               onClick={onRequestLogout}
-              className="w-full rounded-[20px] bg-secondary/60 py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary transition-all"
+              className="w-full rounded-ds-lg bg-secondary/60 py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary transition-all"
               style={{
                 color: "hsl(var(--bark))",
                 fontFamily: "Montserrat, system-ui, sans-serif",
@@ -846,7 +846,7 @@ export function ProfileLanding({
             <button
               type="button"
               onClick={onRequestDelete}
-              className="w-full rounded-[20px] py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
+              className="w-full rounded-ds-lg py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
               style={{
                 background: "transparent",
                 border: "1px solid hsl(var(--burnt-sienna) / 0.32)",

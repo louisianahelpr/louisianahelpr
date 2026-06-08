@@ -65,13 +65,13 @@ export function IDVPromptDialog({
         return;
       }
       if (!data?.url) throw new Error("Could not start verification");
-      window.open(data.url, "_blank", "noopener,noreferrer");
       // Per the one-attempt policy above, this dialog's Start button only
       // renders for first-time verification — there is no self-service
-      // retry path — so the toast is always the first-attempt copy.
-      toast.info("Verification opened in a new tab. Come back when it's done.");
+      // retry path. Navigate in-place (matches every other Stripe flow) so
+      // the verification return_url lands the user back in the app.
       onOpenChange(false);
       onLaunched?.();
+      window.location.href = data.url;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Could not start verification";
       toast.error(msg);

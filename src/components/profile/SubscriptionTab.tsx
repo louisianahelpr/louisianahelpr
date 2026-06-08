@@ -117,7 +117,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     try {
       const { data, error } = await supabase.functions.invoke("pro-customer-portal");
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       toast.error(err.message || "Failed to open portal");
     } finally {
@@ -133,7 +133,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         body: { tier, billing_cycle },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       toast.error(err.message || "Checkout failed");
     } finally {

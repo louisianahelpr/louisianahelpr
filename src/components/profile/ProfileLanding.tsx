@@ -123,9 +123,6 @@ export function ProfileLanding({
     profile?.approval_status === "approved" &&
     stripeConnectStatus !== null &&
     !stripeConnectStatus.payouts_enabled;
-  const idvNeedsAction =
-    profile?.idv_status === "not_started" || profile?.idv_status === "failed";
-
   const subscriptionDesc =
     tier === "elite"
       ? "Elite plan — top visibility"
@@ -183,7 +180,7 @@ export function ProfileLanding({
     {
       title: "Settings & Support",
       items: [
-        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login", needsAction: idvNeedsAction },
+        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history" },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
         { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },

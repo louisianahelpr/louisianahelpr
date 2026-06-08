@@ -14,7 +14,7 @@ import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
-import { hapticSuccess } from "@/lib/haptics";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
 import type { AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 import { categories } from "@/components/postjob/DetailsSection";
@@ -537,6 +537,7 @@ export function usePostJobForm() {
         if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
         safeStorage.removeItem(COOLDOWN_KEY);
         const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
+        hapticError();
         toast.error(`Could not start payment: ${errorMsg}. Please try again.`);
         setRedirecting(false);
         setStep("checkout");
@@ -566,7 +567,8 @@ export function usePostJobForm() {
       const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);
       if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
       safeStorage.removeItem(COOLDOWN_KEY);
-      toast.error("Payment setup failed. Please try again.");
+      hapticError();
+      toast.error("We couldn't set up payment just yet — please try again.");
       setSaving(false);
       setRedirecting(false);
       setStep("checkout");

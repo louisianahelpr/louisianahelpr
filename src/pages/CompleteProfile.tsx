@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
 import { queryKeys } from "@/lib/queryKeys";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
@@ -217,15 +218,16 @@ const CompleteProfile = () => {
     e.preventDefault();
     if (!user) return;
 
-    if (!firstName.trim() || !lastName.trim()) return toast.error("Please enter your full name");
-    if (!dateOfBirth) return toast.error("Date of birth is required");
-    if (!ageOk) return toast.error("You must be at least 18");
-    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return toast.error("Valid phone number is required");
-    if (!location.trim()) return toast.error("City is required");
-    if (!bio.trim() || bio.trim().length < 20) return toast.error("Tell us about yourself (at least 20 characters)");
-    if (!avatarFile && !profile?.avatar_url) return toast.error("Profile picture is required");
-    if (!idFile && !profile?.id_document_url) return toast.error("Government-issued ID is required");
-    if (!acceptedPolicies) return toast.error("Please accept the platform rules, terms, and privacy policy");
+    const fail = (msg: string) => { hapticError(); toast.error(msg); };
+    if (!firstName.trim() || !lastName.trim()) return fail("Please enter your full name");
+    if (!dateOfBirth) return fail("Date of birth is required");
+    if (!ageOk) return fail("You'll need to be 18 or older to join.");
+    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return fail("Valid phone number is required");
+    if (!location.trim()) return fail("City is required");
+    if (!bio.trim() || bio.trim().length < 20) return fail("Tell us a little about yourself — at least 20 characters.");
+    if (!avatarFile && !profile?.avatar_url) return fail("Profile picture is required");
+    if (!idFile && !profile?.id_document_url) return fail("Government-issued ID is required");
+    if (!acceptedPolicies) return fail("Please accept the platform rules, terms, and privacy policy");
 
     setSubmitting(true);
     try {
@@ -319,11 +321,12 @@ const CompleteProfile = () => {
       // very next route render reads the new values.
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
       await new Promise((r) => setTimeout(r, 800));
+      hapticSuccess();
       toast.success("Profile complete — welcome to Helpr!");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       const recovered = await recoverCompletedProfile();
-      if (!recovered) toast.error(err?.message || "Could not save your profile");
+      if (!recovered) { hapticError(); toast.error(err?.message || "We couldn't save your profile just yet — give it another try."); }
     } finally {
       setSubmitting(false);
     }
@@ -494,6 +497,7 @@ const CompleteProfile = () => {
                   <Input
                     id="firstName"
                     autoComplete="given-name"
+                    autoCapitalize="words"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     className={`rounded-ds-md ${firstNameValid ? "pr-10" : ""}`}
@@ -509,6 +513,7 @@ const CompleteProfile = () => {
                   <Input
                     id="lastName"
                     autoComplete="family-name"
+                    autoCapitalize="words"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     className={`rounded-ds-md ${lastNameValid ? "pr-10" : ""}`}
@@ -531,7 +536,9 @@ const CompleteProfile = () => {
                 <Input
                   id="phone"
                   type="tel"
+                  inputMode="tel"
                   autoComplete="tel"
+                  maxLength={14}
                   placeholder="(225) 555-0123"
                   value={phone}
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
@@ -549,6 +556,7 @@ const CompleteProfile = () => {
                 <Input
                   id="city"
                   autoComplete="address-level2"
+                  autoCapitalize="words"
                   placeholder="Baton Rouge"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}

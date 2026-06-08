@@ -97,11 +97,6 @@ const ProfilePage = () => {
     setTab((prev) => (prev === urlTab ? prev : urlTab));
   }, [searchParams]);
 
-  useEffect(() => {
-    const urlTab = (searchParams.get("tab") as Tab) || "landing";
-    setTab((prev) => (prev === urlTab ? prev : urlTab));
-  }, [searchParams]);
-
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
 
   // Per-section load errors. Each Profile sub-section loads independently;

@@ -7,6 +7,8 @@ import NotificationPanel from "@/components/NotificationPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import HelprMark from "@/components/HelprMark";
+import { toast } from "sonner";
+import { report } from "@/lib/errorLogger";
 
 interface DashboardHeaderProps {
   title?: string;
@@ -21,8 +23,17 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
 
   const handleLogout = async () => {
     setLoggingOut(true);
-    await supabase.auth.signOut();
-    navigate("/");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/");
+    } catch (err) {
+      // Leave the user signed in on failure and let them retry, rather than
+      // stranding the dialog on a frozen, disabled "Logging out…" button.
+      report(err, { tags: { source: "DashboardHeader.handleLogout" } });
+      toast.error("Couldn't log out — please try again.");
+      setLoggingOut(false);
+    }
   };
 
   return (

@@ -682,7 +682,7 @@ const PrivacyContent = () => (
       items={[
         "We collect only what we need to match jobs and process payments — name, email, phone, ID, location, usage data.",
         "Stripe handles payments. We never store full card numbers.",
-        "You can request deletion or a data export at any time via support — we respond within 30 days.",
+        "Delete your account or download your data yourself, anytime, from your Data Rights page — no waiting on support.",
       ]}
     />
 
@@ -815,8 +815,8 @@ const PrivacyContent = () => (
         title="Deletion & portability"
         body={
           <>
-            <p><strong className="text-foreground">Deletion:</strong> Request complete account and data deletion by contacting support. We process within 30 days.</p>
-            <p><strong className="text-foreground">Data portability:</strong> Request a copy of your data in a machine-readable format.</p>
+            <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from your <Link to="/data-rights" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Data Rights</Link> page — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed.</p>
+            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file from the same <Link to="/data-rights" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Data Rights</Link> page.</p>
           </>
         }
       />

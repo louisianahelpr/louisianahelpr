@@ -28,6 +28,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   const [newEmail, setNewEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Prevents double-submit on the "Reset password" button — the Supabase
+  // call is async and users on slow connections can tap twice.
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
@@ -167,7 +170,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <Mail className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-serif italic uppercase text-[0.6rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <p className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
               Login email
             </p>
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
@@ -199,7 +202,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <Lock className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-serif italic uppercase text-[0.6rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <p className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
               Sign-in
             </p>
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
@@ -218,16 +221,19 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             size="sm"
             variant="outline"
             className="shrink-0"
+            disabled={resettingPassword}
             onClick={async () => {
-              if (!email) return;
+              if (!email || resettingPassword) return;
+              setResettingPassword(true);
               const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: getPublicResetPasswordUrl(),
               });
+              setResettingPassword(false);
               if (error) toast.error(error.message);
               else toast.success("Password reset link sent to your email!");
             }}
           >
-            Reset
+            {resettingPassword ? "Sending…" : "Reset"}
           </Button>
         </div>
       </div>

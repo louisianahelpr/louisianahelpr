@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { hapticWarning } from "@/lib/haptics";
 import { Heart, Briefcase, Send, Star, Search, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,6 +113,9 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
     if (!user) return;
     const snapshot = helpers.find((h) => h.helper_id === helperId);
     if (!snapshot) return;
+    // Warning haptic on destructive action — matches the pattern used in
+    // BrandConfirmDialog's destructive "bark" tone.
+    void hapticWarning();
     setHelpers((prev) => prev.filter((h) => h.helper_id !== helperId));
 
     let undone = false;
@@ -217,8 +221,11 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                     color: "hsl(var(--olivewood))",
                   }}
                 >
-                  <ArrowUpDown className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">{activeSortLabel}</span>
+                  <ArrowUpDown className="w-3.5 h-3.5 shrink-0" />
+                  {/* Truncate long label on SE (320 px) instead of hiding
+                      it — the icon alone has no visible affordance for
+                      sighted users unfamiliar with the sort state. */}
+                  <span className="truncate max-w-[80px] sm:max-w-none">{activeSortLabel}</span>
                 </button>
               </PopoverTrigger>
               <PopoverContent

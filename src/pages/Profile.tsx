@@ -316,7 +316,10 @@ const ProfilePage = () => {
       const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
       if (error) throw error;
       setStripeConnectStatus(data);
-    } catch {
+    } catch (err) {
+      console.error("[Profile] checkStripeConnect failed:", err);
+      // Default to disconnected so payout-setup banner stays visible
+      // rather than silently hiding when the edge function is unreachable.
       setStripeConnectStatus({ connected: false, details_submitted: false, payouts_enabled: false });
     }
   };

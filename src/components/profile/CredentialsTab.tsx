@@ -218,7 +218,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
                 <p
                   className="font-serif italic uppercase"
                   style={{
-                    fontSize: "0.6rem",
+                    fontSize: "0.62rem",
                     color: anyVerified ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna) / 0.78)",
                     letterSpacing: "0.18em",
                   }}
@@ -265,7 +265,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
             <p
               className="font-serif italic uppercase"
               style={{
-                fontSize: "0.6rem",
+                fontSize: "0.62rem",
                 color:
                   data.license_status === "verified"
                     ? "hsl(var(--bark))"
@@ -361,7 +361,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
             <p
               className="font-serif italic uppercase"
               style={{
-                fontSize: "0.6rem",
+                fontSize: "0.62rem",
                 color:
                   data.insurance_status === "verified"
                     ? "hsl(var(--bark))"

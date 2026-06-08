@@ -510,13 +510,19 @@ export function ProfileLanding({
                         <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                           Recent work
                         </p>
-                        <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1">
+                        {/* Horizontal scroll with scroll-snap so each
+                            thumbnail snaps cleanly on touch-fling even
+                            at 320 px (iPhone SE). snap-x mandatory +
+                            snap-start keeps the leftmost item always
+                            partially visible so the scroller reads as
+                            scrollable at a glance. */}
+                        <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1 snap-x snap-mandatory">
                           {portfolioUrls.slice(0, 6).map((url, i) => (
                             <button
                               key={url}
                               type="button"
                               onClick={() => onSelectTab("profile")}
-                              className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform"
+                              className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform snap-start"
                               aria-label={`Work sample ${i + 1}`}
                             >
                               <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />

@@ -104,7 +104,6 @@ const CompleteProfile = () => {
   // Intentionally scoped to user_id so a stable user never re-triggers this.
   // The hydratedRef is the real guard; user_id is included to correctly reset
   // the gate when the logged-in user changes (e.g. in a shared-device test).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.user_id]);
 
   const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {

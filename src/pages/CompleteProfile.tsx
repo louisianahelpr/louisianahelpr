@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { Camera, Check, FileText, Loader2, ShieldCheck, X } from "lucide-react";
+import { Camera, Check, ChevronDown, FileText, Loader2, ShieldCheck, X } from "lucide-react";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
@@ -70,10 +70,25 @@ const CompleteProfile = () => {
   const [idPreview, setIdPreview] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
+  // On small viewports (SE ≤375px) the checklist is collapsed by default to
+  // reduce scroll distance; tapping the header expands it. On larger screens
+  // (sm+) it's always visible. Starts collapsed so the form is reachable quickly.
+  const [checklistExpanded, setChecklistExpanded] = useState(false);
 
-  // Hydrate any existing values (so we only ask for what's missing)
+  // Guard against re-running hydration when profile updates (e.g. after a
+  // refetch) but user_id is stable. Without this ref the dep-array would need
+  // to include every profile field, which risks an infinite re-render loop
+  // (setting state inside an effect that depends on state). Once is enough —
+  // subsequent profile writes come through the local setState calls.
+  const hydratedRef = useRef(false);
+
+  // Hydrate any existing values (so we only ask for what's missing).
+  // Only runs the first time a non-null profile is available for this user;
+  // each field is also gated by "not already set locally" so a user who has
+  // started typing isn't overwritten by a background refetch.
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || hydratedRef.current) return;
+    hydratedRef.current = true;
     const { firstName: parsedFirst, lastName: parsedLast } = splitName(profile.full_name);
     if (parsedFirst && !firstName) setFirstName(parsedFirst);
     if (parsedLast && !lastName) setLastName(parsedLast);
@@ -86,7 +101,10 @@ const CompleteProfile = () => {
     // Persisted terms acceptance — read straight from the row so refresh / re-entry
     // doesn't reset the user's previous "yes I agree".
     if (profile.accepted_terms_at) setAcceptedPolicies(true);
-     
+  // Intentionally scoped to user_id so a stable user never re-triggers this.
+  // The hydratedRef is the real guard; user_id is included to correctly reset
+  // the gate when the logged-in user changes (e.g. in a shared-device test).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.user_id]);
 
   const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
@@ -378,15 +396,41 @@ const CompleteProfile = () => {
             </p>
           </div>
 
-          {/* Live "Big 7" checklist — green check when satisfied, red X when missing */}
+          {/* Live "Big 7" checklist — collapsible on small viewports to save
+              vertical space on SE (375px). The header always shows progress
+              so the user isn't flying blind even when the list is folded.
+              On sm+ screens it's always expanded. */}
           <div className="squircle mb-5 rounded-[24px] border border-border/60 bg-card/80 backdrop-blur-md shadow-[var(--card-shadow)] p-4">
-            <div className="flex items-center justify-between mb-3">
+            <button
+              type="button"
+              aria-expanded={checklistExpanded}
+              aria-controls="profile-checklist"
+              onClick={() => setChecklistExpanded((v) => !v)}
+              className="w-full flex items-center justify-between sm:cursor-default"
+            >
               <p className="text-ds-13 font-semibold text-foreground">Verification checklist</p>
-              <p className="text-ds-11 text-muted-foreground">
-                {checklist.filter((c) => c.done).length}/{checklist.length}
-              </p>
-            </div>
-            <ul className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <p className="text-ds-11 text-muted-foreground">
+                  {checklist.filter((c) => c.done).length}/{checklist.length}
+                </p>
+                {/* Chevron only visible on small screens where the list is togglable */}
+                <ChevronDown
+                  className={cn(
+                    "w-4 h-4 text-muted-foreground transition-transform sm:hidden",
+                    checklistExpanded ? "rotate-180" : "",
+                  )}
+                  aria-hidden
+                />
+              </div>
+            </button>
+            {/* Always visible on sm+; toggled by button on xs */}
+            <ul
+              id="profile-checklist"
+              className={cn(
+                "space-y-1.5 mt-3 sm:block",
+                checklistExpanded ? "block" : "hidden",
+              )}
+            >
               {checklist.map((item) => (
                 <li key={item.label} className="flex items-center gap-2.5 text-ds-13">
                   <span

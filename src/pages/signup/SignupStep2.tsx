@@ -12,9 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Building2,
   Camera,
   ArrowLeft,
   UserRound,
+  UserCircle2,
   AlertCircle,
   Check,
 } from "lucide-react";
@@ -132,28 +134,57 @@ export function SignupStep2(props: SignupStep2Props) {
   const locationValid = location.trim().length > 0;
 
   return (
-    <div className="space-y-4">
-      {isBusinessSignup && (
-        <div className="rounded-ds-md border border-primary/30 bg-primary/5 p-4 space-y-3">
-          <p className="text-ds-13 font-semibold text-primary">📊 Business account</p>
-          <div className="space-y-2">
-            <Label htmlFor="companyName" className={labelCls}>Company name</Label>
-            <Input
-              id="companyName"
-              placeholder="Acme Property Management"
-              value={companyName}
-              onChange={(e) => { setCompanyName(e.target.value); clearFieldError?.("companyName"); }}
-              required
-              aria-required="true"
-              aria-invalid={!!fieldErrors.companyName}
-              aria-describedby={fieldErrors.companyName ? "companyName-error" : undefined}
-              className={`${inputCls}${fieldErrors.companyName ? " border-destructive" : ""}`}
-            />
-            <FieldError id="companyName-error" message={fieldErrors.companyName} />
+    <div className="space-y-6">
+      {/* Account-type context banner — mirrors Step 1's treatment so both
+          steps read as one consistent flow. Business path uses the same
+          bark-toned card as Step 1; personal path shows a neutral callout
+          so neither path feels unfinished. */}
+      {isBusinessSignup ? (
+        <div
+          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
+          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
+        >
+          <Building2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+          <div className="space-y-2 flex-1">
+            <div className="space-y-0.5">
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                Business account
+              </p>
+              <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                You'll be the owner. Invite 1 teammate free — add more anytime.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="companyName" className={labelCls}>Company name <span aria-hidden="true" className="text-destructive">*</span></Label>
+              <Input
+                id="companyName"
+                placeholder="Acme Property Management"
+                value={companyName}
+                onChange={(e) => { setCompanyName(e.target.value); clearFieldError?.("companyName"); }}
+                required
+                aria-required="true"
+                aria-invalid={!!fieldErrors.companyName}
+                aria-describedby={fieldErrors.companyName ? "companyName-error" : undefined}
+                className={`${inputCls}${fieldErrors.companyName ? " border-destructive" : ""}`}
+              />
+              <FieldError id="companyName-error" message={fieldErrors.companyName} />
+            </div>
           </div>
-          <p className="text-ds-11 text-muted-foreground">
-            You'll be the owner. Invite 1 teammate free (2 seats total) — add more anytime with seat upgrades.
-          </p>
+        </div>
+      ) : (
+        <div
+          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
+          style={{ background: "hsl(var(--olivewood) / 0.05)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
+        >
+          <UserCircle2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
+          <div className="space-y-0.5">
+            <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+              Personal account
+            </p>
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              A clear photo and real name help neighbors trust and hire you.
+            </p>
+          </div>
         </div>
       )}
 

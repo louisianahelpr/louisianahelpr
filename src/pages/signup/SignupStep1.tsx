@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock, Building2 } from "lucide-react";
+import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock, Building2, UserCircle2 } from "lucide-react";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import { suggestEmailCorrection, passwordStrength } from "./signupHelpers";
@@ -29,7 +29,7 @@ export interface SignupStep1Props {
   setAcceptedPolicies: (v: boolean) => void;
   inputCls: string;
   labelCls: string;
-  /** True when the URL carries ?type=business — drives the account-type toggle. */
+  /** True when the URL carries ?type=business — drives the account-type banner. */
   isBusinessSignup: boolean;
   /** Called when the user clicks Continue — parent runs validation, then advances step. */
   onContinue: () => void | Promise<void>;
@@ -112,11 +112,12 @@ export function SignupStep1({
 
   return (
     <div className="space-y-5">
-      {/* Business-mode banner — when ?type=business is set, confirm the user
-          is on the company path (and give them an escape hatch back to
-          personal). The everyday entry point is the quiet footer link below,
-          not an up-front toggle. */}
-      {isBusinessSignup && (
+      {/* Account-type context banner — mirrors Step 2's treatment so both
+          steps read as one consistent flow. Business path uses a bark-toned
+          card; personal path shows a neutral callout so neither path feels
+          unfinished. Either way the everyday entry point is the quiet footer
+          link below, not an up-front toggle. */}
+      {isBusinessSignup ? (
         <div
           className="flex items-start gap-3 px-4 py-3 rounded-2xl"
           style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
@@ -134,9 +135,28 @@ export function SignupStep1({
             </p>
           </div>
         </div>
+      ) : (
+        <div
+          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
+          style={{ background: "hsl(var(--olivewood) / 0.05)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
+        >
+          <UserCircle2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
+          <div className="space-y-0.5">
+            <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+              Personal account
+            </p>
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Post jobs or earn as a neighbor — every account can do both.{" "}
+              <Link to="/signup?type=business" replace className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
+                Business instead?
+              </Link>
+            </p>
+          </div>
+        </div>
       )}
 
       <section className="space-y-5">
+
         <div className="space-y-2">
           {/* Single email field — confirm-email was removed since
               email-verification (the click-the-link step after signup)

@@ -276,7 +276,7 @@ const AccountPending = () => {
                 >
                   We&apos;re verifying your details
                 </h1>
-                <p className="text-[13px] text-muted-foreground leading-relaxed max-w-[28ch]">
+                <p className="text-[13px] text-muted-foreground leading-relaxed max-w-[90%] sm:max-w-[28ch]">
                   {firstName ? `Hang tight, ${firstName}. ` : ""}
                   Our team is reviewing your credentials. This usually takes
                   {" "}<span className="font-medium text-foreground">24–48 hours</span>.

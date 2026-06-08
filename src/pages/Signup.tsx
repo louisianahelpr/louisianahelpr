@@ -271,7 +271,13 @@ const Signup = () => {
 
       // Auto-accept any pending invite for this email
       try {
-        const { data: invites } = await supabase.rpc("get_pending_invite_for_email", { _email: email });
+        const { data: invites, error: inviteErr } = await supabase.rpc("get_pending_invite_for_email", { _email: email });
+        // PGRST202 = function not yet deployed to production — safe to ignore
+        // (invite-linking is best-effort; the user can still join the team
+        // manually after login). All other errors are logged for observability.
+        if (inviteErr && !inviteErr.message?.includes("PGRST202")) {
+          report(inviteErr, { tags: { source: "Signup.inviteLinking" } });
+        }
         if (invites && invites.length > 0) {
           for (const inv of invites) {
             await supabase

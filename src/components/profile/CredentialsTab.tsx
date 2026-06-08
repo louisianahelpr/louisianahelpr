@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
 import { ShieldCheck, Upload, FileText, X, BadgeCheck, Clock, AlertTriangle, Lock } from "lucide-react";
 import CredentialBadge from "@/components/CredentialBadge";
 import { queryKeys } from "@/lib/queryKeys";
@@ -150,7 +151,8 @@ export function CredentialsTab({ userId }: { userId: string }) {
     const { error } = await supabase.from("profiles").update(update).eq("user_id", userId);
     setSaving(false);
     if (error) {
-      toast.error(error.message);
+      hapticError();
+      toast.error("We couldn't save your credentials — please try again.");
       return;
     }
     patchCache(update);

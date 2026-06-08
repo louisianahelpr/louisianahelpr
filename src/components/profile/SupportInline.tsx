@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 type SupportCategory = "message" | "suggestion" | "report" | "help";
@@ -175,7 +176,8 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
     });
     setSending(false);
     if (error) {
-      toast.error("Failed to send. Please try again.");
+      hapticError();
+      toast.error("We couldn't send that — please try again.");
     } else {
       setSent(true);
       toast.success("Message sent to admin!");

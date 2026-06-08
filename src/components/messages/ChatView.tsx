@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronsDown, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw, X } from "lucide-react";
+import { ArrowLeft, ChevronsDown, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw, X, Lock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -155,6 +155,15 @@ export function ChatView({
   // Stable ref to the scroll container for the jump handler and the
   // scroll-position observer.
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Poster-first rule: an applicant cannot open a job conversation — only
+  // the poster may send the first message (stops posters being flooded by
+  // applicants). The applicant's composer stays locked until at least one
+  // inbound message from the poster exists. The only other participant in
+  // a job thread is the poster, so any message we didn't send is theirs.
+  const isApplicant = !activeConvo.viewerIsPoster;
+  const posterHasMessaged = messages.some((m) => m.sender_id !== userId);
+  const composerLocked = isApplicant && !posterHasMessaged;
 
   // Pull-to-refresh for the chat thread — reuses the same hook +
   // wrapper every other scrollable surface uses. The hook owns its own
@@ -558,52 +567,78 @@ export function ChatView({
             </div>
           )}
 
-          {/* First-message chips — three ice-breaker suggestions shown
-              ONLY when the thread is brand-new (zero messages) and the
-              user hasn't already picked one this session. Dismissed
-              after one tap so a fresh thread doesn't keep nudging the
-              user once they've started typing. */}
-          {!chatLoadError && messages.length === 0 && !chipsDismissed && (
-            <FirstMessageChips
-              viewerRole={activeConvo.viewerIsPoster ? "customer" : "helper"}
-              onPick={(text) => {
-                setDraft(text);
-                setChipsDismissed(true);
-              }}
-            />
+          {composerLocked ? (
+            /* Poster-first lock — the applicant waits for the poster to
+               open the conversation. Replaces chips + quick replies +
+               composer so there's no disabled control to fight with. The
+               backend RLS policy enforces the same rule server-side. */
+            <div
+              className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+              style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
+            >
+              <div
+                className="flex items-start gap-2.5 rounded-ds-md px-3.5 py-3"
+                style={{
+                  background: "hsl(var(--gold-warm) / 0.10)",
+                  border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+                }}
+              >
+                <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna) / 0.8)" }} strokeWidth={2} aria-hidden="true" />
+                <p className="font-serif italic text-[0.84rem] leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                  Your application's in. The poster will reach out here if they're interested — you'll be able to reply as soon as they do.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* First-message chips — three ice-breaker suggestions shown
+                  ONLY when the thread is brand-new (zero messages) and the
+                  user hasn't already picked one this session. Dismissed
+                  after one tap so a fresh thread doesn't keep nudging the
+                  user once they've started typing. */}
+              {!chatLoadError && messages.length === 0 && !chipsDismissed && (
+                <FirstMessageChips
+                  viewerRole={activeConvo.viewerIsPoster ? "customer" : "helper"}
+                  onPick={(text) => {
+                    setDraft(text);
+                    setChipsDismissed(true);
+                  }}
+                />
+              )}
+
+              {/* Quick replies — populate the input instead of sending instantly */}
+              <div className="pt-1">
+                <QuickReplies
+                  onSelect={(msg) => setDraft(msg)}
+                  audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
+                />
+              </div>
+
+              {/* Rich message input */}
+              <div
+                className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+                style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
+              >
+                <RichMessageInput
+                  value={draft}
+                  onChange={setDraft}
+                  onSend={async (content, attachment) => {
+                    // RichMessageInput clears its (controlled) text right
+                    // after onSend returns. If the content scan in the page
+                    // blocks the message (`sendMessage` resolves `false`),
+                    // restore the typed text so a blocked message isn't
+                    // silently lost — the user keeps what they wrote and a
+                    // toast explains why it didn't send.
+                    const accepted = await sendMessage(content, attachment);
+                    if (!accepted && content.trim()) setDraft(content);
+                  }}
+                  onTyping={broadcastTyping}
+                  jobId={activeConvo.jobId}
+                  senderId={userId || undefined}
+                />
+              </div>
+            </>
           )}
-
-          {/* Quick replies — populate the input instead of sending instantly */}
-          <div className="pt-1">
-            <QuickReplies
-              onSelect={(msg) => setDraft(msg)}
-              audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
-            />
-          </div>
-
-          {/* Rich message input */}
-          <div
-            className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
-            style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
-          >
-            <RichMessageInput
-              value={draft}
-              onChange={setDraft}
-              onSend={async (content, attachment) => {
-                // RichMessageInput clears its (controlled) text right
-                // after onSend returns. If the content scan in the page
-                // blocks the message (`sendMessage` resolves `false`),
-                // restore the typed text so a blocked message isn't
-                // silently lost — the user keeps what they wrote and a
-                // toast explains why it didn't send.
-                const accepted = await sendMessage(content, attachment);
-                if (!accepted && content.trim()) setDraft(content);
-              }}
-              onTyping={broadcastTyping}
-              jobId={activeConvo.jobId}
-              senderId={userId || undefined}
-            />
-          </div>
         </div>
         </div>
       </main>

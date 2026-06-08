@@ -30,7 +30,7 @@ const BusinessCTASection = () => (
               For business
             </span>
             <h2
-              className="font-display font-bold leading-tight text-ds-22 sm:text-ds-26"
+              className="font-display font-bold leading-tight text-ds-24 sm:text-ds-32"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Running a business or rental property?

@@ -526,7 +526,7 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
           </span>
         )}
       </div>
-      <p className="text-ds-18 sm:text-ds-20 font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      <p className="text-ds-17 sm:text-ds-20 font-bold text-foreground tabular-nums leading-tight">{value}</p>
       <p className="text-ds-11 text-muted-foreground mt-0.5 leading-tight">{label}</p>
     </button>
   );

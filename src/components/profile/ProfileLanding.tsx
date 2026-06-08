@@ -594,7 +594,7 @@ export function ProfileLanding({
                                 </div>
                                 {r.feedback?.trim() ? (
                                   <p
-                                    className="font-serif italic text-ds-12 leading-snug line-clamp-2"
+                                    className="font-serif italic text-ds-13 leading-snug line-clamp-2"
                                     style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                                   >
                                     "{r.feedback}"
@@ -698,7 +698,7 @@ export function ProfileLanding({
                     )}
                   </span>
                   <span
-                    className={`flex-1 text-ds-12 ${
+                    className={`flex-1 text-ds-13 ${
                       item.done ? "text-muted-foreground line-through" : "text-foreground font-medium"
                     }`}
                   >

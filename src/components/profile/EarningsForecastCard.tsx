@@ -243,7 +243,7 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
             </PopoverTrigger>
             <PopoverContent
               align="start"
-              className="w-72 text-ds-12 leading-relaxed font-sans not-italic"
+              className="w-72 text-ds-13 leading-relaxed font-sans not-italic"
             >
               <p className="font-semibold text-foreground mb-1">
                 How this is calculated

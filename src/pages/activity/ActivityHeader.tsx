@@ -71,7 +71,7 @@ export function ActivityHeader({
                 aria-expanded={searchOpen}
                 className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition ${
                   searchOpen || searchQuery
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)]"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
@@ -87,13 +87,13 @@ export function ActivityHeader({
                     aria-label="Filter by status"
                     className={`h-9 w-9 rounded-ds-md btn-press flex items-center justify-center relative transition ${
                       filterOpen || statusFilter !== (tab === "applied" ? "pending" : "open")
-                        ? "bg-primary/10 text-primary"
+                        ? "bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)]"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                     }`}
                   >
                     <SlidersHorizontal className="w-4 h-4" />
                     {statusFilter !== (tab === "applied" ? "pending" : "open") && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[hsl(var(--bark))] ring-2 ring-background" />
                     )}
                   </button>
                 </PopoverTrigger>

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Loader2, ArrowLeft, Check } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { friendlyAuthError } from "@/lib/authErrors";
 
 const ResetPassword = () => {
   usePageTitle("Set New Password — Helpr");
@@ -58,7 +59,7 @@ const ResetPassword = () => {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyAuthError(error.message));
     } else {
       toast.success("Password updated! Redirecting…");
       redirectTidRef.current = window.setTimeout(() => navigate("/dashboard"), 1500);

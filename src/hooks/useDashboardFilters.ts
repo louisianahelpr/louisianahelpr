@@ -107,12 +107,26 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       }
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
-      if (nearbyMiles !== null && userLoc.status === "ready") {
+      if (nearbyMiles !== null) {
         const jLat = job.latitude;
         const jLng = job.longitude;
-        if (typeof jLat !== "number" || typeof jLng !== "number") return false;
-        const dist = haversineMiles(userLoc.lat, userLoc.lng, jLat, jLng);
-        if (dist > nearbyMiles) return false;
+        if (userLoc.status === "ready" && typeof jLat === "number" && typeof jLng === "number") {
+          // Precise radius filter when coords are present (e.g. map-sourced jobs).
+          if (haversineMiles(userLoc.lat, userLoc.lng, jLat, jLng) > nearbyMiles) return false;
+        } else {
+          // The browse list is fed by open_jobs_browse, which masks precise
+          // coords — so a haversine radius can never match. Honour "Nearby"
+          // with a location-string match against the viewer's saved location
+          // instead of silently emptying the entire feed. With no saved
+          // location we can't judge proximity, so we keep the job rather than
+          // hide it.
+          const myLoc = profile?.location?.trim().toLowerCase();
+          if (myLoc) {
+            const jobLoc = (job.location ?? "").toLowerCase().trim();
+            const near = jobLoc.length > 0 && (jobLoc.includes(myLoc) || myLoc.includes(jobLoc));
+            if (!near) return false;
+          }
+        }
       }
       if (expiresWithin && job.expires_at) {
         const hoursLeft = (new Date(job.expires_at).getTime() - Date.now()) / (1000 * 60 * 60);
@@ -180,7 +194,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, profile?.parish, smartIndexByJobId]);
+    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, profile?.parish, profile?.location, smartIndexByJobId]);
 
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";

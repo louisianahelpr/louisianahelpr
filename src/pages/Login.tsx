@@ -15,6 +15,7 @@ import HelprMark from "@/components/HelprMark";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import BuildStamp from "@/components/BuildStamp";
 import { queryKeys } from "@/lib/queryKeys";
+import { friendlyAuthError } from "@/lib/authErrors";
 
 const LOGIN_TIMEOUT_MS = 15000;
 
@@ -73,7 +74,7 @@ const Login = () => {
         setLoginAttempts(0);
         toast.error("Too many failed attempts. Account locked for 60 seconds.");
       } else {
-        toast.error(error.message);
+        toast.error(friendlyAuthError(error.message));
       }
       return;
     }

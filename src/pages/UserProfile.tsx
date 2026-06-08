@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -107,6 +108,24 @@ const UserProfile = () => {
           .eq("user_id", userId!)
           .maybeSingle(),
       ]);
+
+      // These five feed secondary stats (reviews, job counts, response
+      // metrics, trust signals) — a failure should degrade gracefully to
+      // empty rather than brick the whole profile over the critical name/bio
+      // we already have. But don't silently swallow: report so a real outage
+      // is observable instead of looking like "this user has 0 reviews".
+      for (const [label, res] of [
+        ["reviews", reviewsRes], ["posted_jobs", postedRes], ["worked_jobs", workedRes],
+        ["applications", appsRes], ["trust_signals", idCheckRes],
+      ] as const) {
+        if (res.error) {
+          report(res.error, {
+            severity: "warning",
+            tags: { area: `user_profile.${label}` },
+            context: { viewed_user_id: userId },
+          });
+        }
+      }
 
       const postedJobs = postedRes.data || [];
       const workedJobs = workedRes.data || [];

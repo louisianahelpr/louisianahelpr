@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { MailCheck, Clock, ShieldCheck, Loader2, RefreshCw, Check } from "lucide-react";
+import { MailCheck, LogIn, Sparkles, Loader2, RefreshCw, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
+import { friendlyAuthError } from "@/lib/authErrors";
 
 const SignupPending = () => {
   const location = useLocation();
@@ -28,7 +29,7 @@ const SignupPending = () => {
     });
     setResending(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyAuthError(error.message));
     } else {
       toast.success("Verification email resent! Check your inbox.");
     }
@@ -82,21 +83,21 @@ const SignupPending = () => {
           </div>
 
           <div className="flex items-start gap-3">
-            {stepIcon(Clock)}
+            {stepIcon(LogIn)}
             <div>
-              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Profile under review</p>
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Sign in</p>
               <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                Our team will review your profile and ID. This usually takes 24–48 hours.
+                Come back and log in with the email and password you just set.
               </p>
             </div>
           </div>
 
           <div className="flex items-start gap-3">
-            {stepIcon(ShieldCheck)}
+            {stepIcon(Sparkles)}
             <div>
-              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Get approved</p>
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
               <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                Once approved, you'll have full access to post and accept jobs.
+                You're all set — post tasks and accept jobs the moment you're in.
               </p>
             </div>
           </div>

@@ -182,6 +182,10 @@ const NotificationPanel = () => {
               gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
               osc.start(ctx.currentTime);
               osc.stop(ctx.currentTime + 0.3);
+              // Browsers cap concurrent AudioContexts (~6); without this
+              // the chime silently stops firing after a handful of
+              // notifications. Release it once the tone finishes.
+              osc.onended = () => { ctx.close().catch(() => {}); };
             } catch {}
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             if (document.hidden && getPushPermission() === "granted") {

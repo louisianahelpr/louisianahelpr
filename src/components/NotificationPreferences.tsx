@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
 import {
   Bell, Briefcase, MessageSquare, DollarSign, Star, Megaphone,
   Loader2, Mail, Smartphone, Navigation, CheckCircle2, Lock,
@@ -125,7 +126,8 @@ const NotificationPreferences = () => {
     setSaving(false);
     if (error) {
       setPrefs(prefs);
-      toast.error("Failed to save preference");
+      hapticError();
+      toast.error("We couldn't save that preference — please try again.");
     }
   };
 

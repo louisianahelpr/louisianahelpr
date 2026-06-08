@@ -316,7 +316,7 @@ export function SignupStep2(props: SignupStep2Props) {
         <div className="space-y-2">
           <Label htmlFor="location" className={labelCls}>City</Label>
           <div className="relative">
-            <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required aria-required="true" autoComplete="address-level2" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`} />
+            <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required aria-required="true" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`} />
             {locationValid && !fieldErrors.location && (
               <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
             )}
@@ -330,6 +330,7 @@ export function SignupStep2(props: SignupStep2Props) {
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"
             value={bio}
             onChange={(e) => { setBio(e.target.value); clearFieldError?.("bio"); }}
+            autoCapitalize="sentences"
             rows={4}
             aria-invalid={!!fieldErrors.bio}
             aria-describedby={fieldErrors.bio ? "bio-error" : "bio-help"}

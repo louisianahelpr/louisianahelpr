@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, UserPlus, Trash2, Loader2, ArrowLeft, Crown, Mail, Sparkles, CreditCard, Send, Check } from "lucide-react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { hapticError } from "@/lib/haptics";
 import { useMyBusiness, type SeatTier } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BusinessVerificationCard from "@/components/business/BusinessVerificationCard";
@@ -159,11 +160,13 @@ const BusinessTeam = () => {
     const email = inviteEmail.trim().toLowerCase();
     if (!email) return;
     if (!business.is_owner) {
-      toast.error("Only the owner can invite members");
+      hapticError();
+      toast.error("Only the owner can invite teammates.");
       return;
     }
     if (remainingSlots <= 0) {
-      toast.error(`Team is full (${SEAT_LIMIT} seats). Upgrade your plan to add more.`);
+      hapticError();
+      toast.error(`Your team is full at ${SEAT_LIMIT} seats — upgrade your plan to add more.`);
       return;
     }
 
@@ -196,7 +199,8 @@ const BusinessTeam = () => {
       setInviteEmail("");
       queryClient.invalidateQueries({ queryKey: queryKeys.business.members(business.business_id) });
     } catch (err: any) {
-      toast.error(err.message || "Failed to send invite");
+      hapticError();
+      toast.error(err.message || "We couldn't send that invite — try again in a moment.");
     } finally {
       setInviting(false);
     }
@@ -208,7 +212,8 @@ const BusinessTeam = () => {
       body: { businessId: business.business_id, invitedEmail: memberEmail },
     });
     if (error) {
-      toast.error("Failed to resend invite");
+      hapticError();
+      toast.error("We couldn't resend that invite — give it another try in a moment.");
     } else {
       toast.success(`Invite resent to ${memberEmail}.`);
     }
@@ -227,7 +232,8 @@ const BusinessTeam = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.business.members(business.business_id) });
       setRemoveTarget(null);
     } catch (err: any) {
-      toast.error(err.message || "Failed to remove member");
+      hapticError();
+      toast.error(err.message || "We couldn't remove that teammate — try again in a moment.");
     } finally {
       setRemoving(false);
     }
@@ -247,7 +253,8 @@ const BusinessTeam = () => {
       if (!data?.url) throw new Error("No checkout URL returned");
       window.location.href = data.url;
     } catch (err: any) {
-      toast.error(err.message || "Failed to start checkout");
+      hapticError();
+      toast.error(err.message || "We couldn't open checkout — try again in a moment.");
       setUpgrading(null);
     }
   };
@@ -260,7 +267,8 @@ const BusinessTeam = () => {
       if (!data?.url) throw new Error("No portal URL returned");
       window.location.href = data.url;
     } catch (err: any) {
-      toast.error(err.message || "Failed to open billing portal");
+      hapticError();
+      toast.error(err.message || "We couldn't open your billing portal — try again in a moment.");
       setOpeningPortal(false);
     }
   };

@@ -165,7 +165,7 @@ export function SignupStep1({
           <Label htmlFor="email" className={labelCls}>Email</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.5)" }} strokeWidth={1.75} />
-            <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" className={`${inputCls} pl-10 ${emailValid ? "pr-10" : ""}`} />
+            <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" className={`${inputCls} pl-10 ${emailValid ? "pr-10" : ""}`} />
             {emailValid && (
               <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
             )}
@@ -191,7 +191,7 @@ export function SignupStep1({
           <Label htmlFor="password" className={labelCls}>Password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.5)" }} strokeWidth={1.75} />
-            <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={8} className={`${inputCls} pl-10 pr-10`} autoComplete="new-password" />
+            <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={8} className={`${inputCls} pl-10 pr-10`} autoComplete="new-password" />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}

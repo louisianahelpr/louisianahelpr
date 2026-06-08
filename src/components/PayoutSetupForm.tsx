@@ -6,6 +6,7 @@ import {
   CheckCircle, AlertCircle, Loader2, Trash2, Building2, CreditCard, ExternalLink, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -100,7 +101,8 @@ export function PayoutSetupForm() {
         window.location.href = data.url;
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to start onboarding");
+      hapticError();
+      toast.error(err.message || "We couldn't start payout setup — try again in a moment.");
       setOnboarding(false);
     }
   };
@@ -117,13 +119,15 @@ export function PayoutSetupForm() {
         window.location.href = data.url;
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to open dashboard");
+      hapticError();
+      toast.error(err.message || "We couldn't open your Stripe dashboard — try again in a moment.");
     }
   };
 
   const handleDeleteMethod = async (methodId: string) => {
     if (methods.length <= 1) {
-      toast.error("You must have at least one payout method. Use Stripe dashboard to update it.");
+      hapticError();
+      toast.error("Keep at least one payout method — update it from your Stripe dashboard instead.");
       return;
     }
     setDeleting(methodId);
@@ -136,7 +140,8 @@ export function PayoutSetupForm() {
       toast.success("Payout method removed");
       loadData();
     } catch (err: any) {
-      toast.error(err.message || "Failed to remove method");
+      hapticError();
+      toast.error(err.message || "We couldn't remove that payout method — try again in a moment.");
     } finally {
       setDeleting(null);
     }
@@ -156,7 +161,8 @@ export function PayoutSetupForm() {
         window.location.href = data.url;
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to reset account");
+      hapticError();
+      toast.error(err.message || "We couldn't reset your account just now — try again in a moment.");
       setResetting(false);
     }
   };

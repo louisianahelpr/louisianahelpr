@@ -62,6 +62,9 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   // the user gets a misleading "no saved helprs yet" instead of a
   // recoverable retry affordance.
   const [loadError, setLoadError] = useState(false);
+  // Captured at the moment of failure so the error copy can distinguish
+  // "you're offline" (actionable by the user) from a server hiccup.
+  const [wasOffline, setWasOffline] = useState(false);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SavedSort>("rebooked");
 
@@ -69,11 +72,12 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   // effect below mirrors the same logic but adds a cancellation guard
   // to swallow stale results when the userId changes mid-flight.
   const loadSavedHelpers = async () => {
-    if (!user) return;
+    if (!user || loading) return;
     setLoading(true);
     setLoadError(false);
     const { data, error } = await supabase.rpc("get_my_saved_helpers");
     if (error) {
+      setWasOffline(typeof navigator !== "undefined" && navigator.onLine === false);
       setLoadError(true);
       setLoading(false);
       return;
@@ -91,6 +95,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
       const { data, error } = await supabase.rpc("get_my_saved_helpers");
       if (cancelled) return;
       if (error) {
+        setWasOffline(typeof navigator !== "undefined" && navigator.onLine === false);
         setLoadError(true);
         setLoading(false);
         return;
@@ -262,8 +267,30 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
           // A failed RPC fetch shows a recoverable retry surface instead
           // of the misleading "no saved helprs yet" empty state.
           <ErrorState
-            title="We couldn't load your saved helprs."
+            variant="inline"
+            eyebrow={wasOffline ? "You're offline" : "Something went wrong"}
+            title={
+              wasOffline
+                ? "We can't reach the network."
+                : "We couldn't load your saved helprs."
+            }
+            body={
+              wasOffline
+                ? "Check your connection and try again — your saved helprs are safe."
+                : "Tap Try again. Your saved helprs are safe — this is just a loading hiccup on our end."
+            }
             onRetry={loadSavedHelpers}
+            retryDisabled={loading}
+            secondaryAction={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/post-job")}
+                className="text-ds-13"
+              >
+                Post a job instead
+              </Button>
+            }
           />
         ) : filtered.length === 0 ? (
           <EmptyState

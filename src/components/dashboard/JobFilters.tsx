@@ -42,7 +42,7 @@ interface JobFiltersProps {
 const chipBase =
   "inline-flex items-center gap-1 px-2.5 rounded-full text-[10px] font-semibold tracking-tight transition-all duration-200 btn-press squircle border h-8";
 const chipActive =
-  "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]";
+  "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] border-[hsl(var(--bark)/0.38)]";
 const chipIdle =
   "bg-white/70 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90";
 
@@ -240,12 +240,12 @@ const MobileDropdown = ({ icon: Icon, label, active, children }: DropdownProps) 
       <button
         className={`${triggerBase} ${
           active
-            ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
+            ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] border-[hsl(var(--bark)/0.38)]"
             : "bg-white/80 dark:bg-card/70 backdrop-blur text-foreground border-border/60 hover:border-primary/50"
         }`}
       >
         <span className="inline-flex items-center gap-1.5 min-w-0">
-          <Icon className={`w-3 h-3 shrink-0 ${active ? "" : "text-primary"}`} strokeWidth={2.25} />
+          <Icon className={`w-3 h-3 shrink-0 text-[hsl(var(--bark))]`} strokeWidth={2.25} />
           <span className="truncate">{label}</span>
         </span>
         <ChevronDown className="w-3 h-3 opacity-70 shrink-0" />

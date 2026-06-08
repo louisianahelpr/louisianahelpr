@@ -197,6 +197,21 @@ export function BrowseTasksToolbar({
                   Clear {filters.activeFilterCount > 1 ? `(${filters.activeFilterCount})` : ""}
                 </Button>
               )}
+              {/* List ⇄ Map toggle — single icon button living in the
+                  toolbar cluster beside saved-search / search / filter.
+                  List is the default; tapping swaps to the map and back.
+                  Always available (the map shows the live Louisiana board
+                  even when 0 jobs are nearby). */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setView(view === "map" ? "list" : "map")}
+                className={`h-8 w-8 rounded-ds-md btn-press ${view === "map" ? "bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)]" : "text-muted-foreground hover:text-foreground"}`}
+                aria-label={view === "map" ? "Show list view" : "Show map view"}
+                aria-pressed={view === "map"}
+              >
+                {view === "map" ? <List className="w-4 h-4" /> : <MapIcon className="w-4 h-4" />}
+              </Button>
               {user && (
                 <SavedSearches
                   userId={user.id}
@@ -216,7 +231,7 @@ export function BrowseTasksToolbar({
                 variant="ghost"
                 size="icon"
                 onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
-                className={`h-8 w-8 rounded-ds-md btn-press ${filters.searchOpen || filters.searchQuery ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                className={`h-8 w-8 rounded-ds-md btn-press ${filters.searchOpen || filters.searchQuery ? "bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)]" : "text-muted-foreground hover:text-foreground"}`}
                 aria-label="Search jobs"
                 aria-expanded={filters.searchOpen}
               >
@@ -226,7 +241,7 @@ export function BrowseTasksToolbar({
                 variant="ghost"
                 size="icon"
                 onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
-                className={`h-8 w-8 rounded-ds-md btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                className={`h-8 w-8 rounded-ds-md btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)]" : "text-muted-foreground hover:text-foreground"}`}
                 aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
                 aria-expanded={filters.filtersOpen}
               >
@@ -248,7 +263,7 @@ export function BrowseTasksToolbar({
           {recapChips.map((chip) => (
             <span
               key={chip.key}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium"
             >
               {chip.label}
               <button
@@ -388,13 +403,13 @@ export function BrowseTasksToolbar({
       {!filters.filtersOpen && (filters.selectedCategory || filters.locationFilter || filters.maxBudget || filters.expiresWithin || filters.matchAvailability) && (
         <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30">
           {filters.selectedCategory && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
               {categoryLabels[filters.selectedCategory]}
               <button onClick={() => filters.setSelectedCategory(null)} aria-label="Clear category filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.locationFilter && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
               <MapPin className="w-3 h-3" />
               {filters.locationFilter.startsWith("nearby:")
                 ? `Within ${filters.locationFilter.slice(7)} mi`
@@ -403,61 +418,23 @@ export function BrowseTasksToolbar({
             </span>
           )}
           {filters.maxBudget && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
               ≤ ${filters.maxBudget}
               <button onClick={() => filters.setMaxBudget("")} aria-label="Clear max budget" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.expiresWithin && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
               {filters.expiresWithin}
               <button onClick={() => filters.setExpiresWithin("")} aria-label="Clear expiry filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.matchAvailability && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-medium">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
               <Clock className="w-3 h-3" /> My hours
               <button onClick={() => filters.setMatchAvailability(false)} aria-label="Clear availability filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
-        </div>
-      )}
-
-      {/* List ⇄ Map toggle — hidden when 0 jobs because the map
-          would show an empty Louisiana with no pins, making the
-          toggle a UI-noise tax. Re-appears the moment jobs land. */}
-      {filters.filteredJobs.length > 0 && (
-        <div className="flex justify-center px-3 pt-2 pb-1">
-          <div
-            className="inline-flex gap-0.5 p-0.5 rounded-full"
-            style={{
-              background: "hsl(var(--olivewood) / 0.06)",
-              border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-            }}
-          >
-            <button
-              onClick={() => setView("list")}
-              aria-pressed={view === "list"}
-              className={`inline-flex items-center justify-center gap-1.5 h-7 px-4 rounded-full text-ds-11 font-medium transition-all btn-press ${
-                view === "list"
-                  ? "bg-background text-foreground shadow-[0_1px_2px_hsl(var(--olivewood)/0.12)]"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <List className="w-3.5 h-3.5" /> List
-            </button>
-            <button
-              onClick={() => setView("map")}
-              aria-pressed={view === "map"}
-              className={`inline-flex items-center justify-center gap-1.5 h-7 px-4 rounded-full text-ds-11 font-medium transition-all btn-press ${
-                view === "map"
-                  ? "bg-background text-foreground shadow-[0_1px_2px_hsl(var(--olivewood)/0.12)]"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <MapIcon className="w-3.5 h-3.5" /> Map
-            </button>
-          </div>
         </div>
       )}
     </>

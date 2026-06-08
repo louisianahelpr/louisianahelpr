@@ -159,16 +159,33 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         {/* Title leads the top row and wraps to at most two lines (never
             cut off mid-word); the price tile sits opposite it. */}
         <div className="flex items-center justify-between gap-3">
-          <h3
-            className="font-display italic font-bold text-foreground leading-tight line-clamp-2 flex-1 min-w-0"
-            style={{
-              fontSize: "1.05rem",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            {job.title}
-          </h3>
+          {/* New badge leads the title (not the meta row) — freshness reads
+              at the top of the card, and the meta row keeps date + time on
+              one line instead of being pushed to wrap. */}
+          <div className="flex items-start gap-1.5 flex-1 min-w-0">
+            {isNew && (
+              <span
+                className="shrink-0 mt-[3px] inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none"
+                style={{
+                  background: "hsl(var(--burnt-sienna) / 0.12)",
+                  color: "hsl(var(--burnt-sienna))",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                New
+              </span>
+            )}
+            <h3
+              className="font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
+              style={{
+                fontSize: "1.05rem",
+                color: "hsl(var(--ink-deep))",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {job.title}
+            </h3>
+          </div>
 
           {/* Right column: price tile with Boosted / Urgent badges
               overlapping its top edge. */}
@@ -290,25 +307,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}
         <div className="mt-2 flex items-center gap-x-2 gap-y-0.5 flex-wrap text-[10.5px] text-muted-foreground leading-tight">
-            {isNew && (
-              <span
-                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase"
-                style={{
-                  background: "hsl(var(--burnt-sienna) / 0.12)",
-                  color: "hsl(var(--burnt-sienna))",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                New
-              </span>
-            )}
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 min-w-0">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
               <span className="truncate max-w-[110px] font-serif italic">{cityState}</span>
             </span>
             <span className="opacity-30">·</span>
-            {/* Date and time are separate meta chips, each with its own icon
-                (calendar / clock), matching the weight of the rest of the row.
+            {/* Date + time live in ONE no-wrap group so the time can never
+                drop to its own line on its own — the pair moves together.
                 "Due" is dropped — the date is self-evidently the day the work
                 must be done. The time chip only renders when a start_time is set. */}
             {!job.date_needed && !job.start_time ? (
@@ -317,25 +322,23 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 <span className="font-serif italic">Flexible</span>
               </span>
             ) : (
-              <>
+              <span className="inline-flex items-center gap-x-2">
                 {job.date_needed && (
                   <span className="flex items-center gap-1">
                     <Calendar className="w-2.5 h-2.5 shrink-0" />
-                    <span className="font-serif italic">
+                    <span className="font-serif italic whitespace-nowrap">
                       {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                     </span>
                   </span>
                 )}
+                {job.date_needed && job.start_time && <span className="opacity-30">·</span>}
                 {job.start_time && (
-                  <>
-                    <span className="opacity-30">·</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-2.5 h-2.5 shrink-0" />
-                      <span className="font-serif italic">{formatTime12(job.start_time)}</span>
-                    </span>
-                  </>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-2.5 h-2.5 shrink-0" />
+                    <span className="font-serif italic whitespace-nowrap">{formatTime12(job.start_time)}</span>
+                  </span>
                 )}
-              </>
+              </span>
             )}
             {expiryText && (
               <>

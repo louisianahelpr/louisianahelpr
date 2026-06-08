@@ -121,7 +121,14 @@ const JobDetailDialog = ({
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
-        className="sm:max-w-lg !gap-2"
+        // grid-cols-1: the base DialogContent is `display:grid` with implicit
+        // `auto` columns, which size to max-content and can grow wider than
+        // the dialog; paired with the content's `overflow-y-auto` (which makes
+        // overflow-x compute to `auto`), the over-wide track gets clipped,
+        // cutting long words in the description mid-glyph. grid-cols-1 swaps the
+        // track to `minmax(0,1fr)`, pinning it to the dialog width so children
+        // wrap instead of overflowing.
+        className="grid-cols-1 sm:max-w-lg !gap-2"
         onTouchStart={(e) => {
           if (!_allJobs || !_onSelect) return;
           const t = e.touches[0];
@@ -274,7 +281,11 @@ const JobDetailDialog = ({
         {/* Description — own glass plate. When there's no photo, this
             is where Boosted (top-right) and Urgent (top-left) stamps
             live. "Read more" expands the full text inline when long. */}
-        <div className="relative">
+        {/* min-w-0: as a grid item of the DialogContent grid this defaults
+            to min-width:auto, so a long unbroken word would force the item
+            wider than the track and the line-clamp box would clip the
+            overflow. min-w-0 lets it shrink to the track and wrap. */}
+        <div className="relative min-w-0">
           {photos.length === 0 && job.is_urgent && (
             <span
               aria-label="Urgent"
@@ -314,8 +325,16 @@ const JobDetailDialog = ({
                 "0 1px 2px hsl(var(--olivewood) / 0.05)",
             }}
           >
+            {/* line-clamp-3 turns this <p> into a display:-webkit-box,
+                which defaults to min-width:auto and sizes to its max-content
+                width — so a normal word near the edge overflows and the box's
+                own overflow:hidden clips it mid-word instead of wrapping.
+                min-w-0 lets the box shrink to its container so text wraps,
+                and we only clamp when the text is actually long enough to
+                need it (matching the Read more threshold) so short
+                descriptions stay plain blocks that wrap cleanly. */}
             <p
-              className={`font-serif text-[0.95rem] leading-relaxed ${descExpanded ? "" : "line-clamp-3"}`}
+              className={`font-serif text-[0.95rem] leading-relaxed break-words min-w-0 ${!descExpanded && (job.description?.length ?? 0) > 180 ? "line-clamp-3" : ""}`}
               style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
             >
               {job.description}

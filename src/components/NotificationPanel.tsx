@@ -267,7 +267,7 @@ const NotificationPanel = () => {
         <NotificationTrigger unreadCount={unreadCount} />
       </SheetTrigger>
       <SheetContent
-        className="w-full sm:max-w-md p-0 flex flex-col h-[100dvh]"
+        className="w-full sm:max-w-md p-0 gap-0 flex flex-col h-[100dvh]"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <SheetHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0 text-left sm:text-left space-y-2">

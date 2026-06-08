@@ -498,11 +498,14 @@ export function usePostJobForm() {
     void maybeFireFirstPostConfetti();
     toast.info("Redirecting to payment…");
 
-    // Geocode the address in the background and patch the job row with
-    // lat/lng so it shows up on /browse?view=map. Best-effort — failure
-    // doesn't block checkout. The map's RPC rounds these to ~110m
-    // before serving so the doorstep is never exposed publicly.
-    void (async () => {
+    // Geocode the address and patch the job row with lat/lng so it shows
+    // up on /browse?view=map. Kicked off here so it runs concurrently with
+    // the create-payment round-trip below, then awaited before the redirect
+    // (see geocodePromise await) — previously this was fire-and-forget, but
+    // `window.location.href` to Stripe unloads the page and cancelled the
+    // in-flight fetch, so most jobs never got coords and never hit the map.
+    // The map's RPC rounds these to ~110m so the doorstep is never exposed.
+    const geocodePromise = (async () => {
       const composed = composeJobAddress({
         streetAddress,
         city,
@@ -557,6 +560,16 @@ export function usePostJobForm() {
       try {
         await supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } });
       } catch { /* best-effort */ }
+      // Land the geocode write before the redirect unloads the page. It's
+      // been running concurrently since job insert, so it's usually already
+      // done; cap the wait at 2.5s so a slow/blocked Nominatim never stalls
+      // checkout (the job is still usable, it just won't pin on the map).
+      try {
+        await Promise.race([
+          geocodePromise,
+          new Promise((resolve) => window.setTimeout(resolve, 2500)),
+        ]);
+      } catch { /* best-effort — coords are non-critical */ }
       // Show the blocking overlay before the redirect so the user can't
       // re-tap submit during the navigation delay on slow networks.
       setRedirecting(true);

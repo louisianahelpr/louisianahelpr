@@ -339,72 +339,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     );
   }
 
-  if (jobs.length === 0) {
-    return (
-      /* Empty-state surface bleeds beneath the floating dock — the
-         outer rounded-t-2xl + cropped bottom shadow mirror the list
-         empty state on the guest + auth dashboards so both views read
-         as the same continuous panel under the dock's frosted
-         curtain. paddingBottom clears the FAB + tab strip. */
-      <div
-        className="flex flex-col items-center justify-center h-full w-full liquid-glass px-6 text-center gap-3 rounded-t-2xl"
-        style={{
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          borderBottom: "none",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-            "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
-            "1px 0 2px hsl(var(--olivewood) / 0.06), " +
-            "0 -1px 2px hsl(var(--olivewood) / 0.06)",
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
-          paddingTop: "1.5rem",
-        }}
-      >
-        <div
-          className="w-14 h-14 rounded-full flex items-center justify-center"
-          style={{
-            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-            border: "1px solid hsl(var(--olivewood) / 0.10)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-              "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
-          }}
-        >
-          <MapPin className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-        </div>
-        <div className="space-y-1">
-          <p
-            className="font-display italic font-bold leading-tight text-headline-card"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-          >
-            Empty map for now.
-          </p>
-          <p
-            className="font-serif italic max-w-[260px]"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
-          >
-            New posts land here the moment they go live across Louisiana.
-          </p>
-        </div>
-        {/* Optional CTA — passed by the guest dashboard so the empty
-            map still nudges signup ("get pinged when one lands") rather
-            than dead-ending the user. */}
-        {emptyStateCta && (
-          <Button
-            variant="bark"
-            onClick={emptyStateCta.onClick}
-            className="rounded-ds-md mt-1"
-          >
-            <BellRing className="w-4 h-4 mr-2" /> {emptyStateCta.label}
-          </Button>
-        )}
-      </div>
-    );
-  }
-
   const heatBuckets = view === "heat" ? bucketJobs(jobs) : [];
+  const isEmpty = jobs.length === 0;
 
   return (
     /* Populated map: fills the parent's remaining height (h-full inside
@@ -416,7 +352,10 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           so helpers can scan job concentration at a glance and flip
           between individual Pins and the density Heat layer in one
           tap. The "N jobs" badge above keeps the dataset size visible
-          in both modes so the toggle reads as a real scanning aid. */}
+          in both modes so the toggle reads as a real scanning aid.
+          Hidden when the board is empty — a layer toggle and a "0 jobs"
+          badge are noise when there's nothing to plot. */}
+      {!isEmpty && (
       <div className="absolute top-3 right-3 z-[400] flex flex-col items-end gap-1.5">
         <div
           aria-hidden
@@ -470,6 +409,68 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           })}
         </div>
       </div>
+      )}
+      {/* Empty board — keep the real Louisiana map on screen (so it reads
+          as "no posts yet here", not "the map is broken") and float a
+          soft frosted caption over it. The wrapper passes pointer events
+          through so the map stays pannable; only the caption card itself
+          is interactive, so the guest signup CTA still works. */}
+      {isEmpty && (
+        <div className="absolute inset-0 z-[350] flex items-center justify-center pointer-events-none px-6">
+          <div
+            className="pointer-events-auto flex flex-col items-center text-center gap-3 rounded-2xl px-6 py-6 max-w-[300px]"
+            style={{
+              backgroundColor: "hsla(38, 18%, 97%, 0.92)",
+              border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
+                "0 10px 30px -10px hsl(var(--olivewood) / 0.32)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+            }}
+          >
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                border: "1px solid hsl(var(--olivewood) / 0.10)",
+                boxShadow:
+                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                  "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                  "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+              }}
+            >
+              <MapPin className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+            </div>
+            <div className="space-y-1">
+              <p
+                className="font-display italic font-bold leading-tight text-headline-card"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
+                Empty map for now.
+              </p>
+              <p
+                className="font-serif italic"
+                style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+              >
+                New posts land here the moment they go live across Louisiana.
+              </p>
+            </div>
+            {/* Optional CTA — passed by the guest dashboard so the empty
+                map still nudges signup ("get pinged when one lands")
+                rather than dead-ending the user. */}
+            {emptyStateCta && (
+              <Button
+                variant="bark"
+                onClick={emptyStateCta.onClick}
+                className="rounded-ds-md mt-1"
+              >
+                <BellRing className="w-4 h-4 mr-2" /> {emptyStateCta.label}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
       {/* Subtle tile-load overlay — fades out once the OSM tiles
           report `load` so the first paint is a soft transition rather
           than a flash of half-rendered tiles. Pointer events bypass so

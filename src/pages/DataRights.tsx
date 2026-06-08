@@ -96,7 +96,9 @@ const DataRights = () => {
     hapticHeavy();
     setDeleting(true);
     try {
-      const { error } = await supabase.functions.invoke("delete-own-account");
+      const { error } = await supabase.functions.invoke("delete-own-account", {
+        body: { confirmation: "DELETE MY ACCOUNT" },
+      });
       if (error) throw error;
       hapticSuccess();
       toast.success("Your account has been deleted.");

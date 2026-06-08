@@ -427,20 +427,32 @@ export function BrowseTasksToolbar({
           would show an empty Louisiana with no pins, making the
           toggle a UI-noise tax. Re-appears the moment jobs land. */}
       {filters.filteredJobs.length > 0 && (
-        <div className="px-3 pt-3 pb-1">
-          <div className="flex gap-1 p-1 bg-muted/40 rounded-ds-md border border-border w-full max-w-xs mx-auto">
+        <div className="flex justify-center px-3 pt-2 pb-1">
+          <div
+            className="inline-flex gap-0.5 p-0.5 rounded-full"
+            style={{
+              background: "hsl(var(--olivewood) / 0.06)",
+              border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+            }}
+          >
             <button
               onClick={() => setView("list")}
-              className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-ds-sm text-ds-11 font-medium transition-colors ${
-                view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              aria-pressed={view === "list"}
+              className={`inline-flex items-center justify-center gap-1.5 h-7 px-4 rounded-full text-ds-11 font-medium transition-all btn-press ${
+                view === "list"
+                  ? "bg-background text-foreground shadow-[0_1px_2px_hsl(var(--olivewood)/0.12)]"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <List className="w-3.5 h-3.5" /> List
             </button>
             <button
               onClick={() => setView("map")}
-              className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-ds-sm text-ds-11 font-medium transition-colors ${
-                view === "map" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              aria-pressed={view === "map"}
+              className={`inline-flex items-center justify-center gap-1.5 h-7 px-4 rounded-full text-ds-11 font-medium transition-all btn-press ${
+                view === "map"
+                  ? "bg-background text-foreground shadow-[0_1px_2px_hsl(var(--olivewood)/0.12)]"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <MapIcon className="w-3.5 h-3.5" /> Map

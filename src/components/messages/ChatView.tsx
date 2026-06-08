@@ -463,37 +463,13 @@ export function ChatView({
                       />
                     )}
                     {m.content && renderMessageContent(m.content, setLightboxPhoto)}
-                    {/* Report / delete — overlay sits INSIDE the bubble
-                        top corner so it never clips off-screen on narrow
-                        phones (<375px), which the old `-left-[52px]` /
-                        `-right-[52px]` offsets did. Faded on touch
-                        devices (no hover state) so the affordance is
-                        still discoverable without dominating every
-                        bubble. */}
-                    <div className={`absolute ${mine ? "left-1" : "right-1"} top-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-60 transition-opacity flex gap-0.5`}>
-                      {!mine && (
-                        <button
-                          onClick={() => setReportTarget({ type: "message", id: m.id })}
-                          className="text-muted-foreground hover:text-destructive flex items-center justify-center w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm"
-                          title="Report"
-                          aria-label="Report message"
-                        >
-                          <Flag className="w-3 h-3" />
-                        </button>
-                      )}
-                      {mine && !isSending && !isFailed && (
-                        <button
-                          onClick={() => setDeleteMessageConfirm(m.id)}
-                          className="flex items-center justify-center w-7 h-7 rounded-full backdrop-blur-sm"
-                          style={{ color: "hsl(var(--parchment))", background: "rgba(0, 0, 0, 0.38)" }}
-                          title="Delete"
-                          aria-label="Delete message"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
                   </div>
+                  {/* Meta row — timestamp / read-receipt plus the
+                      report (inbound) or delete (own) affordance. Kept
+                      BELOW the bubble, never overlaid on the copy, so the
+                      icon can't sit on top of the message text. Faded on
+                      touch (no hover) so it stays discoverable without
+                      dominating every row. */}
                   <div className={`flex items-center gap-1 mt-1 px-1 text-ds-10 text-muted-foreground ${mine ? "flex-row-reverse" : ""}`}>
                     {isSending ? (
                       <span className="flex items-center gap-1">
@@ -521,6 +497,26 @@ export function ChatView({
                           recipientName={activeConvo?.otherUserName}
                           recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}
                         />
+                        {!mine && (
+                          <button
+                            onClick={() => setReportTarget({ type: "message", id: m.id })}
+                            className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive transition-opacity flex items-center justify-center w-5 h-5 rounded-full"
+                            title="Report"
+                            aria-label="Report message"
+                          >
+                            <Flag className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                        {mine && (
+                          <button
+                            onClick={() => setDeleteMessageConfirm(m.id)}
+                            className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive transition-opacity flex items-center justify-center w-5 h-5 rounded-full"
+                            title="Delete"
+                            aria-label="Delete message"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

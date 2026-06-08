@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
   Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Wrench,
-  Share2, RotateCw, Check, ChevronDown, ChevronUp,
+  RotateCw, Check, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -62,7 +62,6 @@ interface PostedJobCardProps {
   loadingApplicants: Record<string, boolean>;
   /** Per-job applicant fetch error, for inline retry. */
   applicantErrors: Record<string, boolean>;
-  onBoostJob: (jobId: string) => void;
   /** Pre-fetched latest tracking row for this job, threaded down to
       <JobTracking> so the card doesn't fire its own SELECT on mount.
       `null` = pre-fetched and no row exists yet; `undefined` = not
@@ -113,7 +112,6 @@ function PostedJobCardInner({
   inlineApplicants,
   loadingApplicants,
   applicantErrors,
-  onBoostJob,
   initialTracking,
   initialGroupHelpers,
   onActionComplete,
@@ -339,7 +337,7 @@ function PostedJobCardInner({
               {/* Applicants button + inline expanded applicant list */}
               {job.status === "open" && (
                 <div className="px-4 py-2 space-y-2" onClick={(e) => e.stopPropagation()}>
-                  <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => onLoadApplications(job)}>
+                  <Button size="sm" className="w-full" onClick={() => onLoadApplications(job)}>
                     <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}
                   </Button>
 
@@ -410,29 +408,8 @@ function PostedJobCardInner({
                             className="font-serif italic leading-snug"
                             style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.75)" }}
                           >
-                            Share your task or Boost it to reach more helprs nearby.
+                            Share your task or Boost it (below) to reach more helprs nearby.
                           </p>
-                          <div className="flex gap-2 pt-0.5">
-                            <Button
-                              size="sm"
-                              className="flex-1 bg-accent/15 text-accent hover:bg-accent/25 border-0 text-ds-11"
-                              onClick={() => onBoostJob(job.id)}
-                            >
-                              <Rocket className="w-3.5 h-3.5 mr-1" /> Boost
-                            </Button>
-                            {navigator.share && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="flex-1 text-ds-11"
-                                onClick={() => {
-                                  navigator.share({ title: job.title, text: `Help needed: ${job.title}`, url: window.location.origin + `/dashboard?job=${job.id}` }).catch(() => {});
-                                }}
-                              >
-                                <Share2 className="w-3.5 h-3.5 mr-1" /> Share
-                              </Button>
-                            )}
-                          </div>
                         </div>
                       );
                     }
@@ -517,7 +494,7 @@ function PostedJobCardInner({
                         <Button size="sm" className="w-full bg-accent/15 text-accent hover:bg-accent/25 border-0" disabled={!!isBoosted} onClick={() => onBoost(job.id)}>
                           <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
                         </Button>
-                        <Button size="sm" className="w-full bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                        <Button size="sm" className="w-full bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--bark)/0.20)] border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
                         <ShareJobButton
                           job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                           className="w-full"

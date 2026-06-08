@@ -131,7 +131,6 @@ export const PostedJobsTab = ({
             inlineApplicants={inlineApplicants}
             loadingApplicants={loadingApplicants}
             applicantErrors={applicantErrors}
-            onBoostJob={onBoost}
             onActionComplete={onActionComplete}
           />
         )}

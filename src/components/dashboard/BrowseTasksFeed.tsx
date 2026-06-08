@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useRef, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useRef, useEffect, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -127,6 +127,32 @@ export function BrowseTasksFeed({
     prevJobCountRef.current = next;
   }, [filters.filteredJobs.length, isFetchingNextPage]);
 
+  // Derive the "Everything else" list and the Recommended slice once per
+  // dependency change rather than on every render (dialog toggles, expand
+  // state, banners all re-render this component). Pure derivation.
+  const { visibleJobs, recommendedVisible } = useMemo(() => {
+    const visible = filters.filteredJobs
+      .filter(j => !dismissedJobIds.has(j.id))
+      .filter(j => {
+        // Hide jobs already shown in Recommended or Nearby sections
+        if (!filters.hasFilters) {
+          const inRecommended = recommendedJobs.some(rj => rj.id === j.id);
+          const inNearby = filters.nearbyJobs.some(nj => nj.id === j.id);
+          if (inRecommended || inNearby) return false;
+        }
+        return true;
+      })
+      // Two-sided liquidity signal — float urgent jobs to the top of the
+      // "Everything else" feed. Stable sort: equal-urgency rows keep the
+      // feed's existing order, so this only lifts urgent jobs.
+      .slice()
+      .sort((a, b) => Number(b.is_urgent ?? false) - Number(a.is_urgent ?? false));
+    const recommended = !filters.hasFilters
+      ? recommendedJobs.filter(j => !dismissedJobIds.has(j.id))
+      : [];
+    return { visibleJobs: visible, recommendedVisible: recommended };
+  }, [filters.filteredJobs, filters.hasFilters, filters.nearbyJobs, recommendedJobs, dismissedJobIds]);
+
   return (
     <>
       {/* Visually hidden aria-live region — announces newly loaded page
@@ -204,28 +230,6 @@ export function BrowseTasksFeed({
         />
       </div>
       ) : (() => {
-        const visibleJobs = filters.filteredJobs
-          .filter(j => !dismissedJobIds.has(j.id))
-          .filter(j => {
-            // Hide jobs already shown in Recommended or Nearby sections
-            if (!filters.hasFilters) {
-              const inRecommended = recommendedJobs.some(rj => rj.id === j.id);
-              const inNearby = filters.nearbyJobs.some(nj => nj.id === j.id);
-              if (inRecommended || inNearby) return false;
-            }
-            return true;
-          })
-          // Two-sided liquidity signal — float urgent jobs to the top of
-          // the "Everything else" feed so the helpr side sees the work
-          // that needs them most (and the bonus that comes with it)
-          // first. Stable sort: equal-urgency rows keep the feed's
-          // existing order, so this only lifts urgent jobs without
-          // reshuffling everything else.
-          .slice()
-          .sort((a, b) => Number(b.is_urgent ?? false) - Number(a.is_urgent ?? false));
-        const recommendedVisible = !filters.hasFilters
-          ? recommendedJobs.filter(j => !dismissedJobIds.has(j.id))
-          : [];
         return (
           <>
             {recommendedVisible.length > 0 && (

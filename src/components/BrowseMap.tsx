@@ -18,7 +18,7 @@ import { divIcon, point as leafletPoint } from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
-import { Loader2, Crosshair, BellRing } from "lucide-react";
+import { Loader2, Crosshair, BellRing, MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 // Above this many open jobs, default to Heat view so the user sees
@@ -372,7 +372,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
               "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
           }}
         >
-          <Loader2 className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+          <MapPin className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
         </div>
         <div className="space-y-1">
           <p

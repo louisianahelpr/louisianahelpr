@@ -144,6 +144,7 @@ const Login = () => {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
+              enterKeyHint="next"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -158,6 +159,7 @@ const Login = () => {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
+                enterKeyHint="done"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

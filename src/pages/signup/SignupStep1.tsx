@@ -61,12 +61,12 @@ export function SignupStep1({
               already catches typos. The double field was 2014-era
               friction that costs activations without preventing errors. */}
           <Label htmlFor="email" className={labelCls}>Email <span className="text-destructive">*</span></Label>
-          <Input id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
+          <Input id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputCls} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="password" className={labelCls}>Password <span className="text-destructive">*</span></Label>
           <div className="relative">
-            <Input id="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+            <Input id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" placeholder="At least 8 characters, 1 uppercase, 1 number" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -101,7 +101,7 @@ export function SignupStep1({
         <div className="space-y-2">
           <Label htmlFor="confirmPassword" className={labelCls}>Confirm password <span className="text-destructive">*</span></Label>
           <div className="relative">
-            <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
+            <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} enterKeyHint="done" placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={`${inputCls} pr-10`} autoComplete="new-password" />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}

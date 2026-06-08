@@ -341,12 +341,12 @@ export function ProfileEditForm({
           <div className="space-y-3">
             <div>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
-              <Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
+              <Input id="phone" type="tel" autoComplete="tel" enterKeyHint="next" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
                 <Label htmlFor="location" className="text-ds-11 mb-1.5 block">City</Label>
-                <Input id="location" autoComplete="address-level2" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-10" />
+                <Input id="location" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-10" />
               </div>
               <div>
                 <Label htmlFor="zipCode" className="text-ds-11 mb-1.5 block">ZIP</Label>
@@ -398,6 +398,7 @@ export function ProfileEditForm({
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="What you do, tools you bring, what makes you reliable…"
+            autoCapitalize="sentences"
             className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
           />
           <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>

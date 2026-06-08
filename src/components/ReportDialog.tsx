@@ -53,7 +53,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
 
     if (error) {
       hapticError();
-      toast.error("Failed to submit report");
+      toast.error("We couldn't send your report — please try again.");
     } else {
       hapticSuccess();
       toast.success("Report submitted. We'll review it shortly.");

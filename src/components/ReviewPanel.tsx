@@ -162,7 +162,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
     if (error) {
       hapticError();
       if (error.code === "23505") toast.error("You've already reviewed this job.");
-      else toast.error("Failed to submit review");
+      else toast.error("We couldn't post your review — please try again.");
     } else {
       hapticSuccess();
       toast.success("Review submitted!");

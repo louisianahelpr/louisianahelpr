@@ -78,7 +78,8 @@ const DataRights = () => {
       toast.success("Your data has been downloaded");
     } catch (err) {
       report(err, { tags: { source: "DataRights.exportData" } });
-      toast.error("Failed to export your data. Try again or contact support.");
+      hapticError();
+      toast.error("We couldn't put your data together just now — try again or email support.");
     } finally {
       setExporting(false);
     }
@@ -96,7 +97,7 @@ const DataRights = () => {
       window.location.href = "/";
     } catch (err: any) {
       hapticError();
-      toast.error(err?.message ?? "Failed to delete account. Contact support.");
+      toast.error(err?.message ?? "We couldn't delete your account just now — please email support.");
     } finally {
       setDeleting(false);
     }

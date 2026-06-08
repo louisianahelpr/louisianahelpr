@@ -206,6 +206,8 @@ export const RichMessageInput = ({
         <Input
           aria-label="Type a message"
           placeholder="Type a message…"
+          enterKeyHint="send"
+          autoCapitalize="sentences"
           value={text}
           onChange={(e) => { setText(e.target.value); onTyping?.(); }}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}

@@ -202,7 +202,7 @@ export function BudgetSection({
                 <Input
                   id="custom-urgent-fee"
                   type="number"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   min="5"
                   step="1"
                   value={urgentFee}

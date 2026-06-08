@@ -247,7 +247,7 @@ export function SignupStep2(props: SignupStep2Props) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="location" className={labelCls}>City <span aria-hidden="true" className="text-destructive">*</span></Label>
-          <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required aria-required="true" autoComplete="address-level2" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${fieldErrors.location ? " border-destructive" : ""}`} />
+          <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required aria-required="true" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${fieldErrors.location ? " border-destructive" : ""}`} />
           <FieldError id="location-error" message={fieldErrors.location} />
         </div>
         <div className="space-y-2">
@@ -257,6 +257,7 @@ export function SignupStep2(props: SignupStep2Props) {
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"
             value={bio}
             onChange={(e) => { setBio(e.target.value); clearFieldError?.("bio"); }}
+            autoCapitalize="sentences"
             rows={4}
             required
             aria-required="true"

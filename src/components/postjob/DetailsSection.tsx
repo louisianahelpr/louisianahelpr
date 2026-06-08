@@ -183,6 +183,8 @@ export function DetailsSection({
           placeholder={titlePlaceholders[category] ?? titlePlaceholders.other}
           required
           maxLength={TITLE_MAX}
+          autoCapitalize="sentences"
+          enterKeyHint="next"
         />
       </div>
 
@@ -199,6 +201,7 @@ export function DetailsSection({
           required
           rows={4}
           maxLength={DESCRIPTION_MAX}
+          autoCapitalize="sentences"
         />
         {/* Category-aware prompt — tells the poster exactly what a helpr
             needs to quote accurately. Vague posts get fewer applicants. */}

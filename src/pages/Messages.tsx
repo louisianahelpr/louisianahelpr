@@ -57,6 +57,9 @@ const Messages = () => {
   const [deleteMessageConfirm, setDeleteMessageConfirm] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  // Guards the "couldn't load previews" warning to once per mount, so the
+  // inbox poll loop doesn't re-toast on every refresh while previews fail.
+  const thumbWarningShown = useRef(false);
   const deepLinkHandled = useRef(false);
   // Tracks whether a conversations load has completed at least once, so
   // the skeleton shows only on first load — background refreshes
@@ -167,6 +170,18 @@ const Messages = () => {
       supabase.from("jobs").select("id, title, status, customer_id").in("id", jobIds),
       getMessageAttachmentSignedUrls(imageThumbPaths),
     ]);
+
+    // If we asked for image thumbs but some paths didn't resolve, the
+    // inbox degrades to text-only for those rows. Surface a one-time,
+    // non-blocking warning rather than leaving silent blank thumbnails.
+    const uniqueThumbPaths = new Set(imageThumbPaths.filter(Boolean));
+    if (uniqueThumbPaths.size > 0 && !thumbWarningShown.current) {
+      const anyResolved = [...uniqueThumbPaths].some((p) => thumbUrlMap[p]);
+      if (!anyResolved) {
+        thumbWarningShown.current = true;
+        toast.warning("Couldn't load image previews — your messages are intact.");
+      }
+    }
 
     const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
     const avatarMap = new Map<string, string | null>(profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || []);

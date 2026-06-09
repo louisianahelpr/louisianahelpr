@@ -46,6 +46,10 @@ const JobDetailDialog = ({
   const [payoutExpanded, setPayoutExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Nonce bump tells PhotoLightbox to open in grid mode when the user
+  // taps the "View all" pill on the cover. Plain number so a click
+  // increments + re-fires the effect even on the same photo.
+  const [gridOpenNonce, setGridOpenNonce] = useState(0);
   const [applicationCount, setApplicationCount] = useState<number | null>(null);
   // Repeat-customer count — number of completed jobs between this
   // helper and this poster. Drives the "Worked with you N times"
@@ -257,6 +261,31 @@ const JobDetailDialog = ({
                 </span>
               )}
             </button>
+            {/* "View all" — opens the lightbox straight into grid mode
+                so a helpr can scan a project with lots of reference
+                shots without tapping next/next/next. */}
+            {photos.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setGridOpenNonce((n) => n + 1);
+                  setLightboxIndex(0);
+                }}
+                aria-label="View all photos in a grid"
+                className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold uppercase tracking-[0.05em] transition-transform active:scale-95 hover:scale-105"
+                style={{
+                  backgroundColor: "hsla(0, 0%, 100%, 0.85)",
+                  backdropFilter: "blur(12px) saturate(150%)",
+                  WebkitBackdropFilter: "blur(12px) saturate(150%)",
+                  color: "hsl(var(--ink-deep))",
+                  border: "0.5px solid hsla(0, 0%, 100%, 0.6)",
+                  boxShadow: "0 1px 4px hsl(var(--bark) / 0.18)",
+                }}
+              >
+                View all
+              </button>
+            )}
           </div>
         )}
 
@@ -730,7 +759,7 @@ const JobDetailDialog = ({
           </Button>
         </div>
 
-        <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} />
+        <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} openInGridNonce={gridOpenNonce} />
       </DialogContent>
     </Dialog>
   );

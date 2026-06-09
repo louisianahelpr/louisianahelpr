@@ -105,10 +105,32 @@ const AccountDenied = () => {
             <RefreshCw className="w-4 h-4 mr-2" />
             Re-apply now
           </Button>
-          <a href="mailto:admin@louisianahelpr.com?subject=Account%20Review%20Question">
+          {/* Appeal CTA — pre-fills the email with the user's ID + email
+              + denial reason so the admin can pull the right case row up
+              instantly. We don't share the bare denial_reason verbatim in
+              the URL when it could contain sensitive admin notes — just
+              flag that a reason exists so the user can quote it back. */}
+          <a
+            href={`mailto:admin@louisianahelpr.com?subject=${encodeURIComponent(
+              "Account decision appeal",
+            )}&body=${encodeURIComponent(
+              [
+                "Hi Helpr team,",
+                "",
+                "I'd like to appeal the decision on my account.",
+                "",
+                "[Tell us what changed or what you'd like reconsidered]",
+                "",
+                "—",
+                `User ID: ${user?.id ?? "unknown"}`,
+                `Email: ${user?.email ?? "unknown"}`,
+                denyReason ? `Reason on file: ${denyReason}` : "Reason on file: (not provided)",
+              ].join("\n"),
+            )}`}
+          >
             <Button variant="ghost" className="w-full rounded-ds-md" size="sm">
               <Mail className="w-4 h-4 mr-2" />
-              Email admin@louisianahelpr.com
+              Appeal this decision
             </Button>
           </a>
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { LogOut, MailCheck, RefreshCw, ArrowRight, Clock, Check, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -307,6 +307,33 @@ const AccountPending = () => {
               </div>
             </div>
 
+            {/* Estimated review-time banner — sets a clearer
+                expectation than the generic "24-48 hours" line in the
+                hero, calibrated for business-hour reviewers. Renders
+                only when there's still review work in flight. */}
+            {!reviewInProgress || progressPct < 100 ? (
+              <div
+                className="shrink-0 rounded-ds-md px-4 py-3 flex items-start gap-3"
+                style={{
+                  background: "hsl(var(--bark) / 0.06)",
+                  border: "1px solid hsl(var(--bark) / 0.14)",
+                }}
+              >
+                <Clock
+                  className="w-4 h-4 shrink-0 mt-0.5"
+                  strokeWidth={1.75}
+                  style={{ color: "hsl(var(--bark))" }}
+                  aria-hidden
+                />
+                <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--ink-deep))" }}>
+                  Reviews usually finish in{" "}
+                  <span className="font-semibold">under 2 hours</span>{" "}
+                  during business hours (8a–6p CT). Overnight signups clear
+                  next morning.
+                </p>
+              </div>
+            ) : null}
+
             {/* Action area */}
             <div className="shrink-0 flex flex-col gap-2.5">
               <Button
@@ -330,12 +357,32 @@ const AccountPending = () => {
                   <><RefreshCw className="w-3.5 h-3.5" /> Sync status</>
                 )}
               </Button>
-              <Link
-                to="/support"
+              {/* Contact CTA — pre-fills the support email with the user's
+                  ID + email so the admin can find the right row instantly
+                  without asking a sleep-deprived applicant to dig out
+                  their account info. Falls back to /support on web if
+                  mailto: is blocked. */}
+              <a
+                href={`mailto:admin@louisianahelpr.com?subject=${encodeURIComponent(
+                  "Account review question",
+                )}&body=${encodeURIComponent(
+                  [
+                    "Hi Helpr team,",
+                    "",
+                    "I'm waiting on account approval and have a question:",
+                    "",
+                    "[Your question here]",
+                    "",
+                    "—",
+                    `User ID: ${user?.id ?? "unknown"}`,
+                    `Email: ${userEmail || "unknown"}`,
+                  ].join("\n"),
+                )}`}
                 className="text-center text-[12px] text-muted-foreground hover:text-foreground transition-colors"
               >
-                Need help? <span className="underline underline-offset-2">Contact support</span>
-              </Link>
+                Need help?{" "}
+                <span className="underline underline-offset-2">Contact support</span>
+              </a>
             </div>
           </div>
         )}

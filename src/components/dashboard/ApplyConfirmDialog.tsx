@@ -1,4 +1,4 @@
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, type Dispatch, type SetStateAction } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,23 +10,59 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Paperclip, Trash2, WifiOff } from "lucide-react";
+import { FileText, Paperclip, Trash2, WifiOff, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { hapticMedium } from "@/lib/haptics";
+import { errorToast } from "@/lib/toast";
+import { hapticMedium, hapticLight } from "@/lib/haptics";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 /** Mirror ReportDialog's pitch cap so the backend never silently truncates. */
 const MAX_PITCH_LENGTH = 500;
+/** Soft minimum — short pitches read as "lol sure" to posters. We don't
+ *  block submission below this (an empty pitch is still allowed), but
+ *  we surface the count to nudge the helpr toward a useful intro. */
+const SOFT_MIN_PITCH_LENGTH = 30;
 
 /**
- * Durable draft of the pitch, so an apply attempted while offline isn't lost.
- * The `helpr_` prefix is auto-mirrored to Capacitor Preferences (see
- * safeStorage) — survives a WebKit eviction / force-quit while the user
- * waits for signal to come back.
+ * Per-job draft key — old single-key behavior meant moving to a different
+ * job overwrote your half-written pitch. Scoping by job id keeps each
+ * application independent. The `helpr_` prefix is mirrored to Capacitor
+ * Preferences (see safeStorage) so a force-quit doesn't lose the draft.
  */
-const PITCH_DRAFT_KEY = "helpr_apply_pitch_draft";
+function pitchDraftKey(jobId: string | undefined | null) {
+  return `helpr_apply_pitch_draft_${jobId ?? "unknown"}`;
+}
+
+/** Legacy single-key draft from before drafts were per-job. We migrate
+ *  it once into the current job's key so an in-flight pitch from the
+ *  pre-update build isn't dropped. */
+const LEGACY_PITCH_DRAFT_KEY = "helpr_apply_pitch_draft";
+
+/** Two-to-three sentence starters — clickable to insert/replace. We
+ *  swap in time-of-day on the first one so the greeting feels live. */
+function greetingByHour(hour: number) {
+  if (hour < 5) return "Hi"; // late night
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Hi";
+  return "Good evening";
+}
+function buildStarterSentences(job: EnrichedJob | null): string[] {
+  const greet = greetingByHour(new Date().getHours());
+  const cat = (job?.category ?? "this kind of work").toLowerCase().replace(/_/g, " ");
+  const dayLabel = (() => {
+    if (!job?.date_needed) return "";
+    const d = new Date(job.date_needed + "T00:00:00");
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleDateString(undefined, { weekday: "long" });
+  })();
+  return [
+    `${greet}, I'm available ${dayLabel ? dayLabel : "the day you need"}${job?.start_time ? ` at ${job.start_time}` : ""} and ready to go.`,
+    `I've done ${cat} before and can bring the right tools for the job.`,
+    `Happy to send a quick quote or answer any questions before you decide.`,
+  ];
+}
 
 interface ApplyConfirmDialogProps {
   /** Whether the dialog is open — true once a feed job has been picked. */
@@ -71,16 +107,60 @@ export function ApplyConfirmDialog({
 }: ApplyConfirmDialogProps) {
   const { online } = useOnlineStatus();
   const charsLeft = MAX_PITCH_LENGTH - applyMessage.length;
+  const trimmedLen = applyMessage.trim().length;
+  const underMin = trimmedLen > 0 && trimmedLen < SOFT_MIN_PITCH_LENGTH;
+  const jobId = confirmApplyJob?.id ?? null;
+  const draftKey = pitchDraftKey(jobId);
+  const starterSentences = useMemo(() => buildStarterSentences(confirmApplyJob), [confirmApplyJob]);
 
-  // Restore a pitch saved from a prior offline attempt when the dialog
-  // (re)opens with an empty field — so a dropped apply comes back intact.
+  // Restore a saved draft for THIS job when the dialog (re)opens with an
+  // empty field — per-job scoping so switching jobs doesn't bleed text
+  // between unrelated pitches. We also one-time migrate the legacy single
+  // draft key so a pre-update in-flight pitch isn't lost on the upgrade.
   useEffect(() => {
     if (!open) return;
     if (applyMessage) return;
-    const saved = safeStorage.getItem(PITCH_DRAFT_KEY);
-    if (saved) setApplyMessage(saved);
-    // Intentionally keyed on `open` only — restore the held pitch once per open.
-  }, [open, applyMessage, setApplyMessage]);
+    if (!jobId) return;
+    const saved = safeStorage.getItem(draftKey);
+    if (saved) {
+      setApplyMessage(saved);
+      return;
+    }
+    const legacy = safeStorage.getItem(LEGACY_PITCH_DRAFT_KEY);
+    if (legacy) {
+      setApplyMessage(legacy);
+      // Move it into the per-job slot and clear the legacy key.
+      safeStorage.setItem(draftKey, legacy);
+      safeStorage.removeItem(LEGACY_PITCH_DRAFT_KEY);
+    }
+    // Intentionally keyed on `open` + jobId only — restore once per open.
+
+  }, [open, jobId]);
+
+  // Auto-save the in-progress pitch on every change, so the back button or
+  // an accidental dialog dismiss never loses what the helpr typed. Save is
+  // debounced via a microtask so a fast typer doesn't thrash safeStorage.
+  useEffect(() => {
+    if (!open || !jobId) return;
+    if (applyMessage.length === 0) {
+      // Empty message → clear the draft so we don't perpetually re-hydrate.
+      safeStorage.removeItem(draftKey);
+      return;
+    }
+    const handle = setTimeout(() => safeStorage.setItem(draftKey, applyMessage), 200);
+    return () => clearTimeout(handle);
+  }, [open, jobId, draftKey, applyMessage]);
+
+  const handleStarterTap = (sentence: string) => {
+    hapticLight();
+    // If the textarea is empty, just drop the sentence in. If it has
+    // text, append a space + sentence so chips become composable.
+    setApplyMessage(
+      applyMessage.length === 0
+        ? sentence.slice(0, MAX_PITCH_LENGTH)
+        : `${applyMessage.trimEnd()} ${sentence}`.slice(0, MAX_PITCH_LENGTH),
+    );
+  };
 
   const handleConfirm = () => {
     hapticMedium();
@@ -88,11 +168,27 @@ export function ApplyConfirmDialog({
     // rolls back silently. Persist the pitch and keep the dialog up with a
     // clear retry affordance instead.
     if (!online) {
-      if (applyMessage) safeStorage.setItem(PITCH_DRAFT_KEY, applyMessage);
-      toast.error("You're offline — we saved your pitch. Try again once you're back online.");
+      if (applyMessage) safeStorage.setItem(draftKey, applyMessage);
+      // Critical offline state → persistent toast with an explicit Retry
+      // action that re-runs the apply once the user gets back online (or
+      // wants to try optimistically). The Sonner toast persists until
+      // dismissed so the user can't miss it while scrolling other content.
+      errorToast("You're offline", {
+        description: "We saved your pitch. Try again once you're back online.",
+        critical: true,
+        id: "apply-offline",
+        onRetry: () => {
+          // Re-attempt: if we're back online by now, run the confirm; otherwise
+          // surface the same toast again so the user knows nothing changed.
+          if (navigator.onLine) {
+            safeStorage.removeItem(draftKey);
+            handleApplyConfirm();
+          }
+        },
+      });
       return;
     }
-    safeStorage.removeItem(PITCH_DRAFT_KEY);
+    safeStorage.removeItem(draftKey);
     handleApplyConfirm();
   };
 
@@ -185,6 +281,48 @@ export function ApplyConfirmDialog({
             >
               Your pitch — optional
             </label>
+            {/* Starter sentences — clickable to insert. Surfaces the
+                "what should I even say?" question by showing concrete,
+                time-aware openers. Tapping one appends to the current
+                draft so chips compose. */}
+            {applyMessage.length < MAX_PITCH_LENGTH - 20 && (
+              <div
+                className="flex items-start gap-1.5"
+                role="group"
+                aria-label="Suggested opening sentences"
+              >
+                <Sparkles
+                  className="w-3 h-3 mt-1 shrink-0"
+                  style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {starterSentences.map((sentence) => {
+                    // Show a truncated preview as the chip label —
+                    // tapping inserts the full sentence.
+                    const preview = sentence.length > 38 ? `${sentence.slice(0, 36)}…` : sentence;
+                    return (
+                      <button
+                        key={sentence}
+                        type="button"
+                        onClick={() => handleStarterTap(sentence)}
+                        className="text-[0.72rem] font-serif italic px-2 py-1 rounded-full transition-colors active:scale-[0.97]"
+                        style={{
+                          background: "hsla(0, 0%, 100%, 0.55)",
+                          color: "hsl(var(--ink-deep) / 0.85)",
+                          border: "0.5px solid hsl(var(--bark) / 0.18)",
+                          boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.5)",
+                        }}
+                        aria-label={`Insert: ${sentence}`}
+                      >
+                        {preview}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <Textarea
               id="apply-message"
               value={applyMessage}
@@ -194,9 +332,25 @@ export function ApplyConfirmDialog({
               rows={3}
               className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
             />
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between text-ds-11">
+              {/* Soft min counter — surfaces the "30+ chars feels real"
+                  guidance without blocking shorter pitches. Mirrors the
+                  ReportDialog's hint copy so the UX is consistent. */}
               <span
-                className="tabular-nums text-ds-11"
+                style={{
+                  color: underMin
+                    ? "hsl(var(--burnt-sienna))"
+                    : "hsl(var(--muted-foreground))",
+                }}
+              >
+                {trimmedLen === 0
+                  ? `Tip: ${SOFT_MIN_PITCH_LENGTH}+ characters feels personal`
+                  : underMin
+                  ? `${SOFT_MIN_PITCH_LENGTH - trimmedLen} more to feel personal`
+                  : "Looks good"}
+              </span>
+              <span
+                className="tabular-nums"
                 style={{
                   color: charsLeft < 50
                     ? "hsl(var(--burnt-sienna))"

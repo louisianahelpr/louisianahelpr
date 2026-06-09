@@ -49,6 +49,35 @@ if (import.meta.env.DEV && typeof navigator !== "undefined" && "serviceWorker" i
   })();
 }
 
+// Production-only service worker registration.
+//
+// The actual SW file is one of two:
+//   • Web build (mode=production, !isCapacitorBuild): vite-plugin-pwa
+//     emits a Workbox SW at /sw.js with HTML NetworkFirst (3s
+//     timeout), Supabase API NetworkFirst, hashed-asset SWR. The plugin
+//     ALSO auto-injects a deferred registerSW.js into index.html via
+//     `injectRegister: "script-defer"`.
+//   • Capacitor / dev: vite-plugin-pwa is disabled and `public/sw.js`
+//     ships verbatim — a minimal NetworkFirst/CacheFirst shell SW.
+//
+// Calling register() here is a deliberate belt-and-suspenders: the
+// vite-plugin-pwa auto-register also runs, but `register()` is
+// idempotent for the same URL so the second call resolves to the
+// existing registration without re-fetching the SW script.
+// Gated on `import.meta.env.PROD` so dev sessions don't get a SW
+// (which would cache stale chunks across HMR reloads — see the dev
+// exorcism block below).
+if (import.meta.env.PROD && typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .catch(() => {
+        /* SW registration failure must never break the app — offline
+           support is a progressive enhancement, not a hard dependency. */
+      });
+  });
+}
+
 // Render first, hydrate Preferences in parallel.
 //
 // Previously we awaited `hydrateStorage()` before mounting React so the

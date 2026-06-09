@@ -8,8 +8,9 @@ import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import {
   Bell, Briefcase, MessageSquare, DollarSign, Star, Megaphone,
-  Loader2, Mail, Smartphone, Navigation, CheckCircle2, Lock, Moon,
+  Loader2, Mail, Smartphone, Navigation, CheckCircle2, Lock, Moon, Send,
 } from "lucide-react";
+import { QuietHoursClock } from "@/components/profile/QuietHoursClock";
 
 interface Prefs {
   // Legacy (kept for backward compat / write-through)
@@ -101,6 +102,11 @@ const NotificationPreferences = () => {
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // Push-token count drives the "Send test" button. Zero = no devices
+  // registered (probably haven't opened the iOS app and granted
+  // permission yet); button is disabled with explanatory copy.
+  const [pushTokenCount, setPushTokenCount] = useState<number>(0);
+  const [sendingTest, setSendingTest] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +114,12 @@ const NotificationPreferences = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (cancelled || !user) return;
       setUserId(user.id);
+      // Push tokens count — head:true so we only get the count, not rows.
+      const { count: tokenCount } = await supabase
+        .from("push_tokens")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      if (!cancelled) setPushTokenCount(tokenCount ?? 0);
       const { data, error } = await supabase
         .from("notification_preferences")
         .select("*")
@@ -198,6 +210,40 @@ const NotificationPreferences = () => {
       // Sensible default: 22:00 → 07:00 — a typical sleep window. The
       // user can change either bound inline.
       void patchPrefs({ quiet_start: "22:00", quiet_end: "07:00" });
+    }
+  };
+
+  // Test push — proves the whole pipeline (preference → push token →
+  // APNs/FCM → device). Insert a notification row for ourselves; a DB
+  // trigger fans the row out to send-push-notification (see migration
+  // 20260506120000). create-notification is the user-callable wrapper
+  // that lets a signed-in user target *themselves* (it 403s on any
+  // other user_id unless the caller is admin), so we don't need a
+  // service-role bearer here.
+  const sendTestPush = async () => {
+    if (!userId || sendingTest) return;
+    if (pushTokenCount === 0) {
+      toast.error("No devices registered. Open the app on your phone and grant push permission first.");
+      return;
+    }
+    setSendingTest(true);
+    try {
+      const { error } = await supabase.functions.invoke("create-notification", {
+        body: {
+          user_id: userId,
+          title: "Test from Helpr",
+          message: "If you got this, push is working. " + new Date().toLocaleTimeString(),
+          type: "info",
+        },
+      });
+      if (error) throw error;
+      toast.success("Test sent — check your device.");
+    } catch (err: unknown) {
+      hapticError();
+      const msg = err instanceof Error ? err.message : "Test failed.";
+      toast.error(msg);
+    } finally {
+      setSendingTest(false);
     }
   };
 
@@ -396,31 +442,99 @@ const NotificationPreferences = () => {
           </div>
         </div>
         {quietEnabled && (
-          <div className="mt-2 flex items-center gap-2 pl-[2.375rem]">
-            <label className="inline-flex items-center gap-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              <span className="font-serif italic">From</span>
-              <input
-                type="time"
-                value={prefs.quiet_start ?? "22:00"}
-                onChange={(e) => void patchPrefs({ quiet_start: e.target.value })}
-                disabled={!prefs.push_enabled || saving}
-                aria-label="Quiet hours start time"
-                className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
-              />
-            </label>
-            <label className="inline-flex items-center gap-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              <span className="font-serif italic">to</span>
-              <input
-                type="time"
-                value={prefs.quiet_end ?? "07:00"}
-                onChange={(e) => void patchPrefs({ quiet_end: e.target.value })}
-                disabled={!prefs.push_enabled || saving}
-                aria-label="Quiet hours end time"
-                className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
-              />
-            </label>
+          <div className="mt-2 flex items-start gap-3 pl-[2.375rem]">
+            <div className="flex-1 flex items-center gap-2 flex-wrap">
+              <label className="inline-flex items-center gap-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                <span className="font-serif italic">From</span>
+                <input
+                  type="time"
+                  value={prefs.quiet_start ?? "22:00"}
+                  onChange={(e) => void patchPrefs({ quiet_start: e.target.value })}
+                  disabled={!prefs.push_enabled || saving}
+                  aria-label="Quiet hours start time"
+                  className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </label>
+              <label className="inline-flex items-center gap-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                <span className="font-serif italic">to</span>
+                <input
+                  type="time"
+                  value={prefs.quiet_end ?? "07:00"}
+                  onChange={(e) => void patchPrefs({ quiet_end: e.target.value })}
+                  disabled={!prefs.push_enabled || saving}
+                  aria-label="Quiet hours end time"
+                  className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </label>
+            </div>
+            {/* Visual donut — translates the start/end times into a 24hr
+                arc so it's immediately clear *which* hours are muted.
+                Pure visual, no interaction. */}
+            <QuietHoursClock
+              start={prefs.quiet_start ?? "22:00"}
+              end={prefs.quiet_end ?? "07:00"}
+              size={48}
+            />
           </div>
         )}
+      </div>
+
+      {/* Test-push button — proves the whole pipeline (preference → token
+          → APNs/FCM → device) end-to-end. Disabled with explanatory copy
+          when no devices are registered (i.e. the user hasn't opened the
+          mobile app and granted push permission yet). */}
+      <div
+        className="flex items-center justify-between px-4 py-2.5 shrink-0"
+        style={{
+          borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
+        }}
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span
+            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.10)",
+              color: "hsl(var(--burnt-sienna))",
+            }}
+          >
+            <Send className="w-3.5 h-3.5" />
+          </span>
+          <div className="min-w-0">
+            <Label
+              className="font-sans font-semibold block truncate"
+              style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+            >
+              Send a test
+            </Label>
+            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              {pushTokenCount === 0
+                ? "No devices registered yet — open the app on your phone first."
+                : `Push to ${pushTokenCount} registered device${pushTokenCount === 1 ? "" : "s"}.`}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={sendTestPush}
+          disabled={!loaded || sendingTest || pushTokenCount === 0 || !prefs.push_enabled}
+          className="shrink-0 ml-2 inline-flex items-center gap-1 rounded-ds-sm px-3 py-1.5 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            background: "hsl(var(--bark))",
+            color: "hsl(var(--parchment))",
+            border: "1px solid hsl(var(--bark))",
+          }}
+          aria-label="Send test push notification"
+        >
+          {sendingTest ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending
+            </>
+          ) : (
+            <>
+              <Send className="w-3.5 h-3.5" /> Test
+            </>
+          )}
+        </button>
       </div>
 
       {rows.map((item, idx) => (

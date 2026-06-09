@@ -15,6 +15,7 @@ import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
+import { ProfileStatsTrend } from "@/components/profile/ProfileStatsTrend";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -26,6 +27,12 @@ interface MenuItem {
   href?: string;
   /** Render a small "Action needed" red dot when true. */
   needsAction?: boolean;
+  /** Short, warm completeness nudge (e.g. "Add a photo"). Optional —
+      when set, renders as a small amber pill under the label so the
+      user knows *what* to fix before opening the row. Distinct from
+      `needsAction`: that's reserved for the louder destructive
+      payout-not-enabled state. */
+  incompleteLabel?: string;
 }
 
 interface ReviewPreview {
@@ -165,6 +172,23 @@ export function ProfileLanding({
   });
   const completionPct = completion.pct;
 
+  // Completeness gaps surfaced per-row so the user knows *what's*
+  // missing without having to open each tab. Derived from existing
+  // profile state, no new column required. Each gap maps to the row
+  // its action lives under so the user goes straight to the right
+  // place. Phone verification uses the `phone_verified_at` column when
+  // the prod schema supplies it; falls back to "has phone" otherwise.
+  const phoneVerified = !!(profile as unknown as { phone_verified_at?: string | null })
+    ?.phone_verified_at || !!profile?.phone?.trim();
+  const credentialsIncomplete =
+    profile?.license_status !== "verified" &&
+    profile?.insurance_status !== "verified";
+  const payoutIncomplete =
+    stripeConnectStatus === null
+      ? false
+      : !stripeConnectStatus.payouts_enabled;
+  const bioMissing = (profile?.bio?.trim().length ?? 0) < 20;
+
   // Primary navigation — the day-to-day surfaces every helpr / poster
   // actually touches. Everything else (saved helprs, referrals,
   // legal, warnings, support) lives under the collapsible "More" row
@@ -173,21 +197,47 @@ export function ProfileLanding({
     {
       title: "Account",
       items: [
-        { key: "credentials", label: "Licensed & Insured", icon: <ShieldCheck className="w-5 h-5" />, desc: "Add your license and insurance" },
+        {
+          key: "credentials",
+          label: "Licensed & Insured",
+          icon: <ShieldCheck className="w-5 h-5" />,
+          desc: "Add your license and insurance",
+          incompleteLabel: credentialsIncomplete ? "Verify credentials" : undefined,
+        },
         { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & weekly hours" },
         { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
-        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
+        {
+          key: "security",
+          label: "Account Security",
+          icon: <Shield className="w-5 h-5" />,
+          desc: "Email, password & login",
+          incompleteLabel: !phoneVerified ? "Verify phone" : undefined,
+        },
       ],
     },
     {
       title: "Money",
       items: [
-        { key: "payment", label: "Payout & Payments", icon: <CreditCard className="w-5 h-5" />, desc: "Bank account & payment methods", needsAction: stripeNeedsAction },
+        {
+          key: "payment",
+          label: "Payout & Payments",
+          icon: <CreditCard className="w-5 h-5" />,
+          desc: "Bank account & payment methods",
+          needsAction: stripeNeedsAction,
+          incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
+        },
         { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports" },
         { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc },
       ],
     },
   ];
+
+  // "Profile" row in the header (Edit) doesn't get a pill — its own
+  // edit affordance is right there. But the bio nudge sits under the
+  // hero anyway, so we surface "Add a photo" / "Add bio" on the
+  // landing's existing inline prompts (the avatar Camera dot and the
+  // "+ Add a short bio" CTA already cover those).
+  void bioMissing;
 
   // Overflow items — quieter surfaces that don't earn a permanent row.
   // Warnings auto-bumps to the top of the overflow when there's
@@ -465,6 +515,15 @@ export function ProfileLanding({
             </div>
           )}
         </div>
+
+        {/* Activity-trend disclosure — small area chart, collapsed by
+            default so we don't push the rest of the page down. Self-
+            fetches its data when opened so the parent stays slim. The
+            chart queries jobs.helper_id which maps to auth.user_id —
+            *not* the profiles.id PK, so we pass user_id. */}
+        {profile?.user_id && (
+          <ProfileStatsTrend helperId={profile.user_id} />
+        )}
 
         {/* Bio excerpt — surfaces the user's pitch on the landing page,
             since this is what applicants see when deciding whether to apply.
@@ -817,11 +876,30 @@ export function ProfileLanding({
                           </div>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-ds-13 font-semibold text-foreground leading-tight">
-                            {item.label}
+                          <p className="text-ds-13 font-semibold text-foreground leading-tight flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span>{item.label}</span>
                             {item.needsAction && (
-                              <span className="ml-2 text-ds-10 font-bold uppercase tracking-wider text-destructive">
+                              <span className="text-ds-10 font-bold uppercase tracking-wider text-destructive">
                                 Action needed
+                              </span>
+                            )}
+                            {/* Soft amber completeness pill — distinct from the
+                                louder "Action needed" red text so a payout
+                                blocker still stands out next to a friendly
+                                "Add a photo" nudge. Uses burnt-sienna at low
+                                opacity so it reads as warm-warning, not
+                                destructive. */}
+                            {!item.needsAction && item.incompleteLabel && (
+                              <span
+                                className="inline-flex items-center gap-1 text-ds-10 font-bold rounded-full px-1.5 py-0.5"
+                                style={{
+                                  background: "hsl(var(--burnt-sienna) / 0.12)",
+                                  color: "hsl(var(--burnt-sienna))",
+                                  letterSpacing: "0.04em",
+                                }}
+                              >
+                                <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
+                                {item.incompleteLabel}
                               </span>
                             )}
                           </p>

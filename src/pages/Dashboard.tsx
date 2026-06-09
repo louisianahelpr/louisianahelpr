@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense, type SetStateAction } from "react";
 
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -12,6 +12,7 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Clock, XCircle, Star, X, Search } from "lucide-react";
 import { toast } from "sonner";
+import { errorToast } from "@/lib/toast";
 import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
@@ -27,6 +28,7 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 // and only the dialogs the user actually opens get fetched, keeping the
 // Dashboard route chunk small.
 const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
+const JobQuickActionSheet = lazy(() => import("@/components/dashboard/JobQuickActionSheet").then(m => ({ default: m.JobQuickActionSheet })));
 const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
@@ -121,6 +123,17 @@ const Dashboard = () => {
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
+  // Quick-action sheet — opened by a long-press on a JobCard. Lets the
+  // helpr save / hide / share / report without committing to opening
+  // the full detail dialog. Null = sheet closed.
+  const [quickActionJobId, setQuickActionJobId] = useState<string | null>(null);
+  // Scroll-position snapshot — captured the moment a detail dialog opens,
+  // then restored to the same scrollTop on close. Without it the dashboard
+  // feed silently snaps back to the top when the user dismisses the dialog,
+  // which feels broken on a long-scroll session. The container is the
+  // PullToRefreshWrapper's div (PageScaffold panel scroll surface) so the
+  // restore lands on the same surface the user was scrolling.
+  const detailScrollSnapshotRef = useRef<number | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   // List vs Map view. The map shows the same open jobs as the list,
   // pinned to neighborhood-rounded coords (privacy via the
@@ -299,7 +312,13 @@ const Dashboard = () => {
         queryClient.setQueryData(queryKeys.dashboard.savedJobs(vars.userId), context.previousSavedJobs);
         setSavedJobIds(context.previousLocal);
       }
-      toast.error("Couldn't save that job right now — give it another try?");
+      // Inline Retry action — the optimistic state is already rolled back,
+      // so the heart shows un-saved. Tapping Retry re-runs the same toggle
+      // with the same target state the user wanted.
+      errorToast("Couldn't save that job right now", {
+        description: "Tap retry to try again.",
+        onRetry: () => saveJobMutation.mutate(vars),
+      });
     },
     // No onSuccess refetch: optimistic state is correct; a refetch would
     // briefly toggle the heart back and forth as the cache reconciles.
@@ -390,7 +409,7 @@ const Dashboard = () => {
       });
       return { previousContext, userId: helperId };
     },
-    onError: (err, _vars, context) => {
+    onError: (err, vars, context) => {
       hapticError();
       // Roll the appliedJobIds set back so the card re-appears in the feed.
       if (context) {
@@ -400,12 +419,21 @@ const Dashboard = () => {
       if (code === "23505") {
         toast.error("You've already applied.");
       } else if (code === "UPLOAD_FAILED") {
-        toast.error(err.message);
+        // Upload errors are usually a flaky-network attachment — Retry is
+        // genuinely useful here. The mutation already rolled back the
+        // appliedJobIds set, so the apply is in a clean state to re-run.
+        errorToast(err.message, {
+          onRetry: () => applyMutation.mutate(vars),
+        });
       } else if (code === "RATE_LIMITED") {
         // Use the warm, window-specific message from applyRateLimit.
+        // No retry — by definition the user has to wait the window out.
         toast.error(err.message);
       } else {
-        toast.error("Couldn't send your application through — try once more?");
+        errorToast("Couldn't send your application through", {
+          description: "Tap retry to try again.",
+          onRetry: () => applyMutation.mutate(vars),
+        });
       }
     },
     onSuccess: async (_data, vars) => {
@@ -467,6 +495,40 @@ const Dashboard = () => {
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);
   }, []);
+
+  const handleLongPressCard = useCallback((jobId: string) => {
+    setQuickActionJobId(jobId);
+  }, []);
+
+  // Open a job detail dialog while snapshotting the feed's scroll position
+  // so it can be restored when the dialog closes (see closeDetailJob).
+  // Accepts a setter-style arg matching React.Dispatch so the
+  // BrowseTasksFeed prop signature (Dispatch<SetStateAction<...>>) keeps
+  // its existing call sites untouched.
+  const openDetailJob = useCallback((value: SetStateAction<EnrichedJob | null>) => {
+    const el = containerRef.current;
+    if (el) detailScrollSnapshotRef.current = el.scrollTop;
+    setDetailJob(value);
+  }, [containerRef]);
+
+  // Close the detail dialog and restore the feed scroll position captured
+  // at open time. We restore after a microtask to outlast any layout-shift
+  // the closing dialog might cause, and clear the snapshot so a future
+  // open captures a fresh value.
+  const closeDetailJob = useCallback(() => {
+    setDetailJob(null);
+    const snapshot = detailScrollSnapshotRef.current;
+    detailScrollSnapshotRef.current = null;
+    if (snapshot == null) return;
+    // Two rAFs: first lets React commit the dialog-close, second runs
+    // after the browser paints so the restored scrollTop sticks.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = containerRef.current;
+        if (el) el.scrollTop = snapshot;
+      });
+    });
+  }, [containerRef]);
 
   const handleDismissConfirm = useCallback(() => {
     if (!confirmDismissJobId) return;
@@ -771,6 +833,13 @@ const Dashboard = () => {
               helperAvailability={helperAvailability}
               view={view}
               setView={setView}
+              onClearAllFilters={() => {
+                // After clearing filters, snap the feed back to the top
+                // so the user lands on the fresh unfiltered head of the
+                // list rather than mid-scroll where the old filter ended.
+                const el = containerRef.current;
+                if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+              }}
             />
 
             {/* Browse-tasks feed is the main scroll surface of the
@@ -799,12 +868,13 @@ const Dashboard = () => {
               handleApplyRequest={handleApplyRequest}
               handleDismissRequest={handleDismissRequest}
               handleToggleSave={handleToggleSave}
+              handleLongPressCard={handleLongPressCard}
               confirmDismissJobId={confirmDismissJobId}
               expandedCardId={expandedCardId}
               setExpandedCardId={setExpandedCardId}
               savedJobIds={savedJobIds}
               setReportJobId={setReportJobId}
-              setDetailJob={setDetailJob}
+              setDetailJob={openDetailJob}
               containerRef={containerRef}
               pullDistance={pullDistance}
               refreshing={refreshing}
@@ -829,10 +899,10 @@ const Dashboard = () => {
             onToggleSave={handleToggleSave}
             userLat={filters.userLoc?.status === "ready" ? filters.userLoc.lat : null}
             userLng={filters.userLoc?.status === "ready" ? filters.userLoc.lng : null}
-            onClose={() => setDetailJob(null)}
+            onClose={closeDetailJob}
             onApply={handleApplyRequest}
             onReport={setReportJobId}
-            onSelect={setDetailJob}
+            onSelect={openDetailJob}
           />
         </Suspense>
       )}
@@ -842,6 +912,25 @@ const Dashboard = () => {
           <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />
         </Suspense>
       )}
+
+      {/* Long-press quick-action sheet. Lazy-loaded so the small extra
+          bundle only ships once a helpr actually long-presses a card. */}
+      {quickActionJobId && (() => {
+        const qaJob = allJobs.find((j) => j.id === quickActionJobId);
+        if (!qaJob) return null;
+        return (
+          <Suspense fallback={null}>
+            <JobQuickActionSheet
+              job={{ id: qaJob.id, title: qaJob.title, budget: qaJob.budget, category: qaJob.category }}
+              isSaved={savedJobIds.has(qaJob.id)}
+              onClose={() => setQuickActionJobId(null)}
+              onToggleSave={handleToggleSave}
+              onHide={handleDismissRequest}
+              onReport={setReportJobId}
+            />
+          </Suspense>
+        );
+      })()}
 
       <Suspense fallback={null}>
         <OnboardingTour profileCreatedAt={profile?.created_at} />

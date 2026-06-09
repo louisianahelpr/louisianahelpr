@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColor } from "@/lib/statusColors";
 import { FirstMessageChips } from "./FirstMessageChips";
+import { MuteSheet } from "./MuteSheet";
+import { snoozeRemainingLabel } from "@/lib/threadMutes";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import type { Conversation, Message } from "./types";
 import type { JobSystemEvent } from "@/lib/jobSystemEvents";
@@ -107,6 +109,11 @@ interface ChatViewProps {
    *  silences push only — the conversation stays visible and the unread
    *  badge still increments (matches iMessage's "Hide Alerts"). */
   onToggleMute: (convo: Conversation) => void;
+  /** Set a snooze for the open thread until a caller-supplied future
+   *  time. `null` mutes forever. Used by the MuteSheet picker. */
+  onSnoozeMute: (convo: Conversation, until: Date | null) => void;
+  /** Explicit unmute — clears any forever or snoozed mute. */
+  onUnmute: (convo: Conversation) => void;
   /** System-event entries derived from the active job's transition
    *  timestamps — rendered as styled centered <div>s interleaved with
    *  the messages so both participants see status changes in the same
@@ -148,11 +155,15 @@ export function ChatView({
   setBlockTarget,
   setDeleteMessageConfirm,
   onToggleMute,
+  onSnoozeMute,
+  onUnmute,
   jobSystemEvents,
 }: ChatViewProps) {
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Open the snooze picker for the active thread.
+  const [muteSheetOpen, setMuteSheetOpen] = useState(false);
   // Single-photo lightbox for tapped chat images — keeps the photo inside
   // the app's frosted viewer instead of punting to a system browser tab
   // (window.open in a Capacitor WebView leaves the app).
@@ -167,6 +178,45 @@ export function ChatView({
   // Stable ref to the scroll container for the jump handler and the
   // scroll-position observer.
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // First unread inbound message — captured ONCE when the conversation
+  // opens, BEFORE the openConvo flow optimistically marks rows read.
+  // The conversation row's `unread` count tells us how many trailing
+  // inbound messages were unread; the first of those is the jump target.
+  // Used by the "Jump to new messages" chip when the user is scrolled
+  // above the first unread.
+  const initialFirstUnreadIdRef = useRef<string | null>(null);
+  const initialUnreadCountRef = useRef(0);
+  // Snapshot whenever the open conversation changes — the unread count
+  // on `activeConvo` is the pre-open count from the inbox refresh.
+  useEffect(() => {
+    initialFirstUnreadIdRef.current = null;
+    initialUnreadCountRef.current = activeConvo.unread ?? 0;
+  }, [activeConvo.jobId, activeConvo.otherUserId, activeConvo.unread]);
+  // Resolve the first-unread id once messages for this thread arrive. We
+  // look at the LAST N inbound (where N == unread count) and take the
+  // earliest as the jump target — these are the unread messages the user
+  // hasn't seen yet. Subsequent renders skip the lookup until the
+  // conversation changes again.
+  if (
+    initialFirstUnreadIdRef.current === null &&
+    initialUnreadCountRef.current > 0 &&
+    messages.length > 0 &&
+    userId
+  ) {
+    const inboundFromMe = messages.filter((m) => m.receiver_id === userId);
+    const unreadCount = Math.min(
+      initialUnreadCountRef.current,
+      inboundFromMe.length,
+    );
+    if (unreadCount > 0) {
+      const target = inboundFromMe[inboundFromMe.length - unreadCount];
+      initialFirstUnreadIdRef.current = target.id;
+    }
+  }
+  // Tracks whether the first-unread message is currently scrolled off
+  // screen (above the viewport). Drives the "Jump to new messages" chip.
+  const [firstUnreadOffscreen, setFirstUnreadOffscreen] = useState(false);
 
   // Poster-first rule: an applicant cannot open a job conversation — only
   // the poster may send the first message (stops posters being flooded by
@@ -204,21 +254,44 @@ export function ChatView({
   // Track scroll position to show/hide the jump-to-newest button.
   // 120px from the bottom is the threshold — any further up and the
   // button appears so the user can get back without scrolling manually.
+  // Also tracks whether the first-unread anchor (if any) is above the
+  // current viewport, which drives the "Jump to new messages" chip.
   useEffect(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
     const onScroll = () => {
       const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
       setShowJumpToBottom(distFromBottom > 120);
+      const firstUnreadId = initialFirstUnreadIdRef.current;
+      if (firstUnreadId) {
+        const node = el.querySelector<HTMLDivElement>(
+          `[data-msg-id="${firstUnreadId}"]`,
+        );
+        if (node) {
+          const containerRect = el.getBoundingClientRect();
+          const nodeRect = node.getBoundingClientRect();
+          // "Above the viewport" = its bottom is above the container's top.
+          setFirstUnreadOffscreen(nodeRect.bottom < containerRect.top);
+        } else {
+          setFirstUnreadOffscreen(false);
+        }
+      } else {
+        setFirstUnreadOffscreen(false);
+      }
     };
     el.addEventListener("scroll", onScroll, { passive: true });
+    // Initial pass once mounted so the chip can appear without requiring
+    // a scroll event first (e.g. when the conversation opens scrolled at
+    // the top by an external anchor).
+    onScroll();
     return () => el.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [messages.length]);
 
   // Reset the jump button whenever the conversation changes so a stale
   // "scrolled up" state from a previous thread doesn't bleed through.
   useEffect(() => {
     setShowJumpToBottom(false);
+    setFirstUnreadOffscreen(false);
   }, [activeConvo.jobId, activeConvo.otherUserId]);
 
   // Merge messages and system events into a single chronological
@@ -231,7 +304,31 @@ export function ChatView({
   // is paginated) are surfaced — keeps the chronological invariant.
   type TimelineItem =
     | { type: "message"; key: string; at: string; message: Message }
-    | { type: "system"; key: string; at: string; event: JobSystemEvent };
+    | { type: "system"; key: string; at: string; event: JobSystemEvent }
+    | { type: "date"; key: string; at: string; label: string };
+
+  // Format the divider label for a given message timestamp. "Today",
+  // "Yesterday", or the locale's short date — read at a glance without
+  // the full year noise for current-week messages.
+  const dateDividerLabel = (d: Date): string => {
+    const now = new Date();
+    const startOf = (x: Date) =>
+      new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const today = startOf(now);
+    const that = startOf(d);
+    const diffDays = Math.round((today - that) / 86_400_000);
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7)
+      return d.toLocaleDateString([], { weekday: "long" });
+    if (d.getFullYear() === now.getFullYear())
+      return d.toLocaleDateString([], { month: "long", day: "numeric" });
+    return d.toLocaleDateString([], {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
   const timeline: TimelineItem[] = (() => {
     const items: TimelineItem[] = messages.map((m) => ({
@@ -263,7 +360,27 @@ export function ChatView({
       }
     }
     items.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-    return items;
+
+    // Insert date dividers between items that cross a day boundary so the
+    // thread reads as a dated transcript ("Today" / "Yesterday" / a
+    // formatted date) rather than an undifferentiated wall of bubbles.
+    const dated: TimelineItem[] = [];
+    let prevDayKey: string | null = null;
+    for (const item of items) {
+      const d = new Date(item.at);
+      const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (dayKey !== prevDayKey) {
+        dated.push({
+          type: "date",
+          key: `date-${dayKey}`,
+          at: item.at,
+          label: dateDividerLabel(d),
+        });
+        prevDayKey = dayKey;
+      }
+      dated.push(item);
+    }
+    return dated;
   })();
 
   return (
@@ -337,15 +454,20 @@ export function ChatView({
                 <span className="truncate">{activeConvo.otherUserName}</span>
                 <OnlineIndicator isOnline={isOtherOnline} />
                 {/* Muted bell — quiet visual mark that notifications are
-                    silenced for this thread. Same convention used in the
-                    inbox row so the state reads consistently. */}
-                {activeConvo.isMuted && (
-                  <BellOff
-                    className="w-3 h-3 shrink-0"
-                    style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-                    aria-label="Muted"
-                  />
-                )}
+                    silenced for this thread. The aria-label upgrades to
+                    include the snooze TTL when the mute is time-bound
+                    ("Muted for 8h") so screen readers don't just say
+                    "muted" for a one-hour snooze. */}
+                {activeConvo.isMuted && (() => {
+                  const remaining = snoozeRemainingLabel(activeConvo.muteUntil ?? null);
+                  return (
+                    <BellOff
+                      className="w-3 h-3 shrink-0"
+                      style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                      aria-label={remaining ?? "Muted"}
+                    />
+                  );
+                })()}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <p className="text-ds-11 truncate leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
@@ -391,19 +513,18 @@ export function ChatView({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {/* Mute / unmute — top item so the most-frequent action
-                    is one tap. Per-user; silences push only. Matches the
-                    iMessage "Hide Alerts" / "Show Alerts" pattern. */}
-                <DropdownMenuItem onClick={() => onToggleMute(activeConvo)}>
-                  {activeConvo.isMuted ? (
-                    <>
-                      <Bell className="w-4 h-4 mr-2" /> Unmute notifications
-                    </>
-                  ) : (
-                    <>
-                      <BellOff className="w-4 h-4 mr-2" /> Mute notifications
-                    </>
-                  )}
-                </DropdownMenuItem>
+                    is one tap. When unmuted, opens the snooze picker
+                    ("1h / 8h / until tomorrow 8 AM / forever"). When
+                    already muted, this collapses to a fast unmute. */}
+                {activeConvo.isMuted ? (
+                  <DropdownMenuItem onClick={() => onToggleMute(activeConvo)}>
+                    <Bell className="w-4 h-4 mr-2" /> Unmute notifications
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => setMuteSheetOpen(true)}>
+                    <BellOff className="w-4 h-4 mr-2" /> Mute notifications…
+                  </DropdownMenuItem>
+                )}
                 <div role="separator" className="my-1 h-px bg-border" />
                 <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}>
                   <Flag className="w-4 h-4 mr-2" /> Report user
@@ -515,6 +636,42 @@ export function ChatView({
               </div>
             )}
             {timeline.map((item) => {
+              if (item.type === "date") {
+                // Section divider — quietly anchors the thread to the
+                // calendar so scrolling back through long history reads
+                // as a dated transcript, not an undifferentiated wall of
+                // bubbles. Hairline rules on either side, italic serif
+                // label centered between them.
+                return (
+                  <div
+                    key={item.key}
+                    role="separator"
+                    aria-label={`Date: ${item.label}`}
+                    className="flex items-center gap-3 px-2 pt-3 pb-1"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex-1 h-px"
+                      style={{ background: "hsl(var(--olivewood) / 0.15)" }}
+                    />
+                    <span
+                      className="font-serif italic uppercase tracking-wider whitespace-nowrap"
+                      style={{
+                        fontSize: "0.62rem",
+                        letterSpacing: "0.16em",
+                        color: "hsl(var(--olivewood) / 0.65)",
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="flex-1 h-px"
+                      style={{ background: "hsl(var(--olivewood) / 0.15)" }}
+                    />
+                  </div>
+                );
+              }
               if (item.type === "system") {
                 // System messages — styled centered <div>, NOT a real
                 // message row. Reads as "the app speaking" rather than
@@ -558,7 +715,11 @@ export function ChatView({
               const isSending = m.sendStatus === "sending";
               const isFailed = m.sendStatus === "failed";
               return (
-                <div key={item.key} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                <div
+                  key={item.key}
+                  data-msg-id={m.id}
+                  className={`flex flex-col ${mine ? "items-end" : "items-start"}`}
+                >
                   <div
                     className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 transition-opacity ${
                       mine ? "rounded-br-md" : "rounded-bl-md"
@@ -658,11 +819,14 @@ export function ChatView({
           </div>
           </PullToRefreshWrapper>
 
-          {/* Jump-to-newest button — appears when the user is scrolled
-              more than 120px from the bottom. Tapping it smoothly
-              scrolls the thread back to the latest message so they
-              don't miss new arrivals. Hidden on empty threads. */}
-          {showJumpToBottom && messages.length > 0 && (
+          {/* Jump-to-new-messages / jump-to-newest button.
+              When the user is scrolled above the first unread inbound
+              message, the chip targets that message and counts the
+              unread tail ("3 new messages"). Otherwise — once they've
+              scrolled past the unread anchor — it falls back to the
+              "newest message" jump so they can get back to the bottom
+              without scrolling manually. Hidden on empty threads. */}
+          {(firstUnreadOffscreen || showJumpToBottom) && messages.length > 0 && (
             <div className="flex justify-center -mt-1 mb-1 pointer-events-none">
               <button
                 type="button"
@@ -674,16 +838,34 @@ export function ChatView({
                     "0 2px 8px hsl(var(--bark) / 0.28), " +
                     "inset 0 1px 0 0 rgba(255,255,255,0.12)",
                 }}
-                aria-label="Jump to newest message"
+                aria-label={
+                  firstUnreadOffscreen
+                    ? `Jump to ${initialUnreadCountRef.current} new message${initialUnreadCountRef.current === 1 ? "" : "s"}`
+                    : "Jump to newest message"
+                }
                 onClick={() => {
-                  scrollContainerRef.current?.scrollTo({
-                    top: scrollContainerRef.current.scrollHeight,
-                    behavior: "smooth",
-                  });
+                  const el = scrollContainerRef.current;
+                  if (!el) return;
+                  const firstUnreadId = initialFirstUnreadIdRef.current;
+                  if (firstUnreadOffscreen && firstUnreadId) {
+                    const node = el.querySelector<HTMLDivElement>(
+                      `[data-msg-id="${firstUnreadId}"]`,
+                    );
+                    if (node) {
+                      node.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                      });
+                      return;
+                    }
+                  }
+                  el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
                 }}
               >
                 <ChevronsDown className="w-3 h-3" />
-                New messages
+                {firstUnreadOffscreen
+                  ? `${initialUnreadCountRef.current} new message${initialUnreadCountRef.current === 1 ? "" : "s"}`
+                  : "New messages"}
               </button>
             </div>
           )}
@@ -777,6 +959,16 @@ export function ChatView({
           const next = typeof value === "function" ? value(lightboxPhoto ? 0 : null) : value;
           if (next === null) setLightboxPhoto(null);
         }}
+      />
+
+      {/* Snooze picker — opens from the header dropdown. Mounted at the
+          shell level so it overlays both the chat body and the composer. */}
+      <MuteSheet
+        open={muteSheetOpen}
+        onOpenChange={setMuteSheetOpen}
+        convo={muteSheetOpen ? activeConvo : null}
+        onSnoozeMute={onSnoozeMute}
+        onUnmute={onUnmute}
       />
     </AppShell>
   );

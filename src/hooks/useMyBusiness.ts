@@ -5,6 +5,15 @@ import { queryKeys } from "@/lib/queryKeys";
 
 export type SeatTier = "starter" | "crew" | "team" | "enterprise";
 
+/**
+ * Granular role beyond the legacy owner/member binary. Sourced from
+ * `business_members.extended_role` (migration 20260609170000). When the
+ * column is absent on prod (between merge and `supabase db push`), the
+ * hook collapses everyone to "poster" + the owner flag so the UI keeps
+ * working.
+ */
+export type ExtendedRole = "viewer" | "poster" | "approver" | "admin" | "owner";
+
 export interface BusinessMembership {
   business_id: string;
   business_name: string;
@@ -12,6 +21,15 @@ export interface BusinessMembership {
   is_owner: boolean;
   seat_tier: SeatTier;
   seat_limit: number;
+  extended_role: ExtendedRole;
+  /** Owner-set approval threshold; NULL = no approval required. */
+  require_approval_above: number | null;
+  /** Owner-set requirement that members enroll MFA before posting. */
+  require_2fa: boolean;
+  /** Stripe payment_method ID owned by the business (charged for jobs). */
+  default_payment_method_id: string | null;
+  monthly_budget: number | null;
+  monthly_budget_alert_at: number | null;
 }
 
 const SEAT_LIMITS: Record<SeatTier, number> = {
@@ -22,24 +40,59 @@ const SEAT_LIMITS: Record<SeatTier, number> = {
 };
 
 const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | null> => {
-  const { data, error } = await supabase
+  // Try the wide select first. Cast through `any` because the generated
+  // types haven't picked up the new columns from migration
+  // 20260609170000 yet — on prod they may not exist until the manual
+  // `supabase db push`.
+  const wide = await supabase
     .from("business_members")
-    .select("business_id, role, businesses!inner(id, name, owner_id, seat_tier)")
+    .select(
+      "business_id, role, extended_role, businesses!inner(id, name, owner_id, seat_tier, require_approval_above, require_2fa, default_payment_method_id, monthly_budget, monthly_budget_alert_at)" as any,
+    )
     .eq("user_id", userId)
     .eq("status", "active")
     .maybeSingle();
 
-  if (error || !data) return null;
+  const isMissingColumn = (err: unknown): boolean => {
+    const code = (err as { code?: string } | null)?.code;
+    return code === "42703" || code === "PGRST204" || code === "PGRST203";
+  };
 
-  const biz = data.businesses;
+  let row: any = wide.data;
+  if (wide.error) {
+    if (!isMissingColumn(wide.error)) return null;
+    // Fallback to the pre-migration shape (PGRST/Postgres rejected the
+    // wide select because one of the new columns doesn't exist yet).
+    const narrow = await supabase
+      .from("business_members")
+      .select("business_id, role, businesses!inner(id, name, owner_id, seat_tier)")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (narrow.error || !narrow.data) return null;
+    row = narrow.data;
+  }
+  if (!row) return null;
+
+  const biz = row.businesses;
   const tier = (biz.seat_tier ?? "starter") as SeatTier;
+  const isOwner = biz.owner_id === userId;
+  const extendedRole: ExtendedRole = row.extended_role
+    ? (row.extended_role as ExtendedRole)
+    : (isOwner ? "owner" : "poster");
   return {
-    business_id: data.business_id,
+    business_id: row.business_id,
     business_name: biz.name,
-    role: data.role as "owner" | "member",
-    is_owner: biz.owner_id === userId,
+    role: row.role as "owner" | "member",
+    is_owner: isOwner,
     seat_tier: tier,
     seat_limit: SEAT_LIMITS[tier] ?? 2,
+    extended_role: extendedRole,
+    require_approval_above: biz.require_approval_above ?? null,
+    require_2fa: !!biz.require_2fa,
+    default_payment_method_id: biz.default_payment_method_id ?? null,
+    monthly_budget: biz.monthly_budget ?? null,
+    monthly_budget_alert_at: biz.monthly_budget_alert_at ?? null,
   };
 };
 

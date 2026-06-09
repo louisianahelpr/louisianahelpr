@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,11 +10,56 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Monitor, Smartphone, Tablet, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+
+interface LoginHistoryRow {
+  id: string;
+  created_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+}
+
+interface SessionGroup {
+  fingerprint: string;
+  label: string;
+  icon: "phone" | "tablet" | "desktop";
+  lastSeenAt: string;
+  count: number;
+  ipAddress: string | null;
+}
+
+// Coarse device fingerprint from a User-Agent string. Two sessions on
+// the same physical device produce identical labels (e.g. "iPhone ·
+// Safari") so we group instead of listing N near-duplicate rows.
+function parseUserAgent(ua: string | null): { label: string; icon: SessionGroup["icon"] } {
+  if (!ua) return { label: "Unknown device", icon: "desktop" };
+  const lower = ua.toLowerCase();
+  let device = "Desktop";
+  let icon: SessionGroup["icon"] = "desktop";
+  if (lower.includes("iphone")) { device = "iPhone"; icon = "phone"; }
+  else if (lower.includes("ipad")) { device = "iPad"; icon = "tablet"; }
+  else if (lower.includes("android")) {
+    device = lower.includes("mobile") ? "Android phone" : "Android tablet";
+    icon = device.includes("tablet") ? "tablet" : "phone";
+  } else if (lower.includes("macintosh") || lower.includes("mac os")) device = "Mac";
+  else if (lower.includes("windows")) device = "Windows PC";
+  else if (lower.includes("linux")) device = "Linux PC";
+
+  // Browser hint — keeps two devices that share a chassis distinguishable.
+  let browser = "";
+  if (lower.includes("edg/")) browser = "Edge";
+  else if (lower.includes("chrome/") && !lower.includes("chromium")) browser = "Chrome";
+  else if (lower.includes("firefox")) browser = "Firefox";
+  else if (lower.includes("safari") && !lower.includes("chrome")) browser = "Safari";
+  else if (lower.includes("capacitor") || lower.includes("helpr")) browser = "Helpr app";
+
+  const label = browser ? `${device} · ${browser}` : device;
+  return { label, icon };
+}
 
 interface SecurityTabProps {
   email: string | undefined;
@@ -21,6 +67,72 @@ interface SecurityTabProps {
 }
 
 export function SecurityTab({ email, onBack }: SecurityTabProps) {
+  // Recent sessions, grouped by device fingerprint. login_history is
+  // append-only (one row per SIGNED_IN), so we collapse to the most
+  // recent N device fingerprints rather than show every login.
+  const { data: sessionGroups = [], isLoading: sessionsLoading } = useQuery<SessionGroup[]>({
+    queryKey: ["security", "sessions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("login_history")
+        .select("id, created_at, ip_address, user_agent")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) {
+        // Non-blocking: a failed fetch shows an empty list (handled
+        // below), not a red error state — sessions are informational
+        // and a transient read failure shouldn't shout.
+        return [];
+      }
+      const rows = (data as LoginHistoryRow[]) ?? [];
+      const groups = new Map<string, SessionGroup>();
+      rows.forEach((r) => {
+        const { label, icon } = parseUserAgent(r.user_agent);
+        const fingerprint = `${label}|${r.ip_address ?? ""}`;
+        const existing = groups.get(fingerprint);
+        if (existing) {
+          existing.count += 1;
+          // First row in (most recent first) already set lastSeenAt.
+        } else {
+          groups.set(fingerprint, {
+            fingerprint,
+            label,
+            icon,
+            lastSeenAt: r.created_at,
+            count: 1,
+            ipAddress: r.ip_address,
+          });
+        }
+      });
+      // Most recent first, cap at 5 — anything older is informational
+      // noise (sessions roll on every login).
+      return Array.from(groups.values())
+        .sort((a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime())
+        .slice(0, 5);
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+
+  const handleSignOutAllOther = async () => {
+    // Supabase doesn't expose a per-session revoke without an admin
+    // service-role bearer (the `auth.admin.signOut` API). The closest
+    // safe-to-ship action from the client is a global sign-out, which
+    // revokes every refresh token for the user (incl. this device).
+    // We surface it with explicit confirmation copy so the user isn't
+    // surprised when *this* tab signs out too.
+    const ok = window.confirm(
+      "Sign out every device, including this one? You'll need to sign back in here.",
+    );
+    if (!ok) return;
+    const { error } = await supabase.auth.signOut({ scope: "global" });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Signed out everywhere.");
+  };
+
   // Change-email uses an in-app branded dialog rather than the native
   // browser prompt() — prompt() is off-brand and unreliable inside the
   // Capacitor iOS WebView.
@@ -236,6 +348,121 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             {resettingPassword ? "Sending…" : "Reset"}
           </Button>
         </div>
+      </div>
+
+      {/* Active sessions — recent SIGNED_IN events grouped by coarse
+          device fingerprint (OS + browser, scoped by IP). Read-only:
+          the only safe-from-client revoke is a global sign-out, so the
+          action is gated behind explicit "this includes this device"
+          confirm copy rather than a misleading per-row "sign out this
+          device" button. */}
+      <div className="rounded-2xl liquid-glass p-5 space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Monitor className="w-4 h-4 text-primary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Devices
+            </p>
+            <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+              Active sessions
+            </h2>
+            <p className="text-ds-11 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              Recent sign-ins, grouped by device.
+            </p>
+          </div>
+        </div>
+
+        {sessionsLoading ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-12 rounded-ds-md bg-muted/40 animate-pulse" />
+            ))}
+          </div>
+        ) : sessionGroups.length === 0 ? (
+          <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            No recent sessions on record yet.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {sessionGroups.map((group, idx) => {
+              const IconCmp =
+                group.icon === "phone" ? Smartphone :
+                group.icon === "tablet" ? Tablet : Monitor;
+              const lastSeen = new Date(group.lastSeenAt);
+              const minsAgo = Math.floor((Date.now() - lastSeen.getTime()) / 60_000);
+              const when =
+                minsAgo < 2 ? "just now" :
+                minsAgo < 60 ? `${minsAgo}m ago` :
+                minsAgo < 60 * 24 ? `${Math.floor(minsAgo / 60)}h ago` :
+                minsAgo < 60 * 24 * 7 ? `${Math.floor(minsAgo / (60 * 24))}d ago` :
+                lastSeen.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+              return (
+                <div
+                  key={group.fingerprint}
+                  className="flex items-center gap-3 rounded-ds-md p-2.5"
+                  style={{
+                    background: "hsla(0, 0%, 100%, 0.55)",
+                    border: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                  }}
+                >
+                  <span
+                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                    style={{
+                      background: idx === 0 ? "hsl(var(--bark) / 0.12)" : "hsl(var(--ivory-sand))",
+                      color: "hsl(var(--bark))",
+                    }}
+                  >
+                    <IconCmp className="w-4 h-4" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="text-ds-13 font-semibold text-foreground leading-tight flex items-center gap-2 flex-wrap"
+                    >
+                      <span className="truncate">{group.label}</span>
+                      {idx === 0 && (
+                        <span
+                          className="text-ds-10 font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                          style={{
+                            background: "hsl(var(--bark) / 0.12)",
+                            color: "hsl(var(--bark))",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
+                          This device
+                        </span>
+                      )}
+                    </p>
+                    <p
+                      className="text-ds-11 font-serif italic mt-0.5"
+                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    >
+                      Last seen {when}
+                      {group.ipAddress && <span className="ml-1.5">· {group.ipAddress}</span>}
+                      {group.count > 1 && <span className="ml-1.5">· {group.count} sign-ins</span>}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {sessionGroups.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSignOutAllOther}
+            className="w-full"
+            style={{
+              borderColor: "hsl(var(--burnt-sienna) / 0.32)",
+              color: "hsl(var(--burnt-sienna))",
+            }}
+          >
+            <LogOut className="w-3.5 h-3.5 mr-1.5" /> Sign out everywhere
+          </Button>
+        )}
       </div>
 
       {/* Delete Account moved to the landing tab, directly under

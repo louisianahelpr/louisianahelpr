@@ -159,12 +159,15 @@ export function DetailsSection({
   // Voice dictation for the title field — taps the mic, speaks once,
   // we append the transcript to whatever was already typed. Hides when
   // the browser doesn't support the Speech API.
-  const dictation = useVoiceDictation();
-  const startTitleDictation = () => {
-    dictation.start((text) => {
-      setTitle(title ? `${title.trim()} ${text}`.trim() : text);
-    });
-  };
+  const titleRef = useRef(title);
+  titleRef.current = title;
+  const dictation = useVoiceDictation({
+    onFinal: (text) => {
+      const current = titleRef.current;
+      setTitle(current ? `${current.trim()} ${text}`.trim() : text);
+    },
+  });
+  const startTitleDictation = dictation.start;
 
   // Filter input for the category grid — speeds selection once the
   // category list outgrows what fits comfortably in a single screen
@@ -376,15 +379,15 @@ export function DetailsSection({
             <button
               type="button"
               onClick={
-                dictation.listening
+                dictation.isListening
                   ? dictation.stop
                   : startTitleDictation
               }
-              aria-label={dictation.listening ? "Stop dictation" : "Dictate task title"}
-              aria-pressed={dictation.listening}
+              aria-label={dictation.isListening ? "Stop dictation" : "Dictate task title"}
+              aria-pressed={dictation.isListening}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               style={
-                dictation.listening
+                dictation.isListening
                   ? {
                       background: "hsl(var(--burnt-sienna))",
                       color: "hsl(var(--parchment))",
@@ -398,7 +401,7 @@ export function DetailsSection({
               }
             >
               <Mic
-                className={`w-4 h-4 ${dictation.listening ? "animate-pulse" : ""}`}
+                className={`w-4 h-4 ${dictation.isListening ? "animate-pulse" : ""}`}
                 strokeWidth={2}
               />
             </button>

@@ -1,115 +1,161 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Web Speech API thin wrapper for one-shot dictation into a text field.
+ * useVoiceDictation — thin React wrapper over the browser SpeechRecognition
+ * API for the chat composer's mic button.
  *
- * - Returns `supported = false` when the browser/webview doesn't expose
- *   `SpeechRecognition` (most desktop Safari, older iOS WKWebView, etc.).
- *   Callers should hide the mic button in that case so the affordance
- *   never appears broken.
- * - Single-utterance mode (continuous = false, interimResults = true):
- *   the user taps the mic, speaks once, the result is appended to the
- *   target field, and recognition stops automatically.
- * - On iOS the host page must respond to user gesture before mic access
- *   — the `start()` call MUST happen inside a click/touch handler. We
- *   surface a callable `start(onText)` instead of an effect so callers
- *   keep the right call site.
+ * Degrades gracefully: `supported` is false on platforms without the API
+ * (older Android Chromiums, Firefox, some Capacitor WebViews), so the
+ * caller can hide the mic button entirely rather than rendering a
+ * disabled stub. On iOS Safari + Capacitor the prefixed
+ * `webkitSpeechRecognition` is used; both are typed as `any` below
+ * because TypeScript's lib.dom doesn't ship a stable shape for them yet.
  *
- * No analytics or persistence — this is a UI input helper.
+ * Result handling:
+ *  - `interimText` updates live while the user speaks (rendered as a
+ *    grayed-out preview in the input so they see what's being heard).
+ *  - On a `result.isFinal` event the hook calls `onFinal(transcript)`
+ *    with the recognized text — the composer appends that to the draft
+ *    rather than overwriting, so a user can dictate, type, dictate.
+ *  - On error or end, `isListening` flips back to false; callers don't
+ *    need to manually toggle.
  */
+export interface UseVoiceDictationOptions {
+  /** Called when the recognizer emits a final transcript chunk. */
+  onFinal: (text: string) => void;
+  /** Locale for the recognition session. Defaults to en-US. */
+  lang?: string;
+}
 
-// The Web Speech API types vary across browsers; we read what we need
-// defensively and type the global as `any` to avoid pulling in
-// browser-flavor-specific d.ts files.
-type SpeechRecognitionLike = {
-  lang: string;
+interface UseVoiceDictationResult {
+  /** True when the underlying API is available on this platform. */
+  supported: boolean;
+  /** True while a recognition session is actively listening. */
+  isListening: boolean;
+  /** Live partial transcript — surface in the composer placeholder. */
+  interimText: string;
+  /** Start a recognition session. No-op when unsupported / already listening. */
+  start: () => void;
+  /** Stop the active session — drops any in-flight interim transcript. */
+  stop: () => void;
+}
+
+// Narrow shape for the recognition instance — the DOM types ship as `any`
+// for these symbols, so we describe just the surface this hook uses.
+interface SpeechRecognitionLike {
   continuous: boolean;
   interimResults: boolean;
-  onresult: ((event: any) => void) | null;
-  onerror: ((event: any) => void) | null;
+  lang: string;
+  onresult: ((ev: any) => void) | null;
+  onerror: ((ev: any) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
-  abort: () => void;
-};
-
-declare global {
-  interface Window {
-    SpeechRecognition?: { new (): SpeechRecognitionLike };
-    webkitSpeechRecognition?: { new (): SpeechRecognitionLike };
-  }
 }
 
-export interface UseVoiceDictation {
-  /** True when the underlying API exists. */
-  supported: boolean;
-  /** True while recognition is active. */
-  listening: boolean;
-  /** Begin a single-utterance dictation. Calls `onText` with the final transcript. */
-  start: (onText: (text: string) => void) => void;
-  /** Stop the current session (idempotent). */
-  stop: () => void;
-}
-
-function getConstructor() {
+function resolveRecognitionCtor():
+  | (new () => SpeechRecognitionLike)
+  | null {
   if (typeof window === "undefined") return null;
-  return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-export function useVoiceDictation(): UseVoiceDictation {
+export function useVoiceDictation({
+  onFinal,
+  lang = "en-US",
+}: UseVoiceDictationOptions): UseVoiceDictationResult {
   const [supported, setSupported] = useState(false);
-  const [listening, setListening] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [interimText, setInterimText] = useState("");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  // Keep the latest callback in a ref so the recognizer's onresult
+  // handler (closed over once at session start) always sees the freshest
+  // `onFinal`, even if the parent rerendered with a new closure.
+  const onFinalRef = useRef(onFinal);
+  useEffect(() => {
+    onFinalRef.current = onFinal;
+  }, [onFinal]);
 
   useEffect(() => {
-    setSupported(getConstructor() !== null);
-    return () => {
-      // Best-effort tear-down so an unmount mid-utterance doesn't hold
-      // the mic open.
-      try { recognitionRef.current?.abort(); } catch { /* ignore */ }
-      recognitionRef.current = null;
-    };
+    setSupported(!!resolveRecognitionCtor());
   }, []);
 
-  const start = (onText: (text: string) => void) => {
-    const Ctor = getConstructor();
+  const stop = useCallback(() => {
+    const rec = recognitionRef.current;
+    if (rec) {
+      try {
+        rec.stop();
+      } catch {
+        /* Some engines throw if stop is called pre-start; safe to ignore. */
+      }
+    }
+    setInterimText("");
+    setIsListening(false);
+  }, []);
+
+  const start = useCallback(() => {
+    if (isListening) return;
+    const Ctor = resolveRecognitionCtor();
     if (!Ctor) return;
-    // Abort any previous session — calling start() on an active
-    // instance throws InvalidStateError in some browsers.
-    try { recognitionRef.current?.abort(); } catch { /* ignore */ }
-
-    const rec = new Ctor();
-    rec.lang = "en-US";
+    let rec: SpeechRecognitionLike;
+    try {
+      rec = new Ctor();
+    } catch {
+      return;
+    }
     rec.continuous = false;
-    rec.interimResults = false;
-
-    rec.onresult = (event: any) => {
-      const transcript = Array.from(event.results as ArrayLike<any>)
-        .map((r) => r[0]?.transcript ?? "")
-        .join(" ")
-        .trim();
-      if (transcript) onText(transcript);
+    rec.interimResults = true;
+    rec.lang = lang;
+    rec.onresult = (ev: any) => {
+      let interim = "";
+      let finalChunk = "";
+      const results = ev?.results ?? [];
+      for (let i = ev?.resultIndex ?? 0; i < results.length; i++) {
+        const r = results[i];
+        if (!r) continue;
+        const transcript = r[0]?.transcript ?? "";
+        if (r.isFinal) finalChunk += transcript;
+        else interim += transcript;
+      }
+      if (interim) setInterimText(interim.trim());
+      if (finalChunk.trim()) {
+        setInterimText("");
+        onFinalRef.current(finalChunk.trim());
+      }
     };
     rec.onerror = () => {
-      setListening(false);
+      setInterimText("");
+      setIsListening(false);
     };
     rec.onend = () => {
-      setListening(false);
+      setInterimText("");
+      setIsListening(false);
     };
-
     recognitionRef.current = rec;
     try {
       rec.start();
-      setListening(true);
+      setIsListening(true);
     } catch {
-      setListening(false);
+      // Some engines throw if start is called twice in quick succession.
+      setIsListening(false);
     }
-  };
+  }, [isListening, lang]);
 
-  const stop = () => {
-    try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-    setListening(false);
-  };
+  // Always stop on unmount so a dangling recognizer doesn't keep the
+  // mic hot after the composer is gone.
+  useEffect(() => {
+    return () => {
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, []);
 
-  return { supported, listening, start, stop };
+  return { supported, isListening, interimText, start, stop };
 }

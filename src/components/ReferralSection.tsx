@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useReferralData } from "@/hooks/useReferralData";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { queryKeys } from "@/lib/queryKeys";
+import { ReferralExtras } from "@/components/profile/ReferralExtras";
 
 /**
  * Single-screen referral dashboard. Backed by React Query (60s staleTime)
@@ -228,6 +229,15 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           </Button>
         </div>
       )}
+
+      {/* QR + tier ladder — scan-in-person flow and a tactile sense of
+          "next milestone, how far to go". Self-contained so we don't
+          churn the parent on credit refreshes. */}
+      <ReferralExtras
+        referralCode={referralCode}
+        referralCount={referralCount}
+        totalEarned={totalCredits}
+      />
 
       {/* How it works */}
       <div className="rounded-2xl liquid-glass p-5">

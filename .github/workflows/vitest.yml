@@ -35,13 +35,11 @@ on:
       - "fastlane/metadata/**"
       - ".github/dependabot.yml"
       - "LICENSE"
+  # No paths-ignore on pull_request: `Vitest unit tests` is a required
+  # branch-protection check, so skipping it on docs-only PRs would leave
+  # the check "Expected" forever and deadlock auto-merge.
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "fastlane/metadata/**"
-      - "LICENSE"
   workflow_dispatch:
 
 # Cancel superseded runs on the same ref so a fast follow-up commit

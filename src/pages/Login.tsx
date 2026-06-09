@@ -8,8 +8,7 @@ import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, Mail, Lock, Check } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
+import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
 import HelprMark from "@/components/HelprMark";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -229,10 +228,7 @@ const Login = () => {
           <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         </div>
 
-        <div className="space-y-2">
-          <AppleSignInButton label="Sign in with Apple" />
-          <GoogleSignInButton label="Sign in with Google" />
-        </div>
+        <SocialAuthButtons mode="signin" />
 
         <div className="space-y-1.5 pt-1">
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>

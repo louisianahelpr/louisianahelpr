@@ -1,21 +1,19 @@
+// GoogleSignInButton — thin compatibility shim around signInWithProvider.
+// See AppleSignInButton.tsx and SocialAuthButtons.tsx for the shared
+// shape. New code should prefer <SocialAuthButtons mode="signin" />.
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
-import { Capacitor } from "@capacitor/core";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { nativeGoogleSignIn } from "@/lib/socialLogin";
+import { hapticError } from "@/lib/haptics";
+import { signInWithProvider } from "@/lib/socialAuth";
 
 interface GoogleSignInButtonProps {
   label?: string;
   redirectTo?: string;
 }
 
-// Google sign-in. On native iOS uses Google's iOS SDK via
-// @capgo/capacitor-social-login + signInWithIdToken (no browser
-// round-trip — Google blocks generic webview OAuth so the in-app
-// webview can't run the web flow on iOS). On web uses Supabase OAuth.
 export const GoogleSignInButton = ({
   label = "Continue with Google",
   redirectTo,
@@ -25,37 +23,27 @@ export const GoogleSignInButton = ({
 
   const handleClick = async () => {
     setLoading(true);
-
-    if (Capacitor.isNativePlatform()) {
-      try {
-        await nativeGoogleSignIn();
-        navigate(redirectTo ? new URL(redirectTo, window.location.origin).pathname : "/dashboard");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Google sign-in failed.");
-        setLoading(false);
-      }
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: redirectTo ?? `${window.location.origin}/dashboard`,
-        },
-      });
-
-      if (error) {
-        toast.error(error.message ?? "Google sign-in failed. Please try again.");
-        setLoading(false);
+    const result = await signInWithProvider("google", { redirectTo });
+    switch (result.kind) {
+      case "success": {
+        const target = redirectTo
+          ? new URL(redirectTo, window.location.origin).pathname
+          : "/dashboard";
+        navigate(target, { replace: true });
         return;
       }
-      // Supabase auto-redirects to Google. Keep the spinner up since the browser
-      // is leaving the page; if it doesn't redirect for some reason the user
-      // can click again.
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Google sign-in failed.");
-      setLoading(false);
+      case "redirecting":
+        return;
+      case "cancelled":
+        hapticError();
+        toast("Google sign-in cancelled.");
+        setLoading(false);
+        return;
+      case "error":
+        hapticError();
+        toast.error(result.message);
+        setLoading(false);
+        return;
     }
   };
 

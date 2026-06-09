@@ -808,6 +808,13 @@ const Dashboard = () => {
               helperAvailability={helperAvailability}
               view={view}
               setView={setView}
+              onClearAllFilters={() => {
+                // After clearing filters, snap the feed back to the top
+                // so the user lands on the fresh unfiltered head of the
+                // list rather than mid-scroll where the old filter ended.
+                const el = containerRef.current;
+                if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+              }}
             />
 
             {/* Browse-tasks feed is the main scroll surface of the

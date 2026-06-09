@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -24,29 +24,65 @@ import {
 import { ActivityHeader } from "@/pages/activity/ActivityHeader";
 import { ActivityEmptyState } from "@/pages/activity/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
+import SectionBoundary from "@/components/SectionBoundary";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
   const tab = defaultTab as Tab;
+  const defaultFilter = defaultTab === "applied" ? "pending" : "open";
+  // Filter + search seed from URL params so a deep link (or browser
+  // back/forward) lands the user on the exact view they had. We keep the
+  // local-state mirror because the dropdown/search inputs need a
+  // controlled value, and writing to the URL inside an onChange handler
+  // is too coarse for typing latency.
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
+  const [searchOpen, setSearchOpen] = useState(() => !!searchParams.get("q"));
+  const [filterOpen, setFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>(() => {
-    const paramFilter = searchParams.get("filter");
-    if (paramFilter) return paramFilter;
-    return defaultTab === "applied" ? "pending" : "open";
+    return searchParams.get("filter") ?? defaultFilter;
   });
 
-  // Sync filter when URL search params change (e.g. navigating from a notification)
+  // Push filter/search changes back into the URL so navigating away and
+  // back (or browser back/forward) restores the view. Skip the write
+  // when the value is already the URL default to avoid noisy history
+  // entries on first load.
   useEffect(() => {
-    const paramFilter = searchParams.get("filter");
-    if (paramFilter && paramFilter !== statusFilter) {
-      setStatusFilter(paramFilter);
+    const current = new URLSearchParams(searchParams);
+    let changed = false;
+    if (statusFilter === defaultFilter) {
+      if (current.has("filter")) { current.delete("filter"); changed = true; }
+    } else if (current.get("filter") !== statusFilter) {
+      current.set("filter", statusFilter);
+      changed = true;
     }
-  }, [searchParams]);
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) {
+      if (current.has("q")) { current.delete("q"); changed = true; }
+    } else if (current.get("q") !== trimmedQuery) {
+      current.set("q", trimmedQuery);
+      changed = true;
+    }
+    if (changed) setSearchParams(current, { replace: true });
+    // setSearchParams is stable; deps intentionally exclude searchParams
+    // to prevent the loop that would form if the effect listened to
+    // its own write.
+  }, [statusFilter, searchQuery, defaultFilter, searchParams, setSearchParams]);
+
+  // Sync filter when URL search params change externally (e.g. navigating
+  // from a notification or via browser back/forward — not from our own
+  // write above, which already matches local state).
+  useEffect(() => {
+    const paramFilter = searchParams.get("filter") ?? defaultFilter;
+    if (paramFilter !== statusFilter) setStatusFilter(paramFilter);
+    const paramQuery = searchParams.get("q") ?? "";
+    if (paramQuery !== searchQuery.trim()) {
+      setSearchQuery(paramQuery);
+      if (paramQuery) setSearchOpen(true);
+    }
+  }, [searchParams, defaultFilter, statusFilter, searchQuery]);
 
   const {
     loading, loadError, postedJobs, appliedApps, applicantCounts,
@@ -88,10 +124,28 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       userId: user?.id,
     });
 
-  // Pull-to-refresh — must run unconditionally (hook order). Same
-  // gesture pattern as Dashboard.
+  // Pull-to-refresh — per-tab refresh wrapper. The underlying
+  // useActivityData query is a single key covering both posted and
+  // applied data (server-side join economy), so a refetch hits both;
+  // but each Activity instance ("/my-posts" vs "/my-jobs") tracks its
+  // own pull-state and its own "last refreshed at" timestamp so the
+  // tabs feel independent and one tab's stale-while-revalidating
+  // refresh doesn't visually leak into the other.
+  const lastRefreshKey = `activity:lastRefresh:${tab}`;
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const raw = sessionStorage.getItem(lastRefreshKey);
+    const parsed = raw ? Number(raw) : NaN;
+    return Number.isFinite(parsed) ? parsed : null;
+  });
+  const tabRefresh = useCallback(async () => {
+    await refresh();
+    const now = Date.now();
+    setLastRefreshedAt(now);
+    try { sessionStorage.setItem(lastRefreshKey, String(now)); } catch { /* private mode */ }
+  }, [refresh, lastRefreshKey]);
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
-    onRefresh: async () => { await refresh(); },
+    onRefresh: tabRefresh,
   });
 
   // On a status-filter change the filtered list shrinks/changes, but the
@@ -142,6 +196,22 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const filteredCount = tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length;
   const isTrulyEmpty = sourceCount === 0;
 
+  // Per-tab "updated Xm ago" indicator — only shown after the first
+  // user-triggered pull-to-refresh on this tab so it doesn't feel
+  // noisy on a fresh load. The relative-time string is intentionally
+  // coarse (no live ticker) since the value is only useful as a
+  // glance-confidence signal.
+  const refreshIndicator = (() => {
+    if (!lastRefreshedAt) return null;
+    const seconds = Math.max(0, Math.round((Date.now() - lastRefreshedAt) / 1000));
+    if (seconds < 10) return "Just refreshed";
+    if (seconds < 60) return `Updated ${seconds}s ago`;
+    const mins = Math.round(seconds / 60);
+    if (mins < 60) return `Updated ${mins}m ago`;
+    const hrs = Math.round(mins / 60);
+    return `Updated ${hrs}h ago`;
+  })();
+
   return (
     <>
       <PageScaffold
@@ -153,7 +223,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                 {tab === "posted" ? "My Posts" : "My Jobs"}
               </h1>
               {/* Count chip — hidden when the list is truly empty (a
-                  "0 tasks" badge over an empty-state card is noise). */}
+                  "0 tasks" badge over an empty-state card is noise).
+                  When the user has manually pulled-to-refresh this tab
+                  at least once, append a per-tab "Updated Xm ago" hint
+                  so they trust the freshness independently of the other
+                  tab. */}
               {!isTrulyEmpty && (
                 <p
                   className="mt-1 truncate font-sans font-semibold uppercase"
@@ -164,6 +238,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                   }}
                 >
                   {filteredCount} {filteredCount === 1 ? "task" : "tasks"}
+                  {refreshIndicator && (
+                    <span aria-hidden="true">{" · "}{refreshIndicator}</span>
+                  )}
                 </p>
               )}
             </div>
@@ -210,7 +287,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           ) : (
             <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
           {tab === "posted" && (
+            <SectionBoundary label="your posts">
             <PostedJobsTab
+              groupByStatus={statusFilter === "all"}
               jobs={filteredPostedJobs}
               applicantCounts={applicantCounts}
               expandedJobId={actions.expandedJobId}
@@ -231,6 +310,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onTip={(jobId, name) => { actions.setEnhancedTipJobId(jobId); actions.setEnhancedTipHelperName(name); }}
               onReview={actions.openReviewForPosted}
               onDispute={actions.setDisputeJob}
+              onViewDispute={actions.setViewDisputeJob}
               onConfirmStart={actions.confirmStartJob}
               onConfirmArrival={actions.confirmArrival}
               onConfirmWorking={actions.confirmWorking}
@@ -247,10 +327,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               applicantErrors={actions.applicantErrors}
               onActionComplete={refresh}
             />
+            </SectionBoundary>
           )}
 
           {tab === "applied" && (
+            <SectionBoundary label="your jobs">
             <AppliedJobsTab
+              groupByStatus={statusFilter === "all"}
               apps={filteredAppliedApps}
               expandedJobId={actions.expandedJobId}
               setExpandedJobId={actions.setExpandedJobId}
@@ -263,8 +346,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onResolveRevision={actions.resolveRevision}
               onHelperReview={(jobId, posterId, posterName) => actions.setHelperReviewJob({ jobId, posterId, posterName })}
               onDispute={actions.setDisputeJob}
+              onViewDispute={actions.setViewDisputeJob}
               onRefresh={refresh}
             />
+            </SectionBoundary>
           )}
             </div>
           )}
@@ -297,6 +382,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         onDeadlineConfirm={actions.confirmAcceptWithDeadline}
         disputeJob={actions.disputeJob}
         setDisputeJob={actions.setDisputeJob}
+        viewDisputeJob={actions.viewDisputeJob}
+        setViewDisputeJob={actions.setViewDisputeJob}
         reviewJob={actions.reviewJob}
         reviewTarget={actions.reviewTarget}
         setReviewJob={actions.setReviewJob}

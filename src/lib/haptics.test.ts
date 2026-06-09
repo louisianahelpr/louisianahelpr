@@ -76,6 +76,11 @@ describe("haptics — native path (Capacitor.isNativePlatform=true)", () => {
   beforeEach(() => {
     (window as unknown as { Capacitor: unknown }).Capacitor = {
       isNativePlatform: () => true,
+      // `isPluginAvailable` was added to the haptics wrapper to defend
+      // against Android builds where the bridge isn't registered. In the
+      // unit-test "native" branch we explicitly say "yes, the plugin is
+      // there" so the existing assertions still hit Haptics.impact.
+      isPluginAvailable: () => true,
     };
   });
 

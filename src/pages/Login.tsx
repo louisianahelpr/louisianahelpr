@@ -1,23 +1,72 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Mail, Lock, Check } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock, Check, Clock } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
+import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
 import HelprMark from "@/components/HelprMark";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import BuildStamp from "@/components/BuildStamp";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
+import {
+  getLastAuthMethod,
+  setLastAuthMethod,
+  authMethodLabel,
+} from "@/lib/lastAuthMethod";
+import { safeStorage } from "@/lib/safeStorage";
 
 const LOGIN_TIMEOUT_MS = 15000;
+
+// Anti-bruteforce: 5 failed attempts in a rolling 5-minute window triggers
+// a soft lockout. Persisted to safeStorage so a force-quit doesn't reset
+// the counter — otherwise an attacker on a stolen phone could kill the app
+// between guesses and ignore the cooldown.
+const LOGIN_ATTEMPTS_KEY = "helpr_login_attempts";
+const LOGIN_ATTEMPT_WINDOW_MS = 5 * 60 * 1000;
+const LOGIN_ATTEMPT_LIMIT = 5;
+const LOGIN_LOCKOUT_MS = 5 * 60 * 1000;
+
+interface LoginAttemptState {
+  /** Epoch ms timestamps of failed attempts inside the rolling window. */
+  attempts: number[];
+  /** If non-null, the epoch ms when the lockout expires. */
+  lockedUntil: number | null;
+}
+
+function readAttemptState(): LoginAttemptState {
+  try {
+    const raw = safeStorage.getItem(LOGIN_ATTEMPTS_KEY);
+    if (!raw) return { attempts: [], lockedUntil: null };
+    const parsed = JSON.parse(raw) as LoginAttemptState;
+    const now = Date.now();
+    return {
+      attempts: (parsed.attempts ?? []).filter(
+        (t) => typeof t === "number" && now - t < LOGIN_ATTEMPT_WINDOW_MS,
+      ),
+      lockedUntil:
+        parsed.lockedUntil && parsed.lockedUntil > now ? parsed.lockedUntil : null,
+    };
+  } catch {
+    return { attempts: [], lockedUntil: null };
+  }
+}
+
+function writeAttemptState(state: LoginAttemptState): void {
+  try {
+    safeStorage.setItem(LOGIN_ATTEMPTS_KEY, JSON.stringify(state));
+  } catch { /* ignore quota */ }
+}
+
+function clearAttemptState(): void {
+  safeStorage.removeItem(LOGIN_ATTEMPTS_KEY);
+}
 
 const signInWithTimeout = async (email: string, password: string) => {
   let timeoutId: number | undefined;
@@ -47,17 +96,27 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [loginAttempts, setLoginAttempts] = useState(0);
-  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  // Seed from durable storage so the lockout survives a force-quit.
+  const [attemptState, setAttemptState] = useState<LoginAttemptState>(() =>
+    readAttemptState(),
+  );
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+  // Quiet last-method hint — only shown when we have a non-error reading
+  // (initial first-ever login still surfaces no hint). useMemo keeps this
+  // stable across re-renders so the dismissal animation never re-triggers.
+  const lastMethod = useMemo(() => getLastAuthMethod(), []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (lockedUntil && Date.now() < lockedUntil) {
-      const secondsLeft = Math.ceil((lockedUntil - Date.now()) / 1000);
+    if (attemptState.lockedUntil && Date.now() < attemptState.lockedUntil) {
+      const msLeft = attemptState.lockedUntil - Date.now();
+      const minutesLeft = Math.ceil(msLeft / 60000);
       hapticError();
-      toast.error(`Too many attempts. Try again in ${secondsLeft}s`);
+      toast.error(
+        `Too many attempts — try again in ${minutesLeft} min`,
+      );
       return;
     }
 
@@ -66,19 +125,34 @@ const Login = () => {
     const { data, error } = await signInWithTimeout(email, password).catch((error: Error) => ({ data: { session: null }, error }));
     if (error) {
       setLoading(false);
-      const newAttempts = loginAttempts + 1;
-      setLoginAttempts(newAttempts);
+      const now = Date.now();
+      const next: LoginAttemptState = {
+        attempts: [
+          ...attemptState.attempts.filter((t) => now - t < LOGIN_ATTEMPT_WINDOW_MS),
+          now,
+        ],
+        lockedUntil: attemptState.lockedUntil,
+      };
+      if (next.attempts.length >= LOGIN_ATTEMPT_LIMIT) {
+        next.lockedUntil = now + LOGIN_LOCKOUT_MS;
+        // Reset the counter once we've crossed the line — next failed-then-locked
+        // window starts fresh after the lockout expires.
+        next.attempts = [];
+      }
+      setAttemptState(next);
+      writeAttemptState(next);
       hapticError();
-      if (newAttempts >= 5) {
-        setLockedUntil(Date.now() + 60000);
-        setLoginAttempts(0);
-        toast.error("Too many failed attempts. Account locked for 60 seconds.");
+      if (next.lockedUntil && next.lockedUntil > now) {
+        const minutesLeft = Math.ceil((next.lockedUntil - now) / 60000);
+        toast.error(`Too many attempts — try again in ${minutesLeft} min`);
       } else {
         toast.error(friendlyAuthError(error.message));
       }
       return;
     }
-    setLoginAttempts(0);
+    // Success — clear the failed-attempt history.
+    setAttemptState({ attempts: [], lockedUntil: null });
+    clearAttemptState();
 
     const sessionUser = data.session?.user;
     if (sessionUser && !sessionUser.email_confirmed_at) {
@@ -89,6 +163,9 @@ const Login = () => {
       return;
     }
 
+    // Remember the user's chosen method so the next visit shows a quiet
+    // "Last time you used email and password" hint.
+    setLastAuthMethod("email");
     void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
     setLoading(false);
     hapticSuccess();
@@ -140,6 +217,34 @@ const Login = () => {
       </div>
 
       <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
+        {lastMethod && (
+          // Quiet hint that helps returning users pick the right button
+          // without revealing anything sensitive — just nudges them toward
+          // the method they used last time.
+          <div
+            className="flex items-center gap-2 rounded-ds-md px-3 py-2 text-ds-11 font-sans"
+            style={{
+              background: "hsl(var(--bark) / 0.06)",
+              color: "hsl(var(--olivewood) / 0.85)",
+              border: "1px solid hsl(var(--bark) / 0.12)",
+            }}
+            aria-live="polite"
+          >
+            <Clock
+              className="w-3.5 h-3.5 shrink-0"
+              strokeWidth={1.75}
+              style={{ color: "hsl(var(--bark))" }}
+              aria-hidden
+            />
+            <span>
+              Last time you used{" "}
+              <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                {authMethodLabel(lastMethod)}
+              </span>
+              .
+            </span>
+          </div>
+        )}
         <form onSubmit={handleLogin} className="space-y-3.5">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
@@ -229,10 +334,7 @@ const Login = () => {
           <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         </div>
 
-        <div className="space-y-2">
-          <AppleSignInButton label="Sign in with Apple" />
-          <GoogleSignInButton label="Sign in with Google" />
-        </div>
+        <SocialAuthButtons mode="signin" />
 
         <div className="space-y-1.5 pt-1">
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>

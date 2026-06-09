@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Zap, Settings, FileText, FileSpreadsheet, ExternalLink, Info } from "lucide-react";
+import { TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Zap, Settings, FileText, FileSpreadsheet, ExternalLink, Info, Printer, FileCheck2, X } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,8 @@ import { report } from "@/lib/errorLogger";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
+import { safeStorage } from "@/lib/safeStorage";
+import { EarningsBreakdownCharts } from "@/components/profile/EarningsBreakdownCharts";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
 import { HelperScheduleStrip } from "@/components/profile/HelperScheduleStrip";
@@ -274,6 +276,40 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
+  // ─── 1099-K threshold awareness ───────────────────────────────
+  // Federal threshold dropped to $600/yr for 1099-K issuance. Once a
+  // helper crosses that line we surface a quiet, dismissible banner
+  // pointing at the tax-export tool. Dismissal is persisted per-user
+  // per-year via safeStorage so it doesn't nag once acknowledged.
+  // (Louisiana adds its own $20k/200-tx threshold note already at the
+  // bottom of the page — that's a separate, stricter signal.)
+  const ytdYear = new Date().getFullYear();
+  const ytdPayoutsCents = (stripeData?.payouts ?? [])
+    .filter((p) => new Date(p.arrival_date * 1000).getFullYear() === ytdYear)
+    .reduce((sum, p) => sum + p.amount, 0);
+  const ytdPayoutsDollars = ytdPayoutsCents / 100;
+  const banner1099Threshold = 600;
+  const bannerKey = `helpr_1099k_banner_dismissed_${helperId}_${ytdYear}`;
+  const [banner1099Dismissed, setBanner1099Dismissed] = useState<boolean>(() => {
+    try {
+      return safeStorage.getItem(bannerKey) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const show1099Banner =
+    ytdPayoutsDollars >= banner1099Threshold && !banner1099Dismissed;
+  const dismiss1099Banner = () => {
+    setBanner1099Dismissed(true);
+    try {
+      safeStorage.setItem(bannerKey, "1");
+    } catch { /* best-effort */ }
+  };
+
+  // Note: the "Last payout · Next expected" summary lives in
+  // PaymentTab now (#7), driven off the payout_transfers ledger so
+  // it's reachable directly from the Payment settings surface.
+
   return (
     <div className="space-y-5">
       <ProfileTabHeader
@@ -299,6 +335,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={handleExportCSV}>
               <FileSpreadsheet className="w-4 h-4 mr-2" /> Export Payouts CSV
+            </DropdownMenuItem>
+            {/* Lightweight "save as PDF" path — opens the browser print
+                dialog with a print-friendly stylesheet (below). Useful
+                on iOS, where Safari can save the print preview as a
+                PDF to Files without loading the jsPDF chunk. */}
+            <DropdownMenuItem onSelect={() => { window.print(); }}>
+              <Printer className="w-4 h-4 mr-2" /> Print / Save as PDF
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => navigate("/profile?tab=payment")}>
@@ -354,6 +397,79 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           profile?.approval_status === "approved" && !!stripeData?.connected
         }
       />
+
+      {/* 1099-K banner — appears once YTD payouts cross the federal
+          $600 threshold. Quiet, dismissible per-user-per-year so it
+          doesn't nag after the helper has seen it. Tapping the CTA
+          opens the existing PDF tax-export dialog (no new flow). */}
+      {show1099Banner && (
+        <div
+          className="rounded-2xl p-4 flex items-start gap-3"
+          style={{
+            background:
+              "radial-gradient(70% 90% at 0% 0%, hsl(var(--gold-warm) / 0.16) 0%, transparent 60%), " +
+              "hsla(0, 0%, 100%, 0.6)",
+            border: "0.5px solid hsl(var(--gold-warm) / 0.34)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+              "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+              "0 8px 18px -6px hsl(var(--olivewood) / 0.10)",
+          }}
+        >
+          <span
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{
+              background: "hsl(var(--gold-warm) / 0.18)",
+              color: "hsl(var(--gold-warm))",
+            }}
+          >
+            <FileCheck2 className="w-4 h-4" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p
+              className="font-serif italic uppercase"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              Tax season prep
+            </p>
+            <h3
+              className="font-display italic font-bold leading-tight"
+              style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            >
+              You've crossed the $600 mark for {ytdYear}.
+            </h3>
+            <p
+              className="font-serif italic mt-1 leading-snug"
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+            >
+              You may receive a 1099-K from Stripe. Download a payout statement now so you're not scrambling in April.
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setExportDialogOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-ds-sm px-3 py-1.5 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
+                style={{
+                  background: "hsl(var(--bark))",
+                  color: "hsl(var(--parchment))",
+                  border: "1px solid hsl(var(--bark))",
+                }}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                Download tax statement
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={dismiss1099Banner}
+            aria-label="Dismiss"
+            className="shrink-0 -mr-1 -mt-1 w-10 h-10 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground active:bg-secondary/40 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* ─── COMPACT DASHBOARD: Wallet + Stats ─── */}
       <section className="space-y-3">
@@ -573,6 +689,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           </div>
         )}
       </section>
+
+      {/* ─── PIE + YTD vs PRIOR-YTD compare ───────────────────
+          Self-hides if there's no completed-job data. Sits between the
+          payout history (the receipts) and the per-transfer ledger so
+          the helper sees their high-level breakdown before drilling
+          into individual transfers. */}
+      <EarningsBreakdownCharts earningsJobs={earningsJobs} />
 
       {/* ─── ACTUAL PAYOUTS (from payout_transfers ledger) ─── */}
       {payoutLedger.length > 0 && (

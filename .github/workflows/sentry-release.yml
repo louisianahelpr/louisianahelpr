@@ -1,0 +1,99 @@
+name: Sentry Release
+
+# Tags every production deploy with a unique Sentry release (the commit SHA)
+# and uploads source maps so stack traces are symbolicated in the Sentry UI.
+#
+# Without this, every build reports as the same release ("1.0.0" fallback in
+# src/lib/sentry.ts), which breaks crash dedup — a regression introduced in
+# version N looks identical to a fixed crash from version N-1, and "first
+# seen / last seen" timestamps are meaningless across deploys.
+#
+# Runs on push to main only — preview/PR builds skip this (no production
+# users hit those bundles, so there's nothing to dedup against).
+#
+# Required repo secrets:
+#   - SENTRY_AUTH_TOKEN — see PR description for how to mint one.
+#   - SENTRY_ORG        — Sentry org slug (Settings → General → "Organization Slug").
+#   - SENTRY_PROJECT    — Sentry project slug (Project → Settings → "Name" / slug).
+#
+# Linux runner only (ubuntu-latest) — GitHub Actions macOS minutes are
+# expensive and this job has zero need for native tooling.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - ".github/workflows/sentry-release.yml"
+  workflow_dispatch:
+
+concurrency:
+  # One release upload at a time per branch — re-running the same SHA is
+  # idempotent (Sentry no-ops duplicate releases) but parallel runs racing
+  # on `commits --auto` can produce confusing partial commit lists.
+  group: sentry-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sentry-release:
+    name: Tag release and upload source maps
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+      # Bake the commit SHA into the bundle so the runtime `release` tag
+      # Sentry sees matches the release name we create below.
+      VITE_SENTRY_RELEASE: ${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Full history so `sentry-cli releases set-commits --auto` can
+          # diff against the previous release and attach commit metadata.
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --legacy-peer-deps
+
+      - name: Build production bundle
+        # VITE_SENTRY_RELEASE flows through to `import.meta.env` so the
+        # client's Sentry.init() reports the same release tag we create
+        # below — that's what makes crash dedup work across deploys.
+        run: npm run build
+
+      - name: Create Sentry release and upload source maps
+        uses: getsentry/action-release@v1.7.0
+        with:
+          # Use the commit SHA as the release name so it's unique per build
+          # and matches what Sentry sees from the running client at runtime.
+          version: ${{ github.sha }}
+          environment: production
+          # `set-commits --auto` attaches the commit list since the previous
+          # release — gives "suspect commits" in the Sentry issue view.
+          set_commits: auto
+          # Source maps live in dist/assets/ alongside their .js files
+          # (vite.config.ts sets `sourcemap: "hidden"`). URL prefix matches
+          # how the client requests them in production.
+          sourcemaps: ./dist/assets
+          url_prefix: "~/assets"
+          # Finalize the release once sourcemaps are uploaded so it shows up
+          # as "deployed" in the Sentry UI rather than staying in draft.
+          finalize: true

@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 
 const hapticMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/haptics", () => ({
-  hapticLight: hapticMock,
+  // The hook also imports `hapticMedium` for the threshold-crossing tick
+  // (which the existing rubber-band tests never reach — the move-to-end
+  // touch sequence ends below or right at the threshold, so the tick
+  // doesn't fire and we still get the same mock-call count as before).
+  hapticMedium: vi.fn(),
+  // `hapticImpactForce` is the explicit-release haptic that fires when
+  // the user lets go past the threshold. The existing assertion that
+  // "haptic was called once on a successful refresh" lives here now.
+  hapticImpactForce: hapticMock,
 }));
 
 import { usePullToRefresh } from "./usePullToRefresh";
@@ -93,7 +101,7 @@ describe("usePullToRefresh", () => {
   it("does NOT fire onRefresh when pull distance stays below threshold", async () => {
     render(<Harness onRefresh={onRefresh} threshold={80} />);
     const el = screen.getByTestId("container");
-    await performTouchSequence(el, 100, 130); // diff=30 → distance=15
+    await performTouchSequence(el, 100, 130); // diff=30 (below 80 threshold → 1:1 mapping)
     expect(onRefresh).not.toHaveBeenCalled();
     expect(hapticMock).not.toHaveBeenCalled();
   });
@@ -101,7 +109,8 @@ describe("usePullToRefresh", () => {
   it("fires onRefresh + haptic when pull distance crosses threshold", async () => {
     render(<Harness onRefresh={onRefresh} threshold={80} />);
     const el = screen.getByTestId("container");
-    // diff=200 → distance=100 (capped at threshold*1.5=120). 100 >= 80 → fires.
+    // diff=200 → rubber-band distance ≈ 80 + √120 * √80 * 0.8 ≈ 158, which is
+    // well past the 80 threshold → onRefresh fires + release haptic fires.
     await performTouchSequence(el, 100, 300);
     expect(onRefresh).toHaveBeenCalledOnce();
     expect(hapticMock).toHaveBeenCalledOnce();
@@ -163,9 +172,13 @@ describe("usePullToRefresh", () => {
     expect(eventTypes).toContain("touchend");
   });
 
-  it("caps pullDistance at threshold*1.5 (rubber-band stop)", async () => {
+  it("applies rubber-band resistance past the threshold (asymptotic curve, not a hard cap)", async () => {
     // Wrap with a state-tracking parent so we can observe pullDistance
-    // mid-pull (between move and end).
+    // mid-pull (between move and end). The hook applies an asymptotic
+    // √-based dampening past the threshold instead of a hard cap: the
+    // overscroll keeps growing but the rate decays, mirroring iOS.
+    //
+    // Formula: threshold + √(diff - threshold) * (√threshold * 0.8)
     const Spy = () => {
       const [distance, setDistance] = useState<number | null>(null);
       const { containerRef, pullDistance } = usePullToRefresh({
@@ -185,9 +198,19 @@ describe("usePullToRefresh", () => {
       fireTouch(el, "touchstart", 100);
     });
     await act(async () => {
-      // diff=600 → raw distance=300, but cap is threshold*1.5 = 120
+      // diff=600. Below threshold the curve is 1:1; above it dampens.
+      // 80 + √520 * √80 * 0.8 ≈ 243.17.
       fireTouch(el, "touchmove", 700);
     });
-    expect(Number(el.getAttribute("data-distance"))).toBe(120);
+    const threshold = 80;
+    const diff = 600;
+    const expected = threshold + Math.sqrt(diff - threshold) * (Math.sqrt(threshold) * 0.8);
+    const actual = Number(el.getAttribute("data-distance"));
+    expect(actual).toBeCloseTo(expected, 5);
+    // The damped value is much larger than the raw threshold but much
+    // smaller than the raw diff — the contract is "feels heavier the
+    // further you pull", not a fixed ceiling.
+    expect(actual).toBeGreaterThan(threshold);
+    expect(actual).toBeLessThan(diff);
   });
 });

@@ -40,24 +40,74 @@ interface BanDialogProps {
   onSuccess?: () => void;
 }
 
+// Structured reason picker — drives the "category" of the action and is
+// stored on user_violations.violation_type / user_bans.reason so the
+// audit trail is consistent. Anything that doesn't fit ⇒ "other" + a
+// freeform note.
+const REASON_OPTIONS: { id: string; label: string }[] = [
+  { id: "spam", label: "Spam" },
+  { id: "fraud", label: "Fraud" },
+  { id: "harassment", label: "Harassment" },
+  { id: "tos", label: "Terms of Service violation" },
+  { id: "other", label: "Other" },
+];
+
+// Duration matches the spec: 7d / 30d / 90d / permanent. Permanent is
+// modelled as banType=permanent below, the three day-based options use
+// banType=temporary.
+const DURATION_OPTIONS: { id: string; label: string; days: number | "permanent" }[] = [
+  { id: "7d", label: "7 days", days: 7 },
+  { id: "30d", label: "30 days", days: 30 },
+  { id: "90d", label: "90 days", days: 90 },
+  { id: "permanent", label: "Permanent", days: "permanent" },
+];
+
 export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
   const [banType, setBanType] = useState<BanType>("warning");
-  const [reason, setReason] = useState("");
+  const [reasonCategory, setReasonCategory] = useState<string>("tos");
+  const [reasonNote, setReasonNote] = useState("");
   const [duration, setDuration] = useState("7");
   const [banning, setBanning] = useState(false);
 
+  // Composite reason text we persist — keeps the picker visible in audit /
+  // user-violation rows so it isn't lost in a freeform string.
+  const composeReason = () => {
+    const cat = REASON_OPTIONS.find((r) => r.id === reasonCategory)?.label ?? "Other";
+    const note = reasonNote.trim();
+    return note ? `${cat} — ${note}` : cat;
+  };
+
   const handleClose = () => {
     if (banning) return;
-    setReason("");
+    setReasonNote("");
+    setReasonCategory("tos");
     setBanType("warning");
     setDuration("7");
     onClose();
   };
 
+  // Duration radio drives both banType and `duration` state at once so
+  // the existing submit() branches keep working.
+  const setDurationOption = (id: string) => {
+    if (id === "permanent") {
+      setBanType("permanent");
+      return;
+    }
+    setBanType("temporary");
+    setDuration(id.replace("d", ""));
+  };
+  const activeDurationId = banType === "permanent"
+    ? "permanent"
+    : `${duration}d`;
+
   const submit = async () => {
     if (!profile) return;
-    if (!reason.trim()) {
-      toast.error("Reason is required");
+    const reason = composeReason();
+    // Reason is composed (always has at least the category label), but
+    // we still require an explicit category pick — if the admin chose
+    // "other" we require the freeform note so audit isn't ambiguous.
+    if (reasonCategory === "other" && !reasonNote.trim()) {
+      toast.error("Add a freeform note for 'Other' reason");
       return;
     }
     setBanning(true);
@@ -72,7 +122,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         const { error: vErr } = await supabase.from("user_violations").insert({
           user_id: profile.user_id,
           violation_type: "admin_warning",
-          description: reason.trim(),
+          description: reason,
           action_taken: "warning",
           reported_by: user.id,
         });
@@ -86,7 +136,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           user_id: profile.user_id,
           title: "⚠️ Warning from Admin",
           message:
-            reason.trim() ||
+            reason ||
             "You have received a warning for violating platform rules. Another violation may result in a ban.",
           type: "warning",
           link: "/profile",
@@ -94,7 +144,8 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         toast.success("Warning issued.");
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "warning",
-          reason: reason.trim(),
+          reason_category: reasonCategory,
+          reason_note: reasonNote.trim(),
         });
       } else if (banType === "temporary") {
         const expiresAt = new Date();
@@ -102,7 +153,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         const { error: bErr } = await supabase.from("user_bans").insert({
           user_id: profile.user_id,
           ban_type: "temporary",
-          reason: reason.trim(),
+          reason,
           banned_by: user.id,
           expires_at: expiresAt.toISOString(),
         });
@@ -110,7 +161,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         const { error: vErr } = await supabase.from("user_violations").insert({
           user_id: profile.user_id,
           violation_type: "admin_action",
-          description: reason.trim(),
+          description: reason,
           action_taken: "temp_ban",
           reported_by: user.id,
         });
@@ -123,23 +174,29 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         await createNotification({
           user_id: profile.user_id,
           title: "🚫 Temporary Ban",
-          message: `Your account has been temporarily banned for ${duration} days. Reason: ${reason.trim() || "Platform rule violation."}`,
+          message: `Your account has been temporarily banned for ${duration} days. Reason: ${reason}`,
           type: "warning",
           link: "/profile",
         });
         toast.success(`User temporarily banned for ${duration} days.`);
+        await logAdminAction("ban_user", "user", profile.user_id, {
+          type: "temporary",
+          duration_days: parseInt(duration),
+          reason_category: reasonCategory,
+          reason_note: reasonNote.trim(),
+        });
       } else {
         const { error: bErr } = await supabase.from("user_bans").insert({
           user_id: profile.user_id,
           ban_type: "permanent",
-          reason: reason.trim(),
+          reason,
           banned_by: user.id,
         });
         if (bErr) throw bErr;
         const { error: vErr } = await supabase.from("user_violations").insert({
           user_id: profile.user_id,
           violation_type: "admin_action",
-          description: reason.trim(),
+          description: reason,
           action_taken: "permanent_ban",
           reported_by: user.id,
         });
@@ -152,11 +209,16 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         await createNotification({
           user_id: profile.user_id,
           title: "⛔ Account Permanently Banned",
-          message: `Your account has been permanently banned. Reason: ${reason.trim() || "Severe platform rule violation."}`,
+          message: `Your account has been permanently banned. Reason: ${reason}`,
           type: "warning",
           link: "/profile",
         });
         toast.success("User permanently banned.");
+        await logAdminAction("ban_user", "user", profile.user_id, {
+          type: "permanent",
+          reason_category: reasonCategory,
+          reason_note: reasonNote.trim(),
+        });
       }
 
       onSuccess?.();
@@ -190,7 +252,12 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
               ).map((opt) => (
                 <button
                   key={opt.key}
-                  onClick={() => setBanType(opt.key)}
+                  onClick={() => {
+                    setBanType(opt.key);
+                    // Reset duration when switching away from a ban to
+                    // a non-ban — keeps activeDurationId in sync.
+                    if (opt.key === "warning") setDuration("7");
+                  }}
                   className={`p-2.5 rounded-ds-md border text-center space-y-1 transition-colors ${
                     banType === opt.key ? opt.color : "border-border bg-card hover:bg-secondary/30"
                   }`}
@@ -202,31 +269,63 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
             </div>
           </div>
 
-          {banType === "temporary" && (
-            <div className="space-y-2">
-              <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Duration (days)</p>
-              <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2">48 hours (2 days)</SelectItem>
-                  <SelectItem value="7">7 days</SelectItem>
-                  <SelectItem value="30">30 days</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
+          {/* Reason picker — drops the freeform-only flow in favour of a
+              structured category + optional note. Logged to
+              admin_audit_log as reason_category + reason_note so future
+              reports can filter by category. */}
           <div className="space-y-2">
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Reason</p>
+            <Select value={reasonCategory} onValueChange={setReasonCategory}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {REASON_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Describe the reason for this action…"
+              value={reasonNote}
+              onChange={(e) => setReasonNote(e.target.value)}
+              placeholder={reasonCategory === "other"
+                ? "Required — describe what happened."
+                : "Optional note — context for the audit trail."}
               rows={3}
             />
           </div>
+
+          {/* Duration radio — appears only when the action is a ban. The
+              "Permanent" option flips banType internally so the existing
+              permanent-ban branch in submit() handles it. */}
+          {banType !== "warning" && (
+            <div className="space-y-2">
+              <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Duration</p>
+              <div role="radiogroup" aria-label="Ban duration" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {DURATION_OPTIONS.map((opt) => {
+                  const active = activeDurationId === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setDurationOption(opt.id)}
+                      className={`p-2 rounded-ds-md border text-center text-ds-11 font-medium transition-colors ${
+                        active
+                          ? opt.id === "permanent"
+                            ? "border-destructive/60 bg-destructive/20 text-destructive"
+                            : "border-primary/50 bg-primary/10 text-primary"
+                          : "border-border bg-card hover:bg-secondary/30"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {banType === "permanent" && (
             <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
@@ -244,7 +343,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           <Button
             variant={banType === "warning" ? "default" : "destructive"}
             onClick={submit}
-            disabled={banning || !reason.trim()}
+            disabled={banning || (reasonCategory === "other" && !reasonNote.trim())}
             className="w-full sm:w-auto"
           >
             {banning

@@ -1,4 +1,4 @@
-import { Search, Send } from "lucide-react";
+import { Search, Send, Wrench } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -8,6 +8,15 @@ import type { Tab } from "@/components/activity/activityConstants";
  * ActivityEmptyState — the empty / error / no-matches panel shown when the
  * active tab has no visible cards. A failed fetch (loadError) takes
  * precedence over the "nothing yet" empty state.
+ *
+ * Every account in Helpr can both post AND do jobs (the app is never
+ * role-based — see memory `app-is-never-role-based`). So when a user has
+ * posted nothing yet, the most useful nudge is "go browse tasks and
+ * apply" — the helper side may be where they get their first win. And
+ * vice-versa: when they haven't applied to anything, "post a job"
+ * surfaces the other half of the marketplace they may not have tried.
+ * Cross-tab CTAs intentionally swap the suggestion: posted-empty points
+ * at /dashboard (Apply), applied-empty points at /post-job (Post).
  */
 export interface ActivityEmptyStateProps {
   tab: Tab;
@@ -37,18 +46,33 @@ export function ActivityEmptyState({
   }
   const isPosted = tab === "posted";
   const totalCount = isPosted ? postedJobsCount : appliedAppsCount;
-  const eyebrow = totalCount === 0 ? "Nothing yet" : "No matches";
-  const title = totalCount === 0
+  const isTrulyEmpty = totalCount === 0;
+  const eyebrow = isTrulyEmpty ? "Nothing yet" : "No matches";
+  const title = isTrulyEmpty
     ? (isPosted ? "Nothing posted yet." : "No applications yet.")
     : "No tasks in this view.";
-  const body = totalCount === 0
+  // Cross-tab nudge: posted-empty hints at the helper side, applied-empty
+  // hints at posting. Filtered-but-empty keeps the "try a different
+  // filter" line.
+  const body = isTrulyEmpty
     ? (isPosted
-        ? "Post your first task and your local helprs will see it instantly."
-        : "Browse open tasks near you and apply — your applications will land here.")
+        ? "While you wait for the right moment to post, you can earn on the helper side — browse open tasks near you and apply."
+        : "While you scout for the right gig, post one of your own — your neighbors might be the perfect match.")
     : "Try a different filter — there might be tasks in another status.";
-  const ctaLabel = isPosted ? "Post a Job" : "Browse tasks";
-  const ctaTo = isPosted ? "/post-job" : "/dashboard";
-  const Icon = isPosted ? Search : Send;
+  // Swap the CTAs on the empty state so each tab promotes the OTHER side
+  // of the marketplace. When the user has data ("no matches" view) we
+  // keep them on the same side they're filtering.
+  const isCrossTabSuggestion = isTrulyEmpty;
+  const ctaLabel = isCrossTabSuggestion
+    ? (isPosted ? "Browse tasks" : "Post a Job")
+    : (isPosted ? "Post a Job" : "Browse tasks");
+  const ctaTo = isCrossTabSuggestion
+    ? (isPosted ? "/dashboard" : "/post-job")
+    : (isPosted ? "/post-job" : "/dashboard");
+  // Icon mirrors the CTA target so the eye lands on the matching glyph.
+  const Icon = isCrossTabSuggestion
+    ? (isPosted ? Send : Wrench)
+    : (isPosted ? Search : Send);
   return (
     <div className="flex-1 min-h-full flex">
       <EmptyState

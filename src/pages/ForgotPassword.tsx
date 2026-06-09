@@ -38,6 +38,12 @@ const ForgotPassword = () => {
     return () => window.clearTimeout(t);
   }, [resendCooldown]);
 
+  // Anti-enumeration: this screen MUST behave identically whether the
+  // address is registered or not. Leaking "no user with that email" hands
+  // an attacker a free user-existence oracle. We surface only rate-limit
+  // responses (a useful "slow down" signal) inline; every other error —
+  // including a "user not found" path — is silently treated as success
+  // so the screen doesn't reveal registration state.
   const performSend = async () => {
     hapticMedium();
     setLoading(true);
@@ -46,9 +52,13 @@ const ForgotPassword = () => {
     });
     setLoading(false);
     if (error) {
-      hapticError();
-      toast.error(error.message);
-      return false;
+      const msg = (error.message ?? "").toLowerCase();
+      if (msg.includes("rate") || msg.includes("limit") || msg.includes("too many")) {
+        hapticError();
+        toast.error("Too many requests — try again in a minute.");
+        return false;
+      }
+      // Fall through: success-shaped UX even on error.
     }
     hapticSuccess();
     setResendCooldown(RESEND_COOLDOWN_S);
@@ -66,14 +76,17 @@ const ForgotPassword = () => {
     const ok = await performSend();
     if (ok) {
       setSent(true);
-      toast.success("Check your email for a reset link!");
+      // Neutral copy — doesn't confirm the email exists ("If that email
+      // is registered, we've sent…") so the screen reads identically for
+      // non-existent addresses too.
+      toast.success("If that email is registered, we've sent a reset link.");
     }
   };
 
   const handleResend = async () => {
     if (loading || resendCooldown > 0) return;
     const ok = await performSend();
-    if (ok) toast.success("Sent again — check your inbox.");
+    if (ok) toast.success("If that email is registered, we've sent another link.");
   };
 
   return (
@@ -95,12 +108,14 @@ const ForgotPassword = () => {
             <h1 className="text-page-title leading-tight">
               Check your inbox.
             </h1>
+            {/* Neutral confirmation copy — leaks no signal about whether
+                the address is registered (see performSend comment). */}
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-              We sent a reset link to{" "}
+              If{" "}
               <span className="font-semibold" style={{ color: "hsl(var(--olivewood))" }}>
                 {email}
               </span>
-              . It expires in 1 hour.
+              {" "}is registered, we've sent a reset link. It expires in 1 hour.
             </p>
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
               Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.

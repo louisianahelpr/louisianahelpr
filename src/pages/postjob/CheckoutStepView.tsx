@@ -1,4 +1,5 @@
 import { CheckoutStep } from "@/components/postjob/CheckoutStep";
+import { CheckoutStepIndicator } from "./CheckoutStepIndicator";
 import type { usePostJobForm } from "./usePostJobForm";
 
 interface CheckoutStepViewProps {
@@ -8,10 +9,15 @@ interface CheckoutStepViewProps {
 /**
  * STEP 2: order summary / checkout. Thin wrapper that wires the
  * usePostJobForm state into the existing CheckoutStep component.
+ *
+ * A two-step rail at the top makes it visible that the form (step 1) is
+ * still tappable to go back. Without this, the only way back from the
+ * checkout was the page-header arrow, which the user often missed.
  */
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
   return (
     <div key="checkout-step" className="space-y-6 animate-ds-page-in">
+      <CheckoutStepIndicator onBackToForm={() => form.setStep("form")} />
       <CheckoutStep
         title={form.title}
         description={form.description}

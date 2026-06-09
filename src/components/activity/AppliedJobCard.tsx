@@ -52,6 +52,9 @@ interface AppliedJobCardProps {
   onHelperReview: (jobId: string, posterId: string, posterName: string) => void;
   /** Open the dispute dialog for this job — helper-initiated dispute (issue #113). */
   onDispute: (job: Job) => void;
+  /** Open the read-only timeline + follow-up evidence uploader for a
+   *  job that's already in dispute. */
+  onViewDispute: (job: Job) => void;
   /** Re-fetch the activity feed after a card-local mutation (dispute response). */
   onRefresh: () => void;
   /** Dispute-response state (parent-owned; keyed by job id). */
@@ -63,7 +66,7 @@ interface AppliedJobCardProps {
   setSubmittingResponse: (value: boolean) => void;
   /** Withdraw flow — the confirm sheet lives on the parent. */
   withdrawingAppId: string | null;
-  setWithdrawTarget: (target: { appId: string; jobTitle: string } | null) => void;
+  setWithdrawTarget: (target: { appId: string; jobTitle: string; jobId?: string | null } | null) => void;
   /** Application-message edit + attachment state (parent-owned). */
   uploadingAttachment: string | null;
   editingMessageAppId: string | null;
@@ -99,6 +102,7 @@ function AppliedJobCardInner({
   onResolveRevision,
   onHelperReview,
   onDispute,
+  onViewDispute,
   onRefresh,
   disputeResponse,
   setDisputeResponse,
@@ -307,7 +311,7 @@ function AppliedJobCardInner({
               <button
                 type="button"
                 disabled={withdrawingAppId === app.id}
-                onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Task" })}
+                onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Task", jobId: job.id ?? null })}
                 className="inline-flex items-center gap-1.5 text-[0.72rem] font-sans font-semibold tracking-wide px-2.5 py-1 rounded-full active:opacity-70 transition-opacity disabled:opacity-50"
                 style={{
                   color: "hsl(var(--burnt-sienna))",
@@ -689,6 +693,15 @@ function AppliedJobCardInner({
                 <p className="text-ds-10 text-muted-foreground leading-relaxed">
                   If not resolved within 72 hours, payment auto-releases to you.
                 </p>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => onViewDispute(job)}
+                >
+                  <AlertTriangle className="w-4 h-4 mr-1" /> View timeline & add evidence
+                </Button>
 
                 <div className="grid grid-cols-2 gap-2">
                   <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>

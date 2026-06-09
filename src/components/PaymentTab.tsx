@@ -1,12 +1,23 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CreditCard, ChevronRight, DollarSign } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CreditCard, ChevronRight, DollarSign, Banknote } from "lucide-react";
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { report } from "@/lib/errorLogger";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
+
+interface PayoutSummaryRow {
+  amount_cents: number;
+  paid_at: string | null;
+  created_at: string;
+  status: "pending" | "paid" | "failed" | "reversed";
+}
 
 interface PaymentTabProps {
   earningsJobs: Job[];
@@ -18,6 +29,34 @@ interface PaymentTabProps {
 
 export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: PaymentTabProps) {
   const [searchParams] = useSearchParams();
+  const { user } = useCurrentUser();
+  // Last-paid payout — pulls the most recent `paid` row from
+  // payout_transfers (RLS scopes to helper_id automatically). Surfaces
+  // a concise "Last payout · Next expected" line so the helper has a
+  // direct answer to "when does my next one land?" without bouncing
+  // into the Earnings tab.
+  const { data: lastPayout } = useQuery<PayoutSummaryRow | null>({
+    queryKey: ["payment", "lastPayout", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("payout_transfers")
+        .select("amount_cents, paid_at, created_at, status")
+        .eq("helper_id", user.id)
+        .eq("status", "paid")
+        .order("paid_at", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        report(error, { severity: "warning", tags: { source: "PaymentTab.lastPayout" } });
+        return null;
+      }
+      return (data as PayoutSummaryRow | null);
+    },
+    enabled: !!user?.id,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
 
   // Surface Stripe redirect outcomes; the live status is rendered inside
   // <PayoutSetupForm /> which owns its own fetch — no need to duplicate it
@@ -85,6 +124,69 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
           <PayoutSetupForm />
         </div>
       </section>
+
+      {/* Last-payout summary — surfaces the most recent paid transfer
+          + a Stripe-cadence "next expected ~" date. Only renders when
+          there's a real paid payout on record; pre-payout helpers
+          don't see an empty placeholder. */}
+      {lastPayout && lastPayout.paid_at && (() => {
+        const paidAt = new Date(lastPayout.paid_at);
+        // Stripe rolls weekly by default (~7 days from the last paid
+        // date once the available balance flips). "~" prefix keeps the
+        // hint honest — Stripe can deviate by a business day or two.
+        const nextExpected = new Date(paidAt.getTime() + 7 * 86400 * 1000);
+        const dollars = (lastPayout.amount_cents / 100).toFixed(2);
+        const niceDate = (d: Date) =>
+          d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        return (
+          <section className="space-y-2">
+            <p
+              className="font-serif italic uppercase px-1"
+              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              Recent activity
+            </p>
+            <div className="rounded-2xl liquid-glass p-4">
+              <div className="flex items-start gap-3">
+                <span
+                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{
+                    background: "hsl(var(--bark) / 0.10)",
+                    color: "hsl(var(--bark))",
+                  }}
+                >
+                  <Banknote className="w-4 h-4" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="font-display italic font-bold leading-tight"
+                    style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                  >
+                    Last payout · ${dollars} on {niceDate(paidAt)}
+                  </p>
+                  <p
+                    className="font-serif italic mt-1 leading-snug"
+                    style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  >
+                    Next expected: <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>~{niceDate(nextExpected)}</span>
+                    {" "}· Stripe rolls weekly, give or take a business day.
+                  </p>
+                </div>
+                {onSeeEarnings && (
+                  <button
+                    type="button"
+                    onClick={onSeeEarnings}
+                    aria-label="See payout history"
+                    className="shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-full active:bg-secondary/40 transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" strokeWidth={2.25} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       <section className="space-y-2">
         <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
-import { ShieldCheck, Upload, FileText, X, BadgeCheck, Clock, AlertTriangle, Lock } from "lucide-react";
+import { ShieldCheck, Upload, FileText, X, BadgeCheck, Clock, AlertTriangle, Lock, RefreshCcw } from "lucide-react";
 import CredentialBadge from "@/components/CredentialBadge";
 import { queryKeys } from "@/lib/queryKeys";
 
@@ -184,8 +184,62 @@ export function CredentialsTab({ userId }: { userId: string }) {
     return null;
   };
 
+  // Re-verify reminder — surfaces when any credential is rejected
+  // (server-side review found a real issue) or has been stuck pending
+  // for more than 7 days (likely a stale upload that admin couldn't
+  // verify). The schema doesn't track an explicit `expires_at` on
+  // credentials yet — when that lands, this same banner becomes the
+  // place to surface the 30-day-out reminder without changing the
+  // outer card structure. Self-hides when neither toggle is on or
+  // when both credentials are clean.
+  const licNeedsReverify = data.license_status === "rejected";
+  const insNeedsReverify = data.insurance_status === "rejected";
+  const showReverifyBanner = licNeedsReverify || insNeedsReverify;
+  const reverifyKind = licNeedsReverify && insNeedsReverify
+    ? "both"
+    : licNeedsReverify ? "license" : "insurance";
+
   return (
     <div className="space-y-5">
+      {showReverifyBanner && (
+        <div
+          className="rounded-2xl p-4 flex items-start gap-3"
+          style={{
+            background: "hsl(var(--destructive) / 0.06)",
+            border: "0.5px solid hsl(var(--destructive) / 0.32)",
+          }}
+        >
+          <span
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{
+              background: "hsl(var(--destructive) / 0.12)",
+              color: "hsl(var(--destructive))",
+            }}
+          >
+            <RefreshCcw className="w-4 h-4" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p
+              className="font-serif italic uppercase"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--destructive))", letterSpacing: "0.18em" }}
+            >
+              Re-verify needed
+            </p>
+            <h3
+              className="font-display italic font-bold leading-tight"
+              style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            >
+              Your {reverifyKind === "both" ? "license and insurance need" : `${reverifyKind} needs`} another look.
+            </h3>
+            <p
+              className="font-serif italic mt-1 leading-snug"
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+            >
+              Re-upload a clearer copy and we'll review it within one business day. Until then, your verified badge isn't visible to posters.
+            </p>
+          </div>
+        </div>
+      )}
       {(() => {
         // Eyebrow reflects what the user has actually verified so the
         // card reads as proof, not promise. Possibilities:

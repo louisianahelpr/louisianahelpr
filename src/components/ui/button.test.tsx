@@ -7,9 +7,10 @@ import { Button } from "./button";
  * TestFlight #2 feedback ("buttons look flat next to cards"). The four
  * cumulative treatments are:
  *
- *   1. 2-layer drop shadow              — `0_1px_1px_...` + `0_2px_4px_...`
- *   2. inner top-edge cream highlight   — `inset_0_1px_0_...parchment/0.18`
- *   3. active-press translate           — `active:translate-y-px`
+ *   1. 3-layer drop shadow              — `0_1px_1px_...` + `0_2px_6px_...` + `0_4px_12px_-2px_...`
+ *   2. inner top-edge cream highlight   — `inset_0_1px_0_...parchment/0.22` (filled)
+ *                                          or `inset_0_1px_0_rgba(255,255,255,0.55)` (outline)
+ *   3. active-press scale               — `active:scale-[0.97]`
  *   4. subtle vertical gradient         — `linear-gradient(180deg,...0.92)`
  *
  * The assertions look at the className string (not computed style) because
@@ -33,31 +34,34 @@ describe("Button", () => {
 
   describe("elevation contract", () => {
     const expectFilledElevation = (className: string) => {
-      // 2-layer drop shadow
+      // 3-layer drop shadow (tight 1px contact + 2/6 ambient + 4/12 halo)
       expect(className).toContain("0_1px_1px_hsl(var(--ink-deep)/0.10)");
-      expect(className).toContain("0_2px_4px_hsl(var(--ink-deep)/0.12)");
-      // inner top-edge highlight
-      expect(className).toContain("inset_0_1px_0_hsl(var(--parchment)/0.18)");
-      // active press
-      expect(className).toContain("active:translate-y-px");
+      expect(className).toContain("0_2px_6px_hsl(var(--ink-deep)/0.12)");
+      expect(className).toContain("0_4px_12px_-2px_hsl(var(--ink-deep)/0.08)");
+      // inner top-edge cream highlight (parchment/0.22)
+      expect(className).toContain("inset_0_1px_0_hsl(var(--parchment)/0.22)");
+      // active press — scale down 0.97 (crisper than translate alone)
+      expect(className).toContain("active:scale-[0.97]");
     };
 
     const expectOutlineElevation = (className: string) => {
-      // 2-layer drop shadow
-      expect(className).toContain("0_1px_1px_hsl(var(--ink-deep)/0.10)");
-      expect(className).toContain("0_2px_4px_hsl(var(--ink-deep)/0.12)");
-      // NO inner highlight on outline
-      expect(className).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.18)");
+      // 3-layer drop shadow — outline family uses softer alphas
+      expect(className).toContain("0_1px_1px_hsl(var(--ink-deep)/0.08)");
+      expect(className).toContain("0_2px_6px_hsl(var(--ink-deep)/0.10)");
+      expect(className).toContain("0_4px_12px_-2px_hsl(var(--ink-deep)/0.06)");
+      // outline uses a white inner highlight, NOT the cream/parchment one
+      expect(className).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.22)");
+      expect(className).toContain("inset_0_1px_0_rgba(255,255,255,0.55)");
       // active press
-      expect(className).toContain("active:translate-y-px");
+      expect(className).toContain("active:scale-[0.97]");
     };
 
-    it("bark primary CTA gets all 4 treatments (gradient + highlight + 2-layer shadow + press)", () => {
+    it("bark primary CTA gets all 4 treatments (gradient + highlight + 3-layer shadow + press)", () => {
       render(<Button variant="bark">Sign in</Button>);
       const cls = screen.getByRole("button").className;
       expectFilledElevation(cls);
-      // Subtle vertical gradient — primary CTAs only
-      expect(cls).toContain("linear-gradient(180deg,hsl(var(--bark))_0%,hsl(var(--bark)/0.92)_100%)");
+      // Bark uses a 3-stop bark/olive vertical gradient (lighter top → bark mid → deep base)
+      expect(cls).toContain("linear-gradient(180deg,hsl(74_19%_41%)_0%,hsl(var(--bark))_50%,hsl(66_23%_23%)_100%)");
     });
 
     it("default primary gets gradient + highlight + shadow + press", () => {
@@ -88,20 +92,20 @@ describe("Button", () => {
       expect(cls).not.toContain("linear-gradient");
     });
 
-    it("ghost stays intentionally flat (no shadow, no highlight, no press translate)", () => {
+    it("ghost stays intentionally flat (no shadow, no highlight, no press scale)", () => {
       render(<Button variant="ghost">Skip</Button>);
       const cls = screen.getByRole("button").className;
       expect(cls).not.toContain("0_1px_1px_hsl(var(--ink-deep)/0.10)");
-      expect(cls).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.18)");
-      expect(cls).not.toContain("active:translate-y-px");
+      expect(cls).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.22)");
+      expect(cls).not.toContain("active:scale-[0.97]");
     });
 
     it("link stays intentionally flat", () => {
       render(<Button variant="link">Learn more</Button>);
       const cls = screen.getByRole("button").className;
       expect(cls).not.toContain("0_1px_1px_hsl(var(--ink-deep)/0.10)");
-      expect(cls).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.18)");
-      expect(cls).not.toContain("active:translate-y-px");
+      expect(cls).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.22)");
+      expect(cls).not.toContain("active:scale-[0.97]");
     });
 
     it("hero (marketing primary CTA) gets all 4 treatments", () => {

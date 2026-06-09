@@ -18,6 +18,7 @@ const CompletionPrompts = lazy(() => import("@/components/CompletionPrompts").th
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then(m => ({ default: m.ReviewForm })));
 const ResponseDeadlineDialog = lazy(() => import("@/components/ResponseDeadlineDialog").then(m => ({ default: m.ResponseDeadlineDialog })));
 const DisputeDialog = lazy(() => import("@/components/DisputeDialog").then(m => ({ default: m.DisputeDialog })));
+const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then(m => ({ default: m.DisputeTimelineDialog })));
 const EditJobDialog = lazy(() => import("./EditJobDialog").then(m => ({ default: m.EditJobDialog })));
 
 interface ActivityDialogsProps {
@@ -55,6 +56,10 @@ interface ActivityDialogsProps {
   // Dispute
   disputeJob: Job | null;
   setDisputeJob: (job: Job | null) => void;
+  // View dispute timeline (already-disputed jobs — read-only timeline
+  // + follow-up evidence upload).
+  viewDisputeJob: Job | null;
+  setViewDisputeJob: (job: Job | null) => void;
   // Review (poster)
   reviewJob: Job | null;
   reviewTarget: { id: string; name: string } | null;
@@ -213,6 +218,29 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           userId={props.user.id} open={!!props.disputeJob}
           onClose={() => props.setDisputeJob(null)} onDisputed={props.onRefresh}
         />
+      )}
+
+      {/* Dispute Timeline Dialog — viewed once a dispute is already
+          open on this job. Surfaces the reason / evidence / decision
+          and lets either party upload follow-up evidence. */}
+      {props.viewDisputeJob && props.user && (
+        <Suspense fallback={null}>
+          <DisputeTimelineDialog
+            jobId={props.viewDisputeJob.id}
+            jobTitle={props.viewDisputeJob.title}
+            userId={props.user.id}
+            legacy={{
+              reason: (props.viewDisputeJob as any).dispute_reason ?? null,
+              evidence_urls: (props.viewDisputeJob as any).dispute_evidence_urls ?? [],
+              disputed_at: (props.viewDisputeJob as any).disputed_at ?? null,
+              disputed_by: (props.viewDisputeJob as any).disputed_by ?? null,
+              dispute_resolved_at: (props.viewDisputeJob as any).dispute_resolved_at ?? null,
+            }}
+            open={!!props.viewDisputeJob}
+            onClose={() => props.setViewDisputeJob(null)}
+            onUpdated={props.onRefresh}
+          />
+        </Suspense>
       )}
     </>
   );

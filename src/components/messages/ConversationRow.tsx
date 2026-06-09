@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Flag, Ban, Trash2, MoreVertical } from "lucide-react";
+import { Flag, Ban, Trash2, MoreVertical, BellOff, Bell, Pin, PinOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +25,18 @@ interface ConversationRowProps {
   setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
   setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
   setDeleteConvoConfirm: Dispatch<SetStateAction<Conversation | null>>;
+  /** Toggle the muted state of this thread for the current user.
+   *  Legacy path — used as the fast unmute action when the thread is
+   *  already muted; the row's "Mute" action prefers `onOpenMuteSheet`. */
+  onToggleMute: (convo: Conversation) => void;
+  /** Open the snooze picker (MuteSheet) targeted at this conversation. */
+  onOpenMuteSheet: (convo: Conversation) => void;
+  /** Pinned to the top of the inbox for the current session. Drives the
+   *  pin-or-unpin menu item (and is forwarded by the list to the swipe
+   *  wrapper so the right-swipe trail reads as "Unpin" on pinned rows). */
+  isPinned: boolean;
+  /** Toggle the pinned state for this conversation. */
+  onTogglePin: () => void;
 }
 
 /**
@@ -99,6 +111,10 @@ const ConversationRowBase = ({
   setReportTarget,
   setBlockTarget,
   setDeleteConvoConfirm,
+  onToggleMute,
+  onOpenMuteSheet,
+  isPinned,
+  onTogglePin,
 }: ConversationRowProps) => {
   // Relative time so the list reads as "active", not as a stack of
   // full dates.
@@ -151,6 +167,26 @@ const ConversationRowBase = ({
   const previewBody = lastIsImage
     ? "Photo"
     : (c.lastMessage || "—");
+
+  // Compact last-active label — quiet trust signal that lets a poster
+  // gauge how likely a helpr is to reply soon. Returns null beyond
+  // 7 days (the presence signal degrades from "fresh" to "stale" and
+  // we'd rather hide than mislead). Pulled from the batched
+  // `get_user_last_active` RPC in `loadConversations`.
+  const lastActiveLabel = (() => {
+    if (!c.otherUserLastActiveAt) return null;
+    const at = new Date(c.otherUserLastActiveAt);
+    const ms = Date.now() - at.getTime();
+    if (!Number.isFinite(ms) || ms < 0) return null;
+    const m = Math.floor(ms / 60_000);
+    if (m < 10) return { text: "Active now", isLive: true };
+    if (m < 60) return { text: `${m}m ago`, isLive: false };
+    const h = Math.floor(m / 60);
+    if (h < 24) return { text: `${h}h ago`, isLive: false };
+    const d = Math.floor(h / 24);
+    if (d <= 7) return { text: `${d}d ago`, isLive: false };
+    return null;
+  })();
   return (
     <div
       className="w-full text-left p-3 rounded-ds-md liquid-glass hover:shadow-md transition-shadow flex items-center gap-2.5"
@@ -205,6 +241,51 @@ const ConversationRowBase = ({
                   style={{ color: statusChip.color, backgroundColor: statusChip.bg, letterSpacing: "0.08em" }}
                 >
                   {statusChip.label}
+                </span>
+              )}
+              {/* Muted bell-slash — quiet visual mark that this thread
+                  has notifications off for the current user. iMessage
+                  convention: small icon next to the title/subtitle row,
+                  not a full pill, so a muted row reads as "still here,
+                  just quiet". */}
+              {c.isMuted && (
+                <BellOff
+                  className="w-3 h-3 shrink-0"
+                  style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                  aria-label="Muted"
+                />
+              )}
+              {/* Last-active pill — quiet trust signal so a poster knows
+                  whether the helpr is online right now. Live presence
+                  ("Active now") flips the dot to sage-green; older labels
+                  drop the dot and read as a muted timestamp. Hidden
+                  beyond 7d so a stale signal can't masquerade as live. */}
+              {lastActiveLabel && (
+                <span
+                  aria-label={`Last active ${lastActiveLabel.text}`}
+                  className="inline-flex items-center gap-1 shrink-0"
+                >
+                  {lastActiveLabel.isLive && (
+                    <span
+                      aria-hidden="true"
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{
+                        background: "hsl(155 60% 40%)",
+                        boxShadow: "0 0 4px hsl(155 60% 40% / 0.55)",
+                      }}
+                    />
+                  )}
+                  <span
+                    className="text-[0.62rem] font-serif italic"
+                    style={{
+                      color: lastActiveLabel.isLive
+                        ? "hsl(155 35% 30%)"
+                        : "hsl(var(--olivewood) / 0.55)",
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    {lastActiveLabel.text}
+                  </span>
                 </span>
               )}
             </div>
@@ -269,6 +350,36 @@ const ConversationRowBase = ({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {/* Mute / unmute — first item so the most-frequent action is
+              easiest to reach. When unmuted, opens the snooze picker so
+              "1h / 8h / until tomorrow 8 AM / forever" is one tap deep.
+              When already muted, this collapses to a fast unmute (the
+              picker has its own "Turn back on" path if a user wants to
+              extend a snooze instead). */}
+          {c.isMuted ? (
+            <DropdownMenuItem onClick={() => onToggleMute(c)}>
+              <Bell className="w-4 h-4 mr-2" /> Unmute notifications
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => onOpenMuteSheet(c)}>
+              <BellOff className="w-4 h-4 mr-2" /> Mute notifications…
+            </DropdownMenuItem>
+          )}
+          {/* Pin / Unpin — session-scoped pin to keep frequent threads
+              at the top of the inbox. Same action as the right-swipe
+              gesture, surfaced in the menu for discoverability. */}
+          <DropdownMenuItem onClick={onTogglePin}>
+            {isPinned ? (
+              <>
+                <PinOff className="w-4 h-4 mr-2" /> Unpin from top
+              </>
+            ) : (
+              <>
+                <Pin className="w-4 h-4 mr-2" /> Pin to top
+              </>
+            )}
+          </DropdownMenuItem>
+          <div role="separator" className="my-1 h-px bg-border" />
           <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: c.otherUserId })}>
             <Flag className="w-4 h-4 mr-2" /> Report user
           </DropdownMenuItem>

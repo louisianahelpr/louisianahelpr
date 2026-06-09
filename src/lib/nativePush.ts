@@ -25,6 +25,7 @@ import {
   registerServiceWorker,
   requestPushPermission as requestWebPushPermission,
 } from "@/lib/pushNotifications";
+import { normalizeDeepLinkUrl } from "@/lib/deepLinkRoute";
 
 let listenersAttached = false;
 
@@ -165,26 +166,61 @@ export function useNativePushSetup() {
         if (cancelled) return;
 
         // Universal Links / App Links — handle taps from outside the app.
-        // STRICT: only honor events whose host matches our actual Universal
-        // Links domains (see ios/App/App/App.entitlements `applinks:` entries).
-        // On TestFlight cold-install, Capacitor sometimes fires appUrlOpen
-        // with the install-source URL on initial launch — without this host
-        // guard, a stale `/login` or `/whatever` path would yank fresh-install
-        // users away from the guest dashboard they were just rendered onto.
-        const ALLOWED_HOSTS = new Set(["louisianahelpr.com", "www.louisianahelpr.com"]);
+        //
+        // Host whitelist + short-link normalization live in
+        // `@/lib/deepLinkRoute` so the routing table is unit-tested
+        // independently of Capacitor's bridge, and so the AASA path
+        // claims in public/.well-known/apple-app-site-association and
+        // the JS routing stay in sync (both files reference the same
+        // set of paths: /jobs/*, /j/*, /user/*, /u/*, /messages/*,
+        // /m/*, /legal*, /post-job*).
+        //
+        // STRICT host check: on TestFlight cold-install, Capacitor
+        // sometimes fires appUrlOpen with the install-source URL on
+        // initial launch — without the whitelist a stale `/login` or
+        // `/whatever` path would yank fresh-install users away from
+        // the guest dashboard they were just rendered onto.
         const { App } = await import("@capacitor/app");
-        await App.addListener("appUrlOpen", (event) => {
+
+        const handleIncomingUrl = (rawUrl: string) => {
           try {
-            const url = new URL(event.url);
-            track(AhaEvent.AppOpenedFromDeepLink, { host: url.host, path: url.pathname });
-            if (!ALLOWED_HOSTS.has(url.host)) return;
-            // Strip the host, keep the path + query so React Router can handle it.
-            const internal = url.pathname + url.search;
-            if (internal && internal !== "/") navigate(internal);
+            // Parse for analytics (host + raw path) even if we end up
+            // ignoring the URL — we still want to know how often
+            // foreign-host links reach the bridge.
+            let host = "";
+            let rawPath = "";
+            try {
+              const parsed = new URL(rawUrl);
+              host = parsed.host;
+              rawPath = parsed.pathname;
+            } catch { /* fall through to track('') */ }
+            track(AhaEvent.AppOpenedFromDeepLink, { host, path: rawPath });
+
+            const internal = normalizeDeepLinkUrl(rawUrl);
+            if (internal) navigate(internal);
           } catch (err) {
-            report(err, { tags: { source: "appUrlOpen" }, context: { url: event.url } });
+            report(err, { tags: { source: "appUrlOpen" }, context: { url: rawUrl } });
           }
+        };
+
+        await App.addListener("appUrlOpen", (event) => {
+          handleIncomingUrl(event.url);
         });
+
+        // Cold-launch: if the app was opened FROM a Universal Link
+        // (rather than the home-screen icon), `appUrlOpen` may have
+        // already fired before this listener was attached, or — on
+        // some iOS versions — not fired at all. Querying
+        // App.getLaunchUrl() on every boot is cheap and idempotent;
+        // resolveNativeLaunchRoute won't override us because it only
+        // intervenes when currentPath === "/" AND no navigate() has
+        // happened yet.
+        try {
+          const launch = await App.getLaunchUrl();
+          if (launch?.url) handleIncomingUrl(launch.url);
+        } catch (err) {
+          report(err, { tags: { source: "getLaunchUrl" } });
+        }
       } catch (err) {
         report(err, { tags: { source: "useNativePushSetup" } });
       }

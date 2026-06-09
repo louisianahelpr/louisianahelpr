@@ -2,9 +2,10 @@ import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticLight } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import { Send, SearchX } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
@@ -12,7 +13,10 @@ import { VirtualList } from "@/components/VirtualList";
 import { type Application, type AppliedApp, type Job } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
 import { ListFilterBar, type StatusChip } from "./ListFilterBar";
+import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
+import { bucketAppliedApp } from "@/pages/activity/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
+import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdrawAnalytics";
 
 /** Status chips for the helper's applications list — collapses the raw
  *  application/job status pair into the four states a helper thinks in. */
@@ -51,14 +55,23 @@ interface AppliedJobsTabProps {
   onHelperReview: (jobId: string, posterId: string, posterName: string) => void;
   /** Open the dispute dialog for this job — helper-initiated dispute (issue #113). */
   onDispute: (job: Job) => void;
+  /** Open the read-only timeline + follow-up evidence uploader for a
+   *  job that's already in dispute. */
+  onViewDispute: (job: Job) => void;
   onRefresh: () => void;
+  /** When true, render items grouped into collapsible Active /
+   *  Completed / Closed sections instead of a flat virtualized list.
+   *  Driven by the page-level "All" status filter; hides the in-tab
+   *  ListFilterBar in that mode. */
+  groupByStatus?: boolean;
 }
 
 export const AppliedJobsTab = ({
   apps, expandedJobId, setExpandedJobId,
   helperReviewedJobIds, latestTracking, userId, onHelperResponse,
   onComplete, completingJobId,
-  onResolveRevision, onHelperReview, onDispute, onRefresh,
+  onResolveRevision, onHelperReview, onDispute, onViewDispute, onRefresh,
+  groupByStatus = false,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
   // Client-side search + status filter over the already-loaded list.
@@ -69,7 +82,15 @@ export const AppliedJobsTab = ({
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [withdrawingAppId, setWithdrawingAppId] = useState<string | null>(null);
   // Slide-up confirmation sheet for Withdraw — friction where it matters.
-  const [withdrawTarget, setWithdrawTarget] = useState<{ appId: string; jobTitle: string } | null>(null);
+  const [withdrawTarget, setWithdrawTarget] = useState<{ appId: string; jobTitle: string; jobId?: string | null } | null>(null);
+  // Coded reason for the withdraw — fed into analytics so product can
+  // see when "schedule_conflict" spikes (calendar UX gap), or when
+  // "another_job" trends up (a healthy signal of helpers succeeding
+  // on other posts). Required before confirming; defaults to null
+  // each time the sheet opens.
+  const [withdrawReason, setWithdrawReason] = useState<WithdrawReason | null>(null);
+  // Optional free-text — only required when reason === "other".
+  const [withdrawDetail, setWithdrawDetail] = useState("");
   const [uploadingAttachment, setUploadingAttachment] = useState<string | null>(null);
   const [editingMessageAppId, setEditingMessageAppId] = useState<string | null>(null);
   const [editMessageText, setEditMessageText] = useState("");
@@ -86,17 +107,27 @@ export const AppliedJobsTab = ({
 
   const confirmWithdraw = useCallback(async () => {
     if (!withdrawTarget) return;
-    const { appId, jobTitle } = withdrawTarget;
+    if (!withdrawReason) { hapticError(); toast.error("Pick a reason first"); return; }
+    if (withdrawReason === "other" && withdrawDetail.trim().length < 3) {
+      hapticError();
+      toast.error("Add a short reason");
+      return;
+    }
+    const { appId, jobTitle, jobId } = withdrawTarget;
     setWithdrawingAppId(appId);
     const { error } = await supabase.from("applications").delete().eq("id", appId).eq("helper_id", userId);
     if (error) {
       toast.error("Couldn't withdraw that one — give it another try?");
     } else {
+      // Best-effort log — fire-and-forget, never blocks the toast.
+      logWithdrawReason(appId, { reason: withdrawReason, detail: withdrawDetail }, jobId);
       toast.success(`Withdrawn from "${jobTitle}".`);
     }
     setWithdrawingAppId(null);
     setWithdrawTarget(null);
-  }, [withdrawTarget, userId]);
+    setWithdrawReason(null);
+    setWithdrawDetail("");
+  }, [withdrawTarget, userId, withdrawReason, withdrawDetail]);
 
   const handleAddAttachment = useCallback(async (appId: string, jobId: string, currentUrls: string[], file: File) => {
     if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
@@ -133,6 +164,50 @@ export const AppliedJobsTab = ({
     });
   }, [apps, searchQuery, statusFilter]);
 
+  // One source of truth for the per-row render so both the flat
+  // VirtualList view and the grouped Sectioned view paint identical
+  // cards.
+  const renderAppliedCard = (app: AppliedApp) => (
+    <AppliedJobCard
+      app={app}
+      expandedJobId={expandedJobId}
+      setExpandedJobId={setExpandedJobId}
+      helperReviewedJobIds={helperReviewedJobIds}
+      // `latestTracking[app.job_id]` may legitimately be `null`
+      // ("we looked, no row exists") — the card forwards that into
+      // <JobTracking> so it skips its own initial fetch. If the
+      // job_id key is absent (not pre-fetched), JobTracking falls
+      // back to its own query.
+      initialTracking={latestTracking[app.job_id]}
+      userId={userId}
+      onHelperResponse={onHelperResponse}
+      onComplete={onComplete}
+      completingJobId={completingJobId}
+      onResolveRevision={onResolveRevision}
+      onHelperReview={onHelperReview}
+      onDispute={onDispute}
+      onViewDispute={onViewDispute}
+      onRefresh={onRefresh}
+      disputeResponse={disputeResponse}
+      setDisputeResponse={setDisputeResponse}
+      respondingJobId={respondingJobId}
+      setRespondingJobId={setRespondingJobId}
+      submittingResponse={submittingResponse}
+      setSubmittingResponse={setSubmittingResponse}
+      withdrawingAppId={withdrawingAppId}
+      setWithdrawTarget={setWithdrawTarget}
+      uploadingAttachment={uploadingAttachment}
+      editingMessageAppId={editingMessageAppId}
+      setEditingMessageAppId={setEditingMessageAppId}
+      editMessageText={editMessageText}
+      setEditMessageText={setEditMessageText}
+      savingMessage={savingMessage}
+      handleSaveMessage={handleSaveMessage}
+      handleAddAttachment={handleAddAttachment}
+      handleRemoveAttachment={handleRemoveAttachment}
+    />
+  );
+
   if (apps.length === 0) {
     return (
       <div
@@ -160,7 +235,19 @@ export const AppliedJobsTab = ({
     );
   }
 
-  return (
+  // Grouped view — driven by the page's "All" status filter. Uses
+  // "Closed" as the third-section label since helper-side rejections
+  // and cancelled jobs collapse into the same bucket.
+  const listView = groupByStatus ? (
+    <ActivitySectionedView
+      tab="applied"
+      items={apps}
+      getKey={(app) => app.id}
+      bucketize={bucketAppliedApp}
+      renderItem={renderAppliedCard}
+      labels={{ cancelled: "Closed" }}
+    />
+  ) : (
     <>
       <ListFilterBar
         searchQuery={searchQuery}
@@ -185,50 +272,30 @@ export const AppliedJobsTab = ({
         estimateSize={260}
         overscan={4}
         itemClassName="pb-3"
-        renderItem={(app) => (
-          <AppliedJobCard
-            app={app}
-            expandedJobId={expandedJobId}
-            setExpandedJobId={setExpandedJobId}
-            helperReviewedJobIds={helperReviewedJobIds}
-            // `latestTracking[app.job_id]` may legitimately be `null`
-            // ("we looked, no row exists") — the card forwards that into
-            // <JobTracking> so it skips its own initial fetch. If the
-            // job_id key is absent (not pre-fetched), JobTracking falls
-            // back to its own query.
-            initialTracking={latestTracking[app.job_id]}
-            userId={userId}
-            onHelperResponse={onHelperResponse}
-            onComplete={onComplete}
-            completingJobId={completingJobId}
-            onResolveRevision={onResolveRevision}
-            onHelperReview={onHelperReview}
-            onDispute={onDispute}
-            onRefresh={onRefresh}
-            disputeResponse={disputeResponse}
-            setDisputeResponse={setDisputeResponse}
-            respondingJobId={respondingJobId}
-            setRespondingJobId={setRespondingJobId}
-            submittingResponse={submittingResponse}
-            setSubmittingResponse={setSubmittingResponse}
-            withdrawingAppId={withdrawingAppId}
-            setWithdrawTarget={setWithdrawTarget}
-            uploadingAttachment={uploadingAttachment}
-            editingMessageAppId={editingMessageAppId}
-            setEditingMessageAppId={setEditingMessageAppId}
-            editMessageText={editMessageText}
-            setEditMessageText={setEditMessageText}
-            savingMessage={savingMessage}
-            handleSaveMessage={handleSaveMessage}
-            handleAddAttachment={handleAddAttachment}
-            handleRemoveAttachment={handleRemoveAttachment}
-          />
-        )}
+        renderItem={renderAppliedCard}
       />
       )}
+    </>
+  );
 
-      {/* Withdraw confirmation — slide-up sheet with dimmed backdrop. */}
-      <Sheet open={!!withdrawTarget} onOpenChange={(open) => { if (!open) setWithdrawTarget(null); }}>
+  return (
+    <>
+      {listView}
+
+      {/* Withdraw confirmation — slide-up sheet with dimmed backdrop.
+          Asks for a reason BEFORE confirming so the helper has to think
+          about why for a beat (gentle friction) and so product gets a
+          coded reason mix for the funnel without a custom event. */}
+      <Sheet
+        open={!!withdrawTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setWithdrawTarget(null);
+            setWithdrawReason(null);
+            setWithdrawDetail("");
+          }
+        }}
+      >
         <SheetContent
           side="bottom"
           className="rounded-t-[20px] border-t-0 px-5 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)_+_24px)]"
@@ -240,18 +307,70 @@ export const AppliedJobsTab = ({
               Withdraw Application?
             </SheetTitle>
             <SheetDescription className="text-ds-11 text-muted-foreground leading-relaxed">
-              Withdrawing will remove you from consideration for{" "}
+              You'll be removed from consideration for{" "}
               <span className="font-medium text-foreground">"{withdrawTarget?.jobTitle}"</span>.
               You can re-apply later if the position is still open.
             </SheetDescription>
           </SheetHeader>
 
-          <div className="mt-6 space-y-2.5">
+          <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>
+            <legend
+              className="font-serif italic uppercase block mb-1.5"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              Why are you withdrawing?
+            </legend>
+            <div className="grid grid-cols-2 gap-1.5">
+              {([
+                { value: "another_job", label: "Got another job" },
+                { value: "schedule_conflict", label: "Schedule conflict" },
+                { value: "no_longer_interested", label: "No longer interested" },
+                { value: "other", label: "Other" },
+              ] as Array<{ value: WithdrawReason; label: string }>).map(({ value, label }) => {
+                const active = withdrawReason === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      hapticLight();
+                      setWithdrawReason(value);
+                      if (value !== "other") setWithdrawDetail("");
+                    }}
+                    aria-pressed={active}
+                    className={`px-3 py-2 rounded-ds-md text-[12.5px] font-medium transition-all active:scale-[0.97] ${
+                      active
+                        ? "bg-primary/10 text-primary border border-primary/35"
+                        : "bg-white text-foreground border border-border/60 hover:bg-secondary/40"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            {withdrawReason === "other" && (
+              <Textarea
+                value={withdrawDetail}
+                onChange={(e) => setWithdrawDetail(e.target.value.slice(0, 240))}
+                placeholder="Tell us briefly — helps us improve helpr."
+                rows={2}
+                aria-label="Withdraw reason — other"
+                className="mt-2 rounded-ds-md bg-white border-border/60 focus-visible:border-primary/40 text-[14px] leading-relaxed resize-none"
+              />
+            )}
+          </fieldset>
+
+          <div className="mt-5 space-y-2.5">
             <Button
               size="lg"
               variant="destructive"
               className="w-full rounded-ds-md btn-press text-ds-15 font-semibold"
-              disabled={!!withdrawingAppId}
+              disabled={
+                !!withdrawingAppId ||
+                !withdrawReason ||
+                (withdrawReason === "other" && withdrawDetail.trim().length < 3)
+              }
               onClick={confirmWithdraw}
             >
               {withdrawingAppId ? "Withdrawing…" : "Confirm Withdrawal"}
@@ -261,7 +380,11 @@ export const AppliedJobsTab = ({
               variant="ghost"
               className="w-full rounded-ds-md btn-press text-ds-15 font-medium text-muted-foreground hover:text-foreground"
               disabled={!!withdrawingAppId}
-              onClick={() => setWithdrawTarget(null)}
+              onClick={() => {
+                setWithdrawTarget(null);
+                setWithdrawReason(null);
+                setWithdrawDetail("");
+              }}
             >
               Keep My Application
             </Button>

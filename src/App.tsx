@@ -23,6 +23,9 @@ import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import ScrollToTop from "@/components/ScrollToTop";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
+import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
+import { useVersionCheck } from "@/hooks/useVersionCheck";
+const ForceUpdate = lazy(() => import("@/components/ForceUpdate"));
 
 // Toaster, Sonner and TooltipProvider pull in sonner + @radix-ui/react-toast +
 // @radix-ui/react-tooltip + @floating-ui (~14 KB gzipped of
@@ -75,6 +78,7 @@ const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 // Lazy load less-critical global components
 
 const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
+const ImpersonationBanner = lazy(() => import("./components/ImpersonationBanner"));
 
 // Lazy load route wrappers
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
@@ -220,7 +224,28 @@ const SessionManager = () => {
   useDynamicTypeSync();
   useCppVariantRouter();
   useAppShellViewport();
+  useStatusBarStyle();
   return null;
+};
+
+/**
+ * Top-level gate: when the installed native binary is older than the
+ * minimum supported build, render the full-screen `<ForceUpdate />`
+ * instead of the app. The check is a no-op on web and when
+ * `MIN_SUPPORTED_BUILD` is still its default of 0 (see useVersionCheck).
+ * Lives inside BrowserRouter so the children of the gate still see the
+ * router (the blocker itself does not need it).
+ */
+const ForceUpdateGate = ({ children }: { children: ReactElement }) => {
+  const { forceUpdate } = useVersionCheck();
+  if (forceUpdate) {
+    return (
+      <Suspense fallback={null}>
+        <ForceUpdate />
+      </Suspense>
+    );
+  }
+  return children;
 };
 
 /**
@@ -320,12 +345,17 @@ const App = () => (
             the page content (AppShell reads the offset to reserve space).
             See src/lib/offlineBannerLayout.tsx. */}
         <OfflineBannerLayoutProvider>
+          <ForceUpdateGate>
+          <>
           <ScrollToTop />
           <SessionManager />
           <NativeLaunchRouter />
           <OfflineBanner />
           <Suspense fallback={null}>
             <StrikeBanner />
+          </Suspense>
+          <Suspense fallback={null}>
+            <ImpersonationBanner />
           </Suspense>
           <main
             id="main-content"
@@ -338,6 +368,8 @@ const App = () => (
             <PermissionRationaleDialog />
           </Suspense>
           <SpeedInsightsRouted />
+          </>
+          </ForceUpdateGate>
         </OfflineBannerLayoutProvider>
       </BrowserRouter>
       <Analytics />

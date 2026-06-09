@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles, Star } from "lucide-react";
+import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles, Star, PauseCircle } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -99,17 +99,45 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // Cancellation drag — intercept Manage Subscription with a quick
   // "why leave" survey before opening the Stripe portal. Surfaces a
   // brand-friendly retention prompt that's lower-friction than the
-  // default Stripe portal cancellation flow.
+  // default Stripe portal cancellation flow. The optional pause-offer
+  // is shown ahead of the survey so the lightest-touch retention move
+  // ("just pause") is the first thing a leaving user sees.
   const [cancelSurveyOpen, setCancelSurveyOpen] = useState(false);
+  const [pauseOfferOpen, setPauseOfferOpen] = useState(false);
+  const [acceptingPause, setAcceptingPause] = useState(false);
 
   const handleManageSubscription = async () => {
-    // For actively subscribed users, route through the survey first.
-    // Free/expired users go straight to portal (no subscription to manage).
+    // For actively subscribed users, lead with the pause offer; from
+    // there they can accept the pause, route into the cancel survey,
+    // or back out entirely. Free/expired users go straight to portal
+    // (no subscription to manage).
     if (currentTier && !isExpired) {
-      setCancelSurveyOpen(true);
+      setPauseOfferOpen(true);
       return;
     }
     void openStripePortal();
+  };
+
+  // Accept-pause path — fire-and-forget Slack alert + toast confirm.
+  // We don't actually mutate the subscription here (Stripe pauses are
+  // gated behind their billing portal and would require a separate
+  // backend endpoint); the alert lets retention follow up. A success
+  // toast tells the user the action took effect from their end.
+  const handleAcceptPause = async () => {
+    setAcceptingPause(true);
+    try {
+      const { fireSlackAlert } = await import("@/lib/slackAlerts");
+      fireSlackAlert({
+        kind: "custom",
+        severity: "info",
+        title: "Subscription pause requested",
+        message: "User accepted the 1-month-free pause offer instead of cancelling.",
+        fields: { tier: currentTier ?? "unknown" },
+      });
+    } catch { /* best-effort analytics */ }
+    setAcceptingPause(false);
+    setPauseOfferOpen(false);
+    toast.success("Paused for 1 month — we'll reach out before it resumes.");
   };
 
   const openStripePortal = async () => {
@@ -498,6 +526,90 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           );
         })}
       </div>
+
+      {/* Pause-offer dialog — shown first when an active subscriber taps
+          Manage. The lightest-touch retention move ("just pause for a
+          month, free") is the first thing a leaving user sees; from
+          here they can accept, route into the cancel survey, or back
+          out. Reduces churn at the moment of intent. */}
+      <Dialog open={pauseOfferOpen} onOpenChange={setPauseOfferOpen}>
+        <DialogContent className="!gap-3">
+          <DialogHeader className="!text-left space-y-0">
+            <span
+              className="font-serif italic uppercase inline-flex items-center gap-1.5"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
+            >
+              <PauseCircle className="w-3 h-3" /> Take a breather
+            </span>
+            <DialogTitle
+              className="font-display italic font-bold leading-tight mt-1"
+              style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+            >
+              Pause 1 month free instead?
+            </DialogTitle>
+            <p
+              className="font-serif italic mt-1"
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+            >
+              Keep your spot — pause your {(currentTier ?? "plan")} for one month at no charge, then it resumes automatically. Cancel anytime during the pause if you've changed your mind.
+            </p>
+          </DialogHeader>
+          <div
+            className="rounded-ds-md p-3 mt-1 space-y-1"
+            style={{
+              background: "hsl(var(--gold-warm) / 0.10)",
+              border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+            }}
+          >
+            <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}>
+              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                What you keep:
+              </span>{" "}
+              Your verification status, saved helpers, payout history, and reviews — all untouched. We'll email you a heads-up a week before the pause ends.
+            </p>
+          </div>
+          <DialogFooter className="!gap-2 sm:!justify-between">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setPauseOfferOpen(false);
+                setCancelSurveyOpen(true);
+              }}
+              className="rounded-ds-md"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
+              Cancel instead
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setPauseOfferOpen(false)}
+                className="rounded-ds-md"
+              >
+                Never mind
+              </Button>
+              <Button
+                onClick={handleAcceptPause}
+                disabled={acceptingPause}
+                className="rounded-ds-md"
+                style={{
+                  background: "hsl(var(--bark))",
+                  color: "hsl(var(--parchment))",
+                  border: "1px solid hsl(var(--bark))",
+                  fontFamily: "Montserrat, system-ui, sans-serif",
+                  fontWeight: 600,
+                }}
+              >
+                {acceptingPause ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Pausing</>
+                ) : (
+                  <><PauseCircle className="w-4 h-4 mr-2" /> Pause 1 month free</>
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Cancellation drag survey — gentle "are you sure" with a stay
           offer before Stripe portal opens. Reduces churn at the

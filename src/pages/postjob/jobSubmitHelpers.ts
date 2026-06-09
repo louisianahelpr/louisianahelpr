@@ -39,6 +39,14 @@ export interface BuildJobInsertPayloadInput {
   platformFee: number | null;
   salesTaxRate: number;
   offerToHelperId: string | null;
+  /** Cost-center / department label set by business-account posters.
+      Persisted to jobs.department (migration 20260609170000). */
+  department?: string | null;
+  /** Initial status — defaults to undefined (= DB default 'open') so we
+      keep the historic behavior. The PostJob flow sets this to
+      'pending_approval' when the business's `require_approval_above`
+      threshold is crossed. */
+  initialStatus?: "open" | "pending_approval";
 }
 
 /**
@@ -93,6 +101,8 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     platformFee,
     salesTaxRate,
     offerToHelperId,
+    department,
+    initialStatus,
   } = input;
 
   // Expire listing at the job date/time (removed when a helpr is selected or on the day of the job)
@@ -133,6 +143,17 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     platform_fee_amount: lockedFeeAmount,
     sales_tax_rate: lockedSalesTaxRate,
     sales_tax_amount: lockedSalesTaxAmount,
+    // jobs.department + jobs.status — both ship in migration
+    // 20260609170000. Cast through `any` because the generated Supabase
+    // types haven't picked them up yet, and don't include the keys at
+    // all when they're undefined so a pre-migration prod still accepts
+    // the insert.
+    ...(department && department.trim()
+      ? ({ department: department.trim() } as Record<string, unknown>)
+      : {}),
+    ...(initialStatus === "pending_approval"
+      ? ({ status: "pending_approval" } as Record<string, unknown>)
+      : {}),
     ...(offerToHelperId
       ? {
           offered_to_helper_id: offerToHelperId,
@@ -140,5 +161,5 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
           direct_offer_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         }
       : {}),
-  };
+  } as JobInsertPayload;
 }

@@ -23,7 +23,39 @@
 // invoked by edge functions and DB triggers via service_role.
 //
 // ── Body shape ───────────────────────────────────────────────────────
-//   { user_id, title, body, link?, thread_id?, badge? }
+//   { user_id, title, body, link?, thread_id?, badge?,
+//     media_url?, category?, time_sensitive? }
+//
+// ── Rich-notification fields ─────────────────────────────────────────
+//   media_url        — URL to a thumbnail image. Sent as a `media-url`
+//                      key inside the APNs custom payload AND triggers
+//                      `mutable-content: 1` so an iOS Notification
+//                      Service Extension (NSE) can fetch + attach it
+//                      before the system renders the notification.
+//                      NOTE: Capacitor doesn't ship an NSE by default —
+//                      the host iOS app must add one (see
+//                      docs/ios-rich-notifications.md follow-up) for
+//                      the thumbnail to actually render. Without an NSE
+//                      the push still fires; the thumbnail is just
+//                      silently dropped client-side. FCM v1 takes the
+//                      same URL via `notification.image` and Android
+//                      renders it natively, no extension needed.
+//   category         — APNs category identifier that maps to a set of
+//                      action buttons registered on the iOS side
+//                      (UNNotificationCategory). Common values:
+//                        "JOB_APPLY"    → Apply, Save
+//                        "MESSAGE"      → Reply (text input)
+//                        "JOB_ACCEPTED" → Message, View
+//                      If not supplied, the function infers one from
+//                      `link` heuristics (e.g. /messages → MESSAGE).
+//                      iOS-side category registration is a follow-up.
+//   time_sensitive   — When true, APNs payload sets
+//                      `interruption-level: "time-sensitive"` so the
+//                      notification can break through Focus / Silent
+//                      modes. Requires the host app's iOS entitlement
+//                      `com.apple.developer.usernotifications.time-sensitive`
+//                      (see Apple's docs). Without the entitlement the
+//                      flag is silently ignored.
 //
 // ── Returns ──────────────────────────────────────────────────────────
 //   { sent: N, failed: M, no_tokens: bool, ios?: {...}, android?: {...} }
@@ -36,6 +68,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Action-button category identifiers. The actual UNNotificationCategory
+// + UNNotificationAction registration happens on the iOS side (typically
+// in AppDelegate or a Capacitor plugin). The strings below are the
+// contract — both sides must agree on the spelling.
+//
+//   JOB_APPLY    → Apply, Save           (browse-notifications)
+//   MESSAGE      → Reply (text input)    (incoming chat messages)
+//   JOB_ACCEPTED → Message, View         (application accepted)
+//
+// Future categories should be added here AND registered on the iOS
+// side; an unknown category falls back to a tappable notification with
+// no action buttons (no error — APNs ignores unknown identifiers).
+type PushCategory = 'JOB_APPLY' | 'MESSAGE' | 'JOB_ACCEPTED'
+
 interface PushPayload {
   user_id: string
   title: string
@@ -43,6 +89,25 @@ interface PushPayload {
   link?: string
   thread_id?: string
   badge?: number
+  // Rich-notification additions — all optional, all backward-compatible
+  // with callers that only send the basic fields.
+  media_url?: string
+  category?: PushCategory
+  time_sensitive?: boolean
+}
+
+// Infer a category from the payload's link when the caller didn't set
+// one explicitly. Keeps existing callers (DB triggers, edge functions)
+// working without a code change while still picking up sensible action
+// buttons. Returns undefined when no inference applies — callers can
+// always override by passing `category` explicitly.
+function inferCategory(payload: PushPayload): PushCategory | undefined {
+  if (payload.category) return payload.category
+  const link = payload.link?.toLowerCase() ?? ''
+  if (link.startsWith('/messages') || link.includes('/messages/')) return 'MESSAGE'
+  if (link.includes('/jobs/') && link.includes('accepted')) return 'JOB_ACCEPTED'
+  if (link.startsWith('/jobs/') || link.startsWith('/dashboard')) return 'JOB_APPLY'
+  return undefined
 }
 
 interface PushToken {
@@ -83,14 +148,33 @@ async function sendApnsOne(
   deviceToken: string,
   payload: PushPayload,
 ): Promise<{ ok: true } | { ok: false; status: number; reason: string; isInvalidToken: boolean }> {
+  const category = inferCategory(payload)
+  // `mutable-content: 1` lets the iOS Notification Service Extension
+  // wake up before the system renders the notification — it can fetch
+  // `media-url`, write it to disk, and attach via UNNotificationAttachment
+  // so the thumbnail shows in the alert. Without an NSE the flag is a
+  // no-op; the notification still fires sans thumbnail.
+  const hasMedia = !!payload.media_url
+  // Time-sensitive interruption level breaks through Focus / Silent
+  // modes. Requires the host iOS app to declare the
+  // `com.apple.developer.usernotifications.time-sensitive` entitlement.
+  // Without the entitlement APNs silently ignores the level.
+  const timeSensitive = payload.time_sensitive === true
   const apsBody = {
     aps: {
       alert: { title: payload.title, body: payload.body },
       sound: 'default',
       ...(payload.thread_id ? { 'thread-id': payload.thread_id } : {}),
       ...(typeof payload.badge === 'number' ? { badge: payload.badge } : {}),
+      ...(category ? { category } : {}),
+      ...(hasMedia ? { 'mutable-content': 1 } : {}),
+      ...(timeSensitive ? { 'interruption-level': 'time-sensitive' } : {}),
     },
     ...(payload.link ? { link: payload.link } : {}),
+    // Custom keys outside `aps` survive APNs delivery and reach the NSE
+    // / didReceive handler verbatim. The NSE reads `media-url`, downloads
+    // it, and attaches the result before calling its content handler.
+    ...(payload.media_url ? { 'media-url': payload.media_url } : {}),
   }
 
   const res = await fetch(`https://${apnsHost}/3/device/${deviceToken}`, {
@@ -180,14 +264,25 @@ async function sendFcmOne(
   deviceToken: string,
   payload: PushPayload,
 ): Promise<{ ok: true } | { ok: false; status: number; reason: string; isInvalidToken: boolean }> {
+  const category = inferCategory(payload)
+  // Carry rich-notification fields in `data` so the Capacitor receiver
+  // (or a Notification Trampoline) can read them on tap. FCM v1's
+  // `notification.image` is the canonical thumbnail field on Android —
+  // it renders natively, no extension needed (unlike iOS NSE).
   const message: Record<string, unknown> = {
     token: deviceToken,
-    notification: { title: payload.title, body: payload.body },
-    ...(payload.link || payload.thread_id
+    notification: {
+      title: payload.title,
+      body: payload.body,
+      ...(payload.media_url ? { image: payload.media_url } : {}),
+    },
+    ...(payload.link || payload.thread_id || payload.media_url || category
       ? {
           data: {
             ...(payload.link ? { link: payload.link } : {}),
             ...(payload.thread_id ? { thread_id: payload.thread_id } : {}),
+            ...(payload.media_url ? { media_url: payload.media_url } : {}),
+            ...(category ? { category } : {}),
           },
         }
       : {}),
@@ -196,6 +291,8 @@ async function sendFcmOne(
       notification: {
         sound: 'default',
         ...(payload.thread_id ? { tag: payload.thread_id } : {}),
+        ...(payload.media_url ? { image: payload.media_url } : {}),
+        ...(category ? { click_action: category } : {}),
       },
     },
   }
@@ -250,6 +347,41 @@ async function mapWithConcurrency<T, R>(
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// Quiet hours
+// ─────────────────────────────────────────────────────────────────────
+
+// Parse a Postgres `time` value (typically `HH:MM:SS` or `HH:MM`) into
+// minutes-since-midnight. Returns NaN for unparseable input so the
+// caller can fail-open.
+function timeToMinutes(t: string): number {
+  const parts = t.split(':')
+  if (parts.length < 2) return NaN
+  const h = Number(parts[0])
+  const m = Number(parts[1])
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return NaN
+  return h * 60 + m
+}
+
+// Test whether `now` falls inside the [quietStart, quietEnd) window.
+// The window may cross midnight (e.g. 22:00 → 07:00), in which case
+// "inside" means now >= start OR now < end. Times are evaluated in UTC
+// since no per-user timezone is stored.
+export function isInQuietHours(quietStart: string, quietEnd: string, now: Date): boolean {
+  const startMin = timeToMinutes(quietStart)
+  const endMin = timeToMinutes(quietEnd)
+  if (!Number.isFinite(startMin) || !Number.isFinite(endMin)) return false
+  // Equal start/end → empty window (no quiet hours).
+  if (startMin === endMin) return false
+  const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes()
+  if (startMin < endMin) {
+    // Same-day window, e.g. 13:00 → 14:00.
+    return nowMin >= startMin && nowMin < endMin
+  }
+  // Crosses midnight, e.g. 22:00 → 07:00.
+  return nowMin >= startMin || nowMin < endMin
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Main handler
 // ─────────────────────────────────────────────────────────────────────
 
@@ -301,6 +433,40 @@ Deno.serve(async (req) => {
   }
 
   const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey)
+
+  // ── Quiet hours gate ──────────────────────────────────────────────
+  // Honor notification_preferences.quiet_start / quiet_end. If both
+  // are set AND the current time falls inside the window, skip the
+  // push entirely. The in-app notification row is already written by
+  // the caller (the public.notifications INSERT that fires this
+  // function via the fan_out_push_on_notification trigger), so the
+  // user still sees the notification when they open the app — we're
+  // only suppressing the device push.
+  //
+  // Timezone: no per-user timezone is stored, so we evaluate the
+  // window in UTC (per the task spec). If reading prefs fails, we
+  // fail-open and send the push rather than swallow it.
+  const { data: quietPrefs, error: quietErr } = await supabase
+    .from('notification_preferences')
+    .select('quiet_start, quiet_end')
+    .eq('user_id', payload.user_id)
+    .maybeSingle()
+  if (quietErr) {
+    console.warn('Failed to load quiet-hours prefs — failing open', quietErr)
+  } else if (quietPrefs?.quiet_start && quietPrefs?.quiet_end) {
+    if (isInQuietHours(quietPrefs.quiet_start, quietPrefs.quiet_end, new Date())) {
+      console.log('In quiet hours — skipping push', {
+        user_id: payload.user_id,
+        quiet_start: quietPrefs.quiet_start,
+        quiet_end: quietPrefs.quiet_end,
+      })
+      return new Response(
+        JSON.stringify({ sent: 0, failed: 0, no_tokens: false, skipped: 'quiet_hours' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+  }
+
   const { data: rawTokens, error: tokenErr } = await supabase
     .from('push_tokens')
     .select('id, token, platform')

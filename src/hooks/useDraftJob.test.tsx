@@ -115,7 +115,7 @@ describe("useDraftJob — saveDraft (debounced write)", () => {
     expect(result.current.hasDraft).toBe(true);
   });
 
-  it("debounces writes — does NOT call setItem until 1000ms passes", () => {
+  it("debounces writes — does NOT call setItem until 5000ms passes", () => {
     const { result } = renderHook(() => useDraftJob());
     act(() => {
       result.current.saveDraft({ title: "T" });
@@ -123,7 +123,7 @@ describe("useDraftJob — saveDraft (debounced write)", () => {
     expect(setItemMock).not.toHaveBeenCalled();
 
     act(() => {
-      vi.advanceTimersByTime(999);
+      vi.advanceTimersByTime(4999);
     });
     expect(setItemMock).not.toHaveBeenCalled();
 
@@ -145,7 +145,7 @@ describe("useDraftJob — saveDraft (debounced write)", () => {
     expect(result.current.draft.budget).toBe("100");
 
     act(() => {
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(5000);
     });
     expect(setItemMock).toHaveBeenCalledOnce();
     const savedJson = setItemMock.mock.calls[0][1];
@@ -161,19 +161,19 @@ describe("useDraftJob — saveDraft (debounced write)", () => {
       result.current.saveDraft({ title: "T1" });
     });
     act(() => {
-      vi.advanceTimersByTime(800);
+      vi.advanceTimersByTime(4000);
     });
-    // 200ms remaining — but a new save resets the clock
+    // 1000ms remaining — but a new save resets the clock
     act(() => {
       result.current.saveDraft({ title: "T2" });
     });
     act(() => {
-      vi.advanceTimersByTime(800);
+      vi.advanceTimersByTime(4000);
     });
     expect(setItemMock).not.toHaveBeenCalled();
 
     act(() => {
-      vi.advanceTimersByTime(200);
+      vi.advanceTimersByTime(1000);
     });
     expect(setItemMock).toHaveBeenCalledOnce();
     const saved = JSON.parse(setItemMock.mock.calls[0][1]);
@@ -226,7 +226,7 @@ describe("useDraftJob — clearDraft", () => {
       result.current.clearDraft();
     });
     act(() => {
-      vi.advanceTimersByTime(2000);
+      vi.advanceTimersByTime(10_000); // way past the debounce window
     });
     // setItem should NOT have fired — the timer was cancelled
     expect(setItemMock).not.toHaveBeenCalled();

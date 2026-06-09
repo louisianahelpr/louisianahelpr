@@ -80,16 +80,41 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
         if (urlData?.signedUrl) evidenceUrls.push(urlData.signedUrl);
       }
 
-      // Update job status to disputed
-      const { error } = await supabase.from("jobs").update({
-        status: disputedStatus,
-        dispute_reason: `${DISPUTE_REASONS.find((r) => r.value === reason)?.label}: ${details}`.trim(),
-        dispute_evidence_urls: evidenceUrls,
-        disputed_at: new Date().toISOString(),
-        disputed_by: userId,
-      }).eq("id", jobId);
+      const reasonText = `${DISPUTE_REASONS.find((r) => r.value === reason)?.label}: ${details}`.trim();
 
-      if (error) throw error;
+      // Prefer the formal rpc_open_dispute path (writes a dedicated
+      // disputes row + mirrors onto the legacy jobs.dispute_* columns
+      // + flips job.status to 'disputed'). Migrations don't auto-deploy
+      // (see CLAUDE.md), so when the RPC isn't pushed yet we fall back
+      // to the prior direct-update path so the feature isn't broken
+      // between merge and `supabase db push`.
+      //
+      // Cast through `any` until the next `supabase gen types` lands —
+      // this RPC is added in migration 20260609140000 which hasn't been
+      // reflected in `src/integrations/supabase/types.ts` yet.
+      const { error: rpcError } = await (supabase.rpc as any)(
+        "rpc_open_dispute",
+        { _job_id: jobId, _reason: reasonText, _evidence_urls: evidenceUrls },
+      );
+
+      if (rpcError && rpcError.code !== "PGRST202") {
+        throw rpcError;
+      }
+
+      if (rpcError?.code === "PGRST202") {
+        // Fallback — RPC not deployed yet. Direct-update the legacy
+        // columns so the disputed state is still surfaced everywhere
+        // that reads from `jobs`.
+        const { error } = await supabase.from("jobs").update({
+          status: disputedStatus,
+          dispute_reason: reasonText,
+          dispute_evidence_urls: evidenceUrls,
+          disputed_at: new Date().toISOString(),
+          disputed_by: userId,
+        }).eq("id", jobId);
+
+        if (error) throw error;
+      }
 
       // Bulk-fan to admins in one INSERT.
       const { data: adminRoles, error: adminRolesError } = await supabase.from("user_roles").select("user_id").eq("role", "admin");

@@ -31,6 +31,7 @@ import {
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
+import SectionBoundary from "@/components/SectionBoundary";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 const SecurityTab = lazy(() => import("@/components/profile/SecurityTab").then(m => ({ default: m.SecurityTab })));
 const JobListTab = lazy(() => import("@/components/profile/JobListTab").then(m => ({ default: m.JobListTab })));
@@ -40,8 +41,11 @@ const SavedHelpersTab = lazy(() => import("@/components/profile/SavedHelpersTab"
 const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab").then(m => ({ default: m.SubscriptionTab })));
 const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));
 const EarningsTab = lazy(() => import("@/components/profile/EarningsTab").then(m => ({ default: m.EarningsTab })));
-const ScheduleTab = lazy(() => import("@/components/profile/ScheduleTab").then(m => ({ default: m.ScheduleTab })));
-const AvailabilityTab = lazy(() => import("@/components/profile/AvailabilityTab").then(m => ({ default: m.AvailabilityTab })));
+// Schedule + Availability merged into a single tab with a sub-toggle
+// (handoff item #22). Deep links to /schedule and /availability still
+// resolve via App.tsx redirects → /profile?tab=schedule|availability;
+// the merged tab uses the initial `tab` value to pick its sub-view.
+const ScheduleAvailabilityTab = lazy(() => import("@/components/profile/ScheduleAvailabilityTab").then(m => ({ default: m.ScheduleAvailabilityTab })));
 const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));
 const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
@@ -121,7 +125,10 @@ const ProfilePage = () => {
   // the reviews tab — gating on either shares one cached fetch.
   const reviewsQuery = useProfileReviews(userId, tab === "landing" || tab === "reviews");
   const earningsQuery = useProfileEarnings(userId, tab === "earnings" || tab === "payment");
-  const scheduleQuery = useProfileSchedule(userId, tab === "schedule");
+  // Schedule data drives the merged Schedule + Availability tab — gate
+  // on either sub-view so the calendar grid is hot the moment the user
+  // flips the internal toggle from Hours → Calendar.
+  const scheduleQuery = useProfileSchedule(userId, tab === "schedule" || tab === "availability");
   const inlineJobsQuery = useProfileInlineJobs(userId, tab === "posted_jobs" || tab === "completed_jobs");
   const violationsQuery = useProfileViolations(userId, tab === "warnings");
 
@@ -432,8 +439,14 @@ const ProfilePage = () => {
             />
           </PullToRefreshWrapper>
         ) : (
-          /* Non-landing tabs — own inner scroll surface. */
+          /* Non-landing tabs — own inner scroll surface. The
+             SectionBoundary keyed on `tab` isolates a render error in
+             any one tab so it never red-screens the profile chrome
+             (header, back button, tab list). The boundary is rebuilt
+             every time the user switches tabs so the previous tab's
+             error state is cleared automatically. */
           <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]">
+          <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
 
           {/* PROFILE TAB */}
           {tab === "profile" && (
@@ -487,21 +500,23 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {tab === "schedule" && user && (
+          {(tab === "schedule" || tab === "availability") && user && (
             <div className="space-y-3">
-              {scheduleQuery.isError && (
+              {scheduleQuery.isError && tab === "schedule" && (
                 <ProfileSectionError section="your schedule" onRetry={() => { scheduleQuery.refetch(); }} />
               )}
               <Suspense fallback={<TabFallback />}>
-                <ScheduleTab postedJobs={schedulePostedJobs} assignedJobs={scheduleAssignedJobs} loading={scheduleQuery.isPending} userId={user.id} onBack={() => setTab("landing")} />
+                <ScheduleAvailabilityTab
+                  initialView={tab === "availability" ? "availability" : "calendar"}
+                  onSubViewChange={(v) => setTab(v === "availability" ? "availability" : "schedule")}
+                  postedJobs={schedulePostedJobs}
+                  assignedJobs={scheduleAssignedJobs}
+                  loading={scheduleQuery.isPending}
+                  userId={user.id}
+                  onBack={() => setTab("landing")}
+                />
               </Suspense>
             </div>
-          )}
-
-          {tab === "availability" && user && (
-            <Suspense fallback={<TabFallback />}>
-              <AvailabilityTab userId={user.id} onBack={() => setTab("landing")} />
-            </Suspense>
           )}
 
           {tab === "payment" && (
@@ -635,6 +650,7 @@ const ProfilePage = () => {
               </Suspense>
             </div>
           )}
+          </SectionBoundary>
           </div>
         )}
       </main>

@@ -4,7 +4,43 @@
     "details": [
       {
         "appID": "P85MCK558V.com.Helpr",
-        "paths": ["*"]
+        "appIDs": ["P85MCK558V.com.Helpr"],
+        "paths": [
+          "/jobs",
+          "/jobs/*",
+          "/j/*",
+          "/user/*",
+          "/u/*",
+          "/messages",
+          "/messages/*",
+          "/m/*",
+          "/legal",
+          "/legal/*",
+          "/post-job",
+          "/post-job/*",
+          "NOT /admin/*",
+          "NOT /api/*",
+          "NOT /.well-known/*",
+          "NOT /auth/*"
+        ],
+        "components": [
+          { "/": "/jobs", "comment": "Public jobs landing page" },
+          { "/": "/jobs/*", "comment": "Job detail (canonical) — opens app at /jobs/:id" },
+          { "/": "/j/*", "comment": "Short job link — opens app at /j/:id (mapped to /jobs/:id in-app)" },
+          { "/": "/user/*", "comment": "User profile (canonical)" },
+          { "/": "/u/*", "comment": "Short user link — mapped to /user/:id in-app" },
+          { "/": "/messages", "comment": "Messages inbox" },
+          { "/": "/messages/*", "comment": "Messages thread deep link" },
+          { "/": "/m/*", "comment": "Short message-thread link — mapped to /messages?jobId=:id" },
+          { "/": "/legal", "comment": "Legal — terms/privacy/community" },
+          { "/": "/legal/*", "comment": "Legal sub-tabs" },
+          { "/": "/post-job", "comment": "Post a job entry point" },
+          { "/": "/post-job/*", "comment": "Post-job deep links (resume drafts, etc.)" },
+          { "/": "/admin/*", "exclude": true, "comment": "Admin always opens in browser, not the app" },
+          { "/": "/api/*", "exclude": true, "comment": "API endpoints — never deep-linked" },
+          { "/": "/.well-known/*", "exclude": true, "comment": "Site association metadata stays on the web" },
+          { "/": "/auth/*", "exclude": true, "comment": "Supabase OAuth callback must stay in the browser" }
+        ]
       }
     ]
   },

@@ -20,6 +20,7 @@ import type { AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 import { categories } from "@/components/postjob/DetailsSection";
 import type { SampleJob } from "@/data/sampleJobs";
 import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
+import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { validateResult } from "@/lib/validateResult";
 import { jobRowSchema } from "@/lib/schemas";
@@ -81,6 +82,10 @@ export function usePostJobForm() {
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
+  // Business-account poster — optional cost-center / department tag.
+  // Persisted to jobs.department by the consolidated migration
+  // 20260609170000_business_team_roles.sql.
+  const [department, setDepartment] = useState("");
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
   const salesTaxRate = 10;
@@ -260,12 +265,37 @@ export function usePostJobForm() {
       toast.error("Maximum 5 images allowed");
       return;
     }
-    // Compress images before storing
+    // Compress images before storing. The compressImage pipeline re-
+    // encodes through a canvas, which also strips EXIF metadata (GPS,
+    // device model, timestamps) — see src/lib/imageCompression.ts.
     const compressed = await Promise.all(safeFiles.map((f) => compressImage(f)));
     const newFiles = [...imageFiles, ...compressed].slice(0, 5);
     setImageFiles(newFiles);
     const previews = newFiles.map((f) => URL.createObjectURL(f));
     setImagePreviews(previews);
+
+    // Trust signal — confirm to the poster that location/device metadata
+    // was scrubbed. The canvas re-encode in compressImage drops EXIF
+    // regardless of whether the file was compressed (small JPEGs still
+    // go through the same path). Only fires when at least one photo was
+    // accepted, so a rejected-only batch doesn't show a misleading
+    // confirmation. HEIC files are passed through compressImage as-is
+    // (most browsers can't canvas-decode HEIC) — those bypass EXIF
+    // stripping, so suppress the confirmation when only HEIC landed.
+    const heicCount = safeFiles.filter(
+      (f) => f.type === "image/heic" || f.type === "image/heif",
+    ).length;
+    const exifStripped = safeFiles.length - heicCount;
+    if (exifStripped > 0) {
+      toast.success(
+        exifStripped === 1
+          ? "Photo added — location data removed"
+          : `${exifStripped} photos added — location data removed`,
+        {
+          description: "Helprs can't see where the photo was taken from.",
+        },
+      );
+    }
   };
 
   const removeImage = (index: number) => {
@@ -437,40 +467,69 @@ export function usePostJobForm() {
     const user = await runPreSubmitChecks();
     if (!user) return;
 
-    const { data: jobData, error } = await supabase
+    // Approval workflow — if this is a business post and the business
+    // has set a `require_approval_above` threshold, route the post to
+    // pending_approval instead of straight to open.
+    const requiresApproval =
+      !!business &&
+      business.require_approval_above != null &&
+      !!budget &&
+      parseFloat(budget) > Number(business.require_approval_above);
+
+    const buildPayload = (opts: { withExtras: boolean }) =>
+      buildJobInsertPayload({
+        userId: user.id,
+        businessId: business?.business_id ?? null,
+        title,
+        description,
+        category,
+        streetAddress,
+        city,
+        addrState,
+        zipCode,
+        parish,
+        dateNeeded,
+        startTime,
+        isFlexibleSchedule,
+        estimatedHours,
+        budget,
+        specialRequirements,
+        isRecurring,
+        recurrenceInterval,
+        recurrenceEndDate,
+        isGroupJob,
+        helpersNeeded,
+        isUrgent,
+        urgentFee,
+        platformFee,
+        salesTaxRate,
+        offerToHelperId,
+        department: opts.withExtras ? department : null,
+        initialStatus: opts.withExtras && requiresApproval ? "pending_approval" : undefined,
+      });
+
+    let { data: jobData, error } = await supabase
       .from("jobs")
-      .insert(
-        buildJobInsertPayload({
-          userId: user.id,
-          businessId: business?.business_id ?? null,
-          title,
-          description,
-          category,
-          streetAddress,
-          city,
-          addrState,
-          zipCode,
-          parish,
-          dateNeeded,
-          startTime,
-          isFlexibleSchedule,
-          estimatedHours,
-          budget,
-          specialRequirements,
-          isRecurring,
-          recurrenceInterval,
-          recurrenceEndDate,
-          isGroupJob,
-          helpersNeeded,
-          isUrgent,
-          urgentFee,
-          platformFee,
-          salesTaxRate,
-          offerToHelperId,
-        }),
-      )
+      .insert(buildPayload({ withExtras: true }))
       .select("id")
       .single();
+
+    if (error) {
+      // jobs.department / pending_approval enum value may not exist on
+      // prod yet (migration unapplied). Strip the new fields and retry
+      // so the post still lands.
+      const code = (error as { code?: string }).code;
+      const missingNew = code === "PGRST204" || code === "42703" || code === "22P02";
+      if (missingNew) {
+        const retry = await supabase
+          .from("jobs")
+          .insert(buildPayload({ withExtras: false }))
+          .select("id")
+          .single();
+        jobData = retry.data;
+        error = retry.error;
+      }
+    }
 
     if (error || !jobData) {
       toast.error(error?.message || "Couldn't post your job just yet — give it another try?");
@@ -481,6 +540,11 @@ export function usePostJobForm() {
 
     // Set cooldown timestamp immediately after successful insert
     safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
+
+    // First job action recorded — gates the deferred notification
+    // permission prompt (`useNotificationPermissionPrompt`). Idempotent
+    // and fast, safe to call on every post.
+    recordJobActionForPermissionPrompt();
 
     // Funnel: track job posted (and first ever for activation)
     track(AhaEvent.JobPosted, {
@@ -752,6 +816,9 @@ export function usePostJobForm() {
     hasDraft,
     draftConsumed,
     loadDraft,
+    /** Most recent autosave timestamp (epoch ms). 0 when no autosave has
+        landed yet — `DraftSavedIndicator` hides itself in that case. */
+    draftSavedAt: draft.savedAt,
     // entry landing
     startFresh,
     loadDraftAndContinue,
@@ -793,6 +860,12 @@ export function usePostJobForm() {
     setIsGroupJob,
     helpersNeeded,
     setHelpersNeeded,
+    /** Cost-center / department label — exposed only to business posters. */
+    department,
+    setDepartment,
+    /** Business membership row (so the post-job UI can show the
+        department field, MFA banner, and approval-threshold notice). */
+    business,
     // budget fields
     budget,
     setBudget,

@@ -7,6 +7,7 @@ import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
 import { SampleJobTemplates } from "@/components/postjob/SampleJobTemplates";
 import { DirectOfferBanner } from "./DirectOfferBanner";
+import { DraftSavedIndicator } from "./DraftSavedIndicator";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { SectionProgress, type PostJobSectionId } from "./SectionProgress";
 import type { usePostJobForm } from "./usePostJobForm";
@@ -103,6 +104,17 @@ export function FormStep({ form }: FormStepProps) {
       )}
 
       {atOpenJobLimit && <OpenJobLimitNotice />}
+
+      {/* "Draft saved Xs ago" reassurance — appears once the autosave
+          has actually fired. Sits next to the back arrow visually
+          (below the page header, above the tabs) so it answers the
+          poster's silent "did my input save?" question before they
+          consider navigating away. */}
+      {form.draftSavedAt > 0 && (
+        <div className="flex justify-start">
+          <DraftSavedIndicator savedAt={form.draftSavedAt} />
+        </div>
+      )}
 
       {/* Two small tabs above the blank form — a quick way to pull in a
           saved draft or start from a template, without a separate landing
@@ -255,6 +267,38 @@ export function FormStep({ form }: FormStepProps) {
             budgetComplete={form.budgetComplete}
           />
         </div>
+
+        {/* Business-only: department / cost-center field. Only rendered
+            when the user is posting under a business membership so we
+            don't clutter the form for personal posters. Maps directly
+            to jobs.department (migration 20260609170000). */}
+        {form.business && (
+          <div className="space-y-2">
+            <label htmlFor="department" className="text-ds-13 font-medium">
+              Department / cost center{" "}
+              <span className="text-ds-11 text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <input
+              id="department"
+              type="text"
+              value={form.department}
+              onChange={(e) => form.setDepartment(e.target.value)}
+              placeholder="e.g. Marketing, Ops, Q3 events"
+              maxLength={64}
+              className="w-full rounded-ds-md border border-input bg-background px-3 py-2 text-ds-13"
+            />
+            {form.business.require_approval_above != null &&
+              form.budgetNum > Number(form.business.require_approval_above) && (
+                <p
+                  className="text-ds-11"
+                  style={{ color: "hsl(var(--bark))" }}
+                >
+                  This post exceeds your team's ${Number(form.business.require_approval_above)} threshold —
+                  it'll go to pending approval before going live.
+                </p>
+              )}
+          </div>
+        )}
 
         {/* Submit — sits at the natural end of the form (not sticky) so it
             never floats over and obscures the section fields above it. The

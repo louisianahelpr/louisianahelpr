@@ -8,11 +8,25 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
-import { ShieldCheck, Trash2, Plus, Search, UserPlus } from "lucide-react";
+import { ShieldCheck, Trash2, Plus, Search, UserPlus, Flag, Smartphone } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
+import { Switch } from "@/components/ui/switch";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+
+// Known feature flags. Keeping this as a constants list (vs reading
+// every key found in the JSONB blob) means the UI surface is
+// deterministic — a stray key written by some other tool can't show
+// up here as a mystery toggle. New flags need a line here + a usage
+// site reading from `feature_flags[<id>]`.
+const KNOWN_FEATURE_FLAGS: { id: string; label: string; description: string }[] = [
+  { id: "subscriptions_enabled", label: "Subscriptions", description: "Show the Pro / Elite subscription upsell + flows." },
+  { id: "referrals_enabled", label: "Referrals", description: "Surface the referral programme in profile + invites." },
+  { id: "ai_helpr_assistant", label: "AI helpr assistant", description: "Show the AI-assisted job-post draft flow." },
+  { id: "boosts_enabled", label: "Job boosts", description: "Allow posters to pay to boost their job to the top." },
+  { id: "stripe_idv_required", label: "Stripe IDV required", description: "Force every helper through Stripe Identity before accepting jobs." },
+];
 
 const AdminSettings = () => {
   const [customerFee, setCustomerFee] = useState("");
@@ -22,6 +36,12 @@ const AdminSettings = () => {
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Min-build setter + flag toggles. featureFlags is a free-form map
+  // but we only surface KNOWN_FEATURE_FLAGS entries above.
+  const [minBuild, setMinBuild] = useState<string>("0");
+  const [savingMinBuild, setSavingMinBuild] = useState(false);
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
+  const [savingFlag, setSavingFlag] = useState<string | null>(null);
 
   // Admin management
   const [admins, setAdmins] = useState<{ user_id: string; role_id: string; name: string; email: string }[]>([]);
@@ -49,12 +69,69 @@ const AdminSettings = () => {
       console.error("[AdminSettings] loadSettings:", error);
       toast.error("Failed to load platform settings");
     } else if (data) {
+      const row = data as typeof data & { min_supported_build?: number | null; feature_flags?: Record<string, boolean> | null };
       setCustomerFee(String(data.customer_fee_percent ?? 10));
       setHelperFee(String(data.helper_fee_percent ?? 10));
       setSocialWebhookUrl(String(data.social_webhook_url ?? ""));
       setSettingsId(data.id);
+      // Defensive defaults — columns are nullable + migration may not
+      // be deployed yet, so always normalise to safe values.
+      setMinBuild(String(row.min_supported_build ?? 0));
+      setFeatureFlags({ ...(row.feature_flags ?? {}) });
     }
     setLoading(false);
+  };
+
+  const saveMinBuild = async () => {
+    if (!settingsId) return;
+    const n = parseInt(minBuild, 10);
+    if (!Number.isFinite(n) || n < 0) {
+      toast.error("Min build must be a non-negative integer");
+      return;
+    }
+    setSavingMinBuild(true);
+    const { error } = await (supabase.from as any)("platform_settings")
+      .update({ min_supported_build: n })
+      .eq("id", settingsId);
+    setSavingMinBuild(false);
+    if (error) {
+      if (error.code === "42703") {
+        toast.error("min_supported_build column not yet deployed — run `supabase db push`");
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+    toast.success(`Minimum supported build set to ${n}`);
+    await logAdminAction("update_settings", "platform_settings", settingsId, {
+      min_supported_build: n,
+    });
+  };
+
+  const toggleFlag = async (id: string, value: boolean) => {
+    if (!settingsId) return;
+    setSavingFlag(id);
+    const nextFlags = { ...featureFlags, [id]: value };
+    // Optimistic — flip immediately so the UI feels responsive.
+    setFeatureFlags(nextFlags);
+    const { error } = await (supabase.from as any)("platform_settings")
+      .update({ feature_flags: nextFlags })
+      .eq("id", settingsId);
+    setSavingFlag(null);
+    if (error) {
+      // Roll back optimistic change on failure.
+      setFeatureFlags(featureFlags);
+      if (error.code === "42703") {
+        toast.error("feature_flags column not yet deployed — run `supabase db push`");
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+    await logAdminAction("update_settings", "platform_settings", settingsId, {
+      feature_flag: id,
+      value,
+    });
   };
 
   const handleSaveWebhook = async () => {
@@ -287,6 +364,74 @@ const AdminSettings = () => {
         <Button onClick={handleSaveWebhook} disabled={savingWebhook}>
           {savingWebhook ? "Saving…" : "Save webhook URL"}
         </Button>
+      </div>
+
+      {/* Feature Flags */}
+      <div className="max-w-lg rounded-ds-md liquid-glass p-6 space-y-4">
+        <div className="space-y-1">
+          <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
+            <Flag className="w-4 h-4 text-primary" /> Feature Flags
+          </h3>
+          <p className="text-ds-11 text-muted-foreground">
+            Server-side toggles for major user-facing surfaces. Off-state
+            should always be a safe fallback (hide UI, no-op handlers).
+            Persists immediately when toggled.
+          </p>
+        </div>
+        <div className="space-y-2.5">
+          {KNOWN_FEATURE_FLAGS.map((flag) => {
+            const value = !!featureFlags[flag.id];
+            return (
+              <div key={flag.id} className="flex items-start justify-between gap-3 rounded-ds-sm border border-border bg-card p-3">
+                <div className="min-w-0">
+                  <p className="text-ds-13 font-semibold text-foreground">{flag.label}</p>
+                  <p className="text-ds-11 text-muted-foreground leading-tight">{flag.description}</p>
+                  <p className="text-ds-10 text-muted-foreground mt-0.5 font-mono opacity-70">{flag.id}</p>
+                </div>
+                <Switch
+                  checked={value}
+                  onCheckedChange={(next) => toggleFlag(flag.id, next)}
+                  disabled={savingFlag === flag.id}
+                  aria-label={`${flag.label} feature flag`}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Min Supported Build */}
+      <div className="max-w-md rounded-ds-md liquid-glass p-6 space-y-4">
+        <div className="space-y-1">
+          <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
+            <Smartphone className="w-4 h-4 text-primary" /> Minimum Supported Build
+          </h3>
+          <p className="text-ds-11 text-muted-foreground">
+            Native binaries with a build code lower than this are forced
+            to update via the in-app ForceUpdate blocker. Set to{" "}
+            <code className="text-foreground">0</code> to disable the
+            check. Bumps take effect on the next app launch — no binary
+            release required.
+          </p>
+        </div>
+        <div className="flex items-end gap-2">
+          <div className="flex-1 space-y-1.5">
+            <Label htmlFor="minBuild">Build code</Label>
+            <Input
+              id="minBuild"
+              type="number"
+              min={0}
+              max={999_999}
+              step={1}
+              value={minBuild}
+              onChange={(e) => setMinBuild(e.target.value)}
+              className="max-w-[160px] font-mono tabular-nums"
+            />
+          </div>
+          <Button onClick={saveMinBuild} disabled={savingMinBuild}>
+            {savingMinBuild ? "Saving…" : "Save"}
+          </Button>
+        </div>
       </div>
 
       {/* Admin Management */}

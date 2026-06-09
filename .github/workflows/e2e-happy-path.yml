@@ -9,25 +9,17 @@ permissions:
 # network dependency on the real Supabase project.
 #
 # Scope:
-# - Runs on PRs that touch the React surface, the e2e suite, or the
-#   build pipeline.
+# - Runs on every PR (it's a required branch-protection check, so a
+#   `paths:` filter would deadlock auto-merge on backend-only PRs —
+#   GitHub leaves the check "Expected" forever). Instead, an in-job
+#   paths-filter step skips the expensive Playwright work and reports
+#   green in seconds when no UI-relevant file changed.
 # - Concurrency-locked to one run per ref.
 # - Uploads HTML report + screenshots on failure for fast triage.
 
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "src/**"
-      - "public/**"
-      - "index.html"
-      - "vite.config.ts"
-      - "tailwind.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - "playwright.config.ts"
-      - "e2e/happy-path/**"
-      - ".github/workflows/e2e-happy-path.yml"
   push:
     branches: [main]
   workflow_dispatch:
@@ -56,20 +48,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Detect UI-relevant changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            ui:
+              - "src/**"
+              - "public/**"
+              - "index.html"
+              - "vite.config.ts"
+              - "tailwind.config.ts"
+              - "package.json"
+              - "package-lock.json"
+              - "playwright.config.ts"
+              - "e2e/happy-path/**"
+              - ".github/workflows/e2e-happy-path.yml"
+
       - name: Setup Node
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         # See test.yml — Lovable can drift the lockfile, so use `install` not `ci`.
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Install Playwright Chromium browser
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Run happy-path smoke tests
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         # PLAYWRIGHT_WEB_SERVER=1 turns on the auto-start of
         # `npm run build && npx vite preview` (see playwright.config.ts).
         env:

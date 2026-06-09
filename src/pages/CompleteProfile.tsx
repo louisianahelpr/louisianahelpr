@@ -12,6 +12,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Camera, Check, ChevronDown, FileText, Loader2, ShieldCheck, X } from "lucide-react";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
+import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
@@ -555,18 +556,20 @@ const CompleteProfile = () => {
 
             <div className="space-y-1.5">
               <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
+              {/* CityAutocomplete is the same combobox used on the
+                  Post-a-Task form. It nudges the user toward canonical
+                  Louisiana spellings (the LOUISIANA_CITIES bundle) but
+                  still accepts a free-typed value for tiny communities
+                  not on the list, so the form never traps anyone. */}
               <div className="relative">
-                <Input
+                <CityAutocomplete
                   id="city"
-                  autoComplete="address-level2"
-                  autoCapitalize="words"
-                  placeholder="Baton Rouge"
                   value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+                  onChange={setLocation}
                   className={`rounded-ds-md ${cityValid ? "pr-10" : ""}`}
                 />
                 {cityValid && (
-                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
                 )}
               </div>
             </div>
@@ -593,6 +596,13 @@ const CompleteProfile = () => {
                 autoCapitalize="sentences"
                 className="rounded-ds-md"
               />
+              {/* "Add later" affordance — bio is required by the
+                  profile gate, but we set expectations that it can be
+                  refined any time from Profile so the user doesn't feel
+                  like this needs to be the bio of a lifetime. */}
+              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+                Don't sweat it — you can polish this any time from your profile.
+              </p>
             </div>
 
             {/* ID */}

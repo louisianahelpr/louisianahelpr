@@ -10,7 +10,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticWarning } from "@/lib/haptics";
-import { Heart, Briefcase, Send, Star, Search, ArrowUpDown } from "lucide-react";
+import { Heart, Briefcase, Send, Star, Search, ArrowUpDown, StickyNote, Check, X, Users } from "lucide-react";
+import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,11 +30,13 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 
-type SavedSort = "rebooked" | "recent";
+type SavedSort = "rebooked" | "recent" | "rating" | "alpha";
 
 const sortOptions: { value: SavedSort; label: string }[] = [
-  { value: "rebooked", label: "Most rebooked" },
-  { value: "recent", label: "Most recent" },
+  { value: "recent", label: "Recent activity" },
+  { value: "rating", label: "Rating" },
+  { value: "rebooked", label: "Jobs together" },
+  { value: "alpha", label: "Alphabetical" },
 ];
 
 interface SavedHelper {
@@ -47,6 +50,18 @@ interface SavedHelper {
   saved_at: string;
   completed_jobs_together: number;
   last_job_at: string | null;
+  /** Average rating from the helper's public review wall. Optional —
+      the get_my_saved_helpers RPC may not surface it on older
+      deploys; the Rating sort treats missing values as 0. */
+  avg_rating?: number | null;
+  /** Poster-only note. Surfaced by the get_my_saved_helpers RPC once
+      migration 20260609110000 is applied; nullable so older deploys
+      return undefined. */
+  private_note?: string | null;
+  /** When non-null, this saved-helper row is visible to every active
+      teammate of the named business. Surfaced once migration
+      20260609170000 (business_account_id on favorite_helpers) lands. */
+  business_account_id?: string | null;
 }
 
 interface SavedHelpersTabProps {
@@ -56,7 +71,11 @@ interface SavedHelpersTabProps {
 export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
+  const { business } = useMyBusiness();
   const [helpers, setHelpers] = useState<SavedHelper[]>([]);
+  // Per-helper toggle state for the "Visible to team" pin. Tracks the
+  // in-flight write so two rapid taps can't race.
+  const [togglingShare, setTogglingShare] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Distinguishes "fetch failed" from "fetched, but empty" — without
   // this flag a failed RPC silently falls through to the EmptyState and
@@ -67,7 +86,13 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   // "you're offline" (actionable by the user) from a server hiccup.
   const [wasOffline, setWasOffline] = useState(false);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<SavedSort>("rebooked");
+  const [sortBy, setSortBy] = useState<SavedSort>("recent");
+  // Per-helper note editor — `editingNoteFor` holds the helper_id of
+  // the row whose textarea is open; `noteDraft` holds the in-flight
+  // text so the user can cancel without losing their place.
+  const [editingNoteFor, setEditingNoteFor] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   // Extracted so the ErrorState's retry button can call back in. The
   // effect below mirrors the same logic but adds a cancellation guard
@@ -83,7 +108,22 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
       setLoading(false);
       return;
     }
-    setHelpers((data as SavedHelper[]) || []);
+    const list = (data as SavedHelper[]) || [];
+    // Augment with business_account_id from the raw row — the RPC
+    // doesn't surface it yet (the column ships in migration
+    // 20260609170000). Missing column = empty join, leaving every row
+    // with business_account_id = null which is the correct default.
+    if (list.length > 0) {
+      const { data: shareRows } = await supabase
+        .from("favorite_helpers")
+        .select("helper_id, business_account_id" as any)
+        .eq("customer_id", user.id);
+      const byHelper = new Map<string, string | null>(
+        ((shareRows ?? []) as any[]).map((r) => [r.helper_id, r.business_account_id ?? null]),
+      );
+      for (const h of list) h.business_account_id = byHelper.get(h.helper_id) ?? null;
+    }
+    setHelpers(list);
     setLoading(false);
   };
 
@@ -101,13 +141,104 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
         setLoading(false);
         return;
       }
-      setHelpers((data as SavedHelper[]) || []);
+      const list = (data as SavedHelper[]) || [];
+      if (list.length > 0) {
+        const { data: shareRows } = await supabase
+          .from("favorite_helpers")
+          .select("helper_id, business_account_id" as any)
+          .eq("customer_id", user.id);
+        if (cancelled) return;
+        const byHelper = new Map<string, string | null>(
+          ((shareRows ?? []) as any[]).map((r) => [r.helper_id, r.business_account_id ?? null]),
+        );
+        for (const h of list) h.business_account_id = byHelper.get(h.helper_id) ?? null;
+      }
+      setHelpers(list);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, [user?.id]);
+
+  const openNoteEditor = (helperId: string, current: string | null | undefined) => {
+    setEditingNoteFor(helperId);
+    setNoteDraft(current ?? "");
+  };
+
+  const cancelNoteEditor = () => {
+    setEditingNoteFor(null);
+    setNoteDraft("");
+  };
+
+  const saveNote = async (helperId: string) => {
+    if (!user) return;
+    const trimmed = noteDraft.trim();
+    const value = trimmed.length === 0 ? null : trimmed;
+    setSavingNote(true);
+    // Optimistic update so the closed editor renders the new note
+    // immediately — a failed write rolls the row back.
+    const snapshot = helpers.find((h) => h.helper_id === helperId);
+    setHelpers((prev) => prev.map((h) => h.helper_id === helperId ? { ...h, private_note: value } : h));
+    // `private_note` isn't in the generated supabase types yet (added
+    // in migration 20260609110000); cast through any to side-step
+    // until types regenerate.
+    const { error } = await supabase
+      .from("favorite_helpers")
+      .update({ private_note: value } as any)
+      .eq("customer_id", user.id)
+      .eq("helper_id", helperId);
+    setSavingNote(false);
+    if (error) {
+      if (snapshot) {
+        setHelpers((prev) => prev.map((h) => h.helper_id === helperId ? snapshot : h));
+      }
+      // PGRST204 = column not found (migration hasn't run on prod yet).
+      // Tell the user gracefully rather than the raw error.
+      const msg = (error as { code?: string }).code === "PGRST204"
+        ? "Notes aren't available yet on this build — we're rolling them out shortly."
+        : "Couldn't save your note — please try again.";
+      toast.error(msg);
+      return;
+    }
+    setEditingNoteFor(null);
+    setNoteDraft("");
+    toast.success(value ? "Note saved" : "Note removed");
+  };
+
+  /** Flip whether this saved helper is visible to the rest of the
+      business team. Writes `business_account_id` on favorite_helpers
+      (migration 20260609170000). PGRST204 → graceful toast when the
+      migration hasn't reached prod yet. */
+  const toggleTeamShare = async (helperId: string, currentlyShared: boolean) => {
+    if (!user || !business) return;
+    setTogglingShare(helperId);
+    const nextValue = currentlyShared ? null : business.business_id;
+    // Optimistic flip first so the UI feels instant.
+    setHelpers((prev) =>
+      prev.map((h) => (h.helper_id === helperId ? { ...h, business_account_id: nextValue } : h)),
+    );
+    const { error } = await supabase
+      .from("favorite_helpers")
+      .update({ business_account_id: nextValue } as any)
+      .eq("customer_id", user.id)
+      .eq("helper_id", helperId);
+    setTogglingShare(null);
+    if (error) {
+      setHelpers((prev) =>
+        prev.map((h) =>
+          h.helper_id === helperId ? { ...h, business_account_id: currentlyShared ? business.business_id : null } : h,
+        ),
+      );
+      const code = (error as { code?: string }).code;
+      const msg = code === "PGRST204" || code === "42703"
+        ? "Team sharing isn't live yet — we're rolling it out shortly."
+        : "Couldn't update sharing — please try again.";
+      toast.error(msg);
+      return;
+    }
+    toast.success(nextValue ? "Now visible to your team" : "Hidden from your team");
+  };
 
   const handleRemove = async (helperId: string) => {
     if (!user) return;
@@ -169,7 +300,31 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
         return bT - aT;
       });
     }
-    // Most rebooked first (default) — proven performers surface to the top
+    if (sortBy === "rating") {
+      // Highest average rating first — missing values fall to 0 so
+      // an unrated helper doesn't outrank a 4.9-star one. Ties break
+      // by jobs-together so a 5.0 with 1 job ranks below a 5.0 with
+      // 10 (rebooking signal is a tiebreaker, not a primary).
+      return matched.sort((a, b) => {
+        const aR = a.avg_rating ?? 0;
+        const bR = b.avg_rating ?? 0;
+        if (bR !== aR) return bR - aR;
+        return (b.completed_jobs_together ?? 0) - (a.completed_jobs_together ?? 0);
+      });
+    }
+    if (sortBy === "alpha") {
+      // Alphabetical by full name, case-insensitive, locale-aware.
+      // Missing names sink to the bottom so a placeholder doesn't take
+      // the top row from a real helpr.
+      return matched.sort((a, b) => {
+        const aN = (a.full_name ?? "").trim();
+        const bN = (b.full_name ?? "").trim();
+        if (!aN && bN) return 1;
+        if (aN && !bN) return -1;
+        return aN.localeCompare(bN, undefined, { sensitivity: "base" });
+      });
+    }
+    // Most jobs together (rebooked) — proven performers surface to the top
     return matched.sort((a, b) => {
       const aJobs = a.completed_jobs_together ?? 0;
       const bJobs = b.completed_jobs_together ?? 0;
@@ -401,6 +556,84 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                     onSeeAll={() => navigate(`/user/${h.helper_id}?tab=reviews`)}
                   />
 
+                  {/* Private note — poster-only memo about this helpr.
+                      Closed by default, tap to expand into a small
+                      textarea. Never shown to the helpr (RLS scopes
+                      reads/writes to customer_id). */}
+                  {editingNoteFor === h.helper_id ? (
+                    <div
+                      className="rounded-ds-md p-2.5 space-y-2"
+                      style={{
+                        background: "hsl(var(--gold-warm) / 0.06)",
+                        border: "1px solid hsl(var(--gold-warm) / 0.22)",
+                      }}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <StickyNote className="w-3 h-3" style={{ color: "hsl(var(--bark))" }} />
+                        <span className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--bark) / 0.8)", letterSpacing: "0.14em" }}>
+                          Private note · only you see this
+                        </span>
+                      </div>
+                      <textarea
+                        value={noteDraft}
+                        onChange={(e) => setNoteDraft(e.target.value)}
+                        placeholder="e.g. great with painting, prefers Tuesdays"
+                        rows={2}
+                        maxLength={500}
+                        aria-label="Private note about this helpr"
+                        className="w-full rounded-ds-sm border border-border/40 bg-card px-2 py-1.5 text-ds-13 font-serif italic resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={cancelNoteEditor}
+                          disabled={savingNote}
+                          className="inline-flex items-center gap-1 rounded-ds-sm px-2.5 py-1 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-transform"
+                          style={{ color: "hsl(var(--olivewood))" }}
+                        >
+                          <X className="w-3.5 h-3.5" /> Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void saveNote(h.helper_id)}
+                          disabled={savingNote}
+                          className="inline-flex items-center gap-1 rounded-ds-sm px-2.5 py-1 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-transform disabled:opacity-60"
+                          style={{
+                            background: "hsl(var(--bark))",
+                            color: "hsl(var(--parchment))",
+                          }}
+                        >
+                          <Check className="w-3.5 h-3.5" /> {savingNote ? "Saving…" : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : h.private_note?.trim() ? (
+                    <button
+                      type="button"
+                      onClick={() => openNoteEditor(h.helper_id, h.private_note)}
+                      aria-label="Edit private note"
+                      className="w-full text-left rounded-ds-md p-2.5 flex gap-2 active:opacity-80 transition-opacity"
+                      style={{
+                        background: "hsl(var(--gold-warm) / 0.06)",
+                        border: "1px solid hsl(var(--gold-warm) / 0.22)",
+                      }}
+                    >
+                      <StickyNote className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
+                      <p className="font-serif italic text-ds-13 leading-snug flex-1 min-w-0" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
+                        {h.private_note}
+                      </p>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openNoteEditor(h.helper_id, null)}
+                      className="inline-flex items-center gap-1 text-ds-11 font-semibold active:opacity-70 self-start"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      <StickyNote className="w-3 h-3" /> Add a private note
+                    </button>
+                  )}
+
                   <div className="flex items-center gap-2">
                     <Button
                       variant="bark"
@@ -430,6 +663,24 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                       <Heart className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
                     </Button>
                   </div>
+
+                  {business && (
+                    <button
+                      type="button"
+                      onClick={() => toggleTeamShare(h.helper_id, !!h.business_account_id)}
+                      disabled={togglingShare === h.helper_id}
+                      className="inline-flex items-center gap-1.5 text-ds-11 font-semibold active:opacity-70 self-start"
+                      style={{
+                        color: h.business_account_id
+                          ? "hsl(var(--olivewood))"
+                          : "hsl(var(--bark))",
+                      }}
+                      aria-pressed={!!h.business_account_id}
+                    >
+                      <Users className="w-3 h-3" />
+                      {h.business_account_id ? "Visible to team" : "Share with team"}
+                    </button>
+                  )}
                 </div>
               );
             })}

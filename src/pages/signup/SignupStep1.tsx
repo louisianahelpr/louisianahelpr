@@ -14,8 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock, Building2, UserCircle2 } from "lucide-react";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
+import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { suggestEmailCorrection, passwordStrength } from "./signupHelpers";
 
 export interface SignupStep1Props {
@@ -306,10 +305,7 @@ export function SignupStep1({
         <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
       </div>
 
-      <div className="space-y-2">
-        <AppleSignInButton label="Sign up with Apple" />
-        <GoogleSignInButton label="Sign up with Google" />
-      </div>
+      <SocialAuthButtons mode="signup" />
 
       {/* Footer links — stacked inside the card so they mirror the Login
           screen's footer block (which keeps "New to Helpr?" / "Have a

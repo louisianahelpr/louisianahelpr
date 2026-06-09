@@ -7,6 +7,7 @@
 //
 // Validation lives in the parent (validateAboutYouStep).
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ import {
   UserCircle2,
   AlertCircle,
   Check,
+  Info,
 } from "lucide-react";
 import { DatePickerField } from "@/components/DatePickerField";
 import { formatPhone } from "./signupHelpers";
@@ -82,6 +84,43 @@ export interface SignupStep2Props {
   onContinue: () => void | Promise<void>;
   /** Account creation in flight — disables the button and shows a busy label. */
   loading?: boolean;
+}
+
+/**
+ * Tiny "why we need this" tooltip used on the phone field. Click/tap to
+ * toggle (mobile-friendly), focusable so a keyboard user can reach it.
+ * Renders inline so layout doesn't shift when it opens.
+ */
+function PhoneWhyTooltip() {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex items-center">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        onBlur={() => setOpen(false)}
+        aria-label="Why we need your phone number"
+        aria-expanded={open}
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Info className="w-3.5 h-3.5" strokeWidth={1.75} aria-hidden />
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute left-5 top-1/2 -translate-y-1/2 z-30 w-56 rounded-ds-md px-3 py-2 text-ds-11 font-sans shadow-md"
+          style={{
+            background: "hsl(var(--ink-deep))",
+            color: "hsl(var(--parchment))",
+            lineHeight: 1.35,
+          }}
+        >
+          We use your phone for job alerts and emergency contact only — never
+          shared publicly or sold.
+        </span>
+      )}
+    </span>
+  );
 }
 
 export function SignupStep2(props: SignupStep2Props) {
@@ -267,8 +306,22 @@ export function SignupStep2(props: SignupStep2Props) {
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone" className={labelCls}>Phone number</Label>
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="phone" className={labelCls}>Phone number</Label>
+            <PhoneWhyTooltip />
+          </div>
           <div className="relative">
+            {/* Country code badge — Helpr is Louisiana-only, so every
+                number is +1. Showing it inline makes the formatting
+                expectation explicit instead of leaving the user wondering
+                whether to type the leading 1. */}
+            <span
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-13 font-sans font-medium pointer-events-none select-none"
+              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+              aria-hidden
+            >
+              +1
+            </span>
             <Input
               id="phone"
               type="tel"
@@ -282,7 +335,7 @@ export function SignupStep2(props: SignupStep2Props) {
               maxLength={14}
               aria-invalid={!!fieldErrors.phone}
               aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
-              className={`${inputCls}${phoneValid && !fieldErrors.phone ? " pr-10" : ""}${fieldErrors.phone ? " border-destructive" : ""}`}
+              className={`${inputCls} pl-9${phoneValid && !fieldErrors.phone ? " pr-10" : ""}${fieldErrors.phone ? " border-destructive" : ""}`}
             />
             {phoneValid && !fieldErrors.phone && (
               <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />

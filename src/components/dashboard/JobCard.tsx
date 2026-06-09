@@ -2,7 +2,8 @@ import { memo, type KeyboardEvent } from "react";
 import {
   MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock,
 } from "lucide-react";
-import { hapticLight } from "@/lib/haptics";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { useLongPress } from "@/hooks/useLongPress";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
@@ -10,7 +11,10 @@ import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCityState } from "@/lib/locationUtils";
+import { haversineMiles } from "@/lib/geo";
+import { getParishCentroid, getCentroidFromLocation } from "@/lib/parishCentroids";
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
+import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { prefetchJobDialog } from "./prefetchJobDialog";
 import type { EnrichedJob } from "./types";
 
@@ -44,6 +48,22 @@ interface JobCardProps {
    * "You earn" label misreads for a visitor who wants to post/hire.
    */
   guestPricing?: boolean;
+  /**
+   * Viewer's cached location (from useUserLocation, session-cached). When
+   * present + the job resolves to a parish centroid, the meta row leads
+   * with a "~X mi" distance pill. Hidden silently otherwise so a denied
+   * location prompt never makes the card look broken.
+   */
+  userLat?: number | null;
+  userLng?: number | null;
+  /**
+   * Long-press handler — when defined, a 500ms press on the card opens
+   * a quick-action sheet (Save / Hide / Share / Report) instead of the
+   * detail dialog. The dashboard owner (Dashboard.tsx) supplies this;
+   * guest mode leaves it undefined so the card behaves the same way it
+   * did before (tap → /signup).
+   */
+  onLongPress?: (jobId: string) => void;
 }
 
 // Category colors apply ONLY to the category badge pill at the top of
@@ -51,8 +71,25 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, onLongPress }: JobCardProps) => {
   const isGuest = variant === "guest";
+  // Long-press hook — fires onLongPress after 500ms hold, falls through
+  // to a normal tap (onSelect) when the user lifts before the threshold.
+  // We always create the hook to keep the component's render shape
+  // stable across renders, but ignore its props when there's no handler.
+  const longPress = useLongPress({
+    threshold: 500,
+    onLongPress: () => {
+      if (onLongPress) {
+        hapticMedium();
+        onLongPress(job.id);
+      }
+    },
+    onTap: () => {
+      hapticLight();
+      onSelect(job);
+    },
+  });
   // Show the gross posted budget (vs the helper's net take-home) whenever
   // the full guest variant is active OR the lighter guestPricing flag is set.
   const showBudget = isGuest || guestPricing;
@@ -78,6 +115,45 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   const isNew = differenceInHours(new Date(), new Date(job.created_at)) < 48;
 
   const cityState = getCityState(job.location);
+
+  // Distance pill — uses the viewer's cached session location (lifted in
+  // from Dashboard via useUserLocation, which caches at the module level
+  // for 5 minutes) and the job's parish centroid. open_jobs_browse masks
+  // precise coords, so we fall back to parish-level granularity ("~X mi")
+  // rather than a misleading street-precise number. Renders silently as
+  // null when either side is missing.
+  const destCentroid =
+    userLat != null && userLng != null
+      ? getParishCentroid((job as { parish?: string | null }).parish) ??
+        getCentroidFromLocation(job.location)
+      : null;
+  const distanceMiles =
+    destCentroid && userLat != null && userLng != null
+      ? haversineMiles(userLat, userLng, destCentroid.lat, destCentroid.lng)
+      : null;
+  const distanceLabel = distanceMiles == null
+    ? null
+    : distanceMiles < 1
+      ? "<1 mi"
+      : distanceMiles < 10
+        ? `${distanceMiles.toFixed(1)} mi`
+        : `${Math.round(distanceMiles)} mi`;
+  // Driving-time estimate — MapKit Directions when ready, heuristic
+  // otherwise. Combined with the distance pill below to read "12 min ·
+  // 4.5 mi" instead of just distance, which is more useful for a helpr
+  // deciding whether a job is worth the drive.
+  const drivingMinutes = useDrivingTime(
+    userLat,
+    userLng,
+    destCentroid?.lat ?? null,
+    destCentroid?.lng ?? null,
+    distanceMiles,
+  );
+  const drivingLabel = drivingMinutes == null
+    ? null
+    : drivingMinutes < 60
+      ? `${drivingMinutes} min`
+      : `${Math.floor(drivingMinutes / 60)}h ${drivingMinutes % 60}m`;
 
   // Expiry info
   const expiryText = job.expires_at
@@ -105,22 +181,41 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // In the guest variant the card is wrapped in a /signup <Link> by the
   // caller (Jobs.tsx), so the card root must NOT be a nested interactive
   // element — drop role/tabIndex/handlers and let the Link own the tap.
+  // With onLongPress supplied, the press/release handlers from
+  // useLongPress own both tap (fires onSelect on short release) and
+  // long-press (fires the quick-action sheet at threshold). Without it
+  // we fall back to a plain onClick so the gesture surface stays simple.
   const interactiveProps = isGuest
     ? {}
-    : {
-        onClick: () => { hapticLight(); onSelect(job); },
-        role: "button" as const,
-        tabIndex: 0,
-        "aria-label": `View ${job.title} — $${job.budget}`,
-        onKeyDown: (e: KeyboardEvent) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            hapticLight();
-            onSelect(job);
-          }
-        },
-        ...prefetchHandlers,
-      };
+    : onLongPress
+      ? {
+          ...longPress,
+          role: "button" as const,
+          tabIndex: 0,
+          "aria-label": `View ${job.title} — $${job.budget}`,
+          onKeyDown: (e: KeyboardEvent) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              hapticLight();
+              onSelect(job);
+            }
+          },
+          ...prefetchHandlers,
+        }
+      : {
+          onClick: () => { hapticLight(); onSelect(job); },
+          role: "button" as const,
+          tabIndex: 0,
+          "aria-label": `View ${job.title} — $${job.budget}`,
+          onKeyDown: (e: KeyboardEvent) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              hapticLight();
+              onSelect(job);
+            }
+          },
+          ...prefetchHandlers,
+        };
 
   return (
     <div
@@ -317,6 +412,25 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <MapPin className="w-2.5 h-2.5 shrink-0" />
               <span className="truncate max-w-[110px] font-serif italic">{cityState}</span>
             </span>
+            {distanceLabel && (
+              <span
+                aria-label={
+                  drivingLabel
+                    ? `Approximately ${drivingLabel} drive, ${distanceLabel} away`
+                    : `Approximately ${distanceLabel} away`
+                }
+                className="inline-flex items-center gap-0.5 px-1.5 py-px rounded-full font-sans font-semibold whitespace-nowrap"
+                style={{
+                  fontSize: "9.5px",
+                  letterSpacing: "0.02em",
+                  background: "hsl(var(--burnt-sienna) / 0.10)",
+                  color: "hsl(var(--burnt-sienna))",
+                  border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                }}
+              >
+                {drivingLabel ? `${drivingLabel} · ${distanceLabel}` : distanceLabel}
+              </span>
+            )}
             <span className="opacity-30">·</span>
             {/* Date + time live in ONE no-wrap group so the time can never
                 drop to its own line on its own — the pair moves together.

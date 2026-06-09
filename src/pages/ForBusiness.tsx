@@ -2,28 +2,53 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
   Building2,
-  CheckCircle2,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  CreditCard,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BackButton from "@/components/BackButton";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { resolveVariant, VARIANTS, type VariantKey } from "@/components/business/variants";
+import ROICalculator from "@/components/business/ROICalculator";
+import TrustStrip from "@/components/business/TrustStrip";
+import TrustedByBanner from "@/components/business/TrustedByBanner";
+import ComplianceSection from "@/components/business/ComplianceSection";
+import CaseStudyCarousel from "@/components/business/CaseStudyCarousel";
+import DemoVideoSection from "@/components/business/DemoVideoSection";
+import PricingTiers from "@/components/business/PricingTiers";
 
+/**
+ * /for-business — marketing conversion page.
+ *
+ * Vertical-aware via `?v=<variant>`. See `src/components/business/variants.ts`
+ * for the supported keys. SEO meta updates with the variant; OG image is
+ * fixed to the default canonical so social-card previews still resolve.
+ */
 const ForBusiness = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const variantParam = searchParams.get("v");
+  const variant = resolveVariant(variantParam);
+
+  // Per-variant SEO. Canonical points at the default URL so search
+  // engines don't fragment the indexable URL by variant; OG title /
+  // description still swap so social shares are tailored.
   usePageMeta({
-    title: "Helpr for Business — Louisiana Commercial Services",
-    description:
-      "Find, hire, and pay verified local pros for your Louisiana business. Free team seats, Stripe ID-verified helprs, flat platform fee, no contracts.",
+    title: variant.seo.title,
+    description: variant.seo.description,
     canonical: "https://www.louisianahelpr.com/for-business",
-    ogTitle: "Helpr for Business — Hire Local Pros Across Louisiana",
-    ogDescription:
-      "The simplest way for Louisiana businesses to find, hire, and pay local pros for cleaning, turnovers, events, and recurring tasks.",
+    ogTitle: variant.seo.title,
+    ogDescription: variant.seo.description,
   });
+
+  const switchVariant = (next: VariantKey) => {
+    const params = new URLSearchParams(searchParams);
+    if (next === "generic") {
+      params.delete("v");
+    } else {
+      params.set("v", next);
+    }
+    setSearchParams(params, { replace: true });
+  };
 
   return (
     <div className="relative min-h-screen page-warmth pb-safe-nav">
@@ -31,15 +56,16 @@ const ForBusiness = () => {
       <Navbar />
       <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
 
-      <div className="relative container mx-auto px-5 py-6 lg:py-8 max-w-7xl">
-
+      <div className="relative container mx-auto px-5 py-6 lg:py-8 max-w-7xl space-y-6 lg:space-y-8">
         <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
           {/* LEFT — Pitch (3 cols) */}
           <div className="lg:col-span-3 space-y-5">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <BackButton to="/" />
-              <span className="text-display-eyebrow">For business</span>
+              <span className="text-display-eyebrow">{variant.eyebrow}</span>
             </div>
+
+            <TrustedByBanner />
 
             <h1
               className="font-display italic font-bold leading-[1.02] text-balance"
@@ -49,23 +75,50 @@ const ForBusiness = () => {
                 letterSpacing: "-0.03em",
               }}
             >
-              The best help for{" "}
-              <span style={{ color: "hsl(var(--burnt-sienna))" }}>Louisiana businesses.</span>
+              {variant.heroLead}{" "}
+              <span style={{ color: "hsl(var(--burnt-sienna))" }}>{variant.heroAccent}</span>
             </h1>
 
             <p className="subhead-serif text-foreground text-ds-17 lg:text-ds-20 leading-relaxed max-w-xl">
-              The simplest way to find, hire, and pay local pros for your business tasks.
+              {variant.subhead}
             </p>
+
+            {/* Vertical switcher — small pill row. Keeps the URL as the source
+             * of truth so refresh/back/share all work. */}
+            <div
+              role="tablist"
+              aria-label="Industry"
+              className="flex flex-wrap gap-2 pt-1"
+            >
+              {(Object.keys(VARIANTS) as VariantKey[]).map((key) => {
+                const v = VARIANTS[key];
+                const active = variant.key === key;
+                return (
+                  <button
+                    key={key}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => switchVariant(key)}
+                    className="text-ds-11 font-semibold rounded-full px-3 py-1.5 transition-colors"
+                    style={{
+                      background: active
+                        ? "hsl(var(--bark))"
+                        : "hsl(var(--bark) / 0.08)",
+                      color: active
+                        ? "hsl(var(--parchment))"
+                        : "hsl(var(--ink-deep))",
+                      border: "1px solid hsl(var(--olivewood) / 0.12)",
+                    }}
+                  >
+                    {v.eyebrow.replace(/^For /, "")}
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Feature grid */}
             <div className="grid sm:grid-cols-2 gap-2.5 pt-1">
-              {[
-                { icon: ShieldCheck, text: "Stripe ID-verified helprs" },
-                { icon: Users, text: "2 team seats free, upgrade anytime" },
-                { icon: CreditCard, text: "Owner's card billed for all jobs" },
-                { icon: Sparkles, text: "Recurring jobs, statewide coverage" },
-                { icon: CheckCircle2, text: "Flat platform fee, no contracts" },
-              ].map((row, i) => (
+              {variant.features.map((row, i) => (
                 <div
                   key={i}
                   className="liquid-glass flex items-center gap-3 px-4 py-3"
@@ -216,6 +269,24 @@ const ForBusiness = () => {
             </div>
           </div>
         </div>
+
+        {/* Demo video — under the hero, full-width. */}
+        <DemoVideoSection />
+
+        {/* Trust strip — quick scannable claims. */}
+        <TrustStrip />
+
+        {/* ROI calculator — interactive widget. */}
+        <ROICalculator />
+
+        {/* Case studies — variant-aware highlight + 2 baseline cards. */}
+        <CaseStudyCarousel highlight={variant.caseStudy} />
+
+        {/* Compliance disclosure — background checks, insurance, COI. */}
+        <ComplianceSection />
+
+        {/* Pricing tiers — marketing summary, leads back to /signup. */}
+        <PricingTiers />
       </div>
     </div>
   );

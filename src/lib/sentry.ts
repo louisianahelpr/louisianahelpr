@@ -71,8 +71,17 @@ const ENV =
   (import.meta.env.VITE_SENTRY_ENV as string | undefined) ||
   (import.meta.env.DEV ? "development" : "production");
 
+/**
+ * Release tag. Preferred source is `VITE_SENTRY_RELEASE`, which CI sets to
+ * the GitHub SHA at build time (see `.github/workflows/sentry-release.yml`)
+ * so every deploy gets a unique, source-mapped release in Sentry and
+ * crash dedup actually works across versions. Falls back to the app
+ * version string for local/dev builds where the CI var isn't set.
+ */
 const RELEASE =
-  (import.meta.env.VITE_APP_VERSION as string | undefined) || "1.0.0";
+  (import.meta.env.VITE_SENTRY_RELEASE as string | undefined) ||
+  (import.meta.env.VITE_APP_VERSION as string | undefined) ||
+  "1.0.0";
 
 let initialized = false;
 

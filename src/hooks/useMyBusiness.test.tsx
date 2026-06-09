@@ -86,6 +86,12 @@ describe("useMyBusiness", () => {
       is_owner: true,
       seat_tier: "team",
       seat_limit: 10,
+      extended_role: "owner",
+      require_approval_above: null,
+      require_2fa: false,
+      default_payment_method_id: null,
+      monthly_budget: null,
+      monthly_budget_alert_at: null,
     });
   });
 

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { MapPin, DollarSign, Clock, ChevronLeft, ChevronRight, CalendarDays, Search, Plus } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { todayLocalISO } from "@/lib/dateUtils";
@@ -41,12 +43,46 @@ interface ScheduleTabProps {
   loading: boolean;
   userId: string;
   onBack: () => void;
+  /** When the parent owns the tab header (e.g. the merged
+      Schedule + Availability tab), suppress the local one so the
+      surface doesn't render two stacked headers. Default false to
+      preserve standalone behavior. */
+  hideHeader?: boolean;
 }
 
-export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: ScheduleTabProps) {
+export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack, hideHeader = false }: ScheduleTabProps) {
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  // Self-blocked dates — rows in helper_availability with a
+  // specific_date and is_available=false. These are the "I marked
+  // myself unavailable" exceptions. Surfaced as grey-out cells with a
+  // hover tooltip so the poster of the page knows *why* a date is
+  // grey at a glance.
+  const { data: blockedDates = new Map<string, "marked_unavailable">() } = useQuery<
+    Map<string, "marked_unavailable">
+  >({
+    queryKey: ["schedule", "blocked", userId],
+    queryFn: async () => {
+      if (!userId) return new Map();
+      const { data, error } = await supabase
+        .from("helper_availability")
+        .select("specific_date, is_available")
+        .eq("helper_id", userId)
+        .not("specific_date", "is", null)
+        .eq("is_available", false);
+      if (error) return new Map();
+      const m = new Map<string, "marked_unavailable">();
+      (data as Array<{ specific_date: string | null }>).forEach((row) => {
+        if (row.specific_date) m.set(row.specific_date, "marked_unavailable");
+      });
+      return m;
+    },
+    enabled: !!userId,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
 
   // True when the user has navigated away from the current month — used
   // to surface a "Today" reset button only when it's actually useful.
@@ -79,12 +115,14 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
 
   return (
     <div className="space-y-4">
-      <ProfileTabHeader
-        eyebrow="Calendar"
-        title="My schedule"
-        meta="Your upcoming jobs and bookings"
-        onBack={onBack}
-      />
+      {!hideHeader && (
+        <ProfileTabHeader
+          eyebrow="Calendar"
+          title="My schedule"
+          meta="Your upcoming jobs and bookings"
+          onBack={onBack}
+        />
+      )}
 
       {loading ? (
         <div className="space-y-4">
@@ -146,40 +184,96 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
               {days.map((day, i) => {
                 if (day === null) return <div key={`e-${i}`} />;
                 const dateStr = getDateStr(day);
-                const hasJobs = jobsByDate.has(dateStr);
+                const dayJobs = jobsByDate.get(dateStr) ?? [];
+                const hasJobs = dayJobs.length > 0;
                 const isToday = dateStr === today;
                 const isSelected = dateStr === selectedDate;
+                // Derive the *reason* a date is blocked: an in-progress
+                // job sitting on this date is a hard block (you're
+                // already on the clock), self-marked unavailability is
+                // a soft block. Either way we render the cell greyed
+                // out + carry a `title` tooltip explaining why.
+                const inProgressOnDay = dayJobs.some((j) => j.status === "in_progress" || j.status === "accepted");
+                const selfMarked = blockedDates.has(dateStr);
+                const blockedReason: string | null = inProgressOnDay
+                  ? "Blocked: job in progress"
+                  : selfMarked
+                    ? "Blocked: you marked yourself unavailable"
+                    : null;
+                const isBlocked = blockedReason !== null;
                 return (
                   <button
                     key={day}
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
+                    title={blockedReason ?? undefined}
+                    aria-label={blockedReason ? `${dateStr} — ${blockedReason.toLowerCase()}` : undefined}
                     className={`relative aspect-square flex flex-col items-center justify-center rounded-ds-sm text-ds-13 transition-colors ${
                       isSelected ? "bg-primary text-primary-foreground" :
                       isToday ? "text-primary font-bold ring-2 ring-primary/70 ring-inset bg-primary/8" :
+                      isBlocked ? "text-muted-foreground/70 bg-muted/30 hover:bg-muted/50" :
                       "hover:bg-secondary text-foreground"
                     }`}
+                    style={
+                      isBlocked && !isSelected && !isToday
+                        ? {
+                            // Subtle diagonal hatch + grey backdrop —
+                            // signals "unavailable" without screaming.
+                            backgroundImage:
+                              "repeating-linear-gradient(135deg, transparent 0 4px, hsl(var(--olivewood) / 0.06) 4px 5px)",
+                          }
+                        : undefined
+                    }
                   >
                     {day}
                     {hasJobs && (
-                      <span className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-primary"}`} />
+                      <span className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${
+                        isSelected ? "bg-primary-foreground" :
+                        inProgressOnDay ? "bg-[hsl(var(--burnt-sienna))]" : "bg-primary"
+                      }`} />
                     )}
                   </button>
                 );
               })}
             </div>
             {/* Legend — quick decoder so users intuit the bark dot
-                without trial-and-error. Two micro-chips inline, italic
-                serif to match the rest of the chrome. */}
-            <div className="mt-3 pt-3 flex items-center gap-4 font-serif italic text-[0.7rem]" style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood) / 0.7)" }}>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded ring-2 ring-primary/70 ring-inset bg-primary/8" aria-hidden />
-                Today
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden />
-                Has a job
-              </span>
-            </div>
+                without trial-and-error. Micro-chips inline, italic
+                serif to match the rest of the chrome. Blocked entry is
+                only added when at least one cell on the current month
+                is actually blocked, so the legend stays minimal on
+                clear weeks. */}
+            {(() => {
+              const monthHasBlocked = days.some((d) => {
+                if (d === null) return false;
+                const ds = getDateStr(d);
+                if (blockedDates.has(ds)) return true;
+                return (jobsByDate.get(ds) ?? []).some((j) => j.status === "in_progress" || j.status === "accepted");
+              });
+              return (
+                <div className="mt-3 pt-3 flex items-center gap-4 flex-wrap font-serif italic text-[0.7rem]" style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded ring-2 ring-primary/70 ring-inset bg-primary/8" aria-hidden />
+                    Today
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden />
+                    Has a job
+                  </span>
+                  {monthHasBlocked && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        className="w-3 h-3 rounded bg-muted/30"
+                        style={{
+                          backgroundImage:
+                            "repeating-linear-gradient(135deg, transparent 0 3px, hsl(var(--olivewood) / 0.18) 3px 4px)",
+                        }}
+                        aria-hidden
+                      />
+                      Blocked
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {selectedDate && (

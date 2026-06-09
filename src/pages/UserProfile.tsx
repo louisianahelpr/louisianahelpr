@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, ChevronDown } from "lucide-react";
+import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, ChevronDown, MessageSquare, Users, Timer, RotateCcw } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -63,7 +63,11 @@ const UserProfile = () => {
   // = "all". Visible count starts at PAGE_SIZE and grows in PAGE_SIZE
   // increments via the "Show more" button at the bottom of the list.
   const [reviewCategoryFilter, setReviewCategoryFilter] = useState<string | null>(null);
-  const [reviewRatingFilter, setReviewRatingFilter] = useState<number | null>(null);
+  // Star-filter bucket (#3): "all" | "5" | "4" | "low" (≤3). Three discrete
+  // buckets reads cleaner than five rating chips — a customer scanning
+  // reviews wants to see the negatives or just the perfect-fives, not
+  // the granular per-star breakdown.
+  const [reviewRatingFilter, setReviewRatingFilter] = useState<"all" | "5" | "4" | "low">("all");
   const [reviewVisibleCount, setReviewVisibleCount] = useState(5);
 
   // React Query: cached for 60s, instant on revisit, refresh in background.
@@ -110,7 +114,14 @@ const UserProfile = () => {
       // cancellation_count_*_res are head-only count queries so the
       // cancellation-rate stat (#30) reflects ALL jobs, not just the 20
       // we render inline.
-      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes] = await Promise.all([
+      // Mutual-jobs lookup (#1) — only fires when there's a viewer signed
+      // in AND they aren't viewing themselves. Looks for completed-or-
+      // active jobs where the viewer + viewed user worked together in
+      // either direction. Soft-fails to 0 (graceful badge hide) if RLS
+      // blocks the row read.
+      const wantsMutual = !!currentUserId && currentUserId !== userId;
+
+      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
@@ -140,6 +151,29 @@ const UserProfile = () => {
         // in a soft fetch so PGRST202 ("RPC not deployed yet") just hides
         // the badge instead of bricking the whole profile load.
         supabase.rpc("get_user_last_active", { user_ids: [userId!] }),
+        // Mutual jobs (#1) — viewer has worked with this user before?
+        // Counts every job where the two of them are paired in either
+        // direction. We only need a count, so head:true keeps it cheap.
+        // The .or() handles both directions in a single round-trip.
+        wantsMutual
+          ? supabase
+              .from("jobs")
+              .select("id", { count: "exact", head: true })
+              .or(
+                `and(customer_id.eq.${currentUserId},helper_id.eq.${userId}),and(customer_id.eq.${userId},helper_id.eq.${currentUserId})`,
+              )
+          : Promise.resolve({ data: null, error: null, count: 0 } as any),
+        // Worked-side timing fields (#6) — drives on-time arrival rate +
+        // revision frequency stats. Pulled separately from the inline-
+        // rendered list because we want the broader history (50 rows),
+        // not just the most recent 20 truncated for the card UI.
+        supabase
+          .from("jobs")
+          .select("status, date_needed, start_time, helper_on_the_way_at, helper_arrived_at, revision_count")
+          .eq("helper_id", userId!)
+          .eq("status", "completed")
+          .order("created_at", { ascending: false })
+          .limit(50),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -152,6 +186,7 @@ const UserProfile = () => {
         ["applications", appsRes], ["trust_signals", idCheckRes],
         ["posted_total", postedTotalRes], ["posted_cancelled", postedCancelledRes],
         ["worked_total", workedTotalRes], ["worked_cancelled", workedCancelledRes],
+        ["worked_timing", workedTimingRes],
       ] as const) {
         if (res.error) {
           report(res.error, {
@@ -201,6 +236,53 @@ const UserProfile = () => {
         // Only render when there's enough history to be meaningful.
         rate: totalJobsCount >= 5 ? (totalCancelledCount / totalJobsCount) * 100 : null,
       };
+
+      // Mutual jobs (#1) — silently degrade to 0 if the count read errored
+      // (RLS, unexpected schema). The badge hides itself at 0.
+      const mutualJobsCount = wantsMutual ? (mutualRes?.count ?? 0) : 0;
+      if (wantsMutual && mutualRes?.error) {
+        report(mutualRes.error, {
+          severity: "warning",
+          tags: { area: "user_profile.mutual_jobs" },
+          context: { viewer_id: currentUserId, viewed_user_id: userId },
+        });
+      }
+
+      // Derived completion stats (#6). On-time arrival = of completed jobs
+      // with both `helper_arrived_at` AND `date_needed`+`start_time`, how
+      // often did the helper arrive on or before the scheduled start.
+      // Revision frequency = share of completed jobs with revision_count>0.
+      // Both gate on minimum sample size of 5 to avoid sample-of-1 cliffs.
+      let onTimeArrivalRate: number | null = null;
+      let revisionFrequency: number | null = null;
+      const timingRows = (workedTimingRes?.data || []) as Array<{
+        date_needed: string;
+        start_time: string | null;
+        helper_arrived_at: string | null;
+        revision_count: number | null;
+      }>;
+      if (timingRows.length >= 5) {
+        const withRevision = timingRows.filter((j) => (j.revision_count ?? 0) > 0).length;
+        revisionFrequency = (withRevision / timingRows.length) * 100;
+
+        // Build a scheduled-start Date from date_needed + start_time. If
+        // start_time is null, treat the start of date_needed as the target.
+        // Drop rows that can't yield a comparable timestamp.
+        const arrivalSample = timingRows.filter((j) => !!j.helper_arrived_at && !!j.date_needed);
+        if (arrivalSample.length >= 5) {
+          const onTime = arrivalSample.filter((j) => {
+            const arrived = new Date(j.helper_arrived_at!).getTime();
+            const scheduledIso = j.start_time
+              ? `${j.date_needed}T${j.start_time}`
+              : `${j.date_needed}T00:00:00`;
+            const scheduled = new Date(scheduledIso).getTime();
+            if (isNaN(scheduled) || isNaN(arrived)) return false;
+            // 10-min grace — "on time" is a humane window, not a stopwatch.
+            return arrived - scheduled <= 10 * 60_000;
+          }).length;
+          onTimeArrivalRate = (onTime / arrivalSample.length) * 100;
+        }
+      }
 
       let responseMetrics = { avgResponseHours: null as number | null, acceptanceRate: null as number | null, totalApplications: 0 };
       if (appsRes?.data && appsRes.data.length > 0) {
@@ -253,6 +335,9 @@ const UserProfile = () => {
         workedJobs,
         responseMetrics,
         cancellationRate,
+        mutualJobsCount,
+        onTimeArrivalRate,
+        revisionFrequency,
         // Serialize so React Query's cache survives a window reload (Date
         // objects don't round-trip JSON). Re-hydrate at the call site.
         lastActiveIso: lastActiveAt ? lastActiveAt.toISOString() : null,
@@ -275,6 +360,9 @@ const UserProfile = () => {
   const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
   const cancellationRate = data?.cancellationRate ?? { total: 0, cancelled: 0, rate: null as number | null };
+  const mutualJobsCount = data?.mutualJobsCount ?? 0;
+  const onTimeArrivalRate = data?.onTimeArrivalRate ?? null;
+  const revisionFrequency = data?.revisionFrequency ?? null;
   const lastActiveAt = data?.lastActiveIso ? new Date(data.lastActiveIso) : null;
   const isIdVerified = data?.isIdVerified ?? false;
   const tierProfile = data?.tierProfile ?? null;
@@ -313,6 +401,7 @@ const UserProfile = () => {
   const headerHasActions = !isOwnProfile && !!currentUserId;
   const headerActionPlaceholder = headerHasActions ? (
     <div className="flex items-center gap-1" aria-hidden>
+      <div className="h-10 w-10 rounded-ds-md bg-muted animate-pulse" />
       <div className="h-10 w-10 rounded-ds-md bg-muted animate-pulse" />
       <div className="h-10 w-10 rounded-ds-md bg-muted animate-pulse" />
     </div>
@@ -398,20 +487,20 @@ const UserProfile = () => {
   const initials = (profile.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
   const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: profile.subscription_tier || null });
 
-  // Compact "active 2h ago" label. Returns null beyond 7 days — older
-  // timestamps degrade from a fresh-presence signal to a stale one, so
-  // we hide rather than mislead. (#28)
+  // Active-cohort label (#5). Cohort-based copy ("Active today" / "Active
+  // this week") instead of exact "2h ago" — a privacy nudge so a viewer
+  // can't pattern-match someone's online routine. Same two visual states
+  // as before: "live" (green pulse) within 10 minutes, muted olivewood
+  // otherwise. Returns null beyond 7 days so stale presence doesn't
+  // mislead. The "Active now" label stays because it's already a coarse
+  // 10-minute bucket, not a real-time indicator.
   const lastActiveLabel = (() => {
     if (!lastActiveAt) return null;
     const ms = Date.now() - lastActiveAt.getTime();
     if (ms < 0) return null; // clock skew safeguard
-    const m = Math.floor(ms / 60_000);
-    if (m < 10) return { text: "Active now", isLive: true };
-    if (m < 60) return { text: `Active ${m}m ago`, isLive: false };
-    const h = Math.floor(m / 60);
-    if (h < 24) return { text: `Active ${h}h ago`, isLive: false };
-    const d = Math.floor(h / 24);
-    if (d <= 7) return { text: `Active ${d}d ago`, isLive: false };
+    if (ms < 10 * 60_000) return { text: "Active now", isLive: true };
+    if (ms < 24 * 60 * 60_000) return { text: "Active today", isLive: false };
+    if (ms < 7 * 24 * 60 * 60_000) return { text: "Active this week", isLive: false };
     return null;
   })();
 
@@ -424,6 +513,21 @@ const UserProfile = () => {
         rightSlot={
           !isOwnProfile && currentUserId ? (
             <div className="flex items-center gap-1">
+              {/* Persistent Message button (#2). Always shown for any
+                  signed-in viewer who isn't viewing themselves, no matter
+                  whether there's an active job context. Hitting it deep-
+                  links into Messages scoped to this user — the inbox
+                  picks up an existing thread, or surfaces a "no thread
+                  yet" affordance. */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-ds-md h-10 w-10 shrink-0"
+                aria-label={`Message ${displayName}`}
+                onClick={() => navigate(`/messages?userId=${userId}`)}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </Button>
               <SaveHelperButton helperId={userId!} customerId={currentUserId} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -572,6 +676,28 @@ const UserProfile = () => {
                   <span className="font-medium">{lastActiveLabel.text}</span>
                 </div>
               )}
+              {/* Mutual jobs pill (#1) — shown for viewers who have already
+                  worked with this user before, in either direction. A
+                  strong trust signal: prior shared history short-circuits
+                  the "who is this person?" calculus. Hidden at 0 (no
+                  history) or when viewing your own profile. */}
+              {!isOwnProfile && mutualJobsCount > 0 && (
+                <div
+                  className="inline-flex items-center gap-1.5 mt-1.5 ml-1.5 px-2 py-0.5 rounded-full text-ds-11"
+                  style={{
+                    background: "hsl(var(--bark) / 0.10)",
+                    border: "0.5px solid hsl(var(--bark) / 0.22)",
+                    color: "hsl(var(--bark))",
+                  }}
+                >
+                  <Users className="w-3 h-3" />
+                  <span className="font-medium">
+                    You've worked together{" "}
+                    <span className="font-display italic font-bold tabular-nums">{mutualJobsCount}</span>{" "}
+                    {mutualJobsCount === 1 ? "time" : "times"}
+                  </span>
+                </div>
+              )}
               {/* Response Metrics inline */}
               {responseMetrics.totalApplications > 0 && (
                 <div className="flex items-center justify-center gap-3 mt-2 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
@@ -599,6 +725,58 @@ const UserProfile = () => {
                         <span>accept rate</span>
                       </span>
                     </>
+                  )}
+                </div>
+              )}
+              {/* On-time arrival + revision frequency (#6). Derived from
+                  helper_arrived_at vs date_needed/start_time + revision_count
+                  on the last 50 completed jobs. Both require a minimum
+                  sample of 5 to surface, so they only appear once the
+                  helper has accumulated enough history to be meaningful.
+                  Skipped silently when the schema doesn't yield a usable
+                  signal (no arrived_at timestamps recorded yet). */}
+              {(onTimeArrivalRate !== null || revisionFrequency !== null) && (
+                <div className="flex items-center justify-center gap-3 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  {onTimeArrivalRate !== null && (
+                    <span className="flex items-center gap-1">
+                      <Timer className="w-3 h-3" />
+                      <span
+                        className="font-display italic font-bold tabular-nums"
+                        style={{
+                          color:
+                            onTimeArrivalRate >= 85
+                              ? "hsl(var(--ink-deep))"
+                              : onTimeArrivalRate >= 65
+                              ? "hsl(var(--gold-warm))"
+                              : "hsl(var(--burnt-sienna))",
+                        }}
+                      >
+                        {onTimeArrivalRate.toFixed(0)}%
+                      </span>
+                      <span>on-time</span>
+                    </span>
+                  )}
+                  {onTimeArrivalRate !== null && revisionFrequency !== null && (
+                    <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+                  )}
+                  {revisionFrequency !== null && (
+                    <span className="flex items-center gap-1">
+                      <RotateCcw className="w-3 h-3" />
+                      <span
+                        className="font-display italic font-bold tabular-nums"
+                        style={{
+                          color:
+                            revisionFrequency <= 10
+                              ? "hsl(var(--ink-deep))"
+                              : revisionFrequency <= 25
+                              ? "hsl(var(--gold-warm))"
+                              : "hsl(var(--burnt-sienna))",
+                        }}
+                      >
+                        {revisionFrequency.toFixed(0)}%
+                      </span>
+                      <span>revisions</span>
+                    </span>
                   )}
                 </div>
               )}
@@ -859,12 +1037,20 @@ const UserProfile = () => {
             const distinctCategories = Array.from(
               new Set(reviews.map((r) => r.jobCategory).filter((c): c is string => !!c)),
             ).sort();
+            const matchesRatingBucket = (rating: number) => {
+              if (reviewRatingFilter === "all") return true;
+              if (reviewRatingFilter === "5") return rating === 5;
+              if (reviewRatingFilter === "4") return rating === 4;
+              // "low" bucket = ≤3 — pulls all critical reviews together so
+              // a viewer can audit the negatives in one tap.
+              return rating <= 3;
+            };
             const filteredReviews = reviews.filter((r) => {
               if (reviewCategoryFilter && r.jobCategory !== reviewCategoryFilter) return false;
-              if (reviewRatingFilter && r.rating !== reviewRatingFilter) return false;
+              if (!matchesRatingBucket(r.rating)) return false;
               return true;
             });
-            const hasActiveFilter = reviewCategoryFilter !== null || reviewRatingFilter !== null;
+            const hasActiveFilter = reviewCategoryFilter !== null || reviewRatingFilter !== "all";
             const visible = filteredReviews.slice(0, reviewVisibleCount);
             const hasMore = filteredReviews.length > visible.length;
 
@@ -881,7 +1067,7 @@ const UserProfile = () => {
                         <button
                           onClick={() => {
                             setReviewCategoryFilter(null);
-                            setReviewRatingFilter(null);
+                            setReviewRatingFilter("all");
                             setReviewVisibleCount(PAGE_SIZE);
                           }}
                           className="text-ds-11 underline text-muted-foreground hover:text-foreground"
@@ -916,16 +1102,23 @@ const UserProfile = () => {
                         })}
                       </div>
                     )}
+                    {/* Star-bucket chips (#3): All / 5 / 4 / ≤3. Buckets
+                        hide themselves when no review matches — a profile
+                        with only 5★ reviews won't surface an empty "4★" tab. */}
                     <div className="flex flex-wrap gap-1.5">
-                      {[5, 4, 3, 2, 1].map((rating) => {
-                        const count = reviews.filter((r) => r.rating === rating).length;
-                        if (count === 0) return null;
-                        const active = reviewRatingFilter === rating;
+                      {([
+                        { key: "all" as const, label: "All", count: reviews.length, stars: 0 },
+                        { key: "5" as const, label: "", count: reviews.filter((r) => r.rating === 5).length, stars: 5 },
+                        { key: "4" as const, label: "", count: reviews.filter((r) => r.rating === 4).length, stars: 4 },
+                        { key: "low" as const, label: "≤3", count: reviews.filter((r) => r.rating <= 3).length, stars: 3 },
+                      ]).map((bucket) => {
+                        if (bucket.key !== "all" && bucket.count === 0) return null;
+                        const active = reviewRatingFilter === bucket.key;
                         return (
                           <button
-                            key={rating}
+                            key={bucket.key}
                             onClick={() => {
-                              setReviewRatingFilter(active ? null : rating);
+                              setReviewRatingFilter(bucket.key);
                               setReviewVisibleCount(PAGE_SIZE);
                             }}
                             className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors tabular-nums"
@@ -935,9 +1128,16 @@ const UserProfile = () => {
                               border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
                             }}
                           >
-                            <Star className={`w-3 h-3 ${active ? "fill-current" : "fill-current"}`} />
-                            {rating}
-                            <span className="opacity-70">({count})</span>
+                            {bucket.key === "all" ? (
+                              <span>{bucket.label}</span>
+                            ) : (
+                              <>
+                                {bucket.key === "low" && <span>{bucket.label}</span>}
+                                <Star className="w-3 h-3 fill-current" />
+                                {bucket.key !== "low" && <span>{bucket.stars}</span>}
+                              </>
+                            )}
+                            <span className="opacity-70">({bucket.count})</span>
                           </button>
                         );
                       })}

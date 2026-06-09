@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft, Loader2, SearchX, Star, Users, Wrench } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, Loader2, SearchX, Star, Users, Wrench } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
@@ -11,6 +11,12 @@ import { VirtualList } from "@/components/VirtualList";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
 import { ListFilterBar, type StatusChip } from "./ListFilterBar";
+import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
+import { bucketPostedJob } from "@/pages/activity/activityFilters";
+import { useBulkDismiss } from "@/pages/activity/useBulkDismiss";
+import { BulkDismissBar } from "@/pages/activity/BulkDismissBar";
+import { useLongPress } from "@/hooks/useLongPress";
+import { hapticMedium } from "@/lib/haptics";
 import type { TrackingData } from "@/components/JobTracking";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
 
@@ -32,6 +38,87 @@ function postedBucket(job: Job): string {
     case "disputed": return "closed";
     default: return "active"; // accepted / in_progress / revision_requested
   }
+}
+
+/**
+ * BulkDismissibleWrapper — when selectionMode is off, presses are
+ * forwarded to the underlying card as usual EXCEPT for the long-press
+ * which enters selection mode. When selectionMode is on, taps toggle
+ * selection and the card's own interactions are intercepted (a thin
+ * overlay swallows pointer events) so the user can multi-select
+ * without accidentally triggering the card's own actions.
+ */
+interface BulkDismissibleWrapperProps {
+  selectionMode: boolean;
+  selected: boolean;
+  onLongPress: () => void;
+  onTapInSelection: () => void;
+  children: React.ReactNode;
+}
+
+function BulkDismissibleWrapper({
+  selectionMode,
+  selected,
+  onLongPress,
+  onTapInSelection,
+  children,
+}: BulkDismissibleWrapperProps) {
+  const longPressProps = useLongPress({
+    threshold: 500,
+    onLongPress: () => {
+      hapticMedium();
+      onLongPress();
+    },
+  });
+
+  return (
+    <div
+      // Don't add long-press while already in selection mode — taps
+      // should toggle selection cleanly without an additional 500ms hold.
+      {...(selectionMode ? {} : longPressProps)}
+      className="relative"
+      style={{ touchAction: selectionMode ? "manipulation" : undefined }}
+    >
+      {/* Selection overlay — only active in selection mode. Captures
+          taps to toggle and renders a checkbox in the corner. The
+          overlay sits above the card content so clicks on links/buttons
+          inside the card are blocked while selecting. */}
+      {selectionMode && (
+        <button
+          type="button"
+          onClick={onTapInSelection}
+          aria-pressed={selected}
+          aria-label={selected ? "Deselect this post" : "Select this post"}
+          className="absolute inset-0 z-10 rounded-ds-md transition"
+          style={{
+            background: selected
+              ? "hsl(var(--bark) / 0.18)"
+              : "hsl(var(--olivewood) / 0.04)",
+            border: selected
+              ? "1.5px solid hsl(var(--bark))"
+              : "1.5px solid hsl(var(--olivewood) / 0.2)",
+          }}
+        >
+          {/* Checkbox glyph — top-right so it doesn't fight the avatar
+              or title-bar that anchors the card on the left. */}
+          <span
+            className="absolute top-3 right-3 w-6 h-6 rounded-full inline-flex items-center justify-center"
+            style={{
+              background: selected ? "hsl(var(--bark))" : "hsl(var(--parchment))",
+              border: selected
+                ? "1.5px solid hsl(var(--bark))"
+                : "1.5px solid hsl(var(--olivewood) / 0.35)",
+              boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.18)",
+            }}
+            aria-hidden="true"
+          >
+            {selected && <Check className="w-3.5 h-3.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={3} />}
+          </span>
+        </button>
+      )}
+      {children}
+    </div>
+  );
 }
 
 interface PostedJobsTabProps {
@@ -76,6 +163,12 @@ interface PostedJobsTabProps {
   applicantErrors: Record<string, boolean>;
   /** Refetch the feed after an inline card mutation (e.g. dispute action). */
   onActionComplete: () => void;
+  /** When true, render items grouped into collapsible Active /
+   *  Completed / Cancelled sections instead of a flat virtualized
+   *  list. Driven by the page-level "All" status filter; hides the
+   *  in-tab ListFilterBar in that mode (the page's outer header is
+   *  the source of truth for filter + search). */
+  groupByStatus?: boolean;
 }
 
 export const PostedJobsTab = ({
@@ -88,16 +181,34 @@ export const PostedJobsTab = ({
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onLoadInlineApplicants,
   inlineApplicants, loadingApplicants, applicantErrors,
-  onActionComplete,
+  onActionComplete, groupByStatus = false,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
   // Client-side search + status filter over the already-loaded list.
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  // Bulk-dismiss for cancelled posts — long-press a Cancelled card to
+  // enter selection mode, then bulk-hide them from view. The hide is
+  // local (sessionStorage) so the audit record on the server stays
+  // intact.
+  const bulkDismiss = useBulkDismiss("posted");
+
+  // Filter the incoming jobs through the dismissed set so a previously
+  // hidden cancelled job stays hidden across re-renders. Cancelled jobs
+  // are the only ones that can be dismissed; a non-cancelled job in the
+  // dismissed set is a stale entry and is rendered normally.
+  const visibleJobs = useMemo(
+    () => jobs.filter((j) => {
+      if (j.status !== "cancelled" && j.status !== "disputed") return true;
+      return !bulkDismiss.dismissed.has(j.id);
+    }),
+    [jobs, bulkDismiss.dismissed],
+  );
+
   const filteredJobs = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return jobs.filter((job) => {
+    return visibleJobs.filter((job) => {
       if (statusFilter !== "all" && postedBucket(job) !== statusFilter) return false;
       if (!q) return true;
       return (
@@ -106,7 +217,64 @@ export const PostedJobsTab = ({
         (job.location ?? "").toLowerCase().includes(q)
       );
     });
-  }, [jobs, searchQuery, statusFilter]);
+  }, [visibleJobs, searchQuery, statusFilter]);
+
+  // One source of truth for the per-row render so both the flat
+  // VirtualList view and the grouped Sectioned view paint identical
+  // cards. Cancelled cards get a long-press / checkbox wrapper that
+  // drives the bulk-dismiss flow.
+  const renderJobCard = (job: Job) => {
+    const card = (
+      <PostedJobCard
+        job={job}
+        applicantCounts={applicantCounts}
+        expandedJobId={expandedJobId}
+        setExpandedJobId={setExpandedJobId}
+        helperNames={helperNames}
+        completedJobMeta={completedJobMeta}
+        startRequestedJobIds={startRequestedJobIds}
+        // `latestTracking[job.id]` may legitimately be `null` ("we
+        // looked, no row exists") — the card forwards that down so
+        // <JobTracking> skips its own initial fetch. If the key is
+        // absent (e.g. a not-yet-active job), the card passes
+        // `undefined` and JobTracking falls back to its own query.
+        initialTracking={latestTracking[job.id]}
+        initialGroupHelpers={groupHelpersByJob[job.id]}
+        userId={userId}
+        onBoost={onBoost}
+        onEdit={onEdit}
+        onCancel={onCancel}
+        onComplete={onComplete}
+        completingJobId={completingJobId}
+        onRevision={onRevision}
+        onNoShow={onNoShow}
+        onTip={onTip}
+        onReview={onReview}
+        onDispute={onDispute}
+        onConfirmStart={onConfirmStart}
+        onConfirmArrival={onConfirmArrival}
+        onConfirmWorking={onConfirmWorking}
+        onLoadApplications={onLoadApplications}
+        onLoadInlineApplicants={onLoadInlineApplicants}
+        inlineApplicants={inlineApplicants}
+        loadingApplicants={loadingApplicants}
+        applicantErrors={applicantErrors}
+        onActionComplete={onActionComplete}
+      />
+    );
+    const isCancelled = job.status === "cancelled" || job.status === "disputed";
+    if (!isCancelled) return card;
+    return (
+      <BulkDismissibleWrapper
+        selectionMode={bulkDismiss.selectionMode}
+        selected={bulkDismiss.selected.has(job.id)}
+        onLongPress={() => bulkDismiss.enterSelectionMode(job.id)}
+        onTapInSelection={() => bulkDismiss.toggleSelected(job.id)}
+      >
+        {card}
+      </BulkDismissibleWrapper>
+    );
+  };
 
   if (jobs.length === 0) {
     return (
@@ -125,8 +293,21 @@ export const PostedJobsTab = ({
     );
   }
 
-  return (
-    <div className="space-y-4">
+  // Grouped view — driven by the page's "All" status filter. Skips the
+  // in-tab ListFilterBar (the page header owns search + filter in this
+  // mode) and routes every card through the collapsible 3-section
+  // shell. The applicants full-screen modal renders below as a
+  // sibling so it surfaces in either mode.
+  const listView = groupByStatus ? (
+    <ActivitySectionedView
+      tab="posted"
+      items={visibleJobs}
+      getKey={(job) => job.id}
+      bucketize={bucketPostedJob}
+      renderItem={renderJobCard}
+    />
+  ) : (
+    <>
       <ListFilterBar
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -151,45 +332,24 @@ export const PostedJobsTab = ({
         overscan={4}
         className="space-y-0"
         itemClassName="pb-3"
-        renderItem={(job) => (
-          <PostedJobCard
-            job={job}
-            applicantCounts={applicantCounts}
-            expandedJobId={expandedJobId}
-            setExpandedJobId={setExpandedJobId}
-            helperNames={helperNames}
-            completedJobMeta={completedJobMeta}
-            startRequestedJobIds={startRequestedJobIds}
-            // `latestTracking[job.id]` may legitimately be `null` ("we
-            // looked, no row exists") — the card forwards that down so
-            // <JobTracking> skips its own initial fetch. If the key is
-            // absent (e.g. a not-yet-active job), the card passes
-            // `undefined` and JobTracking falls back to its own query.
-            initialTracking={latestTracking[job.id]}
-            initialGroupHelpers={groupHelpersByJob[job.id]}
-            userId={userId}
-            onBoost={onBoost}
-            onEdit={onEdit}
-            onCancel={onCancel}
-            onComplete={onComplete}
-            completingJobId={completingJobId}
-            onRevision={onRevision}
-            onNoShow={onNoShow}
-            onTip={onTip}
-            onReview={onReview}
-            onDispute={onDispute}
-            onConfirmStart={onConfirmStart}
-            onConfirmArrival={onConfirmArrival}
-            onConfirmWorking={onConfirmWorking}
-            onLoadApplications={onLoadApplications}
-            onLoadInlineApplicants={onLoadInlineApplicants}
-            inlineApplicants={inlineApplicants}
-            loadingApplicants={loadingApplicants}
-            applicantErrors={applicantErrors}
-            onActionComplete={onActionComplete}
-          />
-        )}
+        renderItem={renderJobCard}
       />
+      )}
+    </>
+  );
+
+  return (
+    <div className="space-y-4">
+      {listView}
+
+      {/* Sticky bottom bulk-dismiss bar — surfaces only in selection
+          mode. Long-pressing a Cancelled card enters this mode. */}
+      {bulkDismiss.selectionMode && (
+        <BulkDismissBar
+          selectedCount={bulkDismiss.stats.selectedCount}
+          onDismiss={bulkDismiss.dismissSelected}
+          onCancel={bulkDismiss.exitSelectionMode}
+        />
       )}
 
       {/* Applicants full-screen view */}

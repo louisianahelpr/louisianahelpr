@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Flag, Ban, Trash2, MoreVertical, BellOff, Bell } from "lucide-react";
+import { Flag, Ban, Trash2, MoreVertical, BellOff, Bell, Pin, PinOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,12 @@ interface ConversationRowProps {
   onToggleMute: (convo: Conversation) => void;
   /** Open the snooze picker (MuteSheet) targeted at this conversation. */
   onOpenMuteSheet: (convo: Conversation) => void;
+  /** Pinned to the top of the inbox for the current session. Drives the
+   *  pin-or-unpin menu item (and is forwarded by the list to the swipe
+   *  wrapper so the right-swipe trail reads as "Unpin" on pinned rows). */
+  isPinned: boolean;
+  /** Toggle the pinned state for this conversation. */
+  onTogglePin: () => void;
 }
 
 /**
@@ -107,6 +113,8 @@ const ConversationRowBase = ({
   setDeleteConvoConfirm,
   onToggleMute,
   onOpenMuteSheet,
+  isPinned,
+  onTogglePin,
 }: ConversationRowProps) => {
   // Relative time so the list reads as "active", not as a stack of
   // full dates.
@@ -357,6 +365,20 @@ const ConversationRowBase = ({
               <BellOff className="w-4 h-4 mr-2" /> Mute notifications…
             </DropdownMenuItem>
           )}
+          {/* Pin / Unpin — session-scoped pin to keep frequent threads
+              at the top of the inbox. Same action as the right-swipe
+              gesture, surfaced in the menu for discoverability. */}
+          <DropdownMenuItem onClick={onTogglePin}>
+            {isPinned ? (
+              <>
+                <PinOff className="w-4 h-4 mr-2" /> Unpin from top
+              </>
+            ) : (
+              <>
+                <Pin className="w-4 h-4 mr-2" /> Pin to top
+              </>
+            )}
+          </DropdownMenuItem>
           <div role="separator" className="my-1 h-px bg-border" />
           <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: c.otherUserId })}>
             <Flag className="w-4 h-4 mr-2" /> Report user

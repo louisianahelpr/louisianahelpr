@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Pin } from "lucide-react";
+import { toast } from "sonner";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -16,6 +17,8 @@ import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSk
 import { VirtualList } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
 import { MuteSheet } from "./MuteSheet";
+import { SwipeableConversationRow } from "./SwipeableConversationRow";
+import { getPinnedSet, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
 import type { Conversation } from "./types";
 
 // Cap the rendered list; "Show all" reveals the rest. The virtualizer
@@ -43,6 +46,12 @@ interface ConversationListProps {
   onSnoozeMute: (convo: Conversation, until: Date | null) => void;
   /** Explicit unmute — clears any forever or snoozed mute. */
   onUnmute: (convo: Conversation) => void;
+}
+
+// Sort comparator (descending by lastAt) — pulled out so the pinned /
+// unpinned partitions both use the exact same ordering rule.
+function byLastAtDesc(a: Conversation, b: Conversation): number {
+  return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
 }
 
 /**
@@ -75,6 +84,52 @@ export function ConversationList({
   // The row's mute action opens this rather than firing the binary
   // toggle directly — keeps "1h / 8h / tomorrow / forever" one tap deep.
   const [muteSheetConvo, setMuteSheetConvo] = useState<Conversation | null>(null);
+  // Bump this nonce after a pin/unpin so the derived order re-reads
+  // sessionStorage (the pin set is read directly to avoid a parallel
+  // state branch). Cheap, scoped to a paint.
+  const [pinNonce, setPinNonce] = useState(0);
+
+  // Partition + sort: pinned threads first (kept in their own
+  // newest-first stack), then everything else in newest-first order.
+  // Keeps the inbox readable when 2-3 threads are pinned without
+  // splitting them into a separate panel.
+  const orderedConversations = useMemo(() => {
+    if (!userId) return [...conversations].sort(byLastAtDesc);
+    const pinnedSet = getPinnedSet(userId);
+    const pinned: Conversation[] = [];
+    const rest: Conversation[] = [];
+    for (const c of conversations) {
+      if (pinnedSet.has(pinnedKey(c.jobId, c.otherUserId))) pinned.push(c);
+      else rest.push(c);
+    }
+    pinned.sort(byLastAtDesc);
+    rest.sort(byLastAtDesc);
+    return [...pinned, ...rest];
+    // pinNonce is the dependency, even though it's not used in the body —
+    // bumping it triggers a re-read of sessionStorage.
+  }, [conversations, userId, pinNonce]);
+
+  const handleTogglePin = (convo: Conversation) => {
+    if (!userId) return;
+    const next = togglePinned(userId, convo.jobId, convo.otherUserId);
+    setPinNonce((n) => n + 1);
+    toast.success(next ? "Pinned to top" : "Unpinned");
+  };
+
+  const handleArchive = (convo: Conversation) => {
+    // Reuse the existing "delete conversation" confirm flow — it's an
+    // honest local archive, not a destructive delete (see archivedConversations.ts).
+    setDeleteConvoConfirm(convo);
+  };
+
+  // The current pinned key-set for the rendered conversations. Kept
+  // outside the render loop so SwipeableConversationRow's `isPinned`
+  // prop is a stable Set lookup, not a per-row sessionStorage read.
+  const pinnedSetForRender = useMemo(
+    () => (userId ? getPinnedSet(userId) : new Set<string>()),
+    // pinNonce drives re-evaluation when a pin/unpin happens.
+    [userId, pinNonce],
+  );
 
   // Empty inbox (loaded, no error, zero threads). When there's nothing
   // to list, the "0 threads" count chip and the redundant secondary
@@ -197,7 +252,9 @@ export function ConversationList({
           ) : (
             <div className="space-y-2">
               {(() => {
-                const visibleConvos = showAllConvos ? conversations : conversations.slice(0, CONVO_LIMIT);
+                const visibleConvos = showAllConvos
+                  ? orderedConversations
+                  : orderedConversations.slice(0, CONVO_LIMIT);
                 return (
                   <VirtualList
                     items={visibleConvos}
@@ -205,24 +262,60 @@ export function ConversationList({
                     estimateSize={104}
                     overscan={6}
                     itemClassName="pb-2"
-                    renderItem={(c) => (
-                      <ConversationRow
-                        convo={c}
-                        currentUserId={userId}
-                        openConvo={openConvo}
-                        setReportTarget={setReportTarget}
-                        setBlockTarget={setBlockTarget}
-                        setDeleteConvoConfirm={setDeleteConvoConfirm}
-                        onToggleMute={onToggleMute}
-                        onOpenMuteSheet={setMuteSheetConvo}
-                      />
-                    )}
+                    renderItem={(c) => {
+                      const pinned = pinnedSetForRender.has(
+                        pinnedKey(c.jobId, c.otherUserId),
+                      );
+                      return (
+                        <SwipeableConversationRow
+                          isPinned={pinned}
+                          onArchive={() => handleArchive(c)}
+                          onTogglePin={() => handleTogglePin(c)}
+                        >
+                          <div className="relative">
+                            {/* Tiny pin chip — peeks over the top-right
+                                corner of the avatar so a pinned row reads
+                                at a glance without changing the row's
+                                shape. Hidden when not pinned. */}
+                            {pinned && (
+                              <span
+                                aria-label="Pinned"
+                                className="absolute top-2 left-2 z-10 inline-flex items-center justify-center w-4 h-4 rounded-full pointer-events-none"
+                                style={{
+                                  background: "hsl(var(--gold-warm) / 0.9)",
+                                  boxShadow:
+                                    "0 1px 3px hsl(var(--gold-warm) / 0.45)",
+                                }}
+                              >
+                                <Pin
+                                  className="w-2.5 h-2.5"
+                                  style={{ color: "hsl(var(--parchment))" }}
+                                  strokeWidth={2.4}
+                                />
+                              </span>
+                            )}
+                            <ConversationRow
+                              convo={c}
+                              currentUserId={userId}
+                              openConvo={openConvo}
+                              setReportTarget={setReportTarget}
+                              setBlockTarget={setBlockTarget}
+                              setDeleteConvoConfirm={setDeleteConvoConfirm}
+                              onToggleMute={onToggleMute}
+                              onOpenMuteSheet={setMuteSheetConvo}
+                              isPinned={pinned}
+                              onTogglePin={() => handleTogglePin(c)}
+                            />
+                          </div>
+                        </SwipeableConversationRow>
+                      );
+                    }}
                   />
                 );
               })()}
-              {!showAllConvos && conversations.length > CONVO_LIMIT && (
+              {!showAllConvos && orderedConversations.length > CONVO_LIMIT && (
                 <button onClick={() => setShowAllConvos(true)} className="w-full text-center py-3 text-ds-13 text-primary font-medium hover:underline">
-                  Show all {conversations.length} conversations
+                  Show all {orderedConversations.length} conversations
                 </button>
               )}
             </div>

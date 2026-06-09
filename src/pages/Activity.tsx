@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -125,10 +125,28 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       userId: user?.id,
     });
 
-  // Pull-to-refresh — must run unconditionally (hook order). Same
-  // gesture pattern as Dashboard.
+  // Pull-to-refresh — per-tab refresh wrapper. The underlying
+  // useActivityData query is a single key covering both posted and
+  // applied data (server-side join economy), so a refetch hits both;
+  // but each Activity instance ("/my-posts" vs "/my-jobs") tracks its
+  // own pull-state and its own "last refreshed at" timestamp so the
+  // tabs feel independent and one tab's stale-while-revalidating
+  // refresh doesn't visually leak into the other.
+  const lastRefreshKey = `activity:lastRefresh:${tab}`;
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const raw = sessionStorage.getItem(lastRefreshKey);
+    const parsed = raw ? Number(raw) : NaN;
+    return Number.isFinite(parsed) ? parsed : null;
+  });
+  const tabRefresh = useCallback(async () => {
+    await refresh();
+    const now = Date.now();
+    setLastRefreshedAt(now);
+    try { sessionStorage.setItem(lastRefreshKey, String(now)); } catch { /* private mode */ }
+  }, [refresh, lastRefreshKey]);
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
-    onRefresh: async () => { await refresh(); },
+    onRefresh: tabRefresh,
   });
 
   // On a status-filter change the filtered list shrinks/changes, but the
@@ -179,6 +197,22 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const filteredCount = tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length;
   const isTrulyEmpty = sourceCount === 0;
 
+  // Per-tab "updated Xm ago" indicator — only shown after the first
+  // user-triggered pull-to-refresh on this tab so it doesn't feel
+  // noisy on a fresh load. The relative-time string is intentionally
+  // coarse (no live ticker) since the value is only useful as a
+  // glance-confidence signal.
+  const refreshIndicator = (() => {
+    if (!lastRefreshedAt) return null;
+    const seconds = Math.max(0, Math.round((Date.now() - lastRefreshedAt) / 1000));
+    if (seconds < 10) return "Just refreshed";
+    if (seconds < 60) return `Updated ${seconds}s ago`;
+    const mins = Math.round(seconds / 60);
+    if (mins < 60) return `Updated ${mins}m ago`;
+    const hrs = Math.round(mins / 60);
+    return `Updated ${hrs}h ago`;
+  })();
+
   return (
     <>
       <PageScaffold
@@ -190,7 +224,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                 {tab === "posted" ? "My Posts" : "My Jobs"}
               </h1>
               {/* Count chip — hidden when the list is truly empty (a
-                  "0 tasks" badge over an empty-state card is noise). */}
+                  "0 tasks" badge over an empty-state card is noise).
+                  When the user has manually pulled-to-refresh this tab
+                  at least once, append a per-tab "Updated Xm ago" hint
+                  so they trust the freshness independently of the other
+                  tab. */}
               {!isTrulyEmpty && (
                 <p
                   className="mt-1 truncate font-sans font-semibold uppercase"
@@ -201,6 +239,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                   }}
                 >
                   {filteredCount} {filteredCount === 1 ? "task" : "tasks"}
+                  {refreshIndicator && (
+                    <span aria-hidden="true">{" · "}{refreshIndicator}</span>
+                  )}
                 </p>
               )}
             </div>

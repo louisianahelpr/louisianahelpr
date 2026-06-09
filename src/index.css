@@ -335,7 +335,16 @@ input[type="range"] {
   touch-action: manipulation;
 }
 
-button {
+/* Lock text-selection + the iOS tap-and-hold callout on non-text UI chrome
+   so titles, badges, pills, and tabs feel like solid native controls rather
+   than selectable copy. Scoped to interactive/decorative chrome only —
+   inputs, textareas, and real prose stay selectable. */
+button,
+[role="button"],
+[role="tab"],
+.badge,
+.chip,
+.pill {
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
@@ -346,6 +355,15 @@ button {
 :focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
+}
+
+/* Inside frosted glass fields the full-strength bark outline reads too
+   bright/detached over the translucent fill. Soften it to a half-opacity
+   ring sitting flush against the field edge (no offset gap) so the focus
+   state feels integrated with the glass rather than ringed in hard bark. */
+.glass-field:focus-visible {
+  outline-color: hsl(var(--ring) / 0.5);
+  outline-offset: 0;
 }
 
 /* Animations */
@@ -796,7 +814,10 @@ button {
   border: 1px solid hsla(0, 0%, 100%, 0.55);
   border-radius: 1.5rem;
   box-shadow:
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.7),
+    /* Brighter top inner highlight (was 0.7) so the card catches light off
+       its top edge over the warm champagne canvas, reading as glass rather
+       than flat fill — without touching the surface tint. */
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.9),
     0 1px 2px hsl(var(--olivewood) / 0.04),
     0 12px 24px -6px hsl(var(--olivewood) / 0.08),
     0 28px 56px -14px hsl(var(--olivewood) / 0.1);
@@ -853,6 +874,14 @@ button {
   -webkit-backdrop-filter: blur(40px);
   box-shadow: 0 30px 80px -20px hsl(160 10% 12% / 0.35);
   border-radius: 28px;
+  /* The body's `overscroll-behavior-y: none` (set globally to kill the
+     full-page rubber-band) also flattens the bounce inside this scroll
+     container, so the dialog body stops dead at its bounds. `contain`
+     re-enables the in-modal rubber-band while still preventing the scroll
+     from chaining out to the page; `touch` restores iOS momentum/inertia
+     that the global lock otherwise suppresses. */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 /* Frosted form-field surface — the translucent fill shared by the

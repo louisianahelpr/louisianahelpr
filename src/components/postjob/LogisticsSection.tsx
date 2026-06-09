@@ -1,6 +1,8 @@
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { DatePickerField } from "@/components/DatePickerField";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
+import { AddressAutocomplete } from "@/components/postjob/AddressAutocomplete";
+import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -92,6 +94,13 @@ export function LogisticsSection({
   budgetNum,
   logisticsComplete,
 }: LogisticsSectionProps) {
+  // Apple MapKit JS — when the token is configured and the script
+  // loads, swap the plain street input for AddressAutocomplete (which
+  // fills street + city + zip on a single tap). When MapKit isn't
+  // usable (missing token, script blocked, etc.) the plain inputs are
+  // the fallback — same UX the page shipped with before this feature.
+  const mapKitStatus = useMapKitJs();
+  const mapKitReady = mapKitStatus === "ready";
   return (
     <SectionCard
       stepNumber={stepNumber}
@@ -102,7 +111,22 @@ export function LogisticsSection({
     >
       <div className="space-y-3">
         <Label>Location <span className="text-destructive">*</span></Label>
-        <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} autoComplete="street-address" autoCapitalize="words" aria-label="Street address" />
+        {mapKitReady ? (
+          <AddressAutocomplete
+            id="streetAddress"
+            value={streetAddress}
+            onChange={setStreetAddress}
+            onPick={({ street, city: pickedCity, zipCode: pickedZip }) => {
+              setStreetAddress(street);
+              // Only overwrite the city/zip when MapKit actually gave
+              // us a value — otherwise we'd blank a user-typed field.
+              if (pickedCity) setCity(pickedCity);
+              if (pickedZip) setZipCode(pickedZip);
+            }}
+          />
+        ) : (
+          <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} autoComplete="street-address" autoCapitalize="words" aria-label="Street address" />
+        )}
         <div className="grid grid-cols-3 gap-2.5">
           {/* City is the only address part shown publicly on job cards.
               CityAutocomplete suggests canonical Louisiana city names so

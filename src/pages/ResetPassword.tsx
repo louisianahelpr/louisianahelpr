@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { friendlyAuthError } from "@/lib/authErrors";
+import { passwordStrength } from "./signup/signupHelpers";
 
 const ResetPassword = () => {
   usePageTitle("Set New Password — Helpr");
@@ -61,8 +62,12 @@ const ResetPassword = () => {
     if (error) {
       toast.error(friendlyAuthError(error.message));
     } else {
-      toast.success("Password updated! Redirecting…");
-      redirectTidRef.current = window.setTimeout(() => navigate("/dashboard"), 1500);
+      // updateUser leaves the recovery session live, which is effectively
+      // already signed in — so route straight to /dashboard instead of
+      // bouncing through /login. Shorter delay (800ms) reads as
+      // confirmation without making the user stare at a toast.
+      toast.success("Password updated — taking you in.");
+      redirectTidRef.current = window.setTimeout(() => navigate("/dashboard", { replace: true }), 800);
     }
   };
 
@@ -105,6 +110,34 @@ const ResetPassword = () => {
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                 )}
               </div>
+              {/* Strength meter — same scoring as the signup form so the
+                  bar reads consistently across both screens. Burnt-sienna
+                  for weak/fair, bark for good, primary green for strong. */}
+              {password.length > 0 && (() => {
+                const { score, label } = passwordStrength(password);
+                const barColor =
+                  score >= 4
+                    ? "hsl(var(--primary))"
+                    : score === 3
+                      ? "hsl(var(--bark))"
+                      : "hsl(var(--burnt-sienna))";
+                return (
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1 flex-1">
+                      {[1, 2, 3, 4].map((i) => (
+                        <span
+                          key={i}
+                          className="h-1 flex-1 rounded-full transition-colors"
+                          style={{ background: i <= score ? barColor : "hsl(var(--olivewood) / 0.15)" }}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-ds-11 font-sans w-10 text-right" style={{ color: barColor }}>
+                      {label}
+                    </span>
+                  </div>
+                );
+              })()}
               <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
                 At least 8 characters, 1 uppercase, 1 number
               </p>
@@ -127,8 +160,27 @@ const ResetPassword = () => {
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                 )}
               </div>
-              {confirm.length > 0 && confirm !== password && (
-                <p className="text-ds-11 text-destructive" role="alert">Passwords don't match</p>
+              {/* Live match indicator — positive feedback when they
+                  match, error when they diverge. The green check is
+                  already in the input itself; this is the secondary
+                  status line so the reason for the disabled submit is
+                  unambiguous. */}
+              {confirm.length > 0 && (
+                confirm === password ? (
+                  <p
+                    className="inline-flex items-center gap-1 text-ds-11"
+                    style={{ color: "hsl(var(--primary))" }}
+                  >
+                    <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> Passwords match
+                  </p>
+                ) : (
+                  <p
+                    className="inline-flex items-center gap-1 text-ds-11 text-destructive"
+                    role="alert"
+                  >
+                    <X className="w-3 h-3" strokeWidth={2.5} aria-hidden /> Passwords don't match
+                  </p>
+                )
               )}
             </div>
             <Button

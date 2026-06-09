@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { MailCheck, LogIn, Sparkles, Loader2, RefreshCw, Check } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { MailCheck, LogIn, Sparkles, Loader2, RefreshCw, Check, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,16 +8,60 @@ import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
 import { friendlyAuthError } from "@/lib/authErrors";
 
+// How long to disable the resend button after each send. Supabase's own
+// rate limit is at least this strict on the server; this just sets user
+// expectations so they don't spam-tap and burn through the server cap.
+const RESEND_COOLDOWN_S = 60;
+// How often we poll the auth state for an email-arrived check. 5s
+// matches the brief and is gentle enough that an inbox tab open in the
+// background doesn't burn battery.
+const VERIFY_POLL_INTERVAL_MS = 5000;
+
 const SignupPending = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   // Prefill the email from router state if Signup passed it via navigate()
   const prefillEmail: string = (location.state as { email?: string } | null)?.email ?? "";
   const [resending, setResending] = useState(false);
   const [email, setEmail] = useState(prefillEmail);
   const [showResend, setShowResend] = useState(false);
+  // Counts down 60s after each successful resend so the button doesn't
+  // re-enable until Supabase's server-side rate limit has also rolled
+  // over. Displayed inline as "Resend in 47s…".
+  const [resendCooldown, setResendCooldown] = useState(0);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
+  // Live email-arrived check — once the user taps the verification link
+  // in their inbox, supabase.auth.getSession() starts returning a
+  // confirmed session. Polling every 5s lets us auto-advance the moment
+  // that flips, so the user doesn't have to come back and tap a button.
+  useEffect(() => {
+    let cancelled = false;
+    const advanceIfVerified = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (cancelled || error) return;
+      const sessionUser = data.session?.user;
+      if (sessionUser?.email_confirmed_at) {
+        toast.success("Email verified — taking you in.");
+        navigate("/complete-profile", { replace: true });
+      }
+    };
+    void advanceIfVerified();
+    const interval = window.setInterval(advanceIfVerified, VERIFY_POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [navigate]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = window.setTimeout(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearTimeout(t);
+  }, [resendCooldown]);
+
   const handleResend = async () => {
+    if (resendCooldown > 0) return;
     if (!email.trim()) {
       toast.error("Please enter your email address");
       return;
@@ -32,6 +76,7 @@ const SignupPending = () => {
       toast.error(friendlyAuthError(error.message));
     } else {
       toast.success("Verification email resent! Check your inbox.");
+      setResendCooldown(RESEND_COOLDOWN_S);
     }
   };
 
@@ -139,12 +184,29 @@ const SignupPending = () => {
               <Button
                 variant="bark"
                 onClick={handleResend}
-                disabled={resending}
+                disabled={resending || resendCooldown > 0}
                 size="sm"
                 className="w-full rounded-ds-md"
+                style={{ opacity: resendCooldown > 0 ? 0.7 : 1 }}
               >
-                {resending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Resending…</> : "Resend verification email"}
+                {resending
+                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Resending…</>
+                  : resendCooldown > 0
+                    ? `Resend in ${resendCooldown}s…`
+                    : "Resend verification email"}
               </Button>
+              {/* Wrong-address escape hatch — sends the user back to the
+                  signup form to re-enter the email, which is the only
+                  practical fix when the auth row was created against a
+                  typo address. Sits below resend so it isn't the first
+                  option a user reaches for, but is reachable when needed. */}
+              <Link
+                to="/signup"
+                className="block text-center text-ds-11 font-sans hover:underline pt-1 inline-flex items-center justify-center gap-1"
+                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              >
+                <ArrowLeft className="w-3 h-3" aria-hidden /> Wrong address? Start over
+              </Link>
             </div>
           )}
         </div>

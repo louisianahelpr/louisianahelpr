@@ -4,6 +4,7 @@ import { isPushSupported } from "@/lib/pushNotifications";
 import { safeStorage } from "@/lib/safeStorage";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { useRequestPushPermission } from "@/lib/nativePush";
+import { useNotificationPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 
 const SNOOZE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const STORAGE_KEY = "push-prompt-dismissed-at";
@@ -24,9 +25,17 @@ export const PushNotificationPrompt = () => {
   const [show, setShow] = useState(false);
   const [, setPermission] = useState<string>("default");
   const requestPush = useRequestPushPermission();
+  // First-job-action gate — don't surface the prompt on cold launch.
+  // It only flips true once the user has applied to or posted a job,
+  // at which point notifications are obviously useful (new applicant,
+  // accept/decline). See useNotificationPermissionPrompt.ts.
+  const { shouldPrompt: hasFirstAction } = useNotificationPermissionPrompt();
 
   useEffect(() => {
     if (isSnoozed()) return;
+    // Cold launch — the user hasn't posted or applied yet. Skip the
+    // permission ask until they have a concrete reason to grant it.
+    if (!hasFirstAction) return;
 
     if (isNativePlatform) {
       // Mirror the web branch's behavior: only surface the banner when
@@ -58,7 +67,10 @@ export const PushNotificationPrompt = () => {
     if (currentPermission === "default") {
       setShow(true);
     }
-  }, []);
+    // `hasFirstAction` gates the effect at the top so the banner
+    // re-evaluates the moment a user posts/applies (the hook fires a
+    // synthetic event that flips the value without a route change).
+  }, [hasFirstAction]);
 
   const handleEnable = async () => {
     // Single code path — the hook handles both native and web, and

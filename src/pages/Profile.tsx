@@ -31,6 +31,7 @@ import {
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
+import SectionBoundary from "@/components/SectionBoundary";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 const SecurityTab = lazy(() => import("@/components/profile/SecurityTab").then(m => ({ default: m.SecurityTab })));
 const JobListTab = lazy(() => import("@/components/profile/JobListTab").then(m => ({ default: m.JobListTab })));
@@ -438,8 +439,14 @@ const ProfilePage = () => {
             />
           </PullToRefreshWrapper>
         ) : (
-          /* Non-landing tabs — own inner scroll surface. */
+          /* Non-landing tabs — own inner scroll surface. The
+             SectionBoundary keyed on `tab` isolates a render error in
+             any one tab so it never red-screens the profile chrome
+             (header, back button, tab list). The boundary is rebuilt
+             every time the user switches tabs so the previous tab's
+             error state is cleared automatically. */
           <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]">
+          <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
 
           {/* PROFILE TAB */}
           {tab === "profile" && (
@@ -643,6 +650,7 @@ const ProfilePage = () => {
               </Suspense>
             </div>
           )}
+          </SectionBoundary>
           </div>
         )}
       </main>

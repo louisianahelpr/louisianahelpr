@@ -32,6 +32,8 @@ const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
+import SectionBoundary from "@/components/SectionBoundary";
+import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -408,6 +410,10 @@ const Dashboard = () => {
     },
     onSuccess: async (_data, vars) => {
       hapticSuccess();
+      // First job action recorded — gates the deferred notification
+      // permission prompt (`useNotificationPermissionPrompt`). The
+      // helper is idempotent, so this is safe even on the 100th apply.
+      recordJobActionForPermissionPrompt();
       // Funnel: track first application separately for activation analysis.
       track(AhaEvent.JobApplied, { job_id: vars.jobId });
       const { count } = await supabase
@@ -711,8 +717,12 @@ const Dashboard = () => {
           )}
 
           {/* Quick-rebook strip — the customer's saved helprs, one tap
-              from a direct offer. Self-hides when there are none. */}
-          <YourHelpersRow />
+              from a direct offer. Self-hides when there are none.
+              Wrapped in a SectionBoundary so a flaky `saved_helpers`
+              query can't red-screen the whole Dashboard tab. */}
+          <SectionBoundary label="your helpers">
+            <YourHelpersRow />
+          </SectionBoundary>
           {/* The "Finish your profile" completion nudge used to render
               here. It moved off the home feed onto the Profile landing
               screen (ProfileLanding's completion meter) so the job feed
@@ -763,6 +773,13 @@ const Dashboard = () => {
               setView={setView}
             />
 
+            {/* Browse-tasks feed is the main scroll surface of the
+                dashboard. Wrap so a render error in any job card (rare,
+                but cheap insurance) shows an inline retry banner inside
+                the panel rather than blanking the entire route. The
+                page-level ErrorBoundary above still catches anything
+                that escapes this. */}
+            <SectionBoundary label="the job feed">
             <BrowseTasksFeed
               view={view}
               filters={filters}
@@ -797,6 +814,7 @@ const Dashboard = () => {
               isFetchingNextPage={isFetchingNextPage}
               fetchNextPage={fetchNextPage}
             />
+            </SectionBoundary>
     </PageScaffold>
 
       {/* Dialog chunks load on demand — only mounted once the user opens

@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 
 const hapticMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/haptics", () => ({
-  hapticLight: hapticMock,
+  // The hook also imports `hapticMedium` for the threshold-crossing tick
+  // (which the existing rubber-band tests never reach — the move-to-end
+  // touch sequence ends below or right at the threshold, so the tick
+  // doesn't fire and we still get the same mock-call count as before).
+  hapticMedium: vi.fn(),
+  // `hapticImpactForce` is the explicit-release haptic that fires when
+  // the user lets go past the threshold. The existing assertion that
+  // "haptic was called once on a successful refresh" lives here now.
+  hapticImpactForce: hapticMock,
 }));
 
 import { usePullToRefresh } from "./usePullToRefresh";

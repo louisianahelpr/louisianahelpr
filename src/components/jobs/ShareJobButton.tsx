@@ -5,6 +5,7 @@ import { Share } from "@capacitor/share";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { hapticLight } from "@/lib/haptics";
 
 interface ShareJobButtonProps {
   /** The job being shared — only the title/budget/category/id are referenced. */
@@ -69,6 +70,8 @@ export function ShareJobButton({
   const handleShare = async () => {
     if (sharing) return;
     setSharing(true);
+    // Light haptic on press — confirms the tap on native, no-ops on web.
+    void hapticLight();
     const url = `${window.location.origin}/dashboard?job=${job.id}`;
     const title = job.title;
     const text = `${job.title} — posted on Louisiana Helpr.`;

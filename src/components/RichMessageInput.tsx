@@ -1,7 +1,13 @@
 import { useCallback, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Paperclip, MapPin, X, ShieldAlert, FileText, Loader2, Mic, MicOff } from "lucide-react";
+import { Send, Paperclip, MapPin, X, ShieldAlert, FileText, Loader2, Mic, MicOff, Camera, Image as ImageIcon, FilePlus2 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
@@ -57,6 +63,19 @@ export const RichMessageInput = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pendingViolation, setPendingViolation] = useState<string | null>(null);
+  // The attach picker sheet — bottom-sheet with three tabs (Camera /
+  // Library / Files) so the user picks the source explicitly instead
+  // of hoping the OS file picker happens to default to the right one.
+  const [attachSheetOpen, setAttachSheetOpen] = useState(false);
+  // One hidden <input type="file"> per source so each can carry its
+  // own `accept` / `capture` attributes — iOS Safari + Capacitor
+  // WebView honor `capture="environment"` to launch the camera, and
+  // narrowing `accept` keeps the Files picker focused on PDFs.
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
+  const filesInputRef = useRef<HTMLInputElement>(null);
+  // Legacy ref kept for downstream callers; unused after the refactor
+  // but the close-staged failure path resets all three above.
   const fileRef = useRef<HTMLInputElement>(null);
   const { request: requestPermission } = usePermissionRationale();
 
@@ -103,6 +122,10 @@ export const RichMessageInput = ({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset the input regardless of selection so re-picking the same
+    // file fires onChange next time. Each of the three source inputs
+    // resets only its own value.
+    if (e.target) e.target.value = "";
     if (!file) return;
     if (file.size > MESSAGE_ATTACHMENT_MAX_BYTES) {
       toast.error(`File must be under ${Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB`);
@@ -110,14 +133,28 @@ export const RichMessageInput = ({
     }
     setStagedFile(file);
     setImagePreview(isImageMime(file.type) ? URL.createObjectURL(file) : null);
-    // Reset input so re-selecting the same file fires onChange
-    if (fileRef.current) fileRef.current.value = "";
   };
 
   const clearStaged = () => {
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setStagedFile(null);
     setImagePreview(null);
+  };
+
+  const pickFromCamera = () => {
+    hapticLight();
+    setAttachSheetOpen(false);
+    cameraInputRef.current?.click();
+  };
+  const pickFromLibrary = () => {
+    hapticLight();
+    setAttachSheetOpen(false);
+    libraryInputRef.current?.click();
+  };
+  const pickFromFiles = () => {
+    hapticLight();
+    setAttachSheetOpen(false);
+    filesInputRef.current?.click();
   };
 
   const uploadStaged = async (): Promise<SendAttachment | null> => {
@@ -131,10 +168,12 @@ export const RichMessageInput = ({
     setUploading(false);
     if ("error" in result) {
       toast.error(result.error);
-      // Clear the staged file + reset the native input so re-picking the
-      // SAME file fires onChange again and the user can immediately retry.
+      // Clear the staged file + reset every native input so re-picking
+      // the SAME file fires onChange again and the user can retry.
       clearStaged();
-      if (fileRef.current) fileRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      if (libraryInputRef.current) libraryInputRef.current.value = "";
+      if (filesInputRef.current) filesInputRef.current.value = "";
       return null;
     }
     return { path: result.path, mime: result.mime, size: result.size };
@@ -231,7 +270,7 @@ export const RichMessageInput = ({
           variant="ghost"
           size="icon"
           className="shrink-0 h-9 w-9"
-          onClick={() => fileRef.current?.click()}
+          onClick={() => { hapticLight(); setAttachSheetOpen(true); }}
           disabled={disabled || uploading}
           aria-label="Attach photo or PDF"
           title="Attach photo or PDF"
@@ -308,14 +347,147 @@ export const RichMessageInput = ({
         >
           <Send className="w-4 h-4" />
         </Button>
+        {/* Three hidden source-specific inputs. Camera carries
+            `capture="environment"` so iOS Safari + Capacitor WebViews
+            launch the camera directly (without it the OS may default
+            to the photo library on devices). Library narrows accept to
+            images so the picker hides PDFs; Files narrows to PDFs so
+            it hides photos. The user picks the source explicitly via
+            the bottom-sheet — no more guessing the OS picker default. */}
         <input
-          ref={fileRef}
+          ref={cameraInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+          accept="image/*"
+          capture="environment"
           className="hidden"
           onChange={handleFileSelect}
         />
+        <input
+          ref={libraryInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/heic"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <input
+          ref={filesInputRef}
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        {/* Legacy ref left as a placeholder so anything that imported
+            this component and reached into the ref doesn't crash; the
+            actual source selection now flows through the three above. */}
+        <input ref={fileRef} type="hidden" />
       </div>
+
+      {/* Quick-attach bottom sheet — three explicit sources (Camera,
+          Library, Files). The user picks where the attachment comes
+          from in one tap rather than fighting an OS picker that may
+          default to the wrong tab. iMessage convention: a sheet with
+          named source buttons, not a single "open" intent. */}
+      <Sheet open={attachSheetOpen} onOpenChange={setAttachSheetOpen}>
+        <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
+          <SheetHeader className="!text-left space-y-1.5">
+            <span
+              className="font-serif italic uppercase inline-flex items-center gap-1.5"
+              style={{
+                fontSize: "0.62rem",
+                color: "hsl(var(--burnt-sienna) / 0.78)",
+                letterSpacing: "0.18em",
+              }}
+            >
+              <Paperclip className="w-3 h-3" /> Send an attachment
+            </span>
+            <SheetTitle
+              className="font-display italic font-bold leading-tight"
+              style={{
+                fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)",
+                color: "hsl(var(--ink-deep))",
+                letterSpacing: "-0.025em",
+              }}
+            >
+              Where from?
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={pickFromCamera}
+              className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
+              style={{
+                background: "hsla(0, 0%, 100%, 0.65)",
+                border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+              }}
+            >
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{
+                  background: "hsl(var(--bark) / 0.10)",
+                  border: "1px solid hsl(var(--bark) / 0.22)",
+                }}
+              >
+                <Camera className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+              </div>
+              <span className="font-sans text-[12.5px] font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+                Camera
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={pickFromLibrary}
+              className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
+              style={{
+                background: "hsla(0, 0%, 100%, 0.65)",
+                border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+              }}
+            >
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{
+                  background: "hsl(var(--gold-warm) / 0.18)",
+                  border: "1px solid hsl(var(--gold-warm) / 0.32)",
+                }}
+              >
+                <ImageIcon className="w-4 h-4" style={{ color: "hsl(var(--gold-warm))" }} />
+              </div>
+              <span className="font-sans text-[12.5px] font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+                Library
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={pickFromFiles}
+              className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
+              style={{
+                background: "hsla(0, 0%, 100%, 0.65)",
+                border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+              }}
+            >
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{
+                  background: "hsl(var(--burnt-sienna) / 0.12)",
+                  border: "1px solid hsl(var(--burnt-sienna) / 0.28)",
+                }}
+              >
+                <FilePlus2 className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
+              </div>
+              <span className="font-sans text-[12.5px] font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+                Files
+              </span>
+            </button>
+          </div>
+          <p
+            className="mt-3 font-serif italic text-[0.74rem] leading-relaxed text-center"
+            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            Up to {Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB ·
+            photos and PDFs only.
+          </p>
+        </SheetContent>
+      </Sheet>
 
       <AlertDialog open={!!pendingViolation} onOpenChange={(open) => !open && setPendingViolation(null)}>
         <AlertDialogContent>

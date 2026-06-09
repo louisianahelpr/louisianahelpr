@@ -156,8 +156,10 @@ export function ActivityHeader({
                             <span className="truncate">{f.label}</span>
                           </span>
                           {count > 0 && (
+                            // Count pill — rounded-ds-pill aligns with the
+                            // StatusBadge + HelperBadge radius system.
                             <span
-                              className="text-[0.7rem] tabular-nums font-sans font-semibold shrink-0 ml-2 px-1.5 py-0.5 rounded-full"
+                              className="text-ds-10 tabular-nums font-semibold shrink-0 ml-2 px-2 py-[2px] rounded-ds-pill leading-none min-h-[18px] inline-flex items-center"
                               style={
                                 isActive
                                   ? { background: "hsl(var(--parchment) / 0.18)", color: "hsl(var(--parchment))" }

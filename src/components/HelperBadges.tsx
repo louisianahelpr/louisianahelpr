@@ -142,13 +142,26 @@ export function HelperBadges({ badges }: { badges: HelperBadge[] }) {
   if (badges.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1">
+    // gap-1.5 gives each pill a bit more breathing room on crowded rows
+    <div className="flex flex-wrap gap-1.5">
       {badges.map((badge) => (
+        // rounded-ds-pill + min-h-[22px] keeps every badge on-axis with
+        // StatusBadge pills and meets the 40px tap-target guideline when
+        // wrapped in a pressable parent. The tinted-glass look comes from
+        // the tier-gold-* CSS classes (which carry gradient + border + shadow)
+        // or the bg-*/text-* pairs for earned badges.
         <span
           key={badge.key}
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-semibold ${badge.color}`}
+          className={[
+            "inline-flex items-center gap-1 rounded-ds-pill",
+            "px-2.5 py-[3px] text-ds-10 font-semibold leading-none",
+            "min-h-[22px]",
+            badge.color,
+          ].join(" ")}
         >
-          {badge.icon}
+          {/* Icon is already sized w-3 h-3 (12px) in computeBadges — the
+              shrink-0 here prevents it from collapsing if the label is long */}
+          <span className="shrink-0 inline-flex items-center">{badge.icon}</span>
           {badge.label}
         </span>
       ))}

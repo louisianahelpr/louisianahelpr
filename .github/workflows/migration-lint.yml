@@ -42,6 +42,11 @@ jobs:
         with:
           fetch-depth: 0 # need history to diff against main
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Find changed migrations
         id: changed
         run: |
@@ -114,3 +119,16 @@ jobs:
           fi
           echo ""
           echo "✅ All migrations passed lint checks"
+
+      - name: Check new functions have an explicit GRANT/REVOKE
+        if: steps.changed.outputs.files != ''
+        run: |
+          # H4 grant-guard: a new public function that ships without an
+          # explicit GRANT or REVOKE relies on the default PUBLIC EXECUTE,
+          # which the Supabase advisor pass keeps stripping (the
+          # #355/#358/#364/#366 grant-regression saga). PR-scoped — only the
+          # functions DEFINED in the changed migrations are checked, while the
+          # grant/revoke set is read from the whole tree, so a CREATE OR
+          # REPLACE of an already-granted function doesn't trip it. Trigger
+          # and event-trigger functions are exempt.
+          echo "${{ steps.changed.outputs.files }}" | xargs node scripts/check-migration-grants.mjs

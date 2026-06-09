@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { safeStorage } from "@/lib/safeStorage";
@@ -23,7 +23,12 @@ import { AdminUserRow } from "./adminusers/AdminUserRow";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// UUID v4-ish pattern. Loose enough to accept any 8-4-4-4-12 hex group;
+// strict enough that a plain email won't false-match.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const AdminUsers = () => {
+  const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("pending");
@@ -87,6 +92,12 @@ const AdminUsers = () => {
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [sortDir, setSortDir] = useState<SortDir>("alpha");
+
+  // UUID drill — when the admin pastes a job UUID into the search box,
+  // jump to the Jobs admin view with that job pre-opened. We don't auto-
+  // navigate on first keystroke; the admin clicks the surfaced banner.
+  const trimmedQuery = searchQuery.trim();
+  const isUuid = UUID_RE.test(trimmedQuery);
 
   // Track which user IDs the admin has already seen (per tab category) — persisted in storage
   const SEEN_KEY = "admin_seen_user_ids_v1";
@@ -272,8 +283,8 @@ const AdminUsers = () => {
       <div className="flex flex-col sm:flex-row gap-2">
         <Input
           type="search"
-          aria-label="Search users by name"
-          placeholder="Search by name…"
+          aria-label="Search users by name, email, phone, or job UUID"
+          placeholder="Name, email, phone, or paste a job UUID…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="h-9 text-ds-13 flex-1"
@@ -300,6 +311,25 @@ const AdminUsers = () => {
           </SelectContent>
         </Select>
       </div>
+
+      {isUuid && (
+        <div className="rounded-ds-md border border-primary/40 bg-primary/5 p-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-ds-13 font-semibold text-foreground">Looks like a job UUID</p>
+            <p className="text-ds-11 text-muted-foreground truncate font-mono">{trimmedQuery}</p>
+          </div>
+          <button
+            type="button"
+            className="shrink-0 rounded-md bg-primary text-primary-foreground text-ds-11 font-semibold px-3 h-8 hover:bg-primary/90 transition-colors"
+            onClick={() => {
+              setSearchQuery("");
+              navigate(`/admin?view=jobs&job=${trimmedQuery}`);
+            }}
+          >
+            Open job
+          </button>
+        </div>
+      )}
 
       <div className="flex items-center justify-between px-1">
         <p className="text-ds-11 text-muted-foreground">

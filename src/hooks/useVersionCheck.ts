@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * useVersionCheck
@@ -69,6 +70,12 @@ interface VersionCheckResult {
 
 export const useVersionCheck = (): VersionCheckResult => {
   const [installedBuild, setInstalledBuild] = useState<number>(0);
+  // Read the live minimum from platform_settings so the bar can be
+  // raised without shipping a binary. Falls back to the in-bundle
+  // MIN_SUPPORTED_BUILD constant when the DB call hasn't returned yet
+  // or the column doesn't exist (migration not deployed). The DB
+  // value, if any, takes precedence — that's the whole point.
+  const [dbMin, setDbMin] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isNativePlatform) return;
@@ -93,12 +100,35 @@ export const useVersionCheck = (): VersionCheckResult => {
     };
   }, []);
 
-  // Disabled when MIN_SUPPORTED_BUILD is 0 (the default) so this hook
-  // is safe to wire in advance of a real minimum being set.
-  const forceUpdate =
-    MIN_SUPPORTED_BUILD > 0 &&
-    installedBuild > 0 &&
-    installedBuild < MIN_SUPPORTED_BUILD;
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await (supabase.from as any)("platform_settings")
+          .select("min_supported_build")
+          .limit(1)
+          .maybeSingle();
+        if (cancelled) return;
+        // 42703 = undefined column → migration not deployed yet; just
+        // fall back silently to the bundle constant. The PGRST116
+        // "no rows" code is also a no-op.
+        if (error) return;
+        const v = typeof data?.min_supported_build === "number" ? data.min_supported_build : null;
+        if (v !== null && Number.isFinite(v)) setDbMin(v);
+      } catch {
+        /* network errors are fine — local fallback continues to work */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-  return { forceUpdate, installedBuild, minSupportedBuild: MIN_SUPPORTED_BUILD };
+  const effectiveMin = dbMin ?? MIN_SUPPORTED_BUILD;
+  // Disabled when effectiveMin is 0 (the default) so this hook is safe
+  // to wire in advance of a real minimum being set.
+  const forceUpdate =
+    effectiveMin > 0 &&
+    installedBuild > 0 &&
+    installedBuild < effectiveMin;
+
+  return { forceUpdate, installedBuild, minSupportedBuild: effectiveMin };
 };

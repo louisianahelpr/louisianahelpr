@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { DollarSign, Send, Clock, CheckCircle2, AlertTriangle, ListChecks } from "lucide-react";
+import { DollarSign, Send, Clock, CheckCircle2, AlertTriangle, ListChecks, Pause, Play } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { safeStorage } from "@/lib/safeStorage";
 import { formatDistanceToNow } from "date-fns";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -12,6 +14,8 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PayoutBatch {
   helper_id: string;
@@ -44,10 +48,68 @@ const LEDGER_TONE: Record<string, string> = {
   reversed: "bg-muted text-muted-foreground",
 };
 
+// Hold-for-review queue is stored client-side under a stable key so
+// every admin sees the same list. Persisting it server-side would
+// need a migration; for now the localStorage approach is enough since
+// it's a small triage queue that admins clear as they go.
+const HOLD_KEY = "helpr.admin_payout_holds.v1";
+const loadHolds = (): Record<string, { reason: string; addedAt: string; addedBy?: string }> => {
+  try {
+    const raw = safeStorage.getItem(HOLD_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+};
+const saveHolds = (h: Record<string, { reason: string; addedAt: string; addedBy?: string }>) => {
+  try { safeStorage.setItem(HOLD_KEY, JSON.stringify(h)); } catch { /* noop */ }
+};
+
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
   const { user } = useAuthReady();
   const adminId = user?.id;
+  // Selection set for bulk payout. Persists across re-renders but is
+  // intentionally not stored — refreshing clears the picks so a stale
+  // selection can't fire a real transfer.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkPaying, setBulkPaying] = useState(false);
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [tab, setTab] = useState<"ready" | "hold">("ready");
+  const [holds, setHolds] = useState<Record<string, { reason: string; addedAt: string; addedBy?: string }>>(() => loadHolds());
+  const [holdReasonDraft, setHoldReasonDraft] = useState<{ helperId: string; reason: string } | null>(null);
+
+  const updateHolds = (next: Record<string, { reason: string; addedAt: string; addedBy?: string }>) => {
+    setHolds(next);
+    saveHolds(next);
+  };
+
+  const addHold = (helperId: string, reason: string) => {
+    const next = { ...holds, [helperId]: { reason, addedAt: new Date().toISOString(), addedBy: adminId } };
+    updateHolds(next);
+    setSelected((prev) => {
+      const n = new Set(prev);
+      n.delete(helperId);
+      return n;
+    });
+    void logAdminAction("payout_held_for_review", "user", helperId, { reason });
+  };
+  const releaseHold = (helperId: string) => {
+    const next = { ...holds };
+    delete next[helperId];
+    updateHolds(next);
+    void logAdminAction("payout_hold_released", "user", helperId);
+  };
+  const denyHold = async (helperId: string, reason: string) => {
+    // Denial just records the audit decision — it doesn't refund
+    // anything yet, because we don't have a "deny payout" RPC. The
+    // helper stays in the hold tab with the deny reason appended so
+    // it's visible until manual cleanup.
+    void logAdminAction("payout_denied", "user", helperId, { reason });
+    const existing = holds[helperId];
+    if (existing) {
+      const next = { ...holds, [helperId]: { ...existing, reason: `[DENIED] ${reason}` } };
+      updateHolds(next);
+    }
+  };
   // Admin-scoped key: two admins on the same device should not share
   // cached views, and the persister must never surface the prior admin's
   // batch list to a different account on the next sign-in.
@@ -138,8 +200,57 @@ const AdminPayoutBatches = () => {
     }
   };
 
-  const grandTotal = batches.reduce((s, b) => s + Number(b.total_payout || 0), 0);
-  const totalJobs = batches.reduce((s, b) => s + b.job_count, 0);
+  const readyBatches = batches.filter((b) => !holds[b.helper_id]);
+  const heldBatches = batches.filter((b) => holds[b.helper_id]);
+  const visibleBatches = tab === "ready" ? readyBatches : heldBatches;
+
+  const grandTotal = readyBatches.reduce((s, b) => s + Number(b.total_payout || 0), 0);
+  const totalJobs = readyBatches.reduce((s, b) => s + b.job_count, 0);
+
+  // Bulk amounts — recomputed off the live selection.
+  const selectedBatches = readyBatches.filter((b) => selected.has(b.helper_id) && b.stripe_account_id);
+  const selectedTotal = selectedBatches.reduce((s, b) => s + Number(b.total_payout || 0), 0);
+
+  const toggleSelected = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const selectAllReady = () => {
+    const all = readyBatches.filter((b) => b.stripe_account_id).map((b) => b.helper_id);
+    setSelected(new Set(all));
+  };
+  const clearSelection = () => setSelected(new Set());
+
+  const triggerBulkPayout = async () => {
+    setBulkPaying(true);
+    setConfirmBulk(false);
+    let okCount = 0;
+    let failCount = 0;
+    for (const batch of selectedBatches) {
+      try {
+        const { error } = await supabase.functions.invoke("stripe-payouts", {
+          body: { helper_id: batch.helper_id },
+        });
+        if (error) throw error;
+        await logAdminAction("trigger_payout", "user", batch.helper_id, {
+          job_count: batch.job_count,
+          total_payout: batch.total_payout,
+          bulk: true,
+        });
+        okCount += 1;
+      } catch (err: any) {
+        failCount += 1;
+        toast.error(`${batch.helper_name}: ${err?.message || "Failed"}`);
+      }
+    }
+    setBulkPaying(false);
+    setSelected(new Set());
+    qc.invalidateQueries({ queryKey });
+    if (okCount > 0) toast.success(`Bulk payout: ${okCount} queued${failCount > 0 ? `, ${failCount} failed` : ""}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -174,20 +285,76 @@ const AdminPayoutBatches = () => {
         </div>
       )}
 
+      {/* Tabs — Ready vs Hold for Review. Held batches sit in their own
+          queue so they don't sneak into a bulk select. */}
+      {batches.length > 0 && (
+        <div className="flex gap-1.5 border-b border-border">
+          <button
+            type="button"
+            onClick={() => { setTab("ready"); clearSelection(); }}
+            className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
+              tab === "ready" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5" /> Ready
+              <span className="text-ds-11 tabular-nums">({readyBatches.length})</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setTab("hold"); clearSelection(); }}
+            className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
+              tab === "hold" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <Pause className="w-3.5 h-3.5" /> Hold for review
+              <span className="text-ds-11 tabular-nums">({heldBatches.length})</span>
+            </span>
+          </button>
+        </div>
+      )}
+
+      {tab === "ready" && readyBatches.length > 0 && (
+        <div className="flex items-center justify-between text-ds-11 px-1">
+          <button type="button" onClick={selectAllReady} className="text-primary hover:underline">
+            Select all with Stripe ({readyBatches.filter((b) => b.stripe_account_id).length})
+          </button>
+          {selected.size > 0 && (
+            <button type="button" onClick={clearSelection} className="text-muted-foreground hover:text-foreground">
+              Clear selection
+            </button>
+          )}
+        </div>
+      )}
+
       {isInitialLoading ? (
         <p className="text-ds-11 text-muted-foreground">Loading payout batches…</p>
-      ) : batches.length === 0 ? (
+      ) : visibleBatches.length === 0 ? (
         <div className="rounded-ds-md liquid-glass p-8 text-center">
           <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
-          <p className="text-ds-11 text-muted-foreground">All payouts are settled. Nothing to send.</p>
+          <p className="text-ds-11 text-muted-foreground">
+            {tab === "ready" ? "All payouts are settled. Nothing to send." : "No payouts are currently on hold."}
+          </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {batches.map((batch) => {
+        <div className={`space-y-2 ${selected.size > 0 ? "pb-24" : ""}`}>
+          {visibleBatches.map((batch) => {
             const ageDays = Math.floor((Date.now() - new Date(batch.oldest_completed_at).getTime()) / 86_400_000);
             const isStale = ageDays >= 3;
+            const hold = holds[batch.helper_id];
+            const isHeld = !!hold;
             return (
               <div key={batch.helper_id} className="rounded-ds-md liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                {tab === "ready" && batch.stripe_account_id && (
+                  <Checkbox
+                    checked={selected.has(batch.helper_id)}
+                    onCheckedChange={() => toggleSelected(batch.helper_id)}
+                    aria-label={`Select ${batch.helper_name} for bulk payout`}
+                    className="mt-0.5"
+                  />
+                )}
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-ds-13 text-foreground truncate">{batch.helper_name}</span>
@@ -204,29 +371,151 @@ const AdminPayoutBatches = () => {
                         <Clock className="w-3 h-3 mr-0.5" /> {ageDays}d old
                       </Badge>
                     )}
+                    {isHeld && (
+                      <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-ds-10">
+                        <Pause className="w-3 h-3 mr-0.5" /> On hold
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-ds-11 text-muted-foreground">{batch.helper_email}</p>
                   <p className="text-ds-11 text-muted-foreground">
                     Oldest job: {formatDistanceToNow(new Date(batch.oldest_completed_at), { addSuffix: true })}
                   </p>
+                  {isHeld && hold.reason && (
+                    <p className="text-ds-11 text-amber-700 dark:text-amber-300 italic mt-1">
+                      Hold reason: {hold.reason}
+                    </p>
+                  )}
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 space-y-1">
                   <p className="text-ds-17 font-bold text-primary">${Number(batch.total_payout).toFixed(2)}</p>
-                  <Button
-                    size="sm"
-                    className="mt-1"
-                    disabled={paying === batch.helper_id || !batch.stripe_account_id}
-                    onClick={() => setConfirmBatch(batch)}
-                  >
-                    <Send className="w-3 h-3 mr-1" />
-                    {paying === batch.helper_id ? "Sending…" : "Pay out"}
-                  </Button>
+                  {tab === "ready" ? (
+                    <div className="flex gap-1.5 justify-end flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setHoldReasonDraft({ helperId: batch.helper_id, reason: "" })}
+                        className="gap-1"
+                      >
+                        <Pause className="w-3 h-3" /> Hold
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={paying === batch.helper_id || !batch.stripe_account_id}
+                        onClick={() => setConfirmBatch(batch)}
+                      >
+                        <Send className="w-3 h-3 mr-1" />
+                        {paying === batch.helper_id ? "Sending…" : "Pay out"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-1.5 justify-end flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => releaseHold(batch.helper_id)}
+                        className="gap-1"
+                      >
+                        <Play className="w-3 h-3" /> Release
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive border-destructive/40 hover:bg-destructive/10 gap-1"
+                        onClick={() => {
+                          const reason = window.prompt("Reason for denying this payout?", "Compliance review failed");
+                          if (reason) void denyHold(batch.helper_id, reason);
+                        }}
+                      >
+                        Deny
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {/* Sticky bulk action bar — sits above the bottom nav (which itself
+          honours the iOS safe-area inset) while a selection is active. */}
+      {tab === "ready" && selected.size > 0 && (
+        <div
+          className="fixed left-0 right-0 z-40 px-4 py-3 bg-background/95 backdrop-blur border-t border-border shadow-[0_-4px_12px_-4px_rgba(0,0,0,0.08)]"
+          style={{
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 4.5rem)",
+          }}
+        >
+          <div className="max-w-2xl mx-auto flex items-center gap-3 flex-wrap">
+            <div className="flex-1 min-w-[160px]">
+              <p className="text-ds-13 font-semibold text-foreground">
+                {selected.size} helper{selected.size > 1 ? "s" : ""} selected
+              </p>
+              <p className="text-ds-11 text-muted-foreground tabular-nums">
+                ${selectedTotal.toFixed(2)} total — fires {selected.size} Stripe transfer{selected.size > 1 ? "s" : ""}
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={clearSelection}>Clear</Button>
+            <Button size="sm" onClick={() => setConfirmBulk(true)} disabled={bulkPaying || selected.size === 0}>
+              <Send className="w-3 h-3 mr-1" />
+              {bulkPaying ? "Queuing…" : "Bulk approve"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Hold dialog — captures the reason that surfaces on the row + audit. */}
+      <Dialog open={!!holdReasonDraft} onOpenChange={(o) => { if (!o) setHoldReasonDraft(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Pause className="w-5 h-5 text-amber-600" /> Hold payout for review
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-ds-11 text-muted-foreground">
+              Moves this helper's batch to the Hold-for-review queue. No
+              Stripe transfer is fired. Logged to admin_audit_log.
+            </p>
+            <Textarea
+              placeholder="Reason — visible to other admins reviewing the queue."
+              value={holdReasonDraft?.reason ?? ""}
+              onChange={(e) => holdReasonDraft && setHoldReasonDraft({ ...holdReasonDraft, reason: e.target.value })}
+              rows={3}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setHoldReasonDraft(null)}>Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!holdReasonDraft) return;
+                addHold(holdReasonDraft.helperId, holdReasonDraft.reason.trim() || "No reason given");
+                setHoldReasonDraft(null);
+              }}
+              disabled={!holdReasonDraft?.reason.trim()}
+            >
+              Hold for review
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <BrandConfirmDialog
+        open={confirmBulk}
+        onOpenChange={(open) => { if (!open) setConfirmBulk(false); }}
+        title="Bulk approve these payouts?"
+        description={`This fires ${selected.size} Stripe transfer${selected.size > 1 ? "s" : ""} totalling $${selectedTotal.toFixed(2)}. This moves real money and can't be undone here.`}
+        primaryLabel={bulkPaying ? "Queuing…" : `Send ${selected.size}`}
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        primaryDisabled={bulkPaying}
+        onPrimary={(e) => {
+          e.preventDefault();
+          void triggerBulkPayout();
+        }}
+        secondaryLabel="Cancel"
+      />
 
       {/* ─── Recent transfers ledger ─── */}
       {ledger.length > 0 && (

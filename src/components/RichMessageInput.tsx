@@ -13,7 +13,7 @@ import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
-import { useImpersonation } from "@/hooks/useImpersonation";
+import { assertWritable } from "@/hooks/useImpersonation";
 import {
   uploadMessageAttachment,
   isImageMime,
@@ -79,7 +79,6 @@ export const RichMessageInput = ({
   // but the close-staged failure path resets all three above.
   const fileRef = useRef<HTMLInputElement>(null);
   const { request: requestPermission } = usePermissionRationale();
-  const impersonation = useImpersonation();
 
   // Throttle the presence broadcast: without this, onTyping fires once per
   // keystroke, flooding the realtime channel with a broadcast per character.
@@ -225,7 +224,7 @@ export const RichMessageInput = ({
   const handleSend = async () => {
     if (uploading) return;
     // Read-only impersonation: admins viewing as another user cannot send.
-    if (!impersonation.assertWritable()) return;
+    if (!assertWritable()) return;
 
     if (text.trim()) {
       const violations = scanMessage(text);

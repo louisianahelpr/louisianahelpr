@@ -12,7 +12,7 @@ import { report } from "@/lib/errorLogger";
 import { requireOnline } from "@/lib/requireOnline";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useImpersonation } from "@/hooks/useImpersonation";
+import { assertWritable } from "@/hooks/useImpersonation";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -42,7 +42,6 @@ export function usePostJobForm() {
   const navigate = useNavigate();
   const { business } = useMyBusiness();
   const { profile } = useCurrentUser();
-  const impersonation = useImpersonation();
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
@@ -402,7 +401,7 @@ export function usePostJobForm() {
     // Prevent double-click
     if (submittingRef.current || saving) return null;
     // Read-only impersonation: admins viewing as another user cannot post.
-    if (!impersonation.assertWritable()) return null;
+    if (!assertWritable()) return null;
 
     // Cooldown check
     const lastSubmit = safeStorage.getItem(COOLDOWN_KEY);

@@ -21,6 +21,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
 import HelprMark from "@/components/HelprMark";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
+const KpiSparkline = lazy(() => import("@/components/admin/KpiSparkline"));
 
 const AdminUsers = lazy(() => import("@/components/admin/AdminUsers"));
 const AdminJobs = lazy(() => import("@/components/admin/AdminJobs"));
@@ -113,10 +114,31 @@ interface Stats {
   totalRevenue: number; totalFees: number;
   disputedJobs: number; activeSubscriptions: number;
   lateCancellationRevenue: number;
-  newUsers7d: number; newUsersPrev7d: number;
-  revenue30d: number; revenuePrev30d: number;
+  newUsersInRange: number; newUsersPrev: number;
+  revenueInRange: number; revenuePrev: number;
+  completedJobsInRange: number; completedJobsPrev: number;
   feesThisQuarter: number;
+  // 10-point sparkline series, ranged by the selector. Newest at the end.
+  newUsersSeries: number[];
+  revenueSeries: number[];
+  completedJobsSeries: number[];
+  activeJobsSeries: number[];
 }
+
+type DateRange = "7d" | "30d" | "90d" | "custom";
+
+interface RangeWindow {
+  /** Range in days. Custom defaults to its current days. */
+  days: number;
+  label: string;
+  prevLabel: string;
+}
+
+const RANGE_PRESETS: Record<Exclude<DateRange, "custom">, RangeWindow> = {
+  "7d": { days: 7, label: "last 7d", prevLabel: "prior 7d" },
+  "30d": { days: 30, label: "last 30d", prevLabel: "prior 30d" },
+  "90d": { days: 90, label: "last 90d", prevLabel: "prior 90d" },
+};
 
 const Admin = () => {
   usePageTitle("Admin — Helpr");
@@ -134,9 +156,15 @@ const Admin = () => {
     totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
     disputedJobs: 0, activeSubscriptions: 0, lateCancellationRevenue: 0,
-    newUsers7d: 0, newUsersPrev7d: 0, revenue30d: 0, revenuePrev30d: 0,
+    newUsersInRange: 0, newUsersPrev: 0, revenueInRange: 0, revenuePrev: 0,
+    completedJobsInRange: 0, completedJobsPrev: 0,
     feesThisQuarter: 0,
+    newUsersSeries: [], revenueSeries: [], completedJobsSeries: [], activeJobsSeries: [],
   });
+  // Dashboard date-range selector (persisted across renders only — no need
+  // for a localStorage key; the choice is ephemeral session UI).
+  const [dateRange, setDateRange] = useState<DateRange>("7d");
+  const [customDays, setCustomDays] = useState<number>(14);
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   // <AdminRoute> already gates this page on isAdmin; useCurrentUser here
@@ -186,12 +214,10 @@ const Admin = () => {
     setView(v);
   }, []);
 
-  const loadStats = async () => {
+  const loadStats = async (windowDays: number) => {
     const now = new Date();
-    const d7 = new Date(now.getTime() - 7 * 86400000).toISOString();
-    const d14 = new Date(now.getTime() - 14 * 86400000).toISOString();
-    const d30 = new Date(now.getTime() - 30 * 86400000).toISOString();
-    const d60 = new Date(now.getTime() - 60 * 86400000).toISOString();
+    const dStart = new Date(now.getTime() - windowDays * 86400000).toISOString();
+    const dPrevStart = new Date(now.getTime() - 2 * windowDays * 86400000).toISOString();
     // Start of the current calendar quarter — used by the tax-reserve
     // tracker so the admin can see fee revenue accrued toward the next
     // estimated-tax payment.
@@ -200,7 +226,11 @@ const Admin = () => {
     const [
       profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes,
       paymentsRes, subsRes, lateCancelRes,
-      newUsers7Res, newUsersPrev7Res, rev30Res, revPrev30Res, quarterRes,
+      newUsersInRangeRows, newUsersPrevRows,
+      revInRangeRows, revPrevRows,
+      completedInRangeRows, completedPrevRows,
+      activeJobsInRangeRows,
+      quarterRes,
     ] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending").eq("email_verified", true),
@@ -212,20 +242,25 @@ const Admin = () => {
       supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled"),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null),
       supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled").in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]),
-      // New users in last 7 days
-      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", d7),
-      // New users in previous 7-day window (7-14 days ago)
-      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", d14).lt("created_at", d7),
-      // Revenue from completed payments in last 30 days
+      // New users by created_at — rows so we can bucket into a sparkline.
+      supabase.from("profiles").select("created_at").gte("created_at", dStart),
+      supabase.from("profiles").select("created_at").gte("created_at", dPrevStart).lt("created_at", dStart),
+      // Revenue rows in current window
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
         .in("payment_status", ["escrow", "payout_pending", "released"])
         .neq("status", "cancelled")
-        .gte("updated_at", d30),
-      // Revenue from previous 30-day window (30-60 days ago)
+        .gte("updated_at", dStart),
+      // Revenue rows in previous window
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
         .in("payment_status", ["escrow", "payout_pending", "released"])
         .neq("status", "cancelled")
-        .gte("updated_at", d60).lt("updated_at", d30),
+        .gte("updated_at", dPrevStart).lt("updated_at", dStart),
+      // Completed jobs in current window
+      supabase.from("jobs").select("updated_at").eq("status", "completed").gte("updated_at", dStart),
+      // Completed jobs in previous window
+      supabase.from("jobs").select("updated_at").eq("status", "completed").gte("updated_at", dPrevStart).lt("updated_at", dStart),
+      // Active-job creation pulse for sparkline (created_at within window)
+      supabase.from("jobs").select("created_at").in("status", ["open", "accepted", "in_progress"]).gte("created_at", dStart),
       // Platform-fee revenue accrued this calendar quarter — feeds the
       // tax-reserve tracker's "this quarter" figure.
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
@@ -241,6 +276,45 @@ const Admin = () => {
     const sumFees = (rows: any[] | null) =>
       (rows || []).reduce((s, j) => s + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0), 0);
 
+    // Build a 10-point sparkline series across the current window. Rows
+    // outside the window or with no usable timestamp are silently
+    // dropped — the bucket math is forgiving so a few bad rows don't
+    // skew the chart.
+    const bucket10 = (rows: { ts?: string | null }[] | undefined | null, valueFn?: (row: any) => number): number[] => {
+      const buckets = Array(10).fill(0);
+      if (!rows) return buckets;
+      const nowMs = now.getTime();
+      const startMs = nowMs - windowDays * 86400000;
+      const span = windowDays * 86400000;
+      for (const r of rows) {
+        const ts = r.ts;
+        if (!ts) continue;
+        const t = new Date(ts).getTime();
+        if (!Number.isFinite(t) || t < startMs || t > nowMs) continue;
+        const idx = Math.min(9, Math.max(0, Math.floor(((t - startMs) / span) * 10)));
+        buckets[idx] += valueFn ? valueFn(r) : 1;
+      }
+      return buckets;
+    };
+
+    const newUsersSeries = bucket10(
+      (newUsersInRangeRows.data || []).map((r: any) => ({ ts: r.created_at })),
+    );
+    const revenueSeries = bucket10(
+      (revInRangeRows.data || []).map((r: any) => ({
+        ts: r.updated_at,
+        platform_fee_amount: r.platform_fee_amount,
+        customer_fee_amount: r.customer_fee_amount,
+      })),
+      (row) => (row.platform_fee_amount || 0) + (row.customer_fee_amount || 0),
+    );
+    const completedJobsSeries = bucket10(
+      (completedInRangeRows.data || []).map((r: any) => ({ ts: r.updated_at })),
+    );
+    const activeJobsSeries = bucket10(
+      (activeJobsInRangeRows.data || []).map((r: any) => ({ ts: r.created_at })),
+    );
+
     setStats({
       totalUsers: profilesRes.count || 0,
       pendingApprovals: pendingRes.count || 0,
@@ -253,18 +327,33 @@ const Admin = () => {
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,
       lateCancellationRevenue,
-      newUsers7d: newUsers7Res.count || 0,
-      newUsersPrev7d: newUsersPrev7Res.count || 0,
-      revenue30d: sumFees(rev30Res.data),
-      revenuePrev30d: sumFees(revPrev30Res.data),
+      newUsersInRange: (newUsersInRangeRows.data || []).length,
+      newUsersPrev: (newUsersPrevRows.data || []).length,
+      revenueInRange: sumFees(revInRangeRows.data),
+      revenuePrev: sumFees(revPrevRows.data),
+      completedJobsInRange: (completedInRangeRows.data || []).length,
+      completedJobsPrev: (completedPrevRows.data || []).length,
       feesThisQuarter: sumFees(quarterRes.data),
+      newUsersSeries,
+      revenueSeries,
+      completedJobsSeries,
+      activeJobsSeries,
     });
     setStatsLoading(false);
   };
 
+  // Resolve the active window (in days) for the current selector.
+  const activeWindowDays = dateRange === "custom" ? customDays : RANGE_PRESETS[dateRange].days;
+  const activeRangeLabel = dateRange === "custom"
+    ? `last ${customDays}d`
+    : RANGE_PRESETS[dateRange].label;
+  const activePrevLabel = dateRange === "custom"
+    ? `prior ${customDays}d`
+    : RANGE_PRESETS[dateRange].prevLabel;
+
   useEffect(() => {
     if (loading) return;
-    loadStats();
+    loadStats(activeWindowDays);
     loadUnreadCounts();
     // Debounce realtime-triggered reloads — admin tables (jobs, profiles,
     // reports) can receive bursts of writes (e.g. a batch import or a job
@@ -273,7 +362,7 @@ const Admin = () => {
     let debounce: ReturnType<typeof setTimeout> | null = null;
     const debouncedReload = () => {
       if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => { loadStats(); loadUnreadCounts(); }, 500);
+      debounce = setTimeout(() => { loadStats(activeWindowDays); loadUnreadCounts(); }, 500);
     };
     // Deliberately unfiltered: unlike user-facing channels (which MUST be
     // user-scoped per the realtime rule), the admin dashboard's whole job is
@@ -286,11 +375,11 @@ const Admin = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, debouncedReload)
       .subscribe();
     return () => { if (debounce) clearTimeout(debounce); supabase.removeChannel(channel); };
-  }, [loading]);
+  }, [loading, activeWindowDays]);
 
   useEffect(() => {
-    if (view === "home" && !loading) { loadStats(); loadUnreadCounts(); }
-  }, [view]);
+    if (view === "home" && !loading) { loadStats(activeWindowDays); loadUnreadCounts(); }
+  }, [view, activeWindowDays]);
 
   // Listen for "View History" requests from AdminUsers
   useEffect(() => {
@@ -369,7 +458,19 @@ const Admin = () => {
       case "business_accounts": return <AdminBusinessAccounts />;
       case "geography": return <AdminParishActivity />;
       case "marketing": return <AdminMarketing />;
-      default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;
+      default: return (
+        <DashboardHome
+          stats={stats}
+          statsLoading={statsLoading}
+          onNavigate={handleViewChange}
+          dateRange={dateRange}
+          setDateRange={setDateRange}
+          customDays={customDays}
+          setCustomDays={setCustomDays}
+          rangeLabel={activeRangeLabel}
+          prevLabel={activePrevLabel}
+        />
+      );
     }
   };
 
@@ -485,6 +586,12 @@ interface DashboardHomeProps {
   stats: Stats;
   statsLoading: boolean;
   onNavigate: (v: string) => void;
+  dateRange: DateRange;
+  setDateRange: (r: DateRange) => void;
+  customDays: number;
+  setCustomDays: (n: number) => void;
+  rangeLabel: string;
+  prevLabel: string;
 }
 
 const computeTrend = (current: number, previous: number): { pct: number; up: boolean } | null => {
@@ -494,13 +601,15 @@ const computeTrend = (current: number, previous: number): { pct: number; up: boo
   return { pct: Math.abs(pct), up: pct >= 0 };
 };
 
-const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
+const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, sparkline, compareLabel }: {
   label: string;
   value: string | number;
   icon: React.ElementType;
   trend?: { pct: number; up: boolean } | null;
   accent: "primary" | "accent" | "destructive";
   onClick?: () => void;
+  sparkline?: number[];
+  compareLabel?: string;
 }) => {
   // Icon tint mirrors the metric color. Note: `accent` uses `text-accent`
   // (burnt sienna), NOT `text-accent-foreground` (which is white and was
@@ -532,6 +641,19 @@ const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick }: {
       </div>
       <p className="text-ds-17 sm:text-ds-20 font-bold text-foreground tabular-nums leading-tight">{value}</p>
       <p className="text-ds-11 text-muted-foreground mt-0.5 leading-tight">{label}</p>
+      {trend && compareLabel && (
+        <p className={cn(
+          "text-ds-10 tabular-nums mt-0.5 leading-tight",
+          trend.up ? "text-primary/80" : "text-destructive/80",
+        )}>
+          {trend.up ? "+" : "−"}{trend.pct}% {compareLabel}
+        </p>
+      )}
+      {sparkline && sparkline.length > 0 && (
+        <Suspense fallback={<div className="h-7 mt-2" aria-hidden />}>
+          <KpiSparkline data={sparkline} tone={accent} />
+        </Suspense>
+      )}
     </button>
   );
 };
@@ -705,13 +827,89 @@ const TaxReserveCard = ({
   );
 };
 
-const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) => {
+/* ─── Date range bar ─── */
+const DateRangeBar = ({
+  dateRange, setDateRange, customDays, setCustomDays,
+}: {
+  dateRange: DateRange;
+  setDateRange: (r: DateRange) => void;
+  customDays: number;
+  setCustomDays: (n: number) => void;
+}) => {
+  const options: { id: DateRange; label: string }[] = [
+    { id: "7d", label: "7d" },
+    { id: "30d", label: "30d" },
+    { id: "90d", label: "90d" },
+    { id: "custom", label: "Custom" },
+  ];
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <div className="inline-flex items-center rounded-ds-md bg-muted/60 p-0.5">
+        {options.map((opt) => {
+          const active = dateRange === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setDateRange(opt.id)}
+              className={cn(
+                "px-2.5 h-7 rounded-md text-ds-11 font-semibold transition-colors tabular-nums",
+                active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              )}
+              aria-pressed={active}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      {dateRange === "custom" && (
+        <div className="inline-flex items-center gap-2 rounded-ds-md bg-muted/60 px-2 h-7">
+          <label htmlFor="custom-days" className="text-ds-11 text-muted-foreground">
+            Days
+          </label>
+          <input
+            id="custom-days"
+            type="number"
+            min={1}
+            max={365}
+            value={customDays}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              if (Number.isFinite(n) && n > 0 && n <= 365) setCustomDays(n);
+            }}
+            className="w-14 h-6 px-1.5 text-ds-11 font-semibold tabular-nums rounded-sm bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DashboardHome = ({
+  stats, statsLoading, onNavigate,
+  dateRange, setDateRange, customDays, setCustomDays,
+  rangeLabel, prevLabel,
+}: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
   const hasAlerts = stats.pendingApprovals > 0 || stats.disputedJobs > 0 || stats.openReports > 0 || stats.supportTickets > 0;
-  const revenueTrend = computeTrend(stats.revenue30d, stats.revenuePrev30d);
+  const revenueTrend = computeTrend(stats.revenueInRange, stats.revenuePrev);
+  const newUsersTrend = computeTrend(stats.newUsersInRange, stats.newUsersPrev);
+  const completedTrend = computeTrend(stats.completedJobsInRange, stats.completedJobsPrev);
+  const compareCopy = `vs ${prevLabel}`;
 
   return (
     <div className="space-y-4 sm:space-y-5 w-full">
+      {/* Date range selector — top of the dashboard. Drives every
+          range-sensitive tile (revenue, new users, completed jobs) and
+          the sparklines under each. */}
+      <DateRangeBar
+        dateRange={dateRange}
+        setDateRange={setDateRange}
+        customDays={customDays}
+        setCustomDays={setCustomDays}
+      />
+
       {/* Greeting — editorial 3-line header on its own glass plate.
           Matches the dashboard / activity / messages top-box pattern. */}
       <div
@@ -749,10 +947,13 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
 
         <KpiCard
-          label="Pending Users"
-          value={v(stats.pendingApprovals.toLocaleString())}
+          label={`New Users (${rangeLabel})`}
+          value={v(stats.newUsersInRange.toLocaleString())}
           icon={Users}
           accent="accent"
+          trend={newUsersTrend}
+          compareLabel={compareCopy}
+          sparkline={stats.newUsersSeries}
           onClick={() => onNavigate("people")}
         />
         <KpiCard
@@ -760,13 +961,16 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
           value={v(stats.activeJobs.toLocaleString())}
           icon={Briefcase}
           accent="primary"
+          sparkline={stats.activeJobsSeries}
           onClick={() => onNavigate("jobs")}
         />
         <KpiCard
-          label="Revenue (30d)"
-          value={v(`$${stats.revenue30d.toFixed(0)}`)}
+          label={`Revenue (${rangeLabel})`}
+          value={v(`$${stats.revenueInRange.toFixed(0)}`)}
           icon={DollarSign}
           trend={revenueTrend}
+          compareLabel={compareCopy}
+          sparkline={stats.revenueSeries}
           accent="accent"
           onClick={() => onNavigate("analytics")}
         />
@@ -810,7 +1014,16 @@ const DashboardHome = ({ stats, statsLoading, onNavigate }: DashboardHomeProps) 
           <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
-          <KpiCard label="Completed Jobs" value={v(stats.completedJobs)} icon={CheckCircle2} accent="primary" onClick={() => onNavigate("analytics")} />
+          <KpiCard
+            label={`Completed Jobs (${rangeLabel})`}
+            value={v(stats.completedJobsInRange)}
+            icon={CheckCircle2}
+            accent="primary"
+            trend={completedTrend}
+            compareLabel={compareCopy}
+            sparkline={stats.completedJobsSeries}
+            onClick={() => onNavigate("analytics")}
+          />
           {stats.lateCancellationRevenue > 0 && (
             <KpiCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} accent="destructive" onClick={() => onNavigate("analytics")} />
           )}

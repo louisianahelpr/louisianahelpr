@@ -23,7 +23,6 @@ import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import ScrollToTop from "@/components/ScrollToTop";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
-import { ImpersonationProvider } from "@/hooks/useImpersonation";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
@@ -358,7 +357,6 @@ const App = () => (
             the page content (AppShell reads the offset to reserve space).
             See src/lib/offlineBannerLayout.tsx. */}
         <OfflineBannerLayoutProvider>
-          <ImpersonationProvider>
           <ForceUpdateGate>
           <>
           <ScrollToTop />
@@ -382,7 +380,6 @@ const App = () => (
           <SpeedInsightsRouted />
           </>
           </ForceUpdateGate>
-          </ImpersonationProvider>
         </OfflineBannerLayoutProvider>
       </BrowserRouter>
       <Analytics />

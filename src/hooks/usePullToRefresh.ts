@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { hapticMedium, hapticImpactForce } from "@/lib/haptics";
+import { prefersReducedMotion } from "@/lib/accessibility";
 
 interface UsePullToRefreshOptions {
   onRefresh: () => Promise<void>;
@@ -64,13 +65,29 @@ export const usePullToRefresh = ({
       const diff = e.touches[0].clientY - startY.current;
       if (diff > 0) {
         rawDiff.current = diff;
-        const translated = rubberBand(diff, threshold);
+        // Reduce Motion: skip the rubber-band animation curve, snap the
+        // visible indicator to the linear value, and only commit a
+        // refresh once the user has pulled well past the threshold (so
+        // the lack of animation feedback doesn't cause an accidental
+        // refresh from a small flick).
+        const reduceMotion = prefersReducedMotion();
+        const translated = reduceMotion ? diff : rubberBand(diff, threshold);
         setPullDistance(translated);
 
         // Fire a single haptic tick exactly when the pull crosses the
         // threshold — the "click" moment that tells the user "release
         // to refresh".  Guard prevents repeat fires on subsequent frames.
-        if (translated >= threshold && !didFireThresholdHaptic.current) {
+        //
+        // Reduce Motion: the threshold-crossing haptic is a passive
+        // motion feedback (it punctuates the visual rubber-band), so it
+        // is suppressed under `prefers-reduced-motion`. The release
+        // haptic below still fires because that's user-initiated action
+        // confirmation, not ambient motion.
+        if (
+          translated >= threshold &&
+          !didFireThresholdHaptic.current &&
+          !reduceMotion
+        ) {
           didFireThresholdHaptic.current = true;
           // Medium at the threshold — more perceptible than light, mirrors
           // iOS's own pull-to-refresh tick.
@@ -87,8 +104,12 @@ export const usePullToRefresh = ({
     didFireThresholdHaptic.current = false;
 
     if (pullDistance >= threshold) {
-      // Light confirmation tap when the refresh actually fires.
-      hapticLight();
+      // Light confirmation tap when the refresh actually fires. This
+      // explicit, user-initiated action haptic uses the `Force` variant
+      // so it still fires under `prefers-reduced-motion` — the haptic
+      // confirms an action the user took, not ambient motion. (See
+      // hapticImpactForce in src/lib/haptics.ts.)
+      hapticImpactForce();
       setRefreshing(true);
       setPullDistance(0);
       try {

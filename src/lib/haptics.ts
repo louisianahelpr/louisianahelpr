@@ -61,6 +61,17 @@ const safe = async (
   try { await fn(); } catch { /* ignore */ }
 };
 
+/**
+ * Explicit-action impact that bypasses Reduce Motion.
+ *
+ * Use this only when the haptic acknowledges a user-initiated, completed
+ * action (e.g. "you released past the refresh threshold → refresh
+ * starting") rather than ambient motion. Almost all sites should keep
+ * using `hapticLight/Medium/Heavy`.
+ */
+export const hapticImpactForce = (style: ImpactStyle = ImpactStyle.Light) =>
+  safe(() => Haptics.impact({ style }), "result");
+
 /** Light tap — use for taps, toggles, minor interactions. */
 export const hapticLight = () => safe(() => Haptics.impact({ style: ImpactStyle.Light }));
 

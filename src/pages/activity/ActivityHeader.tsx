@@ -71,7 +71,7 @@ export function ActivityHeader({
                 aria-expanded={searchOpen}
                 className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition ${
                   searchOpen || searchQuery
-                    ? "bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)]"
+                    ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
@@ -87,7 +87,7 @@ export function ActivityHeader({
                     aria-label="Filter by status"
                     className={`h-9 w-9 rounded-ds-md btn-press flex items-center justify-center relative transition ${
                       filterOpen || statusFilter !== (tab === "applied" ? "pending" : "open")
-                        ? "bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)]"
+                        ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                     }`}
                   >

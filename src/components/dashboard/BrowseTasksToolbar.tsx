@@ -177,26 +177,9 @@ export function BrowseTasksToolbar({
           )}
         </div>
         <div className="flex items-center gap-1">
-              {filters.hasFilters && (
-                /* Strengthened affordance: solid burnt-sienna pill so the
-                   clear action is immediately visible when filters are active,
-                   not a ghosted text button easy to overlook. */
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={filters.clearFilters}
-                  className="btn-press h-8 rounded-full px-3 text-ds-11 font-semibold"
-                  style={{
-                    background: "hsl(var(--burnt-sienna) / 0.12)",
-                    color: "hsl(var(--burnt-sienna))",
-                    border: "1px solid hsl(var(--burnt-sienna) / 0.28)",
-                  }}
-                  aria-label={`Clear all ${filters.activeFilterCount} active filter${filters.activeFilterCount === 1 ? "" : "s"}`}
-                >
-                  <X className="w-3 h-3 mr-1" strokeWidth={2.5} />
-                  Clear {filters.activeFilterCount > 1 ? `(${filters.activeFilterCount})` : ""}
-                </Button>
-              )}
+              {/* Clear-all lives with the filter/chip rows below, not here —
+                  crowding it into the icon cluster forced the title to wrap
+                  and pushed the filter button off-screen on narrow phones. */}
               {/* List ⇄ Map toggle — single icon button living in the
                   toolbar cluster beside saved-search / search / filter.
                   List is the default; tapping swaps to the map and back.
@@ -206,7 +189,7 @@ export function BrowseTasksToolbar({
                 variant="ghost"
                 size="icon"
                 onClick={() => setView(view === "map" ? "list" : "map")}
-                className={`h-8 w-8 rounded-ds-md btn-press ${view === "map" ? "bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)]" : "text-muted-foreground hover:text-foreground"}`}
+                className={`h-8 w-8 rounded-ds-md btn-press ${view === "map" ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]" : "text-muted-foreground hover:text-foreground"}`}
                 aria-label={view === "map" ? "Show list view" : "Show map view"}
                 aria-pressed={view === "map"}
               >
@@ -231,7 +214,7 @@ export function BrowseTasksToolbar({
                 variant="ghost"
                 size="icon"
                 onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
-                className={`h-8 w-8 rounded-ds-md btn-press ${filters.searchOpen || filters.searchQuery ? "bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)]" : "text-muted-foreground hover:text-foreground"}`}
+                className={`h-8 w-8 rounded-ds-md btn-press ${filters.searchOpen || filters.searchQuery ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]" : "text-muted-foreground hover:text-foreground"}`}
                 aria-label="Search jobs"
                 aria-expanded={filters.searchOpen}
               >
@@ -241,7 +224,7 @@ export function BrowseTasksToolbar({
                 variant="ghost"
                 size="icon"
                 onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
-                className={`h-8 w-8 rounded-ds-md btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)]" : "text-muted-foreground hover:text-foreground"}`}
+                className={`h-8 w-8 rounded-ds-md btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]" : "text-muted-foreground hover:text-foreground"}`}
                 aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
                 aria-expanded={filters.filtersOpen}
               >
@@ -434,6 +417,20 @@ export function BrowseTasksToolbar({
               <Clock className="w-3 h-3" /> My hours
               <button onClick={() => filters.setMatchAvailability(false)} aria-label="Clear availability filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
+          )}
+          {filters.activeFilterCount > 1 && (
+            <button
+              onClick={filters.clearFilters}
+              aria-label={`Clear all ${filters.activeFilterCount} active filters`}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md text-ds-11 font-semibold btn-press"
+              style={{
+                color: "hsl(var(--burnt-sienna))",
+                background: "hsl(var(--burnt-sienna) / 0.1)",
+                border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+              }}
+            >
+              <X className="w-3 h-3" strokeWidth={2.25} /> Clear all
+            </button>
           )}
         </div>
       )}

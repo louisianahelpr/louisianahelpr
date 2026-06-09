@@ -527,10 +527,15 @@ const ProfilePage = () => {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+  // Mirror the authoritative payout math in the release-payout edge
+  // function: a helper nets budget + urgent_fee − platform_fee. The 10%
+  // sales tax is a customer-side charge on the budget and is never deducted
+  // from the helper, so it must not appear here. (A prior version subtracted
+  // a phantom 8.5%-of-fee "tax" that exists nowhere in the fee model and
+  // under-reported take-home pay.)
   const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => {
     const fee = j.platform_fee_amount || 0;
-    const feeTax = fee * 0.085;
-    return sum + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
+    return sum + (j.budget - fee + (j.urgent_fee ?? 0));
   }, 0);
 
   return (

@@ -71,6 +71,34 @@ const categoryColors: Record<string, string> = {
   other: "#7A7E68",
 };
 
+// Branded cluster bubble. react-leaflet-cluster's built-in cluster styling
+// relies on the leaflet.markercluster default CSS (not imported here, to
+// keep the bundle lean), which made a cluster render as a tiny unstyled
+// dot — so a metro of jobs looked like a single faint pin. This div-icon
+// renders the cluster ourselves as a bark circle with a cream count, so
+// "7 jobs near New Orleans" reads instantly and tapping it spiderfies/zooms.
+function clusterIcon(cluster: { getChildCount: () => number }) {
+  const count = cluster.getChildCount();
+  const size = count >= 10 ? 44 : count >= 5 ? 40 : 36;
+  const html = `
+    <div style="
+      width:${size}px;height:${size}px;border-radius:9999px;
+      display:flex;align-items:center;justify-content:center;
+      background:#5E6544;color:#FAF8F5;
+      font-family:ui-sans-serif,system-ui,sans-serif;font-weight:800;
+      font-size:${count >= 10 ? 15 : 14}px;
+      border:2px solid #FAF8F5;
+      box-shadow:0 4px 12px -2px rgba(46,46,40,0.45);
+    ">${count}</div>
+  `;
+  return divIcon({
+    html,
+    className: "browse-map-cluster",
+    iconSize: leafletPoint(size, size),
+    iconAnchor: leafletPoint(size / 2, size / 2),
+  });
+}
+
 function pinIcon(category: string, isUrgent: boolean) {
   const color = categoryColors[category] ?? "#7A7E68";
   const ring = isUrgent ? "stroke=\"#A0613B\" stroke-width=\"2.5\"" : "";
@@ -513,7 +541,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           chunkedLoading
           spiderfyOnMaxZoom
           showCoverageOnHover={false}
-          maxClusterRadius={50}
+          maxClusterRadius={40}
+          iconCreateFunction={clusterIcon}
         >
         {jobs.map((job) => (
           <Marker

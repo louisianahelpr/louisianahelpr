@@ -154,27 +154,33 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             strokeWidth={2.25}
           />
           <span className="font-serif italic">{categoryLabels[job.category] || job.category}</span>
+          {/* Freshness lives in the category tab — a quiet burnt-sienna dot
+              + "New" — so it reads as metadata at the corner and never
+              competes with the job title for the eye. */}
+          {isNew && (
+            <span className="inline-flex items-center gap-1 ml-0.5" aria-label="New listing">
+              <span
+                aria-hidden
+                className="w-1 h-1 rounded-full"
+                style={{ background: "hsl(var(--burnt-sienna))" }}
+              />
+              <span
+                className="font-sans font-bold uppercase not-italic"
+                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.06em", fontSize: "8px" }}
+              >
+                New
+              </span>
+            </span>
+          )}
         </span>
         <div className="w-full px-3.5 pt-6 pb-2.5">
         {/* Title leads the top row and wraps to at most two lines (never
             cut off mid-word); the price tile sits opposite it. */}
         <div className="flex items-center justify-between gap-3">
-          {/* New badge leads the title (not the meta row) — freshness reads
-              at the top of the card, and the meta row keeps date + time on
-              one line instead of being pushed to wrap. */}
+          {/* Title leads its row cleanly — the "New" freshness marker lives
+              in the category tab at the top-left corner, so nothing crowds
+              the headline. */}
           <div className="flex items-start gap-1.5 flex-1 min-w-0">
-            {isNew && (
-              <span
-                className="shrink-0 mt-[3px] inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none"
-                style={{
-                  background: "hsl(var(--burnt-sienna) / 0.12)",
-                  color: "hsl(var(--burnt-sienna))",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                New
-              </span>
-            )}
             <h3
               className="font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
               style={{

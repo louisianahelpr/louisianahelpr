@@ -38,7 +38,7 @@ const renderMessageContent = (content: string, onImageClick: (url: string) => vo
           decoding="async"
           src={url}
           alt="Shared photo"
-          className="max-w-full rounded-ds-sm cursor-pointer hover:opacity-90 transition-opacity"
+          className="max-w-full max-h-64 object-contain rounded-ds-sm cursor-pointer hover:opacity-90 transition-opacity"
           onClick={() => onImageClick(url)}
         />
         {caption && <p>{caption}</p>}

@@ -19,6 +19,8 @@ dist-ssr
 # harness (scripts/sim-smoke.sh).
 build/
 ios/App/build/
+ios/App/build_sim/
+ios/DerivedData/
 
 # Fastlane gem lockfile — `bundle install` regenerates per machine, and
 # the workflows in .github/workflows/ run `bundle install` themselves

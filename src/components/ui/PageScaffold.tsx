@@ -57,12 +57,13 @@ const TITLE_CARD_CLASS =
   "liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden";
 
 const TITLE_CARD_STYLE: CSSProperties = {
-  // Title card matches the panel below — the same crisp near-white
-  // surface — so the two stacked cards read as one cohesive material
-  // instead of a warm band sitting on a cool panel. Very faint copper /
-  // verdigris corner glows keep the card from reading as a flat block
-  // without tinting it away from the panel's colour.
-  backgroundColor: "hsl(40 30% 99% / 0.97)",
+  // Intentional two-step material hierarchy: the title card sits a touch
+  // more translucent (0.85) than the crisper panel below (0.97), so the
+  // header reads as the softer "lid" over a solid content panel rather
+  // than the two stacking into one flat slab. Same hue — only the opacity
+  // steps — so they stay obviously the same material. Very faint copper /
+  // verdigris corner glows keep the card from reading as a flat block.
+  backgroundColor: "hsl(40 30% 99% / 0.85)",
   backgroundImage:
     "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.05) 0%, transparent 55%), " +
     "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 80% / 0.12) 0%, transparent 60%)",
@@ -115,10 +116,11 @@ export function PageScaffold({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     borderBottom: "none",
-    // Crisp near-opaque white surface. `.liquid-glass`'s 42%-white wash
-    // reads as muted beige over the warm page gradient, so the panel
-    // blended into the canvas; a bright cool-white panel pops off the
-    // page and reads a clear step cooler than the warm title card above.
+    // Crisp near-opaque white surface (0.97) — the solid base of the
+    // two-step hierarchy, one step crisper than the softer title card
+    // (0.85) above. `.liquid-glass`'s 42%-white wash reads as muted beige
+    // over the warm page gradient, so the panel blended into the canvas; a
+    // bright near-opaque panel pops off the page as the content surface.
     backgroundColor: "hsl(40 30% 99% / 0.97)",
     boxShadow: PANEL_SHADOW[panelElevation],
   };

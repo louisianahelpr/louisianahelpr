@@ -14,6 +14,7 @@ import { getCityState } from "@/lib/locationUtils";
 import { haversineMiles } from "@/lib/geo";
 import { getParishCentroid, getCentroidFromLocation } from "@/lib/parishCentroids";
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
+import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { prefetchJobDialog } from "./prefetchJobDialog";
 import type { EnrichedJob } from "./types";
 
@@ -121,14 +122,15 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // precise coords, so we fall back to parish-level granularity ("~X mi")
   // rather than a misleading street-precise number. Renders silently as
   // null when either side is missing.
-  const distanceMiles = (() => {
-    if (userLat == null || userLng == null) return null;
-    const centroid =
-      getParishCentroid((job as { parish?: string | null }).parish) ??
-      getCentroidFromLocation(job.location);
-    if (!centroid) return null;
-    return haversineMiles(userLat, userLng, centroid.lat, centroid.lng);
-  })();
+  const destCentroid =
+    userLat != null && userLng != null
+      ? getParishCentroid((job as { parish?: string | null }).parish) ??
+        getCentroidFromLocation(job.location)
+      : null;
+  const distanceMiles =
+    destCentroid && userLat != null && userLng != null
+      ? haversineMiles(userLat, userLng, destCentroid.lat, destCentroid.lng)
+      : null;
   const distanceLabel = distanceMiles == null
     ? null
     : distanceMiles < 1
@@ -136,6 +138,22 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       : distanceMiles < 10
         ? `${distanceMiles.toFixed(1)} mi`
         : `${Math.round(distanceMiles)} mi`;
+  // Driving-time estimate — MapKit Directions when ready, heuristic
+  // otherwise. Combined with the distance pill below to read "12 min ·
+  // 4.5 mi" instead of just distance, which is more useful for a helpr
+  // deciding whether a job is worth the drive.
+  const drivingMinutes = useDrivingTime(
+    userLat,
+    userLng,
+    destCentroid?.lat ?? null,
+    destCentroid?.lng ?? null,
+    distanceMiles,
+  );
+  const drivingLabel = drivingMinutes == null
+    ? null
+    : drivingMinutes < 60
+      ? `${drivingMinutes} min`
+      : `${Math.floor(drivingMinutes / 60)}h ${drivingMinutes % 60}m`;
 
   // Expiry info
   const expiryText = job.expires_at
@@ -396,7 +414,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             </span>
             {distanceLabel && (
               <span
-                aria-label={`Approximately ${distanceLabel} away`}
+                aria-label={
+                  drivingLabel
+                    ? `Approximately ${drivingLabel} drive, ${distanceLabel} away`
+                    : `Approximately ${distanceLabel} away`
+                }
                 className="inline-flex items-center gap-0.5 px-1.5 py-px rounded-full font-sans font-semibold whitespace-nowrap"
                 style={{
                   fontSize: "9.5px",
@@ -406,7 +428,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
                 }}
               >
-                {distanceLabel}
+                {drivingLabel ? `${drivingLabel} · ${distanceLabel}` : distanceLabel}
               </span>
             )}
             <span className="opacity-30">·</span>

@@ -12,6 +12,7 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Clock, XCircle, Star, X, Search } from "lucide-react";
 import { toast } from "sonner";
+import { errorToast } from "@/lib/toast";
 import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
@@ -311,7 +312,13 @@ const Dashboard = () => {
         queryClient.setQueryData(queryKeys.dashboard.savedJobs(vars.userId), context.previousSavedJobs);
         setSavedJobIds(context.previousLocal);
       }
-      toast.error("Couldn't save that job right now — give it another try?");
+      // Inline Retry action — the optimistic state is already rolled back,
+      // so the heart shows un-saved. Tapping Retry re-runs the same toggle
+      // with the same target state the user wanted.
+      errorToast("Couldn't save that job right now", {
+        description: "Tap retry to try again.",
+        onRetry: () => saveJobMutation.mutate(vars),
+      });
     },
     // No onSuccess refetch: optimistic state is correct; a refetch would
     // briefly toggle the heart back and forth as the cache reconciles.
@@ -402,7 +409,7 @@ const Dashboard = () => {
       });
       return { previousContext, userId: helperId };
     },
-    onError: (err, _vars, context) => {
+    onError: (err, vars, context) => {
       hapticError();
       // Roll the appliedJobIds set back so the card re-appears in the feed.
       if (context) {
@@ -412,12 +419,21 @@ const Dashboard = () => {
       if (code === "23505") {
         toast.error("You've already applied.");
       } else if (code === "UPLOAD_FAILED") {
-        toast.error(err.message);
+        // Upload errors are usually a flaky-network attachment — Retry is
+        // genuinely useful here. The mutation already rolled back the
+        // appliedJobIds set, so the apply is in a clean state to re-run.
+        errorToast(err.message, {
+          onRetry: () => applyMutation.mutate(vars),
+        });
       } else if (code === "RATE_LIMITED") {
         // Use the warm, window-specific message from applyRateLimit.
+        // No retry — by definition the user has to wait the window out.
         toast.error(err.message);
       } else {
-        toast.error("Couldn't send your application through — try once more?");
+        errorToast("Couldn't send your application through", {
+          description: "Tap retry to try again.",
+          onRetry: () => applyMutation.mutate(vars),
+        });
       }
     },
     onSuccess: async (_data, vars) => {

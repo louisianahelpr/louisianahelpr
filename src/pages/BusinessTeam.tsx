@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
+import { errorToast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -213,7 +214,13 @@ const BusinessTeam = () => {
     });
     if (error) {
       hapticError();
-      toast.error("We couldn't resend that invite — give it another try in a moment.");
+      // One-shot operation with stable inputs — exactly the kind of
+      // transient failure that justifies an inline Retry button instead
+      // of forcing the user to find the row in the list again.
+      errorToast("We couldn't resend that invite", {
+        description: "Tap retry — or report if it keeps happening.",
+        onRetry: () => handleResendInvite(memberEmail),
+      });
     } else {
       toast.success(`Invite resent to ${memberEmail}.`);
     }

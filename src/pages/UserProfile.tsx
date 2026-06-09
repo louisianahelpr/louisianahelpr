@@ -89,13 +89,20 @@ const UserProfile = () => {
       // applications; the metrics section just hides itself if empty.
       // Was previously gated on role === 'helper', but role distinction
       // no longer exists in the UI.
-      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes] = await Promise.all([
+      //
+      // jobs select also pulls latitude/longitude so the "did N jobs
+      // nearby" social-proof badge (#31) can filter against the viewer's
+      // location without a second round trip. status_history_total /
+      // cancellation_count_*_res are head-only count queries so the
+      // cancellation-rate stat (#30) reflects ALL jobs, not just the 20
+      // we render inline.
+      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
         supabase.from("reviews").select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).order("created_at", { ascending: false }),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!),
         // Verification-ladder inputs (#112): grab the trust signals while
         // we're already touching this row. `get_safe_profiles` doesn't
@@ -107,6 +114,13 @@ const UserProfile = () => {
           .select("id_document_url, approval_status, idv_status, stripe_account_id")
           .eq("user_id", userId!)
           .maybeSingle(),
+        // Count-only queries — `head: true` skips row payload, so these
+        // are cheap. They power the lifetime cancellation-rate display
+        // (#30) without inflating the limited job lists rendered above.
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).eq("status", "cancelled"),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!).eq("status", "cancelled"),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -117,6 +131,8 @@ const UserProfile = () => {
       for (const [label, res] of [
         ["reviews", reviewsRes], ["posted_jobs", postedRes], ["worked_jobs", workedRes],
         ["applications", appsRes], ["trust_signals", idCheckRes],
+        ["posted_total", postedTotalRes], ["posted_cancelled", postedCancelledRes],
+        ["worked_total", workedTotalRes], ["worked_cancelled", workedCancelledRes],
       ] as const) {
         if (res.error) {
           report(res.error, {
@@ -136,6 +152,20 @@ const UserProfile = () => {
         completedJobs: completedCount,
         avgRating: ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0,
         reviewCount: ratings.length,
+      };
+
+      // Cancellation-rate metric (#30) — separate posted-side vs worked-side
+      // rates so the badge can read "the right" rate for the audience. We
+      // compute the combined rate inline at the render site. A minimum
+      // sample size of 5 prevents "1 of 1 cancelled = 100%" cliffs on
+      // fresh accounts.
+      const totalJobsCount = (postedTotalRes.count ?? 0) + (workedTotalRes.count ?? 0);
+      const totalCancelledCount = (postedCancelledRes.count ?? 0) + (workedCancelledRes.count ?? 0);
+      const cancellationRate = {
+        total: totalJobsCount,
+        cancelled: totalCancelledCount,
+        // Only render when there's enough history to be meaningful.
+        rate: totalJobsCount >= 5 ? (totalCancelledCount / totalJobsCount) * 100 : null,
       };
 
       let responseMetrics = { avgResponseHours: null as number | null, acceptanceRate: null as number | null, totalApplications: 0 };
@@ -159,20 +189,26 @@ const UserProfile = () => {
         const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))] as string[];
         const [profilesRes2, jobsRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
-          supabase.from("jobs").select("id, title").in("id", jobIds),
+          // category pulled in alongside title so the reviews-tab filter
+          // (#27) can group by job type without a follow-up fetch.
+          supabase.from("jobs").select("id, title, category").in("id", jobIds),
         ]);
         const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
-        const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, j.title]) || []);
-        reviews = reviewsRes.data.map((r: any) => ({
-          rating: r.rating,
-          punctuality: r.punctuality ?? null,
-          quality: r.quality ?? null,
-          communication: r.communication ?? null,
-          feedback: r.feedback,
-          created_at: r.created_at,
-          reviewerName: nameMap.get(r.reviewer_id) || "User",
-          jobTitle: jobMap.get(r.job_id) || "Job",
-        }));
+        const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, { title: j.title, category: j.category as string | null }]) || []);
+        reviews = reviewsRes.data.map((r: any) => {
+          const j = jobMap.get(r.job_id);
+          return {
+            rating: r.rating,
+            punctuality: r.punctuality ?? null,
+            quality: r.quality ?? null,
+            communication: r.communication ?? null,
+            feedback: r.feedback,
+            created_at: r.created_at,
+            reviewerName: nameMap.get(r.reviewer_id) || "User",
+            jobTitle: j?.title || "Job",
+            jobCategory: j?.category ?? null,
+          };
+        });
       }
 
       return {
@@ -182,6 +218,7 @@ const UserProfile = () => {
         postedJobs,
         workedJobs,
         responseMetrics,
+        cancellationRate,
         isIdVerified: !!idCheckRes.data?.id_document_url,
         // Verification-ladder inputs — passed straight through to
         // HelperTierBadge. Null-safe if the row read was blocked.
@@ -195,11 +232,12 @@ const UserProfile = () => {
   });
 
   const profile = (data?.profile ?? null) as Profile | null;
-  const reviews = (data?.reviews ?? []) as Array<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }>;
+  const reviews = (data?.reviews ?? []) as Array<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string; jobCategory: string | null }>;
   const stats = data?.stats ?? { completedJobs: 0, avgRating: 0, reviewCount: 0 };
-  const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }>;
-  const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }>;
+  const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
+  const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
+  const cancellationRate = data?.cancellationRate ?? { total: 0, cancelled: 0, rate: null as number | null };
   const isIdVerified = data?.isIdVerified ?? false;
   const tierProfile = data?.tierProfile ?? null;
   const loading = isLoading && !data;
@@ -450,6 +488,30 @@ const UserProfile = () => {
                       </span>
                     </>
                   )}
+                </div>
+              )}
+              {/* Cancellation rate (#30) — combined helper + poster jobs.
+                  Only renders once the user has >=5 lifetime jobs so a
+                  single early cancellation doesn't read as "100% cancel
+                  rate". Color shifts olive→amber→sienna at 5%/15% so the
+                  signal degrades gracefully rather than feeling punitive. */}
+              {cancellationRate.rate !== null && (
+                <div className="flex items-center justify-center gap-1 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <span
+                    className="font-display italic font-bold tabular-nums"
+                    style={{
+                      color:
+                        cancellationRate.rate < 5
+                          ? "hsl(var(--ink-deep))"
+                          : cancellationRate.rate < 15
+                          ? "hsl(var(--gold-warm))"
+                          : "hsl(var(--burnt-sienna))",
+                    }}
+                  >
+                    {cancellationRate.rate.toFixed(0)}%
+                  </span>
+                  <span>cancel rate</span>
+                  <span style={{ color: "hsl(var(--olivewood) / 0.45)" }}>· {cancellationRate.cancelled}/{cancellationRate.total} jobs</span>
                 </div>
               )}
               {profile.phone && (

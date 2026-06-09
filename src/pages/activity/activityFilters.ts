@@ -32,7 +32,14 @@ const DERIVED_OFFERED =
 const DERIVED_PENDING_APPLIED = "bg-secondary text-secondary-foreground border-border";
 const DERIVED_NOT_SELECTED = "bg-destructive/15 text-destructive border-destructive/30";
 
+// "All" key — when active, the page swaps the single filtered list for
+// the grouped/collapsible Active / Completed / Cancelled view defined
+// below. Painted neutrally so it doesn't compete with the per-status
+// dots that follow it in the dropdown.
+const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivewood))] border-[hsl(var(--olivewood)/0.18)]";
+
 export const POSTED_STATUS_FILTERS: StatusFilter[] = [
+  { key: "all",          label: "All",                          color: ALL_FILTER_COLOR },
   { key: "open",         label: jobStatusLabel("open"),         color: jobStatusColorClasses("open") },
   { key: "direct_offer", label: "Direct Offers",                color: DERIVED_DIRECT_OFFER },
   // "Awaiting Helpr's Response" — the poster sent an offer; the helpr hasn't confirmed yet.
@@ -43,6 +50,7 @@ export const POSTED_STATUS_FILTERS: StatusFilter[] = [
 ];
 
 export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
+  { key: "all",          label: "All",                          color: ALL_FILTER_COLOR },
   { key: "pending",      label: "Applied",                      color: DERIVED_PENDING_APPLIED },
   { key: "direct_offer", label: "Direct Offers",                color: DERIVED_DIRECT_OFFER },
   // "Respond to Offer" — the poster selected me; I need to accept or decline.
@@ -52,6 +60,32 @@ export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
   { key: "completed",    label: jobStatusLabel("completed"),    color: jobStatusColorClasses("completed") },
   { key: "not_selected", label: "Not Selected",                 color: DERIVED_NOT_SELECTED },
 ];
+
+/**
+ * Section bucket — used by the grouped "All" view to fold every status
+ * into Active / Completed / Cancelled. Each list/card on the screen
+ * goes through one of these three buckets exactly once.
+ */
+export type Bucket = "active" | "completed" | "cancelled";
+
+/** Classify a posted job into Active / Completed / Cancelled. */
+export function bucketPostedJob(job: { status: string }): Bucket {
+  switch (job.status) {
+    case "completed": return "completed";
+    case "cancelled":
+    case "disputed":  return "cancelled";
+    default:          return "active"; // open / accepted / in_progress / revision_requested / direct_offer holders
+  }
+}
+
+/** Classify an applied application into Active / Completed / Cancelled. */
+export function bucketAppliedApp(app: { status: string; job?: { status: string } | null }): Bucket {
+  const jobStatus = app.job?.status;
+  if (jobStatus === "completed") return "completed";
+  if (jobStatus === "cancelled") return "cancelled";
+  if (app.status === "rejected") return "cancelled";
+  return "active";
+}
 
 export interface UseActivityFiltersArgs {
   postedJobs: Job[];
@@ -72,9 +106,11 @@ export function useActivityFilters({
 
   const filteredPostedJobs = useMemo(() =>
     postedJobs.filter((j) => {
-      // Status filter
+      // Status filter — "all" disables the status gate; the page renders
+      // groups instead. Search still applies in both modes.
       let statusMatch: boolean;
-      if (statusFilter === "direct_offer") statusMatch = !!j.offered_to_helper_id && j.direct_offer_status === "pending";
+      if (statusFilter === "all") statusMatch = true;
+      else if (statusFilter === "direct_offer") statusMatch = !!j.offered_to_helper_id && j.direct_offer_status === "pending";
       else if (statusFilter === "offered") statusMatch = j.status === "accepted" && !j.helper_confirmed_at;
       else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!j.helper_confirmed_at;
       else statusMatch = j.status === statusFilter && !(statusFilter === "open" && j.direct_offer_status === "pending");
@@ -90,7 +126,8 @@ export function useActivityFilters({
     const query = searchLower;
     return appliedApps.filter((a) => {
       let statusMatch = false;
-      if (statusFilter === "direct_offer") statusMatch = !!a.job?.offered_to_helper_id && a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending";
+      if (statusFilter === "all") statusMatch = true;
+      else if (statusFilter === "direct_offer") statusMatch = !!a.job?.offered_to_helper_id && a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending";
       else if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
       else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at;
       else if (statusFilter === "accepted") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !!a.job?.helper_confirmed_at;
@@ -111,7 +148,7 @@ export function useActivityFilters({
   }, [appliedApps, statusFilter, searchLower]);
 
   const appliedCounts = useMemo(() => {
-    const counts: Record<string, number> = { pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
+    const counts: Record<string, number> = { all: appliedApps.length, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
     appliedApps.forEach((a) => {
       if (a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending") counts.direct_offer++;
       if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
@@ -127,7 +164,7 @@ export function useActivityFilters({
   }, [appliedApps]);
 
   const postedCounts = useMemo(() => {
-    const counts: Record<string, number> = { open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0 };
+    const counts: Record<string, number> = { all: postedJobs.length, open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0 };
     postedJobs.forEach((j) => {
       if (j.offered_to_helper_id && j.direct_offer_status === "pending") counts.direct_offer++;
       if (j.status === "accepted" && !j.helper_confirmed_at) counts.offered++;

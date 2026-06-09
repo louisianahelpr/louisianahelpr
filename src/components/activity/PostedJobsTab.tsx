@@ -11,6 +11,8 @@ import { VirtualList } from "@/components/VirtualList";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
 import { ListFilterBar, type StatusChip } from "./ListFilterBar";
+import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
+import { bucketPostedJob } from "@/pages/activity/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
 
@@ -76,6 +78,12 @@ interface PostedJobsTabProps {
   applicantErrors: Record<string, boolean>;
   /** Refetch the feed after an inline card mutation (e.g. dispute action). */
   onActionComplete: () => void;
+  /** When true, render items grouped into collapsible Active /
+   *  Completed / Cancelled sections instead of a flat virtualized
+   *  list. Driven by the page-level "All" status filter; hides the
+   *  in-tab ListFilterBar in that mode (the page's outer header is
+   *  the source of truth for filter + search). */
+  groupByStatus?: boolean;
 }
 
 export const PostedJobsTab = ({
@@ -88,7 +96,7 @@ export const PostedJobsTab = ({
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onLoadInlineApplicants,
   inlineApplicants, loadingApplicants, applicantErrors,
-  onActionComplete,
+  onActionComplete, groupByStatus = false,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
   // Client-side search + status filter over the already-loaded list.
@@ -108,6 +116,48 @@ export const PostedJobsTab = ({
     });
   }, [jobs, searchQuery, statusFilter]);
 
+  // One source of truth for the per-row render so both the flat
+  // VirtualList view and the grouped Sectioned view paint identical
+  // cards.
+  const renderJobCard = (job: Job) => (
+    <PostedJobCard
+      job={job}
+      applicantCounts={applicantCounts}
+      expandedJobId={expandedJobId}
+      setExpandedJobId={setExpandedJobId}
+      helperNames={helperNames}
+      completedJobMeta={completedJobMeta}
+      startRequestedJobIds={startRequestedJobIds}
+      // `latestTracking[job.id]` may legitimately be `null` ("we
+      // looked, no row exists") — the card forwards that down so
+      // <JobTracking> skips its own initial fetch. If the key is
+      // absent (e.g. a not-yet-active job), the card passes
+      // `undefined` and JobTracking falls back to its own query.
+      initialTracking={latestTracking[job.id]}
+      initialGroupHelpers={groupHelpersByJob[job.id]}
+      userId={userId}
+      onBoost={onBoost}
+      onEdit={onEdit}
+      onCancel={onCancel}
+      onComplete={onComplete}
+      completingJobId={completingJobId}
+      onRevision={onRevision}
+      onNoShow={onNoShow}
+      onTip={onTip}
+      onReview={onReview}
+      onDispute={onDispute}
+      onConfirmStart={onConfirmStart}
+      onConfirmArrival={onConfirmArrival}
+      onConfirmWorking={onConfirmWorking}
+      onLoadApplications={onLoadApplications}
+      onLoadInlineApplicants={onLoadInlineApplicants}
+      inlineApplicants={inlineApplicants}
+      loadingApplicants={loadingApplicants}
+      applicantErrors={applicantErrors}
+      onActionComplete={onActionComplete}
+    />
+  );
+
   if (jobs.length === 0) {
     return (
       <EmptyState
@@ -125,8 +175,21 @@ export const PostedJobsTab = ({
     );
   }
 
-  return (
-    <div className="space-y-4">
+  // Grouped view — driven by the page's "All" status filter. Skips the
+  // in-tab ListFilterBar (the page header owns search + filter in this
+  // mode) and routes every card through the collapsible 3-section
+  // shell. The applicants full-screen modal renders below as a
+  // sibling so it surfaces in either mode.
+  const listView = groupByStatus ? (
+    <ActivitySectionedView
+      tab="posted"
+      items={jobs}
+      getKey={(job) => job.id}
+      bucketize={bucketPostedJob}
+      renderItem={renderJobCard}
+    />
+  ) : (
+    <>
       <ListFilterBar
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -151,46 +214,15 @@ export const PostedJobsTab = ({
         overscan={4}
         className="space-y-0"
         itemClassName="pb-3"
-        renderItem={(job) => (
-          <PostedJobCard
-            job={job}
-            applicantCounts={applicantCounts}
-            expandedJobId={expandedJobId}
-            setExpandedJobId={setExpandedJobId}
-            helperNames={helperNames}
-            completedJobMeta={completedJobMeta}
-            startRequestedJobIds={startRequestedJobIds}
-            // `latestTracking[job.id]` may legitimately be `null` ("we
-            // looked, no row exists") — the card forwards that down so
-            // <JobTracking> skips its own initial fetch. If the key is
-            // absent (e.g. a not-yet-active job), the card passes
-            // `undefined` and JobTracking falls back to its own query.
-            initialTracking={latestTracking[job.id]}
-            initialGroupHelpers={groupHelpersByJob[job.id]}
-            userId={userId}
-            onBoost={onBoost}
-            onEdit={onEdit}
-            onCancel={onCancel}
-            onComplete={onComplete}
-            completingJobId={completingJobId}
-            onRevision={onRevision}
-            onNoShow={onNoShow}
-            onTip={onTip}
-            onReview={onReview}
-            onDispute={onDispute}
-            onConfirmStart={onConfirmStart}
-            onConfirmArrival={onConfirmArrival}
-            onConfirmWorking={onConfirmWorking}
-            onLoadApplications={onLoadApplications}
-            onLoadInlineApplicants={onLoadInlineApplicants}
-            inlineApplicants={inlineApplicants}
-            loadingApplicants={loadingApplicants}
-            applicantErrors={applicantErrors}
-            onActionComplete={onActionComplete}
-          />
-        )}
+        renderItem={renderJobCard}
       />
       )}
+    </>
+  );
+
+  return (
+    <div className="space-y-4">
+      {listView}
 
       {/* Applicants full-screen view */}
       {selectedJob && (

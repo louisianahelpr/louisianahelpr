@@ -68,8 +68,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // setSearchParams is stable; deps intentionally exclude searchParams
     // to prevent the loop that would form if the effect listened to
     // its own write.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, searchQuery, defaultFilter]);
+  }, [statusFilter, searchQuery, defaultFilter, searchParams, setSearchParams]);
 
   // Sync filter when URL search params change externally (e.g. navigating
   // from a notification or via browser back/forward — not from our own
@@ -82,8 +81,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       setSearchQuery(paramQuery);
       if (paramQuery) setSearchOpen(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, defaultFilter, statusFilter, searchQuery]);
 
   const {
     loading, loadError, postedJobs, appliedApps, applicantCounts,
@@ -289,6 +287,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
           {tab === "posted" && (
             <PostedJobsTab
+              groupByStatus={statusFilter === "all"}
               jobs={filteredPostedJobs}
               applicantCounts={applicantCounts}
               expandedJobId={actions.expandedJobId}
@@ -329,6 +328,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
           {tab === "applied" && (
             <AppliedJobsTab
+              groupByStatus={statusFilter === "all"}
               apps={filteredAppliedApps}
               expandedJobId={actions.expandedJobId}
               setExpandedJobId={actions.setExpandedJobId}

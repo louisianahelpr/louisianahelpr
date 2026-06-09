@@ -12,6 +12,8 @@ import { VirtualList } from "@/components/VirtualList";
 import { type Application, type AppliedApp, type Job } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
 import { ListFilterBar, type StatusChip } from "./ListFilterBar";
+import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
+import { bucketAppliedApp } from "@/pages/activity/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
 
 /** Status chips for the helper's applications list — collapses the raw
@@ -52,6 +54,11 @@ interface AppliedJobsTabProps {
   /** Open the dispute dialog for this job — helper-initiated dispute (issue #113). */
   onDispute: (job: Job) => void;
   onRefresh: () => void;
+  /** When true, render items grouped into collapsible Active /
+   *  Completed / Closed sections instead of a flat virtualized list.
+   *  Driven by the page-level "All" status filter; hides the in-tab
+   *  ListFilterBar in that mode. */
+  groupByStatus?: boolean;
 }
 
 export const AppliedJobsTab = ({
@@ -59,6 +66,7 @@ export const AppliedJobsTab = ({
   helperReviewedJobIds, latestTracking, userId, onHelperResponse,
   onComplete, completingJobId,
   onResolveRevision, onHelperReview, onDispute, onRefresh,
+  groupByStatus = false,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
   // Client-side search + status filter over the already-loaded list.
@@ -133,6 +141,49 @@ export const AppliedJobsTab = ({
     });
   }, [apps, searchQuery, statusFilter]);
 
+  // One source of truth for the per-row render so both the flat
+  // VirtualList view and the grouped Sectioned view paint identical
+  // cards.
+  const renderAppliedCard = (app: AppliedApp) => (
+    <AppliedJobCard
+      app={app}
+      expandedJobId={expandedJobId}
+      setExpandedJobId={setExpandedJobId}
+      helperReviewedJobIds={helperReviewedJobIds}
+      // `latestTracking[app.job_id]` may legitimately be `null`
+      // ("we looked, no row exists") — the card forwards that into
+      // <JobTracking> so it skips its own initial fetch. If the
+      // job_id key is absent (not pre-fetched), JobTracking falls
+      // back to its own query.
+      initialTracking={latestTracking[app.job_id]}
+      userId={userId}
+      onHelperResponse={onHelperResponse}
+      onComplete={onComplete}
+      completingJobId={completingJobId}
+      onResolveRevision={onResolveRevision}
+      onHelperReview={onHelperReview}
+      onDispute={onDispute}
+      onRefresh={onRefresh}
+      disputeResponse={disputeResponse}
+      setDisputeResponse={setDisputeResponse}
+      respondingJobId={respondingJobId}
+      setRespondingJobId={setRespondingJobId}
+      submittingResponse={submittingResponse}
+      setSubmittingResponse={setSubmittingResponse}
+      withdrawingAppId={withdrawingAppId}
+      setWithdrawTarget={setWithdrawTarget}
+      uploadingAttachment={uploadingAttachment}
+      editingMessageAppId={editingMessageAppId}
+      setEditingMessageAppId={setEditingMessageAppId}
+      editMessageText={editMessageText}
+      setEditMessageText={setEditMessageText}
+      savingMessage={savingMessage}
+      handleSaveMessage={handleSaveMessage}
+      handleAddAttachment={handleAddAttachment}
+      handleRemoveAttachment={handleRemoveAttachment}
+    />
+  );
+
   if (apps.length === 0) {
     return (
       <div
@@ -160,7 +211,19 @@ export const AppliedJobsTab = ({
     );
   }
 
-  return (
+  // Grouped view — driven by the page's "All" status filter. Uses
+  // "Closed" as the third-section label since helper-side rejections
+  // and cancelled jobs collapse into the same bucket.
+  const listView = groupByStatus ? (
+    <ActivitySectionedView
+      tab="applied"
+      items={apps}
+      getKey={(app) => app.id}
+      bucketize={bucketAppliedApp}
+      renderItem={renderAppliedCard}
+      labels={{ cancelled: "Closed" }}
+    />
+  ) : (
     <>
       <ListFilterBar
         searchQuery={searchQuery}
@@ -185,47 +248,15 @@ export const AppliedJobsTab = ({
         estimateSize={260}
         overscan={4}
         itemClassName="pb-3"
-        renderItem={(app) => (
-          <AppliedJobCard
-            app={app}
-            expandedJobId={expandedJobId}
-            setExpandedJobId={setExpandedJobId}
-            helperReviewedJobIds={helperReviewedJobIds}
-            // `latestTracking[app.job_id]` may legitimately be `null`
-            // ("we looked, no row exists") — the card forwards that into
-            // <JobTracking> so it skips its own initial fetch. If the
-            // job_id key is absent (not pre-fetched), JobTracking falls
-            // back to its own query.
-            initialTracking={latestTracking[app.job_id]}
-            userId={userId}
-            onHelperResponse={onHelperResponse}
-            onComplete={onComplete}
-            completingJobId={completingJobId}
-            onResolveRevision={onResolveRevision}
-            onHelperReview={onHelperReview}
-            onDispute={onDispute}
-            onRefresh={onRefresh}
-            disputeResponse={disputeResponse}
-            setDisputeResponse={setDisputeResponse}
-            respondingJobId={respondingJobId}
-            setRespondingJobId={setRespondingJobId}
-            submittingResponse={submittingResponse}
-            setSubmittingResponse={setSubmittingResponse}
-            withdrawingAppId={withdrawingAppId}
-            setWithdrawTarget={setWithdrawTarget}
-            uploadingAttachment={uploadingAttachment}
-            editingMessageAppId={editingMessageAppId}
-            setEditingMessageAppId={setEditingMessageAppId}
-            editMessageText={editMessageText}
-            setEditMessageText={setEditMessageText}
-            savingMessage={savingMessage}
-            handleSaveMessage={handleSaveMessage}
-            handleAddAttachment={handleAddAttachment}
-            handleRemoveAttachment={handleRemoveAttachment}
-          />
-        )}
+        renderItem={renderAppliedCard}
       />
       )}
+    </>
+  );
+
+  return (
+    <>
+      {listView}
 
       {/* Withdraw confirmation — slide-up sheet with dimmed backdrop. */}
       <Sheet open={!!withdrawTarget} onOpenChange={(open) => { if (!open) setWithdrawTarget(null); }}>

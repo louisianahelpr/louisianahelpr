@@ -1074,6 +1074,15 @@ const Messages = () => {
               navigate("/messages", { replace: true });
             }
           }}
+          // Block-and-report combo: after the block succeeds, open the
+          // multi-step Report dialog so the trust team gets a flag in
+          // the same gesture. Captures the user id before clearing
+          // `blockTarget` so the report target stays stable.
+          onReportAndBlock={() => {
+            const id = blockTarget.id;
+            setBlockTarget(null);
+            setReportTarget({ type: "user", id });
+          }}
         />
       )}
 

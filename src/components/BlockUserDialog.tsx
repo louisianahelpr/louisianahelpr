@@ -23,6 +23,11 @@ interface BlockUserDialogProps {
   blockedUserName: string;
   /** Called after a successful block so the parent can navigate / refresh. */
   onBlocked?: (cancelledJobIds: string[]) => void;
+  /** Optional — surfaces the "Report and block" combo button so the
+   *  user can flag the account for the trust team in the same gesture
+   *  that protects them from it. Receives no args; the parent owns the
+   *  Report dialog open state and routes it through this hook. */
+  onReportAndBlock?: () => void;
 }
 
 export function BlockUserDialog({
@@ -31,6 +36,7 @@ export function BlockUserDialog({
   blockedUserId,
   blockedUserName,
   onBlocked,
+  onReportAndBlock,
 }: BlockUserDialogProps) {
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -153,8 +159,43 @@ export function BlockUserDialog({
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="!gap-2">
-          <AlertDialogCancel disabled={submitting} className="rounded-ds-md">Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="!gap-2 sm:!flex-col sm:!items-stretch sm:!space-x-0">
+          {/* Report-and-block combo — surfaces only when the parent
+              opted-in (it owns the Report dialog and routes it back
+              through the `onReportAndBlock` hook). Closes the block
+              dialog first, then opens Report — the trust team gets
+              the flag and the user stops seeing the offender in the
+              same gesture. */}
+          {onReportAndBlock && (
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault();
+                await handleBlock();
+                onReportAndBlock();
+              }}
+              disabled={submitting}
+              className="rounded-ds-md"
+              style={{
+                background: "hsl(var(--burnt-sienna))",
+                backgroundImage: "none",
+                border: "1px solid hsl(var(--burnt-sienna))",
+                color: "hsl(var(--parchment))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                letterSpacing: "0.01em",
+                boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)",
+              }}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Working…
+                </>
+              ) : (
+                "Block and report"
+              )}
+            </AlertDialogAction>
+          )}
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -162,16 +203,31 @@ export function BlockUserDialog({
             }}
             disabled={submitting}
             className="rounded-ds-md"
-            style={{
-              background: "hsl(var(--burnt-sienna))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--burnt-sienna))",
-              color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
-              boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)",
-            }}
+            style={
+              onReportAndBlock
+                ? {
+                    // Secondary tone when paired with the combo action
+                    // above — keeps "Block and report" as the primary CTA
+                    // (the safer of the two for the user).
+                    background: "hsl(var(--burnt-sienna) / 0.08)",
+                    backgroundImage: "none",
+                    border: "1px solid hsl(var(--burnt-sienna) / 0.45)",
+                    color: "hsl(var(--burnt-sienna))",
+                    fontFamily: "Montserrat, system-ui, sans-serif",
+                    fontWeight: 600,
+                    letterSpacing: "0.01em",
+                  }
+                : {
+                    background: "hsl(var(--burnt-sienna))",
+                    backgroundImage: "none",
+                    border: "1px solid hsl(var(--burnt-sienna))",
+                    color: "hsl(var(--parchment))",
+                    fontFamily: "Montserrat, system-ui, sans-serif",
+                    fontWeight: 600,
+                    letterSpacing: "0.01em",
+                    boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)",
+                  }
+            }
           >
             {submitting ? (
               <>
@@ -179,9 +235,10 @@ export function BlockUserDialog({
                 Blocking…
               </>
             ) : (
-              "Block user"
+              "Just block"
             )}
           </AlertDialogAction>
+          <AlertDialogCancel disabled={submitting} className="rounded-ds-md">Cancel</AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -78,6 +78,7 @@ const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 // Lazy load less-critical global components
 
 const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
+const ImpersonationBanner = lazy(() => import("./components/ImpersonationBanner"));
 
 // Lazy load route wrappers
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
@@ -352,6 +353,9 @@ const App = () => (
           <OfflineBanner />
           <Suspense fallback={null}>
             <StrikeBanner />
+          </Suspense>
+          <Suspense fallback={null}>
+            <ImpersonationBanner />
           </Suspense>
           <main
             id="main-content"

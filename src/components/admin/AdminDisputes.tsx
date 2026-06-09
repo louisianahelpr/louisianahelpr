@@ -40,6 +40,9 @@ interface DisputeRecord {
 }
 
 type FilterTab = "open" | "decided";
+type AgeFilter = "all" | "0-24h" | "1-7d" | "7-30d" | ">30d";
+type PartyFilter = "all" | "poster" | "helper";
+type CategoryFilter = "all" | string;
 
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
@@ -53,6 +56,11 @@ const AdminDisputes = () => {
 
   // Filter tab — Open is the working queue; Decided is an audit log.
   const [filter, setFilter] = useState<FilterTab>("open");
+  // Cross-cutting filters (only applied to Open; Decided audit isn't
+  // filtered so the admin can scan the full recent history).
+  const [ageFilter, setAgeFilter] = useState<AgeFilter>("all");
+  const [partyFilter, setPartyFilter] = useState<PartyFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
   // Per-job decision panel state (key = job.id). Tracks decision text +
   // payout split slider position (0 = full poster, 100 = full helper).
@@ -347,7 +355,57 @@ const AdminDisputes = () => {
 
   if (loading) return <p className="text-muted-foreground">Loading disputes…</p>;
 
-  const list = filter === "open" ? disputes : decidedJobs;
+  // Categorise the dispute reason into rough buckets driven by the
+  // keywords each helpr / poster types when filing. Cheap heuristic —
+  // it's better than nothing for triaging the queue but should be
+  // replaced with a structured `dispute_category` column long-term.
+  const categoriseReason = (reason: string | null | undefined): string => {
+    const r = (reason || "").toLowerCase();
+    if (!r) return "other";
+    if (/no[-\s]?show|didn'?t show|didnt show|never arrived/.test(r)) return "no_show";
+    if (/quality|incomplete|sloppy|poor|bad job|not done/.test(r)) return "quality";
+    if (/payment|charge|refund|money|paid/.test(r)) return "payment";
+    if (/damage|broke|broken|stained|ruined/.test(r)) return "damage";
+    if (/abusive|harass|rude|threat|safety/.test(r)) return "behaviour";
+    if (/late|delay|arrived/.test(r)) return "timing";
+    return "other";
+  };
+  const CATEGORY_LABELS: Record<string, string> = {
+    no_show: "No-show",
+    quality: "Work quality",
+    payment: "Payment",
+    damage: "Damage",
+    behaviour: "Behaviour",
+    timing: "Timing",
+    other: "Other",
+  };
+
+  const passesAge = (j: DisputedJob): boolean => {
+    if (ageFilter === "all" || !j.disputed_at) return true;
+    const hours = (Date.now() - new Date(j.disputed_at).getTime()) / 3600_000;
+    if (ageFilter === "0-24h") return hours < 24;
+    if (ageFilter === "1-7d") return hours >= 24 && hours < 24 * 7;
+    if (ageFilter === "7-30d") return hours >= 24 * 7 && hours < 24 * 30;
+    if (ageFilter === ">30d") return hours >= 24 * 30;
+    return true;
+  };
+  const passesParty = (j: DisputedJob): boolean => {
+    if (partyFilter === "all" || !j.disputed_by) return true;
+    if (partyFilter === "poster") return j.disputed_by === j.customer_id;
+    if (partyFilter === "helper") return !!j.helper_id && j.disputed_by === j.helper_id;
+    return true;
+  };
+  const passesCategory = (j: DisputedJob): boolean => {
+    if (categoryFilter === "all") return true;
+    const reason = disputeRecords[j.id]?.reason ?? j.dispute_reason;
+    return categoriseReason(reason) === categoryFilter;
+  };
+
+  const baseList = filter === "open" ? disputes : decidedJobs;
+  const filteredList = filter === "open"
+    ? baseList.filter((j) => passesAge(j) && passesParty(j) && passesCategory(j))
+    : baseList;
+  const list = filteredList;
 
   // Renders one card. Shared between Open and Decided so the visual
   // layout stays consistent; resolution actions only appear for Open.
@@ -575,6 +633,56 @@ const AdminDisputes = () => {
         </button>
       </div>
 
+      {/* Cross-cutting filters — only meaningful on the Open queue. */}
+      {filter === "open" && disputes.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-2 flex-wrap text-ds-11">
+          <FilterChipGroup
+            label="Age"
+            value={ageFilter}
+            onChange={(v) => setAgeFilter(v as AgeFilter)}
+            options={[
+              { id: "all", label: "All" },
+              { id: "0-24h", label: "0–24h" },
+              { id: "1-7d", label: "1–7d" },
+              { id: "7-30d", label: "7–30d" },
+              { id: ">30d", label: ">30d" },
+            ]}
+          />
+          <FilterChipGroup
+            label="Filed by"
+            value={partyFilter}
+            onChange={(v) => setPartyFilter(v as PartyFilter)}
+            options={[
+              { id: "all", label: "Both" },
+              { id: "poster", label: "Poster" },
+              { id: "helper", label: "Helper" },
+            ]}
+          />
+          <FilterChipGroup
+            label="Category"
+            value={categoryFilter}
+            onChange={(v) => setCategoryFilter(v)}
+            options={[
+              { id: "all", label: "All" },
+              ...Object.entries(CATEGORY_LABELS).map(([id, label]) => ({ id, label })),
+            ]}
+          />
+          {(ageFilter !== "all" || partyFilter !== "all" || categoryFilter !== "all") && (
+            <button
+              type="button"
+              onClick={() => {
+                setAgeFilter("all");
+                setPartyFilter("all");
+                setCategoryFilter("all");
+              }}
+              className="text-ds-11 text-primary hover:underline px-2 self-center"
+            >
+              Reset filters
+            </button>
+          )}
+        </div>
+      )}
+
       {list.length === 0 ? (
         <div className="text-center py-12">
           <CheckCircle2 className="w-10 h-10 text-primary mx-auto mb-3 opacity-50" />
@@ -611,5 +719,41 @@ const AdminDisputes = () => {
     </div>
   );
 };
+
+/**
+ * FilterChipGroup — labelled segmented pill group used by the
+ * disputes filters. Kept inline to avoid spawning yet another shared
+ * component that nothing else uses.
+ */
+const FilterChipGroup = ({ label, value, onChange, options }: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  options: { id: string; label: string }[];
+}) => (
+  <div className="flex items-center gap-1.5 flex-wrap">
+    <span className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">
+      {label}
+    </span>
+    <div className="inline-flex items-center rounded-md bg-muted/60 p-0.5 flex-wrap">
+      {options.map((opt) => {
+        const active = value === opt.id;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onChange(opt.id)}
+            aria-pressed={active}
+            className={`px-2 h-6 rounded-sm text-ds-10 font-semibold transition-colors ${
+              active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
 
 export default AdminDisputes;

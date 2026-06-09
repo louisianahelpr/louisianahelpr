@@ -1,12 +1,18 @@
 import {
   CheckCircle2, XCircle, Clock, ShieldAlert, ShieldCheck, KeyRound,
-  MessageSquareWarning, History, Trash2,
+  MessageSquareWarning, History, Trash2, Eye,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
 import AdminUserNotes from "../AdminUserNotes";
 import UserVerificationHistory from "../UserVerificationHistory";
+import { UserAuditLog } from "./UserAuditLog";
 import type { Profile } from "../adminUserHelpers";
+import { useImpersonation } from "@/hooks/useImpersonation";
+import { formatName } from "@/lib/utils";
+import { logAdminAction } from "@/lib/adminAudit";
+import { toast } from "sonner";
 
 type EmailEvent = { event_type: string; email_type: string; created_at: string };
 
@@ -41,8 +47,22 @@ export function ActionsTab({
   setWarningProfile,
   setResetPwProfile,
 }: ActionsTabProps) {
+  const navigate = useNavigate();
+  const { start: startImpersonation } = useImpersonation();
   const showApprovedActivityChip = viewProfile.approval_status === "approved"
     && !["permanently_banned", "temp_banned"].includes(viewBanStatus);
+
+  const beginImpersonation = async () => {
+    const displayName = formatName(viewProfile.full_name, "User");
+    startImpersonation(viewProfile.user_id, displayName);
+    // Audit the impersonation start — required for compliance even
+    // though no mutation is performed.
+    await logAdminAction("impersonate_user_start", "user", viewProfile.user_id, {
+      mode: "read_only",
+    });
+    toast.success(`Now viewing as ${displayName} — read-only`);
+    navigate("/dashboard");
+  };
 
   return (
     <TabsContent value="actions" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
@@ -117,6 +137,15 @@ export function ActionsTab({
           <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
             <History className="w-4 h-4 mr-1.5" /> View History
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 justify-start"
+            onClick={beginImpersonation}
+            title="Open the customer-facing app as this user — read-only, all mutations blocked"
+          >
+            <Eye className="w-4 h-4 mr-1.5 text-amber-600" /> Impersonate (RO)
+          </Button>
           {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
             <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setBanProfile(viewProfile)}>
               <ShieldAlert className="w-4 h-4 mr-1.5" /> Suspend / Ban
@@ -131,6 +160,11 @@ export function ActionsTab({
           </Button>
         </div>
       </div>
+
+      {/* Audit log — who-did-what-when for this user. Merges
+          admin_audit_log, user_violations, and admin-toned
+          notifications into a single chronological feed. */}
+      <UserAuditLog userId={viewProfile.user_id} />
     </TabsContent>
   );
 }

@@ -80,30 +80,20 @@ describe("BanDialog", () => {
     expect(screen.getByRole("button", { name: /Issue Warning/ })).toBeInTheDocument();
   });
 
-  it("disables submit when reason is empty", () => {
+  it("submit is enabled by default — reason picker defaults to a valid category", () => {
     render(<BanDialog profile={sampleProfile} onClose={vi.fn()} />);
     const btn = screen.getByRole("button", { name: /Issue Warning/ });
-    expect(btn).toBeDisabled();
+    // The reason picker defaults to "tos", which produces a usable label
+    // for the audit row even without a freeform note.
+    expect(btn).not.toBeDisabled();
   });
 
-  it("toasts error and skips submit if reason is empty after click", () => {
-    render(<BanDialog profile={sampleProfile} onClose={vi.fn()} />);
-    const btn = screen.getByRole("button", { name: /Issue Warning/ });
-    // Force-click via fireEvent (button is disabled but we test the early-exit path)
-    fireEvent.click(btn);
-    // disabled buttons don't trigger handlers; nothing happens, no toast
-    expect(toastError).not.toHaveBeenCalled();
-    expect(insertMock).not.toHaveBeenCalled();
-  });
-
-  it("submits warning with reason → user_violations insert + ban_status='final_warning'", async () => {
+  it("submits warning with default category → user_violations insert + ban_status='final_warning'", async () => {
     const onClose = vi.fn();
     const onSuccess = vi.fn();
     render(
       <BanDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />,
     );
-    const reasonField = screen.getByPlaceholderText(/Describe the reason/);
-    fireEvent.change(reasonField, { target: { value: "Late cancellation" } });
     fireEvent.click(screen.getByRole("button", { name: /Issue Warning/ }));
 
     await waitFor(() => expect(insertMock).toHaveBeenCalled());

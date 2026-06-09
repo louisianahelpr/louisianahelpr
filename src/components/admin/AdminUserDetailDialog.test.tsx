@@ -1,7 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render as rtlRender, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { AdminUserDetailDialog } from "./AdminUserDetailDialog";
 import type { Database } from "@/integrations/supabase/types";
+
+// ActionsTab calls useNavigate() (impersonation jump), so the dialog
+// must render inside a Router.
+const render = (ui: React.ReactElement) =>
+  rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 

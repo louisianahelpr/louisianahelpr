@@ -1,11 +1,12 @@
-import { useState, useRef } from "react";
+import { useCallback, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Paperclip, MapPin, X, ShieldAlert, FileText, Loader2 } from "lucide-react";
+import { Send, Paperclip, MapPin, X, ShieldAlert, FileText, Loader2, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
-import { hapticLight, hapticError } from "@/lib/haptics";
+import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import {
   uploadMessageAttachment,
   isImageMime,
@@ -68,6 +69,36 @@ export const RichMessageInput = ({
     if (now - lastTypingAt.current < 500) return;
     lastTypingAt.current = now;
     onTyping();
+  };
+
+  // Voice-to-text mic: only mounts on platforms with SpeechRecognition.
+  // The hook's `onFinal` appends each recognized chunk to the existing
+  // draft so the user can dictate, then type, then dictate again
+  // without losing the prior text. Interim text shows as a placeholder
+  // hint so the user can confirm what's being heard. The text ref keeps
+  // the closure fresh so a long dictation session doesn't drop earlier
+  // chunks against a stale `text` snapshot.
+  const textRef = useRef(text);
+  textRef.current = text;
+  const handleVoiceFinal = useCallback((dictated: string) => {
+    const trimmed = textRef.current.trimEnd();
+    setText(trimmed ? `${trimmed} ${dictated}` : dictated);
+    notifyTyping();
+    // setText / notifyTyping are stable in the callsites we care about.
+  }, []);
+  const voice = useVoiceDictation({ onFinal: handleVoiceFinal });
+  const toggleVoice = () => {
+    if (!voice.supported) {
+      toast.error("Voice dictation isn't available on this device.");
+      return;
+    }
+    if (voice.isListening) {
+      hapticLight();
+      voice.stop();
+    } else {
+      hapticMedium();
+      voice.start();
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,7 +251,11 @@ export const RichMessageInput = ({
         </Button>
         <Input
           aria-label="Type a message"
-          placeholder="Type a message…"
+          placeholder={
+            voice.isListening
+              ? voice.interimText || "Listening…"
+              : "Type a message…"
+          }
           enterKeyHint="send"
           autoCapitalize="sentences"
           value={text}
@@ -229,6 +264,42 @@ export const RichMessageInput = ({
           className="flex-1"
           disabled={disabled || uploading}
         />
+        {/* Voice-to-text mic — appended just before Send so the most
+            frequent action (Send) keeps the rightmost slot. Mounts only
+            on platforms with SpeechRecognition (degrades cleanly on web
+            browsers without it and on Capacitor WebViews that don't
+            expose it). Live red dot indicates an active session. */}
+        {voice.supported && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 relative"
+            onClick={toggleVoice}
+            disabled={disabled || uploading}
+            aria-label={voice.isListening ? "Stop dictating" : "Dictate a message"}
+            title={voice.isListening ? "Stop dictating" : "Dictate a message"}
+          >
+            {voice.isListening ? (
+              <>
+                <MicOff
+                  className="w-4 h-4"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                />
+                <span
+                  aria-hidden="true"
+                  className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full animate-pulse"
+                  style={{
+                    background: "hsl(var(--burnt-sienna))",
+                    boxShadow: "0 0 4px hsl(var(--burnt-sienna) / 0.6)",
+                  }}
+                />
+              </>
+            ) : (
+              <Mic className="w-4 h-4" />
+            )}
+          </Button>
+        )}
         <Button
           size="icon"
           onClick={handleSend}

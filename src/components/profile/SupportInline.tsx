@@ -315,9 +315,11 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                     type="button"
                     onClick={removeScreenshot}
                     aria-label="Remove screenshot"
-                    className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-background/90 backdrop-blur flex items-center justify-center text-foreground shadow"
+                    className="absolute top-0 right-0 h-10 w-10 flex items-center justify-center active:scale-[0.95] transition-transform"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <span className="h-7 w-7 rounded-full bg-background/90 backdrop-blur flex items-center justify-center text-foreground shadow">
+                      <X className="w-3.5 h-3.5" />
+                    </span>
                   </button>
                 </div>
               ) : (

@@ -149,11 +149,9 @@ export async function recordApplicationAttempt(args: {
     );
     if (error && !isMissingRpc(error)) {
       // Log to console only — the user has already seen success.
-      // eslint-disable-next-line no-console
       console.warn("[applyRateLimit] record failed:", error.message);
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.warn("[applyRateLimit] record threw:", err);
   }
 }

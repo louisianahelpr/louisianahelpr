@@ -41,6 +41,7 @@ import { requireOnline } from "@/lib/requireOnline";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { queryKeys } from "@/lib/queryKeys";
+import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -339,6 +340,15 @@ const Dashboard = () => {
   };
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
     mutationFn: async ({ jobId, helperId, message, files }) => {
+      // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
+      // attachment uploads — don't waste storage bandwidth on a blocked
+      // attempt. The helper falls back to "allowed" if the RPC isn't
+      // deployed yet (PGRST202), so this doesn't break apply on prod
+      // between merge and the manual supabase db push.
+      const gate = await checkApplicationRate({ applicantId: helperId });
+      if (gate.allowed === false) {
+        throw Object.assign(new Error(gate.message), { code: "RATE_LIMITED" });
+      }
       // Upload attachments first (store storage paths; resolve signed URLs at view time).
       const attachmentUrls: string[] = [];
       for (const file of files) {
@@ -360,6 +370,10 @@ const Dashboard = () => {
         attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
       });
       if (error) throw error as Error & { code?: string };
+      // Insert succeeded — bump the rate-limit counter. Best-effort: a
+      // failed record call shouldn't surface to the user since the apply
+      // already landed. PGRST202 is silently no-op'd inside the helper.
+      void recordApplicationAttempt({ applicantId: helperId });
     },
     onMutate: async ({ jobId, helperId }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.dashboard.context(helperId) });
@@ -384,6 +398,9 @@ const Dashboard = () => {
       if (code === "23505") {
         toast.error("You've already applied.");
       } else if (code === "UPLOAD_FAILED") {
+        toast.error(err.message);
+      } else if (code === "RATE_LIMITED") {
+        // Use the warm, window-specific message from applyRateLimit.
         toast.error(err.message);
       } else {
         toast.error("Couldn't send your application through — try once more?");

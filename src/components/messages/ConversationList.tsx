@@ -33,6 +33,9 @@ interface ConversationListProps {
   setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
   setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
   setDeleteConvoConfirm: Dispatch<SetStateAction<Conversation | null>>;
+  /** Toggle the muted state of one thread. Resolves once the server has
+   *  reconciled and the row's `isMuted` flag has been updated. */
+  onToggleMute: (convo: Conversation) => void;
 }
 
 /**
@@ -55,6 +58,7 @@ export function ConversationList({
   setReportTarget,
   setBlockTarget,
   setDeleteConvoConfirm,
+  onToggleMute,
 }: ConversationListProps) {
   const navigate = useNavigate();
   const [showAllConvos, setShowAllConvos] = useState(false);
@@ -196,6 +200,7 @@ export function ConversationList({
                         setReportTarget={setReportTarget}
                         setBlockTarget={setBlockTarget}
                         setDeleteConvoConfirm={setDeleteConvoConfirm}
+                        onToggleMute={onToggleMute}
                       />
                     )}
                   />

@@ -18,6 +18,7 @@ import { channelNonce } from "@/lib/realtimeChannel";
 import { archiveConversation, isArchived } from "@/lib/archivedConversations";
 import { requireOnline } from "@/lib/requireOnline";
 import { getMessageAttachmentSignedUrls, isImageMime } from "@/lib/messageAttachments";
+import { getMutedThreadSet, threadMuteKey, toggleThreadMute } from "@/lib/threadMutes";
 
 import type { Conversation, Message } from "@/components/messages/types";
 import { ChatView } from "@/components/messages/ChatView";
@@ -165,10 +166,20 @@ const Messages = () => {
       }
     }
 
-    const [profilesRes, jobsRes, thumbUrlMap] = await Promise.all([
+    // Bulk mute lookup runs alongside profile/job/thumb fetches so the
+    // inbox renders muted-bell badges in one round-trip, not N. Falls
+    // back to a local-storage mirror inside `getMutedThreadSet` when the
+    // RPC isn't deployed yet (PGRST202) — feature degrades quietly,
+    // never crashes.
+    const mutePairs = [...convoMap.values()].map((v) => ({
+      jobId: v.jobId,
+      otherUserId: v.otherUserId,
+    }));
+    const [profilesRes, jobsRes, thumbUrlMap, mutedSet] = await Promise.all([
       supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
       supabase.from("jobs").select("id, title, status, customer_id").in("id", jobIds),
       getMessageAttachmentSignedUrls(imageThumbPaths),
+      getMutedThreadSet(uid, mutePairs),
     ]);
 
     // If we asked for image thumbs but some paths didn't resolve, the
@@ -216,6 +227,9 @@ const Messages = () => {
         lastIsImage && last.attachment_url
           ? thumbUrlMap[last.attachment_url] ?? null
           : null,
+      // Mute state — resolved from the bulk RPC above. Used by the row
+      // (bell-slash icon) and the chat header (Muted pill + toggle copy).
+      isMuted: mutedSet.has(threadMuteKey(v.jobId, v.otherUserId)),
     };
     });
 
@@ -775,6 +789,81 @@ const Messages = () => {
     setDeleteConvoConfirm(null);
   };
 
+  // Toggle the muted state of the active thread (or any conversation by
+  // jobId+otherUserId). Optimistic: flip the local flag immediately and
+  // reconcile against the RPC's authoritative return value. On error,
+  // revert and surface a toast so the bell-slash never silently lies.
+  const handleToggleMute = useCallback(
+    async (convo: Conversation) => {
+      if (!userId) return;
+      const prevMuted = !!convo.isMuted;
+      // Optimistic flip — feels instant on iOS.
+      hapticHeavy();
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.jobId === convo.jobId && c.otherUserId === convo.otherUserId
+            ? { ...c, isMuted: !prevMuted }
+            : c,
+        ),
+      );
+      if (
+        activeConvoRef.current &&
+        activeConvoRef.current.jobId === convo.jobId &&
+        activeConvoRef.current.otherUserId === convo.otherUserId
+      ) {
+        setActiveConvo((cur) => (cur ? { ...cur, isMuted: !prevMuted } : cur));
+      }
+      try {
+        const newMuted = await toggleThreadMute(
+          userId,
+          convo.jobId,
+          convo.otherUserId,
+        );
+        // Reconcile with server truth (handles the rare case where local
+        // state and server diverged — e.g. another tab toggled first).
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.jobId === convo.jobId && c.otherUserId === convo.otherUserId
+              ? { ...c, isMuted: newMuted }
+              : c,
+          ),
+        );
+        if (
+          activeConvoRef.current &&
+          activeConvoRef.current.jobId === convo.jobId &&
+          activeConvoRef.current.otherUserId === convo.otherUserId
+        ) {
+          setActiveConvo((cur) => (cur ? { ...cur, isMuted: newMuted } : cur));
+        }
+        hapticSuccess();
+        toast.success(newMuted ? "Notifications muted" : "Notifications on");
+      } catch (err) {
+        report(err, {
+          severity: "warning",
+          tags: { source: "Messages.handleToggleMute" },
+        });
+        // Revert optimistic flip on hard failure.
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.jobId === convo.jobId && c.otherUserId === convo.otherUserId
+              ? { ...c, isMuted: prevMuted }
+              : c,
+          ),
+        );
+        if (
+          activeConvoRef.current &&
+          activeConvoRef.current.jobId === convo.jobId &&
+          activeConvoRef.current.otherUserId === convo.otherUserId
+        ) {
+          setActiveConvo((cur) => (cur ? { ...cur, isMuted: prevMuted } : cur));
+        }
+        hapticError();
+        toast.error("Couldn't update mute — try again?");
+      }
+    },
+    [userId],
+  );
+
   const deleteMessage = async (messageId: string) => {
     hapticHeavy();
     const { error } = await supabase.from("messages").delete().eq("id", messageId);
@@ -802,6 +891,7 @@ const Messages = () => {
           setReportTarget={setReportTarget}
           setBlockTarget={setBlockTarget}
           setDeleteConvoConfirm={setDeleteConvoConfirm}
+          onToggleMute={handleToggleMute}
         />
       ) : (
         <ChatView
@@ -826,6 +916,7 @@ const Messages = () => {
           setReportTarget={setReportTarget}
           setBlockTarget={setBlockTarget}
           setDeleteMessageConfirm={setDeleteMessageConfirm}
+          onToggleMute={handleToggleMute}
         />
       )}
 

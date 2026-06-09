@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronsDown, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw, X, Lock } from "lucide-react";
+import { ArrowLeft, ChevronsDown, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw, X, Lock, BellOff, Bell } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,6 +102,10 @@ interface ChatViewProps {
   setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
   setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
   setDeleteMessageConfirm: Dispatch<SetStateAction<string | null>>;
+  /** Toggle the muted state of the open thread. Mute is per-user and
+   *  silences push only — the conversation stays visible and the unread
+   *  badge still increments (matches iMessage's "Hide Alerts"). */
+  onToggleMute: (convo: Conversation) => void;
 }
 
 /**
@@ -137,6 +141,7 @@ export function ChatView({
   setReportTarget,
   setBlockTarget,
   setDeleteMessageConfirm,
+  onToggleMute,
 }: ChatViewProps) {
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
@@ -279,6 +284,16 @@ export function ChatView({
               >
                 <span className="truncate">{activeConvo.otherUserName}</span>
                 <OnlineIndicator isOnline={isOtherOnline} />
+                {/* Muted bell — quiet visual mark that notifications are
+                    silenced for this thread. Same convention used in the
+                    inbox row so the state reads consistently. */}
+                {activeConvo.isMuted && (
+                  <BellOff
+                    className="w-3 h-3 shrink-0"
+                    style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                    aria-label="Muted"
+                  />
+                )}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <p className="text-ds-11 truncate leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
@@ -323,6 +338,21 @@ export function ChatView({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {/* Mute / unmute — top item so the most-frequent action
+                    is one tap. Per-user; silences push only. Matches the
+                    iMessage "Hide Alerts" / "Show Alerts" pattern. */}
+                <DropdownMenuItem onClick={() => onToggleMute(activeConvo)}>
+                  {activeConvo.isMuted ? (
+                    <>
+                      <Bell className="w-4 h-4 mr-2" /> Unmute notifications
+                    </>
+                  ) : (
+                    <>
+                      <BellOff className="w-4 h-4 mr-2" /> Mute notifications
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <div role="separator" className="my-1 h-px bg-border" />
                 <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}>
                   <Flag className="w-4 h-4 mr-2" /> Report user
                 </DropdownMenuItem>

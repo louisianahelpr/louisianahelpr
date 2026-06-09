@@ -250,6 +250,41 @@ async function mapWithConcurrency<T, R>(
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// Quiet hours
+// ─────────────────────────────────────────────────────────────────────
+
+// Parse a Postgres `time` value (typically `HH:MM:SS` or `HH:MM`) into
+// minutes-since-midnight. Returns NaN for unparseable input so the
+// caller can fail-open.
+function timeToMinutes(t: string): number {
+  const parts = t.split(':')
+  if (parts.length < 2) return NaN
+  const h = Number(parts[0])
+  const m = Number(parts[1])
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return NaN
+  return h * 60 + m
+}
+
+// Test whether `now` falls inside the [quietStart, quietEnd) window.
+// The window may cross midnight (e.g. 22:00 → 07:00), in which case
+// "inside" means now >= start OR now < end. Times are evaluated in UTC
+// since no per-user timezone is stored.
+export function isInQuietHours(quietStart: string, quietEnd: string, now: Date): boolean {
+  const startMin = timeToMinutes(quietStart)
+  const endMin = timeToMinutes(quietEnd)
+  if (!Number.isFinite(startMin) || !Number.isFinite(endMin)) return false
+  // Equal start/end → empty window (no quiet hours).
+  if (startMin === endMin) return false
+  const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes()
+  if (startMin < endMin) {
+    // Same-day window, e.g. 13:00 → 14:00.
+    return nowMin >= startMin && nowMin < endMin
+  }
+  // Crosses midnight, e.g. 22:00 → 07:00.
+  return nowMin >= startMin || nowMin < endMin
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Main handler
 // ─────────────────────────────────────────────────────────────────────
 
@@ -301,6 +336,40 @@ Deno.serve(async (req) => {
   }
 
   const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey)
+
+  // ── Quiet hours gate ──────────────────────────────────────────────
+  // Honor notification_preferences.quiet_start / quiet_end. If both
+  // are set AND the current time falls inside the window, skip the
+  // push entirely. The in-app notification row is already written by
+  // the caller (the public.notifications INSERT that fires this
+  // function via the fan_out_push_on_notification trigger), so the
+  // user still sees the notification when they open the app — we're
+  // only suppressing the device push.
+  //
+  // Timezone: no per-user timezone is stored, so we evaluate the
+  // window in UTC (per the task spec). If reading prefs fails, we
+  // fail-open and send the push rather than swallow it.
+  const { data: quietPrefs, error: quietErr } = await supabase
+    .from('notification_preferences')
+    .select('quiet_start, quiet_end')
+    .eq('user_id', payload.user_id)
+    .maybeSingle()
+  if (quietErr) {
+    console.warn('Failed to load quiet-hours prefs — failing open', quietErr)
+  } else if (quietPrefs?.quiet_start && quietPrefs?.quiet_end) {
+    if (isInQuietHours(quietPrefs.quiet_start, quietPrefs.quiet_end, new Date())) {
+      console.log('In quiet hours — skipping push', {
+        user_id: payload.user_id,
+        quiet_start: quietPrefs.quiet_start,
+        quiet_end: quietPrefs.quiet_end,
+      })
+      return new Response(
+        JSON.stringify({ sent: 0, failed: 0, no_tokens: false, skipped: 'quiet_hours' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+  }
+
   const { data: rawTokens, error: tokenErr } = await supabase
     .from('push_tokens')
     .select('id, token, platform')

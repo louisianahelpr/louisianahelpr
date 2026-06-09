@@ -28,24 +28,61 @@ import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
   const tab = defaultTab as Tab;
+  const defaultFilter = defaultTab === "applied" ? "pending" : "open";
+  // Filter + search seed from URL params so a deep link (or browser
+  // back/forward) lands the user on the exact view they had. We keep the
+  // local-state mirror because the dropdown/search inputs need a
+  // controlled value, and writing to the URL inside an onChange handler
+  // is too coarse for typing latency.
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
+  const [searchOpen, setSearchOpen] = useState(() => !!searchParams.get("q"));
+  const [filterOpen, setFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>(() => {
-    const paramFilter = searchParams.get("filter");
-    if (paramFilter) return paramFilter;
-    return defaultTab === "applied" ? "pending" : "open";
+    return searchParams.get("filter") ?? defaultFilter;
   });
 
-  // Sync filter when URL search params change (e.g. navigating from a notification)
+  // Push filter/search changes back into the URL so navigating away and
+  // back (or browser back/forward) restores the view. Skip the write
+  // when the value is already the URL default to avoid noisy history
+  // entries on first load.
   useEffect(() => {
-    const paramFilter = searchParams.get("filter");
-    if (paramFilter && paramFilter !== statusFilter) {
-      setStatusFilter(paramFilter);
+    const current = new URLSearchParams(searchParams);
+    let changed = false;
+    if (statusFilter === defaultFilter) {
+      if (current.has("filter")) { current.delete("filter"); changed = true; }
+    } else if (current.get("filter") !== statusFilter) {
+      current.set("filter", statusFilter);
+      changed = true;
     }
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) {
+      if (current.has("q")) { current.delete("q"); changed = true; }
+    } else if (current.get("q") !== trimmedQuery) {
+      current.set("q", trimmedQuery);
+      changed = true;
+    }
+    if (changed) setSearchParams(current, { replace: true });
+    // setSearchParams is stable; deps intentionally exclude searchParams
+    // to prevent the loop that would form if the effect listened to
+    // its own write.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, searchQuery, defaultFilter]);
+
+  // Sync filter when URL search params change externally (e.g. navigating
+  // from a notification or via browser back/forward — not from our own
+  // write above, which already matches local state).
+  useEffect(() => {
+    const paramFilter = searchParams.get("filter") ?? defaultFilter;
+    if (paramFilter !== statusFilter) setStatusFilter(paramFilter);
+    const paramQuery = searchParams.get("q") ?? "";
+    if (paramQuery !== searchQuery.trim()) {
+      setSearchQuery(paramQuery);
+      if (paramQuery) setSearchOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const {

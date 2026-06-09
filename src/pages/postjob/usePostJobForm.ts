@@ -20,6 +20,7 @@ import type { AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 import { categories } from "@/components/postjob/DetailsSection";
 import type { SampleJob } from "@/data/sampleJobs";
 import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
+import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { validateResult } from "@/lib/validateResult";
 import { jobRowSchema } from "@/lib/schemas";
@@ -506,6 +507,11 @@ export function usePostJobForm() {
 
     // Set cooldown timestamp immediately after successful insert
     safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
+
+    // First job action recorded — gates the deferred notification
+    // permission prompt (`useNotificationPermissionPrompt`). Idempotent
+    // and fast, safe to call on every post.
+    recordJobActionForPermissionPrompt();
 
     // Funnel: track job posted (and first ever for activation)
     track(AhaEvent.JobPosted, {

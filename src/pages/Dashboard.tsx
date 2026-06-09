@@ -33,6 +33,7 @@ const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 import SectionBoundary from "@/components/SectionBoundary";
+import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -392,6 +393,10 @@ const Dashboard = () => {
     },
     onSuccess: async (_data, vars) => {
       hapticSuccess();
+      // First job action recorded — gates the deferred notification
+      // permission prompt (`useNotificationPermissionPrompt`). The
+      // helper is idempotent, so this is safe even on the 100th apply.
+      recordJobActionForPermissionPrompt();
       // Funnel: track first application separately for activation analysis.
       track(AhaEvent.JobApplied, { job_id: vars.jobId });
       const { count } = await supabase

@@ -24,6 +24,7 @@ import {
 import { ActivityHeader } from "@/pages/activity/ActivityHeader";
 import { ActivityEmptyState } from "@/pages/activity/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
+import SectionBoundary from "@/components/SectionBoundary";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
@@ -286,6 +287,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           ) : (
             <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
           {tab === "posted" && (
+            <SectionBoundary label="your posts">
             <PostedJobsTab
               groupByStatus={statusFilter === "all"}
               jobs={filteredPostedJobs}
@@ -324,9 +326,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               applicantErrors={actions.applicantErrors}
               onActionComplete={refresh}
             />
+            </SectionBoundary>
           )}
 
           {tab === "applied" && (
+            <SectionBoundary label="your jobs">
             <AppliedJobsTab
               groupByStatus={statusFilter === "all"}
               apps={filteredAppliedApps}
@@ -343,6 +347,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onDispute={actions.setDisputeJob}
               onRefresh={refresh}
             />
+            </SectionBoundary>
           )}
             </div>
           )}

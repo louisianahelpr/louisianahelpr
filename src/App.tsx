@@ -23,6 +23,7 @@ import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import ScrollToTop from "@/components/ScrollToTop";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
+import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 
 // Toaster, Sonner and TooltipProvider pull in sonner + @radix-ui/react-toast +
 // @radix-ui/react-tooltip + @floating-ui (~14 KB gzipped of
@@ -220,6 +221,7 @@ const SessionManager = () => {
   useDynamicTypeSync();
   useCppVariantRouter();
   useAppShellViewport();
+  useStatusBarStyle();
   return null;
 };
 

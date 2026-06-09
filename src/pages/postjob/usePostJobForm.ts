@@ -752,6 +752,9 @@ export function usePostJobForm() {
     hasDraft,
     draftConsumed,
     loadDraft,
+    /** Most recent autosave timestamp (epoch ms). 0 when no autosave has
+        landed yet — `DraftSavedIndicator` hides itself in that case. */
+    draftSavedAt: draft.savedAt,
     // entry landing
     startFresh,
     loadDraftAndContinue,

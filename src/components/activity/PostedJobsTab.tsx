@@ -352,8 +352,20 @@ export const PostedJobsTab = ({
                           Select
                         </Button>
                       )}
-                      {app.status === "accepted" && <span className="text-ds-11 px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary">Selected</span>}
-                      {app.status === "rejected" && <span className="text-ds-11 px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">Declined</span>}
+                      {/* Application-status pills — rounded-ds-pill + dot matches
+                          the StatusBadge visual system for consistency. */}
+                      {app.status === "accepted" && (
+                        <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]">
+                          <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--bark))]" aria-hidden="true" />
+                          Selected
+                        </span>
+                      )}
+                      {app.status === "rejected" && (
+                        <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.7)]">
+                          <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--olivewood)/0.7)]" aria-hidden="true" />
+                          Declined
+                        </span>
+                      )}
                     </div>
 
                     {/* Applicant message */}

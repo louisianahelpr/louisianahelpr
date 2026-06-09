@@ -59,6 +59,17 @@ export const RichMessageInput = ({
   const fileRef = useRef<HTMLInputElement>(null);
   const { request: requestPermission } = usePermissionRationale();
 
+  // Throttle the presence broadcast: without this, onTyping fires once per
+  // keystroke, flooding the realtime channel with a broadcast per character.
+  const lastTypingAt = useRef(0);
+  const notifyTyping = () => {
+    if (!onTyping) return;
+    const now = Date.now();
+    if (now - lastTypingAt.current < 500) return;
+    lastTypingAt.current = now;
+    onTyping();
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -89,6 +100,10 @@ export const RichMessageInput = ({
     setUploading(false);
     if ("error" in result) {
       toast.error(result.error);
+      // Clear the staged file + reset the native input so re-picking the
+      // SAME file fires onChange again and the user can immediately retry.
+      clearStaged();
+      if (fileRef.current) fileRef.current.value = "";
       return null;
     }
     return { path: result.path, mime: result.mime, size: result.size };
@@ -209,7 +224,7 @@ export const RichMessageInput = ({
           enterKeyHint="send"
           autoCapitalize="sentences"
           value={text}
-          onChange={(e) => { setText(e.target.value); onTyping?.(); }}
+          onChange={(e) => { setText(e.target.value); notifyTyping(); }}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           className="flex-1"
           disabled={disabled || uploading}

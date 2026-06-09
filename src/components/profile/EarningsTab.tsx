@@ -306,17 +306,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     } catch { /* best-effort */ }
   };
 
-  // ─── Last-payout summary ─────────────────────────────────────
-  // Surfaces the most recent Stripe payout + a back-of-the-envelope
-  // "next expected" date so the helper has a concrete answer to "when
-  // does my next payout land?" without hunting through history.
-  // Stripe's standard cadence is daily-rolling weekly (~7-day delay
-  // after available balance flips); we estimate 7 days from the last
-  // arrival_date — accurate enough as a "around" hint.
-  const lastPayout = (stripeData?.payouts ?? [])[0] ?? null;
-  const nextExpectedDate = lastPayout
-    ? new Date((lastPayout.arrival_date + 7 * 86400) * 1000)
-    : null;
+  // Note: the "Last payout · Next expected" summary lives in
+  // PaymentTab now (#7), driven off the payout_transfers ledger so
+  // it's reachable directly from the Payment settings surface.
 
   return (
     <div className="space-y-5">

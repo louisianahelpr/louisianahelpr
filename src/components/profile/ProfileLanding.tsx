@@ -15,6 +15,7 @@ import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
+import { ProfileStatsTrend } from "@/components/profile/ProfileStatsTrend";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -514,6 +515,15 @@ export function ProfileLanding({
             </div>
           )}
         </div>
+
+        {/* Activity-trend disclosure — small area chart, collapsed by
+            default so we don't push the rest of the page down. Self-
+            fetches its data when opened so the parent stays slim. The
+            chart queries jobs.helper_id which maps to auth.user_id —
+            *not* the profiles.id PK, so we pass user_id. */}
+        {profile?.user_id && (
+          <ProfileStatsTrend helperId={profile.user_id} />
+        )}
 
         {/* Bio excerpt — surfaces the user's pitch on the landing page,
             since this is what applicants see when deciding whether to apply.

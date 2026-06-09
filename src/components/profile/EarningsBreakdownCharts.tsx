@@ -186,7 +186,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Take-home"]}
+                  formatter={(value) => [`$${Number(value).toFixed(2)}`, "Take-home"]}
                   contentStyle={{
                     background: "hsla(0, 0%, 100%, 0.95)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.18)",
@@ -243,7 +243,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
                   tickFormatter={(v: number) => `$${v >= 1000 ? Math.round(v / 100) / 10 + "k" : v}`}
                 />
                 <Tooltip
-                  formatter={(value: number, name: string) => [`$${Number(value).toFixed(2)}`, name === "ytd" ? String(ytdYear) : String(priorYtdYear)]}
+                  formatter={(value, name) => [`$${Number(value).toFixed(2)}`, String(name) === "ytd" ? String(ytdYear) : String(priorYtdYear)]}
                   contentStyle={{
                     background: "hsla(0, 0%, 100%, 0.95)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.18)",

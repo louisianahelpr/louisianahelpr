@@ -24,6 +24,7 @@ import { jobStatusColor } from "@/lib/statusColors";
 import { FirstMessageChips } from "./FirstMessageChips";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import type { Conversation, Message } from "./types";
+import type { JobSystemEvent } from "@/lib/jobSystemEvents";
 
 const renderMessageContent = (content: string, onImageClick: (url: string) => void) => {
   // Photo message
@@ -106,6 +107,11 @@ interface ChatViewProps {
    *  silences push only — the conversation stays visible and the unread
    *  badge still increments (matches iMessage's "Hide Alerts"). */
   onToggleMute: (convo: Conversation) => void;
+  /** System-event entries derived from the active job's transition
+   *  timestamps — rendered as styled centered <div>s interleaved with
+   *  the messages so both participants see status changes in the same
+   *  scroll. NOT real message rows. */
+  jobSystemEvents: JobSystemEvent[];
 }
 
 /**
@@ -142,6 +148,7 @@ export function ChatView({
   setBlockTarget,
   setDeleteMessageConfirm,
   onToggleMute,
+  jobSystemEvents,
 }: ChatViewProps) {
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
@@ -213,6 +220,51 @@ export function ChatView({
   useEffect(() => {
     setShowJumpToBottom(false);
   }, [activeConvo.jobId, activeConvo.otherUserId]);
+
+  // Merge messages and system events into a single chronological
+  // timeline so a state-change row ("Helper marked complete") sits
+  // exactly where it happened relative to the surrounding chat. Each
+  // row carries a discriminator (`type`) so the renderer can branch
+  // between a real bubble and a styled <div>. System events get
+  // hidden behind older-message pagination: only those whose `at` is
+  // newer than the oldest loaded message (or all of them when nothing
+  // is paginated) are surfaced — keeps the chronological invariant.
+  type TimelineItem =
+    | { type: "message"; key: string; at: string; message: Message }
+    | { type: "system"; key: string; at: string; event: JobSystemEvent };
+
+  const timeline: TimelineItem[] = (() => {
+    const items: TimelineItem[] = messages.map((m) => ({
+      type: "message",
+      key: m.clientId ?? m.id,
+      at: m.created_at,
+      message: m,
+    }));
+    // Only include system events that fall within the loaded window —
+    // anything older than the oldest message stays hidden until the
+    // user loads earlier messages (otherwise paginated history would
+    // surface system rows out of order at the top of the visible thread).
+    if (jobSystemEvents.length > 0) {
+      const oldestLoadedAt = messages.length > 0
+        ? new Date(messages[0].created_at).getTime()
+        : -Infinity;
+      const onlyWhenAllLoaded = hasMoreMessages;
+      for (const ev of jobSystemEvents) {
+        const evMs = new Date(ev.at).getTime();
+        // If older messages still exist server-side, only show system
+        // events that occurred after the oldest message we have loaded.
+        if (onlyWhenAllLoaded && evMs < oldestLoadedAt) continue;
+        items.push({
+          type: "system",
+          key: ev.id,
+          at: ev.at,
+          event: ev,
+        });
+      }
+    }
+    items.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+    return items;
+  })();
 
   return (
     // Fixed-viewport lock + safe-area-top header inset come from AppShell,
@@ -431,7 +483,7 @@ export function ChatView({
                 </Button>
               </div>
             )}
-            {!chatLoadError && messages.length === 0 && (
+            {!chatLoadError && timeline.length === 0 && (
               <div className="flex flex-col items-center text-center py-14 gap-3">
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -462,12 +514,51 @@ export function ChatView({
                 </div>
               </div>
             )}
-            {messages.map((m) => {
+            {timeline.map((item) => {
+              if (item.type === "system") {
+                // System messages — styled centered <div>, NOT a real
+                // message row. Reads as "the app speaking" rather than
+                // either participant. Compact pill so it doesn't dominate
+                // the surrounding chat.
+                const ev = item.event;
+                return (
+                  <div key={item.key} className="flex justify-center py-1">
+                    <div
+                      role="note"
+                      aria-label={`System update: ${ev.label}`}
+                      className="max-w-[80%] px-3 py-1.5 rounded-full text-center"
+                      style={{
+                        background: "hsl(var(--ivory-sand) / 0.55)",
+                        border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                        boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6)",
+                      }}
+                    >
+                      <p
+                        className="font-serif italic text-[0.74rem] leading-snug"
+                        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                      >
+                        {ev.label}
+                      </p>
+                      <p
+                        className="font-sans uppercase tracking-wider mt-0.5"
+                        style={{
+                          fontSize: "8.5px",
+                          letterSpacing: "0.12em",
+                          color: "hsl(var(--olivewood) / 0.5)",
+                        }}
+                      >
+                        {new Date(ev.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              const m = item.message;
               const mine = m.sender_id === userId;
               const isSending = m.sendStatus === "sending";
               const isFailed = m.sendStatus === "failed";
               return (
-                <div key={m.clientId ?? m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                <div key={item.key} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                   <div
                     className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 transition-opacity ${
                       mine ? "rounded-br-md" : "rounded-bl-md"

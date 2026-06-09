@@ -19,6 +19,7 @@ import { archiveConversation, isArchived } from "@/lib/archivedConversations";
 import { requireOnline } from "@/lib/requireOnline";
 import { getMessageAttachmentSignedUrls, isImageMime } from "@/lib/messageAttachments";
 import { getMutedThreadSet, threadMuteKey, toggleThreadMute } from "@/lib/threadMutes";
+import { deriveJobSystemEvents, type JobSystemEvent, type JobTimestamps } from "@/lib/jobSystemEvents";
 
 import type { Conversation, Message } from "@/components/messages/types";
 import { ChatView } from "@/components/messages/ChatView";
@@ -44,6 +45,13 @@ const Messages = () => {
   // messages can be missed on every thread switch).
   const activeConvoRef = useRef<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  // Status-transition events derived from the active job's
+  // timestamps — rendered as styled centered <div>s interleaved with
+  // the real messages so both participants see what happened on the
+  // job ("Helper marked on the way", "Poster confirmed complete") in
+  // the same scroll as the conversation. Cleared when the user goes
+  // back to the inbox so a stale set never bleeds across threads.
+  const [jobSystemEvents, setJobSystemEvents] = useState<JobSystemEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   // Tracks a failed message-thread fetch so the chat surfaces a
@@ -302,14 +310,37 @@ const Messages = () => {
     setHasMoreMessages(false);
     setChatLoadError(false);
     setMessages([]);
+    setJobSystemEvents([]);
     navigate("/messages?chat=1", { replace: true });
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("job_id", convo.jobId)
-      .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId})`)
-      .order("created_at", { ascending: false })
-      .limit(CHAT_PAGE_SIZE);
+    // Fetch the job's transition timestamps alongside the message
+    // thread so the system-event rows ("Helper marked on the way",
+    // "Poster confirmed complete", …) can render in the same paint as
+    // the messages. The job select is narrow — only the fields the
+    // event deriver reads.
+    const [messagesRes, jobRes] = await Promise.all([
+      supabase
+        .from("messages")
+        .select("*")
+        .eq("job_id", convo.jobId)
+        .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId})`)
+        .order("created_at", { ascending: false })
+        .limit(CHAT_PAGE_SIZE),
+      supabase
+        .from("jobs")
+        .select(
+          "cancelled_at, cancelled_by, customer_id, helper_arrived_at, helper_completed_at, helper_id, helper_on_the_way_at, poster_completed_at, revision_requested_at, disputed_at, disputed_by",
+        )
+        .eq("id", convo.jobId)
+        .maybeSingle(),
+    ]);
+    const { data, error } = messagesRes;
+    // Job lookup is best-effort: a failure here just means no system
+    // events render. We don't surface it — the message thread still works.
+    if (!jobRes.error && jobRes.data) {
+      setJobSystemEvents(
+        deriveJobSystemEvents(jobRes.data as JobTimestamps, convo.jobId),
+      );
+    }
 
     // Surface a failed thread fetch instead of falling through to the
     // "Say hello." empty state, which would wrongly imply 0 messages.
@@ -917,6 +948,7 @@ const Messages = () => {
           setBlockTarget={setBlockTarget}
           setDeleteMessageConfirm={setDeleteMessageConfirm}
           onToggleMute={handleToggleMute}
+          jobSystemEvents={jobSystemEvents}
         />
       )}
 

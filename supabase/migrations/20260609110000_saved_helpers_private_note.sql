@@ -22,8 +22,11 @@ COMMENT ON COLUMN public.favorite_helpers.private_note IS
 -- can render the note inline on the Saved Helprs list without a
 -- second round-trip. The RPC was defined in
 -- 20260423025644_8e120f3a-2254-48db-8dad-fc1e91830df3.sql; we
--- recreate it here with the additional column. CREATE OR REPLACE
--- keeps existing grants intact.
+-- recreate it here with the additional column. The return type
+-- changes (new private_note column), so CREATE OR REPLACE alone
+-- fails with 42P13 on replay — drop first, then re-grant below.
+
+DROP FUNCTION IF EXISTS public.get_my_saved_helpers();
 
 CREATE OR REPLACE FUNCTION public.get_my_saved_helpers()
 RETURNS TABLE (

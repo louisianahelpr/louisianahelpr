@@ -13,23 +13,17 @@ permissions:
 # deployed Lovable preview by default; override with PLAYWRIGHT_BASE_URL.
 #
 # Cost-conscious:
-# - Only runs on PRs that touch UI / layout
+# - Runs on every PR (required branch-protection check — a `paths:`
+#   filter would leave the check "Expected" forever on backend-only
+#   PRs and deadlock auto-merge), but an in-job paths-filter step
+#   skips the Playwright work and goes green in seconds when no
+#   UI/layout file changed.
 # - Concurrency-locked
 # - Uploads screenshots only on failure (test-results/)
 
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "src/**"
-      - "public/**"
-      - "index.html"
-      - "vite.config.ts"
-      - "tailwind.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - "e2e/mobile-viewports.spec.ts"
-      - ".github/workflows/mobile-viewports.yml"
   workflow_dispatch:
 
 concurrency:
@@ -47,20 +41,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Detect UI-relevant changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            ui:
+              - "src/**"
+              - "public/**"
+              - "index.html"
+              - "vite.config.ts"
+              - "tailwind.config.ts"
+              - "package.json"
+              - "package-lock.json"
+              - "e2e/mobile-viewports.spec.ts"
+              - ".github/workflows/mobile-viewports.yml"
+
       - name: Setup Node
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         # See test.yml — Lovable can drift the lockfile, so use `install` not `ci`.
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Install Playwright Chromium browser
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Run mobile-viewport tests
+        if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         env:
           # Default to the Lovable preview. Override at workflow_dispatch
           # time if you want to point at a Vercel preview or local tunnel.

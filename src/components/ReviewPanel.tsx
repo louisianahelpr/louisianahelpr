@@ -139,12 +139,13 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
 
   const handleSubmit = async () => {
     if (!canSubmit) {
-      toast.error("Please tap an Overall star rating");
+      hapticError();
+      toast.error("Tap an Overall star rating to leave your review.");
       return;
     }
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast.error("You must be logged in"); setSubmitting(false); return; }
+    if (!user) { hapticError(); toast.error("Please sign back in to leave your review."); setSubmitting(false); return; }
 
     const { error } = await supabase.from("reviews").insert({
       job_id: jobId,

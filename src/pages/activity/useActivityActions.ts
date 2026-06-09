@@ -166,6 +166,7 @@ export function useActivityActions({
     } catch {
       // A failed fetch must not read as "no applicants" — tell the truth.
       setApplicationsError(true);
+      hapticError();
       toast.error("Couldn't pull up applicants right now — give it a second and try again?");
     } finally {
       setApplicationsLoading(false);
@@ -181,6 +182,7 @@ export function useActivityActions({
       setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
     } catch {
       setApplicantErrors(prev => ({ ...prev, [jobId]: true }));
+      hapticError();
       toast.error("Couldn't pull up applicants right now — give it a second and try again?");
     } finally {
       setLoadingApplicants(prev => ({ ...prev, [jobId]: false }));
@@ -233,6 +235,7 @@ export function useActivityActions({
           .select("id");
         if (jobErr || !jobRows || jobRows.length === 0) {
           rollbackActivity(snapshot);
+          hapticError();
           toast.error("This job is no longer open — it may already be assigned.");
           return;
         }
@@ -242,11 +245,13 @@ export function useActivityActions({
           .eq("id", deadlineDialogApp.id);
         if (appErr) {
           rollbackActivity(snapshot);
+          hapticError();
           toast.error("Couldn't send the offer — please try again.");
           return;
         }
       } else {
         rollbackActivity(snapshot);
+        hapticError();
         toast.error(
           msg.includes("job_not_open")
             ? "This job is no longer open — it may already be assigned."
@@ -273,7 +278,7 @@ export function useActivityActions({
     if (!user) return;
     if (accept) {
       const stripeCheck = await checkHelperStripeConnect();
-      if (!stripeCheck.ok) { toast.error(stripeCheck.reason); return; }
+      if (!stripeCheck.ok) { hapticError(); toast.error(stripeCheck.reason); return; }
 
       // Identity verification gate — required before first accept
       const { data: prof } = await supabase
@@ -368,6 +373,7 @@ export function useActivityActions({
           String(rpcError?.code ?? "") === "PGRST202" ||
           /could not find the function|does not exist|schema cache/i.test(msg);
         if (!rpcMissing) {
+          hapticError();
           toast.error(
             /offer_not_active/.test(msg)
               ? "This offer is no longer active."
@@ -399,6 +405,7 @@ export function useActivityActions({
         await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/4)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. Declining ${5 - warningNum} more will result in a permanent ban.`, type: "warning", link: "/profile" });
         toast.warning(`Warning ${warningNum}/4: You've declined a job offer.`);
       } else if (actionTaken === "permanent_ban") {
+        hapticError();
         toast.error("Your account has been permanently banned due to repeated job offer declines.");
       }
       if (actionTaken !== "none") {
@@ -416,6 +423,7 @@ export function useActivityActions({
     const { data: tracking } = await supabase.from("job_tracking").select("status").eq("job_id", job.id).order("created_at", { ascending: false }).limit(1);
     const trackingStatus = tracking?.[0]?.status;
     if (trackingStatus && ["on_the_way", "arrived", "working", "done"].includes(trackingStatus)) {
+      hapticError();
       toast.error("This job can't be cancelled — the helpr is already on the way or working.", { duration: 5000 });
       return;
     }
@@ -443,8 +451,9 @@ export function useActivityActions({
 
             if (!arrivalCheckins?.length) {
               const miles = ((proximity.distance || 0) / 5280).toFixed(1);
+              hapticError();
               toast.error(
-                `You must be within 500ft of the job site or have a verified arrival check-in. You're ~${miles} miles away. If your GPS is off, use the "Check In with Photo" option.`,
+                `You need to be within 500ft of the job site (or have a verified arrival check-in) to wrap up. You're about ${miles} miles away — if your GPS is off, use "Check In with Photo" instead.`,
                 { duration: 8000 }
               );
               return;
@@ -460,7 +469,8 @@ export function useActivityActions({
               .single();
             const afterPhotos = jobData?.proof_after_urls || [];
             if (afterPhotos.length === 0) {
-              toast.error("Upload an after-photo before marking jobs $50+ complete.", { duration: 6000 });
+              hapticError();
+              toast.error("Add an after-photo before you mark a $50+ job complete.", { duration: 6000 });
               return;
             }
           }
@@ -570,7 +580,7 @@ export function useActivityActions({
         const rpcMissing =
           String(rpcError?.code ?? "") === "PGRST202" ||
           /could not find the function|does not exist|schema cache/i.test(msg);
-        if (!rpcMissing) { toast.error("Couldn't report the no-show — please try again."); return; }
+        if (!rpcMissing) { hapticError(); toast.error("Couldn't report the no-show — please try again."); return; }
         const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", helperId).eq("violation_type", "no_show");
         const priorCount = existing?.length || 0;
         actionTaken = priorCount >= 1 ? "permanent_ban" : "warning";

@@ -216,8 +216,8 @@ const UserProfile = () => {
   const headerHasActions = !isOwnProfile && !!currentUserId;
   const headerActionPlaceholder = headerHasActions ? (
     <div className="flex items-center gap-1" aria-hidden>
-      <div className="h-9 w-9 rounded-ds-md bg-muted animate-pulse" />
-      <div className="h-9 w-9 rounded-ds-md bg-muted animate-pulse" />
+      <div className="h-10 w-10 rounded-ds-md bg-muted animate-pulse" />
+      <div className="h-10 w-10 rounded-ds-md bg-muted animate-pulse" />
     </div>
   ) : null;
 
@@ -313,7 +313,7 @@ const UserProfile = () => {
               <SaveHelperButton helperId={userId!} customerId={currentUserId} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-ds-md h-9 w-9 shrink-0" aria-label="More options">
+                  <Button variant="ghost" size="icon" className="rounded-ds-md h-10 w-10 shrink-0" aria-label="More options">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>

@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, Flag, CheckCircle2 } from "lucide-react";
+import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, Flag, CheckCircle2, History as HistoryIcon } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { safeStorage } from "@/lib/safeStorage";
+import { logAdminAction } from "@/lib/adminAudit";
 
 const RESOLVED_FLAGS_KEY = "admin_resolved_job_flags";
 const getResolvedFlags = (): Set<string> => {
@@ -93,6 +94,13 @@ const AdminJobs = () => {
   const [refundReason, setRefundReason] = useState("");
   const [refundAmount, setRefundAmount] = useState(""); // empty = full refund; otherwise partial $
   const [refunding, setRefunding] = useState(false);
+  // Manual status override — admins can re-open, mark complete, or
+  // cancel a job out of band. Tracked separately from the regular
+  // remove flow so the audit row captures the new target status.
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideStatus, setOverrideStatus] = useState<"open" | "completed" | "cancelled">("open");
+  const [overrideReason, setOverrideReason] = useState("");
+  const [overriding, setOverriding] = useState(false);
   const [filter, setFilter] = useState<"all" | "flagged" | "resolved">("flagged");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
   const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(getResolvedFlags());
@@ -274,6 +282,61 @@ const AdminJobs = () => {
       toast.error(msg);
     } finally {
       setRefunding(false);
+    }
+  };
+
+  const handleStatusOverride = async () => {
+    if (!detailJob || !overrideReason.trim()) return;
+    setOverriding(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const previousStatus = detailJob.status;
+      const updates: Record<string, any> = { status: overrideStatus };
+      // Re-opening clears cancellation columns so the job is genuinely
+      // re-bookable. Mark-complete sets completed_at if the column is
+      // present; the existing column nullable defaults handle older rows.
+      if (overrideStatus === "open") {
+        updates.cancellation_reason = null;
+        updates.cancelled_at = null;
+        updates.cancelled_by = null;
+      } else if (overrideStatus === "cancelled") {
+        updates.cancellation_reason = `[Admin override] ${overrideReason.trim()}`;
+        updates.cancelled_at = new Date().toISOString();
+        updates.cancelled_by = user?.id || null;
+      }
+
+      const { error } = await (supabase.from("jobs").update as any)(updates).eq("id", detailJob.id);
+      if (error) throw error;
+
+      await logAdminAction("manual_status_override", "job", detailJob.id, {
+        from_status: previousStatus,
+        to_status: overrideStatus,
+        reason: overrideReason.trim(),
+      });
+
+      // Notify both parties so they aren't surprised by the change.
+      const parties = [detailJob.customer_id, detailJob.helper_id].filter(Boolean) as string[];
+      for (const uid of parties) {
+        await supabase.from("notifications").insert({
+          user_id: uid,
+          title: `Admin updated your job status`,
+          message: `"${detailJob.title}" was set to ${overrideStatus} by an admin. Reason: ${overrideReason.trim()}`,
+          type: "info",
+          link: uid === detailJob.customer_id ? "/my-jobs" : "/dashboard",
+        });
+      }
+
+      setJobs((prev) => prev.map((j) => j.id === detailJob.id ? { ...j, ...updates } as Job : j));
+      toast.success(`Job status set to ${overrideStatus}`);
+      setOverrideOpen(false);
+      setOverrideReason("");
+      setOverrideStatus("open");
+      setDetailJob(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to override status";
+      toast.error(msg);
+    } finally {
+      setOverriding(false);
     }
   };
 
@@ -530,6 +593,18 @@ const AdminJobs = () => {
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Remove Job
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Pre-pick a sensible target based on current state.
+                      setOverrideStatus(detailJob.status === "cancelled" ? "open" : "completed");
+                      setOverrideOpen(true);
+                    }}
+                    className="gap-1.5"
+                  >
+                    <HistoryIcon className="w-3.5 h-3.5" /> Manual Override
+                  </Button>
                   {/* Refund only relevant when money has actually changed
                       hands. payment_status='escrow' = captured but held.
                       payment_status='released' = transferred to helper. */}
@@ -670,6 +745,72 @@ const AdminJobs = () => {
               disabled={refunding}
             >
               {refunding ? "Refunding…" : "Issue Refund"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual status override — re-open / mark complete / cancel. Refund
+          stays in its own dialog (above) because the Stripe call has its
+          own error surface and partial-refund affordance. */}
+      <Dialog open={overrideOpen} onOpenChange={(o) => { if (!o) { setOverrideOpen(false); setOverrideReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <HistoryIcon className="w-5 h-5 text-primary" /> Manual Status Override
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-ds-11 text-muted-foreground">
+              Force the job into a different status. Logged to admin_audit_log and
+              both parties are notified.
+              {detailJob && <> Current: <strong className="text-foreground">{detailJob.status}</strong>.</>}
+            </p>
+            <div className="space-y-1.5">
+              <p className="text-ds-11 font-semibold uppercase tracking-wide text-muted-foreground">Set status to</p>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { id: "open", label: "Re-open", tone: "border-primary/40 bg-primary/10 text-primary" },
+                  { id: "completed", label: "Mark complete", tone: "border-primary/40 bg-primary/10 text-primary" },
+                  { id: "cancelled", label: "Cancel", tone: "border-destructive/40 bg-destructive/10 text-destructive" },
+                ] as const).map((opt) => {
+                  const active = overrideStatus === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setOverrideStatus(opt.id)}
+                      className={`p-2 rounded-ds-md border text-ds-11 font-medium transition-colors ${
+                        active ? opt.tone : "border-border bg-card hover:bg-secondary/30"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-ds-10 text-muted-foreground italic">
+                Refunds aren't issued automatically — use the Refund Customer
+                button if money also needs to move.
+              </p>
+            </div>
+            <Textarea
+              aria-label="Reason for status override"
+              placeholder="Required — explain why this status is being forced."
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setOverrideOpen(false); setOverrideReason(""); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStatusOverride}
+              disabled={overriding || !overrideReason.trim()}
+            >
+              {overriding ? "Updating…" : `Set to ${overrideStatus}`}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -310,6 +310,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onTip={(jobId, name) => { actions.setEnhancedTipJobId(jobId); actions.setEnhancedTipHelperName(name); }}
               onReview={actions.openReviewForPosted}
               onDispute={actions.setDisputeJob}
+              onViewDispute={actions.setViewDisputeJob}
               onConfirmStart={actions.confirmStartJob}
               onConfirmArrival={actions.confirmArrival}
               onConfirmWorking={actions.confirmWorking}
@@ -345,6 +346,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onResolveRevision={actions.resolveRevision}
               onHelperReview={(jobId, posterId, posterName) => actions.setHelperReviewJob({ jobId, posterId, posterName })}
               onDispute={actions.setDisputeJob}
+              onViewDispute={actions.setViewDisputeJob}
               onRefresh={refresh}
             />
             </SectionBoundary>
@@ -380,6 +382,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         onDeadlineConfirm={actions.confirmAcceptWithDeadline}
         disputeJob={actions.disputeJob}
         setDisputeJob={actions.setDisputeJob}
+        viewDisputeJob={actions.viewDisputeJob}
+        setViewDisputeJob={actions.setViewDisputeJob}
         reviewJob={actions.reviewJob}
         reviewTarget={actions.reviewTarget}
         setReviewJob={actions.setReviewJob}

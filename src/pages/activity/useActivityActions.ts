@@ -72,6 +72,10 @@ export function useActivityActions({
   const [deadlineDialogApp, setDeadlineDialogApp] = useState<(Application & { profiles?: any }) | null>(null);
   const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
   const [disputeJob, setDisputeJob] = useState<Job | null>(null);
+  // Read-only timeline + follow-up evidence for an already-disputed
+  // job. Separate from disputeJob so the file-a-new-dispute and
+  // view-the-existing-one dialogs don't collide on the same state.
+  const [viewDisputeJob, setViewDisputeJob] = useState<Job | null>(null);
   const [reviewJob, setReviewJob] = useState<Job | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ id: string; name: string } | null>(null);
   const [helperReviewJob, setHelperReviewJob] = useState<{ jobId: string; posterId: string; posterName: string } | null>(null);
@@ -642,6 +646,7 @@ export function useActivityActions({
     deadlineDialogApp, setDeadlineDialogApp,
     completionPromptJob, setCompletionPromptJob,
     disputeJob, setDisputeJob,
+    viewDisputeJob, setViewDisputeJob,
     reviewJob, setReviewJob,
     reviewTarget, setReviewTarget,
     helperReviewJob, setHelperReviewJob,

@@ -52,6 +52,9 @@ interface AppliedJobCardProps {
   onHelperReview: (jobId: string, posterId: string, posterName: string) => void;
   /** Open the dispute dialog for this job — helper-initiated dispute (issue #113). */
   onDispute: (job: Job) => void;
+  /** Open the read-only timeline + follow-up evidence uploader for a
+   *  job that's already in dispute. */
+  onViewDispute: (job: Job) => void;
   /** Re-fetch the activity feed after a card-local mutation (dispute response). */
   onRefresh: () => void;
   /** Dispute-response state (parent-owned; keyed by job id). */
@@ -99,6 +102,7 @@ function AppliedJobCardInner({
   onResolveRevision,
   onHelperReview,
   onDispute,
+  onViewDispute,
   onRefresh,
   disputeResponse,
   setDisputeResponse,
@@ -689,6 +693,15 @@ function AppliedJobCardInner({
                 <p className="text-ds-10 text-muted-foreground leading-relaxed">
                   If not resolved within 72 hours, payment auto-releases to you.
                 </p>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => onViewDispute(job)}
+                >
+                  <AlertTriangle className="w-4 h-4 mr-1" /> View timeline & add evidence
+                </Button>
 
                 <div className="grid grid-cols-2 gap-2">
                   <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>

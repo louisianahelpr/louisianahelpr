@@ -54,77 +54,104 @@ export function EmptyState({
   variant = "dock",
 }: EmptyStateProps) {
   const isDock = variant === "dock";
+
   const cardStyle: CSSProperties = isDock
     ? {
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
         borderBottom: "none",
         boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-          "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
-          "1px 0 2px hsl(var(--olivewood) / 0.06), " +
-          "0 -1px 2px hsl(var(--olivewood) / 0.06)",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
+          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45), " +
+          "-1px 0 2px hsl(var(--olivewood) / 0.05), " +
+          "1px 0 2px hsl(var(--olivewood) / 0.05), " +
+          "0 -1px 3px hsl(var(--olivewood) / 0.05)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 2rem)",
       }
     : {};
+
+  // Frosted icon bubble — a deeper bark-tinted base gives the icon more
+  // visual anchor while the inner cream highlight keeps it from looking
+  // heavy. The subtle outer halo connects it to the liquid-glass surface.
+  const iconBubbleStyle: CSSProperties = {
+    backgroundColor: "hsl(var(--parchment) / 0.72)",
+    backdropFilter: "blur(20px) saturate(160%)",
+    WebkitBackdropFilter: "blur(20px) saturate(160%)",
+    border: "1px solid hsl(var(--olivewood) / 0.09)",
+    boxShadow:
+      "inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.75), " +
+      "inset 0 -1px 1px 0 hsl(var(--bark) / 0.06), " +
+      "0 1px 3px hsl(var(--olivewood) / 0.06), " +
+      "0 6px 18px -4px hsl(var(--olivewood) / 0.10)",
+  };
 
   return (
     <div
       className={
         isDock
-          ? "flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-4 px-4 sm:px-6 py-8 rounded-t-2xl"
-          : "flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-4 px-4 sm:px-6 py-12 rounded-2xl"
+          ? "flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10 rounded-t-2xl"
+          : "flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-14 rounded-2xl"
       }
       style={cardStyle}
     >
       {illustration ? (
-        <div className="flex items-center justify-center" aria-hidden="true">
+        <div
+          className="flex items-center justify-center opacity-90"
+          aria-hidden="true"
+        >
           {illustration}
         </div>
       ) : (
+        /* Icon bubble: 88px for presence without weight; squircle-style
+           rounding would need inline border-radius so keep it circular. */
         <div
-          className="w-20 h-20 rounded-full flex items-center justify-center"
-          style={{
-            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-            backdropFilter: "blur(16px) saturate(150%)",
-            WebkitBackdropFilter: "blur(16px) saturate(150%)",
-            border: "1px solid hsl(var(--olivewood) / 0.10)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-              "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-          }}
+          className="w-[88px] h-[88px] rounded-full flex items-center justify-center"
+          style={iconBubbleStyle}
+          aria-hidden="true"
         >
-          <Icon className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+          <Icon
+            className="w-9 h-9"
+            style={{ color: "hsl(var(--bark))" }}
+            strokeWidth={1.4}
+          />
         </div>
       )}
+
       {/* w-full + min-w-0 lets the text column shrink to the card's
           available width at 320w so long titles wrap instead of
           forcing the column wider than the viewport. Without these,
           flex-col + items-center keeps children at their natural
           inline width and they overflow off the right edge. */}
-      <div className="w-full min-w-0 space-y-1.5">
-        {eyebrow && <span className="text-display-eyebrow">{eyebrow}</span>}
+      <div className="w-full min-w-0 space-y-2">
+        {eyebrow && (
+          <span className="text-display-eyebrow tracking-widest">
+            {eyebrow}
+          </span>
+        )}
         {title && (
           <p
             className="font-display italic font-bold leading-tight break-words"
             style={{
-              fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
+              fontSize: "clamp(1.15rem, 1.5vw + 0.45rem, 1.45rem)",
               color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.02em",
+              letterSpacing: "-0.025em",
             }}
           >
             {title}
           </p>
         )}
         <p
-          className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto break-words"
-          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          className="font-serif italic text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words"
+          style={{ color: "hsl(var(--olivewood) / 0.62)" }}
         >
           {body}
         </p>
       </div>
-      {action}
+
+      {action && (
+        /* Breathing room between body copy and the CTA so the button
+           doesn't feel glued to the paragraph. */
+        <div className="mt-1">{action}</div>
+      )}
     </div>
   );
 }

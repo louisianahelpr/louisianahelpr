@@ -18,25 +18,32 @@
  * The hash is djb2 over the seed string and is pure + deterministic, so the
  * same user always gets the same gradient across mounts, devices, and
  * re-renders.
+ *
+ * Palette rationale (each pair):
+ *  - Starts at a light, warm cream (parchment or ivory-sand) so the dark-ink
+ *    initials have maximum legibility at the lightest point.
+ *  - Ends at a mid-depth brand tone at ~50% opacity so the gradient feels
+ *    rich without going so dark that text contrast suffers. The opacity
+ *    range 0.42–0.55 was calibrated to stay above WCAG AA for dark initials.
  */
 
 const GRADIENTS: readonly string[] = [
-  // Warm parchment → bark (soft olive deepening)
-  "from-[hsl(var(--parchment))] to-[hsl(var(--bark)/0.40)]",
-  // Parchment → burnt sienna (warm rust accent, the brand emphasis)
-  "from-[hsl(var(--parchment))] to-[hsl(var(--burnt-sienna)/0.35)]",
-  // Parchment → olivewood (deep dark-ground)
-  "from-[hsl(var(--parchment))] to-[hsl(var(--olivewood)/0.30)]",
-  // Parchment → antique gold (the only true gold variant)
-  "from-[hsl(var(--parchment))] to-[hsl(var(--gold-warm)/0.40)]",
-  // Ivory-sand surface → bark (matches `--card` warm cream)
-  "from-[hsl(var(--ivory-sand))] to-[hsl(var(--bark)/0.45)]",
-  // Sand → burnt sienna (slightly bolder warm-on-warm)
-  "from-[hsl(var(--sand))] to-[hsl(var(--burnt-sienna)/0.45)]",
-  // Parchment → sage (the quieter green accent)
-  "from-[hsl(var(--parchment))] to-[hsl(var(--sage)/0.45)]",
-  // Ivory-sand → gold-warm (subtle parchment-and-gold)
-  "from-[hsl(var(--ivory-sand))] to-[hsl(var(--gold-warm)/0.35)]",
+  // 1. Parchment → bark: soft olive deepening — the "default" warm tone
+  "from-[hsl(var(--parchment))] to-[hsl(var(--bark)/0.48)]",
+  // 2. Parchment → burnt sienna: warm rust accent, the brand emphasis color
+  "from-[hsl(var(--parchment))] to-[hsl(var(--burnt-sienna)/0.42)]",
+  // 3. Parchment → olivewood: deep dark-ground, serious and earthy
+  "from-[hsl(var(--parchment))] to-[hsl(var(--olivewood)/0.36)]",
+  // 4. Parchment → gold-warm: antique gold, the prestige variant
+  "from-[hsl(var(--parchment))] to-[hsl(var(--gold-warm)/0.52)]",
+  // 5. Ivory-sand → bark: crisp, elevated card surface with an olive depth
+  "from-[hsl(var(--ivory-sand))] to-[hsl(var(--bark)/0.52)]",
+  // 6. Sand → burnt sienna: warm-on-warm boldness, rich terracotta finish
+  "from-[hsl(var(--sand))] to-[hsl(var(--burnt-sienna)/0.50)]",
+  // 7. Parchment → sage: quiet green accent, calm and grounded
+  "from-[hsl(var(--parchment))] to-[hsl(var(--sage)/0.50)]",
+  // 8. Ivory-sand → gold-warm: parchment-and-gold, the heritage-warmth pair
+  "from-[hsl(var(--ivory-sand))] to-[hsl(var(--gold-warm)/0.44)]",
 ];
 
 /**

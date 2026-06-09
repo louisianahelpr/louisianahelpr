@@ -10,7 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX } from "lucide-react";
+import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, ChevronDown } from "lucide-react";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -58,6 +59,12 @@ const UserProfile = () => {
   // The hook caches across pages, so once requested it's near-instant on
   // every subsequent profile view in the same session.
   const [showNearbyProof, setShowNearbyProof] = useState(false);
+  // Reviews filter + pagination (#27). Category null = "all", rating null
+  // = "all". Visible count starts at PAGE_SIZE and grows in PAGE_SIZE
+  // increments via the "Show more" button at the bottom of the list.
+  const [reviewCategoryFilter, setReviewCategoryFilter] = useState<string | null>(null);
+  const [reviewRatingFilter, setReviewRatingFilter] = useState<number | null>(null);
+  const [reviewVisibleCount, setReviewVisibleCount] = useState(5);
 
   // React Query: cached for 60s, instant on revisit, refresh in background.
   const { data, isLoading, isError, refetch } = useQuery({
@@ -765,61 +772,170 @@ const UserProfile = () => {
             />
           )}
 
-          {/* Reviews expanded inline */}
-          {showReviews && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              {reviews.length > 0 ? reviews.map((r, i) => (
-                <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
-                        ))}
+          {/* Reviews expanded inline — filter by category/rating +
+              progressive pagination (#27). */}
+          {showReviews && (() => {
+            const PAGE_SIZE = 5;
+            // Distinct categories that appear in this helper's reviews,
+            // computed once per render. Sorted alphabetically with a
+            // stable "other" bucket for nulls. Drives the filter chips.
+            const distinctCategories = Array.from(
+              new Set(reviews.map((r) => r.jobCategory).filter((c): c is string => !!c)),
+            ).sort();
+            const filteredReviews = reviews.filter((r) => {
+              if (reviewCategoryFilter && r.jobCategory !== reviewCategoryFilter) return false;
+              if (reviewRatingFilter && r.rating !== reviewRatingFilter) return false;
+              return true;
+            });
+            const hasActiveFilter = reviewCategoryFilter !== null || reviewRatingFilter !== null;
+            const visible = filteredReviews.slice(0, reviewVisibleCount);
+            const hasMore = filteredReviews.length > visible.length;
+
+            return (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Filter row — only render when there's something to filter
+                    (at least one category beyond "other" OR more than one
+                    distinct rating). Avoids cluttering a 1-review profile. */}
+                {reviews.length > 1 && (distinctCategories.length > 0 || new Set(reviews.map((r) => r.rating)).size > 1) && (
+                  <div className="rounded-ds-md liquid-glass p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Filter</span>
+                      {hasActiveFilter && (
+                        <button
+                          onClick={() => {
+                            setReviewCategoryFilter(null);
+                            setReviewRatingFilter(null);
+                            setReviewVisibleCount(PAGE_SIZE);
+                          }}
+                          className="text-ds-11 underline text-muted-foreground hover:text-foreground"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    {distinctCategories.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {distinctCategories.map((cat) => {
+                          const Icon = getCategoryIcon(cat);
+                          const active = reviewCategoryFilter === cat;
+                          return (
+                            <button
+                              key={cat}
+                              onClick={() => {
+                                setReviewCategoryFilter(active ? null : cat);
+                                setReviewVisibleCount(PAGE_SIZE);
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors"
+                              style={{
+                                color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
+                                background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
+                                border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
+                              }}
+                            >
+                              <Icon className="w-3 h-3" />
+                              <span className="capitalize">{cat.replace(/_/g, " ")}</span>
+                            </button>
+                          );
+                        })}
                       </div>
-                      <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {[5, 4, 3, 2, 1].map((rating) => {
+                        const count = reviews.filter((r) => r.rating === rating).length;
+                        if (count === 0) return null;
+                        const active = reviewRatingFilter === rating;
+                        return (
+                          <button
+                            key={rating}
+                            onClick={() => {
+                              setReviewRatingFilter(active ? null : rating);
+                              setReviewVisibleCount(PAGE_SIZE);
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors tabular-nums"
+                            style={{
+                              color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
+                              background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
+                              border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
+                            }}
+                          >
+                            <Star className={`w-3 h-3 ${active ? "fill-current" : "fill-current"}`} />
+                            {rating}
+                            <span className="opacity-70">({count})</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <span className="text-muted-foreground text-ds-11">{new Date(r.created_at).toLocaleDateString()}</span>
                   </div>
-                  {(r.punctuality || r.quality || r.communication) && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {r.punctuality && (
-                        <div className="flex flex-col items-start gap-0.5">
-                          <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
-                          <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                )}
+                {filteredReviews.length > 0 ? (
+                  <>
+                    {visible.map((r, i) => (
+                      <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
+                              ))}
+                            </div>
+                            <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
                           </div>
+                          <span className="text-muted-foreground text-ds-11">{new Date(r.created_at).toLocaleDateString()}</span>
                         </div>
-                      )}
-                      {r.quality && (
-                        <div className="flex flex-col items-start gap-0.5">
-                          <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
-                          <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                        {(r.punctuality || r.quality || r.communication) && (
+                          <div className="grid grid-cols-3 gap-2">
+                            {r.punctuality && (
+                              <div className="flex flex-col items-start gap-0.5">
+                                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
+                                <div className="flex gap-0.5">
+                                  {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                                </div>
+                              </div>
+                            )}
+                            {r.quality && (
+                              <div className="flex flex-col items-start gap-0.5">
+                                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
+                                <div className="flex gap-0.5">
+                                  {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                                </div>
+                              </div>
+                            )}
+                            {r.communication && (
+                              <div className="flex flex-col items-start gap-0.5">
+                                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
+                                <div className="flex gap-0.5">
+                                  {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
-                      {r.communication && (
-                        <div className="flex flex-col items-start gap-0.5">
-                          <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
-                          <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
-                  {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
-                </div>
-              )) : (
-                <div className="rounded-ds-md liquid-glass p-6 text-center">
-                  <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-ds-11 text-muted-foreground">No reviews yet</p>
-                </div>
-              )}
-            </div>
-          )}
+                        )}
+                        <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
+                        {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
+                      </div>
+                    ))}
+                    {hasMore && (
+                      <button
+                        onClick={() => setReviewVisibleCount((n) => n + PAGE_SIZE)}
+                        className="w-full rounded-ds-md liquid-glass p-3 text-ds-13 font-medium text-foreground hover:bg-muted/30 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                        Show {Math.min(PAGE_SIZE, filteredReviews.length - visible.length)} more
+                        <span className="text-muted-foreground">({visible.length} of {filteredReviews.length})</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-ds-md liquid-glass p-6 text-center">
+                    <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-ds-11 text-muted-foreground">
+                      {hasActiveFilter ? "No reviews match this filter" : "No reviews yet"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Posted Jobs expanded inline */}
           {showPostedJobs && (

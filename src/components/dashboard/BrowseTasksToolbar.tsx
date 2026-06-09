@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useRef, useState, type ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, useTransform, animate, type PanInfo } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Clock, MapPin, Search, SlidersHorizontal, X, List, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,64 @@ interface BrowseTasksToolbarProps {
   /** List vs Map view selection. */
   view: "list" | "map";
   setView: (next: "list" | "map") => void;
+  /** Called when the user clears all filters via the "Clear all" chip —
+   *  Dashboard uses this to scroll the feed back to the top so the user
+   *  doesn't end up mid-list in a freshly unfiltered feed. */
+  onClearAllFilters?: () => void;
+}
+
+// Per-chip horizontal swipe-to-remove threshold. A clean leftward drift
+// past this value commits the clear; anything less springs back to 0.
+const CHIP_SWIPE_THRESHOLD = -64;
+
+/**
+ * Single filter chip with a horizontal swipe-left affordance. Pulling
+ * the chip left past CHIP_SWIPE_THRESHOLD removes the underlying filter
+ * (no confirm dialog — same model as the SwipeableJobCard dismiss).
+ * The chip's body still renders the existing × button so tap remains
+ * a first-class clear gesture.
+ *
+ * Memoised inline as a small functional component — there are at most
+ * 5 chips and they re-render with their parent, so the lighter
+ * inline component beats extracting to a separate file.
+ */
+function SwipeableFilterChip({
+  children,
+  onClear,
+  ariaLabel,
+}: {
+  children: ReactNode;
+  onClear: () => void;
+  ariaLabel: string;
+}) {
+  const x = useMotionValue(0);
+  // Visual hint: the chip fades and tilts a touch as it crosses the
+  // commit threshold so the user feels the action arrive before it
+  // fires. Matches SwipeableJobCard's "you're crossing the line" cue.
+  const opacity = useTransform(x, [CHIP_SWIPE_THRESHOLD * 1.5, CHIP_SWIPE_THRESHOLD, 0], [0.35, 0.7, 1]);
+
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.x < CHIP_SWIPE_THRESHOLD) {
+      onClear();
+      return;
+    }
+    animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
+  };
+
+  return (
+    <motion.span
+      drag="x"
+      dragConstraints={{ left: -120, right: 0 }}
+      dragElastic={0.1}
+      onDragEnd={handleDragEnd}
+      style={{ x, opacity }}
+      role="group"
+      aria-label={ariaLabel}
+      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium touch-pan-y"
+    >
+      {children}
+    </motion.span>
+  );
 }
 
 /**
@@ -41,6 +99,7 @@ export function BrowseTasksToolbar({
   helperAvailability,
   view,
   setView,
+  onClearAllFilters,
 }: BrowseTasksToolbarProps) {
   // Recent searches dropdown — shown only when the search input is
   // focused AND empty AND we have history to show. We snapshot the list
@@ -255,13 +314,16 @@ export function BrowseTasksToolbar({
 
       {/* Active-filter recap chip row — only when 3+ filters are
           simultaneously active. With fewer, the input controls below
-          already say the same thing and a recap is redundant noise. */}
+          already say the same thing and a recap is redundant noise.
+          Each chip is wrapped in a SwipeableFilterChip so a horizontal
+          swipe-left removes that single filter with no confirm step. */}
       {showRecapRow && (
         <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b border-border/30" aria-label="Active filters">
           {recapChips.map((chip) => (
-            <span
+            <SwipeableFilterChip
               key={chip.key}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium"
+              onClear={chip.onClear}
+              ariaLabel={chip.ariaLabel}
             >
               {chip.label}
               <button
@@ -271,7 +333,7 @@ export function BrowseTasksToolbar({
               >
                 <X className="w-3 h-3" />
               </button>
-            </span>
+            </SwipeableFilterChip>
           ))}
         </div>
       )}
@@ -401,45 +463,68 @@ export function BrowseTasksToolbar({
         )}
       </AnimatePresence>
 
-      {/* Active filter chips */}
+      {/* Active filter chips — each wrapped in SwipeableFilterChip so a
+          leftward drag removes the chip's filter with no confirm step.
+          When ≥2 filters are active the "Clear all" affordance also
+          scrolls the feed back to the top (via onClearAllFilters), so
+          the user lands on a clean unfiltered top-of-feed instead of
+          mid-list. */}
       {!filters.filtersOpen && (filters.selectedCategory || filters.locationFilter || filters.maxBudget || filters.expiresWithin || filters.matchAvailability) && (
-        <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30">
+        <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30" aria-label="Active filters">
           {filters.selectedCategory && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
+            <SwipeableFilterChip
+              onClear={() => filters.setSelectedCategory(null)}
+              ariaLabel={`Clear category filter (${categoryLabels[filters.selectedCategory]} selected)`}
+            >
               {categoryLabels[filters.selectedCategory]}
               <button onClick={() => filters.setSelectedCategory(null)} aria-label={`Clear category filter (${categoryLabels[filters.selectedCategory]} selected)`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
-            </span>
+            </SwipeableFilterChip>
           )}
           {filters.locationFilter && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
+            <SwipeableFilterChip
+              onClear={() => filters.setLocationFilter("")}
+              ariaLabel={`Clear location filter (${locationFilterText} selected)`}
+            >
               <MapPin className="w-3 h-3" />
               {filters.locationFilter.startsWith("nearby:")
                 ? `Within ${filters.locationFilter.slice(7)} mi`
                 : filters.locationFilter}
               <button onClick={() => filters.setLocationFilter("")} aria-label={`Clear location filter (${locationFilterText} selected)`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
-            </span>
+            </SwipeableFilterChip>
           )}
           {filters.maxBudget && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
+            <SwipeableFilterChip
+              onClear={() => filters.setMaxBudget("")}
+              ariaLabel={`Clear max budget filter (up to $${filters.maxBudget})`}
+            >
               ≤ ${filters.maxBudget}
               <button onClick={() => filters.setMaxBudget("")} aria-label={`Clear max budget filter (up to $${filters.maxBudget})`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
-            </span>
+            </SwipeableFilterChip>
           )}
           {filters.expiresWithin && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
+            <SwipeableFilterChip
+              onClear={() => filters.setExpiresWithin("")}
+              ariaLabel={`Clear expiry filter (${filters.expiresWithin})`}
+            >
               {filters.expiresWithin}
               <button onClick={() => filters.setExpiresWithin("")} aria-label={`Clear expiry filter (${filters.expiresWithin})`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
-            </span>
+            </SwipeableFilterChip>
           )}
           {filters.matchAvailability && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
+            <SwipeableFilterChip
+              onClear={() => filters.setMatchAvailability(false)}
+              ariaLabel="Clear availability filter (matching my hours)"
+            >
               <Clock className="w-3 h-3" /> My hours
               <button onClick={() => filters.setMatchAvailability(false)} aria-label="Clear availability filter (matching my hours)" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
-            </span>
+            </SwipeableFilterChip>
           )}
-          {filters.activeFilterCount > 1 && (
+          {filters.activeFilterCount >= 2 && (
             <button
-              onClick={filters.clearFilters}
+              onClick={() => {
+                filters.clearFilters();
+                onClearAllFilters?.();
+              }}
               aria-label={`Clear all ${filters.activeFilterCount} active filters`}
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md text-ds-11 font-semibold btn-press"
               style={{

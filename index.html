@@ -17,6 +17,20 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Helpr" />
 
+    <!--
+      Smart App Banner — Mobile Safari shows a top banner on this domain
+      that deep-links into the installed Helpr iOS app (or to the App
+      Store if not installed) with the path passed as app-argument. This
+      meta is read only by Mobile Safari; every other surface ignores it.
+
+      TODO(handoff): replace the placeholder `app-id=000000000` with the
+      real numeric App Store ID once the app is live on App Store Connect.
+      App Store IDs look like `id1234567890` in store URLs; only the
+      digits go in the meta tag value. The bundle id (com.Helpr) does not
+      work here — Apple requires the numeric "Apple ID" / "App Store ID".
+    -->
+    <meta name="apple-itunes-app" content="app-id=000000000, app-argument=helpr://" />
+
     <!-- Capacitor-only CSP. file:// loads can't receive HTTP headers, so
          the iOS/Android bundle relies on this meta tag. The web build
          strips this entire tag at build time (see `html-strip-meta-csp`

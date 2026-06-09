@@ -1,7 +1,8 @@
+import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ImagePlus, X, Briefcase, Check, Plus } from "lucide-react";
+import { ImagePlus, X, Briefcase, Check, Plus, Search } from "lucide-react";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { SectionCard } from "@/components/postjob/SectionCard";
@@ -36,6 +37,22 @@ const titlePlaceholders: Record<string, string> = {
   pet_care: "e.g. Walk my dog twice a day this week",
   assembly: "e.g. Assemble an IKEA wardrobe",
   other: "e.g. Help me with a quick task",
+};
+
+// Per-category search aliases — common synonyms a poster might type
+// into the filter input. The category label itself is always matched
+// implicitly so this only carries the *additional* terms.
+const categorySearchAliases: Record<string, string[]> = {
+  cleaning: ["clean", "tidy", "housekeep", "maid", "vacuum", "mop", "dust"],
+  yard_work: ["yard", "lawn", "mow", "mowing", "garden", "landscape", "trim", "edge", "leaves", "rake"],
+  moving: ["move", "movers", "haul", "load", "lift", "furniture"],
+  errands: ["errand", "grocery", "shopping", "pickup", "pharmacy", "store"],
+  handyman: ["handy", "repair", "fix", "mount", "drill", "install"],
+  painting: ["paint", "wall", "color", "interior", "exterior", "roller"],
+  delivery: ["deliver", "drop off", "transport", "courier"],
+  pet_care: ["pet", "dog", "cat", "walk", "sit", "feed", "boarding"],
+  assembly: ["assemble", "ikea", "furniture", "build", "put together"],
+  other: ["misc", "other", "miscellaneous", "general"],
 };
 
 // Category-specific description prompts — tells the poster what detail
@@ -83,6 +100,21 @@ export function DetailsSection({
   onRemoveImage,
   detailsComplete,
 }: DetailsSectionProps) {
+  // Filter input for the category grid — speeds selection once the
+  // category list outgrows what fits comfortably in a single screen
+  // height. Matches against the label AND a small alias list so typing
+  // "lawn" hits Yard Work, "ikea" hits Assembly, etc.
+  const [categoryQuery, setCategoryQuery] = useState("");
+  const visibleCategories = useMemo(() => {
+    const q = categoryQuery.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter((c) => {
+      if (c.label.toLowerCase().includes(q)) return true;
+      const aliases = categorySearchAliases[c.value] ?? [];
+      return aliases.some((a) => a.toLowerCase().includes(q));
+    });
+  }, [categoryQuery]);
+
   return (
     <SectionCard
       stepNumber={stepNumber}
@@ -96,6 +128,43 @@ export function DetailsSection({
           posted, which models a good, specific post. */}
       <div className="space-y-2.5">
         <Label>Category <span className="text-destructive">*</span></Label>
+        {/* Filterable picker — search input above the grid. Matches the
+            category label OR a small alias list ("lawn" → Yard Work,
+            "ikea" → Assembly) so posters who don't see their exact
+            category at a glance can still jump to it in one tap. The
+            input is search-styled (role inferred from type="search")
+            so iOS shows the rounded magnifier-decorated keyboard. */}
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
+            style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+            aria-hidden
+          />
+          <Input
+            type="search"
+            value={categoryQuery}
+            onChange={(e) => setCategoryQuery(e.target.value)}
+            placeholder="Search categories"
+            aria-label="Search categories"
+            autoCorrect="off"
+            autoCapitalize="none"
+            className="pl-9 text-[14px]"
+          />
+          {categoryQuery && (
+            <button
+              type="button"
+              onClick={() => setCategoryQuery("")}
+              aria-label="Clear category search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full active:scale-90 transition-transform"
+            >
+              <X
+                className="w-3.5 h-3.5"
+                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                strokeWidth={2.5}
+              />
+            </button>
+          )}
+        </div>
         {/* Compact horizontal chips — icon + label on one row, two
             columns. Cuts the category block from ~4 stacked rows of
             tall cards (~400px) to ~5 short rows (~240px) so the form
@@ -103,7 +172,19 @@ export function DetailsSection({
             Active chip keeps the brand-color ring + adds a check so
             the selection reads instantly. */}
         <div id="category-picker" className="grid grid-cols-2 gap-2">
-          {categories.map((c) => {
+          {visibleCategories.length === 0 && (
+            <div
+              className="col-span-2 px-3 py-3 rounded-xl text-center text-[0.78rem] font-serif italic"
+              style={{
+                color: "hsl(var(--olivewood) / 0.75)",
+                background: "hsl(var(--parchment) / 0.45)",
+                border: "0.5px dashed hsl(var(--olivewood) / 0.25)",
+              }}
+            >
+              No matches — try a broader term, or pick &ldquo;Other&rdquo;.
+            </div>
+          )}
+          {visibleCategories.map((c) => {
             const colors = categoryColors[c.value];
             const active = category === c.value;
             return (

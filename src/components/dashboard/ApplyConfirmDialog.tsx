@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useEffect, type Dispatch, type SetStateAction } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,10 +10,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Paperclip, Trash2 } from "lucide-react";
+import { FileText, Paperclip, Trash2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { hapticMedium } from "@/lib/haptics";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
+import { safeStorage } from "@/lib/safeStorage";
 import type { EnrichedJob } from "@/components/dashboard/types";
+
+/** Mirror ReportDialog's pitch cap so the backend never silently truncates. */
+const MAX_PITCH_LENGTH = 500;
+
+/**
+ * Durable draft of the pitch, so an apply attempted while offline isn't lost.
+ * The `helpr_` prefix is auto-mirrored to Capacitor Preferences (see
+ * safeStorage) — survives a WebKit eviction / force-quit while the user
+ * waits for signal to come back.
+ */
+const PITCH_DRAFT_KEY = "helpr_apply_pitch_draft";
 
 interface ApplyConfirmDialogProps {
   /** Whether the dialog is open — true once a feed job has been picked. */
@@ -56,6 +69,33 @@ export function ApplyConfirmDialog({
   applyLoading,
   handleApplyConfirm,
 }: ApplyConfirmDialogProps) {
+  const { online } = useOnlineStatus();
+  const charsLeft = MAX_PITCH_LENGTH - applyMessage.length;
+
+  // Restore a pitch saved from a prior offline attempt when the dialog
+  // (re)opens with an empty field — so a dropped apply comes back intact.
+  useEffect(() => {
+    if (!open) return;
+    if (applyMessage) return;
+    const saved = safeStorage.getItem(PITCH_DRAFT_KEY);
+    if (saved) setApplyMessage(saved);
+    // Intentionally keyed on `open` only — restore the held pitch once per open.
+  }, [open, applyMessage, setApplyMessage]);
+
+  const handleConfirm = () => {
+    hapticMedium();
+    // Offline: don't let the parent close the dialog and fire a mutation that
+    // rolls back silently. Persist the pitch and keep the dialog up with a
+    // clear retry affordance instead.
+    if (!online) {
+      if (applyMessage) safeStorage.setItem(PITCH_DRAFT_KEY, applyMessage);
+      toast.error("You're offline — we saved your pitch. Try again once you're back online.");
+      return;
+    }
+    safeStorage.removeItem(PITCH_DRAFT_KEY);
+    handleApplyConfirm();
+  };
+
   return (
     <AlertDialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <AlertDialogContent className="!gap-3">
@@ -148,11 +188,24 @@ export function ApplyConfirmDialog({
             <Textarea
               id="apply-message"
               value={applyMessage}
-              onChange={(e) => setApplyMessage(e.target.value)}
+              onChange={(e) => setApplyMessage(e.target.value.slice(0, MAX_PITCH_LENGTH))}
+              maxLength={MAX_PITCH_LENGTH}
               placeholder="Introduce yourself or share relevant experience…"
               rows={3}
               className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
             />
+            <div className="flex justify-end">
+              <span
+                className="tabular-nums text-ds-11"
+                style={{
+                  color: charsLeft < 50
+                    ? "hsl(var(--burnt-sienna))"
+                    : "hsl(var(--muted-foreground))",
+                }}
+              >
+                {charsLeft}
+              </span>
+            </div>
           </div>
           {/* File attachments */}
           <div className="space-y-1.5 mt-2">
@@ -208,6 +261,16 @@ export function ApplyConfirmDialog({
             </div>
           </div>
         </AlertDialogHeader>
+        {!online && (
+          <p
+            className="flex items-center gap-1.5 font-serif italic text-[0.78rem] leading-snug -mt-1"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+            role="status"
+          >
+            <WifiOff className="w-3.5 h-3.5 shrink-0" />
+            You're offline. We'll hold onto your pitch — apply again once you're back online.
+          </p>
+        )}
         <AlertDialogFooter className="!gap-2">
           <AlertDialogCancel
             disabled={applyLoading}
@@ -215,8 +278,12 @@ export function ApplyConfirmDialog({
           >
             Cancel
           </AlertDialogCancel>
+          {/* `type="button"`: when offline we keep the dialog open (don't let
+              AlertDialogAction's default close fire), so the held pitch stays
+              on screen for an immediate retry. */}
           <AlertDialogAction
-            onClick={() => { hapticMedium(); handleApplyConfirm(); }}
+            type="button"
+            onClick={(e) => { if (!online) e.preventDefault(); handleConfirm(); }}
             disabled={applyLoading}
             className="rounded-ds-md"
             style={{
@@ -230,7 +297,7 @@ export function ApplyConfirmDialog({
               boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
             }}
           >
-            {applyLoading ? "Applying…" : "Apply now"}
+            {applyLoading ? "Applying…" : !online ? "Try again" : "Apply now"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

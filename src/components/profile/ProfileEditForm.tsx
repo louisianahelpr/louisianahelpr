@@ -275,20 +275,20 @@ export function ProfileEditForm({
                 Upload trigger moved to a small floating chip at the bottom-
                 right of the avatar so the user always sees their photo. */}
             <div className="relative shrink-0">
-              {/* Squircle (rounded-[22px]) to match the avatar on the
-                  Profile landing hero — a circle here was inconsistent
-                  with the brand's squircle treatment everywhere else. */}
+              {/* Squircle (rounded-[26px]) to match the avatar on the
+                  Profile landing hero exactly — both use the same 26px
+                  curve so the avatar reads identically across pages. */}
               {profile?.avatar_url && !avatarBroken ? (
                 <img
                   loading="lazy"
                   decoding="async"
                   src={profile.avatar_url}
                   alt=""
-                  className="w-20 h-20 rounded-[22px] squircle object-cover border-2 border-primary/20"
+                  className="w-20 h-20 rounded-[26px] squircle object-cover border-2 border-primary/20"
                   onError={() => setAvatarBroken(true)}
                 />
               ) : (
-                <div className="w-20 h-20 rounded-[22px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
+                <div className="w-20 h-20 rounded-[26px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
                   {initials}
                 </div>
               )}
@@ -345,7 +345,7 @@ export function ProfileEditForm({
             <div>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
               <div className="relative">
-                <Input id="phone" type="tel" autoComplete="tel" enterKeyHint="next" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
+                <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
                 {phoneValid && (
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                 )}

@@ -30,7 +30,12 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/signup",
   "/signup-pending",
   "/complete-profile",
-  "/account-pending",
+  // NOTE: /account-pending deliberately stays OFF this list. AccountPending
+  // renders via AppShell — its content is a single fixed-height centered
+  // card (`flex items-center justify-center`), not long-form scrolling
+  // onboarding. AppShell's internal scroll handles the rare overflow case,
+  // and html-locking it keeps the page's shell choice and this list in
+  // agreement (a mismatch lets html overscroll bleed into AppShell).
   "/account-denied",
   "/account-banned",
   "/forgot-password",

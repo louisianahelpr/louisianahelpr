@@ -189,11 +189,11 @@ export function BrowseTasksToolbar({
                 variant="ghost"
                 size="icon"
                 onClick={() => setView(view === "map" ? "list" : "map")}
-                className={`h-8 w-8 rounded-ds-md btn-press ${view === "map" ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]" : "text-muted-foreground hover:text-foreground"}`}
+                className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${view === "map" ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]" : "text-muted-foreground hover:text-foreground"}`}
                 aria-label={view === "map" ? "Show list view" : "Show map view"}
                 aria-pressed={view === "map"}
               >
-                {view === "map" ? <List className="w-4 h-4" /> : <MapIcon className="w-4 h-4" />}
+                {view === "map" ? <List className="w-5 h-5" /> : <MapIcon className="w-5 h-5" />}
               </Button>
               {user && (
                 <SavedSearches
@@ -214,21 +214,21 @@ export function BrowseTasksToolbar({
                 variant="ghost"
                 size="icon"
                 onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
-                className={`h-8 w-8 rounded-ds-md btn-press ${filters.searchOpen || filters.searchQuery ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]" : "text-muted-foreground hover:text-foreground"}`}
+                className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.searchOpen || filters.searchQuery ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]" : "text-muted-foreground hover:text-foreground"}`}
                 aria-label="Search jobs"
                 aria-expanded={filters.searchOpen}
               >
-                <Search className="w-4 h-4" />
+                <Search className="w-5 h-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
-                className={`h-8 w-8 rounded-ds-md btn-press relative ${filters.filtersOpen || filters.activeFilterCount > 0 ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]" : "text-muted-foreground hover:text-foreground"}`}
+                className={`h-10 w-10 rounded-ds-md btn-press relative focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.filtersOpen || filters.activeFilterCount > 0 ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]" : "text-muted-foreground hover:text-foreground"}`}
                 aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
                 aria-expanded={filters.filtersOpen}
               >
-                <SlidersHorizontal className="w-4 h-4" />
+                <SlidersHorizontal className="w-5 h-5" />
                 {filters.activeFilterCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
                     {filters.activeFilterCount}
@@ -274,7 +274,11 @@ export function BrowseTasksToolbar({
             <div className="relative px-4 py-3">
               <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
+                type="search"
                 placeholder="Search tasks…"
+                enterKeyHint="search"
+                inputMode="search"
+                autoComplete="off"
                 value={filters.searchQuery}
                 onChange={(e) => filters.setSearchQuery(e.target.value)}
                 onFocus={() => {

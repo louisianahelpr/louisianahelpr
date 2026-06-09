@@ -72,4 +72,10 @@ export type Conversation = {
       ("snoozed"). Used to render "Muted for 8h" copy and to flip
       `isMuted` back to false once the snooze expires locally. */
   muteUntil?: string | null;
+  /** ISO timestamp of the other user's most recent login (from the
+      `get_user_last_active` RPC). Drives a quiet "Active now" / "Active
+      2h ago" inline label on the conversation row so a poster can
+      gauge how likely a helpr is to reply soon. Absent when the RPC is
+      undeployed (PGRST202) or older than the 7-day staleness cutoff. */
+  otherUserLastActiveAt?: string | null;
 };

@@ -159,6 +159,26 @@ const ConversationRowBase = ({
   const previewBody = lastIsImage
     ? "Photo"
     : (c.lastMessage || "—");
+
+  // Compact last-active label — quiet trust signal that lets a poster
+  // gauge how likely a helpr is to reply soon. Returns null beyond
+  // 7 days (the presence signal degrades from "fresh" to "stale" and
+  // we'd rather hide than mislead). Pulled from the batched
+  // `get_user_last_active` RPC in `loadConversations`.
+  const lastActiveLabel = (() => {
+    if (!c.otherUserLastActiveAt) return null;
+    const at = new Date(c.otherUserLastActiveAt);
+    const ms = Date.now() - at.getTime();
+    if (!Number.isFinite(ms) || ms < 0) return null;
+    const m = Math.floor(ms / 60_000);
+    if (m < 10) return { text: "Active now", isLive: true };
+    if (m < 60) return { text: `${m}m ago`, isLive: false };
+    const h = Math.floor(m / 60);
+    if (h < 24) return { text: `${h}h ago`, isLive: false };
+    const d = Math.floor(h / 24);
+    if (d <= 7) return { text: `${d}d ago`, isLive: false };
+    return null;
+  })();
   return (
     <div
       className="w-full text-left p-3 rounded-ds-md liquid-glass hover:shadow-md transition-shadow flex items-center gap-2.5"
@@ -226,6 +246,39 @@ const ConversationRowBase = ({
                   style={{ color: "hsl(var(--olivewood) / 0.55)" }}
                   aria-label="Muted"
                 />
+              )}
+              {/* Last-active pill — quiet trust signal so a poster knows
+                  whether the helpr is online right now. Live presence
+                  ("Active now") flips the dot to sage-green; older labels
+                  drop the dot and read as a muted timestamp. Hidden
+                  beyond 7d so a stale signal can't masquerade as live. */}
+              {lastActiveLabel && (
+                <span
+                  aria-label={`Last active ${lastActiveLabel.text}`}
+                  className="inline-flex items-center gap-1 shrink-0"
+                >
+                  {lastActiveLabel.isLive && (
+                    <span
+                      aria-hidden="true"
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{
+                        background: "hsl(155 60% 40%)",
+                        boxShadow: "0 0 4px hsl(155 60% 40% / 0.55)",
+                      }}
+                    />
+                  )}
+                  <span
+                    className="text-[0.62rem] font-serif italic"
+                    style={{
+                      color: lastActiveLabel.isLive
+                        ? "hsl(155 35% 30%)"
+                        : "hsl(var(--olivewood) / 0.55)",
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    {lastActiveLabel.text}
+                  </span>
+                </span>
               )}
             </div>
             {/* iMessage-style rich preview row. The image thumbnail (when

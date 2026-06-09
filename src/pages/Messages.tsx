@@ -189,12 +189,30 @@ const Messages = () => {
       jobId: v.jobId,
       otherUserId: v.otherUserId,
     }));
-    const [profilesRes, jobsRes, thumbUrlMap, mutedMap] = await Promise.all([
+    // Bulk last-active lookup runs alongside the other inbox RPCs so
+    // every row's "Active now" / "Active 2h ago" pill is resolved in a
+    // single round-trip instead of N. The RPC was shipped in
+    // `20260609090000_user_last_active_rpc.sql` (handoff item #28); we
+    // degrade silently when the function isn't deployed (PGRST202).
+    const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes] = await Promise.all([
       supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
       supabase.from("jobs").select("id, title, status, customer_id").in("id", jobIds),
       getMessageAttachmentSignedUrls(imageThumbPaths),
       getMutedThreadMap(uid, mutePairs),
+      (supabase.rpc as any)("get_user_last_active", { user_ids: otherIds }),
     ]);
+    const lastActiveMap = new Map<string, string>();
+    if (
+      lastActiveRes &&
+      !lastActiveRes.error &&
+      Array.isArray(lastActiveRes.data)
+    ) {
+      for (const row of lastActiveRes.data as Array<{ user_id: string; last_active_at: string }>) {
+        if (row?.user_id && row?.last_active_at) {
+          lastActiveMap.set(row.user_id, row.last_active_at);
+        }
+      }
+    }
 
     // If we asked for image thumbs but some paths didn't resolve, the
     // inbox degrades to text-only for those rows. Surface a one-time,
@@ -248,6 +266,10 @@ const Messages = () => {
       isMuted: mutedMap.has(threadMuteKey(v.jobId, v.otherUserId)),
       muteUntil:
         mutedMap.get(threadMuteKey(v.jobId, v.otherUserId))?.until ?? null,
+      // Pre-resolved last-active ISO timestamp from the batched RPC
+      // above. The row renders "Active now" / "Active 2h ago" / hides
+      // beyond 7d so a stale signal never masquerades as live presence.
+      otherUserLastActiveAt: lastActiveMap.get(v.otherUserId) ?? null,
     };
     });
 

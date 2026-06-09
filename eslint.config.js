@@ -9,7 +9,9 @@ export default tseslint.config(
   // without this, `eslint .` lints a duplicate of the whole codebase per
   // worktree (slow) and reports `supabase/functions` errors the top-level
   // ignore can't match through the nested path.
-  { ignores: ["dist", "build", "**/build/**", ".claude/**", "supabase/functions/**", "playwright-fixture.ts", "playwright.config.ts"] },
+  // `ios/**` excludes Xcode build products (build_sim/, DerivedData/) whose
+  // bundled Capacitor native-bridge.js otherwise reds `eslint .` locally.
+  { ignores: ["dist", "build", "**/build/**", "ios/**", ".claude/**", "supabase/functions/**", "playwright-fixture.ts", "playwright.config.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

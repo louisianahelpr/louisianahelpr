@@ -1,4 +1,4 @@
-import { useState, useMemo, createContext, useContext, Children, isValidElement, type ReactNode } from "react";
+import { useState, useMemo, useEffect, createContext, useContext, Children, isValidElement, type ReactNode } from "react";
 import { ChevronDown, type LucideIcon } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -126,14 +126,42 @@ interface PolicySectionProps {
   subtitle: string;
   warning?: boolean;
   defaultOpen?: boolean;
+  /** Anchor slug used for deep-links (e.g. `/legal?tab=privacy#data-retention`).
+   *  When the URL hash matches this slug, the section auto-expands and the
+   *  page scrolls it into view. Rendered as the section's DOM `id` so
+   *  browser hash navigation works without extra JS. */
+  anchorId?: string;
   children: ReactNode;
 }
 
-export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpen = false, children }: PolicySectionProps) => {
+export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpen = false, anchorId, children }: PolicySectionProps) => {
   const query = useContext(PolicySearchContext);
   const tabLabel = useContext(PolicyTabContext);
   const isSearching = !!query.trim();
   const [open, setOpen] = useState(defaultOpen);
+
+  // Auto-open + scroll into view when the page URL hash targets this
+  // section. We listen to hashchange so an in-page anchor link tap from
+  // another section also triggers the expand. The 1-frame delay lets the
+  // Collapsible finish its open animation before we scroll, so the final
+  // position lands the heading at the top of the viewport rather than
+  // mid-animation.
+  useEffect(() => {
+    if (!anchorId) return;
+    const checkHash = () => {
+      const hash = (typeof window !== "undefined" ? window.location.hash : "").replace(/^#/, "");
+      if (hash && hash === anchorId) {
+        setOpen(true);
+        requestAnimationFrame(() => {
+          const el = document.getElementById(anchorId);
+          el?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    };
+    checkHash();
+    window.addEventListener("hashchange", checkHash);
+    return () => window.removeEventListener("hashchange", checkHash);
+  }, [anchorId]);
 
   // A section is "hit" when its own title/subtitle match, OR when at
   // least one PolicyRowItem child matches (the section is the gateway
@@ -164,7 +192,8 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
           chip in the header, so all cards on the page read as one set. */}
       <div
         data-policy-section
-        className="rounded-2xl border border-border bg-card squircle overflow-hidden transition-colors"
+        id={anchorId}
+        className="rounded-2xl border border-border bg-card squircle overflow-hidden transition-colors scroll-mt-24"
         style={{
           // Soft lift matching the TLDR summary card so every surface on the
           // page reads as one lifted material rather than flat-white rows

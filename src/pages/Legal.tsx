@@ -5,7 +5,7 @@ import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
   Receipt, Database, Eye, Lock, Trash2, Cookie, FileText, Users, Crown,
   Wallet, Building2, Siren, ListChecks, Briefcase, Handshake,
-  ShieldAlert, ShieldCheck, Search, X, type LucideIcon,
+  ShieldAlert, ShieldCheck, Search, X, Sparkles, type LucideIcon,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import AppShell from "@/components/AppShell";
@@ -48,9 +48,53 @@ const PAGE_CANONICALS: Record<TabKey, string> = {
 // implying all three changed together — bump only the tab you actually
 // edited.
 const LAST_UPDATED: Record<TabKey, string> = {
-  terms: "Mar 2026",
-  community: "Mar 2026",
-  privacy: "Mar 2026",
+  terms: "Jun 2026",
+  community: "Jun 2026",
+  privacy: "Jun 2026",
+};
+
+// Machine-readable revision date per tab (ISO YYYY-MM-DD), used to compare
+// against the user's locally-stored acknowledgment timestamp so we can show
+// a "What changed" banner if the policy moved forward since they last
+// agreed. Bump alongside LAST_UPDATED whenever a tab's wording shifts.
+const LAST_UPDATED_ISO: Record<TabKey, string> = {
+  terms: "2026-06-09",
+  community: "2026-06-09",
+  privacy: "2026-06-09",
+};
+
+// Short editorial blurb of what changed in this revision, shown inside the
+// "What changed" banner. Keep it user-readable: 1–2 sentences per tab.
+const WHATS_NEW: Record<TabKey, string> = {
+  terms: "Clarified onboarding fee timing, escrow auto-release, and Stripe Identity coverage.",
+  community: "Tightened cancellation windows, refined the revision-→-dispute flow, and updated 2026 tax thresholds.",
+  privacy: "Expanded self-service data deletion + export, and clarified what other users can see.",
+};
+
+// localStorage key for the per-tab acknowledgment timestamps. Stored as a
+// JSON map { terms: ISO, community: ISO, privacy: ISO } so we don't need
+// three independent keys. Pre-existing accounts that never acknowledged
+// (i.e. no entry) fall through to "show banner" — same as a stale ack.
+const LEGAL_ACK_KEY = "helpr.legal_acknowledged_at.v1";
+
+type LegalAckMap = Partial<Record<TabKey, string>>;
+
+const readLegalAck = (): LegalAckMap => {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(LEGAL_ACK_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as LegalAckMap;
+  } catch {
+    return {};
+  }
+};
+
+const writeLegalAck = (next: LegalAckMap) => {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(LEGAL_ACK_KEY, JSON.stringify(next)); } catch { /* ignore quota */ }
 };
 
 // Short editorial line shown under the tab strip so each policy view
@@ -154,6 +198,7 @@ const TermsContent = () => (
       icon={Building2}
       title="Eligibility & accounts"
       subtitle="Who can use Helpr and how accounts work"
+      anchorId="eligibility"
     >
       <PolicyRowItem
         icon={FileText}
@@ -194,6 +239,7 @@ const TermsContent = () => (
       icon={Wallet}
       title="Payment, escrow & fees"
       subtitle="How money moves on the platform"
+      anchorId="payment-escrow-fees"
     >
       <PolicyRowItem
         icon={DollarSign}
@@ -257,6 +303,7 @@ const TermsContent = () => (
       icon={Crown}
       title="Subscription tiers"
       subtitle="Basic, Pro, and Elite plans"
+      anchorId="subscription-tiers"
     >
       <PolicyRowItem
         icon={Crown}
@@ -276,6 +323,7 @@ const TermsContent = () => (
       icon={Receipt}
       title="Tax responsibilities"
       subtitle="Platform, posters, and helprs"
+      anchorId="tax-responsibilities"
     >
       <PolicyRowItem
         icon={Receipt}
@@ -346,6 +394,7 @@ const CommunityContent = () => (
       icon={Briefcase}
       title="Posting & accepting jobs"
       subtitle="Setting up the work — limits, edits, and what's locked"
+      anchorId="posting-accepting"
     >
       <PolicyRowItem
         icon={DollarSign}
@@ -386,6 +435,7 @@ const CommunityContent = () => (
       icon={Handshake}
       title="What you owe each other"
       subtitle="Cancel windows, response times, and showing up"
+      anchorId="cancellations"
     >
       <PolicyRowItem
         icon={CheckCircle}
@@ -425,6 +475,7 @@ const CommunityContent = () => (
       icon={Wallet}
       title="Getting paid — releasing escrow"
       subtitle="How completion turns into a payout"
+      anchorId="escrow-release"
     >
       <PolicyRowItem
         icon={CheckCircle}
@@ -456,6 +507,7 @@ const CommunityContent = () => (
       title="When something goes wrong"
       subtitle="Revisions → disputes → admin (must follow in order)"
       warning
+      anchorId="disputes"
     >
       <PolicyRowItem
         icon={Clock}
@@ -512,6 +564,7 @@ const CommunityContent = () => (
       title="When trust breaks — strikes & bans"
       subtitle="Escalating consequences for bad behavior"
       warning
+      anchorId="strikes-bans"
     >
       <PolicyRowItem
         icon={AlertTriangle}
@@ -581,6 +634,7 @@ const CommunityContent = () => (
       icon={Receipt}
       title="Money & taxes"
       subtitle="Federal & Louisiana state obligations"
+      anchorId="money-taxes"
     >
       <PolicyRowItem
         icon={Receipt}
@@ -690,6 +744,7 @@ const PrivacyContent = () => (
       icon={Database}
       title="Information we collect"
       subtitle="Account, ID, location, payments, and messages"
+      anchorId="information-collected"
     >
       <PolicyRowItem
         icon={Database}
@@ -727,6 +782,7 @@ const PrivacyContent = () => (
       icon={Eye}
       title="How we use your information"
       subtitle="Service delivery, safety, and improvement"
+      anchorId="how-we-use"
     >
       <PolicyRowItem
         icon={Eye}
@@ -754,6 +810,7 @@ const PrivacyContent = () => (
       icon={Shield}
       title="Information sharing"
       subtitle="Who we share with — and what we never share"
+      anchorId="information-sharing"
     >
       <PolicyRowItem
         icon={Users}
@@ -781,6 +838,7 @@ const PrivacyContent = () => (
       icon={Lock}
       title="Data security"
       subtitle="Encryption, access control, and storage"
+      anchorId="data-security"
     >
       <PolicyRowItem
         icon={Lock}
@@ -799,6 +857,7 @@ const PrivacyContent = () => (
       icon={Trash2}
       title="Your rights"
       subtitle="Access, correction, deletion, and portability"
+      anchorId="data-retention"
     >
       <PolicyRowItem
         icon={Eye}
@@ -826,6 +885,7 @@ const PrivacyContent = () => (
       icon={Cookie}
       title="Cookies & tracking"
       subtitle="Essential and analytics cookies"
+      anchorId="cookies-tracking"
     >
       <PolicyRowItem
         icon={Cookie}
@@ -874,6 +934,26 @@ const Legal = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasResults, setHasResults] = useState(true);
   const isSearching = !!query.trim();
+
+  // Per-tab acknowledgment timestamps (ISO date strings). Compared against
+  // LAST_UPDATED_ISO to decide whether to show the "What changed" banner.
+  // We rehydrate from localStorage on mount, then update in place when the
+  // user dismisses the banner.
+  const [ackMap, setAckMap] = useState<LegalAckMap>({});
+  useEffect(() => { setAckMap(readLegalAck()); }, []);
+  const userAck = ackMap[tab];
+  const tabUpdatedAt = LAST_UPDATED_ISO[tab];
+  // Show banner only if (a) we've rehydrated and have NO ack for this tab
+  // (treat as never-seen, show banner) OR (b) the user's stored ack is
+  // older than the policy's last-updated date. Don't show it while a
+  // search is active (it's editorial chrome, not a result).
+  const showWhatsNewBanner = !isSearching && (!userAck || userAck < tabUpdatedAt);
+
+  const acknowledgeTab = () => {
+    const next: LegalAckMap = { ...ackMap, [tab]: tabUpdatedAt };
+    setAckMap(next);
+    writeLegalAck(next);
+  };
 
   // Users who ask the OS to reduce motion get the pill snapped into place
   // rather than spring-sliding between tabs.
@@ -930,7 +1010,7 @@ const Legal = () => {
   // and unauthenticated visitors from the signup agreement checkbox.
   const headerRow = (
     <div className="flex items-start gap-3">
-      <BackButton />
+      <div data-print-hide><BackButton /></div>
       <div className="flex flex-col leading-none min-w-0 flex-1">
         <span
           className="font-serif italic uppercase text-[0.62rem]"
@@ -957,6 +1037,7 @@ const Legal = () => {
 
   const tabBar = (
     <TabsList
+      data-print-hide
       className="grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto"
       style={{
         background: "hsl(var(--bark) / 0.06)",
@@ -1001,7 +1082,7 @@ const Legal = () => {
   );
 
   const searchBar = (
-    <div className="relative">
+    <div className="relative" data-print-hide>
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
         style={{ color: "hsl(var(--olivewood) / 0.5)" }}
@@ -1053,6 +1134,53 @@ const Legal = () => {
       {TAB_TAGLINES[tab]}
     </p>
   );
+
+  // "What changed" banner — surfaces when the active tab's policy was
+  // updated more recently than the user's stored acknowledgment (or they
+  // never acknowledged). Designed as a warm yellow editorial chip rather
+  // than a hard alert: this is informational, not blocking. Dismissing it
+  // records the current LAST_UPDATED_ISO so the banner stays hidden until
+  // the next revision moves the date forward.
+  const whatsNewBanner = showWhatsNewBanner ? (
+    <div
+      data-print-hide
+      className="rounded-2xl p-3.5 flex items-start gap-3"
+      style={{
+        background: "hsl(46 85% 92%)",
+        border: "1px solid hsl(38 60% 70%)",
+        boxShadow:
+          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+          "0 4px 10px -4px hsl(38 50% 40% / 0.20)",
+      }}
+    >
+      <span
+        className="shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center"
+        style={{ background: "hsl(38 70% 80%)", color: "hsl(28 70% 30%)" }}
+      >
+        <Sparkles className="w-4 h-4" strokeWidth={2.25} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p
+          className="font-display font-bold leading-tight text-ds-13"
+          style={{ color: "hsl(28 60% 22%)" }}
+        >
+          What changed in this update
+        </p>
+        <p className="mt-1 font-sans text-ds-11 leading-snug" style={{ color: "hsl(28 30% 30%)" }}>
+          {WHATS_NEW[tab]}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={acknowledgeTab}
+        aria-label="Dismiss what-changed notice"
+        className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full btn-press hover:bg-black/5"
+        style={{ color: "hsl(28 40% 28%)" }}
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  ) : null;
   const panels = (
     <>
       <TabsContent value="terms" className="mt-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
@@ -1091,6 +1219,7 @@ const Legal = () => {
         ) : (
           <>
             {tagline}
+            {whatsNewBanner}
             {panels}
           </>
         )}

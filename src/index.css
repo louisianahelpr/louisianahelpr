@@ -1472,3 +1472,142 @@ button,
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+   PRINT STYLESHEET
+   Mostly drives the /legal page (users save Terms / Privacy / Community
+   as PDFs for personal records, dispute filings, and tax/legal use), but
+   the rules are global so any page that uses standard chrome (nav, FAB,
+   floating dock) prints cleanly.
+
+   Strategy:
+     1) Hide app chrome — top nav, bottom nav, FAB, modals, buttons that
+        only make sense interactively (BackButton, search bar, tab bar,
+        dismiss buttons). Anything tagged with [data-print-hide] is
+        treated as chrome.
+     2) Disable AppShell's 100dvh viewport lock + internal-scroll
+        clipping so the document flows naturally onto print pages
+        instead of being trapped inside a fixed-height window.
+     3) Force-open all collapsibles so every PolicyRowItem body prints.
+     4) Drop animation, switch to high-contrast black-on-white, set a
+        legible serif body for letterheads, and let headings repeat at
+        the top of each page via page-break hints.
+   ────────────────────────────────────────────────────────────────────── */
+@media print {
+  /* — 1) Hide chrome — */
+  nav,
+  header[role="banner"],
+  [data-print-hide],
+  .app-bottom-nav,
+  .bottom-nav,
+  [data-bottom-nav],
+  [data-fab],
+  [data-floating-dock],
+  [data-app-shell-header],
+  [data-back-button],
+  [data-tab-bar],
+  [data-search-bar],
+  [data-toast-region],
+  [role="dialog"],
+  [role="alertdialog"],
+  [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+
+  /* — 2) Let the document flow. AppShell's fixed-viewport + internal
+       scroll container would otherwise clip everything below the first
+       viewport when printing. Force full-width content, no overflow
+       clip, no min/max height. — */
+  html,
+  body,
+  #root,
+  main,
+  .app-shell-viewport,
+  [data-app-shell],
+  [data-app-shell-scroll] {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* The Legal page sets its container to max-w-2xl mx-auto; that's fine
+     for print too, but we want it to use the full printable width so
+     paragraphs aren't squeezed into a half-page column on letter paper. */
+  main > div,
+  [data-app-shell-content] > div {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* — 3) Force every Radix Collapsible open so policy row bodies print.
+       Without this, the closed accordion rows print as a one-line label
+       and the actual policy text is invisible on paper. — */
+  [data-state="closed"] {
+    display: block !important;
+  }
+  [data-radix-collapsible-content],
+  [data-radix-collapsible-content][hidden],
+  [data-radix-collapsible-content][data-state="closed"] {
+    display: block !important;
+    height: auto !important;
+    animation: none !important;
+    visibility: visible !important;
+  }
+
+  /* Hide the chevrons — they're affordances for tap-to-expand, which
+     doesn't apply on paper. */
+  [data-radix-collapsible-trigger] svg,
+  button[aria-expanded] svg {
+    display: none !important;
+  }
+
+  /* — 4) Typography reset for high-contrast paper output. — */
+  * {
+    color: black !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    border-color: #999 !important;
+  }
+  body {
+    font-family: Georgia, "Times New Roman", serif !important;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    color: black !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  /* Don't split a section card across pages if possible. */
+  [data-policy-section] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border: 1px solid #999 !important;
+    border-left: 3px solid #444 !important;
+    margin-bottom: 0.4rem !important;
+  }
+  /* Show the full URL after every hyperlink so printed pages remain
+     useful when read offline. */
+  a[href^="http"]::after,
+  a[href^="/"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #444 !important;
+  }
+  /* But not for in-page anchor links — the (#data-retention) noise
+     would clutter every cross-reference. */
+  a[href^="#"]::after {
+    content: "";
+  }
+
+  /* Add a small print-only footer so the saved PDF is self-identifying. */
+  @page {
+    margin: 0.6in;
+  }
+}
+

@@ -77,20 +77,27 @@ const SwipeableJobCard = ({
 
   return (
     <div ref={containerRef} className="relative overflow-hidden rounded-2xl">
+      {/* "Just in" freshness pill — surfaces on jobs posted in the last
+          30 min so browsing helprs see the feed is live, not stale.
+          Positioned top-left (offset past the category tab) so it never
+          overlaps the price chip in the top-right corner.
+          pointer-events-none since SwipeableJobCard owns the drag gesture. */}
       {isJustIn && (
         <span
           aria-label="Just posted"
-          className="absolute top-3 right-3 z-20 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full pointer-events-none"
+          className="absolute top-2 left-20 z-20 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full pointer-events-none"
           style={{
-            background: "hsl(var(--burnt-sienna) / 0.12)",
-            border: "0.5px solid hsl(var(--burnt-sienna) / 0.3)",
+            background: "hsl(var(--burnt-sienna) / 0.10)",
+            border: "0.5px solid hsl(var(--burnt-sienna) / 0.28)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
           }}
         >
           <span
             className="w-1.5 h-1.5 rounded-full animate-pulse"
             style={{
               background: "hsl(var(--burnt-sienna))",
-              boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.6)",
+              boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.55)",
             }}
             aria-hidden
           />

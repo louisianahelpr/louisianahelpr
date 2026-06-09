@@ -379,7 +379,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 <Wallet className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                   Balance
                 </p>
                 <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
@@ -400,7 +400,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                   <Wallet className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <p className="font-serif italic uppercase flex items-center gap-1.5" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                  <p className="font-serif italic uppercase flex items-center gap-1.5" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                     Balance <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary not-italic" style={{ letterSpacing: "0.05em" }}>LIVE</span>
                   </p>
                   <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
@@ -525,7 +525,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <div className="pt-2">
             <div className="flex items-center justify-between gap-2 mb-2">
               <div>
-                <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                   Ledger
                 </p>
                 <h3 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
@@ -593,7 +593,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 t.status === "paid" ? "bg-primary/10 text-primary"
                 : t.status === "failed" ? "bg-destructive/10 text-destructive"
                 : t.status === "reversed" ? "bg-muted text-muted-foreground"
-                : "bg-accent/20 text-accent-foreground"; // pending
+                : "bg-accent/20 text-accent"; // pending
               return (
                 <div key={t.id} className="rounded-ds-md liquid-glass p-3.5">
                   <div className="flex items-start justify-between gap-3">

@@ -6,6 +6,7 @@ import { Navigation, MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, Sh
 import { toast } from "sonner";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
+import { report } from "@/lib/errorLogger";
 
 const STATUSES = [
   { key: "assigned", label: "Offered", icon: Clock, color: "text-muted-foreground" },
@@ -173,7 +174,8 @@ export function JobTracking({
         setUpdating(false);
         return;
       }
-      const { data: job } = await supabase.from("jobs").select("latitude, longitude").eq("id", jobId).single();
+      const { data: job, error: jobErr } = await supabase.from("jobs").select("latitude, longitude").eq("id", jobId).single();
+      if (jobErr) report(jobErr, { tags: { source: "JobTracking.arrivedProximity" } });
       if (job?.latitude && job?.longitude) {
         const dist = getDistanceFt(loc.lat, loc.lng, Number(job.latitude), Number(job.longitude));
         if (dist > 500) {
@@ -194,31 +196,37 @@ export function JobTracking({
       updated_at: now,
     });
 
-    if (tracking && tracking.id !== "temp") {
-      await supabase
-        .from("job_tracking")
-        .update({
+    const { error: writeErr } = tracking && tracking.id !== "temp"
+      ? await supabase
+          .from("job_tracking")
+          .update({
+            status: newStatus,
+            latitude: loc?.lat || null,
+            longitude: loc?.lng || null,
+            updated_at: now,
+          })
+          .eq("id", tracking.id)
+      : await supabase.from("job_tracking").insert({
+          job_id: jobId,
+          helper_id: helperId,
           status: newStatus,
           latitude: loc?.lat || null,
           longitude: loc?.lng || null,
-          updated_at: now,
-        })
-        .eq("id", tracking.id);
-    } else {
-      await supabase.from("job_tracking").insert({
-        job_id: jobId,
-        helper_id: helperId,
-        status: newStatus,
-        latitude: loc?.lat || null,
-        longitude: loc?.lng || null,
-      });
+        });
+    if (writeErr) {
+      report(writeErr, { tags: { source: "JobTracking.updateStatus" } });
+      toast.error("Couldn't update status. Please try again.");
+      setUpdating(false);
+      loadTracking();
+      return;
     }
 
     // Auto-transition job status
     if (newStatus === "done") {
       await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId);
     } else if (["on_the_way", "arrived", "working"].includes(newStatus)) {
-      const { data: job } = await supabase.from("jobs").select("status").eq("id", jobId).single();
+      const { data: job, error: statusErr } = await supabase.from("jobs").select("status").eq("id", jobId).single();
+      if (statusErr) report(statusErr, { tags: { source: "JobTracking.autoTransition" } });
       if (job && job.status === "accepted") {
         await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
       }
@@ -232,7 +240,8 @@ export function JobTracking({
 
     // Send notification to poster
     if (isHelper) {
-      const { data: job } = await supabase.from("jobs").select("title, customer_id").eq("id", jobId).single();
+      const { data: job, error: notifyErr } = await supabase.from("jobs").select("title, customer_id").eq("id", jobId).single();
+      if (notifyErr) report(notifyErr, { tags: { source: "JobTracking.notifyPoster" } });
       if (job?.customer_id) {
         const statusLabel = STATUSES.find(s => s.key === newStatus)?.label || newStatus;
         const { createNotification } = await import("@/lib/notifications");

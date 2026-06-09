@@ -70,6 +70,7 @@ export function BudgetSection({
           className="text-[15px] font-medium"
           required
           aria-label="Job budget in dollars"
+          enterKeyHint="done"
         />
         {/* Smart Pricing Guidance — while the RPC is in flight show a
             quiet skeleton so the hint doesn't pop in jarringly; the form
@@ -202,7 +203,7 @@ export function BudgetSection({
                 <Input
                   id="custom-urgent-fee"
                   type="number"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   min="5"
                   step="1"
                   value={urgentFee}

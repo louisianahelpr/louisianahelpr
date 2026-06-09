@@ -229,28 +229,38 @@ const DashboardGuest = () => {
     <PageScaffold
       maxWidth="narrow"
       animate
-      titleCardClassName="!py-3 lg:!py-3.5"
       header={
         /* Header — matches DashboardHeader's frosted-glass treatment, with
            guest-only Log in / Sign up actions in place of the menu/notif/etc. */
         <header className="glass-header sticky top-0 z-50 shrink-0">
         <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
           <HelprMark to="/" size="md" />
-          <div className="flex items-center gap-2">
+          {/* Both header actions are deliberately un-filled so the only
+              solid-green element on the guest dashboard is the bottom "+"
+              FAB (the app-wide primary action, which gates guests to signup
+              anyway). Log in is a plain text link; Sign up is a quiet
+              bark-tinted outline pill — clearly the CTA of the two, without
+              competing with the FAB as a second filled-green target. */}
+          <div className="flex items-center gap-1">
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
               onClick={() => navigate("/login")}
               className="text-ds-11 h-11 rounded-ds-md font-sans font-semibold"
-              style={{ color: "hsl(var(--ink-deep))" }}
+              style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
             >
               Log in
             </Button>
             <Button
-              variant="bark"
+              variant="outline"
               size="sm"
               onClick={() => navigate("/signup")}
-              className="text-ds-11 h-11 rounded-ds-md"
+              className="text-ds-11 h-11 rounded-ds-md font-sans font-semibold"
+              style={{
+                color: "hsl(var(--bark))",
+                borderColor: "hsl(var(--bark) / 0.45)",
+                background: "hsl(var(--bark) / 0.05)",
+              }}
             >
               Sign up
             </Button>
@@ -258,78 +268,39 @@ const DashboardGuest = () => {
         </div>
       </header>
       }
-      titleCard={
-        // Compact hero strip — a single inline headline. The in-card
-        // "Sign up free" CTA and "Already on Helpr? Log in" link were
-        // removed 2026-05-19 because the page header (rendered above)
-        // already shows both `Log in` and `Sign up` buttons in the corner.
-        // Duplicating them here doubled the card's height and dominated
-        // the guest dashboard without adding any new conversion path.
-        //
-        // The "A first look" eyebrow and the "Post a task in a minute…"
-        // subline were dropped 2026-05-20 (TestFlight 19 feedback: "the
-        // top bar that says like need help is still too big"). The
-        // subline was redundant with the browse feed rendered directly
-        // below the card; the eyebrow consumed a full line for no real
-        // signal. If A/B testing later shows the corner CTAs are missed
-        // by guest users, reintroduce a single inline link rather than
-        // the full bark Button + secondary text-link stack.
-        <div className="min-w-0">
-          <h1
-            className="leading-[1.12]"
-            style={{
-              fontFamily: '"Bodoni Moda", Georgia, serif',
-              fontStyle: "italic",
-              fontWeight: 600,
-              fontSize: "clamp(0.95rem, 0.8vw + 0.35rem, 1.05rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.022em",
-            }}
-          >
-            Need help, or want to{" "}
-            <em
-              className="signature"
-              style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}
-            >
-              earn
-            </em>
-            ?
-          </h1>
-        </div>
-      }
     >
             {/* Payout ticker (#87) — thin social-proof strip above the
                 Browse Tasks header. Hides itself silently when there's
                 no recent payout data or the public RPC isn't deployed
                 yet, so a quiet platform shows zero visual weight here
                 instead of an empty placeholder strip. */}
-            <div className="shrink-0 px-4 pt-2.5">
+            <div className="shrink-0 px-4 pt-1 empty:pt-0">
               <Suspense fallback={null}>
                 <PayoutTicker />
               </Suspense>
             </div>
 
             {/* Header row — title block + view toggle + search button.
-                Padding tightened (py-2.5) so the hero → "Browse Tasks" →
-                feed cadence reads as one continuous rhythm, not three
-                loosely-stacked blocks. */}
+                Top padding trimmed so the hero card and this "Browse Tasks"
+                block read as one tight unit (the empty payout-ticker wrapper
+                above collapses via `empty:pt-0` when no payout data shows). */}
             <div
-              className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5"
+              className="shrink-0 flex items-center justify-between gap-3 px-4 pt-1.5 pb-2.5"
               style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
               <div className="flex flex-col leading-none min-w-0">
                 <span
-                  className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
+                  className="font-serif italic tracking-[0.16em] uppercase text-ds-10"
                   style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
                   {hasFilters
                     ? `Filtered · ${activeFilterCount} active`
-                    : "For you, today"} · {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"}
+                    : `${filteredJobs.length} ${filteredJobs.length === 1 ? "task" : "tasks"} available`}
                 </span>
                 <h2
                   className="font-display italic font-bold leading-tight mt-0.5"
                   style={{
-                    fontSize: "1.1rem",
+                    fontSize: "1.25rem",
                     color: "hsl(var(--ink-deep))",
                     letterSpacing: "-0.018em",
                   }}
@@ -346,7 +317,7 @@ const DashboardGuest = () => {
                   type="button"
                   onClick={() => setView(view === "list" ? "map" : "list")}
                   aria-label={view === "list" ? "Switch to map view" : "Switch to list view"}
-                  className="h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  className="h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 >
                   {view === "list" ? <MapIcon className="w-4 h-4" /> : <List className="w-4 h-4" />}
                 </button>
@@ -357,7 +328,7 @@ const DashboardGuest = () => {
                       onClick={() => { setSearchOpen(!searchOpen); if (filtersOpen) setFiltersOpen(false); }}
                       aria-label="Search jobs"
                       aria-expanded={searchOpen}
-                      className={`h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition ${
+                      className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition ${
                         searchOpen || search
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -370,7 +341,7 @@ const DashboardGuest = () => {
                       onClick={() => { setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
                       aria-label={activeFilterCount ? `Filters (${activeFilterCount} active)` : "Filters"}
                       aria-expanded={filtersOpen}
-                      className={`h-8 w-8 rounded-ds-md flex items-center justify-center btn-press transition relative ${
+                      className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition relative ${
                         filtersOpen || activeFilterCount > 0
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -507,11 +478,11 @@ const DashboardGuest = () => {
               >
                 {isLoading ? (
                   <div
-                    className="space-y-3"
+                    className="space-y-2.5"
                     style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
                   >
                     {Array.from({ length: 4 }).map((_, i) => (
-                      <Skeleton key={i} className="h-44 w-full rounded-2xl" />
+                      <Skeleton key={i} className="h-40 w-full rounded-2xl" />
                     ))}
                   </div>
                 ) : filteredJobs.length === 0 ? (
@@ -550,7 +521,7 @@ const DashboardGuest = () => {
                   </div>
                 ) : (
                   <div
-                    className="space-y-3 animate-in fade-in-0 duration-500"
+                    className="space-y-2.5 animate-in fade-in-0 duration-500"
                     style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
                   >
                     {filteredJobs.map((job, idx) => (
@@ -565,6 +536,7 @@ const DashboardGuest = () => {
                         onSelect={requireSignup}
                         onToggleSave={requireSignup}
                         index={idx}
+                        guestPricing
                       />
                     ))}
                   </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo, createContext, useContext, type ReactNode } from "react";
+import { useState, useMemo, createContext, useContext, Children, isValidElement, type ReactNode } from "react";
 import { ChevronDown, type LucideIcon } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -7,6 +7,45 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 // and PolicyRowItem can self-filter / auto-expand based on the query
 // without having to thread the prop through every JSX call site.
 export const PolicySearchContext = createContext<string>("");
+
+// During a cross-tab search the Legal page renders all three policy tabs
+// at once; this carries the human label of the tab a section belongs to
+// ("Terms", "Community Rules", "Privacy") so each result can show where it
+// lives. Empty string = normal single-tab browsing (no origin chip).
+export const PolicyTabContext = createContext<string>("");
+
+// Wrap any case-insensitive occurrences of `query` in the given text with a
+// highlight <mark>, so search results visibly point at the matched term.
+const highlight = (text: string, query: string): React.ReactNode => {
+  const q = query.trim();
+  if (!q) return text;
+  const lower = text.toLowerCase();
+  const ql = q.toLowerCase();
+  if (!lower.includes(ql)) return text;
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  let i = lower.indexOf(ql);
+  while (i !== -1) {
+    if (i > cursor) parts.push(text.slice(cursor, i));
+    parts.push(
+      <mark
+        key={i}
+        style={{
+          background: "hsl(var(--burnt-sienna) / 0.22)",
+          color: "inherit",
+          borderRadius: "2px",
+          padding: "0 1px",
+        }}
+      >
+        {text.slice(i, i + q.length)}
+      </mark>,
+    );
+    cursor = i + q.length;
+    i = lower.indexOf(ql, cursor);
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return <>{parts}</>;
+};
 
 export type PolicyRow = {
   icon: LucideIcon;
@@ -61,7 +100,7 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
               $5 minimum, $5,000 maximum") read in full instead of
               truncating to "$5,00…". */}
           <span className="text-ds-13 font-semibold text-foreground line-clamp-2 leading-snug">
-            {title}
+            {isSearching ? highlight(title, query) : title}
           </span>
         </span>
         {/* ChevronDown that rotates 180° on open — matches the parent
@@ -92,15 +131,25 @@ interface PolicySectionProps {
 
 export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpen = false, children }: PolicySectionProps) => {
   const query = useContext(PolicySearchContext);
+  const tabLabel = useContext(PolicyTabContext);
   const isSearching = !!query.trim();
   const [open, setOpen] = useState(defaultOpen);
 
   // A section is "hit" when its own title/subtitle match, OR when at
   // least one PolicyRowItem child matches (the section is the gateway
-  // to find the matching row). Children matching is implicit: matching
-  // PolicyRowItem children render normally while non-matching ones
-  // hide themselves via their own self-filter.
-  const sectionHit = matches(query, `${title} ${subtitle}`);
+  // to find the matching row). We inspect children's `title`/`searchText`
+  // props directly so a non-matching section can fully remove itself
+  // during search instead of rendering an empty open card.
+  const childMatches = Children.toArray(children).some((child) => {
+    if (!isValidElement(child)) return false;
+    const props = child.props as Partial<PolicyRow>;
+    return matches(query, `${props.title ?? ""} ${props.searchText ?? ""}`);
+  });
+  const sectionHit = matches(query, `${title} ${subtitle}`) || childMatches;
+
+  // While searching, a section that matches nothing (header or any row)
+  // removes itself entirely so the results read as a tight list.
+  if (isSearching && !sectionHit) return null;
 
   // Force-open while searching so matching rows are visible without
   // the user having to tap each section header. Outside of search,
@@ -114,12 +163,18 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
           by a crisp burnt-sienna left accent edge + a small "Caution"
           chip in the header, so all cards on the page read as one set. */}
       <div
+        data-policy-section
         className="rounded-2xl border border-border bg-card squircle overflow-hidden transition-colors"
-        style={
-          warning
-            ? { borderLeft: "3px solid hsl(var(--burnt-sienna) / 0.55)" }
-            : undefined
-        }
+        style={{
+          // Soft lift matching the TLDR summary card so every surface on the
+          // page reads as one lifted material rather than flat-white rows
+          // floating below a shadowed summary.
+          boxShadow:
+            "0 1px 2px hsl(var(--olivewood) / 0.05), 0 6px 14px -8px hsl(var(--olivewood) / 0.12)",
+          borderLeft: warning
+            ? "3px solid hsl(var(--burnt-sienna) / 0.55)"
+            : "3px solid hsl(var(--bark) / 0.35)",
+        }}
       >
         <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">
           <span className="flex items-center gap-3 min-w-0">
@@ -134,8 +189,24 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
               <Icon className="w-4 h-4" strokeWidth={2.25} />
             </span>
             <span className="min-w-0">
-              <span className="flex items-center gap-2">
-                <p className="font-display font-bold text-foreground leading-tight text-ds-15">{title}</p>
+              <span className="flex items-center gap-2 flex-wrap">
+                <p className="font-display font-bold text-foreground leading-tight text-ds-15">
+                  {isSearching ? highlight(title, query) : title}
+                </p>
+                {/* During a cross-tab search, mark which policy this section
+                    lives under so results spanning all three tabs stay
+                    legible. Only shown when a tab origin is supplied. */}
+                {isSearching && tabLabel && (
+                  <span
+                    className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-sans font-semibold uppercase tracking-wider"
+                    style={{
+                      background: "hsl(var(--bark) / 0.10)",
+                      color: "hsl(var(--bark))",
+                    }}
+                  >
+                    {tabLabel}
+                  </span>
+                )}
                 {warning && (
                   <span
                     className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-sans font-semibold uppercase tracking-wider"
@@ -148,7 +219,9 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
                   </span>
                 )}
               </span>
-              <p className="text-ds-11 text-muted-foreground line-clamp-2 leading-snug">{subtitle}</p>
+              <p className="text-ds-11 text-muted-foreground line-clamp-2 leading-snug">
+                {isSearching ? highlight(subtitle, query) : subtitle}
+              </p>
             </span>
           </span>
           <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${effectiveOpen ? "rotate-180" : ""}`} />
@@ -157,11 +230,6 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
           <div className="px-2 pb-2 pt-1 space-y-0.5 border-t border-border/50">{children}</div>
         </CollapsibleContent>
       </div>
-      {/* When searching and neither the section header nor any child
-          matched, the section still renders so the layout stays stable —
-          but it can show a faint "(no matches)" hint. Keeping it out
-          for now to avoid noise; uncomment if testers ask for it. */}
-      {isSearching && !sectionHit && null}
     </Collapsible>
   );
 };

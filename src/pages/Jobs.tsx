@@ -265,7 +265,7 @@ const Jobs = () => {
               <EmptyState
                 variant="inline"
                 icon={Search}
-                title="No tasks found in your area yet"
+                title="No tasks found yet"
                 body="Try adjusting your filters or check back soon — new tasks are posted across Louisiana every day."
                 action={
                   (search || selectedCategory) ? (
@@ -344,7 +344,7 @@ const Jobs = () => {
           <div className="text-center mt-12 space-y-4">
             <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 max-w-lg mx-auto space-y-4">
               <Lock className="w-8 h-8 text-primary mx-auto" />
-              <h3 className="text-ds-17 font-bold text-foreground">Ready to get started?</h3>
+              <h3 className="text-ds-17 font-bold text-foreground">Join the Helpr community</h3>
               <p className="text-ds-11 text-muted-foreground">
                 Sign up to apply for jobs, message posters, and start earning — or post your own task and find help today.
               </p>

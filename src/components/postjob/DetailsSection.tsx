@@ -102,7 +102,7 @@ export function DetailsSection({
             doesn't bury the Photos + later sections under one picker.
             Active chip keeps the brand-color ring + adds a check so
             the selection reads instantly. */}
-        <div className="grid grid-cols-2 gap-2">
+        <div id="category-picker" className="grid grid-cols-2 gap-2">
           {categories.map((c) => {
             const colors = categoryColors[c.value];
             const active = category === c.value;
@@ -176,14 +176,22 @@ export function DetailsSection({
           <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
           <span className="text-[0.66rem] tabular-nums text-muted-foreground">{title.length}/{TITLE_MAX}</span>
         </div>
-        <Input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={titlePlaceholders[category] ?? titlePlaceholders.other}
-          required
-          maxLength={TITLE_MAX}
-        />
+        <div className="relative">
+          <Input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={titlePlaceholders[category] ?? titlePlaceholders.other}
+            required
+            maxLength={TITLE_MAX}
+            autoCapitalize="sentences"
+            enterKeyHint="next"
+            className={title.trim().length > 0 ? "pr-10" : ""}
+          />
+          {title.trim().length > 0 && (
+            <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+          )}
+        </div>
       </div>
 
       <div className="space-y-2.5">
@@ -199,6 +207,7 @@ export function DetailsSection({
           required
           rows={4}
           maxLength={DESCRIPTION_MAX}
+          autoCapitalize="sentences"
         />
         {/* Category-aware prompt — tells the poster exactly what a helpr
             needs to quote accurately. Vague posts get fewer applicants. */}
@@ -233,6 +242,7 @@ export function DetailsSection({
         {/* Fixed-tile grid — 80px tiles wrap into rows; auto-fill keeps
             the "+" tile flush with photos at any photo count. */}
         <div
+          id="photo-grid"
           className="grid gap-2.5"
           style={{ gridTemplateColumns: "repeat(auto-fill, 80px)" }}
         >

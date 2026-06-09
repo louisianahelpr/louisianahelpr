@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
 import {
   Bell, Briefcase, MessageSquare, DollarSign, Star, Megaphone,
   Loader2, Mail, Smartphone, Navigation, CheckCircle2, Lock,
@@ -125,7 +126,8 @@ const NotificationPreferences = () => {
     setSaving(false);
     if (error) {
       setPrefs(prefs);
-      toast.error("Failed to save preference");
+      hapticError();
+      toast.error("We couldn't save that preference — please try again.");
     }
   };
 
@@ -211,6 +213,11 @@ const NotificationPreferences = () => {
         </div>
       </div>
 
+      {/* Scrollable category region — master toggle + column header stay
+          pinned above, the security note stays pinned below, and the
+          digest + per-category rows scroll between them so every option
+          is reachable on a short viewport. */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
       {/* Digest mode toggle — when on, non-urgent job-match pushes are
           batched into one daily summary instead of firing per-match.
           Sits between the master and the per-category rows so it reads
@@ -313,6 +320,7 @@ const NotificationPreferences = () => {
           </div>
         </div>
       ))}
+      </div>
 
       <div
         className="flex items-start gap-1.5 px-4 py-2 shrink-0"

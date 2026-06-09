@@ -1,6 +1,6 @@
 import { useEffect, useState, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Send, MessageSquare, User, Plus, ClipboardList, Lock } from "lucide-react";
+import { Home, Send, MessageSquare, User, Plus, ClipboardList } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -233,16 +233,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             strokeWidth={isActive ? 2.25 : 1.85}
             fill={isActive ? "hsl(var(--bark) / 0.18)" : "none"}
           />
-          {locked && (
-            // Quiet padlock — no filled chip/ring (that read as a noisy
-            // alert dot to a first-time guest). Just a small low-contrast
-            // glyph tucked at the corner that says "locked" without shouting.
-            <Lock
-              className="absolute -bottom-1 -right-2 w-2.5 h-2.5"
-              strokeWidth={2.25}
-              style={{ color: "hsl(48 9% 47% / 0.6)" }}
-            />
-          )}
+          {/* No per-tab padlock for guests — three padlocks in a row read
+              as a barrier wall on a first-time guest's home screen. The tab
+              is gently dimmed (opacity-50) and a tap routes to sign-up, so
+              "locked" is communicated without the cluttered lock glyphs. The
+              header's prominent Sign up button is the single unlock CTA. */}
           {showBadge && (
             <span
               className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full text-ds-10 flex items-center justify-center font-bold px-1"
@@ -337,7 +332,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             background: "linear-gradient(to top, hsla(40, 28%, 99%, 0.6), hsla(40, 28%, 99%, 0))",
           }}
         />
-        <div className="relative mx-3 mb-3 flex items-end gap-2.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl md:mx-auto md:px-8 xl:px-12">
+        <div className="relative mx-3 mb-3 flex items-end gap-3.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl md:mx-auto md:px-8 xl:px-12">
           {/* Main nav pill — liquid glass. Shadow stack switches to the
               deeper "lifted" variant when the page is scrolled, so the bar
               reads as floating above content rather than glued to the
@@ -399,7 +394,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                   background:
                     "radial-gradient(circle, hsl(var(--bark) / 0.38) 0%, hsl(var(--bark) / 0) 72%)",
                   filter: "blur(8px)",
-                  transform: "scale(1.45)",
+                  transform: "scale(1.28)",
                 }}
               />
               <button

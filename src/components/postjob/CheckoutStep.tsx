@@ -128,16 +128,11 @@ export function CheckoutStep({
       {/* Task Details Card */}
       <div className="rounded-2xl liquid-glass overflow-hidden">
         <div className="p-5 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="font-display font-bold text-foreground text-ds-15">{title}</h2>
-              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-ds-11 font-medium">
-                {categoryLabel}
-              </span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={onEdit} className="text-ds-11 text-muted-foreground">
-              <ChevronLeft className="w-3 h-3 mr-1" /> Edit
-            </Button>
+          <div>
+            <h2 className="font-display font-bold text-foreground text-ds-15">{title}</h2>
+            <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-ds-11 font-medium">
+              {categoryLabel}
+            </span>
           </div>
           <p className="text-ds-11 text-muted-foreground">{description}</p>
 
@@ -259,40 +254,33 @@ export function CheckoutStep({
         </div>
       </div>
 
-      {/* Confirmation Checkbox */}
-      <div className="flex items-start gap-3 rounded-ds-md liquid-glass p-4">
+      {/* Confirmation Checkbox — the full card is a <label> so tapping
+          anywhere on it toggles the checkbox. This makes the tap target
+          the full card height (well above 44px) instead of the ~20px
+          Checkbox element alone, satisfying WCAG 2.5.5 on SE screens. */}
+      <label
+        htmlFor="confirm-details"
+        className="flex items-start gap-3 rounded-ds-md liquid-glass p-4 cursor-pointer min-h-[44px]"
+      >
         <Checkbox
           id="confirm-details"
           checked={confirmed}
           onCheckedChange={(checked) => setConfirmed(checked === true)}
-          className="mt-0.5"
+          className="mt-0.5 shrink-0"
         />
-        <label htmlFor="confirm-details" className="text-ds-13 text-foreground cursor-pointer leading-snug">
+        <span className="text-ds-13 text-foreground leading-snug">
           I've reviewed all details above and confirm everything is correct. I understand the helpr's payout will be released after both parties confirm job completion.
-        </label>
-      </div>
+        </span>
+      </label>
 
       {/* Action Buttons */}
       <div className="space-y-3">
         <Button
+          variant="bark"
           className="w-full rounded-ds-md"
           size="lg"
           onClick={onSubmit}
           disabled={saving || uploading || !confirmed}
-          style={
-            confirmed && !saving && !uploading
-              ? {
-                  background: "hsl(var(--bark))",
-                  backgroundImage: "none",
-                  border: "1px solid hsl(var(--bark))",
-                  color: "hsl(var(--parchment))",
-                  fontFamily: "Montserrat, system-ui, sans-serif",
-                  fontWeight: 600,
-                  letterSpacing: "0.01em",
-                  boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 10px 24px -8px hsl(var(--bark) / 0.40)",
-                }
-              : undefined
-          }
         >
           {confirmed ? <CreditCard className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
           {uploadProgress

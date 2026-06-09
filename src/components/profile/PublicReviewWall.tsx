@@ -161,7 +161,7 @@ function ReviewQuote({
         <p
           className={[
             "font-serif italic leading-relaxed text-[hsl(var(--ink-deep)/0.88)]",
-            condensed ? "text-ds-12" : "text-ds-13",
+            condensed ? "text-ds-11" : "text-ds-13",
           ].join(" ")}
         >
           {/* Show the full text once the user taps "more"; otherwise the
@@ -309,7 +309,7 @@ export function PublicReviewWall({
           aria-hidden="true"
         />
         <p
-          className="font-serif italic text-ds-12"
+          className="font-serif italic text-ds-13"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
           No reviews yet — they're new on Helpr.
@@ -342,7 +342,7 @@ export function PublicReviewWall({
         <button
           type="button"
           onClick={onSeeAll}
-          className="w-full text-center font-sans font-semibold text-ds-12 py-2 rounded-ds-md hover:bg-[hsl(var(--bark)/0.04)] transition-colors"
+          className="w-full text-center font-sans font-semibold text-ds-13 py-2 rounded-ds-md hover:bg-[hsl(var(--bark)/0.04)] transition-colors"
           style={{ color: "hsl(var(--burnt-sienna))" }}
         >
           See all {totalReviewCount ?? reviews.length} review

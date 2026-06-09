@@ -24,8 +24,10 @@ interface PageScaffoldProps {
   /** Sticky page header — <DashboardHeader /> on signed-in pages, a
    *  bespoke guest header on DashboardGuest. */
   header: ReactNode;
-  /** Body of the top title card (greeting / page-title block). */
-  titleCard: ReactNode;
+  /** Body of the top title card (greeting / page-title block). Optional —
+   *  when omitted, no title card (or its layout gap) is rendered and the
+   *  panel sits flush below the header. */
+  titleCard?: ReactNode;
   /** Body of the bottom panel — the card that bleeds beneath the dock. */
   children: ReactNode;
   /** Banners rendered above the title card (Dashboard's broadcast banner
@@ -131,7 +133,7 @@ export function PageScaffold({
     transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
   };
 
-  const titleEl = animate ? (
+  const titleEl = !titleCard ? null : animate ? (
     <motion.div
       {...PAGE_IN}
       className={titleCardClass}

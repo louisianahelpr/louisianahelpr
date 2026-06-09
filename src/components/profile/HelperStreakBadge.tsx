@@ -124,7 +124,7 @@ export function HelperStreakBadge({ helperId, className }: HelperStreakBadgeProp
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-64 text-ds-12 leading-relaxed font-sans"
+        className="w-64 text-ds-13 leading-relaxed font-sans"
       >
         <p className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
           <Flame

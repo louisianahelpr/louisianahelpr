@@ -5,15 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock, Check } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import AuthShell from "@/components/auth/AuthShell";
+import HelprMark from "@/components/HelprMark";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import BuildStamp from "@/components/BuildStamp";
 import { queryKeys } from "@/lib/queryKeys";
+import { friendlyAuthError } from "@/lib/authErrors";
 
 const LOGIN_TIMEOUT_MS = 15000;
 
@@ -47,6 +49,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +74,7 @@ const Login = () => {
         setLoginAttempts(0);
         toast.error("Too many failed attempts. Account locked for 60 seconds.");
       } else {
-        toast.error(error.message);
+        toast.error(friendlyAuthError(error.message));
       }
       return;
     }
@@ -110,10 +113,12 @@ const Login = () => {
 
   return (
     <AuthShell hideHeader>
-      <div className="text-center mb-5 space-y-2">
-        <span className="text-display-eyebrow">Sign in</span>
+      <div className="text-center mb-4 space-y-1.5">
+        <div className="flex justify-center mb-3">
+          <HelprMark to={null} size="md" emblemOnly />
+        </div>
         <h1
-          className="font-display italic font-bold leading-tight mt-2"
+          className="font-display italic font-bold leading-tight"
           style={{
             fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
             color: "hsl(var(--ink-deep))",
@@ -123,47 +128,65 @@ const Login = () => {
           Glad you're back.
         </h1>
         <p
-          className="font-serif italic"
+          className="font-sans"
           style={{
-            fontSize: "1rem",
+            fontSize: "0.95rem",
             color: "hsl(var(--olivewood) / 0.7)",
+            letterSpacing: "0.01em",
           }}
         >
           Pick up right where you left off.
         </p>
       </div>
 
-      <div className="liquid-glass px-6 sm:px-8 py-6 sm:py-7 space-y-5">
-        <form onSubmit={handleLogin} className="space-y-4">
+      <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
+        <form onSubmit={handleLogin} className="space-y-3.5">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              inputMode="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15"
-            />
+            <div className="relative">
+              <Mail
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                strokeWidth={1.75}
+              />
+              <Input
+                id="email"
+                type="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="next"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className={`pl-10 ${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]`}
+              />
+              {emailValid && (
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+              )}
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
             <div className="relative">
+              <Lock
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                strokeWidth={1.75}
+              />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
+                enterKeyHint="done"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15"
+                className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]"
               />
               <button
                 type="button"
@@ -179,7 +202,7 @@ const Login = () => {
             <Link
               to="/forgot-password"
               className="text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
+              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
             >
               Forgot password?
             </Link>
@@ -195,48 +218,54 @@ const Login = () => {
           </Button>
         </form>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }} />
-          </div>
-          <div className="relative flex justify-center">
-            <span
-              className="px-3 text-ds-11 tracking-[0.2em] uppercase font-serif italic"
-              style={{
-                background: "hsla(0, 0%, 100%, 0.42)",
-                color: "hsl(var(--burnt-sienna) / 0.7)",
-              }}
-            >
-              or
-            </span>
-          </div>
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
+          <span
+            className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+            style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+          >
+            or
+          </span>
+          <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         </div>
 
         <div className="space-y-2">
-          <GoogleSignInButton label="Sign in with Google" />
           <AppleSignInButton label="Sign in with Apple" />
+          <GoogleSignInButton label="Sign in with Google" />
         </div>
 
-        <p className="text-center text-ds-11 font-sans pt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-          New to Helpr?{" "}
-          <Link
-            to="/signup"
-            className="font-semibold hover:underline"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            Create an account
-          </Link>
-        </p>
+        <div className="space-y-1.5 pt-1">
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            New to Helpr?{" "}
+            <Link
+              to="/signup"
+              className="font-semibold hover:underline"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Create an account
+            </Link>
+          </p>
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            Have a business?{" "}
+            <Link
+              to="/signup?type=business"
+              className="font-semibold hover:underline"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Business sign-up
+            </Link>
+          </p>
+        </div>
       </div>
 
-      <p className="text-center text-ds-11 font-sans leading-relaxed px-2 mt-6" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+      <p className="text-center text-ds-11 font-sans leading-relaxed px-2 mt-2.5" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
         By signing in you agree to our{" "}
         <Link to="/terms" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Terms</Link>
         {" · "}
         <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy Policy</Link>
       </p>
 
-      <div className="mt-4">
+      <div className="mt-2">
         <BuildStamp />
       </div>
     </AuthShell>

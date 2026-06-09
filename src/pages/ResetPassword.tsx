@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Check } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { friendlyAuthError } from "@/lib/authErrors";
 
 const ResetPassword = () => {
   usePageTitle("Set New Password — Helpr");
@@ -16,6 +17,21 @@ const ResetPassword = () => {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  // Holds the id of the post-success redirect timer so we can cancel it if
+  // the user navigates away within the 1.5 s window — prevents a "navigate
+  // on unmounted component" warning and a phantom navigation to /dashboard.
+  const redirectTidRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTidRef.current !== null) {
+        window.clearTimeout(redirectTidRef.current);
+      }
+    };
+  }, []);
+
+  const passwordValid = password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
+  const confirmValid = confirm.length > 0 && confirm === password && passwordValid;
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -43,15 +59,15 @@ const ResetPassword = () => {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyAuthError(error.message));
     } else {
       toast.success("Password updated! Redirecting…");
-      setTimeout(() => navigate("/dashboard"), 1500);
+      redirectTidRef.current = window.setTimeout(() => navigate("/dashboard"), 1500);
     }
   };
 
   return (
-    <AuthShell eyebrow="Set a new password" maxWidth="sm">
+    <AuthShell eyebrow="Set a new password" maxWidth="sm" align="center">
       <div className="liquid-glass p-6 sm:p-8 space-y-6">
         <div className="text-center space-y-2">
           <span className="text-display-eyebrow">Reset password</span>
@@ -73,34 +89,47 @@ const ResetPassword = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password" className="text-ds-13 font-sans font-medium">New password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                autoComplete="new-password"
-                className="rounded-ds-md bg-white/60 border-white/70"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  className={`${passwordValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]`}
+                />
+                {passwordValid && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                )}
+              </div>
               <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
                 At least 8 characters, 1 uppercase, 1 number
               </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm" className="text-ds-13 font-sans font-medium">Confirm password</Label>
-              <Input
-                id="confirm"
-                type="password"
-                placeholder="••••••••"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                required
-                minLength={8}
-                autoComplete="new-password"
-                className="rounded-ds-md bg-white/60 border-white/70"
-              />
+              <div className="relative">
+                <Input
+                  id="confirm"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  className={`${confirmValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]`}
+                />
+                {confirmValid && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                )}
+              </div>
+              {confirm.length > 0 && confirm !== password && (
+                <p className="text-ds-11 text-destructive" role="alert">Passwords don't match</p>
+              )}
             </div>
             <Button
               variant="bark"

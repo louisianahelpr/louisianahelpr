@@ -1,4 +1,4 @@
-// SignupStep2 — "Tell us about you." (UI step 2 of 3).
+// SignupStep2 — "Tell us about you." (UI step 2 of 2 — the final step).
 //
 // Profile picture, name, contact, basic identity + government ID upload.
 // Like Step1, owns no state — every field is bound through props lifted
@@ -12,16 +12,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Building2,
   Camera,
-  ArrowRight,
   ArrowLeft,
-  FileText,
-  ShieldCheck,
   UserRound,
-  Lock,
+  UserCircle2,
   AlertCircle,
+  Check,
 } from "lucide-react";
-import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
+import { DatePickerField } from "@/components/DatePickerField";
 import { formatPhone } from "./signupHelpers";
 
 /**
@@ -65,11 +64,6 @@ export interface SignupStep2Props {
   setLocation: (v: string) => void;
   bio: string;
   setBio: (v: string) => void;
-  idFile: File | null;
-  idPreview: string | null;
-  setIdFile: (v: File | null) => void;
-  setIdPreview: (v: string | null) => void;
-  onIdChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   inputCls: string;
   labelCls: string;
   /**
@@ -81,8 +75,13 @@ export interface SignupStep2Props {
   clearFieldError?: (key: string) => void;
   /** Called when the user clicks Back. */
   onBack: () => void;
-  /** Called when the user clicks Continue — parent runs validation, then advances step. */
+  /**
+   * Called when the user clicks the primary button — parent runs validation,
+   * then creates the account (Step 2 is the final step).
+   */
   onContinue: () => void | Promise<void>;
+  /** Account creation in flight — disables the button and shows a busy label. */
+  loading?: boolean;
 }
 
 export function SignupStep2(props: SignupStep2Props) {
@@ -104,54 +103,105 @@ export function SignupStep2(props: SignupStep2Props) {
     setLocation,
     bio,
     setBio,
-    idFile,
-    idPreview,
-    setIdFile,
-    setIdPreview,
-    onIdChange,
     inputCls,
     labelCls,
     fieldErrors = {},
     clearFieldError,
     onBack,
     onContinue,
+    loading = false,
   } = props;
+
+  // DOB picker bounds. Upper bound = today − 18y (blocks under-18 at the UI
+  // layer; validateAboutYouStep re-checks age as the backstop). Lower bound =
+  // today − 120y so the year dropdown has a sane floor.
+  const maxDob = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    return d.toISOString().split("T")[0];
+  })();
+  const minDob = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 120);
+    return d.toISOString().split("T")[0];
+  })();
+
+  // Live field validity — drives the inline green check (mirrors Step 1's
+  // email affordance) so a completed field reads as done, not just un-erroed.
+  const firstNameValid = firstName.trim().length > 0;
+  const lastNameValid = lastName.trim().length > 0;
+  const phoneValid = phone.replace(/\D/g, "").length >= 10;
+  const locationValid = location.trim().length > 0;
 
   return (
     <div className="space-y-6">
-      {isBusinessSignup && (
-        <div className="rounded-ds-md border border-primary/30 bg-primary/5 p-4 space-y-3">
-          <p className="text-ds-13 font-semibold text-primary">📊 Business account</p>
-          <div className="space-y-2">
-            <Label htmlFor="companyName" className={labelCls}>Company name <span aria-hidden="true" className="text-destructive">*</span></Label>
-            <Input
-              id="companyName"
-              placeholder="Acme Property Management"
-              value={companyName}
-              onChange={(e) => { setCompanyName(e.target.value); clearFieldError?.("companyName"); }}
-              required
-              aria-required="true"
-              aria-invalid={!!fieldErrors.companyName}
-              aria-describedby={fieldErrors.companyName ? "companyName-error" : undefined}
-              className={`${inputCls}${fieldErrors.companyName ? " border-destructive" : ""}`}
-            />
-            <FieldError id="companyName-error" message={fieldErrors.companyName} />
+      {/* Account-type context banner — mirrors Step 1's treatment so both
+          steps read as one consistent flow. Business path uses the same
+          bark-toned card as Step 1; personal path shows a neutral callout
+          so neither path feels unfinished. */}
+      {isBusinessSignup ? (
+        <div
+          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
+          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
+        >
+          <Building2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+          <div className="space-y-2 flex-1">
+            <div className="space-y-0.5">
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                Business account
+              </p>
+              <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                You'll be the owner. Invite 1 teammate free — add more anytime.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="companyName" className={labelCls}>Company name <span aria-hidden="true" className="text-destructive">*</span></Label>
+              <Input
+                id="companyName"
+                placeholder="Acme Property Management"
+                value={companyName}
+                onChange={(e) => { setCompanyName(e.target.value); clearFieldError?.("companyName"); }}
+                required
+                aria-required="true"
+                aria-invalid={!!fieldErrors.companyName}
+                aria-describedby={fieldErrors.companyName ? "companyName-error" : undefined}
+                className={`${inputCls}${fieldErrors.companyName ? " border-destructive" : ""}`}
+              />
+              <FieldError id="companyName-error" message={fieldErrors.companyName} />
+            </div>
           </div>
-          <p className="text-ds-11 text-muted-foreground">
-            You'll be the owner. Invite 1 teammate free (2 seats total) — add more anytime with seat upgrades.
-          </p>
+        </div>
+      ) : (
+        <div
+          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
+          style={{ background: "hsl(var(--olivewood) / 0.05)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
+        >
+          <UserCircle2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
+          <div className="space-y-0.5">
+            <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+              Personal account
+            </p>
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              A clear photo and real name help neighbors trust and hire you.
+            </p>
+          </div>
         </div>
       )}
 
       {/* Section 1: Your photo (top of page — most personal first) */}
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="text-display-eyebrow">Your photo</span>
-          <span className="text-destructive text-ds-11">*</span>
-        </div>
+      <section className="space-y-2.5">
         <div className="flex flex-col items-center gap-2.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform">
-            <div className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-secondary/40">
+            <div
+              className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden"
+              style={{
+                background:
+                  "radial-gradient(circle at 50% 35%, hsl(var(--parchment)) 0%, hsl(var(--secondary) / 0.55) 100%)",
+                boxShadow:
+                  "inset 0 2px 6px hsl(var(--bark) / 0.12), " +
+                  "0 8px 20px -10px hsl(var(--bark) / 0.35)",
+              }}
+            >
               {avatarPreview && avatarPreview.startsWith("blob:") ? (
                 <img loading="lazy" decoding="async" src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
@@ -161,11 +211,13 @@ export function SignupStep2(props: SignupStep2Props) {
             <div
               className="pointer-events-none absolute -bottom-1 -right-1 w-11 h-11 rounded-full flex items-center justify-center z-10"
               style={{
-                background: "hsl(var(--bark))",
+                background:
+                  "linear-gradient(150deg, hsl(var(--bark) / 0.92) 0%, hsl(var(--bark)) 60%)",
                 color: "hsl(var(--parchment))",
                 boxShadow:
                   "0 0 0 3px hsl(var(--parchment)), " +
-                  "0 6px 18px -4px hsl(var(--bark) / 0.45)",
+                  "inset 0 1px 1px hsl(var(--parchment) / 0.25), " +
+                  "0 8px 18px -4px hsl(var(--bark) / 0.55)",
               }}
             >
               <Camera className="w-5 h-5" strokeWidth={2.25} />
@@ -181,7 +233,7 @@ export function SignupStep2(props: SignupStep2Props) {
             />
           </label>
           <p className="text-ds-11 text-muted-foreground text-center max-w-[260px] leading-relaxed">
-            A clear face photo builds trust with neighbors. JPG or PNG, max 5MB.
+            <span className="font-semibold text-[hsl(var(--ink-deep))]">A profile photo is required</span> — a clear face shot builds trust with neighbors. JPG or PNG · Max 5MB.
           </p>
           <FieldError id="avatar-error" message={fieldErrors.avatar} />
         </div>
@@ -190,163 +242,126 @@ export function SignupStep2(props: SignupStep2Props) {
       {/* Section 2: Your name + personal details */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <span className="text-display-eyebrow">Your details</span>
+          <span className="text-display-eyebrow" style={{ fontSize: "0.7rem", letterSpacing: "0.1em", opacity: 0.85 }}>Your details</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden="true" className="text-destructive">*</span></Label>
-            <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" aria-invalid={!!fieldErrors.firstName} aria-describedby={fieldErrors.firstName ? "firstName-error" : undefined} className={`${inputCls}${fieldErrors.firstName ? " border-destructive" : ""}`} />
+            <Label htmlFor="firstName" className={labelCls}>First name</Label>
+            <div className="relative">
+              <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" autoCapitalize="words" aria-invalid={!!fieldErrors.firstName} aria-describedby={fieldErrors.firstName ? "firstName-error" : undefined} className={`${inputCls}${firstNameValid && !fieldErrors.firstName ? " pr-10" : ""}${fieldErrors.firstName ? " border-destructive" : ""}`} />
+              {firstNameValid && !fieldErrors.firstName && (
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+              )}
+            </div>
             <FieldError id="firstName-error" message={fieldErrors.firstName} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden="true" className="text-destructive">*</span></Label>
-            <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" aria-invalid={!!fieldErrors.lastName} aria-describedby={fieldErrors.lastName ? "lastName-error" : undefined} className={`${inputCls}${fieldErrors.lastName ? " border-destructive" : ""}`} />
+            <Label htmlFor="lastName" className={labelCls}>Last name</Label>
+            <div className="relative">
+              <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" autoCapitalize="words" aria-invalid={!!fieldErrors.lastName} aria-describedby={fieldErrors.lastName ? "lastName-error" : undefined} className={`${inputCls}${lastNameValid && !fieldErrors.lastName ? " pr-10" : ""}${fieldErrors.lastName ? " border-destructive" : ""}`} />
+              {lastNameValid && !fieldErrors.lastName && (
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+              )}
+            </div>
             <FieldError id="lastName-error" message={fieldErrors.lastName} />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone" className={labelCls}>Phone number <span aria-hidden="true" className="text-destructive text-ds-11">*</span></Label>
-          <Input
-            id="phone"
-            type="tel"
-            inputMode="tel"
-            placeholder="(555) 123-4567"
-            value={phone}
-            onChange={(e) => { setPhone(formatPhone(e.target.value)); clearFieldError?.("phone"); }}
-            required
-            aria-required="true"
-            autoComplete="tel"
-            maxLength={14}
-            aria-invalid={!!fieldErrors.phone}
-            aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
-            className={`${inputCls}${fieldErrors.phone ? " border-destructive" : ""}`}
-          />
+          <Label htmlFor="phone" className={labelCls}>Phone number</Label>
+          <div className="relative">
+            <Input
+              id="phone"
+              type="tel"
+              inputMode="tel"
+              placeholder="(555) 123-4567"
+              value={phone}
+              onChange={(e) => { setPhone(formatPhone(e.target.value)); clearFieldError?.("phone"); }}
+              required
+              aria-required="true"
+              autoComplete="tel"
+              maxLength={14}
+              aria-invalid={!!fieldErrors.phone}
+              aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
+              className={`${inputCls}${phoneValid && !fieldErrors.phone ? " pr-10" : ""}${fieldErrors.phone ? " border-destructive" : ""}`}
+            />
+            {phoneValid && !fieldErrors.phone && (
+              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+            )}
+          </div>
           <FieldError id="phone-error" message={fieldErrors.phone} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden="true" className="text-destructive text-ds-11">*</span></Label>
-          {/*
-            The picker is a composite of three Selects, so individual
-            aria-invalid on each trigger would be misleading. Wrap in a
-            role="group" so the error/help-text describes the trio as one
-            unit while DateOfBirthPicker itself stays untouched.
-          */}
-          <div
-            role="group"
-            aria-labelledby="dob-label"
-            aria-invalid={!!fieldErrors.dateOfBirth}
-            aria-describedby={fieldErrors.dateOfBirth ? "dob-error" : "dob-help"}
-          >
-            <span id="dob-label" className="sr-only">Date of birth</span>
-            <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }} />
-          </div>
+          <Label htmlFor="dob" className={labelCls}>Date of birth</Label>
+          {/* Single native date field — on iOS this opens the system wheel
+              picker (one tap), and `max` (today − 18y) keeps the wheel near a
+              plausible birth year and blocks under-18 dates at the UI layer;
+              validateAboutYouStep still re-checks age as the backstop. */}
+          {/* DatePickerField (the app's shared tap-to-open calendar pill)
+              instead of a raw <input type="date"> — the native control renders
+              as a blank, oversized box on iOS with no placeholder. */}
+          <DatePickerField
+            id="dob"
+            value={dateOfBirth}
+            onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}
+            min={minDob}
+            max={maxDob}
+            placeholder="Select your date of birth"
+            className={`rounded-ds-md border-[hsl(var(--bark)/0.28)] dark:border-white/15${fieldErrors.dateOfBirth ? " border-destructive" : ""}`}
+          />
           {fieldErrors.dateOfBirth
             ? <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
             : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>You must be at least 18 years old.</p>
           }
         </div>
         <div className="space-y-2">
-          <Label htmlFor="location" className={labelCls}>City <span aria-hidden="true" className="text-destructive">*</span></Label>
-          <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required aria-required="true" autoComplete="address-level2" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${fieldErrors.location ? " border-destructive" : ""}`} />
+          <Label htmlFor="location" className={labelCls}>City</Label>
+          <div className="relative">
+            <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required aria-required="true" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`} />
+            {locationValid && !fieldErrors.location && (
+              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+            )}
+          </div>
           <FieldError id="location-error" message={fieldErrors.location} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="bio" className={labelCls}>About you <span aria-hidden="true" className="text-destructive">*</span></Label>
+          <Label htmlFor="bio" className={labelCls}>About you <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.5)]">(optional)</span></Label>
           <Textarea
             id="bio"
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"
             value={bio}
             onChange={(e) => { setBio(e.target.value); clearFieldError?.("bio"); }}
+            autoCapitalize="sentences"
             rows={4}
-            required
-            aria-required="true"
-            minLength={20}
             aria-invalid={!!fieldErrors.bio}
             aria-describedby={fieldErrors.bio ? "bio-error" : "bio-help"}
             className={`rounded-ds-md${fieldErrors.bio ? " border-destructive" : ""}`}
           />
           {fieldErrors.bio
             ? <FieldError id="bio-error" message={fieldErrors.bio} />
-            : <p id="bio-help" className={`text-ds-11 ${bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground"}`}>
-                {bio.trim().length}/20 characters minimum {bio.trim().length >= 20 && "✓"}
+            : <p id="bio-help" className="text-ds-11 text-muted-foreground">
+                You can always add this later from your profile.
               </p>
           }
         </div>
       </section>
 
-      {/* Section 5: Identity verification */}
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="text-display-eyebrow">Verify your identity</span>
-          <span className="text-destructive text-ds-11">*</span>
-        </div>
-        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card p-5 space-y-4">
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-              <ShieldCheck className="w-6 h-6 text-primary" strokeWidth={1.75} />
-            </div>
-            <h2 className="text-ds-15 font-display font-semibold text-foreground">Government-issued ID</h2>
-            <p className="text-ds-11 text-muted-foreground leading-relaxed">
-              Driver's license, state ID, or passport. Stored encrypted and used for safety, fraud prevention, and compliance.
-            </p>
-            <div className="flex items-center justify-center gap-1.5 text-ds-11 text-primary font-medium pt-1">
-              <Lock className="w-3 h-3" /> Encrypted · Never shared publicly
-            </div>
-          </div>
-          {idFile ? (
-            <div className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-3">
-              <div className="flex items-center gap-3 min-w-0">
-                {idPreview && idPreview.startsWith("blob:") ? (
-                  <img loading="lazy" decoding="async" src={idPreview} alt="ID preview" className="w-14 h-14 rounded-ds-sm object-cover border border-border shrink-0" />
-                ) : (
-                  <div className="w-14 h-14 rounded-ds-sm border border-border flex items-center justify-center bg-muted/40 shrink-0">
-                    <FileText className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <p className="text-ds-13 font-medium text-foreground truncate">{idFile.name}</p>
-                  <p className="text-ds-11 text-muted-foreground">{(idFile.size / 1024).toFixed(0)} KB · uploaded</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => { setIdFile(null); setIdPreview(null); }}
-                className="text-ds-11 text-destructive hover:underline shrink-0 font-medium"
-              >
-                Remove
-              </button>
-            </div>
-          ) : (
-            <label className={`flex flex-col items-center justify-center gap-2 rounded-ds-md border-2 border-dashed bg-card hover:border-primary/60 hover:bg-primary/[0.02] px-4 py-7 cursor-pointer transition-all ${fieldErrors.idFile ? "border-destructive" : "border-border"}`}>
-              <Camera className="w-7 h-7 text-primary/70" strokeWidth={1.75} />
-              <span className="text-ds-13 font-semibold text-foreground">Upload your ID</span>
-              <span className="text-ds-11 text-muted-foreground">JPG, PNG, or PDF · Max 5MB</span>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                className="hidden"
-                aria-label="Government-issued ID"
-                aria-invalid={!!fieldErrors.idFile}
-                aria-describedby={fieldErrors.idFile ? "idFile-error" : undefined}
-                onChange={(e) => { onIdChange(e); clearFieldError?.("idFile"); }}
-              />
-            </label>
-          )}
-          <FieldError id="idFile-error" message={fieldErrors.idFile} />
-        </div>
-      </section>
+      {/* Identity verification is no longer collected at signup — it's
+          gated later (first job posted / first job worked), matching the
+          complete-signup edge function, which auto-approves new accounts
+          without an ID and only requires one on denied-account resubmission. */}
 
       <div className="flex gap-3">
-        <Button variant="outline" className="flex-1 rounded-ds-md" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back
+        <Button variant="outline" size="lg" className="w-14 shrink-0 rounded-ds-md px-0" onClick={onBack} disabled={loading} aria-label="Back">
+          <ArrowLeft className="w-4 h-4" />
         </Button>
         <Button
           variant="bark"
           className="flex-1 rounded-ds-md"
           size="lg"
           onClick={onContinue}
+          disabled={loading}
         >
-          Continue <ArrowRight className="w-4 h-4 ml-1" />
+          {loading ? "Creating account…" : "Create account"}
         </Button>
       </div>
     </div>

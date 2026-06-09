@@ -18,6 +18,7 @@ import type { EnrichedJob } from "./types";
 import { JobPosterCard } from "./JobPosterCard";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
+import { report } from "@/lib/errorLogger";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -69,7 +70,10 @@ const JobDetailDialog = ({
       .from("applications")
       .select("id", { count: "exact", head: true })
       .eq("job_id", job.id)
-      .then(({ count }) => { if (!cancelled) setApplicationCount(count ?? 0); });
+      .then(({ count, error }) => {
+        if (error) report(error, { tags: { source: "JobDetailDialog.applicationCount" } });
+        if (!cancelled) setApplicationCount(count ?? 0);
+      });
     return () => { cancelled = true; };
   }, [job?.id]);
 
@@ -86,12 +90,13 @@ const JobDetailDialog = ({
       const { data: userRes } = await supabase.auth.getUser();
       const helperId = userRes?.user?.id;
       if (!helperId || cancelled) return;
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
         .eq("customer_id", job.customer_id)
         .eq("helper_id", helperId)
         .eq("status", "completed");
+      if (error) report(error, { tags: { source: "JobDetailDialog.repeatJobs" } });
       if (!cancelled) setRepeatJobs(count ?? 0);
     })();
     return () => { cancelled = true; };
@@ -116,7 +121,14 @@ const JobDetailDialog = ({
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
-        className="sm:max-w-lg !gap-2"
+        // grid-cols-1: the base DialogContent is `display:grid` with implicit
+        // `auto` columns, which size to max-content and can grow wider than
+        // the dialog; paired with the content's `overflow-y-auto` (which makes
+        // overflow-x compute to `auto`), the over-wide track gets clipped,
+        // cutting long words in the description mid-glyph. grid-cols-1 swaps the
+        // track to `minmax(0,1fr)`, pinning it to the dialog width so children
+        // wrap instead of overflowing.
+        className="grid-cols-1 sm:max-w-lg !gap-2"
         onTouchStart={(e) => {
           if (!_allJobs || !_onSelect) return;
           const t = e.touches[0];
@@ -183,7 +195,7 @@ const JobDetailDialog = ({
             {job.is_urgent && (
               <span
                 aria-label="Urgent"
-                className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[9px] font-bold uppercase tracking-wider"
+                className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[9px] font-bold uppercase tracking-wider"
                 style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
               >
                 <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
@@ -269,11 +281,15 @@ const JobDetailDialog = ({
         {/* Description — own glass plate. When there's no photo, this
             is where Boosted (top-right) and Urgent (top-left) stamps
             live. "Read more" expands the full text inline when long. */}
-        <div className="relative">
+        {/* min-w-0: as a grid item of the DialogContent grid this defaults
+            to min-width:auto, so a long unbroken word would force the item
+            wider than the track and the line-clamp box would clip the
+            overflow. min-w-0 lets it shrink to the track and wrap. */}
+        <div className="relative min-w-0">
           {photos.length === 0 && job.is_urgent && (
             <span
               aria-label="Urgent"
-              className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground text-[9px] font-bold uppercase tracking-wider"
+              className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[9px] font-bold uppercase tracking-wider"
               style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
             >
               <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
@@ -309,8 +325,16 @@ const JobDetailDialog = ({
                 "0 1px 2px hsl(var(--olivewood) / 0.05)",
             }}
           >
+            {/* line-clamp-3 turns this <p> into a display:-webkit-box,
+                which defaults to min-width:auto and sizes to its max-content
+                width — so a normal word near the edge overflows and the box's
+                own overflow:hidden clips it mid-word instead of wrapping.
+                min-w-0 lets the box shrink to its container so text wraps,
+                and we only clamp when the text is actually long enough to
+                need it (matching the Read more threshold) so short
+                descriptions stay plain blocks that wrap cleanly. */}
             <p
-              className={`font-serif text-[0.95rem] leading-relaxed ${descExpanded ? "" : "line-clamp-3"}`}
+              className={`font-serif text-[0.95rem] leading-relaxed break-words min-w-0 ${!descExpanded && (job.description?.length ?? 0) > 180 ? "line-clamp-3" : ""}`}
               style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
             >
               {job.description}
@@ -337,10 +361,14 @@ const JobDetailDialog = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           {(() => {
             const dateNeeded = parseLocalDate(job.date_needed);
-            const dateStartIso = dateNeeded.toISOString().slice(0, 10).replace(/-/g, "");
-            const dateEnd = new Date(dateNeeded.getTime() + (job.estimated_hours ? Number(job.estimated_hours) * 3600 * 1000 : 24 * 3600 * 1000));
-            const dateEndIso = dateEnd.toISOString().slice(0, 10).replace(/-/g, "");
-            const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${dateStartIso}/${dateEndIso}&details=${encodeURIComponent(job.description.slice(0, 200))}&location=${encodeURIComponent(job.location)}`;
+            const dateValid = !isNaN(dateNeeded.getTime());
+            let calendarUrl: string | null = null;
+            if (dateValid) {
+              const dateStartIso = dateNeeded.toISOString().slice(0, 10).replace(/-/g, "");
+              const dateEnd = new Date(dateNeeded.getTime() + (job.estimated_hours ? Number(job.estimated_hours) * 3600 * 1000 : 24 * 3600 * 1000));
+              const dateEndIso = dateEnd.toISOString().slice(0, 10).replace(/-/g, "");
+              calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${dateStartIso}/${dateEndIso}&details=${encodeURIComponent(job.description.slice(0, 200))}&location=${encodeURIComponent(job.location)}`;
+            }
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
             // Distance estimate when both helpr coords + parish centroid available
             const parishCentroid = getParishCentroid(job.parish);
@@ -360,7 +388,7 @@ const JobDetailDialog = ({
               {
                 Icon: Calendar,
                 label: "Date",
-                value: dateNeeded.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+                value: dateValid ? dateNeeded.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—",
                 sub: job.start_time || null,
                 href: calendarUrl,
                 urgent: false,
@@ -393,7 +421,7 @@ const JobDetailDialog = ({
                 <Wrapper
                   key={label}
                   {...wrapperProps}
-                  className={`relative rounded-ds-md p-2.5 overflow-hidden ${href ? "transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
+                  className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${href ? "transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
                   style={{
                     backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "hsla(0, 0%, 100%, 0.45)",
                     backdropFilter: "blur(18px) saturate(160%)",

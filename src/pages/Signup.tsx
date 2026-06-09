@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { BadgeCheck } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -10,10 +9,10 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
+import HelprMark from "@/components/HelprMark";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
   ALLOWED_IMAGE_TYPES,
-  ALLOWED_DOC_TYPES,
   SIGNUP_COOLDOWN_MS,
   SIGNUP_COOLDOWN_KEY,
   validateFile,
@@ -22,7 +21,11 @@ import {
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
-import { SignupStep3 } from "./signup/SignupStep3";
+
+// TEMP: forced on for sim testing so every step is tappable in a production
+// (non-DEV) build. Set back to false before commit — the jumper then shows
+// only in real dev builds via `import.meta.env.DEV` below.
+const FORCE_STEP_JUMPER = false;
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -47,7 +50,6 @@ const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-  const [skillSearch, setSkillSearch] = useState("");
   // Prefill email when arriving via a business team invite link.
   // The pending business_members row's invited_email is matched to the
   // signing-up user's email by the post-signup auto-claim flow, so the
@@ -55,46 +57,24 @@ const Signup = () => {
   const inviteEmail = searchParams.get("invite") || "";
   const [email, setEmail] = useState(inviteEmail);
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
-  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
+  // Referral code is captured only from the `?ref=` deep link now (the manual
+  // entry field lived on the removed Step 3). process_referral just records the
+  // link at signup; the $5 credit is released by a DB trigger when the referred
+  // user posts or completes their first job.
+  const [referralCode] = useState(searchParams.get("ref") || "");
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Step 2 fields
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
-  const [skills, setSkills] = useState("");
-  const [availability, setAvailability] = useState<string[]>([]);
-  const [transportation] = useState("");
-  const [hearAboutUs, setHearAboutUs] = useState("");
-  const [experienceLevel, setExperienceLevel] = useState("");
-  const [toolsEquipment, setToolsEquipment] = useState<string[]>([]);
-  const [emergencyContactName, setEmergencyContactName] = useState("");
-  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
-  const [jobRadius, setJobRadius] = useState("");
-  const [extraComments, setExtraComments] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Step 2 inline field errors — populated on Continue tap, cleared as user fixes each field
   const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
-
-  // Step 3 fields - Portfolio / Documents
-  const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
-  const [portfolioPreviews, setPortfolioPreviews] = useState<{ name: string; type: string; url: string }[]>([]);
-  const [idFile, setIdFile] = useState<File | null>(null);
-  const [idPreview, setIdPreview] = useState<string | null>(null);
-
-  // Step 3 — Professional credentials (optional)
-  const [isLicensed, setIsLicensed] = useState(false);
-  const [licenseFile, setLicenseFile] = useState<File | null>(null);
-  const [licensePreview, setLicensePreview] = useState<string | null>(null);
-  const [isInsured, setIsInsured] = useState(false);
-  const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
-  const [insurancePreview, setInsurancePreview] = useState<string | null>(null);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -104,61 +84,8 @@ const Signup = () => {
     }
   };
 
-  const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file, ALLOWED_DOC_TYPES, "ID document")) {
-      setIdFile(file);
-      setIdPreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
-    }
-  };
 
-  const handleLicenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file, ALLOWED_DOC_TYPES, "License document")) {
-      setLicenseFile(file);
-      setLicensePreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
-    }
-  };
-
-  const handleInsuranceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file, ALLOWED_DOC_TYPES, "Insurance document")) {
-      setInsuranceFile(file);
-      setInsurancePreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
-    }
-  };
-
-  const handlePortfolioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (portfolioFiles.length + files.length > 10) {
-      toast.error("Maximum 10 files allowed");
-      return;
-    }
-    const newFiles = [...portfolioFiles, ...files].slice(0, 10);
-    setPortfolioFiles(newFiles);
-    setPortfolioPreviews(
-      newFiles.map((f) => ({
-        name: f.name,
-        type: f.type,
-        url: f.type.startsWith("image/") ? URL.createObjectURL(f) : "",
-      }))
-    );
-  };
-
-  const removePortfolioFile = (index: number) => {
-    const newFiles = portfolioFiles.filter((_, i) => i !== index);
-    setPortfolioFiles(newFiles);
-    setPortfolioPreviews(
-      newFiles.map((f) => ({
-        name: f.name,
-        type: f.type,
-        url: f.type.startsWith("image/") ? URL.createObjectURL(f) : "",
-      }))
-    );
-  };
-
-
-  // Validates the "About you + ID" content (rendered as UI step 2).
+  // Validates the "About you" content (UI step 2, the final step).
   // Collects ALL field errors at once so the user sees every problem on a
   // single Continue tap — no more "fix one, tap again, get next error" loop.
   const validateAboutYouStep = async () => {
@@ -179,8 +106,9 @@ const Signup = () => {
       errors.dateOfBirth = "You must be at least 18 years old to sign up";
     }
     if (!location.trim()) errors.location = "City is required";
-    if (!bio.trim() || bio.trim().length < 20) errors.bio = "About you must be at least 20 characters";
-    if (!idFile) errors.idFile = "Please upload a government-issued ID to continue";
+    // Bio is optional — but if the user starts one, keep the 20-char floor so
+    // a half-typed sentence doesn't ship as their whole profile.
+    if (bio.trim().length > 0 && bio.trim().length < 20) errors.bio = "Add at least 20 characters, or leave it blank for now";
 
     // Async phone-duplicate check — only runs when all synchronous checks pass,
     // so we don't waste a round-trip when there are obvious local errors.
@@ -234,72 +162,28 @@ const Signup = () => {
     if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
     if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
     if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }
-    if (password !== confirmPassword) { toast.error("Passwords do not match"); return false; }
     if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
     return true;
   };
 
 
-  const prepareFileData = async () => {
+  const completeProfile = async (userId: string) => {
     const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
     const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
 
-    const idBase64 = idFile ? await fileToBase64(idFile) : null;
-    const idExt = idFile ? idFile.name.split(".").pop() : null;
-
-    const licenseBase64 = licenseFile ? await fileToBase64(licenseFile) : null;
-    const licenseExt = licenseFile ? licenseFile.name.split(".").pop() : null;
-
-    const insuranceBase64 = insuranceFile ? await fileToBase64(insuranceFile) : null;
-    const insuranceExt = insuranceFile ? insuranceFile.name.split(".").pop() : null;
-
-    const portfolioData = [];
-    for (const file of portfolioFiles) {
-      portfolioData.push({
-        base64: await fileToBase64(file),
-        ext: file.name.split(".").pop(),
-        contentType: file.type,
-      });
-    }
-
-    return { avatarBase64, avatarExt, idBase64, idExt, licenseBase64, licenseExt, insuranceBase64, insuranceExt, portfolioData };
-  };
-
-  const completeProfile = async (userId: string) => {
-    const { avatarBase64, avatarExt, idBase64, idExt, licenseBase64, licenseExt, insuranceBase64, insuranceExt, portfolioData } = await prepareFileData();
-
+    // The optional profile extras (skills, credentials, portfolio, etc.) that
+    // used to be collected on Step 3 are now added later from Profile — the
+    // edge function defaults every omitted field to null, same as a skip.
     const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
       body: {
         userId,
         avatarBase64,
         avatarExt,
         avatarContentType: avatarFile?.type,
-        idBase64,
-        idExt,
-        idContentType: idFile?.type,
-        licenseBase64,
-        licenseExt,
-        licenseContentType: licenseFile?.type,
-        isLicensed,
-        insuranceBase64,
-        insuranceExt,
-        insuranceContentType: insuranceFile?.type,
-        isInsured,
-        portfolioFiles: portfolioData,
         phone,
         bio,
         location,
-        skills: skills || null,
         dateOfBirth: dateOfBirth || null,
-        availability: availability.length > 0 ? availability.join(", ") : null,
-        transportation: transportation || null,
-        hearAboutUs: hearAboutUs || null,
-        experienceLevel: experienceLevel || null,
-        toolsEquipment: toolsEquipment.length > 0 ? toolsEquipment.join(", ") : null,
-        emergencyContactName: emergencyContactName || null,
-        emergencyContactPhone: emergencyContactPhone || null,
-        jobRadius: jobRadius || null,
-        extraComments: extraComments || null,
       },
     });
 
@@ -387,7 +271,13 @@ const Signup = () => {
 
       // Auto-accept any pending invite for this email
       try {
-        const { data: invites } = await supabase.rpc("get_pending_invite_for_email", { _email: email });
+        const { data: invites, error: inviteErr } = await supabase.rpc("get_pending_invite_for_email", { _email: email });
+        // PGRST202 = function not yet deployed to production — safe to ignore
+        // (invite-linking is best-effort; the user can still join the team
+        // manually after login). All other errors are logged for observability.
+        if (inviteErr && !inviteErr.message?.includes("PGRST202")) {
+          report(inviteErr, { tags: { source: "Signup.inviteLinking" } });
+        }
         if (invites && invites.length > 0) {
           for (const inv of invites) {
             await supabase
@@ -410,74 +300,84 @@ const Signup = () => {
     }
   };
 
-  const totalSteps = 3;
-  const stepLabels = ["Account", "About you", "Optional"];
-  const inputCls = "rounded-ds-md bg-white/60 dark:bg-white/5 border-white/70 dark:border-white/15";
+  // Match the Login screen's field styling exactly so the two auth screens
+  // read as one set. (The `pl-10`/`pr-10` icon padding is appended at each
+  // call site, mirroring Login.)
+  const inputCls =
+    "rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.5)]";
   const labelCls = "text-ds-13 font-sans font-medium";
 
+  // Short names for the two steps, shown under the progress dashes so the
+  // bar reads as a labeled journey rather than anonymous ticks.
+  const stepLabels = ["Account", "Profile"];
+
+  // Short, single-line titles that mirror the Login screen's heading,
+  // each paired with a brief subtitle (kept, per request, but trimmed).
   const stepHeading =
     step === 1
-      ? { title: "Welcome to the neighborhood.", subtitle: "A few minutes now — then everything's set." }
-      : step === 2
-      ? { title: "Tell us about you.", subtitle: "A photo and a few basics help neighbors trust who they're hiring." }
-      : { title: "Make your profile stand out.", subtitle: "Optional — skip anything that doesn't apply." };
+      ? isBusinessSignup
+        ? { title: "Set up your business.", subtitle: "Invite your team and bill jobs to one card." }
+        : { title: "Welcome, neighbor.", subtitle: "Create your account to get started." }
+      : { title: "Tell us about you.", subtitle: "A few basics so neighbors know who they're working with." };
 
   return (
-    <AuthShell compactHeader maxWidth="2xl">
-      <div className="text-center mb-4 space-y-1.5">
-        <span className="text-display-eyebrow">Step {step} of {totalSteps}</span>
-        <h1 className="text-page-title leading-tight mt-1">
+    <AuthShell hideHeader>
+      <div className="text-center mb-3 space-y-1.5">
+        <div className="flex justify-center mb-2">
+          <HelprMark to={null} size="md" emblemOnly />
+        </div>
+        <h1
+          className="font-display italic font-bold leading-tight"
+          style={{
+            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
+            color: "hsl(var(--ink-deep))",
+            letterSpacing: "-0.03em",
+          }}
+        >
           {stepHeading.title}
         </h1>
         <p
-          className="font-serif italic"
+          className="font-sans"
           style={{
             fontSize: "0.95rem",
             color: "hsl(var(--olivewood) / 0.7)",
+            letterSpacing: "0.01em",
           }}
         >
           {stepHeading.subtitle}
         </p>
+        {/* Step progress — fills up to the current step and names it, so a
+            new user knows what the 3 steps are and how much is left rather
+            than just seeing unlabeled dashes. */}
+        <div className="flex flex-col items-center gap-1 pt-1.5" role="img" aria-label={`Step ${step} of 2: ${stepLabels[step - 1]}`}>
+          <div className="flex items-center justify-center gap-1.5">
+            {[1, 2].map((n) => (
+              <span
+                key={n}
+                className="h-1 w-7 rounded-full transition-colors"
+                style={{ background: n <= step ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.2)" }}
+              />
+            ))}
+          </div>
+          <span
+            className="text-ds-11 font-sans tracking-wide"
+            style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+          >
+            Step {step} of 2 · {stepLabels[step - 1]}
+          </span>
+        </div>
       </div>
-      <div className="pb-12">
-          <div className="liquid-glass px-6 sm:px-8 py-6 sm:py-7 space-y-6">
-            {/* Step progress */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                {stepLabels.map((label, i) => {
-                  const stepNum = i + 1;
-                  const isDone = stepNum < step;
-                  const isActive = stepNum === step;
-                  return (
-                    <div key={label} className="flex-1 flex flex-col items-center gap-1.5">
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-ds-11 font-semibold transition-colors ${
-                        isDone ? "bg-primary text-primary-foreground" :
-                        isActive ? "bg-primary/15 text-primary border-2 border-primary" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
-                        {isDone ? <BadgeCheck className="w-3.5 h-3.5" /> : stepNum}
-                      </div>
-                      <span className={`text-ds-10 font-medium text-center ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
-                        {label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${(step / totalSteps) * 100}%` }}
-                />
-              </div>
-            </div>
-
+      <div className="pb-8">
+          {/* Liquid-glass card — matches the Login screen so the two auth
+              screens read as one set (see Login.tsx's `.liquid-glass` card). */}
+          <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
             {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}
-            {import.meta.env.DEV && (
+            {/* TEMP: FORCE_STEP_JUMPER forces this on for sim testing — set it to false before commit */}
+            {(import.meta.env.DEV || FORCE_STEP_JUMPER) && (
               <div className="rounded-ds-sm border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">
                 <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
                 <span className="text-muted-foreground">Jump to step:</span>
-                {[1, 2, 3].map((n) => (
+                {[1, 2].map((n) => (
                   <button
                     key={n}
                     type="button"
@@ -518,21 +418,17 @@ const Signup = () => {
             setLocation={setLocation}
             bio={bio}
             setBio={setBio}
-            idFile={idFile}
-            idPreview={idPreview}
-            setIdFile={setIdFile}
-            setIdPreview={setIdPreview}
-            onIdChange={handleIdChange}
             inputCls={inputCls}
             labelCls={labelCls}
             fieldErrors={step2Errors}
             clearFieldError={(key) => setStep2Errors((prev) => { const next = { ...prev }; delete next[key]; return next; })}
+            loading={loading}
             onBack={() => { setStep2Errors({}); setStep(1); }}
             onContinue={async () => {
               if (!(await validateAboutYouStep())) return;
               setStep2Errors({});
               track(AhaEvent.SignupStepCompleted, { step: 2, ...ppoTrackingProps() });
-              setStep(3);
+              await createAccountAndFinish();
             }}
           />
         )}
@@ -544,16 +440,13 @@ const Signup = () => {
             setEmail={setEmail}
             password={password}
             setPassword={setPassword}
-            confirmPassword={confirmPassword}
-            setConfirmPassword={setConfirmPassword}
             showPassword={showPassword}
             setShowPassword={setShowPassword}
-            showConfirmPassword={showConfirmPassword}
-            setShowConfirmPassword={setShowConfirmPassword}
             acceptedPolicies={acceptedPolicies}
             setAcceptedPolicies={setAcceptedPolicies}
             inputCls={inputCls}
             labelCls={labelCls}
+            isBusinessSignup={isBusinessSignup}
             onContinue={async () => {
               if (!(await validateAccountStep())) return;
               track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });
@@ -561,65 +454,7 @@ const Signup = () => {
             }}
           />
         )}
-
-
-        {/* Step 3: Optional helpr-quality details (everyone can skip) */}
-        {step === 3 && (
-          <SignupStep3
-            loading={loading}
-            skills={skills}
-            setSkills={setSkills}
-            skillSearch={skillSearch}
-            setSkillSearch={setSkillSearch}
-            experienceLevel={experienceLevel}
-            setExperienceLevel={setExperienceLevel}
-            availability={availability}
-            setAvailability={setAvailability}
-            jobRadius={jobRadius}
-            setJobRadius={setJobRadius}
-            toolsEquipment={toolsEquipment}
-            setToolsEquipment={setToolsEquipment}
-            emergencyContactName={emergencyContactName}
-            setEmergencyContactName={setEmergencyContactName}
-            emergencyContactPhone={emergencyContactPhone}
-            setEmergencyContactPhone={setEmergencyContactPhone}
-            extraComments={extraComments}
-            setExtraComments={setExtraComments}
-            hearAboutUs={hearAboutUs}
-            setHearAboutUs={setHearAboutUs}
-            isLicensed={isLicensed}
-            setIsLicensed={setIsLicensed}
-            licenseFile={licenseFile}
-            setLicenseFile={setLicenseFile}
-            licensePreview={licensePreview}
-            setLicensePreview={setLicensePreview}
-            onLicenseChange={handleLicenseChange}
-            isInsured={isInsured}
-            setIsInsured={setIsInsured}
-            insuranceFile={insuranceFile}
-            setInsuranceFile={setInsuranceFile}
-            insurancePreview={insurancePreview}
-            setInsurancePreview={setInsurancePreview}
-            onInsuranceChange={handleInsuranceChange}
-            portfolioFiles={portfolioFiles}
-            portfolioPreviews={portfolioPreviews}
-            onPortfolioSelect={handlePortfolioSelect}
-            onPortfolioRemove={removePortfolioFile}
-            referralCode={referralCode}
-            setReferralCode={setReferralCode}
-            inputCls={inputCls}
-            labelCls={labelCls}
-            onBack={() => setStep(2)}
-            onSkip={createAccountAndFinish}
-            onSubmit={createAccountAndFinish}
-          />
-        )}
           </div>
-
-          <p className="text-center text-ds-11 font-sans mt-6" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-            Already have an account?{" "}
-            <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Sign in</Link>
-          </p>
       </div>
     </AuthShell>
   );

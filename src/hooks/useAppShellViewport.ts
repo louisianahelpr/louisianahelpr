@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 /**
  * Routes that use document-scroll (long-form content, SEO landing pages).
@@ -23,9 +24,9 @@ const DOCUMENT_SCROLL_ROUTES = [
   // the viewport height on small devices (iPhone SE) or in landscape
   // belongs here. AuthShell uses `min-h-screen` document scroll; if the
   // route is NOT in this list, `html.app-shell { overflow: hidden }`
-  // clips anything below the fold and the user can't reach it. Only
-  // genuinely-short auth pages that always fit (Login at the moment)
-  // may safely stay off this list.
+  // clips anything below the fold and the user can't reach it. Login is
+  // deliberately OFF this list — it's tuned to fit a single non-scrolling
+  // viewport (see Login.tsx's compact spacing).
   "/signup",
   "/signup-pending",
   "/complete-profile",
@@ -54,7 +55,22 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/admin",       // Admin dashboard (min-h-screen document-scroll + sidebar)
 ];
 
+// On NATIVE only, the Legal page renders via AppShell (internal scroll) to
+// dodge the iOS document-scroll bug where a `position: fixed` header detaches
+// during momentum scrolling and lets content ghost into the notch. So on
+// native it must be html-locked like every other AppShell page. On web it
+// stays long-form document-scroll for SEO.
+const NATIVE_APP_SHELL_ROUTES = ["/legal"];
+
 const isDocumentScrollRoute = (pathname: string) => {
+  if (
+    isNativePlatform &&
+    NATIVE_APP_SHELL_ROUTES.some(
+      (route) => pathname === route || pathname.startsWith(`${route}/`),
+    )
+  ) {
+    return false;
+  }
   return DOCUMENT_SCROLL_ROUTES.some((route) =>
     route === "/" ? pathname === "/" : pathname === route || pathname.startsWith(`${route}/`),
   );

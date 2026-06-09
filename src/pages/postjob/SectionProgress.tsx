@@ -37,7 +37,7 @@ export function SectionProgress({
 
   return (
     <div
-      className="sticky z-30 -mx-4 px-4 pt-2 pb-2.5"
+      className="sticky z-30 -mx-4 px-4 pt-1 pb-1.5 sm:pt-2 sm:pb-2.5"
       style={{
         // Stick just below PostJob's sticky brand header (glass-header,
         // h-14 = 3.5rem, plus its own safe-area-top inset) so the rail
@@ -70,11 +70,13 @@ export function SectionProgress({
                 type="button"
                 onClick={() => onJump(s.id)}
                 aria-current={active ? "step" : undefined}
-                className="group flex min-h-9 items-center gap-2 rounded-full pr-1 transition-transform active:scale-[0.97]"
+                className="group flex min-h-[44px] items-center gap-1.5 rounded-full pr-1 transition-transform active:scale-[0.97]"
               >
-                {/* Step pip — done / active / pending. */}
+                {/* Step pip — done / active / pending. h-5 w-5 keeps the
+                    rail slim on SE-height screens; min-h-[44px] on the
+                    parent button ensures the tap target still meets 44px. */}
                 <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-ds-11 font-sans font-bold tabular-nums transition-all duration-300 ease-ds-out"
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-sans font-bold tabular-nums transition-all duration-300 ease-ds-out"
                   style={
                     s.done
                       ? {
@@ -94,12 +96,12 @@ export function SectionProgress({
                           }
                   }
                 >
-                  {s.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}
+                  {s.done ? <Check className="h-3 w-3" strokeWidth={3} /> : i + 1}
                 </span>
                 <span
                   className="font-sans font-semibold uppercase tracking-wider transition-colors"
                   style={{
-                    fontSize: "0.66rem",
+                    fontSize: "0.62rem",
                     color: s.done
                       ? "hsl(var(--bark))"
                       : active

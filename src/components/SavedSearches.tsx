@@ -94,7 +94,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
     setSaving(false);
     if (error) {
       hapticError();
-      toast.error(error.message);
+      toast.error("We couldn't save your search — please try again.");
       return;
     }
     hapticSuccess();
@@ -111,7 +111,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
       .eq("id", s.id);
     if (error) {
       hapticError();
-      toast.error(error.message);
+      toast.error("We couldn't update that alert — please try again.");
       return;
     }
     setSearches((prev) =>
@@ -124,7 +124,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
     const { error } = await supabase.from("saved_searches").delete().eq("id", id);
     if (error) {
       hapticError();
-      toast.error(error.message);
+      toast.error("We couldn't delete that search — please try again.");
       return;
     }
     setSearches((prev) => prev.filter((x) => x.id !== id));

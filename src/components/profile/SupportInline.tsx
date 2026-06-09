@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 type SupportCategory = "message" | "suggestion" | "report" | "help";
@@ -175,7 +176,8 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
     });
     setSending(false);
     if (error) {
-      toast.error("Failed to send. Please try again.");
+      hapticError();
+      toast.error("We couldn't send that — please try again.");
     } else {
       setSent(true);
       toast.success("Message sent to admin!");
@@ -215,42 +217,29 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
   }
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4">
       <ProfileTabHeader
         eyebrow="Concierge"
-        title="Help &amp; support"
-        meta={selected ? `Sending as: ${selected.label}` : "Pick a category to get started."}
-        onBack={onBack}
+        title={selected ? selected.label : "Help &amp; support"}
+        meta={selected ? selected.description : "Pick a category to get started."}
+        onBack={selected ? () => setCategory(null) : onBack}
       />
 
-      {/* Cards stay full-size whether or not one is selected. Selecting a
-          card adds a 2px primary ring + lift; the others dim to 60% so
-          the choice reads at a glance. No layout-shift, no scroll jump
-          (previously the cards collapsed to a compact 4-icon row +
-          auto-scrolled the form into view, which felt like a hard screen
-          change). */}
-      <div className="grid grid-cols-2 gap-3 shrink-0">
-        {supportCategories.map((c) => {
-          const isActive = category === c.key;
-          return (
+      {/* Drill-in: the picker grid and the form are mutually exclusive.
+          Tapping a card replaces the grid with its full-width form; the
+          header back arrow returns to the grid. This reads as a real
+          navigation step instead of a form popping open below four
+          always-on cards. */}
+      {!selected && (
+        <div className="grid grid-cols-2 gap-3">
+          {supportCategories.map((c) => (
             <button
               key={c.key}
               type="button"
               onClick={() => setCategory(c.key)}
-              aria-pressed={isActive}
-              className={`relative rounded-2xl liquid-glass p-4 text-left transition-all active:scale-[0.98] ${
-                isActive
-                  ? "ring-2 ring-primary/60 -translate-y-0.5 shadow-md"
-                  : category
-                    ? "opacity-60 hover:opacity-100 hover:-translate-y-0.5"
-                    : "hover:border-primary/40 hover:-translate-y-0.5"
-              }`}
+              className="relative rounded-2xl liquid-glass p-4 text-left transition-all active:scale-[0.98] hover:border-primary/40 hover:-translate-y-0.5"
             >
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center mb-2.5 transition-colors ${
-                  isActive ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
-                }`}
-              >
+              <div className="w-9 h-9 rounded-full flex items-center justify-center mb-2.5 bg-primary/10 text-primary">
                 {c.icon}
               </div>
               <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
@@ -260,16 +249,16 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                 {c.description}
               </p>
             </button>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
       {selected && (
         <form
           ref={formRef}
           key={selected.key}
           onSubmit={handleSubmit}
-          className="rounded-2xl liquid-glass p-5 space-y-4"
+          className="rounded-2xl liquid-glass p-5 space-y-4 animate-in fade-in slide-in-from-right-2 duration-200"
         >
           <div className="space-y-1.5">
             <Label htmlFor="support-subject" className="text-ds-11">

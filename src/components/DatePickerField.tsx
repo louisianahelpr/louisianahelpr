@@ -17,6 +17,13 @@ interface DatePickerFieldProps {
   onChange: (value: string) => void;
   /** ISO date string `YYYY-MM-DD` — earliest selectable day. Defaults to today. */
   min?: string;
+  /**
+   * ISO date string `YYYY-MM-DD` — latest selectable day. When set, the
+   * caption switches to bounded month/year dropdowns (so a date that may be
+   * decades from "today", like a birthday, is reachable without paging the
+   * calendar one month at a time) and the popover opens at this month.
+   */
+  max?: string;
   placeholder?: string;
   id?: string;
   className?: string;
@@ -31,6 +38,7 @@ export function DatePickerField({
   value,
   onChange,
   min,
+  max,
   placeholder = "Select a date",
   id,
   className,
@@ -40,6 +48,8 @@ export function DatePickerField({
   const minDate = min ? parseLocalDate(min) : new Date();
   // Strip time so today is selectable
   minDate.setHours(0, 0, 0, 0);
+  const maxDate = max ? parseLocalDate(max) : undefined;
+  maxDate?.setHours(0, 0, 0, 0);
 
   const formatted = selected
     ? selected.toLocaleDateString(undefined, {
@@ -83,7 +93,11 @@ export function DatePickerField({
               onChange(`${yyyy}-${mm}-${dd}`);
               setOpen(false);
             }}
-            disabled={(d) => d < minDate}
+            disabled={(d) => d < minDate || (maxDate ? d > maxDate : false)}
+            defaultMonth={selected ?? maxDate}
+            startMonth={maxDate ? minDate : undefined}
+            endMonth={maxDate}
+            captionLayout={maxDate ? "dropdown" : undefined}
             autoFocus
             className={cn("p-3 pointer-events-auto")}
           />

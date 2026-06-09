@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
 import { ShieldCheck, Trash2, Plus, Search, UserPlus } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
@@ -31,6 +32,7 @@ const AdminSettings = () => {
   const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<{ user_id: string; role_id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -202,6 +204,7 @@ const AdminSettings = () => {
       await loadAdmins();
     }
     setRemoving(null);
+    setConfirmRemove(null);
   };
 
   if (loading) return <p className="text-muted-foreground">Loading settings…</p>;
@@ -319,7 +322,7 @@ const AdminSettings = () => {
                   size="icon"
                   className="text-destructive hover:bg-destructive/10 shrink-0"
                   disabled={removing === admin.role_id}
-                  onClick={() => removeAdmin(admin)}
+                  onClick={() => setConfirmRemove(admin)}
                   aria-label="Remove admin"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -396,6 +399,23 @@ const AdminSettings = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <BrandConfirmDialog
+        open={!!confirmRemove}
+        onOpenChange={(open) => { if (!open) setConfirmRemove(null); }}
+        title="Remove this admin?"
+        description={`This revokes admin access for ${confirmRemove?.name || "this user"}. They'll lose access to the admin dashboard immediately.`}
+        primaryLabel={confirmRemove && removing === confirmRemove.role_id ? "Removing…" : "Remove admin"}
+        primaryTone="sienna"
+        primaryHaptic="error"
+        primaryDisabled={!!removing}
+        onPrimary={(e) => {
+          e.preventDefault();
+          if (!confirmRemove) return;
+          removeAdmin(confirmRemove);
+        }}
+        secondaryLabel="Cancel"
+      />
     </div>
   );
 };

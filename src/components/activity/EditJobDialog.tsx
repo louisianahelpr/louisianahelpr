@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
 import { categories, type Job } from "./activityConstants";
 import { todayLocalISO } from "@/lib/dateUtils";
 
@@ -58,7 +59,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     };
     const { error } = await supabase.from("jobs").update(updateData).eq("id", job.id);
     setSaving(false);
-    if (error) toast.error(error.message);
+    if (error) { hapticError(); toast.error("We couldn't save your changes — please try again."); }
     else { toast.success("Job updated!"); onSaved(); onClose(); }
   };
 
@@ -69,29 +70,45 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const hasHelper = !!job.helper_id;
   const locked = hasHelper;
 
+  const eyebrowCls = "font-serif italic uppercase block";
+  const eyebrowStyle = { fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" } as const;
+
   return (
     <>
     <Dialog open={!!job} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display">Edit Job</DialogTitle>
+      <DialogContent className="max-h-[90vh] overflow-y-auto !gap-3">
+        <DialogHeader className="space-y-0 text-left">
+          <span className={eyebrowCls} style={eyebrowStyle}>Editing your task</span>
+          <DialogTitle
+            className="font-display italic font-bold leading-tight mt-1"
+            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+          >
+            {title ? `"${title}"` : "Edit task"}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           {locked && (
-            <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-md p-2">
-              Fields are locked because a helpr has been accepted.
+            <p
+              className="font-serif italic text-[0.8rem] leading-relaxed rounded-ds-md p-2.5"
+              style={{
+                color: "hsl(var(--olivewood) / 0.85)",
+                background: "hsl(var(--gold-warm) / 0.10)",
+                border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+              }}
+            >
+              These fields are locked — a helpr's already accepted this task.
             </p>
           )}
-          <div className="space-y-2">
-            <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} />
+          <div className="space-y-1.5">
+            <Label className={eyebrowCls} style={eyebrowStyle}>Title</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
           </div>
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={hasHelper} />
+          <div className="space-y-1.5">
+            <Label className={eyebrowCls} style={eyebrowStyle}>Description</Label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={hasHelper} autoCapitalize="sentences" />
           </div>
-          <div className="space-y-2">
-            <Label>Category</Label>
+          <div className="space-y-1.5">
+            <Label className={eyebrowCls} style={eyebrowStyle}>Category</Label>
             <Select value={category} onValueChange={setCategory} disabled={hasHelper}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -99,13 +116,13 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>Location</Label>
-            <Input value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} />
+          <div className="space-y-1.5">
+            <Label className={eyebrowCls} style={eyebrowStyle}>Location</Label>
+            <Input value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="edit-date-needed">Date needed</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-date-needed" className={eyebrowCls} style={eyebrowStyle}>Date needed</Label>
               {hasHelper ? (
                 // When a helpr is locked in, the field is read-only. Show a
                 // disabled Input mirroring the locked state of the other
@@ -122,23 +139,45 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
                 />
               )}
             </div>
-            <div className="space-y-2">
-              <Label>Start time</Label>
+            <div className="space-y-1.5">
+              <Label className={eyebrowCls} style={eyebrowStyle}>Start time</Label>
               <TimePickerSelect value={startTime} onChange={setStartTime} disabled={hasHelper} />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Est. hours</Label>
+          <div className="space-y-1.5">
+            <Label className={eyebrowCls} style={eyebrowStyle}>Est. hours</Label>
             <Input type="number" inputMode="decimal" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} aria-label="Estimated hours" />
           </div>
-          <div className="space-y-2">
-            <Label>Special requirements</Label>
-            <Textarea value={specialReq} onChange={(e) => setSpecialReq(e.target.value)} rows={2} disabled={hasHelper} />
+          <div className="space-y-1.5">
+            <Label className={eyebrowCls} style={eyebrowStyle}>Special requirements</Label>
+            <Textarea value={specialReq} onChange={(e) => setSpecialReq(e.target.value)} rows={2} disabled={hasHelper} autoCapitalize="sentences" />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSaveClick} disabled={saving || hasHelper}>{saving ? "Saving…" : "Save changes"}</Button>
+        <DialogFooter className="!gap-2">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            className="rounded-ds-md bg-transparent border-transparent shadow-none text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveClick}
+            disabled={saving || hasHelper}
+            className="rounded-ds-md"
+            style={{
+              background: "hsl(var(--bark))",
+              backgroundImage: "none",
+              border: "1px solid hsl(var(--bark))",
+              color: "hsl(var(--parchment))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+            }}
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

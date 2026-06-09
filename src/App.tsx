@@ -132,7 +132,13 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
       <Route path="/data-rights" element={<RouteErrorBoundary>{routeEl(<PageTransition><DataRights /></PageTransition>)}</RouteErrorBoundary>} />
 
-      <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Jobs /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* Public, indexable jobs landing — Jobs.tsx reads anon job data
+          (get_ranked_open_jobs, granted to anon) and renders guest
+          "Sign up to apply" cards, so it must be reachable WITHOUT auth.
+          It was previously behind ProtectedRoute, which redirected the
+          exact guests it targets to /login. /browse remains the in-app
+          (AppShell) guest experience; this is its marketing-page sibling. */}
+      <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<PageTransition><Jobs /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /dashboard's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want

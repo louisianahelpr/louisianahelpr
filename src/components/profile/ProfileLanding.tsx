@@ -123,9 +123,6 @@ export function ProfileLanding({
     profile?.approval_status === "approved" &&
     stripeConnectStatus !== null &&
     !stripeConnectStatus.payouts_enabled;
-  const idvNeedsAction =
-    profile?.idv_status === "not_started" || profile?.idv_status === "failed";
-
   const subscriptionDesc =
     tier === "elite"
       ? "Elite plan — top visibility"
@@ -183,7 +180,7 @@ export function ProfileLanding({
     {
       title: "Settings & Support",
       items: [
-        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login", needsAction: idvNeedsAction },
+        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history" },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
         { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
@@ -513,13 +510,19 @@ export function ProfileLanding({
                         <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                           Recent work
                         </p>
-                        <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1">
+                        {/* Horizontal scroll with scroll-snap so each
+                            thumbnail snaps cleanly on touch-fling even
+                            at 320 px (iPhone SE). snap-x mandatory +
+                            snap-start keeps the leftmost item always
+                            partially visible so the scroller reads as
+                            scrollable at a glance. */}
+                        <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1 snap-x snap-mandatory">
                           {portfolioUrls.slice(0, 6).map((url, i) => (
                             <button
                               key={url}
                               type="button"
                               onClick={() => onSelectTab("profile")}
-                              className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform"
+                              className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform snap-start"
                               aria-label={`Work sample ${i + 1}`}
                             >
                               <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />
@@ -591,7 +594,7 @@ export function ProfileLanding({
                                 </div>
                                 {r.feedback?.trim() ? (
                                   <p
-                                    className="font-serif italic text-ds-12 leading-snug line-clamp-2"
+                                    className="font-serif italic text-ds-13 leading-snug line-clamp-2"
                                     style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                                   >
                                     "{r.feedback}"
@@ -695,7 +698,7 @@ export function ProfileLanding({
                     )}
                   </span>
                   <span
-                    className={`flex-1 text-ds-12 ${
+                    className={`flex-1 text-ds-13 ${
                       item.done ? "text-muted-foreground line-through" : "text-foreground font-medium"
                     }`}
                   >
@@ -774,7 +777,7 @@ export function ProfileLanding({
                     />
                   )}
                 </div>
-                <div className="rounded-[20px] bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
+                <div className="rounded-ds-lg bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
                   {group.items.map((item, idx) => (
                     <button
                       key={item.label}
@@ -831,7 +834,7 @@ export function ProfileLanding({
             <button
               type="button"
               onClick={onRequestLogout}
-              className="w-full rounded-[20px] bg-secondary/60 py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary transition-all"
+              className="w-full rounded-ds-lg bg-secondary/60 py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary transition-all"
               style={{
                 color: "hsl(var(--bark))",
                 fontFamily: "Montserrat, system-ui, sans-serif",
@@ -843,7 +846,7 @@ export function ProfileLanding({
             <button
               type="button"
               onClick={onRequestDelete}
-              className="w-full rounded-[20px] py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
+              className="w-full rounded-ds-lg py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
               style={{
                 background: "transparent",
                 border: "1px solid hsl(var(--burnt-sienna) / 0.32)",

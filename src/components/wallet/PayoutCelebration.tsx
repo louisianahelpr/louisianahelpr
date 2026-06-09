@@ -131,19 +131,28 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
 
   // Pre-compute particle layout once per render so the AnimatePresence
   // child does not re-randomize on every animation tick.
-  const particles = useMemo(() => {
-    if (reducedMotion) return [];
-    return Array.from({ length: 14 }, (_, i) => ({
-      id: i,
-      // Spread horizontally across the card, biased toward edges.
-      x: (i / 13) * 100 + (Math.random() - 0.5) * 8,
-      // Stagger fall delay slightly for a wave feel.
-      delay: (i % 7) * 0.04,
-      // Final Y is well below the card so they fall offscreen.
-      yEnd: 120 + Math.random() * 80,
-      tokenIdx: i % PARTICLE_TOKENS.length,
-      size: 6 + (i % 3) * 2,
-    }));
+  // iPhone SE and other ≤375 px devices get half as many particles and
+  // a shorter animation duration to stay jank-free under load.
+  const { particles, particleDuration } = useMemo(() => {
+    if (reducedMotion) return { particles: [], particleDuration: 2.4 };
+    const isSmallDevice =
+      typeof window !== "undefined" && window.screen.width <= 375;
+    const count = isSmallDevice ? 7 : 14;
+    const duration = isSmallDevice ? 1.6 : 2.4;
+    return {
+      particleDuration: duration,
+      particles: Array.from({ length: count }, (_, i) => ({
+        id: i,
+        // Spread horizontally across the card, biased toward edges.
+        x: (i / Math.max(count - 1, 1)) * 100 + (Math.random() - 0.5) * 8,
+        // Stagger fall delay slightly for a wave feel.
+        delay: (i % 7) * 0.04,
+        // Final Y is well below the card so they fall offscreen.
+        yEnd: 120 + Math.random() * 80,
+        tokenIdx: i % PARTICLE_TOKENS.length,
+        size: 6 + (i % 3) * 2,
+      })),
+    };
   }, [reducedMotion]);
 
   if (newPayouts.length === 0 || totalCents <= 0) return null;
@@ -191,7 +200,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                   initial={{ y: -16, opacity: 0 }}
                   animate={{ y: p.yEnd, opacity: [0, 1, 1, 0] }}
                   transition={{
-                    duration: 2.4,
+                    duration: particleDuration,
                     delay: p.delay,
                     ease: "easeOut",
                     times: [0, 0.1, 0.7, 1],

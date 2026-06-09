@@ -25,6 +25,7 @@ const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 import HeroSection from "@/components/landing/HeroSection";
 const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
 const CommunityVoice = lazy(() => import("@/components/landing/CommunityVoice"));
+const BusinessCTASection = lazy(() => import("@/components/landing/BusinessCTASection"));
 // PayoutTicker is below the fold (it lives between the hero and the
 // city strip) so it's safe to lazy-load — keeps the supabase chunk
 // out of the LCP path. The ticker hides itself on empty / errored
@@ -153,7 +154,7 @@ const Index = () => {
   // visitors don't pay the 50 KiB Supabase tax for a code path they never hit.
   if (isNative) {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <Suspense fallback={<div className="min-h-screen bg-premium-page" />}>
         <NativeRedirect />
       </Suspense>
     );
@@ -216,9 +217,13 @@ const Index = () => {
         <CommunityVoice />
       </Suspense>
 
+      <Suspense fallback={null}>
+        <BusinessCTASection />
+      </Suspense>
+
       {/* 120px breathing room before the footer so the FAQ accordion
           doesn't crash into the footer surface. */}
-      <div aria-hidden className="h-30" style={{ height: "120px" }} />
+      <div aria-hidden style={{ height: "120px" }} />
 
       <Footer />
     </div>

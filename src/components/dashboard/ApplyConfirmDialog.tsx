@@ -209,7 +209,12 @@ export function ApplyConfirmDialog({
           </div>
         </AlertDialogHeader>
         <AlertDialogFooter className="!gap-2">
-          <AlertDialogCancel disabled={applyLoading} className="rounded-ds-md">Cancel</AlertDialogCancel>
+          <AlertDialogCancel
+            disabled={applyLoading}
+            className="rounded-ds-md bg-transparent border-transparent shadow-none text-muted-foreground hover:bg-secondary/60 hover:text-foreground active:translate-y-0"
+          >
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => { hapticMedium(); handleApplyConfirm(); }}
             disabled={applyLoading}

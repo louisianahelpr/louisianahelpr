@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
 import { maybeCelebrate } from "@/lib/celebrate";
-import { hapticSuccess, hapticError } from "@/lib/haptics";
+import { hapticLight, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { TipDialog } from "@/components/TipDialog";
 
@@ -80,7 +80,7 @@ const StarRow = ({
             type="button"
             role="radio"
             aria-checked={s === value}
-            onClick={() => onChange(s)}
+            onClick={() => { hapticLight(); onChange(s); }}
             onMouseEnter={() => setHover(s)}
             onMouseLeave={() => setHover(0)}
             className="p-0.5 active:scale-90 transition-transform"
@@ -162,7 +162,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
     if (error) {
       hapticError();
       if (error.code === "23505") toast.error("You've already reviewed this job.");
-      else toast.error("Failed to submit review");
+      else toast.error("We couldn't post your review — please try again.");
     } else {
       hapticSuccess();
       toast.success("Review submitted!");

@@ -263,7 +263,7 @@ const AdminNotifications = () => {
       {/* Info */}
       <div className="rounded-ds-md liquid-glass p-5 space-y-2">
         <div className="flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-accent-foreground mt-0.5 shrink-0" />
+          <AlertTriangle className="w-4 h-4 text-accent mt-0.5 shrink-0" />
           <div>
             <p className="text-ds-13 font-medium text-foreground">Note</p>
             <p className="text-ds-11 text-muted-foreground">

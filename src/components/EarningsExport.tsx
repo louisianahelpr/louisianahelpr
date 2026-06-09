@@ -114,7 +114,15 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
       _start_date: start,
       _end_date: end,
     });
-    if (error) throw error;
+    if (error) {
+      // The RPC ships in a migration that may not be pushed to production
+      // yet (migrations don't auto-deploy). Surface a friendly message
+      // instead of Postgres's cryptic "function not found" error.
+      if (error.code === "PGRST202") {
+        throw new Error("Earnings export isn't available just yet. Please try again soon.");
+      }
+      throw error;
+    }
     return (data || []) as ExportRow[];
   };
 

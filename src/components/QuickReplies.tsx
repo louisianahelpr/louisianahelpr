@@ -52,7 +52,7 @@ export const QuickReplies = ({ onSelect, audience = "helper" }: QuickRepliesProp
 
   if (showEta) {
     return (
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pr-5 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
         <span className="shrink-0 text-ds-11 font-semibold text-muted-foreground pr-1">ETA:</span>
         {ETA_PRESETS.map((m) => (
           <Button
@@ -78,7 +78,7 @@ export const QuickReplies = ({ onSelect, audience = "helper" }: QuickRepliesProp
   }
 
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+    <div className="flex gap-1.5 overflow-x-auto pb-1 pr-5 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
       {showEnRoute && (
         <Button
           size="sm"

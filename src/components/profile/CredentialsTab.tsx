@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
 import { ShieldCheck, Upload, FileText, X, BadgeCheck, Clock, AlertTriangle, Lock } from "lucide-react";
 import CredentialBadge from "@/components/CredentialBadge";
 import { queryKeys } from "@/lib/queryKeys";
@@ -150,7 +151,8 @@ export function CredentialsTab({ userId }: { userId: string }) {
     const { error } = await supabase.from("profiles").update(update).eq("user_id", userId);
     setSaving(false);
     if (error) {
-      toast.error(error.message);
+      hapticError();
+      toast.error("We couldn't save your credentials — please try again.");
       return;
     }
     patchCache(update);
@@ -218,7 +220,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
                 <p
                   className="font-serif italic uppercase"
                   style={{
-                    fontSize: "0.6rem",
+                    fontSize: "0.62rem",
                     color: anyVerified ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna) / 0.78)",
                     letterSpacing: "0.18em",
                   }}
@@ -265,7 +267,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
             <p
               className="font-serif italic uppercase"
               style={{
-                fontSize: "0.6rem",
+                fontSize: "0.62rem",
                 color:
                   data.license_status === "verified"
                     ? "hsl(var(--bark))"
@@ -361,7 +363,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
             <p
               className="font-serif italic uppercase"
               style={{
-                fontSize: "0.6rem",
+                fontSize: "0.62rem",
                 color:
                   data.insurance_status === "verified"
                     ? "hsl(var(--bark))"

@@ -1,4 +1,5 @@
 import { Star, ChevronRight, Lock, Crown, Sparkles, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import type { EnrichedJob } from "./types";
@@ -27,8 +28,8 @@ export function JobPosterCard({ job, repeatJobs }: JobPosterCardProps) {
     .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <a
-      href={`/user/${job.customer_id}`}
+    <Link
+      to={`/user/${job.customer_id}`}
       className="relative block p-2.5 rounded-ds-md group transition-colors"
       style={{
         backgroundColor: "hsla(0, 0%, 100%, 0.55)",
@@ -160,6 +161,6 @@ export function JobPosterCard({ job, repeatJobs }: JobPosterCardProps) {
           </>
         )}
       </div>
-    </a>
+    </Link>
   );
 }

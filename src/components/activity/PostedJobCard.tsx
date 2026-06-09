@@ -2,12 +2,14 @@ import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
+import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
   Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Wrench,
-  Share2, RotateCw,
+  RotateCw, Check, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -61,7 +63,6 @@ interface PostedJobCardProps {
   loadingApplicants: Record<string, boolean>;
   /** Per-job applicant fetch error, for inline retry. */
   applicantErrors: Record<string, boolean>;
-  onBoostJob: (jobId: string) => void;
   /** Pre-fetched latest tracking row for this job, threaded down to
       <JobTracking> so the card doesn't fire its own SELECT on mount.
       `null` = pre-fetched and no row exists yet; `undefined` = not
@@ -71,6 +72,9 @@ interface PostedJobCardProps {
       group jobs), threaded into <GroupJobHelpers> to skip its own 2-query
       waterfall on mount. */
   initialGroupHelpers?: GroupHelperLite[];
+  /** Refetch the posted-jobs feed after an inline mutation (dispute
+      resolve/escalate) instead of a full-page reload. */
+  onActionComplete: () => void;
 }
 
 /**
@@ -109,9 +113,9 @@ function PostedJobCardInner({
   inlineApplicants,
   loadingApplicants,
   applicantErrors,
-  onBoostJob,
   initialTracking,
   initialGroupHelpers,
+  onActionComplete,
 }: PostedJobCardProps) {
   const navigate = useNavigate();
   const meta = completedJobMeta[job.id];
@@ -176,10 +180,10 @@ function PostedJobCardInner({
                 {(job.description.length > 100 || job.special_requirements?.trim()) && (
                   <button
                     type="button"
-                    className="text-ds-10 text-primary hover:underline"
+                    className="text-ds-10 text-primary hover:underline inline-flex items-center gap-1"
                     onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
                   >
-                    {isExpanded ? "▲ Less" : "▼ More details"}
+                    {isExpanded ? <><ChevronUp className="w-3 h-3" /> Less</> : <><ChevronDown className="w-3 h-3" /> More details</>}
                   </button>
                 )}
               </div>
@@ -203,8 +207,8 @@ function PostedJobCardInner({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     {job.helper_confirmed_at
-                      ? <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} accepted</span>
-                      : <span className="text-ds-11 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">⏳ Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to accept</span>
+                      ? <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} accepted</span>
+                      : <span className="text-ds-11 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to accept</span>
                     }
                   </div>
                   {/* Job countdown */}
@@ -219,7 +223,7 @@ function PostedJobCardInner({
                             <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                           {job.poster_confirmed_arrival_at ? (
-                            <span className="text-ds-11 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrival confirmed</span>
+                            <span className="text-ds-11 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> Arrival confirmed</span>
                           ) : (
                             <Button size="sm" className="w-full" onClick={() => onConfirmArrival(job.id)}>
                               <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
@@ -234,14 +238,14 @@ function PostedJobCardInner({
 
 
               {(job.status === "in_progress" || job.status === "revision_requested") && job.poster_confirmed_arrival_at && !job.poster_confirmed_working_at && (
-                <span className="text-ds-11 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Arrival confirmed</span>
+                <span className="text-ds-11 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> Arrival confirmed</span>
               )}
 
               {/* Completion confirmation */}
               {(job.status === "in_progress" || job.status === "revision_requested") && (job.poster_completed_at || job.helper_completed_at) && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  {job.poster_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ You confirmed</span>}
-                  {job.helper_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">✓ {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>}
+                  {job.poster_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> You confirmed</span>}
+                  {job.helper_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>}
                   {!job.poster_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for you</span>}
                   {!job.helper_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"}</span>}
                 </div>
@@ -261,7 +265,7 @@ function PostedJobCardInner({
                   {job.revision_note && <p className="text-ds-11 text-muted-foreground">{job.revision_note}</p>}
                   {job.revision_completed_at && (
                     <div className="p-1.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                      <p className="text-ds-11 text-emerald-600 font-medium">✓ Helpr marked revision as fixed</p>
+                      <p className="text-ds-11 text-emerald-600 font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> Helpr marked revision as fixed</p>
                       {job.revision_acceptance_deadline && (
                         <DeadlineCountdown
                           deadline={job.revision_acceptance_deadline}
@@ -295,7 +299,7 @@ function PostedJobCardInner({
                 return (
                   <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
                     <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tipped & Reviewed</span>
-                    <span className="text-ds-11 text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
+                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
                   </div>
                 );
               }
@@ -334,7 +338,7 @@ function PostedJobCardInner({
               {/* Applicants button + inline expanded applicant list */}
               {job.status === "open" && (
                 <div className="px-4 py-2 space-y-2" onClick={(e) => e.stopPropagation()}>
-                  <Button size="sm" variant="outline" className="w-full border border-primary text-primary hover:bg-primary/10" onClick={() => onLoadApplications(job)}>
+                  <Button size="sm" className="w-full" onClick={() => onLoadApplications(job)}>
                     <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}
                   </Button>
 
@@ -405,29 +409,8 @@ function PostedJobCardInner({
                             className="font-serif italic leading-snug"
                             style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.75)" }}
                           >
-                            Share your task or Boost it to reach more helprs nearby.
+                            Share your task or Boost it (below) to reach more helprs nearby.
                           </p>
-                          <div className="flex gap-2 pt-0.5">
-                            <Button
-                              size="sm"
-                              className="flex-1 bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0 text-ds-11"
-                              onClick={() => onBoostJob(job.id)}
-                            >
-                              <Rocket className="w-3.5 h-3.5 mr-1" /> Boost
-                            </Button>
-                            {navigator.share && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="flex-1 text-ds-11"
-                                onClick={() => {
-                                  navigator.share({ title: job.title, text: `Help needed: ${job.title}`, url: window.location.origin + `/dashboard?job=${job.id}` }).catch(() => {});
-                                }}
-                              >
-                                <Share2 className="w-3.5 h-3.5 mr-1" /> Share
-                              </Button>
-                            )}
-                          </div>
                         </div>
                       );
                     }
@@ -509,10 +492,10 @@ function PostedJobCardInner({
                           to "Cance". The grid gives every label room with
                           comfortable h-11 tap targets. */}
                       <div className="grid grid-cols-2 gap-2">
-                        <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" disabled={!!isBoosted} onClick={() => onBoost(job.id)}>
+                        <Button size="sm" className="w-full bg-accent/15 text-accent hover:bg-accent/25 border-0" disabled={!!isBoosted} onClick={() => onBoost(job.id)}>
                           <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
                         </Button>
-                        <Button size="sm" className="w-full bg-primary/10 text-primary hover:bg-primary/20 border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                        <Button size="sm" className="w-full bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--bark)/0.20)] border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
                         <ShareJobButton
                           job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                           className="w-full"
@@ -622,7 +605,7 @@ function PostedJobCardInner({
                           }
                         >
                           <CheckCircle2 className="w-4 h-4 mr-1" />
-                          {completingJobId === job.id ? "…" : job.poster_completed_at ? "Approved ✓" : "Approve & release payment"}
+                          {completingJobId === job.id ? "…" : job.poster_completed_at ? "Approved" : "Approve & release payment"}
                         </Button>
                       )}
                       {/* Message — primary action while work is in progress */}
@@ -675,22 +658,22 @@ function PostedJobCardInner({
                           canUpload={false}
                         />
                         {!hasTipped ? (
-                          <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onTip(job.id, helperName)}>
+                          <Button size="sm" className="w-full bg-accent/15 text-accent hover:bg-accent/25 border-0" onClick={() => onTip(job.id, helperName)}>
                             <DollarSign className="w-4 h-4 mr-1" /> Tip {helperName}
                           </Button>
                         ) : (
                           <Button size="sm" className="w-full bg-muted text-muted-foreground border-0 cursor-default" disabled>
-                            <CheckCircle2 className="w-4 h-4 mr-1" /> Tipped ✓
+                            <CheckCircle2 className="w-4 h-4 mr-1" /> Tipped
                           </Button>
                         )}
                         {job.payment_status === "released" && (
                           !hasReviewed ? (
-                            <Button size="sm" className="w-full bg-accent/15 text-accent-foreground hover:bg-accent/25 border-0" onClick={() => onReview(job)}>
+                            <Button size="sm" className="w-full bg-accent/15 text-accent hover:bg-accent/25 border-0" onClick={() => onReview(job)}>
                               <Star className="w-4 h-4 mr-1" /> Review
                             </Button>
                           ) : (
                             <Button size="sm" className="w-full bg-muted text-muted-foreground border-0 cursor-default" disabled>
-                              <CheckCircle2 className="w-4 h-4 mr-1" /> Reviewed ✓
+                              <CheckCircle2 className="w-4 h-4 mr-1" /> Reviewed
                             </Button>
                           )
                         )}
@@ -788,19 +771,20 @@ function PostedJobCardInner({
                           <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={async (e) => {
                             e.stopPropagation();
                             const { error } = await supabase.from("jobs").update({ status: "completed", dispute_status: "resolved", dispute_resolved_at: new Date().toISOString() }).eq("id", job.id);
-                            if (error) { toast.error("Failed to resolve"); return; }
+                            if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
                             if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
                             toast.success("Dispute resolved — payment released to helpr");
-                            window.location.reload();
+                            onActionComplete();
                           }}><CheckCircle2 className="w-4 h-4 mr-1" /> Mark Resolved</Button>
                           <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={async (e) => {
                             e.stopPropagation();
                             const { error } = await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id);
-                            if (error) { toast.error("Failed to escalate"); return; }
-                            const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+                            if (error) { hapticError(); toast.error("We couldn't escalate that — please try again."); return; }
+                            const { data: adminRoles, error: adminErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+                            if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
                             if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
                             toast.success("Dispute escalated to admin for final decision");
-                            window.location.reload();
+                            onActionComplete();
                           }}><AlertTriangle className="w-4 h-4 mr-1" /> Escalate to Admin</Button>
                         </div>
                       )}

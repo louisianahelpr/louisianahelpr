@@ -15,6 +15,21 @@ import { queryKeys } from "@/lib/queryKeys";
 // on demand by the dashboard's IntersectionObserver sentinel.
 const PAGE_SIZE = 25;
 
+// Hard ceiling on each network phase of the feed fetch. Without it a stalled
+// connection leaves the dashboard spinning indefinitely; on timeout we reject
+// so React Query surfaces the existing ErrorState (with its manual retry).
+const JOBS_QUERY_TIMEOUT_MS = 12_000;
+
+const withTimeout = <T,>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout>;
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(label)), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+};
+
 interface JobsPage {
   jobs: EnrichedJob[];
   nextOffset: number | null;
@@ -155,7 +170,7 @@ export function useDashboardData() {
       // honest ErrorState.)
       let rawJobsRes: any[];
       try {
-        rawJobsRes = unwrap(await supabase
+        rawJobsRes = unwrap(await withTimeout(supabase
           .from("open_jobs_browse")
           .select(
             // NOTE: open_jobs_browse view does NOT expose latitude/longitude
@@ -168,7 +183,7 @@ export function useDashboardData() {
           .neq("payment_status", "abandoned")
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
-          .range(offset, offset + PAGE_SIZE)) as any[];
+          .range(offset, offset + PAGE_SIZE), JOBS_QUERY_TIMEOUT_MS, "Loading tasks timed out")) as any[];
       } catch (viewErr) {
         report(viewErr, {
           // "error" — a thrown open_jobs_browse query bricks the entire
@@ -192,7 +207,7 @@ export function useDashboardData() {
 
       // Phase 2: enrich page with poster names + review stats + subscription tier (for Search Priority).
       const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
-      const [profilesRes, reviewsRes, posterTiersRes] = await Promise.all([
+      const [profilesRes, reviewsRes, posterTiersRes] = await withTimeout(Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
         supabase
           .from("reviews")
@@ -203,7 +218,7 @@ export function useDashboardData() {
           .from("profiles")
           .select("user_id, subscription_tier, subscription_expires_at")
           .in("user_id", posterIds),
-      ]);
+      ]), JOBS_QUERY_TIMEOUT_MS, "Loading tasks timed out");
 
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
@@ -253,6 +268,13 @@ export function useDashboardData() {
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
     enabled: !!user && !userLoading && !!ctx,
+    // Fail fast on a timeout — the ErrorState already offers a manual retry,
+    // so don't make the user wait through 2 silent auto-retries (~36s). Other
+    // transient errors keep the default retry behavior.
+    retry: (failureCount, error) =>
+      error instanceof Error && error.message === "Loading tasks timed out"
+        ? false
+        : failureCount < 2,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
     // No refetchInterval: on an infinite query it refetches EVERY loaded

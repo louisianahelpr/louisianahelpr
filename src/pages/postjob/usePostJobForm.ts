@@ -14,10 +14,11 @@ import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
-import { hapticSuccess } from "@/lib/haptics";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
 import type { AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 import { categories } from "@/components/postjob/DetailsSection";
+import type { SampleJob } from "@/data/sampleJobs";
 import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { validateResult } from "@/lib/validateResult";
@@ -26,7 +27,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
 
-export type Step = "form" | "checkout";
+export type Step = "entry" | "form" | "checkout";
 
 /**
  * usePostJobForm — owns all of the Post-a-Task form state, side effects,
@@ -43,14 +44,18 @@ export function usePostJobForm() {
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
   // Preflight open-job count — checked at mount so the user learns
   // about the 5-job cap before filling the entire form.
   const [openJobCount, setOpenJobCount] = useState<number | null>(null);
   const [idvDialogOpen, setIdvDialogOpen] = useState(false);
   const [idvStatus, setIdvStatus] = useState<string | undefined>(undefined);
   const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
-  const [step, setStep] = useState<Step>("form");
+  // Deep-link arrivals (one-tap rebook, direct offer to a saved helpr) come
+  // in with the intent already chosen, so they skip the entry landing and
+  // drop straight into the pre-filled form. Everyone else sees the
+  // start-fresh / draft / template choice first, which declutters the page.
+  const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo"));
+  const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");
@@ -79,7 +84,6 @@ export function usePostJobForm() {
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
   const salesTaxRate = 10;
-  const [draftLoaded, setDraftLoaded] = useState(false);
   // True once the user has restored the saved draft via loadDraft. The inline
   // "Pick up draft" pill hides after this so an accidental re-tap can't replace
   // the in-progress form with the (autosave-refreshed) snapshot.
@@ -169,18 +173,11 @@ export function usePostJobForm() {
         setSpecialRequirements(data.special_requirements || "");
         setIsRecurring(data.is_recurring || false);
         setRecurrenceInterval(data.recurrence_interval || "weekly");
-        setDraftLoaded(true);
         toast.info("Job details pre-filled from previous booking!");
       });
       return;
     }
-
-    // Show draft prompt instead of auto-loading
-    if (hasDraft && !draftLoaded) {
-      setShowDraftPrompt(true);
-      setDraftLoaded(true);
-    }
-  }, [searchParams, hasDraft, draftLoaded]);
+  }, [searchParams]);
 
   // Smart defaults — prefill the state to LA (every Helpr job is in
   // Louisiana) and the city from the poster's saved profile location.
@@ -303,34 +300,52 @@ export function usePostJobForm() {
     return urls;
   };
 
+  /**
+   * Scroll the first invalid field into view so the user can see it even
+   * on a small screen (SE: 375×667, ~550px usable). Uses the element's
+   * native `id` attribute — every form field already has one. Focuses
+   * after scrolling when the element is focusable (inputs / textareas);
+   * non-focusable targets (divs used as scroll anchors) get scroll-only.
+   * `block: "center"` keeps the label visible above the field.
+   */
+  const scrollToField = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (typeof (el as HTMLInputElement).focus === "function" && el.tagName !== "DIV") {
+      setTimeout(() => (el as HTMLInputElement).focus(), 350);
+    }
+  };
+
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { toast.error("Task title is required"); return; }
-    if (!description.trim()) { toast.error("Description is required"); return; }
-    if (!category) { toast.error("Category is required"); return; }
+    if (!title.trim()) { toast.error("Task title is required"); scrollToField("title"); return; }
+    if (!description.trim()) { toast.error("Description is required"); scrollToField("description"); return; }
+    if (!category) { toast.error("Category is required"); scrollToField("category-picker"); return; }
     // At least one photo is required — posts with a photo dramatically
     // outperform photo-less ones for both applicant count and quote
     // accuracy, so we now gate submit on it (issue #114).
     if (imageFiles.length === 0) {
       toast.error("Add at least one photo so helprs know what they're applying for.");
+      scrollToField("photo-grid");
       return;
     }
-    if (!streetAddress.trim()) { toast.error("Street address is required"); return; }
-    if (!city.trim()) { toast.error("City is required"); return; }
-    if (!addrState.trim()) { toast.error("State is required"); return; }
-    if (!zipCode.trim()) { toast.error("Zip code is required"); return; }
-    if (!dateNeeded) { toast.error("Date needed is required"); return; }
+    if (!streetAddress.trim()) { toast.error("Street address is required"); scrollToField("streetAddress"); return; }
+    if (!city.trim()) { toast.error("City is required"); scrollToField("city"); return; }
+    if (!addrState.trim()) { toast.error("State is required"); scrollToField("state"); return; }
+    if (!zipCode.trim()) { toast.error("Zip code is required"); scrollToField("zipCode"); return; }
+    if (!dateNeeded) { toast.error("Date needed is required"); scrollToField("date"); return; }
     // Validate date is not in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(dateNeeded + "T00:00:00");
-    if (selectedDate < today) { toast.error("Date cannot be in the past"); return; }
-    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); return; }
-    if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); return; }
+    if (selectedDate < today) { toast.error("Date cannot be in the past"); scrollToField("date"); return; }
+    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); scrollToField("flexible"); return; }
+    if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); scrollToField("hours"); return; }
     // special_requirements is optional — no validation needed
-    if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); return; }
-    if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000."); return; }
-    if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent bonus must be at least $5"); return; }
+    if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); scrollToField("budget"); return; }
+    if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000."); scrollToField("budget"); return; }
+    if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent bonus must be at least $5"); scrollToField("custom-urgent-fee"); return; }
     setConfirmed(false);
     setStep("checkout");
   };
@@ -489,11 +504,14 @@ export function usePostJobForm() {
     void maybeFireFirstPostConfetti();
     toast.info("Redirecting to payment…");
 
-    // Geocode the address in the background and patch the job row with
-    // lat/lng so it shows up on /browse?view=map. Best-effort — failure
-    // doesn't block checkout. The map's RPC rounds these to ~110m
-    // before serving so the doorstep is never exposed publicly.
-    void (async () => {
+    // Geocode the address and patch the job row with lat/lng so it shows
+    // up on /browse?view=map. Kicked off here so it runs concurrently with
+    // the create-payment round-trip below, then awaited before the redirect
+    // (see geocodePromise await) — previously this was fire-and-forget, but
+    // `window.location.href` to Stripe unloads the page and cancelled the
+    // in-flight fetch, so most jobs never got coords and never hit the map.
+    // The map's RPC rounds these to ~110m so the doorstep is never exposed.
+    const geocodePromise = (async () => {
       const composed = composeJobAddress({
         streetAddress,
         city,
@@ -528,9 +546,13 @@ export function usePostJobForm() {
         if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
         safeStorage.removeItem(COOLDOWN_KEY);
         const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
+        hapticError();
         toast.error(`Could not start payment: ${errorMsg}. Please try again.`);
         setRedirecting(false);
         setStep("checkout");
+        // Reset consent — payment failed, so the user must re-confirm
+        // before retrying (avoids a stale confirmation being reused).
+        setConfirmed(false);
         submittingRef.current = false;
         return;
       }
@@ -544,6 +566,16 @@ export function usePostJobForm() {
       try {
         await supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } });
       } catch { /* best-effort */ }
+      // Land the geocode write before the redirect unloads the page. It's
+      // been running concurrently since job insert, so it's usually already
+      // done; cap the wait at 2.5s so a slow/blocked Nominatim never stalls
+      // checkout (the job is still usable, it just won't pin on the map).
+      try {
+        await Promise.race([
+          geocodePromise,
+          new Promise((resolve) => window.setTimeout(resolve, 2500)),
+        ]);
+      } catch { /* best-effort — coords are non-critical */ }
       // Show the blocking overlay before the redirect so the user can't
       // re-tap submit during the navigation delay on slow networks.
       setRedirecting(true);
@@ -554,10 +586,13 @@ export function usePostJobForm() {
       const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);
       if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
       safeStorage.removeItem(COOLDOWN_KEY);
-      toast.error("Payment setup failed. Please try again.");
+      hapticError();
+      toast.error("We couldn't set up payment just yet — please try again.");
       setSaving(false);
       setRedirecting(false);
       setStep("checkout");
+      // Reset consent — same as the inline error path above.
+      setConfirmed(false);
       submittingRef.current = false;
     }
   };
@@ -607,9 +642,60 @@ export function usePostJobForm() {
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
+    } else if (step === "form" && !skipEntry) {
+      // Back out of the form to the entry landing — unless the form was
+      // reached via a deep link that has no entry screen behind it.
+      setStep("entry");
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
     } else {
       navigate("/dashboard");
     }
+  };
+
+  // ── Entry-landing choices ──────────────────────────────────────────────
+  // The entry screen offers three ways into the form so the page no longer
+  // dumps the full multi-step form on the user at once.
+
+  /** "Start fresh" — current behavior, an empty form. */
+  const startFresh = () => {
+    track("post_job_entry_choice", { choice: "start_fresh" });
+    setStep("form");
+  };
+
+  /** "Load draft" — restore the saved draft, then enter the form. */
+  const loadDraftAndContinue = () => {
+    track("post_job_entry_choice", { choice: "load_draft" });
+    loadDraft();
+    setStep("form");
+  };
+
+  /**
+   * "Use a template" — enter the form; the SampleJobTemplates row at the
+   * top of the empty form is the template picker. When a specific template
+   * is passed (from the entry screen's template cards) it's applied here so
+   * the user lands on a pre-filled form.
+   */
+  const useTemplate = (apply?: () => void) => {
+    track("post_job_entry_choice", { choice: "use_template" });
+    apply?.();
+    setStep("form");
+  };
+
+  /**
+   * Pre-fills the form from a sample-job template. Mirrors the field
+   * mapping in SampleJobTemplates so a template picked on the entry screen
+   * lands the user on an identical pre-filled form.
+   */
+  const applyTemplateFields = (sample: SampleJob) => {
+    setCategory(sample.category);
+    setTitle(sample.title);
+    setDescription(sample.description);
+    setBudget(String(sample.typical_price));
+    // estimatedHours is stored as a stringified hours number, not minutes.
+    setEstimatedHours((sample.typical_duration_minutes / 60).toString());
+    track("sample_job_template_selected", { template_id: sample.id });
   };
 
   // Restores a previously-saved draft into the form fields.
@@ -632,14 +718,8 @@ export function usePostJobForm() {
     setIsRecurring(draft.isRecurring); setRecurrenceInterval(draft.recurrenceInterval);
     setRecurrenceEndDate(draft.recurrenceEndDate);
 
-    setShowDraftPrompt(false);
     setDraftConsumed(true);
     toast.success("Draft restored!");
-  };
-
-  const dismissDraftPrompt = () => {
-    clearDraft();
-    setShowDraftPrompt(false);
   };
 
   const clearOffer = () => {
@@ -671,9 +751,12 @@ export function usePostJobForm() {
     // draft prompt
     hasDraft,
     draftConsumed,
-    showDraftPrompt,
     loadDraft,
-    dismissDraftPrompt,
+    // entry landing
+    startFresh,
+    loadDraftAndContinue,
+    useTemplate,
+    applyTemplateFields,
     // details fields
     title,
     setTitle,

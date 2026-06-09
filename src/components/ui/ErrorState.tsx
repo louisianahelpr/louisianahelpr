@@ -13,6 +13,12 @@ interface ErrorStateProps {
   onRetry?: () => void;
   /** Label for the retry button. */
   retryLabel?: string;
+  /** Disables the retry button (e.g. while a retry is in flight) so a
+   *  fast double-tap can't fire two fetches. */
+  retryDisabled?: boolean;
+  /** Optional secondary affordance rendered below retry, so a persistent
+   *  failure isn't a dead end (e.g. "Browse helprs"). */
+  secondaryAction?: React.ReactNode;
   /** Card treatment — forwarded to EmptyState. Defaults to `dock`. */
   variant?: "dock" | "inline";
 }
@@ -36,6 +42,8 @@ export function ErrorState({
   body = "Tap Try again. If it sticks, our end is having a hiccup — not yours.",
   onRetry,
   retryLabel = "Try again",
+  retryDisabled = false,
+  secondaryAction,
   variant = "dock",
 }: ErrorStateProps) {
   return (
@@ -46,8 +54,15 @@ export function ErrorState({
       title={title}
       body={body}
       action={
-        onRetry ? (
-          <BarkPillButton onClick={onRetry}>{retryLabel}</BarkPillButton>
+        onRetry || secondaryAction ? (
+          <div className="flex flex-col items-center gap-2.5 w-full">
+            {onRetry && (
+              <BarkPillButton onClick={onRetry} disabled={retryDisabled}>
+                {retryLabel}
+              </BarkPillButton>
+            )}
+            {secondaryAction}
+          </div>
         ) : undefined
       }
     />

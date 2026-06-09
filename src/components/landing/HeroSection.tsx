@@ -264,7 +264,7 @@ const HeroSection = () => {
               <Button
                 asChild
                 size="xl"
-                className="btn-liquid-fill group h-14 sm:h-15 lg:h-16 px-7 rounded-2xl tracking-tight w-full"
+                className="btn-liquid-fill group h-14 sm:h-[3.75rem] lg:h-16 px-7 rounded-2xl tracking-tight w-full"
                 style={{
                   fontFamily: "Montserrat, system-ui, sans-serif",
                   fontWeight: 600,
@@ -289,7 +289,7 @@ const HeroSection = () => {
                 asChild
                 size="xl"
                 variant="outline"
-                className="group h-14 sm:h-15 lg:h-16 px-7 rounded-2xl tracking-tight w-full transition-all duration-200 hover:-translate-y-0.5"
+                className="group h-14 sm:h-[3.75rem] lg:h-16 px-7 rounded-2xl tracking-tight w-full transition-all duration-200 hover:-translate-y-0.5"
                 style={{
                   fontFamily: "Montserrat, system-ui, sans-serif",
                   fontWeight: 600,

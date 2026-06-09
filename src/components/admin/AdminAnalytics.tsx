@@ -36,6 +36,11 @@ type Tip = Database["public"]["Tables"]["tips"]["Row"];
 
 type DrillDown = "users" | "jobs" | "revenue" | "fees" | "subscriptions" | "categories" | "payouts" | null;
 
+// Monthly subscription price per tier, in dollars. Single source of truth for
+// both the headline MRR and the per-tier breakdown (kept in sync with the
+// SubscriptionTab tier list — basic $5 / pro $10 / elite $15).
+const SUB_PRICE = { basic: 5, pro: 10, elite: 15 } as const;
+
 const AdminAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [drillDown, setDrillDown] = useState<DrillDown>(null);
@@ -252,8 +257,9 @@ const AdminAnalytics = () => {
   const subPro = helpers.filter(h => h.subscription_tier === "pro").length;
   const subElite = helpers.filter(h => h.subscription_tier === "elite").length;
   const subFree = helpers.filter(h => !h.subscription_tier).length;
-  // Monthly subscription revenue estimate (matches live Stripe pricing: $5/$10/$15 per month)
-  const totalSubRevenue = (subBasic * 5) + (subPro * 10) + (subElite * 15);
+  // Monthly subscription revenue estimate (matches live Stripe pricing — see
+  // SubscriptionTab tier list, the single source of truth for these numbers).
+  const totalSubRevenue = (subBasic * SUB_PRICE.basic) + (subPro * SUB_PRICE.pro) + (subElite * SUB_PRICE.elite);
 
   // Category breakdown
   const categoryMap: Record<string, number> = {};
@@ -474,7 +480,7 @@ const AdminAnalytics = () => {
           <p className="text-ds-24 font-bold text-foreground">${totalSubRevenue.toFixed(2)}<span className="text-ds-13 font-normal text-muted-foreground">/mo</span></p>
           <div className="grid grid-cols-4 gap-2 mt-4">
             {[
-              { label: "Elite", count: subElite, color: "bg-accent/20 text-accent-foreground" },
+              { label: "Elite", count: subElite, color: "bg-accent/20 text-accent" },
               { label: "Pro", count: subPro, color: "bg-primary/10 text-primary" },
               { label: "Basic", count: subBasic, color: "bg-secondary text-secondary-foreground" },
               { label: "Free", count: subFree, color: "bg-muted text-muted-foreground" },
@@ -639,9 +645,9 @@ const AdminAnalytics = () => {
           <p className="text-3xl font-bold text-foreground">${totalSubRevenue.toFixed(2)}</p>
           <p className="text-ds-11 text-muted-foreground mt-1">Projected annual: ${(totalSubRevenue * 12).toFixed(2)}</p>
           <div className="mt-4 space-y-1.5">
-            <MRRRow tier="Elite" count={subElite} amount={subElite * 24.99} />
-            <MRRRow tier="Pro" count={subPro} amount={subPro * 14.99} />
-            <MRRRow tier="Basic" count={subBasic} amount={subBasic * 9.99} />
+            <MRRRow tier="Elite" count={subElite} amount={subElite * SUB_PRICE.elite} />
+            <MRRRow tier="Pro" count={subPro} amount={subPro * SUB_PRICE.pro} />
+            <MRRRow tier="Basic" count={subBasic} amount={subBasic * SUB_PRICE.basic} />
           </div>
         </div>
       </div>

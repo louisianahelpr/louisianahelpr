@@ -11,8 +11,10 @@ import {
 import Navbar from "@/components/Navbar";
 import BackButton from "@/components/BackButton";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { Link, useNavigate } from "react-router-dom";
 
 const ForBusiness = () => {
+  const navigate = useNavigate();
   usePageMeta({
     title: "Helpr for Business — Louisiana Commercial Services",
     description:
@@ -24,7 +26,7 @@ const ForBusiness = () => {
   });
 
   return (
-    <div className="relative min-h-screen page-warmth">
+    <div className="relative min-h-screen page-warmth pb-safe-nav">
       <div aria-hidden className="mesh-gradient-global" />
       <Navbar />
       <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
@@ -158,9 +160,7 @@ const ForBusiness = () => {
                     variant="bark"
                     size="xl"
                     className="group w-full rounded-ds-md"
-                    onClick={() => {
-                      window.location.href = "/signup?type=business";
-                    }}
+                    onClick={() => navigate("/signup?type=business")}
                   >
                     <span>Sign up as a business</span>
                     <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
@@ -168,13 +168,13 @@ const ForBusiness = () => {
 
                   <p className="text-ds-11 mt-3" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                     Already have an account?{" "}
-                    <a
-                      href="/login"
+                    <Link
+                      to="/login"
                       className="font-semibold hover:underline"
                       style={{ color: "hsl(var(--bark))" }}
                     >
                       Sign in
-                    </a>
+                    </Link>
                   </p>
                 </div>
 

@@ -1,8 +1,8 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw } from "lucide-react";
+import { ArrowLeft, ChevronsDown, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw, X, Lock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +22,10 @@ import { cn } from "@/lib/utils";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColor } from "@/lib/statusColors";
 import { FirstMessageChips } from "./FirstMessageChips";
+import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import type { Conversation, Message } from "./types";
 
-const renderMessageContent = (content: string) => {
+const renderMessageContent = (content: string, onImageClick: (url: string) => void) => {
   // Photo message
   if (content.startsWith("📷 ")) {
     const parts = content.slice(2).trim().split("\n");
@@ -38,7 +39,7 @@ const renderMessageContent = (content: string) => {
           src={url}
           alt="Shared photo"
           className="max-w-full rounded-ds-sm cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={() => window.open(url, "_blank")}
+          onClick={() => onImageClick(url)}
         />
         {caption && <p>{caption}</p>}
       </div>
@@ -140,10 +141,29 @@ export function ChatView({
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Single-photo lightbox for tapped chat images — keeps the photo inside
+  // the app's frosted viewer instead of punting to a system browser tab
+  // (window.open in a Capacitor WebView leaves the app).
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
   // Once the user taps any first-message chip the row hides for the rest
   // of this conversation — it's only meant to break the empty-thread
   // ice, not stick around as the chat actually starts.
   const [chipsDismissed, setChipsDismissed] = useState(false);
+  // Tracks whether the user is scrolled far enough from the bottom that
+  // we should show a "jump to newest" affordance. `true` = show button.
+  const [showJumpToBottom, setShowJumpToBottom] = useState(false);
+  // Stable ref to the scroll container for the jump handler and the
+  // scroll-position observer.
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Poster-first rule: an applicant cannot open a job conversation — only
+  // the poster may send the first message (stops posters being flooded by
+  // applicants). The applicant's composer stays locked until at least one
+  // inbound message from the poster exists. The only other participant in
+  // a job thread is the poster, so any message we didn't send is theirs.
+  const isApplicant = !activeConvo.viewerIsPoster;
+  const posterHasMessaged = messages.some((m) => m.sender_id !== userId);
+  const composerLocked = isApplicant && !posterHasMessaged;
 
   // Pull-to-refresh for the chat thread — reuses the same hook +
   // wrapper every other scrollable surface uses. The hook owns its own
@@ -163,9 +183,31 @@ export function ChatView({
       } else if (chatContainerRef) {
         (chatContainerRef as { current: HTMLDivElement | null }).current = node;
       }
+      // Keep our own stable reference for the jump-to-bottom handler.
+      scrollContainerRef.current = node;
     },
     [containerRef, chatContainerRef],
   );
+
+  // Track scroll position to show/hide the jump-to-newest button.
+  // 120px from the bottom is the threshold — any further up and the
+  // button appears so the user can get back without scrolling manually.
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setShowJumpToBottom(distFromBottom > 120);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Reset the jump button whenever the conversation changes so a stale
+  // "scrolled up" state from a previous thread doesn't bleed through.
+  useEffect(() => {
+    setShowJumpToBottom(false);
+  }, [activeConvo.jobId, activeConvo.otherUserId]);
 
   return (
     // Fixed-viewport lock + safe-area-top header inset come from AppShell,
@@ -194,7 +236,7 @@ export function ChatView({
               variant="ghost"
               size="icon"
               className="rounded-full h-9 w-9 shrink-0 self-center"
-              onClick={() => { setActiveConvo(null); setDraft(""); navigate("/messages", { replace: true }); }}
+              onClick={() => { setActiveConvo(null); setDraft(""); setLightboxPhoto(null); navigate("/messages", { replace: true }); }}
               aria-label="Back to conversations"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -293,12 +335,12 @@ export function ChatView({
           {/* Community rules banner — compact */}
           {!bannerDismissed && (
             <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
-              <AlertTriangle className="w-3 h-3 text-accent-foreground mt-[3px] shrink-0" />
-              <p className="text-ds-11 leading-snug text-accent-foreground flex-1">
+              <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
+              <p className="text-ds-11 leading-snug text-accent flex-1">
                 Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then permanent ban.
               </p>
-              <button onClick={() => setBannerDismissed(true)} className="text-accent-foreground/60 hover:text-accent-foreground shrink-0 mt-0.5" aria-label="Dismiss">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <button onClick={() => setBannerDismissed(true)} className="-m-2 p-2 text-accent/60 hover:text-accent shrink-0 self-start" aria-label="Dismiss">
+                <X className="w-3 h-3" />
               </button>
             </div>
           )}
@@ -429,38 +471,14 @@ export function ChatView({
                         mine={mine}
                       />
                     )}
-                    {m.content && renderMessageContent(m.content)}
-                    {/* Report / delete — overlay sits INSIDE the bubble
-                        top corner so it never clips off-screen on narrow
-                        phones (<375px), which the old `-left-[52px]` /
-                        `-right-[52px]` offsets did. Faded on touch
-                        devices (no hover state) so the affordance is
-                        still discoverable without dominating every
-                        bubble. */}
-                    <div className={`absolute ${mine ? "left-1" : "right-1"} top-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-60 transition-opacity flex gap-0.5`}>
-                      {!mine && (
-                        <button
-                          onClick={() => setReportTarget({ type: "message", id: m.id })}
-                          className="text-muted-foreground hover:text-destructive flex items-center justify-center w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm"
-                          title="Report"
-                          aria-label="Report message"
-                        >
-                          <Flag className="w-3 h-3" />
-                        </button>
-                      )}
-                      {mine && !isSending && !isFailed && (
-                        <button
-                          onClick={() => setDeleteMessageConfirm(m.id)}
-                          className="flex items-center justify-center w-7 h-7 rounded-full backdrop-blur-sm"
-                          style={{ color: "hsl(var(--parchment) / 0.85)", background: "rgba(0, 0, 0, 0.18)" }}
-                          title="Delete"
-                          aria-label="Delete message"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
+                    {m.content && renderMessageContent(m.content, setLightboxPhoto)}
                   </div>
+                  {/* Meta row — timestamp / read-receipt plus the
+                      report (inbound) or delete (own) affordance. Kept
+                      BELOW the bubble, never overlaid on the copy, so the
+                      icon can't sit on top of the message text. Faded on
+                      touch (no hover) so it stays discoverable without
+                      dominating every row. */}
                   <div className={`flex items-center gap-1 mt-1 px-1 text-ds-10 text-muted-foreground ${mine ? "flex-row-reverse" : ""}`}>
                     {isSending ? (
                       <span className="flex items-center gap-1">
@@ -488,6 +506,26 @@ export function ChatView({
                           recipientName={activeConvo?.otherUserName}
                           recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}
                         />
+                        {!mine && (
+                          <button
+                            onClick={() => setReportTarget({ type: "message", id: m.id })}
+                            className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive transition-opacity flex items-center justify-center w-5 h-5 rounded-full"
+                            title="Report"
+                            aria-label="Report message"
+                          >
+                            <Flag className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                        {mine && (
+                          <button
+                            onClick={() => setDeleteMessageConfirm(m.id)}
+                            className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive transition-opacity flex items-center justify-center w-5 h-5 rounded-full"
+                            title="Delete"
+                            aria-label="Delete message"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -499,55 +537,119 @@ export function ChatView({
           </div>
           </PullToRefreshWrapper>
 
-          {/* First-message chips — three ice-breaker suggestions shown
-              ONLY when the thread is brand-new (zero messages) and the
-              user hasn't already picked one this session. Dismissed
-              after one tap so a fresh thread doesn't keep nudging the
-              user once they've started typing. */}
-          {!chatLoadError && messages.length === 0 && !chipsDismissed && (
-            <FirstMessageChips
-              viewerRole={activeConvo.viewerIsPoster ? "customer" : "helper"}
-              onPick={(text) => {
-                setDraft(text);
-                setChipsDismissed(true);
-              }}
-            />
+          {/* Jump-to-newest button — appears when the user is scrolled
+              more than 120px from the bottom. Tapping it smoothly
+              scrolls the thread back to the latest message so they
+              don't miss new arrivals. Hidden on empty threads. */}
+          {showJumpToBottom && messages.length > 0 && (
+            <div className="flex justify-center -mt-1 mb-1 pointer-events-none">
+              <button
+                type="button"
+                className="pointer-events-auto flex items-center gap-1 px-3 py-1 rounded-full text-ds-11 font-medium shadow-md transition-all active:scale-95"
+                style={{
+                  background: "hsl(var(--bark))",
+                  color: "hsl(var(--parchment))",
+                  boxShadow:
+                    "0 2px 8px hsl(var(--bark) / 0.28), " +
+                    "inset 0 1px 0 0 rgba(255,255,255,0.12)",
+                }}
+                aria-label="Jump to newest message"
+                onClick={() => {
+                  scrollContainerRef.current?.scrollTo({
+                    top: scrollContainerRef.current.scrollHeight,
+                    behavior: "smooth",
+                  });
+                }}
+              >
+                <ChevronsDown className="w-3 h-3" />
+                New messages
+              </button>
+            </div>
           )}
 
-          {/* Quick replies — populate the input instead of sending instantly */}
-          <div className="pt-1">
-            <QuickReplies
-              onSelect={(msg) => setDraft(msg)}
-              audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
-            />
-          </div>
+          {composerLocked ? (
+            /* Poster-first lock — the applicant waits for the poster to
+               open the conversation. Replaces chips + quick replies +
+               composer so there's no disabled control to fight with. The
+               backend RLS policy enforces the same rule server-side. */
+            <div
+              className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+              style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
+            >
+              <div
+                className="flex items-start gap-2.5 rounded-ds-md px-3.5 py-3"
+                style={{
+                  background: "hsl(var(--gold-warm) / 0.10)",
+                  border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+                }}
+              >
+                <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna) / 0.8)" }} strokeWidth={2} aria-hidden="true" />
+                <p className="font-serif italic text-[0.84rem] leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                  Your application's in. The poster will reach out here if they're interested — you'll be able to reply as soon as they do.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* First-message chips — three ice-breaker suggestions shown
+                  ONLY when the thread is brand-new (zero messages) and the
+                  user hasn't already picked one this session. Dismissed
+                  after one tap so a fresh thread doesn't keep nudging the
+                  user once they've started typing. */}
+              {!chatLoadError && messages.length === 0 && !chipsDismissed && (
+                <FirstMessageChips
+                  viewerRole={activeConvo.viewerIsPoster ? "customer" : "helper"}
+                  onPick={(text) => {
+                    setDraft(text);
+                    setChipsDismissed(true);
+                  }}
+                />
+              )}
 
-          {/* Rich message input */}
-          <div
-            className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
-            style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
-          >
-            <RichMessageInput
-              value={draft}
-              onChange={setDraft}
-              onSend={async (content, attachment) => {
-                // RichMessageInput clears its (controlled) text right
-                // after onSend returns. If the content scan in the page
-                // blocks the message (`sendMessage` resolves `false`),
-                // restore the typed text so a blocked message isn't
-                // silently lost — the user keeps what they wrote and a
-                // toast explains why it didn't send.
-                const accepted = await sendMessage(content, attachment);
-                if (!accepted && content.trim()) setDraft(content);
-              }}
-              onTyping={broadcastTyping}
-              jobId={activeConvo.jobId}
-              senderId={userId || undefined}
-            />
-          </div>
+              {/* Quick replies — populate the input instead of sending instantly */}
+              <div className="pt-1">
+                <QuickReplies
+                  onSelect={(msg) => setDraft(msg)}
+                  audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
+                />
+              </div>
+
+              {/* Rich message input */}
+              <div
+                className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+                style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
+              >
+                <RichMessageInput
+                  value={draft}
+                  onChange={setDraft}
+                  onSend={async (content, attachment) => {
+                    // RichMessageInput clears its (controlled) text right
+                    // after onSend returns. If the content scan in the page
+                    // blocks the message (`sendMessage` resolves `false`),
+                    // restore the typed text so a blocked message isn't
+                    // silently lost — the user keeps what they wrote and a
+                    // toast explains why it didn't send.
+                    const accepted = await sendMessage(content, attachment);
+                    if (!accepted && content.trim()) setDraft(content);
+                  }}
+                  onTyping={broadcastTyping}
+                  jobId={activeConvo.jobId}
+                  senderId={userId || undefined}
+                />
+              </div>
+            </>
+          )}
         </div>
         </div>
       </main>
+      <PhotoLightbox
+        photos={lightboxPhoto ? [lightboxPhoto] : []}
+        lightboxIndex={lightboxPhoto ? 0 : null}
+        setLightboxIndex={(value) => {
+          const next = typeof value === "function" ? value(lightboxPhoto ? 0 : null) : value;
+          if (next === null) setLightboxPhoto(null);
+        }}
+      />
     </AppShell>
   );
 }

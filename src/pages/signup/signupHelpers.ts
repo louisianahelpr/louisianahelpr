@@ -87,6 +87,85 @@ export function fileToBase64(file: File): Promise<string> {
 }
 
 /**
+ * Free-email domains we check signup addresses against. A mistyped domain
+ * means the verification email never arrives — the single biggest silent
+ * killer of activations — so we offer a one-tap correction.
+ */
+const POPULAR_EMAIL_DOMAINS = [
+  "gmail.com",
+  "yahoo.com",
+  "hotmail.com",
+  "outlook.com",
+  "icloud.com",
+  "aol.com",
+  "live.com",
+  "msn.com",
+  "comcast.net",
+  "att.net",
+];
+
+// Levenshtein edit distance (insert / delete / substitute). Small and
+// dependency-free — only used on the short domain part of an email.
+function editDistance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+    }
+  }
+  return dp[m][n];
+}
+
+/**
+ * If the email's domain looks like a near-miss of a popular provider
+ * (e.g. "gmial.com" → "gmail.com"), return the corrected full address;
+ * otherwise null. Suggests only for edit distance 1–2, and never when the
+ * domain already matches a known provider exactly — legitimate custom
+ * domains (further than 2 edits from any provider) are left untouched.
+ */
+export function suggestEmailCorrection(email: string): string | null {
+  const at = email.lastIndexOf("@");
+  if (at < 1) return null;
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1).toLowerCase();
+  if (!domain.includes(".") || POPULAR_EMAIL_DOMAINS.includes(domain)) return null;
+
+  let best: string | null = null;
+  let bestDist = Infinity;
+  for (const candidate of POPULAR_EMAIL_DOMAINS) {
+    const d = editDistance(domain, candidate);
+    if (d < bestDist) {
+      bestDist = d;
+      best = candidate;
+    }
+  }
+  return best && bestDist >= 1 && bestDist <= 2 ? `${local}@${best}` : null;
+}
+
+/**
+ * Password strength score (0–4) + label for the signup strength meter.
+ * Distinct from the hard requirement chips (8+/uppercase/number): this
+ * rewards length and character variety to nudge toward a *better*
+ * password, not just a passing one.
+ */
+export function passwordStrength(password: string): { score: number; label: string } {
+  if (!password) return { score: 0, label: "" };
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+  if (/\d/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+  score = Math.min(score, 4);
+  return { score, label: ["", "Weak", "Fair", "Good", "Strong"][score] };
+}
+
+/**
  * Compute age in whole years from a YYYY-MM-DD date-of-birth string.
  * Used by the 18+ age gate; centralized here so any future age check
  * (e.g. mobile app) can call the same logic.

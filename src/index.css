@@ -194,12 +194,19 @@ html.app-shell body {
    so it can paint over the notch. On document-scroll pages the page lives in
    normal flow inside #root, so padding #root down by the banner's measured
    CONTENT height pushes the header below the banner instead of letting the
-   banner overlay/slice it. Fixed AppShell pages ignore this padding and read
-   the offset in JS instead (see AppShell + offlineBannerLayout). The offset
-   is already net of env(safe-area-inset-top) — the banner reports its
-   content-row height, and the page header still owns the inset — so there's
-   no double-count. */
-html.offline-banner-visible #root {
+   banner overlay/slice it. Fixed AppShell pages must NOT get this padding —
+   they read the offset in JS and shift their own `top` (see AppShell +
+   offlineBannerLayout). The `:not(.app-shell)` guard is load-bearing: the
+   route-level <PageTransition> sets `will-change: transform`, which makes it
+   a containing block for AppShell's `position: fixed`, so #root padding WOULD
+   shift the fixed shell too — stacking on top of AppShell's own `top` offset
+   and double-counting (an empty safe-area-sized band above the header). The
+   `app-shell` class (html, set by useAppShellViewport for fixed-shell routes)
+   is exactly the "this page owns the offset itself" signal, so scope the
+   padding to document-scroll routes only. The offset is already net of
+   env(safe-area-inset-top) — the banner reports its content-row height, and
+   the page header still owns the inset — so there's no double-count. */
+html.offline-banner-visible:not(.app-shell) #root {
   padding-top: var(--offline-banner-offset, 0px);
 }
 
@@ -330,6 +337,9 @@ input[type="range"] {
 
 button {
   touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Focus Visible for Accessibility */
@@ -356,6 +366,27 @@ button {
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* Attention nudge — a short horizontal shake used to draw the eye to a
+   control the user must act on before proceeding (e.g. the unchecked
+   agreement box on signup when they tap Continue). Suppressed under
+   prefers-reduced-motion via the guard below. */
+@keyframes attention-nudge {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-5px); }
+  30% { transform: translateX(5px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+.animate-attention-nudge {
+  animation: attention-nudge 0.45s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-attention-nudge {
+    animation: none;
   }
 }
 
@@ -400,6 +431,14 @@ button {
     animation: none;
     transform: rotate(-3deg);
   }
+
+  /* Collapsible/accordion expand-collapse (Legal policy sections, etc.)
+     snaps open/closed instead of animating its height for users who've
+     asked the OS to reduce motion. */
+  .animate-accordion-down,
+  .animate-accordion-up {
+    animation: none !important;
+  }
 }
 
 /* ----- 2026 premium surface system (Garden District Stone, restrained) ----- */
@@ -423,10 +462,13 @@ button {
    `.is-scrolled` on the nav element to enable. (Intentionally not wired by
    default — we want the hero to flow uninterrupted to the top edge.) */
 .glass-nav.is-scrolled {
-  /* SCROLLED STATE — frosted glass per spec: white/80 + 12 px blur, plus a
-     full-strength Heritage Gold 1 px hairline along the bottom. The
-     gradient from the top state is overridden by this solid background. */
-  background: rgba(255, 255, 255, 0.8);
+  /* SCROLLED STATE — fully opaque warm surface (matched to the sticky tab
+     band on Legal, `hsl(38 18% 97%)`) plus a full-strength Heritage Gold 1 px
+     hairline along the bottom. Opaque rather than the old white/80: in the
+     iOS WKWebView, backdrop-filter blur over scrolling content repaints
+     unreliably, so a translucent nav let page text ghost through above any
+     sticky sub-header. An opaque fill masks it cleanly on every platform. */
+  background: hsl(38 18% 97%);
   backdrop-filter: blur(12px) saturate(140%);
   -webkit-backdrop-filter: blur(12px) saturate(140%);
   border-bottom: 1px solid hsl(var(--heritage-gold));
@@ -476,6 +518,26 @@ button {
     0 1px 2px rgba(20, 20, 18, 0.08),
     0 24px 48px -12px rgba(20, 20, 18, 0.28),
     0 56px 112px -24px rgba(20, 20, 18, 0.22);
+}
+
+/* Shared tactile press primitive — referenced by ~50 tappable elements but
+   never defined, so none of them reacted to touch until now. */
+.btn-press {
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.btn-press:active {
+  transform: scale(0.96);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-press,
+  .btn-press:active {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* Primary button — Jasper Green fill in editorial serif (Fraunces 700).
@@ -1062,11 +1124,11 @@ button {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  /* Champagne flow — soft linear gradient from warm white (#F5F5F0) to
-     soft sand (#E8E2D9). Replaces the previous radial tan glow that was
+  /* Champagne flow — soft linear gradient from near-white (#FAF9F5) to
+     light champagne (#F4F1EA). Replaces the previous radial tan glow that was
      reading as "spotlight." Desaturated 20 % overall — the olive + white
      glass cards now have proper contrast against this calmer canvas. */
-  background: linear-gradient(135deg, #F5F5F0 0%, #E8E2D9 100%);
+  background: linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
   z-index: 0;
 }
 
@@ -1351,9 +1413,12 @@ button {
    read as carved out of the same paper, not pasted on a flat background. */
 .page-warmth {
   background-color: hsl(var(--background));
+  /* Unified app canvas — identical champagne gradient to `.bg-premium-page`
+     so every surface (marketing, auth, signed-in) reads as the same paper.
+     Previously this layered darker `--secondary` radial washes, which made
+     auth/onboarding screens read heavier than the dashboard. */
   background-image:
-    radial-gradient(ellipse 90% 60% at 50% 0%, hsl(var(--secondary) / 0.35) 0%, transparent 55%),
-    radial-gradient(ellipse 80% 50% at 100% 100%, hsl(var(--secondary) / 0.25) 0%, transparent 60%);
+    linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
   background-attachment: fixed;
 }
 
@@ -1364,7 +1429,7 @@ button {
 .bg-premium-page {
   background-color: hsl(var(--background));
   background-image:
-    linear-gradient(135deg, #F5F5F0 0%, #E8E2D9 100%);
+    linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
   background-attachment: fixed;
 }
 

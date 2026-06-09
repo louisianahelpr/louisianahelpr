@@ -53,7 +53,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
 
     if (error) {
       hapticError();
-      toast.error("Failed to submit report");
+      toast.error("We couldn't send your report — please try again.");
     } else {
       hapticSuccess();
       toast.success("Report submitted. We'll review it shortly.");
@@ -106,16 +106,17 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             >
               Why are you reporting this?
             </p>
-            <div className="flex flex-wrap gap-1.5">
-              {reasons.map(({ label, Icon }) => {
+            <div className="grid grid-cols-2 gap-1.5">
+              {reasons.map(({ label, Icon }, i) => {
                 const active = reason === label;
+                const isLast = i === reasons.length - 1;
                 return (
                   <button
                     key={label}
                     type="button"
                     onClick={() => setReason(label)}
                     aria-pressed={active}
-                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-ds-md text-[12.5px] font-medium transition-all active:scale-[0.97] ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-ds-md text-[12.5px] font-medium transition-all active:scale-[0.97] ${isLast && reasons.length % 2 === 1 ? "col-span-2 justify-center" : "justify-start"} ${
                       active
                         ? "bg-primary/10 text-primary border border-primary/35 shadow-[0_1px_2px_hsl(var(--primary)/0.10)]"
                         : "bg-white text-foreground border border-border/60 hover:bg-secondary/40 hover:border-border"

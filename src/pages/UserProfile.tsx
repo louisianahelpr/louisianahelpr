@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -107,6 +108,24 @@ const UserProfile = () => {
           .eq("user_id", userId!)
           .maybeSingle(),
       ]);
+
+      // These five feed secondary stats (reviews, job counts, response
+      // metrics, trust signals) — a failure should degrade gracefully to
+      // empty rather than brick the whole profile over the critical name/bio
+      // we already have. But don't silently swallow: report so a real outage
+      // is observable instead of looking like "this user has 0 reviews".
+      for (const [label, res] of [
+        ["reviews", reviewsRes], ["posted_jobs", postedRes], ["worked_jobs", workedRes],
+        ["applications", appsRes], ["trust_signals", idCheckRes],
+      ] as const) {
+        if (res.error) {
+          report(res.error, {
+            severity: "warning",
+            tags: { area: `user_profile.${label}` },
+            context: { viewed_user_id: userId },
+          });
+        }
+      }
 
       const postedJobs = postedRes.data || [];
       const workedJobs = workedRes.data || [];
@@ -214,7 +233,7 @@ const UserProfile = () => {
         <main className="container mx-auto px-5 py-6">
           <div className="max-w-lg mx-auto space-y-5">
             <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
-              <div className="w-24 h-24 rounded-[28px] squircle bg-muted animate-pulse mx-auto" />
+              <div className="w-24 h-24 rounded-ds-pill squircle bg-muted animate-pulse mx-auto" />
               <div className="h-6 w-40 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-24 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-64 bg-muted animate-pulse mx-auto rounded" />
@@ -360,7 +379,7 @@ const UserProfile = () => {
                   decoding="async"
                   src={profile.avatar_url}
                   alt={`${displayName} profile picture`}
-                  className="w-24 h-24 rounded-[28px] squircle mx-auto object-cover"
+                  className="w-24 h-24 rounded-ds-pill squircle mx-auto object-cover"
                   style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
                 />
               ) : (
@@ -370,7 +389,7 @@ const UserProfile = () => {
                     // deterministic warm-palette gradient hashed off the
                     // helper's user id so each profile has a recognizable
                     // signature when no avatar has been uploaded.
-                    "w-24 h-24 rounded-[28px] squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold",
+                    "w-24 h-24 rounded-ds-pill squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold",
                     avatarGradientFor(userId),
                   )}
                   style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
@@ -448,7 +467,7 @@ const UserProfile = () => {
               )}
               {profile.skills && (
                 <div className="flex flex-wrap gap-1.5 justify-center mt-3">
-                  {profile.skills.split(",").map((s, i) => (
+                  {profile.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, i) => (
                     <span
                       key={i}
                       className="text-[0.7rem] font-sans font-semibold px-2 py-0.5 rounded-full"
@@ -458,7 +477,7 @@ const UserProfile = () => {
                         border: "0.5px solid hsl(var(--bark) / 0.20)",
                       }}
                     >
-                      {s.trim()}
+                      {s}
                     </span>
                   ))}
                 </div>
@@ -607,7 +626,7 @@ const UserProfile = () => {
                     <div className="flex items-center gap-2">
                       <div className="flex gap-0.5">
                         {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />
+                          <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
                         ))}
                       </div>
                       <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
@@ -620,7 +639,7 @@ const UserProfile = () => {
                         <div className="flex flex-col items-start gap-0.5">
                           <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
                           <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />)}
+                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
                           </div>
                         </div>
                       )}
@@ -628,7 +647,7 @@ const UserProfile = () => {
                         <div className="flex flex-col items-start gap-0.5">
                           <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
                           <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />)}
+                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
                           </div>
                         </div>
                       )}
@@ -636,7 +655,7 @@ const UserProfile = () => {
                         <div className="flex flex-col items-start gap-0.5">
                           <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
                           <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/20"}`} />)}
+                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
                           </div>
                         </div>
                       )}
@@ -661,7 +680,7 @@ const UserProfile = () => {
                 <div key={job.id} className="rounded-ds-md liquid-glass p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-ds-13 font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-muted-foreground text-ds-11">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                    <p className="text-muted-foreground text-ds-11">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace(/_/g, " ")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-ds-13 font-bold text-primary">${job.budget}</span>
@@ -684,7 +703,7 @@ const UserProfile = () => {
                 <div key={job.id} className="rounded-ds-md liquid-glass p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-ds-13 font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-muted-foreground text-ds-11">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace("_", " ")}</p>
+                    <p className="text-muted-foreground text-ds-11">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace(/_/g, " ")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-ds-13 font-bold text-primary">${job.budget}</span>

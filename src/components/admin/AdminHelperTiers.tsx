@@ -136,7 +136,7 @@ const AdminHelperTiers = () => {
                   </div>
                 </div>
                 <Button asChild size="sm" variant="outline" className="shrink-0">
-                  <Link to={`/u/${helper.user_id}`}>
+                  <Link to={`/user/${helper.user_id}`}>
                     View <ExternalLink className="w-3 h-3 ml-1" />
                   </Link>
                 </Button>

@@ -57,6 +57,8 @@ export function useActivityActions({
   // Dialog state
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<EnrichedApplication[]>([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
+  const [applicationsError, setApplicationsError] = useState(false);
   const [inlineApplicants, setInlineApplicants] = useState<Record<string, EnrichedApplication[]>>({});
   const [loadingApplicants, setLoadingApplicants] = useState<Record<string, boolean>>({});
   const [applicantErrors, setApplicantErrors] = useState<Record<string, boolean>>({});
@@ -155,13 +157,18 @@ export function useActivityActions({
 
   const loadApplications = async (job: Job) => {
     setSelectedJob(job);
+    setApplicationsLoading(true);
+    setApplicationsError(false);
+    setApplications([]);
     try {
       const enriched = await fetchApplicants(job.id);
       setApplications(enriched);
     } catch {
       // A failed fetch must not read as "no applicants" — tell the truth.
-      setApplications([]);
+      setApplicationsError(true);
       toast.error("Couldn't pull up applicants right now — give it a second and try again?");
+    } finally {
+      setApplicationsLoading(false);
     }
   };
 
@@ -478,7 +485,7 @@ export function useActivityActions({
       }
     } catch (err: any) {
       hapticError();
-      toast.error(err.message || "Failed to complete job");
+      toast.error(err.message || "We couldn't mark this job complete — please try again.");
     } finally {
       setCompletingJobId(null);
     }
@@ -491,7 +498,7 @@ export function useActivityActions({
       if (data?.error) throw new Error(data.error);
       toast.success("Revision resolved! Job is back in progress.");
       refresh();
-    } catch (err: any) { toast.error(err.message || "Failed to resolve revision"); }
+    } catch (err: any) { hapticError(); toast.error(err.message || "We couldn't resolve that revision — please try again."); }
   };
 
   const confirmStartJob = async (jobId: string) => {
@@ -500,7 +507,8 @@ export function useActivityActions({
     const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
     if (error) {
       rollbackActivity(snapshot);
-      toast.error("Failed to confirm start");
+      hapticError();
+      toast.error("We couldn't start the job just now — please try again.");
     } else {
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
@@ -517,7 +525,7 @@ export function useActivityActions({
     const arrivedAt = new Date().toISOString();
     const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_arrival_at: arrivedAt });
     const { error } = await supabase.from("jobs").update({ poster_confirmed_arrival_at: arrivedAt }).eq("id", jobId);
-    if (error) { rollbackActivity(snapshot); toast.error("Failed to confirm arrival"); return; }
+    if (error) { rollbackActivity(snapshot); hapticError(); toast.error("We couldn't confirm arrival just now — please try again."); return; }
     const job = postedJobs.find(j => j.id === jobId);
     if (job?.helper_id) {
       await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
@@ -531,7 +539,7 @@ export function useActivityActions({
     const workingAt = new Date().toISOString();
     const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_working_at: workingAt });
     const { error } = await supabase.from("jobs").update({ poster_confirmed_working_at: workingAt }).eq("id", jobId);
-    if (error) { rollbackActivity(snapshot); toast.error("Failed to confirm"); return; }
+    if (error) { rollbackActivity(snapshot); hapticError(); toast.error("We couldn't confirm that just now — please try again."); return; }
     const job = postedJobs.find(j => j.id === jobId);
     if (job?.helper_id) {
       await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
@@ -587,7 +595,7 @@ export function useActivityActions({
       }
       toast.success("No-show reported. Job reopened.");
       refresh();
-    } catch (err: any) { toast.error(err.message || "Failed to report no-show"); }
+    } catch (err: any) { hapticError(); toast.error(err.message || "We couldn't report the no-show just now — please try again."); }
     finally { setReportingNoShow(false); setNoShowJobId(null); }
   };
 
@@ -609,6 +617,8 @@ export function useActivityActions({
     // Dialog state
     selectedJob, setSelectedJob,
     applications,
+    applicationsLoading,
+    applicationsError,
     inlineApplicants,
     loadingApplicants,
     applicantErrors,

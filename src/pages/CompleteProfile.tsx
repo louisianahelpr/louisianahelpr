@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,13 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { Camera, Check, FileText, Loader2, ShieldCheck, X } from "lucide-react";
+import { Camera, Check, ChevronDown, FileText, Loader2, ShieldCheck, X } from "lucide-react";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
 import { queryKeys } from "@/lib/queryKeys";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
@@ -70,10 +71,25 @@ const CompleteProfile = () => {
   const [idPreview, setIdPreview] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
+  // On small viewports (SE ≤375px) the checklist is collapsed by default to
+  // reduce scroll distance; tapping the header expands it. On larger screens
+  // (sm+) it's always visible. Starts collapsed so the form is reachable quickly.
+  const [checklistExpanded, setChecklistExpanded] = useState(false);
 
-  // Hydrate any existing values (so we only ask for what's missing)
+  // Guard against re-running hydration when profile updates (e.g. after a
+  // refetch) but user_id is stable. Without this ref the dep-array would need
+  // to include every profile field, which risks an infinite re-render loop
+  // (setting state inside an effect that depends on state). Once is enough —
+  // subsequent profile writes come through the local setState calls.
+  const hydratedRef = useRef(false);
+
+  // Hydrate any existing values (so we only ask for what's missing).
+  // Only runs the first time a non-null profile is available for this user;
+  // each field is also gated by "not already set locally" so a user who has
+  // started typing isn't overwritten by a background refetch.
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || hydratedRef.current) return;
+    hydratedRef.current = true;
     const { firstName: parsedFirst, lastName: parsedLast } = splitName(profile.full_name);
     if (parsedFirst && !firstName) setFirstName(parsedFirst);
     if (parsedLast && !lastName) setLastName(parsedLast);
@@ -86,7 +102,9 @@ const CompleteProfile = () => {
     // Persisted terms acceptance — read straight from the row so refresh / re-entry
     // doesn't reset the user's previous "yes I agree".
     if (profile.accepted_terms_at) setAcceptedPolicies(true);
-     
+  // Intentionally scoped to user_id so a stable user never re-triggers this.
+  // The hydratedRef is the real guard; user_id is included to correctly reset
+  // the gate when the logged-in user changes (e.g. in a shared-device test).
   }, [profile?.user_id]);
 
   const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
@@ -160,6 +178,11 @@ const CompleteProfile = () => {
 
   const allComplete = checklist.every((c) => c.done);
 
+  const firstNameValid = firstName.trim().length > 0;
+  const lastNameValid = lastName.trim().length > 0;
+  const phoneValid = phone.replace(/\D/g, "").length === 10;
+  const cityValid = location.trim().length > 0;
+
   useEffect(() => {
     if (!user?.id || profile || isLoading) return;
     void refresh();
@@ -195,15 +218,16 @@ const CompleteProfile = () => {
     e.preventDefault();
     if (!user) return;
 
-    if (!firstName.trim() || !lastName.trim()) return toast.error("Please enter your full name");
-    if (!dateOfBirth) return toast.error("Date of birth is required");
-    if (!ageOk) return toast.error("You must be at least 18");
-    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return toast.error("Valid phone number is required");
-    if (!location.trim()) return toast.error("City is required");
-    if (!bio.trim() || bio.trim().length < 20) return toast.error("Tell us about yourself (at least 20 characters)");
-    if (!avatarFile && !profile?.avatar_url) return toast.error("Profile picture is required");
-    if (!idFile && !profile?.id_document_url) return toast.error("Government-issued ID is required");
-    if (!acceptedPolicies) return toast.error("Please accept the platform rules, terms, and privacy policy");
+    const fail = (msg: string) => { hapticError(); toast.error(msg); };
+    if (!firstName.trim() || !lastName.trim()) return fail("Please enter your full name");
+    if (!dateOfBirth) return fail("Date of birth is required");
+    if (!ageOk) return fail("You'll need to be 18 or older to join.");
+    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return fail("Valid phone number is required");
+    if (!location.trim()) return fail("City is required");
+    if (!bio.trim() || bio.trim().length < 20) return fail("Tell us a little about yourself — at least 20 characters.");
+    if (!avatarFile && !profile?.avatar_url) return fail("Profile picture is required");
+    if (!idFile && !profile?.id_document_url) return fail("Government-issued ID is required");
+    if (!acceptedPolicies) return fail("Please accept the platform rules, terms, and privacy policy");
 
     setSubmitting(true);
     try {
@@ -297,11 +321,12 @@ const CompleteProfile = () => {
       // very next route render reads the new values.
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
       await new Promise((r) => setTimeout(r, 800));
+      hapticSuccess();
       toast.success("Profile complete — welcome to Helpr!");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       const recovered = await recoverCompletedProfile();
-      if (!recovered) toast.error(err?.message || "Could not save your profile");
+      if (!recovered) { hapticError(); toast.error(err?.message || "We couldn't save your profile just yet — give it another try."); }
     } finally {
       setSubmitting(false);
     }
@@ -350,8 +375,7 @@ const CompleteProfile = () => {
   }
 
   return (
-    <div className="min-h-screen page-warmth relative">
-      <div aria-hidden className="mesh-gradient-global" />
+    <div className="min-h-screen bg-premium-page relative">
       <div className="relative z-10 flex items-start justify-center px-5 py-8 sm:py-12 pt-[calc(env(safe-area-inset-top)+24px)]">
         <div className="w-full max-w-md pb-12">
           <div className="text-center mb-7">
@@ -374,15 +398,41 @@ const CompleteProfile = () => {
             </p>
           </div>
 
-          {/* Live "Big 7" checklist — green check when satisfied, red X when missing */}
+          {/* Live "Big 7" checklist — collapsible on small viewports to save
+              vertical space on SE (375px). The header always shows progress
+              so the user isn't flying blind even when the list is folded.
+              On sm+ screens it's always expanded. */}
           <div className="squircle mb-5 rounded-[24px] border border-border/60 bg-card/80 backdrop-blur-md shadow-[var(--card-shadow)] p-4">
-            <div className="flex items-center justify-between mb-3">
+            <button
+              type="button"
+              aria-expanded={checklistExpanded}
+              aria-controls="profile-checklist"
+              onClick={() => setChecklistExpanded((v) => !v)}
+              className="w-full flex items-center justify-between sm:cursor-default"
+            >
               <p className="text-ds-13 font-semibold text-foreground">Verification checklist</p>
-              <p className="text-ds-11 text-muted-foreground">
-                {checklist.filter((c) => c.done).length}/{checklist.length}
-              </p>
-            </div>
-            <ul className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <p className="text-ds-11 text-muted-foreground">
+                  {checklist.filter((c) => c.done).length}/{checklist.length}
+                </p>
+                {/* Chevron only visible on small screens where the list is togglable */}
+                <ChevronDown
+                  className={cn(
+                    "w-4 h-4 text-muted-foreground transition-transform sm:hidden",
+                    checklistExpanded ? "rotate-180" : "",
+                  )}
+                  aria-hidden
+                />
+              </div>
+            </button>
+            {/* Always visible on sm+; toggled by button on xs */}
+            <ul
+              id="profile-checklist"
+              className={cn(
+                "space-y-1.5 mt-3 sm:block",
+                checklistExpanded ? "block" : "hidden",
+              )}
+            >
               {checklist.map((item) => (
                 <li key={item.label} className="flex items-center gap-2.5 text-ds-13">
                   <span
@@ -443,58 +493,97 @@ const CompleteProfile = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="firstName">First name <span className="text-destructive">*</span></Label>
-                <Input
-                  id="firstName"
-                  autoComplete="given-name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="rounded-ds-md"
-                />
+                <div className="relative">
+                  <Input
+                    id="firstName"
+                    autoComplete="given-name"
+                    autoCapitalize="words"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className={`rounded-ds-md ${firstNameValid ? "pr-10" : ""}`}
+                  />
+                  {firstNameValid && (
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  )}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="lastName">Last name <span className="text-destructive">*</span></Label>
-                <Input
-                  id="lastName"
-                  autoComplete="family-name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="rounded-ds-md"
-                />
+                <div className="relative">
+                  <Input
+                    id="lastName"
+                    autoComplete="family-name"
+                    autoCapitalize="words"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className={`rounded-ds-md ${lastNameValid ? "pr-10" : ""}`}
+                  />
+                  {lastNameValid && (
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  )}
+                </div>
               </div>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-destructive">*</span></Label>
               <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={setDateOfBirth} />
+              {dateOfBirth && !ageOk && (
+                <p className="text-ds-11 text-destructive">You'll need to be 18 or older to join Helpr.</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
-              <Input
-                id="phone"
-                type="tel"
-                autoComplete="tel"
-                placeholder="(225) 555-0123"
-                value={phone}
-                onChange={(e) => setPhone(formatPhone(e.target.value))}
-                className="rounded-ds-md"
-              />
+              <div className="relative">
+                <Input
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  maxLength={14}
+                  placeholder="(225) 555-0123"
+                  value={phone}
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
+                  className={`rounded-ds-md ${phoneValid ? "pr-10" : ""}`}
+                />
+                {phoneValid && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
-              <Input
-                id="city"
-                autoComplete="address-level2"
-                placeholder="Baton Rouge"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="rounded-ds-md"
-              />
+              <div className="relative">
+                <Input
+                  id="city"
+                  autoComplete="address-level2"
+                  autoCapitalize="words"
+                  placeholder="Baton Rouge"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className={`rounded-ds-md ${cityValid ? "pr-10" : ""}`}
+                />
+                {cityValid && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
+                <span
+                  className={cn(
+                    "text-ds-11 tabular-nums",
+                    bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground",
+                  )}
+                  aria-live="polite"
+                >
+                  {bio.trim().length}/20
+                </span>
+              </div>
               <Textarea
                 id="bio"
                 rows={3}

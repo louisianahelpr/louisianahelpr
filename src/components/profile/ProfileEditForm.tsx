@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Loader2, Camera, ImagePlus, X, Check, MapPin } from "lucide-react";
+import { Upload, Loader2, Camera, ImagePlus, X, Check, MapPin, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import { lookupParishByZip } from "@/lib/parishLookup";
@@ -79,6 +80,8 @@ export function ProfileEditForm({
     ? { label: "Action needed", cls: "bg-destructive/10 text-destructive" }
     : { label: "Not uploaded", cls: "bg-muted text-muted-foreground" };
   const bioOk = bio.trim().length >= 20;
+  const phoneValid = phone.replace(/\D/g, "").length >= 10;
+  const locationValid = location.trim().length > 0;
 
   // Dirty check — the Save bar drives only the text fields (avatar /
   // ID / portfolio persist on their own). Disabled when nothing in
@@ -341,12 +344,22 @@ export function ProfileEditForm({
           <div className="space-y-3">
             <div>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
-              <Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className="h-10" />
+              <div className="relative">
+                <Input id="phone" type="tel" autoComplete="tel" enterKeyHint="next" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
+                {phoneValid && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
                 <Label htmlFor="location" className="text-ds-11 mb-1.5 block">City</Label>
-                <Input id="location" autoComplete="address-level2" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className="h-10" />
+                <div className="relative">
+                  <Input id="location" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className={`h-10 ${locationValid ? "pr-10" : ""}`} />
+                  {locationValid && (
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  )}
+                </div>
               </div>
               <div>
                 <Label htmlFor="zipCode" className="text-ds-11 mb-1.5 block">ZIP</Label>
@@ -398,6 +411,7 @@ export function ProfileEditForm({
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="What you do, tools you bring, what makes you reliable…"
+            autoCapitalize="sentences"
             className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
           />
           <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
@@ -505,6 +519,28 @@ export function ProfileEditForm({
             disabled={portfolioUploading}
           />
         </div>
+
+        {/* Preview + autosave reassurance — closes the gap below the last
+            card and lets the user see their public profile exactly as
+            applicants do, then clarifies the save model so the sticky
+            bar's "Save changes" doesn't read as "nothing saved yet". */}
+        {profile?.user_id && (
+          <Link
+            to={`/user/${profile.user_id}`}
+            className="rounded-2xl liquid-glass p-4 flex items-center justify-center gap-2 text-ds-13 font-semibold active:scale-[0.98] transition-all"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            <Eye className="w-4 h-4" strokeWidth={2} aria-hidden />
+            Preview my public profile
+          </Link>
+        )}
+        <p
+          className="text-center font-serif italic px-6 leading-snug"
+          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.6)" }}
+        >
+          Photos &amp; ID save automatically. Other changes save when you tap{" "}
+          <span className="not-italic font-sans font-medium">Save changes</span>.
+        </p>
       </form>
 
       {/* Sticky save bar — keeps the primary action one-tap-away whether
@@ -558,7 +594,7 @@ export function ProfileEditForm({
                   cursor: saving || idle ? "not-allowed" : "pointer",
                 }}
               >
-                {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? "✓ Saved" : idle ? "Up to date" : "Save changes"}
+                {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" strokeWidth={3} /> Saved</>) : idle ? "Up to date" : "Save changes"}
               </button>
             );
           })()}

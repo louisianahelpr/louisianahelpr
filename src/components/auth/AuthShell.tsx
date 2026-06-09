@@ -2,11 +2,17 @@ import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { ReactNode } from "react";
+import HelprMark from "@/components/HelprMark";
 
 interface AuthShellProps {
   children: ReactNode;
   eyebrow?: string;
   hideBack?: boolean;
+  /** Override the Back link target. Defaults to home ("/" on web,
+      "/browse" on native). */
+  backTo?: string;
+  /** Override the Back link label. Defaults to "Back to home" / "Back". */
+  backLabel?: string;
   /** When true, hides the Helpr·LA wordmark + eyebrow block above
       the slot. Useful when the inner card has its own headline. */
   hideHeader?: boolean;
@@ -14,6 +20,11 @@ interface AuthShellProps {
       the Back link instead of the large centered wordmark + eyebrow.
       Saves vertical space on mobile multi-step flows. */
   compactHeader?: boolean;
+  /** Vertical anchoring of the content column. Defaults to "start"
+      (heading sits just below Back). "center" balances a short card
+      in the viewport so it doesn't float high with dead space below —
+      use only for genuinely short, single-card screens. */
+  align?: "start" | "center";
   maxWidth?: "sm" | "md" | "lg" | "2xl";
 }
 
@@ -28,72 +39,56 @@ const AuthShell = ({
   children,
   eyebrow = "Your Local Task Partner",
   hideBack = false,
+  backTo,
+  backLabel,
   hideHeader = false,
   compactHeader = false,
+  align = "start",
   maxWidth = "lg",
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
+  const alignClass = align === "center" ? "items-center" : "items-start";
+  const resolvedBackTo = backTo ?? (isNativePlatform ? "/browse" : "/");
+  const resolvedBackLabel = backLabel ?? (isNativePlatform ? "Back" : "Back to home");
+
+  const backLink = (
+    <Link
+      to={resolvedBackTo}
+      className="inline-flex items-center gap-1.5 text-ds-11 font-sans tracking-wide hover:opacity-80 active:opacity-60 active:scale-[0.97] transition-all"
+      style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+    >
+      <ArrowLeft className="w-3.5 h-3.5" />
+      {resolvedBackLabel}
+    </Link>
+  );
 
   return (
-    <div className="min-h-screen page-warmth relative">
-      <div aria-hidden className="mesh-gradient-global" />
+    <div className="min-h-screen bg-premium-page relative">
       {/* Anchor the content to the TOP on every viewport. A prior
           `sm:items-center` vertically-centered the whole block on tablet/
           desktop, leaving the heading floating in dead space well below
           the Back link. `items-start` keeps the heading sitting just
           below Back with consistent, intentional spacing — and the top
           padding is trimmed on `sm:` so the gap stays tight there too. */}
-      <div className={`relative z-10 flex items-start justify-center px-5 pb-10 sm:px-8 sm:pb-16 ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
+      {/* When the column is vertically centered the in-flow Back link
+          would drift to the middle with it, so pin it to the top-left
+          of the viewport instead. */}
+      {align === "center" && !hideBack && (
+        <div className="absolute left-5 sm:left-8 top-[calc(env(safe-area-inset-top)+24px)] sm:top-12 z-20">
+          {backLink}
+        </div>
+      )}
+      <div className={`relative z-10 flex ${alignClass} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-16"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
         <div className={`w-full ${widthMap[maxWidth]}`}>
           {showCompactTopBar ? (
-            <div className="mb-4 flex items-center justify-between gap-3">
-              {!hideBack ? (
-                <Link
-                  to={isNativePlatform ? "/browse" : "/"}
-                  className="inline-flex items-center gap-1.5 text-ds-11 font-sans tracking-wide hover:opacity-80 active:opacity-60 active:scale-[0.97] transition-all"
-                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  {isNativePlatform ? "Back" : "Back to home"}
-                </Link>
-              ) : <span />}
-              <Link to="/" className="inline-flex items-baseline gap-0.5" aria-label="Helpr LA home">
-                <span
-                  className="font-display italic font-bold leading-none"
-                  style={{
-                    fontSize: "1.25rem",
-                    color: "hsl(var(--olivewood))",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  Helpr
-                </span>
-                <span
-                  className="font-display italic font-bold leading-none"
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "hsl(var(--burnt-sienna))",
-                    letterSpacing: "0.22em",
-                    marginLeft: "0.18em",
-                  }}
-                >
-                  · LA
-                </span>
-              </Link>
+            <div className="relative mb-4 flex items-center justify-center min-h-7">
+              {!hideBack && <div className="absolute left-0">{backLink}</div>}
+              <HelprMark to={null} size="md" emblemOnly />
             </div>
           ) : (
-            !hideBack && (
-              <div className="mb-5">
-                <Link
-                  to={isNativePlatform ? "/browse" : "/"}
-                  className="inline-flex items-center gap-1.5 text-ds-11 font-sans tracking-wide hover:opacity-80 active:opacity-60 active:scale-[0.97] transition-all"
-                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  {isNativePlatform ? "Back" : "Back to home"}
-                </Link>
-              </div>
+            !hideBack && align !== "center" && (
+              <div className="mb-5">{backLink}</div>
             )
           )}
 

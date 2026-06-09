@@ -12,7 +12,7 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Clock, XCircle, Star, X, Search } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardSkeleton } from "@/components/SkeletonLoaders";
+import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -458,19 +458,21 @@ const Dashboard = () => {
   }, [confirmDismissJobId]);
 
   if (loading) {
-    // Loading state mirrors the loaded state's shell. `/dashboard` is a
-    // fixed-shell route (html.app-shell locks the viewport to 100dvh
-    // with overflow:hidden), so a `min-h-screen` body-scroll layout
-    // here would clip content past the fold — use AppShell, which owns
-    // the only correct internal scroll container, and pass the same
-    // DashboardHeader so there's no visual jump when the skeleton
-    // resolves into PageScaffold.
+    // Loading state mirrors the *exact* loaded layout: the same
+    // PageScaffold two-card shell (greeting title card over a raised
+    // panel) with skeleton bodies, not a bare AppShell + stack of cards.
+    // Sharing the scaffold means the title card and panel keep their
+    // size and position, so when the data resolves the greeting and feed
+    // settle in place instead of popping in and shoving the feed down.
     return (
-      <AppShell header={<DashboardHeader />} className="bg-premium-page">
-        <main className="container mx-auto px-5 lg:px-8 xl:px-12 py-4">
-          <div className="max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto"><DashboardSkeleton /></div>
-        </main>
-      </AppShell>
+      <PageScaffold
+        animate
+        panelElevation="raised"
+        header={<DashboardHeader />}
+        titleCard={<DashboardTitleSkeleton />}
+      >
+        <DashboardSkeleton />
+      </PageScaffold>
     );
   }
 
@@ -613,7 +615,7 @@ const Dashboard = () => {
                 <button
                   type="button"
                   onClick={() => navigate("/profile?tab=notifications")}
-                  className="inline-flex min-w-0 max-w-full items-center gap-1.5 px-2.5 py-1 rounded-full active:opacity-70 transition-opacity"
+                  className="inline-flex min-h-[36px] min-w-0 max-w-full items-center gap-1.5 px-3 py-1.5 rounded-full active:opacity-70 transition-opacity"
                   style={{
                     background: "hsl(var(--burnt-sienna) / 0.10)",
                     border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",

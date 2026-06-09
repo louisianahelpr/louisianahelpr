@@ -4,6 +4,8 @@ import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Clock, AlertTriangle, Flame } from "lucide-react";
 import { toast } from "sonner";
+import { report } from "@/lib/errorLogger";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 
 interface DisputedJob {
   id: string;
@@ -25,6 +27,7 @@ const AdminDisputes = () => {
   const [tiers, setTiers] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{ job: DisputedJob; action: "release" | "refund" } | null>(null);
 
   useEffect(() => {
     loadDisputes();
@@ -50,7 +53,8 @@ const AdminDisputes = () => {
     const userIds = [...new Set(jobs.flatMap(j => [j.customer_id, j.helper_id, j.disputed_by].filter(Boolean) as string[]))];
     const tMap: Record<string, string | null> = {};
     if (userIds.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("user_id, full_name, subscription_tier").in("user_id", userIds);
+      const { data: profs, error: profsErr } = await supabase.from("profiles").select("user_id, full_name, subscription_tier").in("user_id", userIds);
+      if (profsErr) report(profsErr, { tags: { source: "AdminDisputes.loadProfiles" } });
       const map: Record<string, string> = {};
       profs?.forEach(p => {
         map[p.user_id] = formatName(p.full_name);
@@ -217,15 +221,38 @@ const AdminDisputes = () => {
           )}
 
           <div className="flex gap-2 pt-2 border-t border-border">
-            <Button size="sm" onClick={() => resolveDispute(job, "release")} disabled={resolving === job.id}>
+            <Button size="sm" onClick={() => setConfirm({ job, action: "release" })} disabled={resolving === job.id}>
               <CheckCircle2 className="w-4 h-4 mr-1" /> Release to Helpr
             </Button>
-            <Button size="sm" variant="destructive" onClick={() => resolveDispute(job, "refund")} disabled={resolving === job.id}>
+            <Button size="sm" variant="destructive" onClick={() => setConfirm({ job, action: "refund" })} disabled={resolving === job.id}>
               <XCircle className="w-4 h-4 mr-1" /> Refund Customer
             </Button>
           </div>
         </div>
       ))}
+
+      <BrandConfirmDialog
+        open={!!confirm}
+        onOpenChange={(open) => { if (!open) setConfirm(null); }}
+        title={confirm?.action === "release" ? "Release payment to helpr?" : "Refund the customer?"}
+        description={
+          confirm?.action === "release"
+            ? `This releases the escrowed $${confirm?.job.budget} to ${profiles[confirm?.job.helper_id || ""] || "the helpr"} and closes the dispute. This moves real money and can't be undone here.`
+            : `This refunds $${confirm?.job.budget} to ${profiles[confirm?.job.customer_id || ""] || "the customer"} and closes the dispute. This moves real money and can't be undone here.`
+        }
+        primaryLabel={confirm && resolving === confirm.job.id ? "Working…" : (confirm?.action === "release" ? "Release payment" : "Refund customer")}
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        primaryDisabled={!!resolving}
+        onPrimary={(e) => {
+          e.preventDefault();
+          if (!confirm) return;
+          const { job, action } = confirm;
+          setConfirm(null);
+          resolveDispute(job, action);
+        }}
+        secondaryLabel="Cancel"
+      />
     </div>
   );
 };

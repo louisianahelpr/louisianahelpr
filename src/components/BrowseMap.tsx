@@ -18,7 +18,7 @@ import { divIcon, point as leafletPoint } from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
-import { Loader2, Crosshair, BellRing } from "lucide-react";
+import { Loader2, Crosshair, BellRing, MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 // Above this many open jobs, default to Heat view so the user sees
@@ -70,6 +70,34 @@ const categoryColors: Record<string, string> = {
   assembly: "#5E6544",
   other: "#7A7E68",
 };
+
+// Branded cluster bubble. react-leaflet-cluster's built-in cluster styling
+// relies on the leaflet.markercluster default CSS (not imported here, to
+// keep the bundle lean), which made a cluster render as a tiny unstyled
+// dot — so a metro of jobs looked like a single faint pin. This div-icon
+// renders the cluster ourselves as a bark circle with a cream count, so
+// "7 jobs near New Orleans" reads instantly and tapping it spiderfies/zooms.
+function clusterIcon(cluster: { getChildCount: () => number }) {
+  const count = cluster.getChildCount();
+  const size = count >= 10 ? 44 : count >= 5 ? 40 : 36;
+  const html = `
+    <div style="
+      width:${size}px;height:${size}px;border-radius:9999px;
+      display:flex;align-items:center;justify-content:center;
+      background:#5E6544;color:#FAF8F5;
+      font-family:ui-sans-serif,system-ui,sans-serif;font-weight:800;
+      font-size:${count >= 10 ? 15 : 14}px;
+      border:2px solid #FAF8F5;
+      box-shadow:0 4px 12px -2px rgba(46,46,40,0.45);
+    ">${count}</div>
+  `;
+  return divIcon({
+    html,
+    className: "browse-map-cluster",
+    iconSize: leafletPoint(size, size),
+    iconAnchor: leafletPoint(size / 2, size / 2),
+  });
+}
 
 function pinIcon(category: string, isUrgent: boolean) {
   const color = categoryColors[category] ?? "#7A7E68";
@@ -339,72 +367,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     );
   }
 
-  if (jobs.length === 0) {
-    return (
-      /* Empty-state surface bleeds beneath the floating dock — the
-         outer rounded-t-2xl + cropped bottom shadow mirror the list
-         empty state on the guest + auth dashboards so both views read
-         as the same continuous panel under the dock's frosted
-         curtain. paddingBottom clears the FAB + tab strip. */
-      <div
-        className="flex flex-col items-center justify-center h-full w-full liquid-glass px-6 text-center gap-3 rounded-t-2xl"
-        style={{
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          borderBottom: "none",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-            "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
-            "1px 0 2px hsl(var(--olivewood) / 0.06), " +
-            "0 -1px 2px hsl(var(--olivewood) / 0.06)",
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1.5rem)",
-          paddingTop: "1.5rem",
-        }}
-      >
-        <div
-          className="w-14 h-14 rounded-full flex items-center justify-center"
-          style={{
-            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-            border: "1px solid hsl(var(--olivewood) / 0.10)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-              "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
-          }}
-        >
-          <Loader2 className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-        </div>
-        <div className="space-y-1">
-          <p
-            className="font-display italic font-bold leading-tight text-headline-card"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-          >
-            Empty map for now.
-          </p>
-          <p
-            className="font-serif italic max-w-[260px]"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
-          >
-            New posts land here the moment they go live across Louisiana.
-          </p>
-        </div>
-        {/* Optional CTA — passed by the guest dashboard so the empty
-            map still nudges signup ("get pinged when one lands") rather
-            than dead-ending the user. */}
-        {emptyStateCta && (
-          <Button
-            variant="bark"
-            onClick={emptyStateCta.onClick}
-            className="rounded-ds-md mt-1"
-          >
-            <BellRing className="w-4 h-4 mr-2" /> {emptyStateCta.label}
-          </Button>
-        )}
-      </div>
-    );
-  }
-
   const heatBuckets = view === "heat" ? bucketJobs(jobs) : [];
+  const isEmpty = jobs.length === 0;
 
   return (
     /* Populated map: fills the parent's remaining height (h-full inside
@@ -416,7 +380,10 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           so helpers can scan job concentration at a glance and flip
           between individual Pins and the density Heat layer in one
           tap. The "N jobs" badge above keeps the dataset size visible
-          in both modes so the toggle reads as a real scanning aid. */}
+          in both modes so the toggle reads as a real scanning aid.
+          Hidden when the board is empty — a layer toggle and a "0 jobs"
+          badge are noise when there's nothing to plot. */}
+      {!isEmpty && (
       <div className="absolute top-3 right-3 z-[400] flex flex-col items-end gap-1.5">
         <div
           aria-hidden
@@ -470,6 +437,68 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           })}
         </div>
       </div>
+      )}
+      {/* Empty board — keep the real Louisiana map on screen (so it reads
+          as "no posts yet here", not "the map is broken") and float a
+          soft frosted caption over it. The wrapper passes pointer events
+          through so the map stays pannable; only the caption card itself
+          is interactive, so the guest signup CTA still works. */}
+      {isEmpty && (
+        <div className="absolute inset-0 z-[350] flex items-center justify-center pointer-events-none px-6">
+          <div
+            className="pointer-events-auto flex flex-col items-center text-center gap-3 rounded-2xl px-6 py-6 max-w-[300px]"
+            style={{
+              backgroundColor: "hsla(38, 18%, 97%, 0.92)",
+              border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
+                "0 10px 30px -10px hsl(var(--olivewood) / 0.32)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+            }}
+          >
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                border: "1px solid hsl(var(--olivewood) / 0.10)",
+                boxShadow:
+                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                  "0 1px 2px hsl(var(--olivewood) / 0.05), " +
+                  "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
+              }}
+            >
+              <MapPin className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+            </div>
+            <div className="space-y-1">
+              <p
+                className="font-display italic font-bold leading-tight text-headline-card"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
+                Empty map for now.
+              </p>
+              <p
+                className="font-serif italic"
+                style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+              >
+                New posts land here the moment they go live across Louisiana.
+              </p>
+            </div>
+            {/* Optional CTA — passed by the guest dashboard so the empty
+                map still nudges signup ("get pinged when one lands")
+                rather than dead-ending the user. */}
+            {emptyStateCta && (
+              <Button
+                variant="bark"
+                onClick={emptyStateCta.onClick}
+                className="rounded-ds-md mt-1"
+              >
+                <BellRing className="w-4 h-4 mr-2" /> {emptyStateCta.label}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
       {/* Subtle tile-load overlay — fades out once the OSM tiles
           report `load` so the first paint is a soft transition rather
           than a flash of half-rendered tiles. Pointer events bypass so
@@ -512,7 +541,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           chunkedLoading
           spiderfyOnMaxZoom
           showCoverageOnHover={false}
-          maxClusterRadius={50}
+          maxClusterRadius={40}
+          iconCreateFunction={clusterIcon}
         >
         {jobs.map((job) => (
           <Marker

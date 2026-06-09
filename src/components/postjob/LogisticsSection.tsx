@@ -102,7 +102,7 @@ export function LogisticsSection({
     >
       <div className="space-y-3">
         <Label>Location <span className="text-destructive">*</span></Label>
-        <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} autoComplete="street-address" aria-label="Street address" />
+        <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} autoComplete="street-address" autoCapitalize="words" aria-label="Street address" />
         <div className="grid grid-cols-3 gap-2.5">
           {/* City is the only address part shown publicly on job cards.
               CityAutocomplete suggests canonical Louisiana city names so

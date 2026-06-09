@@ -64,7 +64,7 @@ type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "p
 const ProfilePage = () => {
   usePageTitle("My Profile — Helpr");
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user: cachedUser, profile: cachedProfile, isLoading: authLoading, refresh: refreshCurrentUser } = useCurrentUser();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -75,31 +75,25 @@ const ProfilePage = () => {
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
 
-  // Sync tab to URL for bookmarkability and browser back
+  // Sync tab to URL for bookmarkability; React Router owns history so browser
+  // back/forward updates searchParams, which the effect below mirrors to state.
   useEffect(() => {
-    const newParams = new URLSearchParams(searchParams);
-    if (tab === "landing") {
-      newParams.delete("tab");
-    } else {
-      newParams.set("tab", tab);
-    }
-    const newUrl = newParams.toString() ? `?${newParams.toString()}` : window.location.pathname;
-    window.history.pushState(null, "", newUrl);
+    const current = (searchParams.get("tab") as Tab | null) || "landing";
+    if (current === tab) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (tab === "landing") next.delete("tab");
+        else next.set("tab", tab);
+        return next;
+      },
+      { replace: true },
+    );
   }, [tab]);
 
-  // Handle browser back/forward
+  // Mirror URL → state when back/forward (or a deep link) changes the tab param.
   useEffect(() => {
-    const handlePopState = () => {
-      const params = new URLSearchParams(window.location.search);
-      const urlTab = params.get("tab") as Tab | null;
-      setTab(urlTab || "landing");
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    const urlTab = (searchParams.get("tab") as Tab) || "landing";
+    const urlTab = (searchParams.get("tab") as Tab | null) || "landing";
     setTab((prev) => (prev === urlTab ? prev : urlTab));
   }, [searchParams]);
 
@@ -322,7 +316,10 @@ const ProfilePage = () => {
       const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
       if (error) throw error;
       setStripeConnectStatus(data);
-    } catch {
+    } catch (err) {
+      console.error("[Profile] checkStripeConnect failed:", err);
+      // Default to disconnected so payout-setup banner stays visible
+      // rather than silently hiding when the edge function is unreachable.
       setStripeConnectStatus({ connected: false, details_submitted: false, payouts_enabled: false });
     }
   };
@@ -403,7 +400,7 @@ const ProfilePage = () => {
       parish: parish,
     }).eq("user_id", user.id);
     setSaving(false);
-    if (error) toast.error(error.message);
+    if (error) toast.error("We couldn't save your profile — please try again.");
     else {
       setFullName(merged);
       setJustSaved(true);
@@ -530,10 +527,15 @@ const ProfilePage = () => {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+  // Mirror the authoritative payout math in the release-payout edge
+  // function: a helper nets budget + urgent_fee − platform_fee. The 10%
+  // sales tax is a customer-side charge on the budget and is never deducted
+  // from the helper, so it must not appear here. (A prior version subtracted
+  // a phantom 8.5%-of-fee "tax" that exists nowhere in the fee model and
+  // under-reported take-home pay.)
   const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => {
     const fee = j.platform_fee_amount || 0;
-    const feeTax = fee * 0.085;
-    return sum + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
+    return sum + (j.budget - fee + (j.urgent_fee ?? 0));
   }, 0);
 
   return (

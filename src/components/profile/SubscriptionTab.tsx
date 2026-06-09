@@ -117,7 +117,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     try {
       const { data, error } = await supabase.functions.invoke("pro-customer-portal");
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       toast.error(err.message || "Failed to open portal");
     } finally {
@@ -133,7 +133,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         body: { tier, billing_cycle },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       toast.error(err.message || "Checkout failed");
     } finally {
@@ -156,7 +156,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // tier cards below reframe as "change to" rather than the main pitch.
   const activeTierConfig = currentTier && !isExpired ? tierConfig.find((t) => t.id === currentTier.toLowerCase()) : null;
   return (
-    <div className="space-y-5 pb-24">
+    <div className="flex flex-col min-h-full gap-4 pb-4">
       <ProfileTabHeader
         eyebrow="Membership"
         title="Subscription"
@@ -329,10 +329,12 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         </div>
       )}
 
-      {/* Tier cards — single-row compact layout so all 3 tiers fit in
-          one iPhone viewport without scrolling, for every billing cycle.
-          Row layout: [icon] [name + forWhom + feature dots] [price + CTA]. */}
-      <div className="space-y-2">
+      {/* Tier cards — each row is [icon] [name + forWhom + features]
+          [price + CTA]. The section grows to fill the leftover viewport
+          and distributes the three cards down it (justify-between) so
+          there's no dead zone above the bottom nav, while gap-3 keeps a
+          sane minimum spacing on shorter screens. */}
+      <div className="flex-1 flex flex-col justify-between gap-3 min-h-0">
         {tierConfig.map((tier) => {
           const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
           const saveBadge = getSaveBadge(tier);
@@ -352,7 +354,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           return (
             <div
               key={tier.id}
-              className={`relative rounded-2xl px-3 py-2.5 ${
+              className={`relative rounded-2xl px-3 py-3.5 ${
                 isPro
                   ? "liquid-glass border-2 border-primary/40 shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.25)]"
                   : "liquid-glass"

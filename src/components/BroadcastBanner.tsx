@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Info, AlertTriangle, Megaphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { report } from "@/lib/errorLogger";
 
 interface Broadcast {
   id: string;
@@ -31,21 +32,23 @@ const BroadcastBanner = () => {
       const now = new Date().toISOString();
 
       // Get active broadcasts
-      const { data: active } = await supabase
+      const { data: active, error: activeErr } = await supabase
         .from("broadcast_messages")
         .select("id, title, message, type, expires_at")
         .lte("starts_at", now)
         .gt("expires_at", now)
         .order("created_at", { ascending: false });
 
+      if (activeErr) report(activeErr, { tags: { source: "BroadcastBanner.loadActive" } });
       if (!active || active.length === 0) return;
 
       // Get user's dismissals
-      const { data: dismissals } = await supabase
+      const { data: dismissals, error: dismissalsErr } = await supabase
         .from("broadcast_dismissals")
         .select("broadcast_id")
         .eq("user_id", user.id);
 
+      if (dismissalsErr) report(dismissalsErr, { tags: { source: "BroadcastBanner.loadDismissals" } });
       const dismissedIds = new Set(dismissals?.map(d => d.broadcast_id) || []);
       setBroadcasts(active.filter(b => !dismissedIds.has(b.id)));
     };
@@ -55,10 +58,11 @@ const BroadcastBanner = () => {
   const dismiss = async (broadcastId: string) => {
     setBroadcasts(prev => prev.filter(b => b.id !== broadcastId));
     if (userId) {
-      await supabase.from("broadcast_dismissals").insert({
+      const { error: dismissErr } = await supabase.from("broadcast_dismissals").insert({
         broadcast_id: broadcastId,
         user_id: userId,
       });
+      if (dismissErr) report(dismissErr, { tags: { source: "BroadcastBanner.dismiss" } });
     }
   };
 

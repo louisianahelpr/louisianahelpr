@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Star, Users, Wrench } from "lucide-react";
+import { AlertCircle, ArrowLeft, Loader2, Star, Users, Wrench } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
@@ -43,11 +43,17 @@ interface PostedJobsTabProps {
   selectedJob: Job | null;
   setSelectedJob: (job: Job | null) => void;
   applications: EnrichedApplication[];
+  /** True while the full-screen applicants fetch is in-flight. */
+  applicationsLoading?: boolean;
+  /** True when the full-screen applicants fetch failed. */
+  applicationsError?: boolean;
   onAcceptApplication: (app: EnrichedApplication) => void;
   onLoadInlineApplicants: (jobId: string) => void;
   inlineApplicants: Record<string, EnrichedApplication[]>;
   loadingApplicants: Record<string, boolean>;
   applicantErrors: Record<string, boolean>;
+  /** Refetch the feed after an inline card mutation (e.g. dispute action). */
+  onActionComplete: () => void;
 }
 
 export const PostedJobsTab = ({
@@ -57,8 +63,10 @@ export const PostedJobsTab = ({
   onBoost, onEdit, onCancel, onComplete, completingJobId,
   onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart, onConfirmArrival, onConfirmWorking,
   onLoadApplications, selectedJob, setSelectedJob, applications,
+  applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onLoadInlineApplicants,
   inlineApplicants, loadingApplicants, applicantErrors,
+  onActionComplete,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
 
@@ -123,7 +131,7 @@ export const PostedJobsTab = ({
             inlineApplicants={inlineApplicants}
             loadingApplicants={loadingApplicants}
             applicantErrors={applicantErrors}
-            onBoostJob={onBoost}
+            onActionComplete={onActionComplete}
           />
         )}
       />
@@ -146,8 +154,36 @@ export const PostedJobsTab = ({
               <p className="text-ds-11 text-muted-foreground truncate">{selectedJob.title}</p>
             </div>
           </div>
+          {/* Modal body — capped at iPad-comfortable width so it doesn't
+              stretch wall-to-wall on large screens. */}
           <div className="flex-1 overflow-y-auto px-4 py-4">
-            {applications.length === 0 ? (
+            <div className="max-w-2xl mx-auto w-full">
+            {applicationsLoading ? (
+              /* Loading state — prevents a blank modal from masquerading
+                 as "no applicants" while the fetch is in-flight. */
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
+                <Loader2 className="w-7 h-7 animate-spin" />
+                <p className="text-ds-13">Loading applicants…</p>
+              </div>
+            ) : applicationsError ? (
+              /* Error state — surface the failure clearly so the poster
+                 knows to retry rather than concluding there are no applicants. */
+              <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-6">
+                <AlertCircle className="w-8 h-8 text-destructive" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-foreground text-ds-15">Couldn't load applicants</p>
+                  <p className="text-ds-13 text-muted-foreground">Check your connection and try again.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-ds-md btn-press"
+                  onClick={() => onLoadApplications(selectedJob)}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : applications.length === 0 ? (
               <EmptyState
                 variant="inline"
                 icon={Users}
@@ -155,7 +191,7 @@ export const PostedJobsTab = ({
                 body="When helprs apply to this task, they'll show up here for you to review."
               />
             ) : (
-              <div className="space-y-3 max-w-lg mx-auto">
+              <div className="space-y-3">
                 {applications.map((app) => {
                   const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
                   const isElite = helperTier === "elite";
@@ -296,6 +332,7 @@ export const PostedJobsTab = ({
                 })}
               </div>
             )}
+            </div>
           </div>
         </div>
       )}

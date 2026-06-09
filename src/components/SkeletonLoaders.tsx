@@ -92,15 +92,47 @@ export const ActivityCardSkeleton = () => (
   </div>
 );
 
+/**
+ * Greeting title-card skeleton — fills the PageScaffold title card while
+ * the feed loads. Mirrors the real two-line block (large `text-page-title`
+ * headline + a small uppercase date eyebrow) so the card doesn't change
+ * height when the greeting resolves.
+ */
+export const DashboardTitleSkeleton = () => (
+  <div className="space-y-2">
+    <Skeleton className="h-7 w-1/2 rounded-md" />
+    <Skeleton className="h-3 w-2/5 rounded" />
+  </div>
+);
+
+/**
+ * Dashboard panel-interior skeleton. Renders the same structure the live
+ * panel does — a bordered toolbar header row (eyebrow + "Browse Tasks"
+ * heading on the left, two icon-button squares on the right) above a
+ * padded column of job-card placeholders — so the panel keeps its shape
+ * and the feed never jumps when data arrives.
+ */
 export const DashboardSkeleton = () => (
-  <div className="space-y-4">
-    <Skeleton className="h-6 w-32" />
-    <div className="space-y-3">
+  <>
+    <div
+      className="shrink-0 flex items-center justify-between px-4 py-3"
+      style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+    >
+      <div className="space-y-1.5">
+        <Skeleton className="h-2.5 w-20 rounded" />
+        <Skeleton className="h-5 w-32 rounded-md" />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <Skeleton className="h-8 w-8 rounded-ds-md" />
+        <Skeleton className="h-8 w-8 rounded-ds-md" />
+      </div>
+    </div>
+    <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4">
       {[1, 2, 3, 4].map((i) => (
         <JobCardSkeleton key={i} />
       ))}
     </div>
-  </div>
+  </>
 );
 
 export const MessagesSkeleton = () => (

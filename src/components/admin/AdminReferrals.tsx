@@ -56,6 +56,9 @@ const AdminReferrals = () => {
         supabase.from("referral_credits").select("*").order("created_at", { ascending: false }),
       ]);
 
+      const fetchError = codesRes.error || referralsRes.error || creditsRes.error;
+      if (fetchError) throw fetchError;
+
       const allCodes = codesRes.data || [];
       const allReferrals = referralsRes.data || [];
       const allCredits = creditsRes.data || [];
@@ -69,10 +72,11 @@ const AdminReferrals = () => {
       const nameMap: Record<string, string> = {};
 
       if (idsArray.length > 0) {
-        const { data: profiles } = await supabase
+        const { data: profiles, error: profilesErr } = await supabase
           .from("profiles")
           .select("user_id, full_name, email")
           .in("user_id", idsArray);
+        if (profilesErr) throw profilesErr;
         (profiles || []).forEach(p => {
           nameMap[p.user_id] = p.full_name || p.email || p.user_id.slice(0, 8);
         });

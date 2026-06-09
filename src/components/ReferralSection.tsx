@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Gift, Copy, Users, DollarSign, Check, Banknote, Loader2, Share2 } from "lucide-react";
+import { Gift, Copy, Users, DollarSign, Check, Banknote, Loader2, Share2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useReferralData } from "@/hooks/useReferralData";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -33,22 +33,51 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Centralized share-body builder so the SMS shortcut, native share
+  // sheet, and clipboard fallback all carry the exact same copy. The
+  // code is included verbatim so the recipient can copy/paste it at
+  // sign-up even if the link is stripped by a messaging app.
+  const buildShareBody = (code: string) => {
+    const url = `${window.location.origin}/signup?ref=${encodeURIComponent(code)}`;
+    const text = `Join me on Louisiana Helpr — local task marketplace. Use code ${code} and we both earn $5 on your first job.`;
+    return { url, text, combined: `${text}\n${url}` };
+  };
+
   const shareReferral = async () => {
     if (!referralCode) return;
-    const url = `${window.location.origin}/signup?ref=${encodeURIComponent(referralCode)}`;
-    const shareText = `Join me on Louisiana Helpr — local task marketplace. Use code ${referralCode} and we both earn $5 on your first job.`;
+    const { url, text, combined } = buildShareBody(referralCode);
     // Native share where available (iOS, Android, supported desktop) —
     // falls back to clipboard so the action never silently fails.
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: "Louisiana Helpr", text: shareText, url });
+        await navigator.share({ title: "Louisiana Helpr", text, url });
         return;
       } catch {
         // User cancelled or share API errored — fall through to clipboard.
       }
     }
-    await navigator.clipboard.writeText(`${shareText}\n${url}`);
+    await navigator.clipboard.writeText(combined);
     toast.success("Share link copied!");
+  };
+
+  // SMS-specific shortcut. `sms:` deep link is supported on iOS (Capacitor)
+  // and Android browsers; opens the Messages app with the body and URL
+  // pre-populated so the user only picks the recipient. iOS expects
+  // `&body=` after a `?` (or `&` if there's a number already); we don't
+  // pre-fill the number so `?body=` is correct.
+  const shareViaSMS = () => {
+    if (!referralCode) return;
+    const { combined } = buildShareBody(referralCode);
+    const href = `sms:?&body=${encodeURIComponent(combined)}`;
+    // Use a transient <a> click rather than location.href so we don't
+    // navigate-away the SPA on platforms that ignore the `sms:` scheme.
+    const a = document.createElement("a");
+    a.href = href;
+    // Some Android browsers need this to avoid a "blocked" interstitial.
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const handleCashOut = async () => {
@@ -125,7 +154,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "2.5rem", color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
           {referralCode}
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button
             variant="bark"
             size="sm"
@@ -135,9 +164,20 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             <Share2 className="w-4 h-4 mr-1.5" />
             Share
           </Button>
+          {/* SMS shortcut — pre-fills the Messages app body with the
+              code + signup URL so the user only picks recipients. */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-11 rounded-ds-md"
+            onClick={shareViaSMS}
+          >
+            <MessageSquare className="w-4 h-4 mr-1.5" />
+            Text
+          </Button>
           <Button variant="outline" size="sm" className="h-11 rounded-ds-md" onClick={copyCode}>
             {copied ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
-            {copied ? "Copied" : "Copy code"}
+            {copied ? "Copied" : "Copy"}
           </Button>
         </div>
         <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>

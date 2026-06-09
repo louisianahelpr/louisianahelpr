@@ -53,6 +53,9 @@ interface AppliedJobsTabProps {
   onHelperReview: (jobId: string, posterId: string, posterName: string) => void;
   /** Open the dispute dialog for this job — helper-initiated dispute (issue #113). */
   onDispute: (job: Job) => void;
+  /** Open the read-only timeline + follow-up evidence uploader for a
+   *  job that's already in dispute. */
+  onViewDispute: (job: Job) => void;
   onRefresh: () => void;
   /** When true, render items grouped into collapsible Active /
    *  Completed / Closed sections instead of a flat virtualized list.
@@ -65,7 +68,7 @@ export const AppliedJobsTab = ({
   apps, expandedJobId, setExpandedJobId,
   helperReviewedJobIds, latestTracking, userId, onHelperResponse,
   onComplete, completingJobId,
-  onResolveRevision, onHelperReview, onDispute, onRefresh,
+  onResolveRevision, onHelperReview, onDispute, onViewDispute, onRefresh,
   groupByStatus = false,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
@@ -163,6 +166,7 @@ export const AppliedJobsTab = ({
       onResolveRevision={onResolveRevision}
       onHelperReview={onHelperReview}
       onDispute={onDispute}
+      onViewDispute={onViewDispute}
       onRefresh={onRefresh}
       disputeResponse={disputeResponse}
       setDisputeResponse={setDisputeResponse}

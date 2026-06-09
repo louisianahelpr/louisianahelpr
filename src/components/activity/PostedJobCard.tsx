@@ -53,6 +53,9 @@ interface PostedJobCardProps {
   onTip: (jobId: string, helperName: string) => void;
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
+  /** Open the read-only timeline + follow-up evidence uploader for a
+   *  job that's already in dispute. */
+  onViewDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
   onConfirmArrival: (jobId: string) => void;
   onConfirmWorking: (jobId: string) => void;
@@ -105,6 +108,7 @@ function PostedJobCardInner({
   onTip,
   onReview,
   onDispute,
+  onViewDispute,
   onConfirmStart,
   onConfirmArrival,
   onConfirmWorking,
@@ -791,6 +795,14 @@ function PostedJobCardInner({
                       {isDisputer && disputeStatus === "escalated" && (
                         <div className="text-ds-11 text-center text-muted-foreground px-2 py-1.5 rounded bg-muted/50">Admin is reviewing this dispute. You'll be notified of the outcome.</div>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={(e) => { e.stopPropagation(); onViewDispute(job); }}
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-1" /> View timeline & add evidence
+                      </Button>
                       <div className="grid grid-cols-2 gap-2">
                         <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
                         <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact Admin</Button>

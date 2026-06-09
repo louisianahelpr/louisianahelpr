@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  MapPin, Calendar, DollarSign, Clock, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, ChevronDown, Rocket, Zap, ChevronRight,
+  MapPin, Calendar, DollarSign, Clock, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, ChevronDown, Rocket, Zap, ChevronRight, Check,
 } from "lucide-react";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
@@ -19,6 +19,7 @@ import { JobPosterCard } from "./JobPosterCard";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { report } from "@/lib/errorLogger";
+import { useDrivingTime } from "@/hooks/useDrivingTime";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -46,36 +47,103 @@ const JobDetailDialog = ({
   const [payoutExpanded, setPayoutExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Nonce bump tells PhotoLightbox to open in grid mode when the user
+  // taps the "View all" pill on the cover. Plain number so a click
+  // increments + re-fires the effect even on the same photo.
+  const [gridOpenNonce, setGridOpenNonce] = useState(0);
   const [applicationCount, setApplicationCount] = useState<number | null>(null);
+  // The viewer's own application position (1-indexed) among existing
+  // applicants for this job — null if they haven't applied yet. Drives
+  // the "you're #3 of 7" banner that replaces the generic "X applied"
+  // line for already-applied helpers, so the feed feels accountable.
+  const [viewerAppPosition, setViewerAppPosition] = useState<number | null>(null);
   // Repeat-customer count — number of completed jobs between this
   // helper and this poster. Drives the "Worked with you N times"
   // badge that surfaces emotional re-booking trust.
   const [repeatJobs, setRepeatJobs] = useState<number>(0);
+  // Cancellation rate of the poster — surfaced inline on the poster
+  // card when they have ≥5 jobs of history so a single cancelled job
+  // doesn't slap on a 100% rate. Null while loading or when below the
+  // sample-size floor.
+  const [posterCancelRate, setPosterCancelRate] = useState<number | null>(null);
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
 
   // Reset transient state when the dialog switches to a new job.
   useEffect(() => {
     setLightboxIndex(null);
     setApplicationCount(null);
+    setViewerAppPosition(null);
+    setPosterCancelRate(null);
     setDescExpanded(false);
     setPayoutExpanded(false);
   }, [job?.id]);
 
-  // Fetch how many helprs have already applied — gives the helpr context
-  // about competition/freshness before they commit.
+  // Fetch how many helprs have already applied AND — if the viewer is
+  // already in that queue — what position (1-indexed by created_at)
+  // they hold. The position is what powers the "you're #3 of 7" banner
+  // for an already-applied helper; the raw count powers the original
+  // "X helpers applied — you'd be #(X+1)" banner for fresh viewers.
   useEffect(() => {
     if (!job?.id) return;
     let cancelled = false;
-    supabase
-      .from("applications")
-      .select("id", { count: "exact", head: true })
-      .eq("job_id", job.id)
-      .then(({ count, error }) => {
-        if (error) report(error, { tags: { source: "JobDetailDialog.applicationCount" } });
-        if (!cancelled) setApplicationCount(count ?? 0);
-      });
+    (async () => {
+      // We need both the total count AND, for the current user, the
+      // index of their application in created_at order. Doing the
+      // small list fetch (just ids + created_at + helper_id) and
+      // counting locally is cheaper than two round-trips for a job
+      // with under ~50 applicants — and the head-count above is
+      // already gated to "has the helpr seen this job? yes."
+      const [{ data: apps, error }, { data: userRes }] = await Promise.all([
+        supabase
+          .from("applications")
+          .select("id, helper_id, created_at")
+          .eq("job_id", job.id)
+          .order("created_at", { ascending: true }),
+        supabase.auth.getUser(),
+      ]);
+      if (cancelled) return;
+      if (error) {
+        report(error, { tags: { source: "JobDetailDialog.applicationCount" } });
+        setApplicationCount(0);
+        return;
+      }
+      const rows = apps ?? [];
+      setApplicationCount(rows.length);
+      const helperId = userRes?.user?.id;
+      if (helperId) {
+        const idx = rows.findIndex((a) => a.helper_id === helperId);
+        setViewerAppPosition(idx >= 0 ? idx + 1 : null);
+      } else {
+        setViewerAppPosition(null);
+      }
+    })();
     return () => { cancelled = true; };
   }, [job?.id]);
+
+  // Fetch the poster's cancellation rate — shows next to their name on
+  // the poster card. Combined poster-side + worked-side rate, capped at
+  // a ≥5 sample size so a fresh poster doesn't read "100%" off one
+  // cancelled job. Mirrors the math in UserProfile so the inline
+  // number matches the profile page if the helpr taps through.
+  useEffect(() => {
+    if (!job?.customer_id) return;
+    let cancelled = false;
+    (async () => {
+      const customerId = job.customer_id;
+      const [postedTotalRes, postedCancelRes, workedTotalRes, workedCancelRes] = await Promise.all([
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", customerId),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", customerId).eq("status", "cancelled"),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", customerId),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", customerId).eq("status", "cancelled"),
+      ]);
+      if (cancelled) return;
+      const total = (postedTotalRes.count ?? 0) + (workedTotalRes.count ?? 0);
+      const cancelledCount = (postedCancelRes.count ?? 0) + (workedCancelRes.count ?? 0);
+      if (total >= 5) setPosterCancelRate((cancelledCount / total) * 100);
+      else setPosterCancelRate(null);
+    })();
+    return () => { cancelled = true; };
+  }, [job?.customer_id]);
 
   // Fetch how many completed jobs the current helper has done for this
   // poster. Drives the repeat-customer badge in the poster card —
@@ -101,6 +169,28 @@ const JobDetailDialog = ({
     })();
     return () => { cancelled = true; };
   }, [job?.customer_id]);
+
+  // Distance + driving-time estimate for the Where tile. Computed up
+  // here (not inside the IIFE below) so the useDrivingTime hook can
+  // run at the top level. Falls back to null on either axis when the
+  // parish centroid or helpr coords are missing.
+  const parishCentroidForDriving = getParishCentroid(job?.parish);
+  const distMilesForDriving =
+    userLat != null && userLng != null && parishCentroidForDriving
+      ? haversineMiles(userLat, userLng, parishCentroidForDriving.lat, parishCentroidForDriving.lng)
+      : null;
+  const drivingMinutes = useDrivingTime(
+    userLat,
+    userLng,
+    parishCentroidForDriving?.lat ?? null,
+    parishCentroidForDriving?.lng ?? null,
+    distMilesForDriving,
+  );
+  const drivingLabel = drivingMinutes == null
+    ? null
+    : drivingMinutes < 60
+      ? `${drivingMinutes} min drive`
+      : `${Math.floor(drivingMinutes / 60)}h ${drivingMinutes % 60}m drive`;
 
   if (!job) return null;
 
@@ -257,6 +347,31 @@ const JobDetailDialog = ({
                 </span>
               )}
             </button>
+            {/* "View all" — opens the lightbox straight into grid mode
+                so a helpr can scan a project with lots of reference
+                shots without tapping next/next/next. */}
+            {photos.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setGridOpenNonce((n) => n + 1);
+                  setLightboxIndex(0);
+                }}
+                aria-label="View all photos in a grid"
+                className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold uppercase tracking-[0.05em] transition-transform active:scale-95 hover:scale-105"
+                style={{
+                  backgroundColor: "hsla(0, 0%, 100%, 0.85)",
+                  backdropFilter: "blur(12px) saturate(150%)",
+                  WebkitBackdropFilter: "blur(12px) saturate(150%)",
+                  color: "hsl(var(--ink-deep))",
+                  border: "0.5px solid hsla(0, 0%, 100%, 0.6)",
+                  boxShadow: "0 1px 4px hsl(var(--bark) / 0.18)",
+                }}
+              >
+                View all
+              </button>
+            )}
           </div>
         )}
 
@@ -370,14 +485,19 @@ const JobDetailDialog = ({
               calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${dateStartIso}/${dateEndIso}&details=${encodeURIComponent(job.description.slice(0, 200))}&location=${encodeURIComponent(job.location)}`;
             }
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
-            // Distance estimate when both helpr coords + parish centroid available
-            const parishCentroid = getParishCentroid(job.parish);
-            const distMiles = userLat != null && userLng != null && parishCentroid
-              ? haversineMiles(userLat, userLng, parishCentroid.lat, parishCentroid.lng)
+            // Distance estimate when both helpr coords + parish centroid
+            // available. distMilesForDriving + drivingLabel are computed
+            // above (because useDrivingTime is a hook); we just compose
+            // the user-facing copy here.
+            const distMiles = distMilesForDriving;
+            const distOnly = distMiles != null
+              ? distMiles < 1 ? "less than 1 mi" : `~${Math.round(distMiles)} mi`
               : null;
-            const distLabel = distMiles != null
-              ? distMiles < 1 ? "less than 1 mi" : `~${Math.round(distMiles)} mi away`
-              : null;
+            // Compose distance + driving time on one line when both are
+            // available: "12 min · ~4 mi". Falls back to either alone.
+            const distLabel = distOnly && drivingLabel
+              ? `${drivingLabel} · ${distOnly}`
+              : drivingLabel ?? distOnly;
             // Closes urgency: <24h to expiry → render in Sienna with subtle pulse
             const hoursLeft = job.expires_at
               ? differenceInHours(new Date(job.expires_at), new Date())
@@ -563,13 +683,37 @@ const JobDetailDialog = ({
         </button>
         </div>
 
-        <JobPosterCard job={job} repeatJobs={repeatJobs} />
+        <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} />
 
-        {/* Applicant queue + Apply social proof — surfaces "X helpers
-            already applied — you'd be #(X+1) in line" only when there
-            are existing applicants, so it functions as light urgency
-            without crying wolf on fresh posts. */}
-        {applicationCount !== null && applicationCount > 0 && (
+        {/* Applicant queue banner. Two flavors:
+            - **Already applied** — the viewer is in the queue. Show a
+              calm green "you're #3 of 7" banner that frames their
+              position relative to the rest, so they don't doom-refresh.
+            - **Not yet applied** — the original "X applied — you'd be
+              #(X+1) in line" sienna nudge. Only renders when there's
+              at least one existing applicant, so fresh posts don't
+              fire the urgency tone for nothing. */}
+        {viewerAppPosition !== null && applicationCount !== null && (
+          <div
+            className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+            style={{
+              background: "hsl(155 60% 96%)",
+              border: "0.5px solid hsl(155 35% 70% / 0.35)",
+            }}
+          >
+            <Check className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(155 50% 30%)" }} strokeWidth={2.5} />
+            <p
+              className="font-serif italic leading-snug"
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              <span className="not-italic font-display font-bold" style={{ color: "hsl(155 45% 22%)" }}>
+                You've applied.
+              </span>{" "}
+              You're applicant #{viewerAppPosition} of {applicationCount}.
+            </p>
+          </div>
+        )}
+        {viewerAppPosition === null && applicationCount !== null && applicationCount > 0 && (
           <div
             className="rounded-ds-md px-3 py-2 flex items-center gap-2"
             style={{
@@ -730,7 +874,7 @@ const JobDetailDialog = ({
           </Button>
         </div>
 
-        <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} />
+        <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} openInGridNonce={gridOpenNonce} />
       </DialogContent>
     </Dialog>
   );

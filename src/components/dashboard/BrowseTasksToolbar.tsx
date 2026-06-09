@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { startTransition, useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Clock, MapPin, Search, SlidersHorizontal, X, List, Map as MapIcon } from "lucide-react";
@@ -79,13 +79,23 @@ export function BrowseTasksToolbar({
     onClear: () => void;
     ariaLabel: string;
   };
+  // Human-readable description of the active location filter, reused in the
+  // chip clear-button aria-labels so a screen reader hears WHICH location is
+  // being cleared (e.g. "within 10 mi", "Orleans") rather than a generic
+  // "location filter".
+  const locationFilterText = filters.locationFilter
+    ? filters.locationFilter.startsWith("nearby:")
+      ? `within ${filters.locationFilter.slice(7)} mi`
+      : filters.locationFilter
+    : "";
+
   const recapChips: ChipDef[] = [];
   if (filters.selectedCategory) {
     recapChips.push({
       key: "category",
       label: categoryLabels[filters.selectedCategory],
       onClear: () => filters.setSelectedCategory(null),
-      ariaLabel: "Clear category filter",
+      ariaLabel: `Clear category filter (${categoryLabels[filters.selectedCategory]} selected)`,
     });
   }
   if (filters.locationFilter) {
@@ -100,7 +110,7 @@ export function BrowseTasksToolbar({
         </>
       ),
       onClear: () => filters.setLocationFilter(""),
-      ariaLabel: "Clear location filter",
+      ariaLabel: `Clear location filter (${locationFilterText} selected)`,
     });
   }
   if (filters.maxBudget) {
@@ -108,7 +118,7 @@ export function BrowseTasksToolbar({
       key: "budget",
       label: <>{`≤ $${filters.maxBudget}`}</>,
       onClear: () => filters.setMaxBudget(""),
-      ariaLabel: "Clear max budget",
+      ariaLabel: `Clear max budget filter (up to $${filters.maxBudget})`,
     });
   }
   if (filters.expiresWithin) {
@@ -116,7 +126,7 @@ export function BrowseTasksToolbar({
       key: "expires",
       label: filters.expiresWithin,
       onClear: () => filters.setExpiresWithin(""),
-      ariaLabel: "Clear expiry filter",
+      ariaLabel: `Clear expiry filter (${filters.expiresWithin})`,
     });
   }
   if (filters.matchAvailability) {
@@ -128,7 +138,7 @@ export function BrowseTasksToolbar({
         </>
       ),
       onClear: () => filters.setMatchAvailability(false),
-      ariaLabel: "Clear availability filter",
+      ariaLabel: "Clear availability filter (matching my hours)",
     });
   }
   const showRecapRow = recapChips.length >= 3;
@@ -188,7 +198,12 @@ export function BrowseTasksToolbar({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setView(view === "map" ? "list" : "map")}
+                // Mark the view swap as a transition — switching to map lazy-
+                // loads the leaflet chunk, and a slow fetch would otherwise
+                // block this tap from feeling responsive. startTransition lets
+                // React keep the current view interactive (and its Suspense
+                // fallback in place) while the map commits non-urgently.
+                onClick={() => startTransition(() => setView(view === "map" ? "list" : "map"))}
                 className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${view === "map" ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]" : "text-muted-foreground hover:text-foreground"}`}
                 aria-label={view === "map" ? "Show list view" : "Show map view"}
                 aria-pressed={view === "map"}
@@ -392,7 +407,7 @@ export function BrowseTasksToolbar({
           {filters.selectedCategory && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
               {categoryLabels[filters.selectedCategory]}
-              <button onClick={() => filters.setSelectedCategory(null)} aria-label="Clear category filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setSelectedCategory(null)} aria-label={`Clear category filter (${categoryLabels[filters.selectedCategory]} selected)`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.locationFilter && (
@@ -401,25 +416,25 @@ export function BrowseTasksToolbar({
               {filters.locationFilter.startsWith("nearby:")
                 ? `Within ${filters.locationFilter.slice(7)} mi`
                 : filters.locationFilter}
-              <button onClick={() => filters.setLocationFilter("")} aria-label="Clear location filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setLocationFilter("")} aria-label={`Clear location filter (${locationFilterText} selected)`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.maxBudget && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
               ≤ ${filters.maxBudget}
-              <button onClick={() => filters.setMaxBudget("")} aria-label="Clear max budget" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setMaxBudget("")} aria-label={`Clear max budget filter (up to $${filters.maxBudget})`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.expiresWithin && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
               {filters.expiresWithin}
-              <button onClick={() => filters.setExpiresWithin("")} aria-label="Clear expiry filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setExpiresWithin("")} aria-label={`Clear expiry filter (${filters.expiresWithin})`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.matchAvailability && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium">
               <Clock className="w-3 h-3" /> My hours
-              <button onClick={() => filters.setMatchAvailability(false)} aria-label="Clear availability filter" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setMatchAvailability(false)} aria-label="Clear availability filter (matching my hours)" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </span>
           )}
           {filters.activeFilterCount > 1 && (

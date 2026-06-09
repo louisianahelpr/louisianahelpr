@@ -12,15 +12,38 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
+import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 // Lazy-load BrowseMap so the ~45KB leaflet bundle only ships when an
 // authenticated user toggles to map view. List view stays cheap.
-const BrowseMap = lazy(() =>
-  import("@/components/BrowseMap").then((m) => ({ default: m.BrowseMap })),
-);
+//
+// A slow chunk fetch over a weak connection makes the toggle feel frozen
+// with zero observability. Bracket the dynamic import in a User Timing
+// mark/measure so the cost of the map-chunk load shows up in the
+// Performance panel / any RUM that reads `performance.getEntriesByType`.
+// One-shot: only the first load is timed (the chunk is cached after).
+let mapChunkTimed = false;
+const BrowseMap = lazy(() => {
+  const timed = !mapChunkTimed && typeof performance !== "undefined";
+  if (timed) {
+    mapChunkTimed = true;
+    performance.mark("browse-map:load-start");
+  }
+  return import("@/components/BrowseMap").then((m) => {
+    if (timed) {
+      try {
+        performance.mark("browse-map:load-end");
+        performance.measure("browse-map:load", "browse-map:load-start", "browse-map:load-end");
+      } catch {
+        /* measure can throw if marks were cleared — never block the map */
+      }
+    }
+    return { default: m.BrowseMap };
+  });
+});
 
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 
@@ -37,6 +60,10 @@ interface BrowseTasksFeedProps {
   /** Retries the feed fetch (ErrorState's retry handler). */
   refresh: () => void;
   recommendedJobs: EnrichedJob[];
+  /** True while the feed's first page is still being fetched/refetched, so
+   *  the "Picked for you" slot reserves space with skeletons instead of
+   *  collapsing then popping in (CLS) once recommendations resolve. */
+  recommendedLoading: boolean;
   dismissedJobIds: Set<string>;
   /** Platform commission percentage, forwarded to each job card. */
   effectiveFee: number;
@@ -77,6 +104,7 @@ export function BrowseTasksFeed({
   loadError,
   refresh,
   recommendedJobs,
+  recommendedLoading,
   dismissedJobIds,
   effectiveFee,
   handleApplyRequest,
@@ -230,8 +258,45 @@ export function BrowseTasksFeed({
         />
       </div>
       ) : (() => {
+        // Show the recommended slot as skeletons while the feed's first page
+        // is still resolving and we don't yet have any picks — reserving the
+        // header + a couple of card-height placeholders keeps the section
+        // from collapsing and then popping in (CLS) once matches arrive.
+        const showRecommendedSkeleton =
+          recommendedLoading && !filters.hasFilters && recommendedVisible.length === 0;
         return (
           <>
+            {showRecommendedSkeleton && (
+              <>
+                <div
+                  className="px-4 pt-3 pb-1.5 flex items-center justify-between"
+                  style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.06)" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Star
+                      className="w-3.5 h-3.5"
+                      style={{ color: "hsl(var(--burnt-sienna))" }}
+                      strokeWidth={2}
+                      fill="hsl(var(--burnt-sienna) / 0.2)"
+                    />
+                    <span
+                      className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
+                      style={{ color: "hsl(var(--burnt-sienna))" }}
+                    >
+                      Picked for you
+                    </span>
+                  </div>
+                </div>
+                <div
+                  className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5"
+                  aria-hidden
+                >
+                  {[0, 1].map((i) => (
+                    <JobCardSkeleton key={`rec-skel-${i}`} />
+                  ))}
+                </div>
+              </>
+            )}
             {recommendedVisible.length > 0 && (
               <>
                 <div

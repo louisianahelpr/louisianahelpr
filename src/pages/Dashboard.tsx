@@ -733,6 +733,12 @@ const Dashboard = () => {
               loadError={loadError}
               refresh={refresh}
               recommendedJobs={recommendedJobs}
+              // Reserve the "Picked for you" slot with skeletons while a feed
+              // fetch is in flight and no picks exist yet — recommendations are
+              // derived from loaded pages, so they can arrive a beat after the
+              // feed itself (refresh / next-page), and the empty→filled swap
+              // would otherwise shove the list down (CLS).
+              recommendedLoading={refreshing || isFetchingNextPage}
               dismissedJobIds={dismissedJobIds}
               effectiveFee={effectiveFee}
               handleApplyRequest={handleApplyRequest}

@@ -48,11 +48,41 @@ export const filterAndSortProfiles = ({
     else if (tab === "denied" && (p.approval_status !== "denied" || (p as { role?: string }).role === "customer")) return false;
     else if (tab === "banned" && !["temp_banned", "permanently_banned"].includes(p.ban_status || "")) return false;
 
-    // Search by name (also matches email for convenience)
+    // Multi-field search — name, email (with fuzzy match), and phone.
+    // The job-UUID lookup is handled one layer up (in AdminUsers) so it
+    // can drill into a job admin view instead of filtering the list.
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const hay = `${p.full_name || ""} ${p.email || ""}`.toLowerCase();
-      if (!hay.includes(q)) return false;
+      const q = searchQuery.toLowerCase().trim();
+      const profileWithPhone = p as Profile & { phone?: string | null; phone_number?: string | null };
+      // Pull phone from whatever column exists on the profile row (the
+      // schema isn't fully consistent across deployments — newer rows use
+      // `phone`, older ones used `phone_number`).
+      const phoneRaw = (profileWithPhone.phone || profileWithPhone.phone_number || "").toString();
+      const phoneDigits = phoneRaw.replace(/\D/g, "");
+      const qDigits = q.replace(/\D/g, "");
+
+      // Phone-first: if the query is mostly digits and we can find a
+      // 4+-digit substring match in the phone, accept the row.
+      if (qDigits.length >= 4 && phoneDigits && phoneDigits.includes(qDigits)) {
+        return true;
+      }
+
+      const name = (p.full_name || "").toLowerCase();
+      const email = (p.email || "").toLowerCase();
+
+      // Exact substring match on name/email — fastest path, covers most cases.
+      if (name.includes(q) || email.includes(q)) return true;
+
+      // Fuzzy email match: drop punctuation (dots, plus addressing) from
+      // both sides so "jane.doe+ops@gmail" finds "janedoe@gmail" and vice
+      // versa. Cheap and forgiving without going full Levenshtein.
+      if (email) {
+        const normEmail = email.replace(/[._+\-]/g, "");
+        const normQ = q.replace(/[._+\-]/g, "");
+        if (normQ.length >= 3 && normEmail.includes(normQ)) return true;
+      }
+
+      return false;
     }
 
     return true;

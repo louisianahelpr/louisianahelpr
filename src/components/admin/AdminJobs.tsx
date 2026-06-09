@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +121,25 @@ const AdminJobs = () => {
     };
     load();
   }, []);
+
+  // Deep-link from the admin user search bar: pasting a UUID jumps here
+  // with `?job=<uuid>` and we auto-open that job's detail view once jobs
+  // have loaded. The query-string param is stripped so navigating back
+  // doesn't re-open it every time.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const target = searchParams.get("job");
+    if (!target || jobs.length === 0) return;
+    const job = jobs.find((j) => j.id === target);
+    if (job) {
+      openJob(job);
+      const next = new URLSearchParams(searchParams);
+      next.delete("job");
+      setSearchParams(next, { replace: true });
+    }
+    // openJob is stable for this effect's lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs, searchParams]);
 
   const markFlagResolved = (jobId: string) => {
     const next = new Set(resolvedFlags);

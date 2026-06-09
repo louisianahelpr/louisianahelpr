@@ -1,17 +1,38 @@
-import { useState, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Send } from "lucide-react";
+import { Send, SearchX } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { VirtualList } from "@/components/VirtualList";
 import { type Application, type AppliedApp, type Job } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
+import { ListFilterBar, type StatusChip } from "./ListFilterBar";
 import type { TrackingData } from "@/components/JobTracking";
+
+/** Status chips for the helper's applications list — collapses the raw
+ *  application/job status pair into the four states a helper thinks in. */
+const APPLIED_STATUS_CHIPS: StatusChip[] = [
+  { value: "applied", label: "Applied" },
+  { value: "active", label: "Active" },
+  { value: "completed", label: "Completed" },
+  { value: "closed", label: "Closed" },
+];
+
+/** Bucket an application into one of the chip values above. */
+function appliedBucket(app: AppliedApp): string {
+  if (app.status === "pending") return "applied";
+  if (app.status === "rejected") return "closed";
+  const jobStatus = app.job?.status;
+  if (jobStatus === "cancelled") return "closed";
+  if (jobStatus === "completed") return "completed";
+  if (app.status === "accepted") return "active";
+  return "applied";
+}
 
 interface AppliedJobsTabProps {
   apps: AppliedApp[];
@@ -40,6 +61,9 @@ export const AppliedJobsTab = ({
   onResolveRevision, onHelperReview, onDispute, onRefresh,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
+  // Client-side search + status filter over the already-loaded list.
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [disputeResponse, setDisputeResponse] = useState("");
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
@@ -95,6 +119,20 @@ export const AppliedJobsTab = ({
     else toast.success("Attachment removed");
   }, []);
 
+  const filteredApps = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return apps.filter((app) => {
+      if (statusFilter !== "all" && appliedBucket(app) !== statusFilter) return false;
+      if (!q) return true;
+      const job = app.job;
+      return (
+        (job?.title ?? "").toLowerCase().includes(q) ||
+        (job?.category ?? "").toLowerCase().includes(q) ||
+        (job?.location ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [apps, searchQuery, statusFilter]);
+
   if (apps.length === 0) {
     return (
       <div
@@ -124,8 +162,25 @@ export const AppliedJobsTab = ({
 
   return (
     <>
+      <ListFilterBar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        chips={APPLIED_STATUS_CHIPS}
+        searchPlaceholder="Search your applications…"
+      />
+
+      {filteredApps.length === 0 ? (
+        <EmptyState
+          variant="inline"
+          icon={SearchX}
+          title="No matches in this view"
+          body="Nothing here fits that search or filter yet — try a different word or clear the filter to see everything."
+        />
+      ) : (
       <VirtualList
-        items={apps}
+        items={filteredApps}
         getKey={(app) => app.id}
         estimateSize={260}
         overscan={4}
@@ -170,6 +225,7 @@ export const AppliedJobsTab = ({
           />
         )}
       />
+      )}
 
       {/* Withdraw confirmation — slide-up sheet with dimmed backdrop. */}
       <Sheet open={!!withdrawTarget} onOpenChange={(open) => { if (!open) setWithdrawTarget(null); }}>

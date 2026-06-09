@@ -1,16 +1,38 @@
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft, Loader2, Star, Users, Wrench } from "lucide-react";
+import { AlertCircle, ArrowLeft, Loader2, SearchX, Star, Users, Wrench } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { VirtualList } from "@/components/VirtualList";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
+import { ListFilterBar, type StatusChip } from "./ListFilterBar";
 import type { TrackingData } from "@/components/JobTracking";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
+
+/** Status chips for the poster's jobs list — collapses the seven raw
+ *  job-status enum values into the four states a poster thinks in. */
+const POSTED_STATUS_CHIPS: StatusChip[] = [
+  { value: "open", label: "Open" },
+  { value: "active", label: "Active" },
+  { value: "completed", label: "Completed" },
+  { value: "closed", label: "Closed" },
+];
+
+/** Bucket a job into one of the chip values above. */
+function postedBucket(job: Job): string {
+  switch (job.status) {
+    case "open": return "open";
+    case "completed": return "completed";
+    case "cancelled":
+    case "disputed": return "closed";
+    default: return "active"; // accepted / in_progress / revision_requested
+  }
+}
 
 interface PostedJobsTabProps {
   jobs: Job[];
@@ -69,6 +91,22 @@ export const PostedJobsTab = ({
   onActionComplete,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
+  // Client-side search + status filter over the already-loaded list.
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const filteredJobs = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return jobs.filter((job) => {
+      if (statusFilter !== "all" && postedBucket(job) !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        (job.title ?? "").toLowerCase().includes(q) ||
+        (job.category ?? "").toLowerCase().includes(q) ||
+        (job.location ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [jobs, searchQuery, statusFilter]);
 
   if (jobs.length === 0) {
     return (
@@ -89,8 +127,25 @@ export const PostedJobsTab = ({
 
   return (
     <div className="space-y-4">
+      <ListFilterBar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        chips={POSTED_STATUS_CHIPS}
+        searchPlaceholder="Search your posts…"
+      />
+
+      {filteredJobs.length === 0 ? (
+        <EmptyState
+          variant="inline"
+          icon={SearchX}
+          title="No matches in this view"
+          body="Nothing here fits that search or filter yet — try a different word or clear the filter to see everything."
+        />
+      ) : (
       <VirtualList
-        items={jobs}
+        items={filteredJobs}
         getKey={(job) => job.id}
         estimateSize={260}
         overscan={4}
@@ -135,6 +190,7 @@ export const PostedJobsTab = ({
           />
         )}
       />
+      )}
 
       {/* Applicants full-screen view */}
       {selectedJob && (

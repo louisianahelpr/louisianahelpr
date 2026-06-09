@@ -35,6 +35,8 @@ import { jobStatusColorClasses } from "@/lib/statusColors";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
+import { haversineMiles } from "@/lib/geo";
+import { useUserLocation } from "@/hooks/useUserLocation";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -51,6 +53,11 @@ const UserProfile = () => {
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showBlock, setShowBlock] = useState(false);
+  // Viewer opts in to the "did N jobs nearby" social proof (#31).
+  // Gated so we don't fire the geolocation prompt just to render a badge.
+  // The hook caches across pages, so once requested it's near-instant on
+  // every subsequent profile view in the same session.
+  const [showNearbyProof, setShowNearbyProof] = useState(false);
 
   // React Query: cached for 60s, instant on revisit, refresh in background.
   const { data, isLoading, isError, refetch } = useQuery({
@@ -241,6 +248,27 @@ const UserProfile = () => {
   const isIdVerified = data?.isIdVerified ?? false;
   const tierProfile = data?.tierProfile ?? null;
   const loading = isLoading && !data;
+
+  // Geo for the "did N jobs nearby" badge (#31). Only enable the hook
+  // when the viewer has explicitly opted in via the inline trigger, so
+  // we never surprise-prompt for location just to render a profile.
+  const viewerLoc = useUserLocation(showNearbyProof);
+  // Count of this helper's completed jobs that fell within 25mi of the
+  // viewer's current location. Only counts jobs with usable lat/lng;
+  // older posts without coords are silently skipped.
+  const NEARBY_RADIUS_MI = 25;
+  const jobsNearbyCount = (() => {
+    if (viewerLoc.status !== "ready") return null;
+    let n = 0;
+    for (const j of workedJobs) {
+      if (j.status !== "completed") continue;
+      if (typeof j.latitude !== "number" || typeof j.longitude !== "number") continue;
+      if (haversineMiles(viewerLoc.lat, viewerLoc.lng, j.latitude, j.longitude) <= NEARBY_RADIUS_MI) {
+        n += 1;
+      }
+    }
+    return n;
+  })();
 
   // Computed up-front so the loading skeleton can render the same
   // PageHeader (eyebrow/title/meta) as the loaded state — both only
@@ -490,6 +518,64 @@ const UserProfile = () => {
                   )}
                 </div>
               )}
+              {/* "Did N jobs nearby" social proof (#31). Two states:
+                  - opt-in pill when viewer hasn't granted geo yet AND the
+                    helper has at least one completed worked job with
+                    coords (otherwise the count would be 0).
+                  - rendered count once geolocation resolves. We always
+                    show the count even when zero — a "0 jobs near you"
+                    fact is a legitimate trust input. Hidden entirely on
+                    your own profile so you don't see your own count. */}
+              {!isOwnProfile && (() => {
+                const hasNearbyEligibleJobs = workedJobs.some(
+                  (j) => j.status === "completed" && typeof j.latitude === "number" && typeof j.longitude === "number",
+                );
+                if (!hasNearbyEligibleJobs) return null;
+                if (!showNearbyProof) {
+                  return (
+                    <div className="mt-1.5 flex justify-center">
+                      <button
+                        onClick={() => setShowNearbyProof(true)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-11 font-medium transition-colors"
+                        style={{
+                          color: "hsl(var(--bark))",
+                          background: "hsl(var(--bark) / 0.06)",
+                          border: "0.5px solid hsl(var(--bark) / 0.18)",
+                        }}
+                      >
+                        <MapPin className="w-3 h-3" />
+                        Show jobs near you
+                      </button>
+                    </div>
+                  );
+                }
+                if (viewerLoc.status === "loading") {
+                  return (
+                    <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+                      <MapPin className="w-3 h-3" />
+                      <span className="italic">Checking nearby…</span>
+                    </div>
+                  );
+                }
+                if (viewerLoc.status === "error") {
+                  return (
+                    <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+                      <MapPin className="w-3 h-3" />
+                      <span className="italic">Location unavailable</span>
+                    </div>
+                  );
+                }
+                if (jobsNearbyCount === null) return null;
+                return (
+                  <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                    <MapPin className="w-3 h-3" />
+                    <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
+                      {jobsNearbyCount}
+                    </span>
+                    <span>{jobsNearbyCount === 1 ? "job" : "jobs"} within {NEARBY_RADIUS_MI}mi of you</span>
+                  </div>
+                );
+              })()}
               {/* Cancellation rate (#30) — combined helper + poster jobs.
                   Only renders once the user has >=5 lifetime jobs so a
                   single early cancellation doesn't read as "100% cancel

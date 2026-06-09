@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { formatName } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,14 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { splitName } from "@/lib/splitName";
 import { requireOnline } from "@/lib/requireOnline";
+import {
+  useProfileStats,
+  useProfileReviews,
+  useProfileEarnings,
+  useProfileSchedule,
+  useProfileInlineJobs,
+  useProfileViolations,
+} from "@/hooks/useProfileTabData";
 
 // Only the landing tab + its lightweight header are needed on first paint.
 // Every other tab panel and the rarely-opened dialogs are code-split so the
@@ -57,7 +65,6 @@ const TabFallback = () => (
 );
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
 type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings" | "credentials" | "saved_helpers";
 
@@ -66,6 +73,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user: cachedUser, profile: cachedProfile, isLoading: authLoading, refresh: refreshCurrentUser } = useCurrentUser();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,25 +107,37 @@ const ProfilePage = () => {
 
   const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
 
-  // Per-section load errors. Each Profile sub-section loads independently;
-  // a failure in one must NOT surface as a page-level "couldn't load your
-  // profile" banner when the core profile (name, avatar) loaded fine.
-  // Instead each failed section shows a small inline error scoped to it.
-  type SectionKey = "stats" | "reviews" | "inlineJobs" | "earnings" | "schedule" | "violations";
-  const [sectionErrors, setSectionErrors] = useState<Partial<Record<SectionKey, boolean>>>({});
-  const setSectionError = (key: SectionKey, failed: boolean) =>
-    setSectionErrors((prev) => (prev[key] === failed ? prev : { ...prev, [key]: failed }));
+  const userId = user?.id;
 
-  // Stats
-  const [completedCount, setCompletedCount] = useState(0);
-  const [postedCount, setPostedCount] = useState(0);
-  const [avgRating, setAvgRating] = useState<number | null>(null);
-  const [reviewCount, setReviewCount] = useState(0);
+  // Per-tab data — each section is its own `enabled`-gated React Query keyed
+  // under ["profile", userId, <section>], so switching away from a tab and
+  // back hits the cache, in-flight requests dedupe, and the prior
+  // loading/loaded flag pairs are gone. Each section still surfaces failures
+  // through its own inline <ProfileSectionError /> (driven by `.isError`)
+  // rather than a page-level banner — so one section failing never blanks
+  // the core profile (name, avatar) that loaded fine.
+  const statsQuery = useProfileStats(userId);
+  // Reviews are needed on both the landing tab (2-review hero preview) and
+  // the reviews tab — gating on either shares one cached fetch.
+  const reviewsQuery = useProfileReviews(userId, tab === "landing" || tab === "reviews");
+  const earningsQuery = useProfileEarnings(userId, tab === "earnings" || tab === "payment");
+  const scheduleQuery = useProfileSchedule(userId, tab === "schedule");
+  const inlineJobsQuery = useProfileInlineJobs(userId, tab === "posted_jobs" || tab === "completed_jobs");
+  const violationsQuery = useProfileViolations(userId, tab === "warnings");
 
-  // Reviews
-  const [reviews, setReviews] = useState<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsLoaded, setReviewsLoaded] = useState(false);
+  const completedCount = statsQuery.data?.completedCount ?? 0;
+  const postedCount = statsQuery.data?.postedCount ?? 0;
+  const avgRating = statsQuery.data?.avgRating ?? null;
+  const reviewCount = statsQuery.data?.reviewCount ?? 0;
+
+  const reviews = reviewsQuery.data ?? [];
+  const earningsJobs = earningsQuery.data?.jobs ?? [];
+  const tips = earningsQuery.data?.tips ?? [];
+  const schedulePostedJobs = scheduleQuery.data?.posted ?? [];
+  const scheduleAssignedJobs = scheduleQuery.data?.assigned ?? [];
+  const inlinePostedJobs = inlineJobsQuery.data?.posted ?? [];
+  const inlineCompletedJobs = inlineJobsQuery.data?.completed ?? [];
+  const violations = violationsQuery.data ?? [];
 
   // Profile fields
   const [, setFullName] = useState("");
@@ -132,46 +152,7 @@ const ProfilePage = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [idUploading, setIdUploading] = useState(false);
-
-  // Earnings state
-  const [earningsJobs, setEarningsJobs] = useState<Job[]>([]);
-  const [tips, setTips] = useState<{ amount: number; job_id: string; created_at: string }[]>([]);
-  const [earningsLoading, setEarningsLoading] = useState(false);
-
-  // Schedule state
-  const [schedulePostedJobs, setSchedulePostedJobs] = useState<Job[]>([]);
-  const [scheduleAssignedJobs, setScheduleAssignedJobs] = useState<Job[]>([]);
-  const [scheduleLoading, setScheduleLoading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
-
-  // Inline job lists on landing
-  const [inlinePostedJobs, setInlinePostedJobs] = useState<Job[]>([]);
-  const [inlineCompletedJobs, setInlineCompletedJobs] = useState<Job[]>([]);
-  const [inlineJobsLoaded, setInlineJobsLoaded] = useState(false);
-
-  // Warnings & violations
-  type Violation = { id: string; violation_type: string; description: string | null; action_taken: string; created_at: string | null; job_id: string | null };
-  const [violations, setViolations] = useState<Violation[]>([]);
-  const [violationsLoading, setViolationsLoading] = useState(false);
-  const [violationsLoaded, setViolationsLoaded] = useState(false);
-
-  const loadViolations = async ({ force = false }: { force?: boolean } = {}) => {
-    if (!user || (violationsLoaded && !force)) return;
-    setViolationsLoading(true);
-    setSectionError("violations", false);
-    const { data, error } = await supabase.from("user_violations").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    if (error) {
-      console.error("[Profile] loadViolations failed:", error);
-      setSectionError("violations", true);
-      setViolationsLoading(false);
-      return;
-    }
-    setViolations(data || []);
-    setViolationsLoaded(true);
-    setViolationsLoading(false);
-  };
-
-  useEffect(() => { if (tab === "warnings") loadViolations(); }, [tab]);
 
   useEffect(() => {
     // Once auth loading is done, resolve the loading state
@@ -195,7 +176,7 @@ const ProfilePage = () => {
         setDateOfBirth(cachedProfile.date_of_birth || "");
       }
       setLoading(false);
-      loadStats(cachedUser.id);
+      // Stats load via useProfileStats — enabled once `user` is set below.
     } else {
       // No user — stop loading (ProtectedRoute will redirect)
       setLoading(false);
@@ -213,95 +194,21 @@ const ProfilePage = () => {
     return () => { cancelled = true; };
   }, [zipCode]);
 
-  const loadStats = async (userId: string) => {
-    setSectionError("stats", false);
-    const [helperJobsRes, reviewsRes, postedRes] = await Promise.all([
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId).eq("status", "completed"),
-      supabase.from("reviews").select("rating").eq("reviewee_id", userId).lte("feedback_visible_at", new Date().toISOString()),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId),
-    ]);
-    const statsError = helperJobsRes.error || reviewsRes.error || postedRes.error;
-    if (statsError) {
-      console.error("[Profile] loadStats failed:", statsError);
-      setSectionError("stats", true);
-      return;
-    }
-    setCompletedCount(helperJobsRes.count || 0);
-    setPostedCount(postedRes.count || 0);
-    if (reviewsRes.data && reviewsRes.data.length > 0) {
-      setAvgRating(reviewsRes.data.reduce((s, r) => s + r.rating, 0) / reviewsRes.data.length);
-      setReviewCount(reviewsRes.data.length);
-    }
-  };
-
-  const loadReviews = async ({ force = false }: { force?: boolean } = {}) => {
-    if (!user) return;
-    // In-flight / loaded guard so the landing-tab effect fetches once.
-    // Pull-to-refresh passes { force: true } to deliberately re-sync.
-    if (!force && (reviewsLoading || reviewsLoaded)) return;
-    setReviewsLoading(true);
-    setSectionError("reviews", false);
-    const { data, error } = await supabase
-      .from("reviews")
-      .select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
-      .eq("reviewee_id", user.id)
-      .lte("feedback_visible_at", new Date().toISOString())
-      .neq("jobs.status", "cancelled")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("[Profile] loadReviews failed:", error);
-      setSectionError("reviews", true);
-      setReviewsLoading(false);
-      return;
-    }
-
-    if (data && data.length > 0) {
-      const reviewerIds = [...new Set(data.map((r) => r.reviewer_id))];
-      const jobIds = [...new Set(data.map((r) => r.job_id))];
-      const [profilesRes, jobsRes] = await Promise.all([
-        supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
-        supabase.from("jobs").select("id, title").in("id", jobIds),
-      ]);
-      const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
-      const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
-      setReviews(data.map((r: any) => ({
-        rating: r.rating,
-        punctuality: r.punctuality ?? null,
-        quality: r.quality ?? null,
-        communication: r.communication ?? null,
-        feedback: r.feedback,
-        created_at: r.created_at,
-        reviewerName: nameMap.get(r.reviewer_id) || "User",
-        jobTitle: jobMap.get(r.job_id) || "Job",
-      })));
-    } else {
-      setReviews([]);
-    }
-    setReviewsLoaded(true);
-    setReviewsLoading(false);
-  };
-
-  useEffect(() => {
-    if (!user) return;
-    if (tab === "earnings") loadEarnings();
-    if (tab === "schedule") loadSchedule();
-    if (tab === "reviews") loadReviews();
-    // Landing page surfaces a 2-review preview on the hero card.
-    // Fetch the same data lazily on first landing-tab mount so the
-    // preview appears without making the user open the reviews tab.
-    // loadReviews() has an in-flight/loaded guard so this fetches once.
-    if (tab === "landing") loadReviews();
-  }, [tab, user]);
-
   // Pull-to-refresh for the Profile landing — re-syncs the profile,
   // Stripe-connect status, helper stats, and review preview. Scoped to
   // the landing's scroll surface via PullToRefreshWrapper below.
+  // Invalidating the stats/reviews queries deliberately re-fetches them
+  // (the prior `{ force: true }` semantics) while reusing the cache for
+  // everything else.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => {
       await refreshCurrentUser();
-      if (user) await loadStats(user.id);
-      await loadReviews({ force: true });
+      if (userId) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["profile", userId, "stats"] }),
+          queryClient.invalidateQueries({ queryKey: ["profile", userId, "reviews"] }),
+        ]);
+      }
     },
   });
 
@@ -324,66 +231,6 @@ const ProfilePage = () => {
     }
   };
 
-
-  const loadEarnings = async () => {
-    if (!user) return;
-    setEarningsLoading(true);
-    setSectionError("earnings", false);
-    const [jobsRes, tipsRes] = await Promise.all([
-      supabase.from("jobs").select("*").eq("helper_id", user.id).neq("status", "cancelled").order("created_at", { ascending: false }),
-      supabase.from("tips").select("amount, job_id, created_at").eq("helper_id", user.id),
-    ]);
-    if (jobsRes.error || tipsRes.error) {
-      console.error("[Profile] loadEarnings failed:", jobsRes.error || tipsRes.error);
-      setSectionError("earnings", true);
-      setEarningsLoading(false);
-      return;
-    }
-    if (jobsRes.data) {
-      setEarningsJobs(jobsRes.data);
-      const completedJobIds = new Set(jobsRes.data.filter(j => j.status === "completed").map(j => j.id));
-      if (tipsRes.data) setTips(tipsRes.data.filter(t => completedJobIds.has(t.job_id)));
-    } else if (tipsRes.data) {
-      setTips(tipsRes.data);
-    }
-    setEarningsLoading(false);
-  };
-
-  const loadSchedule = async () => {
-    if (!user) return;
-    setScheduleLoading(true);
-    setSectionError("schedule", false);
-    const [posted, assigned] = await Promise.all([
-      supabase.from("jobs").select("*").eq("customer_id", user.id).in("status", ["open", "accepted", "in_progress"]).order("date_needed"),
-      supabase.from("jobs").select("*").eq("helper_id", user.id).in("status", ["accepted", "in_progress"]).order("date_needed"),
-    ]);
-    if (posted.error || assigned.error) {
-      console.error("[Profile] loadSchedule failed:", posted.error || assigned.error);
-      setSectionError("schedule", true);
-      setScheduleLoading(false);
-      return;
-    }
-    if (posted.data) setSchedulePostedJobs(posted.data);
-    if (assigned.data) setScheduleAssignedJobs(assigned.data);
-    setScheduleLoading(false);
-  };
-
-  const loadInlineJobs = async ({ force = false }: { force?: boolean } = {}) => {
-    if (!user || (inlineJobsLoaded && !force)) return;
-    setSectionError("inlineJobs", false);
-    const [posted, completed] = await Promise.all([
-      supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }).limit(20),
-      supabase.from("jobs").select("*").or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`).eq("status", "completed").order("created_at", { ascending: false }).limit(20),
-    ]);
-    if (posted.error || completed.error) {
-      console.error("[Profile] loadInlineJobs failed:", posted.error || completed.error);
-      setSectionError("inlineJobs", true);
-      return;
-    }
-    if (posted.data) setInlinePostedJobs(posted.data);
-    if (completed.data) setInlineCompletedJobs(completed.data);
-    setInlineJobsLoaded(true);
-  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -571,14 +418,17 @@ const ProfilePage = () => {
               stripeConnectStatus={stripeConnectStatus}
               onSelectTab={(key) => setTab(key as Tab)}
               onNavigate={navigate}
-              onLoadInlineJobs={loadInlineJobs}
+              /* Inline job lists now load via an enabled-gated query that
+                 fires when the posted/completed tab opens, so the prior
+                 imperative prefetch is a no-op. */
+              onLoadInlineJobs={() => {}}
               onRequestDelete={() => { setDeleteStep(1); setDeleteConfirmText(""); setShowDeleteAccountDialog(true); }}
               onRequestLogout={() => setShowLogoutDialog(true)}
               reviewsPreview={reviews.slice(0, 2)}
-              statsError={!!sectionErrors.stats}
-              reviewsError={!!sectionErrors.reviews}
-              onRetryStats={() => { if (user) loadStats(user.id); }}
-              onRetryReviews={() => loadReviews({ force: true })}
+              statsError={statsQuery.isError}
+              reviewsError={reviewsQuery.isError}
+              onRetryStats={() => { statsQuery.refetch(); }}
+              onRetryReviews={() => { reviewsQuery.refetch(); }}
             />
           </PullToRefreshWrapper>
         ) : (
@@ -621,14 +471,14 @@ const ProfilePage = () => {
           {/* EXTRACTED TAB COMPONENTS — lazy loaded */}
           {tab === "earnings" && user && (
             <div className="space-y-3">
-              {sectionErrors.earnings && (
-                <ProfileSectionError section="your earnings" onRetry={loadEarnings} />
+              {earningsQuery.isError && (
+                <ProfileSectionError section="your earnings" onRetry={() => { earningsQuery.refetch(); }} />
               )}
               <Suspense fallback={<TabFallback />}>
                 <EarningsTab
                   earningsJobs={earningsJobs}
                   tips={tips}
-                  loading={earningsLoading}
+                  loading={earningsQuery.isPending}
                   onBack={() => setTab("landing")}
                   helperId={user.id}
                   helperName={profile?.full_name || user.email || "Helpr"}
@@ -639,11 +489,11 @@ const ProfilePage = () => {
 
           {tab === "schedule" && user && (
             <div className="space-y-3">
-              {sectionErrors.schedule && (
-                <ProfileSectionError section="your schedule" onRetry={loadSchedule} />
+              {scheduleQuery.isError && (
+                <ProfileSectionError section="your schedule" onRetry={() => { scheduleQuery.refetch(); }} />
               )}
               <Suspense fallback={<TabFallback />}>
-                <ScheduleTab postedJobs={schedulePostedJobs} assignedJobs={scheduleAssignedJobs} loading={scheduleLoading} userId={user.id} onBack={() => setTab("landing")} />
+                <ScheduleTab postedJobs={schedulePostedJobs} assignedJobs={scheduleAssignedJobs} loading={scheduleQuery.isPending} userId={user.id} onBack={() => setTab("landing")} />
               </Suspense>
             </div>
           )}
@@ -680,8 +530,8 @@ const ProfilePage = () => {
 
           {tab === "posted_jobs" && (
             <div className="space-y-3">
-              {sectionErrors.inlineJobs && (
-                <ProfileSectionError section="your posted jobs" onRetry={() => loadInlineJobs({ force: true })} />
+              {inlineJobsQuery.isError && (
+                <ProfileSectionError section="your posted jobs" onRetry={() => { inlineJobsQuery.refetch(); }} />
               )}
               <Suspense fallback={<TabFallback />}>
                 <JobListTab variant="posted" jobs={inlinePostedJobs} onBack={() => setTab("landing")} />
@@ -691,8 +541,8 @@ const ProfilePage = () => {
 
           {tab === "completed_jobs" && (
             <div className="space-y-3">
-              {sectionErrors.inlineJobs && (
-                <ProfileSectionError section="your completed jobs" onRetry={() => loadInlineJobs({ force: true })} />
+              {inlineJobsQuery.isError && (
+                <ProfileSectionError section="your completed jobs" onRetry={() => { inlineJobsQuery.refetch(); }} />
               )}
               <Suspense fallback={<TabFallback />}>
                 <JobListTab variant="completed" jobs={inlineCompletedJobs} onBack={() => setTab("landing")} />
@@ -734,7 +584,7 @@ const ProfilePage = () => {
 
           {tab === "reviews" && (
             <Suspense fallback={<TabFallback />}>
-              <ReviewsTab reviews={reviews} loading={reviewsLoading} avgRating={avgRating} reviewCount={reviewCount} onBack={() => setTab("landing")} />
+              <ReviewsTab reviews={reviews} loading={reviewsQuery.isPending} avgRating={avgRating} reviewCount={reviewCount} onBack={() => setTab("landing")} />
             </Suspense>
           )}
 
@@ -760,14 +610,14 @@ const ProfilePage = () => {
 
           {tab === "warnings" && (
             <div className="space-y-3">
-              {sectionErrors.violations && (
+              {violationsQuery.isError && (
                 <ProfileSectionError
                   section="your warnings & strikes"
-                  onRetry={() => loadViolations({ force: true })}
+                  onRetry={() => { violationsQuery.refetch(); }}
                 />
               )}
               <Suspense fallback={<TabFallback />}>
-                <WarningsTab violations={violations} loading={violationsLoading} onBack={() => setTab("landing")} />
+                <WarningsTab violations={violations} loading={violationsQuery.isPending} onBack={() => setTab("landing")} />
               </Suspense>
             </div>
           )}

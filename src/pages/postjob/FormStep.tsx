@@ -7,6 +7,7 @@ import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
 import { SampleJobTemplates } from "@/components/postjob/SampleJobTemplates";
 import { DirectOfferBanner } from "./DirectOfferBanner";
+import { DraftSavedIndicator } from "./DraftSavedIndicator";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { SectionProgress, type PostJobSectionId } from "./SectionProgress";
 import type { usePostJobForm } from "./usePostJobForm";
@@ -103,6 +104,17 @@ export function FormStep({ form }: FormStepProps) {
       )}
 
       {atOpenJobLimit && <OpenJobLimitNotice />}
+
+      {/* "Draft saved Xs ago" reassurance — appears once the autosave
+          has actually fired. Sits next to the back arrow visually
+          (below the page header, above the tabs) so it answers the
+          poster's silent "did my input save?" question before they
+          consider navigating away. */}
+      {form.draftSavedAt > 0 && (
+        <div className="flex justify-start">
+          <DraftSavedIndicator savedAt={form.draftSavedAt} />
+        </div>
+      )}
 
       {/* Two small tabs above the blank form — a quick way to pull in a
           saved draft or start from a template, without a separate landing

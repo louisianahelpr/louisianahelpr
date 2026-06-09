@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticWarning } from "@/lib/haptics";
-import { Heart, Briefcase, Send, Star, Search, ArrowUpDown } from "lucide-react";
+import { Heart, Briefcase, Send, Star, Search, ArrowUpDown, StickyNote, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -47,6 +47,10 @@ interface SavedHelper {
   saved_at: string;
   completed_jobs_together: number;
   last_job_at: string | null;
+  /** Poster-only note. Surfaced by the get_my_saved_helpers RPC once
+      migration 20260609110000 is applied; nullable so older deploys
+      return undefined. */
+  private_note?: string | null;
 }
 
 interface SavedHelpersTabProps {
@@ -68,6 +72,12 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const [wasOffline, setWasOffline] = useState(false);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SavedSort>("rebooked");
+  // Per-helper note editor — `editingNoteFor` holds the helper_id of
+  // the row whose textarea is open; `noteDraft` holds the in-flight
+  // text so the user can cancel without losing their place.
+  const [editingNoteFor, setEditingNoteFor] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   // Extracted so the ErrorState's retry button can call back in. The
   // effect below mirrors the same logic but adds a cancellation guard
@@ -108,6 +118,51 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
       cancelled = true;
     };
   }, [user?.id]);
+
+  const openNoteEditor = (helperId: string, current: string | null | undefined) => {
+    setEditingNoteFor(helperId);
+    setNoteDraft(current ?? "");
+  };
+
+  const cancelNoteEditor = () => {
+    setEditingNoteFor(null);
+    setNoteDraft("");
+  };
+
+  const saveNote = async (helperId: string) => {
+    if (!user) return;
+    const trimmed = noteDraft.trim();
+    const value = trimmed.length === 0 ? null : trimmed;
+    setSavingNote(true);
+    // Optimistic update so the closed editor renders the new note
+    // immediately — a failed write rolls the row back.
+    const snapshot = helpers.find((h) => h.helper_id === helperId);
+    setHelpers((prev) => prev.map((h) => h.helper_id === helperId ? { ...h, private_note: value } : h));
+    // `private_note` isn't in the generated supabase types yet (added
+    // in migration 20260609110000); cast through any to side-step
+    // until types regenerate.
+    const { error } = await supabase
+      .from("favorite_helpers")
+      .update({ private_note: value } as any)
+      .eq("customer_id", user.id)
+      .eq("helper_id", helperId);
+    setSavingNote(false);
+    if (error) {
+      if (snapshot) {
+        setHelpers((prev) => prev.map((h) => h.helper_id === helperId ? snapshot : h));
+      }
+      // PGRST204 = column not found (migration hasn't run on prod yet).
+      // Tell the user gracefully rather than the raw error.
+      const msg = (error as { code?: string }).code === "PGRST204"
+        ? "Notes aren't available yet on this build — we're rolling them out shortly."
+        : "Couldn't save your note — please try again.";
+      toast.error(msg);
+      return;
+    }
+    setEditingNoteFor(null);
+    setNoteDraft("");
+    toast.success(value ? "Note saved" : "Note removed");
+  };
 
   const handleRemove = async (helperId: string) => {
     if (!user) return;
@@ -400,6 +455,84 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                     variant="condensed"
                     onSeeAll={() => navigate(`/user/${h.helper_id}?tab=reviews`)}
                   />
+
+                  {/* Private note — poster-only memo about this helpr.
+                      Closed by default, tap to expand into a small
+                      textarea. Never shown to the helpr (RLS scopes
+                      reads/writes to customer_id). */}
+                  {editingNoteFor === h.helper_id ? (
+                    <div
+                      className="rounded-ds-md p-2.5 space-y-2"
+                      style={{
+                        background: "hsl(var(--gold-warm) / 0.06)",
+                        border: "1px solid hsl(var(--gold-warm) / 0.22)",
+                      }}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <StickyNote className="w-3 h-3" style={{ color: "hsl(var(--bark))" }} />
+                        <span className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--bark) / 0.8)", letterSpacing: "0.14em" }}>
+                          Private note · only you see this
+                        </span>
+                      </div>
+                      <textarea
+                        value={noteDraft}
+                        onChange={(e) => setNoteDraft(e.target.value)}
+                        placeholder="e.g. great with painting, prefers Tuesdays"
+                        rows={2}
+                        maxLength={500}
+                        aria-label="Private note about this helpr"
+                        className="w-full rounded-ds-sm border border-border/40 bg-card px-2 py-1.5 text-ds-13 font-serif italic resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={cancelNoteEditor}
+                          disabled={savingNote}
+                          className="inline-flex items-center gap-1 rounded-ds-sm px-2.5 py-1 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-transform"
+                          style={{ color: "hsl(var(--olivewood))" }}
+                        >
+                          <X className="w-3.5 h-3.5" /> Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void saveNote(h.helper_id)}
+                          disabled={savingNote}
+                          className="inline-flex items-center gap-1 rounded-ds-sm px-2.5 py-1 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-transform disabled:opacity-60"
+                          style={{
+                            background: "hsl(var(--bark))",
+                            color: "hsl(var(--parchment))",
+                          }}
+                        >
+                          <Check className="w-3.5 h-3.5" /> {savingNote ? "Saving…" : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : h.private_note?.trim() ? (
+                    <button
+                      type="button"
+                      onClick={() => openNoteEditor(h.helper_id, h.private_note)}
+                      aria-label="Edit private note"
+                      className="w-full text-left rounded-ds-md p-2.5 flex gap-2 active:opacity-80 transition-opacity"
+                      style={{
+                        background: "hsl(var(--gold-warm) / 0.06)",
+                        border: "1px solid hsl(var(--gold-warm) / 0.22)",
+                      }}
+                    >
+                      <StickyNote className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
+                      <p className="font-serif italic text-ds-13 leading-snug flex-1 min-w-0" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
+                        {h.private_note}
+                      </p>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openNoteEditor(h.helper_id, null)}
+                      className="inline-flex items-center gap-1 text-ds-11 font-semibold active:opacity-70 self-start"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      <StickyNote className="w-3 h-3" /> Add a private note
+                    </button>
+                  )}
 
                   <div className="flex items-center gap-2">
                     <Button

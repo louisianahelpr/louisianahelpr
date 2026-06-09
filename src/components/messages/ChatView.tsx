@@ -636,11 +636,18 @@ export function ChatView({
                 />
               )}
 
-              {/* Quick replies — populate the input instead of sending instantly */}
+              {/* Quick replies — most chips populate the composer; the
+                  status-aware smart-reply chips ("On my way", "Running
+                  5 min late", "Done", from #15) fire on tap so an
+                  active-job logistics update is one tap, not three.
+                  `jobStatus` drives which smart-reply set (if any) is
+                  prepended. */}
               <div className="pt-1">
                 <QuickReplies
                   onSelect={(msg) => setDraft(msg)}
+                  onSend={(msg) => { void sendMessage(msg); }}
                   audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
+                  jobStatus={activeConvo.jobStatus}
                 />
               </div>
 

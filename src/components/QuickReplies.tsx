@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, CheckCircle2, ThumbsUp, AlertTriangle, Navigation, X, HelpCircle, MapPin, Key } from "lucide-react";
+import { Clock, CheckCircle2, ThumbsUp, AlertTriangle, Navigation, X, HelpCircle, MapPin, Key, Car, Send } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 // Audience-specific quick replies. Helpers communicate logistics
@@ -8,7 +8,14 @@ import type { LucideIcon } from "lucide-react";
 // access ("door is unlocked", "running 10 min late myself"). Default
 // is "helper" to preserve the previous behavior at callsites that
 // don't pass an audience.
-type QuickReply = { label: string; icon: LucideIcon; message: string };
+//
+// `mode`:
+//   • "populate" (default) — drops the message into the composer so the
+//     user can edit before sending.
+//   • "send" — fires the message immediately on tap. Used for the
+//     status-aware smart replies ("On my way", "Running 5 min late",
+//     "Done") which are designed for one-tap use during an active job.
+type QuickReply = { label: string; icon: LucideIcon; message: string; mode?: "populate" | "send" };
 
 const helperReplies: QuickReply[] = [
   { label: "Running late", icon: Clock, message: "⏰ Running about 10 minutes late — sorry for the delay!" },
@@ -25,20 +32,74 @@ const posterReplies: QuickReply[] = [
   { label: "Address details", icon: MapPin, message: "Quick note on the address: " },
 ];
 
+// ── Status-aware smart-replies (handoff item #15) ─────────────────────
+//
+// Only the helper sees these — the poster doesn't drive to the job.
+// Each chip sends immediately on tap (mode: "send"), so logistics
+// updates during an active job are one-tap, not three.
+//
+// Surfaced when the job is in flight ("accepted" once awarded but pre-
+// start, "in_progress" once underway). For "completed"/"cancelled" we
+// fall back to the generic helper replies — no special status chip
+// makes sense once the job is wrapped.
+const helperSmartRepliesAccepted: QuickReply[] = [
+  { label: "On my way", icon: Car, message: "🚗 On my way!", mode: "send" },
+  { label: "Running 5 min late", icon: Clock, message: "⏰ Running about 5 minutes late — sorry!", mode: "send" },
+];
+
+const helperSmartRepliesInProgress: QuickReply[] = [
+  { label: "Running 5 min late", icon: Clock, message: "⏰ Running about 5 minutes late — sorry!", mode: "send" },
+  { label: "Done", icon: CheckCircle2, message: "✅ All done! Please review and mark complete when you can.", mode: "send" },
+];
+
 const ETA_PRESETS = [5, 10, 15, 20, 30] as const;
 
 interface QuickRepliesProps {
-  /** Called when the user taps a quick reply chip — populates the message input. */
+  /** Called when a chip in `populate` mode is tapped — drops the message
+   *  into the composer for the user to edit before sending. */
   onSelect: (message: string) => void;
+  /** Called when a chip in `send` mode is tapped — fires the message
+   *  immediately (no composer round-trip). Status-aware smart replies
+   *  ("On my way", "Running 5 min late", "Done") use this so an active-
+   *  job logistics update is a single tap. Optional: when omitted, every
+   *  chip falls back to `onSelect` regardless of declared mode. */
+  onSend?: (message: string) => void;
   /** Whose perspective the chips are written from. Default "helper" (legacy). */
   audience?: "helper" | "poster";
+  /** Current `jobs.status` for the open thread. Drives which smart-
+   *  reply set is prepended (#15): "accepted" → On my way / Running 5
+   *  min late; "in_progress" → Running 5 min late / Done. Other
+   *  statuses fall through to the generic audience replies only. */
+  jobStatus?: string | null;
 }
 
-export const QuickReplies = ({ onSelect, audience = "helper" }: QuickRepliesProps) => {
+export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus }: QuickRepliesProps) => {
   const [showEta, setShowEta] = useState(false);
   const replies = audience === "poster" ? posterReplies : helperReplies;
   // Only helpers get the En-Route flow (posters don't drive to themselves).
   const showEnRoute = audience === "helper";
+
+  // Status-aware smart-replies — helper side only. Prepended before the
+  // generic chips so they're the first thing in the user's tap target.
+  // "assigned" is a legacy conversation alias for the offered-not-yet-
+  // confirmed window (kept consistent with the chat-header chip in
+  // ChatView), so it shares the "accepted" smart-reply set.
+  const showSmartReplies = audience === "helper" && !!onSend;
+  const smartReplies: QuickReply[] = !showSmartReplies
+    ? []
+    : jobStatus === "in_progress"
+      ? helperSmartRepliesInProgress
+      : jobStatus === "accepted" || jobStatus === "assigned"
+        ? helperSmartRepliesAccepted
+        : [];
+
+  const handlePick = (qr: QuickReply) => {
+    if (qr.mode === "send" && onSend) {
+      onSend(qr.message);
+      return;
+    }
+    onSelect(qr.message);
+  };
 
   const pickEnRoute = (minutes: number) => {
     const arrives = new Date(Date.now() + minutes * 60_000).toLocaleTimeString("en-US", {
@@ -79,6 +140,30 @@ export const QuickReplies = ({ onSelect, audience = "helper" }: QuickRepliesProp
 
   return (
     <div className="flex gap-1.5 overflow-x-auto pb-1 pr-5 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
+      {/* Status-aware smart-reply chips — sent on tap, no composer
+          round-trip. Visually distinguished from the generic suggestions
+          by the warm-gold pill so the user reads them as "send-now"
+          actions, not "draft this". A small Send glyph reinforces the
+          one-tap-fires-immediately semantics. */}
+      {smartReplies.map((qr) => (
+        <Button
+          key={`smart-${qr.label}`}
+          size="sm"
+          className="shrink-0 text-ds-11 h-7 px-2.5 gap-1 rounded-full"
+          style={{
+            background: "hsl(var(--gold-warm) / 0.22)",
+            border: "1px solid hsl(var(--gold-warm) / 0.55)",
+            color: "hsl(var(--ink-deep))",
+            fontWeight: 600,
+          }}
+          onClick={() => handlePick(qr)}
+          aria-label={`Send "${qr.label}"`}
+        >
+          <qr.icon className="w-3 h-3" />
+          <span>{qr.label}</span>
+          <Send className="w-2.5 h-2.5 opacity-70" />
+        </Button>
+      ))}
       {showEnRoute && (
         <Button
           size="sm"
@@ -95,7 +180,7 @@ export const QuickReplies = ({ onSelect, audience = "helper" }: QuickRepliesProp
           variant="outline"
           size="sm"
           className="shrink-0 text-ds-11 h-7 px-2.5 gap-1 rounded-full"
-          onClick={() => onSelect(qr.message)}
+          onClick={() => handlePick(qr)}
         >
           <qr.icon className="w-3 h-3" />
           {qr.label}

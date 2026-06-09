@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense, type SetStateAction } from "react";
 
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -121,6 +121,13 @@ const Dashboard = () => {
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
+  // Scroll-position snapshot — captured the moment a detail dialog opens,
+  // then restored to the same scrollTop on close. Without it the dashboard
+  // feed silently snaps back to the top when the user dismisses the dialog,
+  // which feels broken on a long-scroll session. The container is the
+  // PullToRefreshWrapper's div (PageScaffold panel scroll surface) so the
+  // restore lands on the same surface the user was scrolling.
+  const detailScrollSnapshotRef = useRef<number | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   // List vs Map view. The map shows the same open jobs as the list,
   // pinned to neighborhood-rounded coords (privacy via the
@@ -468,6 +475,36 @@ const Dashboard = () => {
     setConfirmDismissJobId(jobId);
   }, []);
 
+  // Open a job detail dialog while snapshotting the feed's scroll position
+  // so it can be restored when the dialog closes (see closeDetailJob).
+  // Accepts a setter-style arg matching React.Dispatch so the
+  // BrowseTasksFeed prop signature (Dispatch<SetStateAction<...>>) keeps
+  // its existing call sites untouched.
+  const openDetailJob = useCallback((value: SetStateAction<EnrichedJob | null>) => {
+    const el = containerRef.current;
+    if (el) detailScrollSnapshotRef.current = el.scrollTop;
+    setDetailJob(value);
+  }, [containerRef]);
+
+  // Close the detail dialog and restore the feed scroll position captured
+  // at open time. We restore after a microtask to outlast any layout-shift
+  // the closing dialog might cause, and clear the snapshot so a future
+  // open captures a fresh value.
+  const closeDetailJob = useCallback(() => {
+    setDetailJob(null);
+    const snapshot = detailScrollSnapshotRef.current;
+    detailScrollSnapshotRef.current = null;
+    if (snapshot == null) return;
+    // Two rAFs: first lets React commit the dialog-close, second runs
+    // after the browser paints so the restored scrollTop sticks.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = containerRef.current;
+        if (el) el.scrollTop = snapshot;
+      });
+    });
+  }, [containerRef]);
+
   const handleDismissConfirm = useCallback(() => {
     if (!confirmDismissJobId) return;
     setDismissedJobIds(prev => {
@@ -804,7 +841,7 @@ const Dashboard = () => {
               setExpandedCardId={setExpandedCardId}
               savedJobIds={savedJobIds}
               setReportJobId={setReportJobId}
-              setDetailJob={setDetailJob}
+              setDetailJob={openDetailJob}
               containerRef={containerRef}
               pullDistance={pullDistance}
               refreshing={refreshing}
@@ -829,10 +866,10 @@ const Dashboard = () => {
             onToggleSave={handleToggleSave}
             userLat={filters.userLoc?.status === "ready" ? filters.userLoc.lat : null}
             userLng={filters.userLoc?.status === "ready" ? filters.userLoc.lng : null}
-            onClose={() => setDetailJob(null)}
+            onClose={closeDetailJob}
             onApply={handleApplyRequest}
             onReport={setReportJobId}
-            onSelect={setDetailJob}
+            onSelect={openDetailJob}
           />
         </Suspense>
       )}

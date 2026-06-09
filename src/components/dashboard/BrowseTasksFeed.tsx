@@ -3,7 +3,7 @@ import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Star, Search } from "lucide-react";
+import { Star, Search, Plus, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/lib/accessibility";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -256,18 +256,36 @@ export function BrowseTasksFeed({
               : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
           }
           action={
-            // Filtered: offer a way out. Quiet but unfiltered authenticated
-            // board: no CTA — posting lives in the bottom nav and the
-            // notify opt-in lives elsewhere, so repeating them here was
-            // redundant. Only the (rare) signed-out fallback keeps a CTA.
+            // Filtered: offer a way out. Otherwise — for both signed-in
+            // and signed-out users — surface BOTH a Post and a Notify CTA
+            // side by side. App is never role-based per
+            // [[app-is-never-role-based]]: every account can post AND do
+            // jobs, so an empty feed should let them flip to the other
+            // side of the marketplace right here (Post your first task)
+            // OR opt in to be pinged when a match lands (Notify me),
+            // instead of dead-ending on body copy.
             filters.hasFilters ? (
               <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
                 Clear filters
               </Button>
-            ) : user ? undefined : (
-              <BarkPillButton onClick={() => navigate("/post-job")}>
-                Post the first job
-              </BarkPillButton>
+            ) : (
+              <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
+                <BarkPillButton onClick={() => navigate("/post-job")}>
+                  <Plus className="w-4 h-4 mr-1" strokeWidth={2.5} />
+                  Post your first task
+                </BarkPillButton>
+                <Button
+                  variant="ghost"
+                  onClick={() =>
+                    navigate(user ? "/profile?tab=notifications" : "/signup")
+                  }
+                  className="rounded-ds-md font-sans font-semibold"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                >
+                  <Bell className="w-4 h-4 mr-1" strokeWidth={2.25} />
+                  Notify me when one lands
+                </Button>
+              </div>
             )
           }
         />

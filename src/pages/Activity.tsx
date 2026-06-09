@@ -94,6 +94,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     onRefresh: async () => { await refresh(); },
   });
 
+  // On a status-filter change the filtered list shrinks/changes, but the
+  // internal scroll container keeps its old offset — landing the user
+  // mid-list on results that should start at the top. Reset to the top so
+  // the new filter reads from row one.
+  useEffect(() => {
+    containerRef.current?.scrollTo(0, 0);
+  }, [statusFilter, containerRef]);
+
   if (loading) {
     // Loading state mirrors the loaded layout: two-box stack on a
     // bg-premium-page shell with skeleton cards inside the bottom box.

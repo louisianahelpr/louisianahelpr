@@ -73,6 +73,8 @@ interface BrowseTasksFeedProps {
   handleApplyRequest: (jobId: string) => void;
   handleDismissRequest: (jobId: string) => void;
   handleToggleSave: (jobId: string, saved: boolean) => void;
+  /** Long-press on a JobCard — opens the quick-action sheet. */
+  handleLongPressCard?: (jobId: string) => void;
   confirmDismissJobId: string | null;
   expandedCardId: string | null;
   setExpandedCardId: Dispatch<SetStateAction<string | null>>;
@@ -113,6 +115,7 @@ export function BrowseTasksFeed({
   handleApplyRequest,
   handleDismissRequest,
   handleToggleSave,
+  handleLongPressCard,
   confirmDismissJobId,
   expandedCardId,
   setExpandedCardId,
@@ -416,7 +419,7 @@ export function BrowseTasksFeed({
                         exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
                       >
-                        <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} />
+                        <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
                       </motion.div>
                     ))}
                   </AnimatePresence>
@@ -468,7 +471,7 @@ export function BrowseTasksFeed({
                   // virtualizer absolutely-positions rows, so the gap is
                   // bottom padding measured as part of the row height.
                   <div className="pb-2.5 lg:pb-4 xl:pb-5">
-                    <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
+                    <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
                   </div>
                 )}
               />

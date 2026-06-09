@@ -2,7 +2,8 @@ import { memo, type KeyboardEvent } from "react";
 import {
   MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock,
 } from "lucide-react";
-import { hapticLight } from "@/lib/haptics";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { useLongPress } from "@/hooks/useLongPress";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
@@ -54,6 +55,14 @@ interface JobCardProps {
    */
   userLat?: number | null;
   userLng?: number | null;
+  /**
+   * Long-press handler — when defined, a 500ms press on the card opens
+   * a quick-action sheet (Save / Hide / Share / Report) instead of the
+   * detail dialog. The dashboard owner (Dashboard.tsx) supplies this;
+   * guest mode leaves it undefined so the card behaves the same way it
+   * did before (tap → /signup).
+   */
+  onLongPress?: (jobId: string) => void;
 }
 
 // Category colors apply ONLY to the category badge pill at the top of
@@ -61,8 +70,25 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, onLongPress }: JobCardProps) => {
   const isGuest = variant === "guest";
+  // Long-press hook — fires onLongPress after 500ms hold, falls through
+  // to a normal tap (onSelect) when the user lifts before the threshold.
+  // We always create the hook to keep the component's render shape
+  // stable across renders, but ignore its props when there's no handler.
+  const longPress = useLongPress({
+    threshold: 500,
+    onLongPress: () => {
+      if (onLongPress) {
+        hapticMedium();
+        onLongPress(job.id);
+      }
+    },
+    onTap: () => {
+      hapticLight();
+      onSelect(job);
+    },
+  });
   // Show the gross posted budget (vs the helper's net take-home) whenever
   // the full guest variant is active OR the lighter guestPricing flag is set.
   const showBudget = isGuest || guestPricing;
@@ -137,22 +163,41 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // In the guest variant the card is wrapped in a /signup <Link> by the
   // caller (Jobs.tsx), so the card root must NOT be a nested interactive
   // element — drop role/tabIndex/handlers and let the Link own the tap.
+  // With onLongPress supplied, the press/release handlers from
+  // useLongPress own both tap (fires onSelect on short release) and
+  // long-press (fires the quick-action sheet at threshold). Without it
+  // we fall back to a plain onClick so the gesture surface stays simple.
   const interactiveProps = isGuest
     ? {}
-    : {
-        onClick: () => { hapticLight(); onSelect(job); },
-        role: "button" as const,
-        tabIndex: 0,
-        "aria-label": `View ${job.title} — $${job.budget}`,
-        onKeyDown: (e: KeyboardEvent) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            hapticLight();
-            onSelect(job);
-          }
-        },
-        ...prefetchHandlers,
-      };
+    : onLongPress
+      ? {
+          ...longPress,
+          role: "button" as const,
+          tabIndex: 0,
+          "aria-label": `View ${job.title} — $${job.budget}`,
+          onKeyDown: (e: KeyboardEvent) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              hapticLight();
+              onSelect(job);
+            }
+          },
+          ...prefetchHandlers,
+        }
+      : {
+          onClick: () => { hapticLight(); onSelect(job); },
+          role: "button" as const,
+          tabIndex: 0,
+          "aria-label": `View ${job.title} — $${job.budget}`,
+          onKeyDown: (e: KeyboardEvent) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              hapticLight();
+              onSelect(job);
+            }
+          },
+          ...prefetchHandlers,
+        };
 
   return (
     <div

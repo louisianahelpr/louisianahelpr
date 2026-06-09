@@ -27,6 +27,7 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 // and only the dialogs the user actually opens get fetched, keeping the
 // Dashboard route chunk small.
 const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
+const JobQuickActionSheet = lazy(() => import("@/components/dashboard/JobQuickActionSheet").then(m => ({ default: m.JobQuickActionSheet })));
 const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
@@ -121,6 +122,10 @@ const Dashboard = () => {
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
+  // Quick-action sheet — opened by a long-press on a JobCard. Lets the
+  // helpr save / hide / share / report without committing to opening
+  // the full detail dialog. Null = sheet closed.
+  const [quickActionJobId, setQuickActionJobId] = useState<string | null>(null);
   // Scroll-position snapshot — captured the moment a detail dialog opens,
   // then restored to the same scrollTop on close. Without it the dashboard
   // feed silently snaps back to the top when the user dismisses the dialog,
@@ -473,6 +478,10 @@ const Dashboard = () => {
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);
+  }, []);
+
+  const handleLongPressCard = useCallback((jobId: string) => {
+    setQuickActionJobId(jobId);
   }, []);
 
   // Open a job detail dialog while snapshotting the feed's scroll position
@@ -843,6 +852,7 @@ const Dashboard = () => {
               handleApplyRequest={handleApplyRequest}
               handleDismissRequest={handleDismissRequest}
               handleToggleSave={handleToggleSave}
+              handleLongPressCard={handleLongPressCard}
               confirmDismissJobId={confirmDismissJobId}
               expandedCardId={expandedCardId}
               setExpandedCardId={setExpandedCardId}
@@ -886,6 +896,25 @@ const Dashboard = () => {
           <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />
         </Suspense>
       )}
+
+      {/* Long-press quick-action sheet. Lazy-loaded so the small extra
+          bundle only ships once a helpr actually long-presses a card. */}
+      {quickActionJobId && (() => {
+        const qaJob = allJobs.find((j) => j.id === quickActionJobId);
+        if (!qaJob) return null;
+        return (
+          <Suspense fallback={null}>
+            <JobQuickActionSheet
+              job={{ id: qaJob.id, title: qaJob.title, budget: qaJob.budget, category: qaJob.category }}
+              isSaved={savedJobIds.has(qaJob.id)}
+              onClose={() => setQuickActionJobId(null)}
+              onToggleSave={handleToggleSave}
+              onHide={handleDismissRequest}
+              onReport={setReportJobId}
+            />
+          </Suspense>
+        );
+      })()}
 
       <Suspense fallback={null}>
         <OnboardingTour profileCreatedAt={profile?.created_at} />

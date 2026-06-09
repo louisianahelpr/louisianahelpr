@@ -22,6 +22,8 @@ interface SwipeableJobCardProps {
   /** Viewer's cached location — forwarded to JobCard for the distance pill. */
   userLat?: number | null;
   userLng?: number | null;
+  /** Long-press handler — forwarded to JobCard for the quick-action sheet. */
+  onLongPress?: (jobId: string) => void;
 }
 
 const SWIPE_THRESHOLD = -100;
@@ -43,6 +45,7 @@ const SwipeableJobCard = ({
   onToggleSave,
   userLat = null,
   userLng = null,
+  onLongPress,
 }: SwipeableJobCardProps) => {
   const x = useMotionValue(0);
   const backgroundOpacity = useTransform(x, [-150, -50, 0], [1, 0.6, 0]);
@@ -172,6 +175,7 @@ const SwipeableJobCard = ({
             onToggleSave={onToggleSave}
             userLat={userLat}
             userLng={userLng}
+            onLongPress={onLongPress}
           />
         </div>
       </motion.div>

@@ -1,0 +1,80 @@
+name: Vitest
+
+# Dedicated Vitest workflow whose `Vitest unit tests` job name is the
+# distinct status-check ID used in main's branch-protection required-checks
+# list. It runs `npx vitest run` on a Linux runner (ubuntu-latest, 1x
+# billing) to close the gap noted in memory `vitest-not-in-ci`:
+# unit tests were never executing in CI, so a green pipeline did NOT mean
+# tests passed.
+#
+# The combined `test.yml` workflow already runs lint + typecheck + build +
+# vitest in a single job, but it's a single status check that covers four
+# concerns — splitting Vitest out into its own workflow gives it a
+# dedicated, branch-protection-addressable check whose failure points
+# cleanly at unit-test regressions instead of being lumped into the more
+# general "Lint, type-check, build, test" line item.
+#
+# Linux runner choice is deliberate — memory `github-actions-macos-billing`
+# documents how `macos-15` minutes burned ~$16/mo from a single rogue
+# scheduled job. Vitest runs identically on Linux for our pure-JS test
+# suite, so there is no reason to spend the 10x multiplier.
+
+permissions:
+  contents: read
+
+env:
+  # JavaScript-based Actions on Node 24 ahead of the platform default.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "fastlane/metadata/**"
+      - ".github/dependabot.yml"
+      - "LICENSE"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "fastlane/metadata/**"
+      - "LICENSE"
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref so a fast follow-up commit
+# doesn't keep an outdated Vitest run burning minutes.
+concurrency:
+  group: vitest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vitest:
+    name: Vitest unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        # Lovable manages package-lock.json out-of-band, so it can drift
+        # from package.json between syncs. Use `npm install` (not `npm ci`)
+        # so CI heals a stale lockfile instead of failing the run — same
+        # pattern as test.yml.
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Run Vitest
+        # `--reporter=default` keeps the GitHub Actions summary readable;
+        # `--passWithNoTests` would mask "I deleted every test" bugs, so
+        # we deliberately do NOT pass it.
+        run: npx vitest run --reporter=default

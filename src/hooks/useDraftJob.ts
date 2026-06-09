@@ -4,8 +4,10 @@ import { safeStorage } from "@/lib/safeStorage";
 const DRAFT_KEY = "helpr_draft_job";
 // Debounce window for persisting drafts. Long enough that fast typists
 // don't hammer localStorage on every keystroke, short enough that the user
-// won't lose meaningful work if the tab dies.
-const SAVE_DEBOUNCE_MS = 1000;
+// won't lose meaningful work if the tab dies. A `beforeunload` /
+// `visibilitychange:hidden` flush (below) covers the gap when the app is
+// refreshed or backgrounded mid-window, which on mobile is the common case.
+const SAVE_DEBOUNCE_MS = 5000;
 
 export interface JobDraft {
   title: string;
@@ -62,19 +64,37 @@ export function useDraftJob() {
     } catch { /* ignore */ }
   }, []);
 
-  // Flush any pending write before unmount so users don't lose the last
-  // ~1s of typing if they navigate away quickly.
-  useEffect(() => {
-    return () => {
-      if (saveTimer.current !== null) {
-        window.clearTimeout(saveTimer.current);
-        saveTimer.current = null;
-        try {
-          safeStorage.setItem(DRAFT_KEY, JSON.stringify(pendingDraft.current));
-        } catch { /* ignore */ }
-      }
-    };
+  // Synchronously persist whatever's currently pending and cancel the
+  // debounce. Safe to call when nothing is dirty (write is idempotent).
+  const flushDraft = useCallback(() => {
+    if (saveTimer.current !== null) {
+      window.clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    // Nothing meaningful typed yet — don't write an empty placeholder draft.
+    if (pendingDraft.current.savedAt === 0) return;
+    try {
+      safeStorage.setItem(DRAFT_KEY, JSON.stringify(pendingDraft.current));
+    } catch { /* ignore */ }
   }, []);
+
+  // Flush before unmount AND on the events that fire when a mobile browser
+  // tears the page down without an unmount: a hard refresh (`beforeunload`)
+  // and app-backgrounding / tab-hide (`visibilitychange` → "hidden", the
+  // only reliably-delivered teardown signal on iOS). Without these, the
+  // last few seconds of typing inside the debounce window are lost.
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flushDraft();
+    };
+    window.addEventListener("beforeunload", flushDraft);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("beforeunload", flushDraft);
+      document.removeEventListener("visibilitychange", onHide);
+      flushDraft();
+    };
+  }, [flushDraft]);
 
   const saveDraft = useCallback((data: Partial<JobDraft>) => {
     // Merge against the latest pending value (not the rendered state) so
@@ -106,5 +126,5 @@ export function useDraftJob() {
     try { safeStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
   }, []);
 
-  return { draft, hasDraft, saveDraft, clearDraft };
+  return { draft, hasDraft, saveDraft, flushDraft, clearDraft };
 }

@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { usePostJobForm } from "./postjob/usePostJobForm";
 import { RedirectingOverlay } from "./postjob/RedirectingOverlay";
 import { EntryChoice } from "./postjob/EntryChoice";
@@ -10,6 +12,28 @@ import { CheckoutStepView } from "./postjob/CheckoutStepView";
 const PostJob = () => {
   usePageTitle("Post a Task — Helpr");
   const form = usePostJobForm();
+
+  // iOS keeps the focused field under the keyboard when it sits near the
+  // bottom of this long document-scroll form (e.g. the logistics notes /
+  // budget fields). When the keyboard rises, scroll the focused control
+  // into view. Mirrors how Messages consumes useKeyboardInset to lift its
+  // composer above the keyboard.
+  const keyboardInset = useKeyboardInset();
+  useEffect(() => {
+    if (keyboardInset <= 0) return;
+    const el = document.activeElement;
+    if (
+      el instanceof HTMLInputElement ||
+      el instanceof HTMLTextAreaElement ||
+      el instanceof HTMLSelectElement
+    ) {
+      // Defer to the next frame so the layout has settled to the smaller
+      // (keyboard-inset) viewport before we measure where the field is.
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [keyboardInset]);
 
   // Per-step header copy. The entry landing is the new first step where the
   // poster picks how to begin (start fresh / draft / template).

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -108,6 +109,22 @@ export function ProfileEditForm({
     lookupParishByZip(cleaned).then((p) => { if (!cancelled) setResolvedParish(p); });
     return () => { cancelled = true; };
   }, [zipCode]);
+
+  // iOS hides the bio textarea (and the ID/portfolio controls below it)
+  // behind the keyboard when focused, since they sit low in this scrollable
+  // form. When the keyboard rises, scroll the focused control into view —
+  // same useKeyboardInset pattern Messages uses to lift its composer.
+  const keyboardInset = useKeyboardInset();
+  useEffect(() => {
+    if (keyboardInset <= 0) return;
+    const el = document.activeElement;
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      // Defer a frame so layout settles to the keyboard-inset viewport first.
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [keyboardInset]);
 
   // ─── Work portfolio (profiles.portfolio_urls) ──────────────────────
   // Helpers upload up to 6 photos of previous work; applicants see these

@@ -626,6 +626,7 @@ const JobDetailDialog = ({
               variant="ghost"
               size="icon"
               aria-label={isSaved ? "Unsave job" : "Save job"}
+              aria-pressed={isSaved}
               className="group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
               onClick={() => onToggleSave(job.id, !isSaved)}
               style={{

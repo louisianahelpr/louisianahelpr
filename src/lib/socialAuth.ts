@@ -15,6 +15,7 @@ import { Capacitor } from "@capacitor/core";
 import { SocialLogin } from "@capgo/capacitor-social-login";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/authErrors";
+import { setLastAuthMethod } from "@/lib/lastAuthMethod";
 
 export type SocialProvider = "apple" | "google";
 
@@ -136,6 +137,9 @@ export async function signInWithProvider(
   if (isSocialLoginPluginAvailable()) {
     try {
       await nativeSignIn(provider);
+      // Remember the last successful method so the Login screen can show a
+      // quiet "Last time you used Google" hint above the buttons.
+      setLastAuthMethod(provider);
       return { kind: "success" };
     } catch (err) {
       if (isCancelError(err)) return { kind: "cancelled" };
@@ -148,6 +152,11 @@ export async function signInWithProvider(
   // outcome here; the post-redirect handler at /dashboard (or redirectTo)
   // takes over.
   try {
+    // Optimistically record the method we're about to use. If the user
+    // bails out of the provider sheet, the hint stays accurate to their
+    // *intent* — still useful as a "last time you tried Google" cue, and
+    // gets overwritten the next time any auth method succeeds.
+    setLastAuthMethod(provider);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 
@@ -20,17 +20,30 @@ type Report = {
   reason: string;
   description: string | null;
   status: string;
+  assigned_to: string | null;
   created_at: string;
   reporter_name?: string;
   reported_name?: string;
+  assigned_to_name?: string;
 };
+
+// Triage states. The DB CHECK (added in migration 20260609160000) allows
+// new/investigating/resolved/dismissed alongside the legacy
+// pending/reviewed values. We surface 'new' as the default replacement
+// for 'pending' but tolerate both so the queue keeps working between
+// merge and the manual `supabase db push`.
+// Exported for future consumers (analytics, reports drilldowns).
+export type TriageState = "new" | "investigating" | "resolved" | "dismissed";
 
 const SLA_BREACH_HOURS = 24;
 
 const AdminReports = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [filter, setFilter] = useState<"pending" | "resolved" | "all">("pending");
+  // Triage filter — `pending` is the legacy default and we treat it as
+  // "new + investigating" so the queue keeps showing everything an
+  // admin would expect under the old default.
+  const [filter, setFilter] = useState<"pending" | "investigating" | "resolved" | "dismissed" | "all">("pending");
   const [updating, setUpdating] = useState<string | null>(null);
   const [messageTarget, setMessageTarget] = useState<{ userId: string; name: string } | null>(null);
   const [messageText, setMessageText] = useState("");
@@ -44,10 +57,15 @@ const AdminReports = () => {
       // For the pending queue, oldest-first surfaces SLA-breaching items at
       // the top (they need triage soonest). For resolved/all, newest-first
       // matches the rest of admin views.
-      const ascending = filter === "pending";
-      let query = supabase.from("reports").select("*").neq("reported_type", "support").order("created_at", { ascending });
-      if (filter === "pending") query = query.eq("status", "pending");
+      const ascending = filter === "pending" || filter === "investigating";
+      let query = (supabase.from as any)("reports")
+        .select("*")
+        .neq("reported_type", "support")
+        .order("created_at", { ascending });
+      if (filter === "pending") query = query.in("status", ["pending", "new"]);
+      if (filter === "investigating") query = query.eq("status", "investigating");
       if (filter === "resolved") query = query.eq("status", "resolved");
+      if (filter === "dismissed") query = query.eq("status", "dismissed");
 
       const { data, error } = await query;
       if (error) {
@@ -55,24 +73,62 @@ const AdminReports = () => {
         return [];
       }
 
-      const userIds = [...new Set((data || []).flatMap(r => [r.reporter_id, r.reported_id]))];
+      const reportRows = (data || []) as Report[];
+      const userIds = [
+        ...new Set(reportRows.flatMap(r => [r.reporter_id, r.reported_id, r.assigned_to].filter(Boolean) as string[])),
+      ];
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, full_name")
           .in("user_id", userIds);
         const nameMap = new Map((profiles || []).map(p => [p.user_id, formatName(p.full_name, "Unknown")]));
-        return (data || []).map(r => ({
+        return reportRows.map(r => ({
           ...r,
           reporter_name: nameMap.get(r.reporter_id) || "Unknown",
           reported_name: nameMap.get(r.reported_id) || "Unknown",
+          assigned_to_name: r.assigned_to ? nameMap.get(r.assigned_to) : undefined,
         }));
       }
-      return (data || []) as Report[];
+      return reportRows;
     },
   });
 
   const loadReports = () => qc.invalidateQueries({ queryKey });
+
+  const assignToSelf = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setUpdating(id);
+    // assigned_to lives in a recent migration; cast through any so this
+    // works against generated types that may not include the column yet.
+    const { error } = await (supabase.from as any)("reports")
+      .update({ assigned_to: user.id, status: "investigating" })
+      .eq("id", id);
+    if (error) {
+      // 42703 = undefined column → migration hasn't been applied yet.
+      // Fall back to status-only so the queue keeps working.
+      if (error.code === "42703") {
+        const { error: fallbackErr } = await supabase.from("reports")
+          .update({ status: "investigating" as any })
+          .eq("id", id);
+        if (fallbackErr) toast.error(fallbackErr.message);
+        else toast.success("Marked as investigating (assignment column not yet deployed)");
+      } else {
+        toast.error(error.message);
+      }
+    } else {
+      toast.success("Assigned to you — set to Investigating");
+    }
+    void supabase.from("admin_audit_log").insert({
+      admin_id: user.id,
+      action: "report_assigned_self",
+      target_type: "report",
+      target_id: id,
+    });
+    loadReports();
+    setUpdating(null);
+  };
 
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id);
@@ -146,8 +202,8 @@ const AdminReports = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        {(["pending", "resolved", "all"] as const).map(f => (
+      <div className="flex gap-2 flex-wrap">
+        {(["pending", "investigating", "resolved", "dismissed", "all"] as const).map(f => (
           <Button
             key={f}
             variant={filter === f ? "default" : "outline"}
@@ -156,8 +212,10 @@ const AdminReports = () => {
             className="capitalize"
           >
             {f === "pending" && <Clock className="w-3.5 h-3.5 mr-1" />}
+            {f === "investigating" && <Search className="w-3.5 h-3.5 mr-1" />}
             {f === "resolved" && <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-            {f}
+            {f === "dismissed" && <CheckCircle2 className="w-3.5 h-3.5 mr-1 opacity-60" />}
+            {f === "pending" ? "New" : f}
           </Button>
         ))}
       </div>
@@ -199,10 +257,15 @@ const AdminReports = () => {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  <Badge variant={report.status === "pending" ? "destructive" : "secondary"}>
-                    {report.status}
+                  <Badge variant={(report.status === "pending" || report.status === "new") ? "destructive" : "secondary"}>
+                    {report.status === "pending" ? "new" : report.status}
                   </Badge>
-                  {report.status === "pending" && (() => {
+                  {report.assigned_to_name && (
+                    <Badge variant="outline" className="text-ds-10 gap-0.5">
+                      <User className="w-2.5 h-2.5" /> {report.assigned_to_name.split(" ")[0]}
+                    </Badge>
+                  )}
+                  {(report.status === "pending" || report.status === "new" || report.status === "investigating") && (() => {
                     const sla = slaInfo(report.created_at);
                     const slaClass =
                       sla.tone === "red" ? "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400" :
@@ -229,8 +292,28 @@ const AdminReports = () => {
                 >
                   <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Profile
                 </Button>
-                {report.status === "pending" && (
+                {(report.status === "pending" || report.status === "new" || report.status === "investigating") && (
                   <>
+                    {!report.assigned_to && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => assignToSelf(report.id)}
+                        disabled={updating === report.id}
+                      >
+                        <User className="w-3.5 h-3.5 mr-1" /> Assign to me
+                      </Button>
+                    )}
+                    {report.status !== "investigating" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateStatus(report.id, "investigating")}
+                        disabled={updating === report.id}
+                      >
+                        <Search className="w-3.5 h-3.5 mr-1" /> Investigating
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"

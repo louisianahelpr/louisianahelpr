@@ -77,8 +77,8 @@ export const filterAndSortProfiles = ({
       // both sides so "jane.doe+ops@gmail" finds "janedoe@gmail" and vice
       // versa. Cheap and forgiving without going full Levenshtein.
       if (email) {
-        const normEmail = email.replace(/[._+\-]/g, "");
-        const normQ = q.replace(/[._+\-]/g, "");
+        const normEmail = email.replace(/[._+-]/g, "");
+        const normQ = q.replace(/[._+-]/g, "");
         if (normQ.length >= 3 && normEmail.includes(normQ)) return true;
       }
 

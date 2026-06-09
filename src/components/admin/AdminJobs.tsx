@@ -145,8 +145,6 @@ const AdminJobs = () => {
       next.delete("job");
       setSearchParams(next, { replace: true });
     }
-    // openJob is stable for this effect's lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobs, searchParams]);
 
   const markFlagResolved = (jobId: string) => {

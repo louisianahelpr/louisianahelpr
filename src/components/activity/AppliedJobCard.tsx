@@ -66,7 +66,7 @@ interface AppliedJobCardProps {
   setSubmittingResponse: (value: boolean) => void;
   /** Withdraw flow — the confirm sheet lives on the parent. */
   withdrawingAppId: string | null;
-  setWithdrawTarget: (target: { appId: string; jobTitle: string } | null) => void;
+  setWithdrawTarget: (target: { appId: string; jobTitle: string; jobId?: string | null } | null) => void;
   /** Application-message edit + attachment state (parent-owned). */
   uploadingAttachment: string | null;
   editingMessageAppId: string | null;
@@ -311,7 +311,7 @@ function AppliedJobCardInner({
               <button
                 type="button"
                 disabled={withdrawingAppId === app.id}
-                onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Task" })}
+                onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Task", jobId: job.id ?? null })}
                 className="inline-flex items-center gap-1.5 text-[0.72rem] font-sans font-semibold tracking-wide px-2.5 py-1 rounded-full active:opacity-70 transition-opacity disabled:opacity-50"
                 style={{
                   color: "hsl(var(--burnt-sienna))",

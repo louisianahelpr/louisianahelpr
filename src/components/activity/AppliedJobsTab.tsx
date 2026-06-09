@@ -2,9 +2,10 @@ import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticLight } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import { Send, SearchX } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
@@ -15,6 +16,7 @@ import { ListFilterBar, type StatusChip } from "./ListFilterBar";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
 import { bucketAppliedApp } from "@/pages/activity/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
+import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdrawAnalytics";
 
 /** Status chips for the helper's applications list — collapses the raw
  *  application/job status pair into the four states a helper thinks in. */
@@ -80,7 +82,15 @@ export const AppliedJobsTab = ({
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [withdrawingAppId, setWithdrawingAppId] = useState<string | null>(null);
   // Slide-up confirmation sheet for Withdraw — friction where it matters.
-  const [withdrawTarget, setWithdrawTarget] = useState<{ appId: string; jobTitle: string } | null>(null);
+  const [withdrawTarget, setWithdrawTarget] = useState<{ appId: string; jobTitle: string; jobId?: string | null } | null>(null);
+  // Coded reason for the withdraw — fed into analytics so product can
+  // see when "schedule_conflict" spikes (calendar UX gap), or when
+  // "another_job" trends up (a healthy signal of helpers succeeding
+  // on other posts). Required before confirming; defaults to null
+  // each time the sheet opens.
+  const [withdrawReason, setWithdrawReason] = useState<WithdrawReason | null>(null);
+  // Optional free-text — only required when reason === "other".
+  const [withdrawDetail, setWithdrawDetail] = useState("");
   const [uploadingAttachment, setUploadingAttachment] = useState<string | null>(null);
   const [editingMessageAppId, setEditingMessageAppId] = useState<string | null>(null);
   const [editMessageText, setEditMessageText] = useState("");
@@ -97,17 +107,27 @@ export const AppliedJobsTab = ({
 
   const confirmWithdraw = useCallback(async () => {
     if (!withdrawTarget) return;
-    const { appId, jobTitle } = withdrawTarget;
+    if (!withdrawReason) { hapticError(); toast.error("Pick a reason first"); return; }
+    if (withdrawReason === "other" && withdrawDetail.trim().length < 3) {
+      hapticError();
+      toast.error("Add a short reason");
+      return;
+    }
+    const { appId, jobTitle, jobId } = withdrawTarget;
     setWithdrawingAppId(appId);
     const { error } = await supabase.from("applications").delete().eq("id", appId).eq("helper_id", userId);
     if (error) {
       toast.error("Couldn't withdraw that one — give it another try?");
     } else {
+      // Best-effort log — fire-and-forget, never blocks the toast.
+      logWithdrawReason(appId, { reason: withdrawReason, detail: withdrawDetail }, jobId);
       toast.success(`Withdrawn from "${jobTitle}".`);
     }
     setWithdrawingAppId(null);
     setWithdrawTarget(null);
-  }, [withdrawTarget, userId]);
+    setWithdrawReason(null);
+    setWithdrawDetail("");
+  }, [withdrawTarget, userId, withdrawReason, withdrawDetail]);
 
   const handleAddAttachment = useCallback(async (appId: string, jobId: string, currentUrls: string[], file: File) => {
     if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
@@ -262,8 +282,20 @@ export const AppliedJobsTab = ({
     <>
       {listView}
 
-      {/* Withdraw confirmation — slide-up sheet with dimmed backdrop. */}
-      <Sheet open={!!withdrawTarget} onOpenChange={(open) => { if (!open) setWithdrawTarget(null); }}>
+      {/* Withdraw confirmation — slide-up sheet with dimmed backdrop.
+          Asks for a reason BEFORE confirming so the helper has to think
+          about why for a beat (gentle friction) and so product gets a
+          coded reason mix for the funnel without a custom event. */}
+      <Sheet
+        open={!!withdrawTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setWithdrawTarget(null);
+            setWithdrawReason(null);
+            setWithdrawDetail("");
+          }
+        }}
+      >
         <SheetContent
           side="bottom"
           className="rounded-t-[20px] border-t-0 px-5 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)_+_24px)]"
@@ -275,18 +307,70 @@ export const AppliedJobsTab = ({
               Withdraw Application?
             </SheetTitle>
             <SheetDescription className="text-ds-11 text-muted-foreground leading-relaxed">
-              Withdrawing will remove you from consideration for{" "}
+              You'll be removed from consideration for{" "}
               <span className="font-medium text-foreground">"{withdrawTarget?.jobTitle}"</span>.
               You can re-apply later if the position is still open.
             </SheetDescription>
           </SheetHeader>
 
-          <div className="mt-6 space-y-2.5">
+          <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>
+            <legend
+              className="font-serif italic uppercase block mb-1.5"
+              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              Why are you withdrawing?
+            </legend>
+            <div className="grid grid-cols-2 gap-1.5">
+              {([
+                { value: "another_job", label: "Got another job" },
+                { value: "schedule_conflict", label: "Schedule conflict" },
+                { value: "no_longer_interested", label: "No longer interested" },
+                { value: "other", label: "Other" },
+              ] as Array<{ value: WithdrawReason; label: string }>).map(({ value, label }) => {
+                const active = withdrawReason === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      hapticLight();
+                      setWithdrawReason(value);
+                      if (value !== "other") setWithdrawDetail("");
+                    }}
+                    aria-pressed={active}
+                    className={`px-3 py-2 rounded-ds-md text-[12.5px] font-medium transition-all active:scale-[0.97] ${
+                      active
+                        ? "bg-primary/10 text-primary border border-primary/35"
+                        : "bg-white text-foreground border border-border/60 hover:bg-secondary/40"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            {withdrawReason === "other" && (
+              <Textarea
+                value={withdrawDetail}
+                onChange={(e) => setWithdrawDetail(e.target.value.slice(0, 240))}
+                placeholder="Tell us briefly — helps us improve helpr."
+                rows={2}
+                aria-label="Withdraw reason — other"
+                className="mt-2 rounded-ds-md bg-white border-border/60 focus-visible:border-primary/40 text-[14px] leading-relaxed resize-none"
+              />
+            )}
+          </fieldset>
+
+          <div className="mt-5 space-y-2.5">
             <Button
               size="lg"
               variant="destructive"
               className="w-full rounded-ds-md btn-press text-ds-15 font-semibold"
-              disabled={!!withdrawingAppId}
+              disabled={
+                !!withdrawingAppId ||
+                !withdrawReason ||
+                (withdrawReason === "other" && withdrawDetail.trim().length < 3)
+              }
               onClick={confirmWithdraw}
             >
               {withdrawingAppId ? "Withdrawing…" : "Confirm Withdrawal"}
@@ -296,7 +380,11 @@ export const AppliedJobsTab = ({
               variant="ghost"
               className="w-full rounded-ds-md btn-press text-ds-15 font-medium text-muted-foreground hover:text-foreground"
               disabled={!!withdrawingAppId}
-              onClick={() => setWithdrawTarget(null)}
+              onClick={() => {
+                setWithdrawTarget(null);
+                setWithdrawReason(null);
+                setWithdrawDetail("");
+              }}
             >
               Keep My Application
             </Button>

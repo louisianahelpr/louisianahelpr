@@ -87,6 +87,10 @@ export function usePostJobForm() {
   // Business posts can opt to require the accepted helper to sign a W-9.
   // See helper_w9_records + the e-sign dialog in W9CollectionDialog.
   const [requiresW9, setRequiresW9] = useState(false);
+  // Business-account poster — optional cost-center / department tag.
+  // Persisted to jobs.department by the consolidated migration
+  // 20260609170000_business_team_roles.sql.
+  const [department, setDepartment] = useState("");
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
   const salesTaxRate = 10;
@@ -470,41 +474,70 @@ export function usePostJobForm() {
     const user = await runPreSubmitChecks();
     if (!user) return;
 
-    const { data: jobData, error } = await supabase
+    // Approval workflow — if this is a business post and the business
+    // has set a `require_approval_above` threshold, route the post to
+    // pending_approval instead of straight to open.
+    const requiresApproval =
+      !!business &&
+      business.require_approval_above != null &&
+      !!budget &&
+      parseFloat(budget) > Number(business.require_approval_above);
+
+    const buildPayload = (opts: { withExtras: boolean }) =>
+      buildJobInsertPayload({
+        userId: user.id,
+        businessId: business?.business_id ?? null,
+        title,
+        description,
+        category,
+        streetAddress,
+        city,
+        addrState,
+        zipCode,
+        parish,
+        dateNeeded,
+        startTime,
+        isFlexibleSchedule,
+        estimatedHours,
+        budget,
+        specialRequirements,
+        isRecurring,
+        recurrenceInterval,
+        recurrenceEndDate,
+        isGroupJob,
+        helpersNeeded,
+        isUrgent,
+        urgentFee,
+        platformFee,
+        salesTaxRate,
+        offerToHelperId,
+        department: opts.withExtras ? department : null,
+        initialStatus: opts.withExtras && requiresApproval ? "pending_approval" : undefined,
+        requiresW9: opts.withExtras && business ? requiresW9 : false,
+      });
+
+    let { data: jobData, error } = await supabase
       .from("jobs")
-      .insert(
-        buildJobInsertPayload({
-          userId: user.id,
-          businessId: business?.business_id ?? null,
-          title,
-          description,
-          category,
-          streetAddress,
-          city,
-          addrState,
-          zipCode,
-          parish,
-          dateNeeded,
-          startTime,
-          isFlexibleSchedule,
-          estimatedHours,
-          budget,
-          specialRequirements,
-          isRecurring,
-          recurrenceInterval,
-          recurrenceEndDate,
-          isGroupJob,
-          helpersNeeded,
-          isUrgent,
-          urgentFee,
-          platformFee,
-          salesTaxRate,
-          offerToHelperId,
-          requiresW9: business ? requiresW9 : false,
-        }),
-      )
+      .insert(buildPayload({ withExtras: true }))
       .select("id")
       .single();
+
+    if (error) {
+      // jobs.department / pending_approval enum value may not exist on
+      // prod yet (migration unapplied). Strip the new fields and retry
+      // so the post still lands.
+      const code = (error as { code?: string }).code;
+      const missingNew = code === "PGRST204" || code === "42703" || code === "22P02";
+      if (missingNew) {
+        const retry = await supabase
+          .from("jobs")
+          .insert(buildPayload({ withExtras: false }))
+          .select("id")
+          .single();
+        jobData = retry.data;
+        error = retry.error;
+      }
+    }
 
     if (error || !jobData) {
       toast.error(error?.message || "Couldn't post your job just yet — give it another try?");
@@ -835,6 +868,12 @@ export function usePostJobForm() {
     setIsGroupJob,
     helpersNeeded,
     setHelpersNeeded,
+    /** Cost-center / department label — exposed only to business posters. */
+    department,
+    setDepartment,
+    /** Business membership row (so the post-job UI can show the
+        department field, MFA banner, and approval-threshold notice). */
+    business,
     // budget fields
     budget,
     setBudget,

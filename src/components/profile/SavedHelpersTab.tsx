@@ -29,11 +29,13 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 
-type SavedSort = "rebooked" | "recent";
+type SavedSort = "rebooked" | "recent" | "rating" | "alpha";
 
 const sortOptions: { value: SavedSort; label: string }[] = [
-  { value: "rebooked", label: "Most rebooked" },
-  { value: "recent", label: "Most recent" },
+  { value: "recent", label: "Recent activity" },
+  { value: "rating", label: "Rating" },
+  { value: "rebooked", label: "Jobs together" },
+  { value: "alpha", label: "Alphabetical" },
 ];
 
 interface SavedHelper {
@@ -47,6 +49,10 @@ interface SavedHelper {
   saved_at: string;
   completed_jobs_together: number;
   last_job_at: string | null;
+  /** Average rating from the helper's public review wall. Optional —
+      the get_my_saved_helpers RPC may not surface it on older
+      deploys; the Rating sort treats missing values as 0. */
+  avg_rating?: number | null;
   /** Poster-only note. Surfaced by the get_my_saved_helpers RPC once
       migration 20260609110000 is applied; nullable so older deploys
       return undefined. */
@@ -71,7 +77,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   // "you're offline" (actionable by the user) from a server hiccup.
   const [wasOffline, setWasOffline] = useState(false);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<SavedSort>("rebooked");
+  const [sortBy, setSortBy] = useState<SavedSort>("recent");
   // Per-helper note editor — `editingNoteFor` holds the helper_id of
   // the row whose textarea is open; `noteDraft` holds the in-flight
   // text so the user can cancel without losing their place.
@@ -224,7 +230,31 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
         return bT - aT;
       });
     }
-    // Most rebooked first (default) — proven performers surface to the top
+    if (sortBy === "rating") {
+      // Highest average rating first — missing values fall to 0 so
+      // an unrated helper doesn't outrank a 4.9-star one. Ties break
+      // by jobs-together so a 5.0 with 1 job ranks below a 5.0 with
+      // 10 (rebooking signal is a tiebreaker, not a primary).
+      return matched.sort((a, b) => {
+        const aR = a.avg_rating ?? 0;
+        const bR = b.avg_rating ?? 0;
+        if (bR !== aR) return bR - aR;
+        return (b.completed_jobs_together ?? 0) - (a.completed_jobs_together ?? 0);
+      });
+    }
+    if (sortBy === "alpha") {
+      // Alphabetical by full name, case-insensitive, locale-aware.
+      // Missing names sink to the bottom so a placeholder doesn't take
+      // the top row from a real helpr.
+      return matched.sort((a, b) => {
+        const aN = (a.full_name ?? "").trim();
+        const bN = (b.full_name ?? "").trim();
+        if (!aN && bN) return 1;
+        if (aN && !bN) return -1;
+        return aN.localeCompare(bN, undefined, { sensitivity: "base" });
+      });
+    }
+    // Most jobs together (rebooked) — proven performers surface to the top
     return matched.sort((a, b) => {
       const aJobs = a.completed_jobs_together ?? 0;
       const bJobs = b.completed_jobs_together ?? 0;

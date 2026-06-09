@@ -110,7 +110,7 @@ const UserProfile = () => {
       // cancellation_count_*_res are head-only count queries so the
       // cancellation-rate stat (#30) reflects ALL jobs, not just the 20
       // we render inline.
-      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes] = await Promise.all([
+      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
@@ -135,6 +135,11 @@ const UserProfile = () => {
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).eq("status", "cancelled"),
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!),
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!).eq("status", "cancelled"),
+        // Last-active timestamp (#28) — separate RPC because login_history
+        // is RLS-locked to owner/admin. Returns max(created_at) only. Wrap
+        // in a soft fetch so PGRST202 ("RPC not deployed yet") just hides
+        // the badge instead of bricking the whole profile load.
+        supabase.rpc("get_user_last_active", { user_ids: [userId!] }),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -156,6 +161,21 @@ const UserProfile = () => {
           });
         }
       }
+      // Last-active RPC gets a softer error path: PGRST202 (function not
+      // deployed yet) is expected between merge and `supabase db push`, so
+      // hide the badge without polluting Sentry. Any OTHER error still
+      // reports so a real outage stays observable.
+      if (lastActiveRes.error && lastActiveRes.error.code !== "PGRST202") {
+        report(lastActiveRes.error, {
+          severity: "warning",
+          tags: { area: "user_profile.last_active" },
+          context: { viewed_user_id: userId },
+        });
+      }
+      const lastActiveAt =
+        lastActiveRes.data?.[0]?.last_active_at
+          ? new Date(lastActiveRes.data[0].last_active_at)
+          : null;
 
       const postedJobs = postedRes.data || [];
       const workedJobs = workedRes.data || [];
@@ -233,6 +253,9 @@ const UserProfile = () => {
         workedJobs,
         responseMetrics,
         cancellationRate,
+        // Serialize so React Query's cache survives a window reload (Date
+        // objects don't round-trip JSON). Re-hydrate at the call site.
+        lastActiveIso: lastActiveAt ? lastActiveAt.toISOString() : null,
         isIdVerified: !!idCheckRes.data?.id_document_url,
         // Verification-ladder inputs — passed straight through to
         // HelperTierBadge. Null-safe if the row read was blocked.
@@ -252,6 +275,7 @@ const UserProfile = () => {
   const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
   const cancellationRate = data?.cancellationRate ?? { total: 0, cancelled: 0, rate: null as number | null };
+  const lastActiveAt = data?.lastActiveIso ? new Date(data.lastActiveIso) : null;
   const isIdVerified = data?.isIdVerified ?? false;
   const tierProfile = data?.tierProfile ?? null;
   const loading = isLoading && !data;
@@ -374,6 +398,23 @@ const UserProfile = () => {
   const initials = (profile.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
   const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: profile.subscription_tier || null });
 
+  // Compact "active 2h ago" label. Returns null beyond 7 days — older
+  // timestamps degrade from a fresh-presence signal to a stale one, so
+  // we hide rather than mislead. (#28)
+  const lastActiveLabel = (() => {
+    if (!lastActiveAt) return null;
+    const ms = Date.now() - lastActiveAt.getTime();
+    if (ms < 0) return null; // clock skew safeguard
+    const m = Math.floor(ms / 60_000);
+    if (m < 10) return { text: "Active now", isLive: true };
+    if (m < 60) return { text: `Active ${m}m ago`, isLive: false };
+    const h = Math.floor(m / 60);
+    if (h < 24) return { text: `Active ${h}h ago`, isLive: false };
+    const d = Math.floor(h / 24);
+    if (d <= 7) return { text: `Active ${d}d ago`, isLive: false };
+    return null;
+  })();
+
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
@@ -494,6 +535,42 @@ const UserProfile = () => {
                 >
                   <MapPin className="w-3 h-3" />{profile.location}
                 </p>
+              )}
+              {/* Last-active presence chip (#28). Compact, low-weight —
+                  meant to read at-a-glance, not compete with the badges.
+                  Green dot when active within 10 minutes ("live"),
+                  olivewood for everything else. Hidden when stale (>7d). */}
+              {lastActiveLabel && (
+                <div
+                  className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full text-ds-11"
+                  style={{
+                    background: lastActiveLabel.isLive
+                      ? "hsl(140 50% 38% / 0.10)"
+                      : "hsl(var(--olivewood) / 0.08)",
+                    border: `0.5px solid ${
+                      lastActiveLabel.isLive
+                        ? "hsl(140 50% 38% / 0.35)"
+                        : "hsl(var(--olivewood) / 0.20)"
+                    }`,
+                    color: lastActiveLabel.isLive
+                      ? "hsl(140 60% 28%)"
+                      : "hsl(var(--olivewood))",
+                  }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{
+                      background: lastActiveLabel.isLive
+                        ? "hsl(140 60% 42%)"
+                        : "hsl(var(--olivewood) / 0.65)",
+                      boxShadow: lastActiveLabel.isLive
+                        ? "0 0 0 3px hsl(140 60% 42% / 0.18)"
+                        : "none",
+                    }}
+                    aria-hidden
+                  />
+                  <span className="font-medium">{lastActiveLabel.text}</span>
+                </div>
               )}
               {/* Response Metrics inline */}
               {responseMetrics.totalApplications > 0 && (

@@ -3434,6 +3434,13 @@ export type Database = {
         }[]
       }
       get_user_business_ids: { Args: { _user_id: string }; Returns: string[] }
+      get_user_last_active: {
+        Args: { user_ids: string[] }
+        Returns: {
+          last_active_at: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

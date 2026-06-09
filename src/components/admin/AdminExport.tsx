@@ -59,18 +59,43 @@ const AdminExport = () => {
 
   const exportJobs = async () => {
     setExporting("jobs");
-    const { data, error } = await supabase.from("jobs").select("id, title, category, status, budget, platform_fee_amount, customer_id, helper_id, date_needed, created_at, payment_status").order("created_at", { ascending: false });
-    if (error) {
-      report(error, { tags: { source: "AdminExport.exportJobs" } });
-      toast.error("Export failed: " + error.message);
+    // Try the wide select with the new `department` column first; fall
+    // back when the column doesn't exist yet (migration 20260609170000
+    // unapplied on prod). Cast through `any` until generated supabase
+    // types catch up.
+    const wide = await supabase
+      .from("jobs")
+      .select(
+        "id, title, category, status, budget, platform_fee_amount, customer_id, helper_id, date_needed, created_at, payment_status, department, business_id" as any,
+      )
+      .order("created_at", { ascending: false });
+    let rowsRaw: any[] | null = wide.data as any[] | null;
+    let queryErr = wide.error;
+    if (queryErr) {
+      const code = (queryErr as { code?: string }).code;
+      if (code === "42703" || code === "PGRST204") {
+        const narrow = await supabase
+          .from("jobs")
+          .select("id, title, category, status, budget, platform_fee_amount, customer_id, helper_id, date_needed, created_at, payment_status")
+          .order("created_at", { ascending: false });
+        rowsRaw = narrow.data;
+        queryErr = narrow.error;
+      }
+    }
+    if (queryErr) {
+      report(queryErr, { tags: { source: "AdminExport.exportJobs" } });
+      toast.error("Export failed: " + queryErr.message);
       setExporting(null);
       return;
     }
-    if (!data?.length) { toast.error("No data to export"); setExporting(null); return; }
-    const header = "Job ID,Title,Category,Status,Budget,Platform Fee,Customer ID,Helper ID,Date Needed,Created,Payment Status";
-    const rows = data.map(j => [j.id, j.title, j.category, j.status, j.budget, j.platform_fee_amount, j.customer_id, j.helper_id, j.date_needed, j.created_at, j.payment_status].map(esc).join(","));
+    if (!rowsRaw?.length) { toast.error("No data to export"); setExporting(null); return; }
+    const header = "Job ID,Title,Category,Status,Budget,Platform Fee,Customer ID,Helper ID,Date Needed,Created,Payment Status,Department,Business ID";
+    const rows = rowsRaw.map((j: any) => [
+      j.id, j.title, j.category, j.status, j.budget, j.platform_fee_amount, j.customer_id, j.helper_id,
+      j.date_needed, j.created_at, j.payment_status, j.department ?? "", j.business_id ?? "",
+    ].map(esc).join(","));
     downloadCSV(`jobs-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
-    toast.success(`Exported ${data.length} jobs`);
+    toast.success(`Exported ${rowsRaw.length} jobs`);
     setExporting(null);
   };
 

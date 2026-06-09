@@ -12,7 +12,7 @@
 // Migrations don't auto-deploy on prod, so every new RPC / column has a
 // PGRST202 / PGRST204 fallback inline.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

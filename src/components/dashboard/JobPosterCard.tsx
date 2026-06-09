@@ -9,6 +9,11 @@ interface JobPosterCardProps {
   job: EnrichedJob;
   /** Completed jobs between the current helper and this poster. */
   repeatJobs: number;
+  /** Combined cancellation rate (%) of the poster across posted and
+   *  worked jobs. Null while loading or when the ≥5-job sample-size
+   *  floor isn't met. When present, surfaced inline near the name so
+   *  the helpr can read it without leaving the job dialog. */
+  cancellationRate?: number | null;
 }
 
 /**
@@ -18,7 +23,7 @@ interface JobPosterCardProps {
  *
  * Extracted verbatim from JobDetailDialog.tsx.
  */
-export function JobPosterCard({ job, repeatJobs }: JobPosterCardProps) {
+export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCardProps) {
   const posterBadges = computeBadges({
     avgRating: job.posterAvgRating || 0,
     reviewCount: job.posterReviewCount || 0,
@@ -90,6 +95,26 @@ export function JobPosterCard({ job, repeatJobs }: JobPosterCardProps) {
               <>
                 {" "}<span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
                 {job.posterCompletedJobs} jobs
+              </>
+            )}
+            {cancellationRate != null && (
+              <>
+                {" "}<span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
+                {/* Colored against thresholds: <5% reads green (low),
+                    5–14% neutral, ≥15% warning sienna. Matches the
+                    profile-page cancellation card's color stops. */}
+                <span
+                  className="tabular-nums"
+                  style={{
+                    color: cancellationRate < 5
+                      ? "hsl(155 50% 35%)"
+                      : cancellationRate < 15
+                        ? "hsl(var(--olivewood) / 0.7)"
+                        : "hsl(var(--burnt-sienna))",
+                  }}
+                >
+                  {cancellationRate.toFixed(0)}% cancelled
+                </span>
               </>
             )}
           </p>

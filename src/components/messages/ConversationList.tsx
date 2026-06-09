@@ -15,6 +15,7 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSkeleton";
 import { VirtualList } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
+import { MuteSheet } from "./MuteSheet";
 import type { Conversation } from "./types";
 
 // Cap the rendered list; "Show all" reveals the rest. The virtualizer
@@ -34,8 +35,14 @@ interface ConversationListProps {
   setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
   setDeleteConvoConfirm: Dispatch<SetStateAction<Conversation | null>>;
   /** Toggle the muted state of one thread. Resolves once the server has
-   *  reconciled and the row's `isMuted` flag has been updated. */
+   *  reconciled and the row's `isMuted` flag has been updated. Used by
+   *  legacy paths; the new mute picker uses `onSnoozeMute` + `onUnmute`. */
   onToggleMute: (convo: Conversation) => void;
+  /** Set a snooze for the thread until a caller-supplied future time
+   *  (or `null` for forever-mute). Used by the MuteSheet picker. */
+  onSnoozeMute: (convo: Conversation, until: Date | null) => void;
+  /** Explicit unmute — clears any forever or snoozed mute. */
+  onUnmute: (convo: Conversation) => void;
 }
 
 /**
@@ -59,9 +66,15 @@ export function ConversationList({
   setBlockTarget,
   setDeleteConvoConfirm,
   onToggleMute,
+  onSnoozeMute,
+  onUnmute,
 }: ConversationListProps) {
   const navigate = useNavigate();
   const [showAllConvos, setShowAllConvos] = useState(false);
+  // Open the MuteSheet (snooze picker) targeted at one conversation.
+  // The row's mute action opens this rather than firing the binary
+  // toggle directly — keeps "1h / 8h / tomorrow / forever" one tap deep.
+  const [muteSheetConvo, setMuteSheetConvo] = useState<Conversation | null>(null);
 
   // Empty inbox (loaded, no error, zero threads). When there's nothing
   // to list, the "0 threads" count chip and the redundant secondary
@@ -201,6 +214,7 @@ export function ConversationList({
                         setBlockTarget={setBlockTarget}
                         setDeleteConvoConfirm={setDeleteConvoConfirm}
                         onToggleMute={onToggleMute}
+                        onOpenMuteSheet={setMuteSheetConvo}
                       />
                     )}
                   />
@@ -216,6 +230,17 @@ export function ConversationList({
           </div>
           </PullToRefreshWrapper>
           )}
+
+      {/* Snooze picker — opened from any conversation row's "Mute"
+          action. Lives at the list level (rather than inside each row)
+          so a single sheet instance handles every row. */}
+      <MuteSheet
+        open={!!muteSheetConvo}
+        onOpenChange={(open) => { if (!open) setMuteSheetConvo(null); }}
+        convo={muteSheetConvo}
+        onSnoozeMute={onSnoozeMute}
+        onUnmute={onUnmute}
+      />
     </PageScaffold>
   );
 }

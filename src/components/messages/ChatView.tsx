@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColor } from "@/lib/statusColors";
 import { FirstMessageChips } from "./FirstMessageChips";
+import { MuteSheet } from "./MuteSheet";
+import { snoozeRemainingLabel } from "@/lib/threadMutes";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import type { Conversation, Message } from "./types";
 import type { JobSystemEvent } from "@/lib/jobSystemEvents";
@@ -107,6 +109,11 @@ interface ChatViewProps {
    *  silences push only — the conversation stays visible and the unread
    *  badge still increments (matches iMessage's "Hide Alerts"). */
   onToggleMute: (convo: Conversation) => void;
+  /** Set a snooze for the open thread until a caller-supplied future
+   *  time. `null` mutes forever. Used by the MuteSheet picker. */
+  onSnoozeMute: (convo: Conversation, until: Date | null) => void;
+  /** Explicit unmute — clears any forever or snoozed mute. */
+  onUnmute: (convo: Conversation) => void;
   /** System-event entries derived from the active job's transition
    *  timestamps — rendered as styled centered <div>s interleaved with
    *  the messages so both participants see status changes in the same
@@ -148,11 +155,15 @@ export function ChatView({
   setBlockTarget,
   setDeleteMessageConfirm,
   onToggleMute,
+  onSnoozeMute,
+  onUnmute,
   jobSystemEvents,
 }: ChatViewProps) {
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Open the snooze picker for the active thread.
+  const [muteSheetOpen, setMuteSheetOpen] = useState(false);
   // Single-photo lightbox for tapped chat images — keeps the photo inside
   // the app's frosted viewer instead of punting to a system browser tab
   // (window.open in a Capacitor WebView leaves the app).
@@ -443,15 +454,20 @@ export function ChatView({
                 <span className="truncate">{activeConvo.otherUserName}</span>
                 <OnlineIndicator isOnline={isOtherOnline} />
                 {/* Muted bell — quiet visual mark that notifications are
-                    silenced for this thread. Same convention used in the
-                    inbox row so the state reads consistently. */}
-                {activeConvo.isMuted && (
-                  <BellOff
-                    className="w-3 h-3 shrink-0"
-                    style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-                    aria-label="Muted"
-                  />
-                )}
+                    silenced for this thread. The aria-label upgrades to
+                    include the snooze TTL when the mute is time-bound
+                    ("Muted for 8h") so screen readers don't just say
+                    "muted" for a one-hour snooze. */}
+                {activeConvo.isMuted && (() => {
+                  const remaining = snoozeRemainingLabel(activeConvo.muteUntil ?? null);
+                  return (
+                    <BellOff
+                      className="w-3 h-3 shrink-0"
+                      style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                      aria-label={remaining ?? "Muted"}
+                    />
+                  );
+                })()}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <p className="text-ds-11 truncate leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
@@ -497,19 +513,18 @@ export function ChatView({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {/* Mute / unmute — top item so the most-frequent action
-                    is one tap. Per-user; silences push only. Matches the
-                    iMessage "Hide Alerts" / "Show Alerts" pattern. */}
-                <DropdownMenuItem onClick={() => onToggleMute(activeConvo)}>
-                  {activeConvo.isMuted ? (
-                    <>
-                      <Bell className="w-4 h-4 mr-2" /> Unmute notifications
-                    </>
-                  ) : (
-                    <>
-                      <BellOff className="w-4 h-4 mr-2" /> Mute notifications
-                    </>
-                  )}
-                </DropdownMenuItem>
+                    is one tap. When unmuted, opens the snooze picker
+                    ("1h / 8h / until tomorrow 8 AM / forever"). When
+                    already muted, this collapses to a fast unmute. */}
+                {activeConvo.isMuted ? (
+                  <DropdownMenuItem onClick={() => onToggleMute(activeConvo)}>
+                    <Bell className="w-4 h-4 mr-2" /> Unmute notifications
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => setMuteSheetOpen(true)}>
+                    <BellOff className="w-4 h-4 mr-2" /> Mute notifications…
+                  </DropdownMenuItem>
+                )}
                 <div role="separator" className="my-1 h-px bg-border" />
                 <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}>
                   <Flag className="w-4 h-4 mr-2" /> Report user
@@ -944,6 +959,16 @@ export function ChatView({
           const next = typeof value === "function" ? value(lightboxPhoto ? 0 : null) : value;
           if (next === null) setLightboxPhoto(null);
         }}
+      />
+
+      {/* Snooze picker — opens from the header dropdown. Mounted at the
+          shell level so it overlays both the chat body and the composer. */}
+      <MuteSheet
+        open={muteSheetOpen}
+        onOpenChange={setMuteSheetOpen}
+        convo={muteSheetOpen ? activeConvo : null}
+        onSnoozeMute={onSnoozeMute}
+        onUnmute={onUnmute}
       />
     </AppShell>
   );

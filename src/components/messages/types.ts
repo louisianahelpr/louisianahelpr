@@ -67,4 +67,9 @@ export type Conversation = {
       bell-slash icon on the row and a "Muted" pill in the chat header.
       Resolved in batch from `get_muted_threads` per `loadConversations`. */
   isMuted?: boolean;
+  /** When the mute ends. `null` (with `isMuted = true`) means muted
+      forever; a future ISO timestamp means muted until that moment
+      ("snoozed"). Used to render "Muted for 8h" copy and to flip
+      `isMuted` back to false once the snooze expires locally. */
+  muteUntil?: string | null;
 };

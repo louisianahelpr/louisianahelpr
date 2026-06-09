@@ -25,8 +25,12 @@ interface ConversationRowProps {
   setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
   setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
   setDeleteConvoConfirm: Dispatch<SetStateAction<Conversation | null>>;
-  /** Toggle the muted state of this thread for the current user. */
+  /** Toggle the muted state of this thread for the current user.
+   *  Legacy path — used as the fast unmute action when the thread is
+   *  already muted; the row's "Mute" action prefers `onOpenMuteSheet`. */
   onToggleMute: (convo: Conversation) => void;
+  /** Open the snooze picker (MuteSheet) targeted at this conversation. */
+  onOpenMuteSheet: (convo: Conversation) => void;
 }
 
 /**
@@ -102,6 +106,7 @@ const ConversationRowBase = ({
   setBlockTarget,
   setDeleteConvoConfirm,
   onToggleMute,
+  onOpenMuteSheet,
 }: ConversationRowProps) => {
   // Relative time so the list reads as "active", not as a stack of
   // full dates.
@@ -285,20 +290,20 @@ const ConversationRowBase = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {/* Mute / unmute — first item so the most-frequent action is
-              easiest to reach. Icon flips bell ↔ bell-off to match the
-              current state, copy follows iMessage "Hide Alerts" / "Show
-              Alerts" semantics. */}
-          <DropdownMenuItem onClick={() => onToggleMute(c)}>
-            {c.isMuted ? (
-              <>
-                <Bell className="w-4 h-4 mr-2" /> Unmute notifications
-              </>
-            ) : (
-              <>
-                <BellOff className="w-4 h-4 mr-2" /> Mute notifications
-              </>
-            )}
-          </DropdownMenuItem>
+              easiest to reach. When unmuted, opens the snooze picker so
+              "1h / 8h / until tomorrow 8 AM / forever" is one tap deep.
+              When already muted, this collapses to a fast unmute (the
+              picker has its own "Turn back on" path if a user wants to
+              extend a snooze instead). */}
+          {c.isMuted ? (
+            <DropdownMenuItem onClick={() => onToggleMute(c)}>
+              <Bell className="w-4 h-4 mr-2" /> Unmute notifications
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => onOpenMuteSheet(c)}>
+              <BellOff className="w-4 h-4 mr-2" /> Mute notifications…
+            </DropdownMenuItem>
+          )}
           <div role="separator" className="my-1 h-px bg-border" />
           <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: c.otherUserId })}>
             <Flag className="w-4 h-4 mr-2" /> Report user

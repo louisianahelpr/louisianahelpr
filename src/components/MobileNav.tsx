@@ -196,7 +196,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         onTouchStart={() => !locked && prefetchRoute(effectivePath)}
         aria-label={locked ? `${label} — locked until your account is approved` : label}
         aria-current={isActive ? "page" : undefined}
-        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-colors duration-200 btn-press ${locked ? "opacity-50" : ""}`}
+        className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
         style={{ color: isActive ? "hsl(var(--bark))" : "hsl(48 9% 47%)" }}
       >
         {/* Sliding active pill — single shared layoutId across all items
@@ -230,8 +230,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         <div className="relative z-10">
           <Icon
             className="w-[22px] h-[22px] transition-all duration-200"
-            strokeWidth={isActive ? 2.25 : 1.85}
-            fill={isActive ? "hsl(var(--bark) / 0.18)" : "none"}
+            strokeWidth={isActive ? 2.3 : 1.8}
+            fill={isActive ? "hsl(var(--bark) / 0.22)" : "none"}
           />
           {/* No per-tab padlock for guests — three padlocks in a row read
               as a barrier wall on a first-time guest's home screen. The tab
@@ -254,11 +254,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             the rest of the app. Slightly tighter tracking than Montserrat
             so 5 tabs still fit on a 320px viewport. */}
         <span
-          className="relative z-10 font-serif italic leading-none tracking-tight"
+          className="relative z-10 font-serif italic leading-none tracking-tight transition-[font-weight,color] duration-200"
           style={{
             fontSize: "0.66rem",
-            fontWeight: isActive ? 600 : 500,
-            letterSpacing: "0.02em",
+            fontWeight: isActive ? 700 : 500,
+            letterSpacing: isActive ? "0.01em" : "0.02em",
+            color: isActive ? "hsl(var(--bark))" : undefined,
           }}
         >
           {label}

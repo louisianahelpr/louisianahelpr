@@ -1,7 +1,8 @@
 import {
   CheckCircle2, XCircle, Clock, ShieldAlert, ShieldCheck, KeyRound,
-  MessageSquareWarning, History, Trash2,
+  MessageSquareWarning, History, Trash2, Eye,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
 import AdminUserNotes from "../AdminUserNotes";
@@ -41,6 +42,7 @@ export function ActionsTab({
   setWarningProfile,
   setResetPwProfile,
 }: ActionsTabProps) {
+  const navigate = useNavigate();
   const showApprovedActivityChip = viewProfile.approval_status === "approved"
     && !["permanently_banned", "temp_banned"].includes(viewBanStatus);
 
@@ -116,6 +118,18 @@ export function ActionsTab({
           </Button>
           <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
             <History className="w-4 h-4 mr-1.5" /> View History
+          </Button>
+          {/* Read-only impersonation — opens the user-facing dashboard
+              with ?impersonate=<userId>. useImpersonation reads the
+              param, shows a banner, and blocks mutations at call sites
+              that call assertWritable(). */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 justify-start"
+            onClick={() => navigate(`/dashboard?impersonate=${viewProfile.user_id}`)}
+          >
+            <Eye className="w-4 h-4 mr-1.5 text-accent" /> Switch to user
           </Button>
           {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
             <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setBanProfile(viewProfile)}>

@@ -46,8 +46,9 @@ const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotific
 const AdminMarketing = lazy(() => import("@/components/admin/AdminMarketing"));
 const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredentialQueue"));
 const AdminBusinessVerificationQueue = lazy(() => import("@/components/admin/AdminBusinessVerificationQueue"));
+const AdminBusinessAccounts = lazy(() => import("@/components/admin/AdminBusinessAccounts"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify" | "business_accounts";
 
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -67,6 +68,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "idv", label: "Identity Verify", icon: ShieldCheck },
       { id: "credentials", label: "License & Insurance", icon: ShieldCheck },
       { id: "business_verify", label: "Business Verification", icon: Building2 },
+      { id: "business_accounts", label: "Business Accounts", icon: Building2 },
       { id: "jobs", label: "Jobs", icon: Briefcase },
       { id: "geography", label: "Geography", icon: MapPin },
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
@@ -337,6 +339,7 @@ const Admin = () => {
     idv: "Identity Verify", geography: "Geography", marketing: "Marketing",
     credentials: "License & Insurance",
     business_verify: "Business Verification",
+    business_accounts: "Business Accounts",
   };
 
   const renderContent = () => {
@@ -363,6 +366,7 @@ const Admin = () => {
       case "idv": return <AdminIDVQueue />;
       case "credentials": return <AdminCredentialQueue />;
       case "business_verify": return <AdminBusinessVerificationQueue />;
+      case "business_accounts": return <AdminBusinessAccounts />;
       case "geography": return <AdminParishActivity />;
       case "marketing": return <AdminMarketing />;
       default: return <DashboardHome stats={stats} statsLoading={statsLoading} onNavigate={handleViewChange} />;

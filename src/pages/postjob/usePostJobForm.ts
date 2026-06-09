@@ -12,6 +12,7 @@ import { report } from "@/lib/errorLogger";
 import { requireOnline } from "@/lib/requireOnline";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useImpersonation } from "@/hooks/useImpersonation";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -41,6 +42,7 @@ export function usePostJobForm() {
   const navigate = useNavigate();
   const { business } = useMyBusiness();
   const { profile } = useCurrentUser();
+  const impersonation = useImpersonation();
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
@@ -82,6 +84,9 @@ export function usePostJobForm() {
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
+  // Business posts can opt to require the accepted helper to sign a W-9.
+  // See helper_w9_records + the e-sign dialog in W9CollectionDialog.
+  const [requiresW9, setRequiresW9] = useState(false);
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
   const salesTaxRate = 10;
@@ -392,6 +397,8 @@ export function usePostJobForm() {
   const runPreSubmitChecks = async () => {
     // Prevent double-click
     if (submittingRef.current || saving) return null;
+    // Read-only impersonation: admins viewing as another user cannot post.
+    if (!impersonation.assertWritable()) return null;
 
     // Cooldown check
     const lastSubmit = safeStorage.getItem(COOLDOWN_KEY);
@@ -493,6 +500,7 @@ export function usePostJobForm() {
           platformFee,
           salesTaxRate,
           offerToHelperId,
+          requiresW9: business ? requiresW9 : false,
         }),
       )
       .select("id")
@@ -836,6 +844,9 @@ export function usePostJobForm() {
     setUrgentFee,
     customUrgentFee,
     setCustomUrgentFee,
+    // W-9 requirement (business posts only)
+    requiresW9,
+    setRequiresW9,
     // images
     imageFiles,
     imagePreviews,

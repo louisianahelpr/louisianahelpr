@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText, LayoutTemplate } from "lucide-react";
+import { FileText, LayoutTemplate, FileSignature } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
@@ -25,6 +27,7 @@ interface FormStepProps {
  * The scroll-spy + jump wiring here is local view state only.
  */
 export function FormStep({ form }: FormStepProps) {
+  const { business } = useMyBusiness();
   // Each section is wrapped in a ref'd anchor so the sticky stepper can
   // scroll-jump to it and an IntersectionObserver can light up the step
   // for whichever section the poster is currently reading.
@@ -267,6 +270,26 @@ export function FormStep({ form }: FormStepProps) {
             budgetComplete={form.budgetComplete}
           />
         </div>
+
+        {/* W-9 requirement — only visible when this is a business post.
+            See helper_w9_records + the W9CollectionDialog the helper
+            sees at acceptance time. */}
+        {business?.is_owner && (
+          <div data-section="w9" className="rounded-ds-md border border-border p-4 flex items-start gap-3">
+            <div className="w-9 h-9 rounded-ds-sm bg-accent/15 text-accent flex items-center justify-center shrink-0">
+              <FileSignature className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold text-ds-13">Require W-9 from accepted helper</p>
+                <Switch checked={form.requiresW9} onCheckedChange={form.setRequiresW9} />
+              </div>
+              <p className="text-ds-11 text-muted-foreground mt-1">
+                When this is on, the helper signs a W-9 the moment they accept. We collect a typed signature + IP for the audit trail.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Submit — sits at the natural end of the form (not sticky) so it
             never floats over and obscures the section fields above it. The

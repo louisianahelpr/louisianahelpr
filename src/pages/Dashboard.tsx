@@ -38,6 +38,7 @@ import SectionBoundary from "@/components/SectionBoundary";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
+import { useImpersonation } from "@/hooks/useImpersonation";
 import { track, AhaEvent } from "@/lib/analytics";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -82,6 +83,7 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
+  const impersonation = useImpersonation();
 
   const {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
@@ -330,6 +332,10 @@ const Dashboard = () => {
   }, [user, navigate, saveJobMutation]);
   const handleApplyRequest = useCallback(async (jobId: string) => {
     if (!requireOnline()) return;
+    // Read-only impersonation: when an admin is viewing the app as another
+    // user (?impersonate=<id>), block writes so the admin can't accidentally
+    // apply on the user's behalf. See useImpersonation.
+    if (!impersonation.assertWritable()) return;
     hapticMedium(); // confirm tap on Apply
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);

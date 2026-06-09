@@ -15,6 +15,7 @@ import { PostedJobsTab } from "@/components/activity/PostedJobsTab";
 import { AppliedJobsTab } from "@/components/activity/AppliedJobsTab";
 import { type Tab } from "@/components/activity/activityConstants";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
+import W9CollectionDialog from "@/components/W9CollectionDialog";
 import { useActivityActions } from "@/pages/activity/useActivityActions";
 import {
   POSTED_STATUS_FILTERS,
@@ -400,6 +401,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         status={actions.idvStatus as never}
         failureReason={actions.idvFailureReason}
       />
+      {actions.w9Context && user && (
+        <W9CollectionDialog
+          open={actions.w9DialogOpen}
+          onOpenChange={actions.setW9DialogOpen}
+          jobId={actions.w9Context.jobId}
+          helperId={user.id}
+          businessId={actions.w9Context.businessId}
+        />
+      )}
     </>
   );
 };

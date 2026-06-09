@@ -85,6 +85,12 @@ export function useActivityActions({
   const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
   const [pendingAcceptApp, setPendingAcceptApp] = useState<Application | null>(null);
 
+  // W-9 e-sign — surfaces when the accepted job has `requires_w9 = true`
+  // (set by business posters at post time). We open the dialog after the
+  // optimistic acceptance lands.
+  const [w9DialogOpen, setW9DialogOpen] = useState(false);
+  const [w9Context, setW9Context] = useState<{ jobId: string; businessId: string | null } | null>(null);
+
   // --- Optimistic cache helper ---
   // Money-path handlers below patch the cached ActivityData *before* the
   // Supabase write lands so the card moves to its new state instantly. The
@@ -330,6 +336,24 @@ export function useActivityActions({
       if (rejectErr && rejectErr.code !== "PGRST202") {
         console.warn("Failed to auto-reject other applications", rejectErr);
       }
+
+      // W-9 collection — if the business poster set requires_w9 = true,
+      // the helper signs immediately at acceptance. The column may not
+      // exist yet (PGRST204) on prod between merge and `supabase db push`;
+      // in that case we skip silently.
+      try {
+        const { data: jobMeta } = await (supabase.from as any)("jobs")
+          .select("requires_w9, business_id")
+          .eq("id", app.job_id)
+          .maybeSingle();
+        if (jobMeta && (jobMeta as any).requires_w9) {
+          setW9Context({ jobId: app.job_id, businessId: (jobMeta as any).business_id ?? null });
+          setW9DialogOpen(true);
+        }
+      } catch {
+        // requires_w9 column missing → migration not yet applied. Skip.
+      }
+
       hapticSuccess();
       // Funnel: helper accepted an offer — closes the "applied → hired" gap
       // in the helper funnel that previously had zero instrumentation.
@@ -654,6 +678,8 @@ export function useActivityActions({
     idvStatus,
     idvFailureReason,
     pendingAcceptApp, setPendingAcceptApp,
+    w9DialogOpen, setW9DialogOpen,
+    w9Context,
     // Handlers
     loadApplications,
     loadInlineApplicants,

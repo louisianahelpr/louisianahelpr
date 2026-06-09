@@ -12,6 +12,7 @@ import { report } from "@/lib/errorLogger";
 import { requireOnline } from "@/lib/requireOnline";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { assertWritable } from "@/hooks/useImpersonation";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -82,6 +83,9 @@ export function usePostJobForm() {
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
+  // Business posts can opt to require the accepted helper to sign a W-9.
+  // See helper_w9_records + the e-sign dialog in W9CollectionDialog.
+  const [requiresW9, setRequiresW9] = useState(false);
   // Business-account poster — optional cost-center / department tag.
   // Persisted to jobs.department by the consolidated migration
   // 20260609170000_business_team_roles.sql.
@@ -474,6 +478,8 @@ export function usePostJobForm() {
   const runPreSubmitChecks = async () => {
     // Prevent double-click
     if (submittingRef.current || saving) return null;
+    // Read-only impersonation: admins viewing as another user cannot post.
+    if (!assertWritable()) return null;
 
     // Cooldown check
     const lastSubmit = safeStorage.getItem(COOLDOWN_KEY);
@@ -594,6 +600,7 @@ export function usePostJobForm() {
         offerToHelperId,
         department: opts.withExtras ? department : null,
         initialStatus: opts.withExtras && requiresApproval ? "pending_approval" : undefined,
+        requiresW9: opts.withExtras && business ? requiresW9 : false,
       });
 
     let { data: jobData, error } = await supabase
@@ -975,6 +982,9 @@ export function usePostJobForm() {
     setUrgentFee,
     customUrgentFee,
     setCustomUrgentFee,
+    // W-9 requirement (business posts only)
+    requiresW9,
+    setRequiresW9,
     // images
     imageFiles,
     imagePreviews,

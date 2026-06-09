@@ -38,6 +38,9 @@ export interface BuildJobInsertPayloadInput {
   urgentFee: string;
   platformFee: number | null;
   salesTaxRate: number;
+  /** When the poster is a business with W-9 policy enabled, the accepted
+   *  helper must e-sign a W-9 before payout. See helper_w9_records. */
+  requiresW9?: boolean;
   offerToHelperId: string | null;
   /** Cost-center / department label set by business-account posters.
       Persisted to jobs.department (migration 20260609170000). */
@@ -74,6 +77,7 @@ export function computeExpiresAt(dateNeeded: string, startTime: string): string 
  * settings changes never retroactively re-price an existing job.
  */
 export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobInsertPayload {
+  const requiresW9 = input.requiresW9 ?? false;
   const {
     userId,
     businessId,
@@ -143,6 +147,11 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     platform_fee_amount: lockedFeeAmount,
     sales_tax_rate: lockedSalesTaxRate,
     sales_tax_amount: lockedSalesTaxAmount,
+    // requires_w9 column is added by migration 20260609180000. The
+    // generated types haven't been regen'd against prod yet, so it's
+    // cast through `as any` to keep typecheck green between merge and
+    // the manual `supabase db push`.
+    ...(requiresW9 ? ({ requires_w9: true } as any) : {}),
     // jobs.department + jobs.status — both ship in migration
     // 20260609170000. Cast through `any` because the generated Supabase
     // types haven't picked them up yet, and don't include the keys at

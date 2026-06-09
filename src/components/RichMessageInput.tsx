@@ -13,6 +13,7 @@ import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import { assertWritable } from "@/hooks/useImpersonation";
 import {
   uploadMessageAttachment,
   isImageMime,
@@ -222,6 +223,8 @@ export const RichMessageInput = ({
 
   const handleSend = async () => {
     if (uploading) return;
+    // Read-only impersonation: admins viewing as another user cannot send.
+    if (!assertWritable()) return;
 
     if (text.trim()) {
       const violations = scanMessage(text);

@@ -10,6 +10,8 @@ import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCityState } from "@/lib/locationUtils";
+import { haversineMiles } from "@/lib/geo";
+import { getParishCentroid, getCentroidFromLocation } from "@/lib/parishCentroids";
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
 import { prefetchJobDialog } from "./prefetchJobDialog";
 import type { EnrichedJob } from "./types";
@@ -44,6 +46,14 @@ interface JobCardProps {
    * "You earn" label misreads for a visitor who wants to post/hire.
    */
   guestPricing?: boolean;
+  /**
+   * Viewer's cached location (from useUserLocation, session-cached). When
+   * present + the job resolves to a parish centroid, the meta row leads
+   * with a "~X mi" distance pill. Hidden silently otherwise so a denied
+   * location prompt never makes the card look broken.
+   */
+  userLat?: number | null;
+  userLng?: number | null;
 }
 
 // Category colors apply ONLY to the category badge pill at the top of
@@ -51,7 +61,7 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null }: JobCardProps) => {
   const isGuest = variant === "guest";
   // Show the gross posted budget (vs the helper's net take-home) whenever
   // the full guest variant is active OR the lighter guestPricing flag is set.
@@ -78,6 +88,28 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   const isNew = differenceInHours(new Date(), new Date(job.created_at)) < 48;
 
   const cityState = getCityState(job.location);
+
+  // Distance pill — uses the viewer's cached session location (lifted in
+  // from Dashboard via useUserLocation, which caches at the module level
+  // for 5 minutes) and the job's parish centroid. open_jobs_browse masks
+  // precise coords, so we fall back to parish-level granularity ("~X mi")
+  // rather than a misleading street-precise number. Renders silently as
+  // null when either side is missing.
+  const distanceMiles = (() => {
+    if (userLat == null || userLng == null) return null;
+    const centroid =
+      getParishCentroid((job as { parish?: string | null }).parish) ??
+      getCentroidFromLocation(job.location);
+    if (!centroid) return null;
+    return haversineMiles(userLat, userLng, centroid.lat, centroid.lng);
+  })();
+  const distanceLabel = distanceMiles == null
+    ? null
+    : distanceMiles < 1
+      ? "<1 mi"
+      : distanceMiles < 10
+        ? `${distanceMiles.toFixed(1)} mi`
+        : `${Math.round(distanceMiles)} mi`;
 
   // Expiry info
   const expiryText = job.expires_at
@@ -317,6 +349,21 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <MapPin className="w-2.5 h-2.5 shrink-0" />
               <span className="truncate max-w-[110px] font-serif italic">{cityState}</span>
             </span>
+            {distanceLabel && (
+              <span
+                aria-label={`Approximately ${distanceLabel} away`}
+                className="inline-flex items-center gap-0.5 px-1.5 py-px rounded-full font-sans font-semibold whitespace-nowrap"
+                style={{
+                  fontSize: "9.5px",
+                  letterSpacing: "0.02em",
+                  background: "hsl(var(--burnt-sienna) / 0.10)",
+                  color: "hsl(var(--burnt-sienna))",
+                  border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                }}
+              >
+                {distanceLabel}
+              </span>
+            )}
             <span className="opacity-30">·</span>
             {/* Date + time live in ONE no-wrap group so the time can never
                 drop to its own line on its own — the pair moves together.

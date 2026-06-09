@@ -41,9 +41,14 @@ interface ScheduleTabProps {
   loading: boolean;
   userId: string;
   onBack: () => void;
+  /** When the parent owns the tab header (e.g. the merged
+      Schedule + Availability tab), suppress the local one so the
+      surface doesn't render two stacked headers. Default false to
+      preserve standalone behavior. */
+  hideHeader?: boolean;
 }
 
-export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: ScheduleTabProps) {
+export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack, hideHeader = false }: ScheduleTabProps) {
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -79,12 +84,14 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, onBack }: Sched
 
   return (
     <div className="space-y-4">
-      <ProfileTabHeader
-        eyebrow="Calendar"
-        title="My schedule"
-        meta="Your upcoming jobs and bookings"
-        onBack={onBack}
-      />
+      {!hideHeader && (
+        <ProfileTabHeader
+          eyebrow="Calendar"
+          title="My schedule"
+          meta="Your upcoming jobs and bookings"
+          onBack={onBack}
+        />
+      )}
 
       {loading ? (
         <div className="space-y-4">

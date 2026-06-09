@@ -40,8 +40,11 @@ const SavedHelpersTab = lazy(() => import("@/components/profile/SavedHelpersTab"
 const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab").then(m => ({ default: m.SubscriptionTab })));
 const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));
 const EarningsTab = lazy(() => import("@/components/profile/EarningsTab").then(m => ({ default: m.EarningsTab })));
-const ScheduleTab = lazy(() => import("@/components/profile/ScheduleTab").then(m => ({ default: m.ScheduleTab })));
-const AvailabilityTab = lazy(() => import("@/components/profile/AvailabilityTab").then(m => ({ default: m.AvailabilityTab })));
+// Schedule + Availability merged into a single tab with a sub-toggle
+// (handoff item #22). Deep links to /schedule and /availability still
+// resolve via App.tsx redirects → /profile?tab=schedule|availability;
+// the merged tab uses the initial `tab` value to pick its sub-view.
+const ScheduleAvailabilityTab = lazy(() => import("@/components/profile/ScheduleAvailabilityTab").then(m => ({ default: m.ScheduleAvailabilityTab })));
 const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));
 const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
@@ -121,7 +124,10 @@ const ProfilePage = () => {
   // the reviews tab — gating on either shares one cached fetch.
   const reviewsQuery = useProfileReviews(userId, tab === "landing" || tab === "reviews");
   const earningsQuery = useProfileEarnings(userId, tab === "earnings" || tab === "payment");
-  const scheduleQuery = useProfileSchedule(userId, tab === "schedule");
+  // Schedule data drives the merged Schedule + Availability tab — gate
+  // on either sub-view so the calendar grid is hot the moment the user
+  // flips the internal toggle from Hours → Calendar.
+  const scheduleQuery = useProfileSchedule(userId, tab === "schedule" || tab === "availability");
   const inlineJobsQuery = useProfileInlineJobs(userId, tab === "posted_jobs" || tab === "completed_jobs");
   const violationsQuery = useProfileViolations(userId, tab === "warnings");
 
@@ -487,21 +493,23 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {tab === "schedule" && user && (
+          {(tab === "schedule" || tab === "availability") && user && (
             <div className="space-y-3">
-              {scheduleQuery.isError && (
+              {scheduleQuery.isError && tab === "schedule" && (
                 <ProfileSectionError section="your schedule" onRetry={() => { scheduleQuery.refetch(); }} />
               )}
               <Suspense fallback={<TabFallback />}>
-                <ScheduleTab postedJobs={schedulePostedJobs} assignedJobs={scheduleAssignedJobs} loading={scheduleQuery.isPending} userId={user.id} onBack={() => setTab("landing")} />
+                <ScheduleAvailabilityTab
+                  initialView={tab === "availability" ? "availability" : "calendar"}
+                  onSubViewChange={(v) => setTab(v === "availability" ? "availability" : "schedule")}
+                  postedJobs={schedulePostedJobs}
+                  assignedJobs={scheduleAssignedJobs}
+                  loading={scheduleQuery.isPending}
+                  userId={user.id}
+                  onBack={() => setTab("landing")}
+                />
               </Suspense>
             </div>
-          )}
-
-          {tab === "availability" && user && (
-            <Suspense fallback={<TabFallback />}>
-              <AvailabilityTab userId={user.id} onBack={() => setTab("landing")} />
-            </Suspense>
           )}
 
           {tab === "payment" && (

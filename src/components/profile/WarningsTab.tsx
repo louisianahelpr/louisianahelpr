@@ -86,7 +86,9 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               <EmptyState
                 variant="inline"
                 icon={CheckCircle2}
-                body="Clean record."
+                eyebrow="All clear"
+                title="No warnings — keep it up."
+                body="Your record is spotless. Treat helprs and posters with respect and it stays that way."
               />
             ) : (
               violations.map((v) => (

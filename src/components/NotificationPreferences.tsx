@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import {
   Bell, Briefcase, MessageSquare, DollarSign, Star, Megaphone,
-  Loader2, Mail, Smartphone, Navigation, CheckCircle2, Lock,
+  Loader2, Mail, Smartphone, Navigation, CheckCircle2, Lock, Moon,
 } from "lucide-react";
 
 interface Prefs {
@@ -39,6 +39,13 @@ interface Prefs {
       digest instead of being pushed individually. Urgent jobs always
       fire realtime regardless. */
   match_digest_mode: boolean;
+  /** Local-time `HH:MM` start of the quiet-hours window. NULL when
+      quiet hours are disabled. Wired in migration
+      `20260609120000_notification_quiet_hours.sql`. */
+  quiet_start: string | null;
+  /** Local-time `HH:MM` end of the quiet-hours window. NULL when
+      quiet hours are disabled. */
+  quiet_end: string | null;
 }
 
 const defaultPrefs: Prefs = {
@@ -51,11 +58,28 @@ const defaultPrefs: Prefs = {
   work_status: true, email_work_status: true,
   financial_alerts: true, email_financial_alerts: true,
   match_digest_mode: false,
+  quiet_start: null,
+  quiet_end: null,
 };
 
+// Coerce a Postgres `time` column (e.g. "22:00:00") to the `HH:MM`
+// shape that `<input type="time">` expects. Returns null untouched so
+// the toggle stays off until the user sets a window.
+const trimTime = (v: string | null | undefined): string | null => {
+  if (!v) return null;
+  return v.length >= 5 ? v.slice(0, 5) : v;
+};
+
+// Boolean-valued keys only — `Row` references the per-category
+// toggles, and Prefs now includes string-valued keys (quiet_start /
+// quiet_end) that have no place in the per-category switch grid.
+type BoolPrefKey = {
+  [K in keyof Prefs]: Prefs[K] extends boolean ? K : never;
+}[keyof Prefs];
+
 interface Row {
-  key: keyof Prefs;
-  emailKey: keyof Prefs;
+  key: BoolPrefKey;
+  emailKey: BoolPrefKey;
   label: string;
   icon: React.ReactNode;
 }
@@ -93,7 +117,19 @@ const NotificationPreferences = () => {
         console.error("[NotificationPreferences] failed to load preferences:", error);
         toast.error("Couldn't load notification preferences");
       } else if (data) {
-        setPrefs({ ...defaultPrefs, ...data });
+        // Cast through `any` because the generated supabase/types.ts
+        // doesn't include `quiet_start` / `quiet_end` until the new
+        // migration is applied + types are regenerated. The column is
+        // safe to read either way (Postgres returns NULL when absent
+        // on an older deploy, and the upsert below selectively writes
+        // only the keys we care about).
+        const row = data as Record<string, unknown>;
+        setPrefs({
+          ...defaultPrefs,
+          ...(data as Partial<Prefs>),
+          quiet_start: trimTime(row.quiet_start as string | null | undefined),
+          quiet_end: trimTime(row.quiet_end as string | null | undefined),
+        });
       }
       setLoaded(true);
     })();
@@ -128,6 +164,38 @@ const NotificationPreferences = () => {
       setPrefs(prefs);
       hapticError();
       toast.error("We couldn't save that preference — please try again.");
+    }
+  };
+
+  // Patch a partial-update onto prefs and persist. Used by the
+  // quiet-hours toggle/time controls so we can write `quiet_start +
+  // quiet_end` together (a single round-trip) instead of two
+  // sequential `toggle()` round-trips that would each fight for the
+  // optimistic-state slot.
+  const patchPrefs = async (patch: Partial<Prefs>) => {
+    if (!userId) return;
+    const updated = { ...prefs, ...patch };
+    setPrefs(updated);
+    setSaving(true);
+    const { error } = await supabase
+      .from("notification_preferences")
+      .upsert({ user_id: userId, ...updated } as any, { onConflict: "user_id" });
+    setSaving(false);
+    if (error) {
+      setPrefs(prefs);
+      hapticError();
+      toast.error("We couldn't save quiet hours — please try again.");
+    }
+  };
+
+  const quietEnabled = !!prefs.quiet_start && !!prefs.quiet_end;
+  const toggleQuiet = () => {
+    if (quietEnabled) {
+      void patchPrefs({ quiet_start: null, quiet_end: null });
+    } else {
+      // Sensible default: 22:00 → 07:00 — a typical sleep window. The
+      // user can change either bound inline.
+      void patchPrefs({ quiet_start: "22:00", quiet_end: "07:00" });
     }
   };
 
@@ -271,6 +339,86 @@ const NotificationPreferences = () => {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Quiet hours — when on, non-critical pushes are suppressed
+          between start and end (security alerts always fire). Sits
+          between the digest toggle and the per-category rows so it
+          reads as a delivery preference, not a category. */}
+      <div
+        className={`px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-60"} ${saving ? "opacity-80 cursor-wait" : ""}`}
+        style={{
+          borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
+        }}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <span
+              className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+              style={{
+                background: "hsl(var(--bark) / 0.10)",
+                color: "hsl(var(--bark))",
+              }}
+            >
+              <Moon className="w-3.5 h-3.5" />
+            </span>
+            <div className="min-w-0">
+              <Label
+                className="font-sans font-semibold block truncate"
+                style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+              >
+                Quiet hours
+              </Label>
+              <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                Mute non-critical pushes overnight. Security alerts still fire.
+              </p>
+            </div>
+          </div>
+          <div className={`flex items-center gap-6 shrink-0 ml-2 transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}>
+            <div className="w-[51px] flex justify-center">
+              <Switch
+                checked={quietEnabled}
+                onCheckedChange={toggleQuiet}
+                disabled={!loaded || !prefs.push_enabled}
+                aria-label="Quiet hours"
+              />
+            </div>
+            <div className="w-[51px] flex justify-center" aria-hidden>
+              <span
+                className="font-serif"
+                style={{ color: "hsl(var(--olivewood) / 0.35)", fontSize: "0.85rem" }}
+              >
+                —
+              </span>
+            </div>
+          </div>
+        </div>
+        {quietEnabled && (
+          <div className="mt-2 flex items-center gap-2 pl-[2.375rem]">
+            <label className="inline-flex items-center gap-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              <span className="font-serif italic">From</span>
+              <input
+                type="time"
+                value={prefs.quiet_start ?? "22:00"}
+                onChange={(e) => void patchPrefs({ quiet_start: e.target.value })}
+                disabled={!prefs.push_enabled || saving}
+                aria-label="Quiet hours start time"
+                className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </label>
+            <label className="inline-flex items-center gap-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              <span className="font-serif italic">to</span>
+              <input
+                type="time"
+                value={prefs.quiet_end ?? "07:00"}
+                onChange={(e) => void patchPrefs({ quiet_end: e.target.value })}
+                disabled={!prefs.push_enabled || saving}
+                aria-label="Quiet hours end time"
+                className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </label>
+          </div>
+        )}
       </div>
 
       {rows.map((item, idx) => (

@@ -10,6 +10,21 @@ export type GeoState =
 let cached: { lat: number; lng: number; ts: number } | null = null;
 const TTL = 5 * 60 * 1000;
 
+/**
+ * Read the module-level location cache WITHOUT triggering the permission
+ * prompt. Used by surfaces that want to surface a "~X mi" distance pill
+ * for users who've already granted location elsewhere (the dashboard
+ * filter, the BrowseMap, etc.) but should NOT ask just to render a pill.
+ *
+ * Returns null when no cache exists or the cached entry is older than the
+ * 5-minute TTL. The caller silently hides the pill in that case.
+ */
+export function getCachedUserLocation(): { lat: number; lng: number } | null {
+  if (!cached) return null;
+  if (Date.now() - cached.ts >= TTL) return null;
+  return { lat: cached.lat, lng: cached.lng };
+}
+
 export function useUserLocation(enabled: boolean): GeoState {
   const [state, setState] = useState<GeoState>({ status: "idle" });
   const { request } = usePermissionRationale();

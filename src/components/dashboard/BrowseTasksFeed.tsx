@@ -3,7 +3,7 @@ import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Star, Search } from "lucide-react";
+import { Star, Search, Plus, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/lib/accessibility";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -12,7 +12,10 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
-import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
+import {
+  RecommendedJobCardSkeleton,
+} from "@/components/ui/skeletons/JobCardSkeleton";
+import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -125,6 +128,18 @@ export function BrowseTasksFeed({
   isFetchingNextPage,
   fetchNextPage,
 }: BrowseTasksFeedProps) {
+  // Lift the viewer's cached coords out of filters.userLoc — or fall back
+  // to the module-level cache populated by any prior useUserLocation()
+  // call elsewhere (the BrowseMap, the "nearby" filter, JobTracking) so
+  // we never re-prompt just to render a distance pill. Passing primitives
+  // down (not the full GeoState object) keeps SwipeableJobCard's memo
+  // stable across unrelated dashboard re-renders.
+  const filterLoc = filters.userLoc?.status === "ready"
+    ? { lat: filters.userLoc.lat, lng: filters.userLoc.lng }
+    : null;
+  const fallbackLoc = filterLoc ?? getCachedUserLocation();
+  const userLat = fallbackLoc?.lat ?? null;
+  const userLng = fallbackLoc?.lng ?? null;
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
 
@@ -241,18 +256,36 @@ export function BrowseTasksFeed({
               : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
           }
           action={
-            // Filtered: offer a way out. Quiet but unfiltered authenticated
-            // board: no CTA — posting lives in the bottom nav and the
-            // notify opt-in lives elsewhere, so repeating them here was
-            // redundant. Only the (rare) signed-out fallback keeps a CTA.
+            // Filtered: offer a way out. Otherwise — for both signed-in
+            // and signed-out users — surface BOTH a Post and a Notify CTA
+            // side by side. App is never role-based per
+            // [[app-is-never-role-based]]: every account can post AND do
+            // jobs, so an empty feed should let them flip to the other
+            // side of the marketplace right here (Post your first task)
+            // OR opt in to be pinged when a match lands (Notify me),
+            // instead of dead-ending on body copy.
             filters.hasFilters ? (
               <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
                 Clear filters
               </Button>
-            ) : user ? undefined : (
-              <BarkPillButton onClick={() => navigate("/post-job")}>
-                Post the first job
-              </BarkPillButton>
+            ) : (
+              <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
+                <BarkPillButton onClick={() => navigate("/post-job")}>
+                  <Plus className="w-4 h-4 mr-1" strokeWidth={2.5} />
+                  Post your first task
+                </BarkPillButton>
+                <Button
+                  variant="ghost"
+                  onClick={() =>
+                    navigate(user ? "/profile?tab=notifications" : "/signup")
+                  }
+                  className="rounded-ds-md font-sans font-semibold"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                >
+                  <Bell className="w-4 h-4 mr-1" strokeWidth={2.25} />
+                  Notify me when one lands
+                </Button>
+              </div>
             )
           }
         />
@@ -291,8 +324,13 @@ export function BrowseTasksFeed({
                   className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5"
                   aria-hidden
                 >
+                  {/* Recommended-section variant — matches the real
+                      "Picked for you" card geometry (sienna rail, longer
+                      title row, taller price tile). A generic feed
+                      skeleton here mis-sizes the section and the swap
+                      bumps the list down when matches arrive. */}
                   {[0, 1].map((i) => (
-                    <JobCardSkeleton key={`rec-skel-${i}`} />
+                    <RecommendedJobCardSkeleton key={`rec-skel-${i}`} />
                   ))}
                 </div>
               </>
@@ -342,7 +380,7 @@ export function BrowseTasksFeed({
                         exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
                       >
-                        <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} />
+                        <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} />
                       </motion.div>
                     ))}
                   </AnimatePresence>

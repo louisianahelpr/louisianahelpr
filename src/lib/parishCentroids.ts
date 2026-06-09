@@ -83,3 +83,119 @@ export function getParishCentroid(parishName: string | null | undefined): { lat:
   const normalized = parishName.replace(/\s+Parish\s*$/i, "").trim();
   return PARISH_CENTROIDS[normalized] || null;
 }
+
+/**
+ * Common Louisiana city → parish lookup. Used by the dashboard distance
+ * pill to derive a parish centroid when `job.parish` isn't available
+ * directly (the open_jobs_browse view doesn't currently expose `parish`,
+ * so we fall back to parsing the masked location's city). Covers the
+ * top ~40 cities by population — misses just return null and the pill
+ * silently hides.
+ */
+const CITY_TO_PARISH: Record<string, string> = {
+  // Greater New Orleans
+  "new orleans": "Orleans",
+  "metairie": "Jefferson",
+  "kenner": "Jefferson",
+  "gretna": "Jefferson",
+  "harvey": "Jefferson",
+  "marrero": "Jefferson",
+  "westwego": "Jefferson",
+  "chalmette": "St. Bernard",
+  "slidell": "St. Tammany",
+  "covington": "St. Tammany",
+  "mandeville": "St. Tammany",
+  "hammond": "Tangipahoa",
+  "ponchatoula": "Tangipahoa",
+  // Baton Rouge area
+  "baton rouge": "East Baton Rouge",
+  "baker": "East Baton Rouge",
+  "zachary": "East Baton Rouge",
+  "central": "East Baton Rouge",
+  "port allen": "West Baton Rouge",
+  "denham springs": "Livingston",
+  "walker": "Livingston",
+  "gonzales": "Ascension",
+  "prairieville": "Ascension",
+  "donaldsonville": "Ascension",
+  // Acadiana
+  "lafayette": "Lafayette",
+  "broussard": "Lafayette",
+  "scott": "Lafayette",
+  "youngsville": "Lafayette",
+  "carencro": "Lafayette",
+  "new iberia": "Iberia",
+  "abbeville": "Vermilion",
+  "crowley": "Acadia",
+  "rayne": "Acadia",
+  "opelousas": "St. Landry",
+  "eunice": "St. Landry",
+  "breaux bridge": "St. Martin",
+  // Southwest
+  "lake charles": "Calcasieu",
+  "sulphur": "Calcasieu",
+  "westlake": "Calcasieu",
+  "moss bluff": "Calcasieu",
+  "dequincy": "Calcasieu",
+  "jennings": "Jefferson Davis",
+  "deridder": "Beauregard",
+  "leesville": "Vernon",
+  // Central
+  "alexandria": "Rapides",
+  "pineville": "Rapides",
+  "ball": "Rapides",
+  "natchitoches": "Natchitoches",
+  // Northwest
+  "shreveport": "Caddo",
+  "bossier city": "Bossier",
+  "haughton": "Bossier",
+  "benton": "Bossier",
+  "minden": "Webster",
+  // Northeast
+  "monroe": "Ouachita",
+  "west monroe": "Ouachita",
+  "ruston": "Lincoln",
+  "bastrop": "Morehouse",
+  // Houma / Thibodaux
+  "houma": "Terrebonne",
+  "thibodaux": "Lafourche",
+  "raceland": "Lafourche",
+  "morgan city": "St. Mary",
+  // River Parishes
+  "luling": "St. Charles",
+  "destrehan": "St. Charles",
+  "boutte": "St. Charles",
+  "laplace": "St. John the Baptist",
+  "reserve": "St. John the Baptist",
+};
+
+/**
+ * Best-effort: derive a parish centroid from a job's display location
+ * (e.g. "New Orleans, LA"). Tries the trailing-token "X Parish" pattern
+ * first, then falls back to a city → parish lookup over the major
+ * cities. Returns null when no match — caller (the distance pill) just
+ * hides itself in that case.
+ *
+ * The browse-feed view masks precise coords but keeps the city, so this
+ * lets us put a "~X mi" chip on cards without re-running geocoding.
+ */
+export function getCentroidFromLocation(location: string | null | undefined): { lat: number; lng: number } | null {
+  if (!location) return null;
+  // 1) Explicit "X Parish" anywhere in the string.
+  const parishMatch = location.match(/([A-Za-z.\s]+?)\s+Parish/i);
+  if (parishMatch) {
+    const c = getParishCentroid(parishMatch[1].trim());
+    if (c) return c;
+  }
+  // 2) City lookup — extract the city token from "..., City, LA".
+  const parts = location.split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return null;
+  // Walk the segments back-to-front past the state token to find the
+  // most-specific city candidate. Tolerates "Street, City, LA 70001"
+  // and "City, LA" alike.
+  const stateIdx = parts.findIndex((p) => /^LA\b/i.test(p) || /Louisiana/i.test(p));
+  const cityToken = stateIdx > 0 ? parts[stateIdx - 1] : parts[parts.length - 2] || parts[0];
+  const key = cityToken.toLowerCase().replace(/\s+/g, " ").trim();
+  const parish = CITY_TO_PARISH[key];
+  return parish ? getParishCentroid(parish) : null;
+}

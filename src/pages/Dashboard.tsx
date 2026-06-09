@@ -80,7 +80,7 @@ const Dashboard = () => {
 
   const {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
-    helperAvailability, recommendedJobs, refresh, loadError,
+    helperAvailability, recommendedJobs, refresh, loadError, isRefreshing,
     fetchNextPage, hasNextPage, isFetchingNextPage,
   } = useDashboardData();
 
@@ -602,6 +602,27 @@ const Dashboard = () => {
                   {filters.filteredJobs.length} {filters.filteredJobs.length === 1 ? "job" : "jobs"} nearby
                   {recommendedJobs.length > 0 && ` · ${recommendedJobs.length} picked for you`}
                 </>
+              )}
+              {/* Stale-while-revalidate signal — a tiny pulsing dot + tag
+                  shows up only while a background refetch runs on top of
+                  cached data. Proof the feed is syncing without blanking
+                  the surface. Hidden during the first load (the skeleton
+                  already speaks for that). */}
+              {isRefreshing && (
+                <span
+                  className="ml-2 inline-flex items-center gap-1 normal-case"
+                  style={{ letterSpacing: "0.08em" }}
+                  aria-live="polite"
+                >
+                  <span
+                    aria-hidden
+                    className="w-1.5 h-1.5 rounded-full animate-pulse"
+                    style={{ background: "hsl(var(--burnt-sienna))" }}
+                  />
+                  <span style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}>
+                    Updating
+                  </span>
+                </span>
               )}
             </p>
             {/* "Watching for" chip — only shown when 0 jobs nearby and

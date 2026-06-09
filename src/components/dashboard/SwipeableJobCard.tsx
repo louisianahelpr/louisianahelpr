@@ -19,6 +19,9 @@ interface SwipeableJobCardProps {
   onToggleExpand?: (jobId: string) => void;
   isSaved?: boolean;
   onToggleSave?: (jobId: string, saved: boolean) => void;
+  /** Viewer's cached location — forwarded to JobCard for the distance pill. */
+  userLat?: number | null;
+  userLng?: number | null;
 }
 
 const SWIPE_THRESHOLD = -100;
@@ -38,6 +41,8 @@ const SwipeableJobCard = ({
   onToggleExpand,
   isSaved,
   onToggleSave,
+  userLat = null,
+  userLng = null,
 }: SwipeableJobCardProps) => {
   const x = useMotionValue(0);
   const backgroundOpacity = useTransform(x, [-150, -50, 0], [1, 0.6, 0]);
@@ -165,6 +170,8 @@ const SwipeableJobCard = ({
             onToggleExpand={onToggleExpand}
             isSaved={isSaved}
             onToggleSave={onToggleSave}
+            userLat={userLat}
+            userLng={userLng}
           />
         </div>
       </motion.div>

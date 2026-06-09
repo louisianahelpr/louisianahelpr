@@ -50,7 +50,7 @@ export function useDashboardData() {
 
   // Lightweight per-user context (settings + availability + applied jobs + blocks).
   // Cached separately so it doesn't re-fetch when the next page of jobs loads.
-  const { data: ctx, isLoading: ctxLoading } = useQuery({
+  const { data: ctx, isLoading: ctxLoading, isFetching: ctxFetching } = useQuery({
     queryKey: queryKeys.dashboard.context(user?.id),
     queryFn: async () => {
       if (!user) return null;
@@ -137,7 +137,12 @@ export function useDashboardData() {
       return { platformFee, helperAvailability, appliedJobIds, blockedUserIds };
     },
     enabled: !!user && !userLoading,
-    staleTime: 60 * 1000,
+    // SWR window for the dashboard ctx (settings / availability / applied set
+    // / blocks). 2 minutes is generous enough that tab-switching back to the
+    // dashboard within a quick errand always serves cache instantly while
+    // refetchOnWindowFocus (queryClient.ts default) keeps it fresh after the
+    // user returns from a long context switch.
+    staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 
@@ -146,6 +151,7 @@ export function useDashboardData() {
     data: pagesData,
     isLoading: jobsLoading,
     isError: jobsError,
+    isFetching: jobsFetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -275,7 +281,12 @@ export function useDashboardData() {
       error instanceof Error && error.message === "Loading tasks timed out"
         ? false
         : failureCount < 2,
-    staleTime: 60 * 1000,
+    // SWR — same 2-minute fresh window as ctx above. Pages loaded on the last
+    // visit stay fresh long enough that the user lands on a populated feed
+    // instantly on re-entry; refetchOnWindowFocus (queryClient.ts default)
+    // backgrounds the swap if the marketplace moved while they were away.
+    // Hand-off pattern mirrors useProfileTabData.ts (PR #426).
+    staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     // No refetchInterval: on an infinite query it refetches EVERY loaded
     // page (~16 queries each) on a timer. The feed stays fresh via
@@ -338,6 +349,14 @@ export function useDashboardData() {
   }, [user, queryClient, refreshCurrentUser]);
 
   const loading = userLoading || !profile || ctxLoading || (jobsLoading && allJobs.length === 0);
+  // True when a background refetch is in flight on top of already-rendered
+  // cache (the "revalidate" half of stale-while-revalidate). The Dashboard
+  // header uses this to render a small pulsing dot — proof the feed is
+  // syncing without blanking the surface. We deliberately exclude
+  // `isFetchingNextPage` because the load-more spinner already covers it.
+  const isRefreshing =
+    (jobsFetching && !jobsLoading && !isFetchingNextPage && allJobs.length > 0) ||
+    (ctxFetching && !ctxLoading);
 
   return {
     user,
@@ -352,6 +371,8 @@ export function useDashboardData() {
     refresh,
     // True once the open-jobs feed fetch has failed (first page).
     loadError: jobsError,
+    // Background-refetch indicator — stale-while-revalidate signal.
+    isRefreshing,
     // Pagination controls consumed by the dashboard scroll sentinel
     fetchNextPage,
     hasNextPage: !!hasNextPage,

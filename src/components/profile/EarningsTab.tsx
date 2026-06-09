@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Zap, Settings, FileText, FileSpreadsheet, ExternalLink, Info } from "lucide-react";
+import { TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Zap, Settings, FileText, FileSpreadsheet, ExternalLink, Info, Printer } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -299,6 +299,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={handleExportCSV}>
               <FileSpreadsheet className="w-4 h-4 mr-2" /> Export Payouts CSV
+            </DropdownMenuItem>
+            {/* Lightweight "save as PDF" path — opens the browser print
+                dialog with a print-friendly stylesheet (below). Useful
+                on iOS, where Safari can save the print preview as a
+                PDF to Files without loading the jsPDF chunk. */}
+            <DropdownMenuItem onSelect={() => { window.print(); }}>
+              <Printer className="w-4 h-4 mr-2" /> Print / Save as PDF
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => navigate("/profile?tab=payment")}>

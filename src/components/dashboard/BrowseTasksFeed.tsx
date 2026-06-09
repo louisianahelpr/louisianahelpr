@@ -12,7 +12,9 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
-import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
+import {
+  RecommendedJobCardSkeleton,
+} from "@/components/ui/skeletons/JobCardSkeleton";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -291,8 +293,13 @@ export function BrowseTasksFeed({
                   className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5"
                   aria-hidden
                 >
+                  {/* Recommended-section variant — matches the real
+                      "Picked for you" card geometry (sienna rail, longer
+                      title row, taller price tile). A generic feed
+                      skeleton here mis-sizes the section and the swap
+                      bumps the list down when matches arrive. */}
                   {[0, 1].map((i) => (
-                    <JobCardSkeleton key={`rec-skel-${i}`} />
+                    <RecommendedJobCardSkeleton key={`rec-skel-${i}`} />
                   ))}
                 </div>
               </>

@@ -1,4 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Star, Clock } from "lucide-react";
+import {
+  RecommendedJobCardSkeleton,
+  RecentJobCardSkeleton,
+} from "@/components/ui/skeletons/JobCardSkeleton";
 
 export const JobCardSkeleton = () => (
   // Glass-tinted skeleton shaped like a real job card — chip row at top
@@ -106,11 +111,49 @@ export const DashboardTitleSkeleton = () => (
 );
 
 /**
- * Dashboard panel-interior skeleton. Renders the same structure the live
- * panel does — a bordered toolbar header row (eyebrow + "Browse Tasks"
- * heading on the left, two icon-button squares on the right) above a
- * padded column of job-card placeholders — so the panel keeps its shape
- * and the feed never jumps when data arrives.
+ * Per-section header skeleton — the eyebrow strip that prefaces each
+ * feed section (Picked for you / Nearby / Everything else). Mirrors the
+ * real header so the section labels' bordered bands keep their bounds.
+ */
+const SectionHeaderSkeleton = ({
+  icon: Icon,
+  label,
+  tint,
+}: {
+  icon: typeof Star;
+  label: string;
+  tint: string;
+}) => (
+  <div
+    className="px-4 pt-3 pb-1.5 flex items-center justify-between"
+    style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.06)" }}
+    aria-hidden
+  >
+    <div className="flex items-center gap-2">
+      <Icon
+        className="w-3.5 h-3.5"
+        style={{ color: `hsl(var(--${tint}))` }}
+        strokeWidth={2}
+        fill={`hsl(var(--${tint}) / 0.2)`}
+      />
+      <span
+        className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
+        style={{ color: `hsl(var(--${tint}))` }}
+      >
+        {label}
+      </span>
+    </div>
+  </div>
+);
+
+/**
+ * Dashboard panel-interior skeleton. Renders the SAME three-section
+ * structure the loaded panel has — Picked-for-you / Nearby / Everything
+ * else — each with its own shape-matched card skeleton variant. A single
+ * uniform skeleton row across all three sections looked like one flat
+ * list and caused a layout jump when the real, differently-sized cards
+ * arrived; per-section variants reserve the right footprint up front so
+ * the swap is silent (no CLS, no scroll-position re-anchor).
  */
 export const DashboardSkeleton = () => (
   <>
@@ -127,9 +170,23 @@ export const DashboardSkeleton = () => (
         <Skeleton className="h-8 w-8 rounded-ds-md" />
       </div>
     </div>
-    <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4">
-      {[1, 2, 3, 4].map((i) => (
-        <JobCardSkeleton key={i} />
+
+    {/* "Picked for you" — sienna-accented, ~2 cards on first paint
+        matching what BrowseTasksFeed shows when recommendations resolve. */}
+    <SectionHeaderSkeleton icon={Star} label="Picked for you" tint="burnt-sienna" />
+    <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4" aria-hidden>
+      {[0, 1].map((i) => (
+        <RecommendedJobCardSkeleton key={`rec-${i}`} />
+      ))}
+    </div>
+
+    {/* "Everything else" — the recent feed. The real "Nearby" cards (when
+        the user has a parish-match set + ready coords) live mixed inside
+        this feed via the distance pill, not a separate visual section. */}
+    <SectionHeaderSkeleton icon={Clock} label="Everything else" tint="olivewood" />
+    <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <RecentJobCardSkeleton key={`recent-${i}`} />
       ))}
     </div>
   </>

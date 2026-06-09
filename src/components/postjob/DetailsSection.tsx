@@ -1,11 +1,24 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ImagePlus, X, Briefcase, Check, Plus, Search } from "lucide-react";
+import {
+  ImagePlus,
+  X,
+  Briefcase,
+  Check,
+  Plus,
+  Search,
+  Sparkles,
+  Mic,
+  GripVertical,
+} from "lucide-react";
+import { Reorder } from "framer-motion";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { SectionCard } from "@/components/postjob/SectionCard";
+import { categoryFromTitle } from "@/lib/categoryFromTitle";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 
 export const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -83,6 +96,10 @@ interface DetailsSectionProps {
   imageFiles: File[];
   onImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveImage: (index: number) => void;
+  /** Per-image upload progress (0-1), keyed by the photo's index. */
+  uploadProgressByIndex?: Record<number, number>;
+  /** Persist a drag-reordered photo list. Indices map to imageFiles. */
+  onReorderImages?: (nextOrder: number[]) => void;
   detailsComplete: boolean;
 }
 
@@ -98,8 +115,57 @@ export function DetailsSection({
   imageFiles,
   onImageSelect,
   onRemoveImage,
+  uploadProgressByIndex,
+  onReorderImages,
   detailsComplete,
 }: DetailsSectionProps) {
+  // Smart category detection — when the poster pauses typing the title
+  // for ~800ms we check a keyword→category map. The match becomes the
+  // new category and a tiny pill appears so the user can revert in one
+  // tap if the guess is wrong. We never overwrite a category the user
+  // picked manually after the auto-pick, so once they tap a chip the
+  // smart pick is locked out for the rest of the session.
+  const autoCategoryArmedRef = useRef(true);
+  const lastAutoPickedRef = useRef<string | null>(null);
+  const [autoCategoryHint, setAutoCategoryHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!autoCategoryArmedRef.current) return;
+    const trimmed = title.trim();
+    if (trimmed.length < 4) {
+      if (autoCategoryHint) setAutoCategoryHint(null);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const guess = categoryFromTitle(trimmed);
+      if (!guess) return;
+      // Don't fight the user: skip when they've already chosen something
+      // other than the default and that pick wasn't the previous auto-pick.
+      if (
+        category !== "other" &&
+        category !== guess &&
+        category !== lastAutoPickedRef.current
+      ) {
+        return;
+      }
+      if (guess === category) return;
+      lastAutoPickedRef.current = guess;
+      setCategory(guess);
+      setAutoCategoryHint(guess);
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [title, category, setCategory, autoCategoryHint]);
+
+  // Voice dictation for the title field — taps the mic, speaks once,
+  // we append the transcript to whatever was already typed. Hides when
+  // the browser doesn't support the Speech API.
+  const dictation = useVoiceDictation();
+  const startTitleDictation = () => {
+    dictation.start((text) => {
+      setTitle(title ? `${title.trim()} ${text}`.trim() : text);
+    });
+  };
+
   // Filter input for the category grid — speeds selection once the
   // category list outgrows what fits comfortably in a single screen
   // height. Matches against the label AND a small alias list so typing
@@ -127,7 +193,30 @@ export function DetailsSection({
           and the description prompt below adapt to what's actually being
           posted, which models a good, specific post. */}
       <div className="space-y-2.5">
-        <Label>Category <span className="text-destructive">*</span></Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label>Category <span className="text-destructive">*</span></Label>
+          {autoCategoryHint && category === autoCategoryHint && (
+            <button
+              type="button"
+              onClick={() => {
+                // Acknowledge / dismiss — clears the pill. The category
+                // stays where the smart-pick landed.
+                autoCategoryArmedRef.current = false;
+                setAutoCategoryHint(null);
+              }}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.65rem] font-sans font-semibold active:scale-95 transition-transform"
+              style={{
+                background: "hsl(var(--burnt-sienna) / 0.12)",
+                color: "hsl(var(--burnt-sienna))",
+                border: "0.5px solid hsl(var(--burnt-sienna) / 0.28)",
+              }}
+              aria-label="Auto-selected from title — tap to dismiss"
+            >
+              <Sparkles className="w-3 h-3" aria-hidden />
+              Auto-selected from title — tap to change
+            </button>
+          )}
+        </div>
         {/* Filterable picker — search input above the grid. Matches the
             category label OR a small alias list ("lawn" → Yard Work,
             "ikea" → Assembly) so posters who don't see their exact
@@ -191,7 +280,14 @@ export function DetailsSection({
               <button
                 key={c.value}
                 type="button"
-                onClick={() => setCategory(c.value)}
+                onClick={() => {
+                  // Manual pick — disarm the smart-detect so a later
+                  // title edit doesn't quietly clobber the chosen
+                  // category, and clear any pending pill.
+                  autoCategoryArmedRef.current = false;
+                  setAutoCategoryHint(null);
+                  setCategory(c.value);
+                }}
                 aria-pressed={active}
                 aria-label={c.label}
                 className="flex items-center gap-2.5 p-2 rounded-xl transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -268,10 +364,50 @@ export function DetailsSection({
             maxLength={TITLE_MAX}
             autoCapitalize="sentences"
             enterKeyHint="next"
-            className={title.trim().length > 0 ? "pr-10" : ""}
+            // Reserve space for the mic + check icons together so they
+            // never overlap each other or the text.
+            className={
+              dictation.supported
+                ? title.trim().length > 0 ? "pr-20" : "pr-12"
+                : title.trim().length > 0 ? "pr-10" : ""
+            }
           />
-          {title.trim().length > 0 && (
+          {dictation.supported && (
+            <button
+              type="button"
+              onClick={
+                dictation.listening
+                  ? dictation.stop
+                  : startTitleDictation
+              }
+              aria-label={dictation.listening ? "Stop dictation" : "Dictate task title"}
+              aria-pressed={dictation.listening}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              style={
+                dictation.listening
+                  ? {
+                      background: "hsl(var(--burnt-sienna))",
+                      color: "hsl(var(--parchment))",
+                      boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                    }
+                  : {
+                      background: "hsl(var(--parchment) / 0.7)",
+                      color: "hsl(var(--bark))",
+                      border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+                    }
+              }
+            >
+              <Mic
+                className={`w-4 h-4 ${dictation.listening ? "animate-pulse" : ""}`}
+                strokeWidth={2}
+              />
+            </button>
+          )}
+          {title.trim().length > 0 && !dictation.supported && (
             <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+          )}
+          {title.trim().length > 0 && dictation.supported && (
+            <Check className="absolute right-12 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
           )}
         </div>
       </div>
@@ -321,82 +457,211 @@ export function DetailsSection({
             Posts with a photo get noticeably more applicants.
           </p>
         </div>
-        {/* Fixed-tile grid — 80px tiles wrap into rows; auto-fill keeps
-            the "+" tile flush with photos at any photo count. */}
-        <div
-          id="photo-grid"
-          className="grid gap-2.5"
-          style={{ gridTemplateColumns: "repeat(auto-fill, 80px)" }}
-        >
-          {imagePreviews.map((src, i) => (
-            <div
-              key={i}
-              className="relative w-20 h-20 rounded-2xl overflow-hidden"
-              style={{
-                border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
-              }}
+        {/* Fixed-tile grid — 80px tiles wrap into rows. When the parent
+            wired up `onReorderImages`, photos are draggable via
+            framer-motion's Reorder; otherwise we fall back to the plain
+            grid. The Add-tile is rendered outside Reorder so it doesn't
+            get tangled in the drag state. */}
+        {onReorderImages && imagePreviews.length > 1 ? (
+          <>
+            <Reorder.Group
+              axis="x"
+              values={imagePreviews.map((_, i) => i)}
+              onReorder={(next) => onReorderImages(next as number[])}
+              id="photo-grid"
+              className="flex flex-wrap gap-2.5"
             >
-              {/^blob:/i.test(src) ? (
-                <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
-                  <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
-                </div>
-              )}
-              {/* 40px tap target (a11y minimum) with the visible sienna
-                  pill kept at 20px — the button is transparent and just
-                  enlarges the touch area in the photo's corner. */}
-              <button
-                type="button"
-                onClick={() => onRemoveImage(i)}
-                aria-label="Remove photo"
-                className="absolute -top-1 -right-1 h-10 w-10 flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full"
+              {imagePreviews.map((src, i) => {
+                const progress = uploadProgressByIndex?.[i];
+                const uploading = typeof progress === "number" && progress < 1;
+                return (
+                  <Reorder.Item
+                    key={i}
+                    value={i}
+                    className="relative w-20 h-20 rounded-2xl overflow-hidden touch-none"
+                    style={{
+                      border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                      boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
+                    }}
+                    whileDrag={{ scale: 1.05, zIndex: 5 }}
+                  >
+                    {/^blob:/i.test(src) ? (
+                      <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover pointer-events-none" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
+                        <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+                      </div>
+                    )}
+                    {/* Per-image upload progress — bottom-edge bar. */}
+                    {uploading && (
+                      <div
+                        className="absolute inset-x-0 bottom-0 h-1.5"
+                        style={{ background: "hsl(var(--olivewood) / 0.18)" }}
+                        aria-hidden
+                      >
+                        <div
+                          className="h-full transition-[width] duration-200"
+                          style={{
+                            width: `${Math.max(0, Math.min(1, progress ?? 0)) * 100}%`,
+                            background: "hsl(var(--burnt-sienna))",
+                          }}
+                        />
+                      </div>
+                    )}
+                    {/* Drag handle — tiny grip in the bottom-left so
+                        the photo itself stays tappable. */}
+                    <span
+                      aria-hidden
+                      className="absolute bottom-1 left-1 w-5 h-5 rounded-full flex items-center justify-center pointer-events-none"
+                      style={{
+                        background: "hsl(var(--ink-deep) / 0.55)",
+                        color: "hsl(var(--parchment))",
+                      }}
+                    >
+                      <GripVertical className="w-3 h-3" strokeWidth={2.5} />
+                    </span>
+                    <button
+                      type="button"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => onRemoveImage(i)}
+                      aria-label="Remove photo"
+                      className="absolute -top-1 -right-1 h-10 w-10 flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full"
+                    >
+                      <span
+                        className="w-5 h-5 rounded-full flex items-center justify-center"
+                        style={{
+                          background: "hsl(var(--burnt-sienna))",
+                          color: "hsl(var(--parchment))",
+                          boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                        }}
+                      >
+                        <X className="w-3 h-3" strokeWidth={2.5} />
+                      </span>
+                    </button>
+                  </Reorder.Item>
+                );
+              })}
+            </Reorder.Group>
+            {imageFiles.length < 5 && (
+              <label
+                aria-label="Add another photo"
+                className="mt-2.5 w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
+                style={{
+                  background: "hsl(var(--parchment) / 0.7)",
+                  border: "0.5px solid hsl(var(--bark) / 0.28)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                    "inset 0 -1px 2px 0 hsl(var(--olivewood) / 0.08), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.06)",
+                }}
               >
-                <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center"
+                <Plus
+                  className="w-7 h-7"
+                  style={{ color: "hsl(var(--bark))" }}
+                  strokeWidth={2}
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={onImageSelect}
+                />
+              </label>
+            )}
+          </>
+        ) : (
+          <div
+            id="photo-grid"
+            className="grid gap-2.5"
+            style={{ gridTemplateColumns: "repeat(auto-fill, 80px)" }}
+          >
+            {imagePreviews.map((src, i) => {
+              const progress = uploadProgressByIndex?.[i];
+              const uploading = typeof progress === "number" && progress < 1;
+              return (
+                <div
+                  key={i}
+                  className="relative w-20 h-20 rounded-2xl overflow-hidden"
                   style={{
-                    background: "hsl(var(--burnt-sienna))",
-                    color: "hsl(var(--parchment))",
-                    boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                    border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                    boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
                   }}
                 >
-                  <X className="w-3 h-3" strokeWidth={2.5} />
-                </span>
-              </button>
-            </div>
-          ))}
-          {imageFiles.length < 5 && (
-            <label
-              aria-label={imageFiles.length === 0 ? "Add a photo (required)" : "Add another photo"}
-              className="w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
-              style={{
-                background: "hsl(var(--parchment) / 0.7)",
-                border: "0.5px solid hsl(var(--bark) / 0.28)",
-                // Soft inset highlight + a tiny outer drop combine to
-                // read as a tappable parchment chip instead of a flat
-                // dashed placeholder.
-                boxShadow:
-                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                  "inset 0 -1px 2px 0 hsl(var(--olivewood) / 0.08), " +
-                  "0 1px 2px hsl(var(--olivewood) / 0.06)",
-              }}
-            >
-              <Plus
-                className="w-7 h-7"
-                style={{ color: "hsl(var(--bark))" }}
-                strokeWidth={2}
-              />
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={onImageSelect}
-              />
-            </label>
-          )}
-        </div>
+                  {/^blob:/i.test(src) ? (
+                    <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
+                      <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+                    </div>
+                  )}
+                  {uploading && (
+                    <div
+                      className="absolute inset-x-0 bottom-0 h-1.5"
+                      style={{ background: "hsl(var(--olivewood) / 0.18)" }}
+                      aria-hidden
+                    >
+                      <div
+                        className="h-full transition-[width] duration-200"
+                        style={{
+                          width: `${Math.max(0, Math.min(1, progress ?? 0)) * 100}%`,
+                          background: "hsl(var(--burnt-sienna))",
+                        }}
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onRemoveImage(i)}
+                    aria-label="Remove photo"
+                    className="absolute -top-1 -right-1 h-10 w-10 flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full"
+                  >
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{
+                        background: "hsl(var(--burnt-sienna))",
+                        color: "hsl(var(--parchment))",
+                        boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                      }}
+                    >
+                      <X className="w-3 h-3" strokeWidth={2.5} />
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
+            {imageFiles.length < 5 && (
+              <label
+                aria-label={imageFiles.length === 0 ? "Add a photo (required)" : "Add another photo"}
+                className="w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
+                style={{
+                  background: "hsl(var(--parchment) / 0.7)",
+                  border: "0.5px solid hsl(var(--bark) / 0.28)",
+                  // Soft inset highlight + a tiny outer drop combine to
+                  // read as a tappable parchment chip instead of a flat
+                  // dashed placeholder.
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                    "inset 0 -1px 2px 0 hsl(var(--olivewood) / 0.08), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.06)",
+                }}
+              >
+                <Plus
+                  className="w-7 h-7"
+                  style={{ color: "hsl(var(--bark))" }}
+                  strokeWidth={2}
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={onImageSelect}
+                />
+              </label>
+            )}
+          </div>
+        )}
         {imageFiles.length === 0 && (
           <p className="text-[0.7rem] leading-snug text-destructive">
             Add at least one photo so helprs know what they're applying for.

@@ -8,9 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MapPin, Shield, Repeat, Users } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { MapPin, Shield, Repeat, Users, Wrench } from "lucide-react";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { todayLocalISO } from "@/lib/dateUtils";
+import { AppleMapPreview } from "@/components/postjob/AppleMapPreview";
+import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 
 // Rough count of how many times a recurring job will run between the
 // start date and the end date at the chosen interval. Used to preview
@@ -59,7 +62,24 @@ interface LogisticsSectionProps {
   setHelpersNeeded: (v: string) => void;
   budgetNum: number;
   logisticsComplete: boolean;
+  /** Active category — drives whether the "I'll provide materials" toggle shows. */
+  category?: string;
+  includeMaterials?: boolean;
+  setIncludeMaterials?: (v: boolean) => void;
+  materialsNote?: string;
+  setMaterialsNote?: (v: string) => void;
 }
+
+// Categories where it's common for posters to provide their own paint /
+// parts / supplies. The "Materials" toggle only renders for these — for
+// pet care or errands it'd just be noise.
+const MATERIALS_RELEVANT_CATEGORIES = new Set([
+  "painting",
+  "handyman",
+  "assembly",
+  "yard_work",
+  "cleaning",
+]);
 
 export function LogisticsSection({
   stepNumber,
@@ -93,7 +113,14 @@ export function LogisticsSection({
   setHelpersNeeded,
   budgetNum,
   logisticsComplete,
+  category,
+  includeMaterials,
+  setIncludeMaterials,
+  materialsNote,
+  setMaterialsNote,
 }: LogisticsSectionProps) {
+  const materialsToggleRelevant =
+    !!category && MATERIALS_RELEVANT_CATEGORIES.has(category);
   // Apple MapKit JS — when the token is configured and the script
   // loads, swap the plain street input for AddressAutocomplete (which
   // fills street + city + zip on a single tap). When MapKit isn't
@@ -110,7 +137,20 @@ export function LogisticsSection({
       complete={logisticsComplete}
     >
       <div className="space-y-3">
-        <Label>Location <span className="text-destructive">*</span></Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label>Location <span className="text-destructive">*</span></Label>
+          {/* "Use my current location" — Capacitor/web Geolocation +
+              MapKit reverse-geocode in one tap. Falls back to a tasteful
+              error toast if location is denied or no street can be
+              resolved. */}
+          <CurrentLocationPill
+            onResolved={({ street, city: pickedCity, zipCode: pickedZip }) => {
+              if (street) setStreetAddress(street);
+              if (pickedCity) setCity(pickedCity);
+              if (pickedZip) setZipCode(pickedZip);
+            }}
+          />
+        </div>
         {mapKitReady ? (
           <AddressAutocomplete
             id="streetAddress"
@@ -155,6 +195,15 @@ export function LogisticsSection({
           <Shield className="w-3 h-3 shrink-0" />
           Only the city will be visible to applicants until you select a helper.
         </p>
+        {/* Apple MapKit JS embedded preview — confirms visually that the
+            typed address resolved to the right spot. Hides itself when
+            MapKit isn't configured. */}
+        <AppleMapPreview
+          street={streetAddress}
+          city={city}
+          state={addrState || "LA"}
+          zipCode={zipCode}
+        />
       </div>
 
       <div className="space-y-3">
@@ -220,6 +269,53 @@ export function LogisticsSection({
         <Label htmlFor="requirements">Access &amp; parking notes</Label>
         <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Gate codes, where to park, which door, pets on site… (optional)" rows={2} maxLength={500} autoCapitalize="sentences" />
       </div>
+
+      {/* "I'll provide materials" — only shows for the categories where
+          this is a meaningful poster signal (paint, repair, assembly,
+          yard, cleaning). When on, a freeform note appears so the
+          poster can list paint colors, parts numbers, supplies, etc.
+          The note is appended into special_requirements at submit so
+          helprs see it on the job card. */}
+      {materialsToggleRelevant && setIncludeMaterials && (
+        <div
+          className={`rounded-ds-md border p-4 space-y-3 ${
+            includeMaterials ? "border-primary/30 bg-primary/5" : "border-border"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <label htmlFor="include-materials" className="flex items-center gap-2 cursor-pointer">
+              <Wrench className="w-4 h-4 text-primary" />
+              <span className="text-ds-13 font-semibold text-foreground">
+                I'll provide materials
+              </span>
+            </label>
+            <Switch
+              id="include-materials"
+              checked={!!includeMaterials}
+              onCheckedChange={setIncludeMaterials}
+            />
+          </div>
+          {includeMaterials && setMaterialsNote && (
+            <div className="space-y-2">
+              <Label htmlFor="materials-note" className="text-ds-11">
+                Materials I'll provide
+              </Label>
+              <Textarea
+                id="materials-note"
+                value={materialsNote ?? ""}
+                onChange={(e) => setMaterialsNote(e.target.value)}
+                placeholder="e.g. 1 gallon of Sherwin-Williams 'Cotton White', rollers, drop cloth — everything is staged by the door."
+                rows={2}
+                maxLength={500}
+                autoCapitalize="sentences"
+              />
+              <p className="text-ds-11 text-muted-foreground">
+                Listed on the job so applicants know what they don't need to bring.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Job type — One-time / Recurring / Group are mutually
           exclusive (recurring bills repeatedly to one helper; group

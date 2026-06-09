@@ -1,14 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ShieldCheck, Megaphone, Handshake, Hammer, Wallet } from "lucide-react";
+import {
+  CheckCircle,
+  ShieldCheck,
+  Megaphone,
+  Handshake,
+  Hammer,
+  Wallet,
+  Share2,
+  RotateCcw,
+  Users as UsersIcon,
+} from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { hapticSuccess } from "@/lib/haptics";
+import { hapticSuccess, hapticLight } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { report } from "@/lib/errorLogger";
+import { safeStorage } from "@/lib/safeStorage";
 
 // Visual lifecycle preview — replaces the dense paragraph that used to
 // sit in this same slot. Keeps the same content (4 stages from job-state
@@ -25,6 +39,65 @@ const PaymentSuccess = () => {
   usePageTitle("Payment Authorized — Helpr");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  // The job id flows through either the success URL (Stripe-driven) or
+  // the stashed `helpr_last_posted_job_id` (set right after job insert).
+  // We resolve it once and use it for share / repost / view-applicants.
+  const resolvedJobId =
+    searchParams.get("job_id") ||
+    (typeof window !== "undefined" ? safeStorage.getItem("helpr_last_posted_job_id") : null) ||
+    null;
+  const [sharing, setSharing] = useState(false);
+
+  // Share the just-posted job. Follows the same Capacitor → Web Share →
+  // clipboard tiered fallback as the existing ShareJobButton — repeated
+  // here so this CTA doesn't pull in the whole button's styling.
+  const handleShareJob = async () => {
+    if (sharing || !resolvedJobId) return;
+    setSharing(true);
+    void hapticLight();
+    const url = `${window.location.origin}/dashboard?job=${resolvedJobId}`;
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await Share.share({ url, title: "Job posted on Helpr", dialogTitle: "Share this job" });
+      } else if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({ url, title: "Job posted on Helpr" });
+      } else if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied. Paste it anywhere.");
+      } else {
+        toast.message("Share this link", { description: url });
+      }
+    } catch (err) {
+      const isCancel =
+        err instanceof Error &&
+        (err.name === "AbortError" || /cancel|dismiss/i.test(err.message));
+      if (!isCancel) toast.error("Couldn't share — try again");
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handlePostAnother = () => {
+    void hapticLight();
+    // Clear the cached id so the next visit to this page doesn't
+    // re-surface the wrong job.
+    try { safeStorage.removeItem("helpr_last_posted_job_id"); } catch { /* ignore */ }
+    if (resolvedJobId) {
+      navigate(`/post-job?rebook=${resolvedJobId}`);
+    } else {
+      navigate("/post-job");
+    }
+  };
+
+  const handleViewApplicants = () => {
+    void hapticLight();
+    try { safeStorage.removeItem("helpr_last_posted_job_id"); } catch { /* ignore */ }
+    if (resolvedJobId) {
+      navigate(`/my-posts?job=${resolvedJobId}`);
+    } else {
+      navigate("/my-posts");
+    }
+  };
 
   useEffect(() => {
     hapticSuccess();
@@ -131,14 +204,50 @@ const PaymentSuccess = () => {
           </p>
         </div>
 
-        <Button
-          variant="bark"
-          size="lg"
-          onClick={() => navigate("/dashboard")}
-          className="w-full rounded-ds-md"
-        >
-          Back to dashboard
-        </Button>
+        <div className="space-y-2.5">
+          {/* Primary CTA — View applicants. Most actionable next step for
+              the poster who just finished paying. */}
+          <Button
+            variant="bark"
+            size="lg"
+            onClick={handleViewApplicants}
+            className="w-full rounded-ds-md"
+          >
+            <UsersIcon className="w-4 h-4 mr-2" />
+            View applicants
+          </Button>
+          {/* Secondary CTA row — share + post-another-like-this. */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleShareJob}
+              disabled={sharing || !resolvedJobId}
+              className="w-full rounded-ds-md"
+            >
+              <Share2 className="w-4 h-4 mr-1" /> Share
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePostAnother}
+              className="w-full rounded-ds-md"
+            >
+              <RotateCcw className="w-4 h-4 mr-1" /> Post another
+            </Button>
+          </div>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              try { safeStorage.removeItem("helpr_last_posted_job_id"); } catch { /* ignore */ }
+              navigate("/dashboard");
+            }}
+            className="w-full rounded-ds-md"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Back to dashboard
+          </Button>
+        </div>
       </div>
     </AuthShell>
   );

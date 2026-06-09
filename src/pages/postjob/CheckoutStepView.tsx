@@ -44,6 +44,8 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         totalCharge={form.totalCharge}
         confirmed={form.confirmed}
         setConfirmed={form.setConfirmed}
+        saveCardForFuture={form.saveCardForFuture}
+        setSaveCardForFuture={form.setSaveCardForFuture}
         saving={form.saving || form.redirecting}
         uploading={form.uploading}
         uploadProgress={form.uploadProgress}

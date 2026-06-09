@@ -1,3 +1,5 @@
+// Quiet-hours window stored here is enforced server-side by the
+// send-push-notification edge function (PR #446).
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";

@@ -10,7 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX } from "lucide-react";
+import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, ChevronDown } from "lucide-react";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -35,6 +36,8 @@ import { jobStatusColorClasses } from "@/lib/statusColors";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
+import { haversineMiles } from "@/lib/geo";
+import { useUserLocation } from "@/hooks/useUserLocation";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -51,6 +54,17 @@ const UserProfile = () => {
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showBlock, setShowBlock] = useState(false);
+  // Viewer opts in to the "did N jobs nearby" social proof (#31).
+  // Gated so we don't fire the geolocation prompt just to render a badge.
+  // The hook caches across pages, so once requested it's near-instant on
+  // every subsequent profile view in the same session.
+  const [showNearbyProof, setShowNearbyProof] = useState(false);
+  // Reviews filter + pagination (#27). Category null = "all", rating null
+  // = "all". Visible count starts at PAGE_SIZE and grows in PAGE_SIZE
+  // increments via the "Show more" button at the bottom of the list.
+  const [reviewCategoryFilter, setReviewCategoryFilter] = useState<string | null>(null);
+  const [reviewRatingFilter, setReviewRatingFilter] = useState<number | null>(null);
+  const [reviewVisibleCount, setReviewVisibleCount] = useState(5);
 
   // React Query: cached for 60s, instant on revisit, refresh in background.
   const { data, isLoading, isError, refetch } = useQuery({
@@ -89,13 +103,20 @@ const UserProfile = () => {
       // applications; the metrics section just hides itself if empty.
       // Was previously gated on role === 'helper', but role distinction
       // no longer exists in the UI.
-      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes] = await Promise.all([
+      //
+      // jobs select also pulls latitude/longitude so the "did N jobs
+      // nearby" social-proof badge (#31) can filter against the viewer's
+      // location without a second round trip. status_history_total /
+      // cancellation_count_*_res are head-only count queries so the
+      // cancellation-rate stat (#30) reflects ALL jobs, not just the 20
+      // we render inline.
+      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
         supabase.from("reviews").select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).order("created_at", { ascending: false }),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!),
         // Verification-ladder inputs (#112): grab the trust signals while
         // we're already touching this row. `get_safe_profiles` doesn't
@@ -107,6 +128,18 @@ const UserProfile = () => {
           .select("id_document_url, approval_status, idv_status, stripe_account_id")
           .eq("user_id", userId!)
           .maybeSingle(),
+        // Count-only queries — `head: true` skips row payload, so these
+        // are cheap. They power the lifetime cancellation-rate display
+        // (#30) without inflating the limited job lists rendered above.
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).eq("status", "cancelled"),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!).eq("status", "cancelled"),
+        // Last-active timestamp (#28) — separate RPC because login_history
+        // is RLS-locked to owner/admin. Returns max(created_at) only. Wrap
+        // in a soft fetch so PGRST202 ("RPC not deployed yet") just hides
+        // the badge instead of bricking the whole profile load.
+        supabase.rpc("get_user_last_active", { user_ids: [userId!] }),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -117,6 +150,8 @@ const UserProfile = () => {
       for (const [label, res] of [
         ["reviews", reviewsRes], ["posted_jobs", postedRes], ["worked_jobs", workedRes],
         ["applications", appsRes], ["trust_signals", idCheckRes],
+        ["posted_total", postedTotalRes], ["posted_cancelled", postedCancelledRes],
+        ["worked_total", workedTotalRes], ["worked_cancelled", workedCancelledRes],
       ] as const) {
         if (res.error) {
           report(res.error, {
@@ -126,6 +161,21 @@ const UserProfile = () => {
           });
         }
       }
+      // Last-active RPC gets a softer error path: PGRST202 (function not
+      // deployed yet) is expected between merge and `supabase db push`, so
+      // hide the badge without polluting Sentry. Any OTHER error still
+      // reports so a real outage stays observable.
+      if (lastActiveRes.error && lastActiveRes.error.code !== "PGRST202") {
+        report(lastActiveRes.error, {
+          severity: "warning",
+          tags: { area: "user_profile.last_active" },
+          context: { viewed_user_id: userId },
+        });
+      }
+      const lastActiveAt =
+        lastActiveRes.data?.[0]?.last_active_at
+          ? new Date(lastActiveRes.data[0].last_active_at)
+          : null;
 
       const postedJobs = postedRes.data || [];
       const workedJobs = workedRes.data || [];
@@ -136,6 +186,20 @@ const UserProfile = () => {
         completedJobs: completedCount,
         avgRating: ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0,
         reviewCount: ratings.length,
+      };
+
+      // Cancellation-rate metric (#30) — separate posted-side vs worked-side
+      // rates so the badge can read "the right" rate for the audience. We
+      // compute the combined rate inline at the render site. A minimum
+      // sample size of 5 prevents "1 of 1 cancelled = 100%" cliffs on
+      // fresh accounts.
+      const totalJobsCount = (postedTotalRes.count ?? 0) + (workedTotalRes.count ?? 0);
+      const totalCancelledCount = (postedCancelledRes.count ?? 0) + (workedCancelledRes.count ?? 0);
+      const cancellationRate = {
+        total: totalJobsCount,
+        cancelled: totalCancelledCount,
+        // Only render when there's enough history to be meaningful.
+        rate: totalJobsCount >= 5 ? (totalCancelledCount / totalJobsCount) * 100 : null,
       };
 
       let responseMetrics = { avgResponseHours: null as number | null, acceptanceRate: null as number | null, totalApplications: 0 };
@@ -159,20 +223,26 @@ const UserProfile = () => {
         const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))] as string[];
         const [profilesRes2, jobsRes] = await Promise.all([
           supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
-          supabase.from("jobs").select("id, title").in("id", jobIds),
+          // category pulled in alongside title so the reviews-tab filter
+          // (#27) can group by job type without a follow-up fetch.
+          supabase.from("jobs").select("id, title, category").in("id", jobIds),
         ]);
         const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
-        const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, j.title]) || []);
-        reviews = reviewsRes.data.map((r: any) => ({
-          rating: r.rating,
-          punctuality: r.punctuality ?? null,
-          quality: r.quality ?? null,
-          communication: r.communication ?? null,
-          feedback: r.feedback,
-          created_at: r.created_at,
-          reviewerName: nameMap.get(r.reviewer_id) || "User",
-          jobTitle: jobMap.get(r.job_id) || "Job",
-        }));
+        const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, { title: j.title, category: j.category as string | null }]) || []);
+        reviews = reviewsRes.data.map((r: any) => {
+          const j = jobMap.get(r.job_id);
+          return {
+            rating: r.rating,
+            punctuality: r.punctuality ?? null,
+            quality: r.quality ?? null,
+            communication: r.communication ?? null,
+            feedback: r.feedback,
+            created_at: r.created_at,
+            reviewerName: nameMap.get(r.reviewer_id) || "User",
+            jobTitle: j?.title || "Job",
+            jobCategory: j?.category ?? null,
+          };
+        });
       }
 
       return {
@@ -182,6 +252,10 @@ const UserProfile = () => {
         postedJobs,
         workedJobs,
         responseMetrics,
+        cancellationRate,
+        // Serialize so React Query's cache survives a window reload (Date
+        // objects don't round-trip JSON). Re-hydrate at the call site.
+        lastActiveIso: lastActiveAt ? lastActiveAt.toISOString() : null,
         isIdVerified: !!idCheckRes.data?.id_document_url,
         // Verification-ladder inputs — passed straight through to
         // HelperTierBadge. Null-safe if the row read was blocked.
@@ -195,14 +269,37 @@ const UserProfile = () => {
   });
 
   const profile = (data?.profile ?? null) as Profile | null;
-  const reviews = (data?.reviews ?? []) as Array<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }>;
+  const reviews = (data?.reviews ?? []) as Array<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string; jobCategory: string | null }>;
   const stats = data?.stats ?? { completedJobs: 0, avgRating: 0, reviewCount: 0 };
-  const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }>;
-  const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }>;
+  const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
+  const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
+  const cancellationRate = data?.cancellationRate ?? { total: 0, cancelled: 0, rate: null as number | null };
+  const lastActiveAt = data?.lastActiveIso ? new Date(data.lastActiveIso) : null;
   const isIdVerified = data?.isIdVerified ?? false;
   const tierProfile = data?.tierProfile ?? null;
   const loading = isLoading && !data;
+
+  // Geo for the "did N jobs nearby" badge (#31). Only enable the hook
+  // when the viewer has explicitly opted in via the inline trigger, so
+  // we never surprise-prompt for location just to render a profile.
+  const viewerLoc = useUserLocation(showNearbyProof);
+  // Count of this helper's completed jobs that fell within 25mi of the
+  // viewer's current location. Only counts jobs with usable lat/lng;
+  // older posts without coords are silently skipped.
+  const NEARBY_RADIUS_MI = 25;
+  const jobsNearbyCount = (() => {
+    if (viewerLoc.status !== "ready") return null;
+    let n = 0;
+    for (const j of workedJobs) {
+      if (j.status !== "completed") continue;
+      if (typeof j.latitude !== "number" || typeof j.longitude !== "number") continue;
+      if (haversineMiles(viewerLoc.lat, viewerLoc.lng, j.latitude, j.longitude) <= NEARBY_RADIUS_MI) {
+        n += 1;
+      }
+    }
+    return n;
+  })();
 
   // Computed up-front so the loading skeleton can render the same
   // PageHeader (eyebrow/title/meta) as the loaded state — both only
@@ -300,6 +397,23 @@ const UserProfile = () => {
   const displayName = formatName(profile.full_name);
   const initials = (profile.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
   const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: profile.subscription_tier || null });
+
+  // Compact "active 2h ago" label. Returns null beyond 7 days — older
+  // timestamps degrade from a fresh-presence signal to a stale one, so
+  // we hide rather than mislead. (#28)
+  const lastActiveLabel = (() => {
+    if (!lastActiveAt) return null;
+    const ms = Date.now() - lastActiveAt.getTime();
+    if (ms < 0) return null; // clock skew safeguard
+    const m = Math.floor(ms / 60_000);
+    if (m < 10) return { text: "Active now", isLive: true };
+    if (m < 60) return { text: `Active ${m}m ago`, isLive: false };
+    const h = Math.floor(m / 60);
+    if (h < 24) return { text: `Active ${h}h ago`, isLive: false };
+    const d = Math.floor(h / 24);
+    if (d <= 7) return { text: `Active ${d}d ago`, isLive: false };
+    return null;
+  })();
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
@@ -422,6 +536,42 @@ const UserProfile = () => {
                   <MapPin className="w-3 h-3" />{profile.location}
                 </p>
               )}
+              {/* Last-active presence chip (#28). Compact, low-weight —
+                  meant to read at-a-glance, not compete with the badges.
+                  Green dot when active within 10 minutes ("live"),
+                  olivewood for everything else. Hidden when stale (>7d). */}
+              {lastActiveLabel && (
+                <div
+                  className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full text-ds-11"
+                  style={{
+                    background: lastActiveLabel.isLive
+                      ? "hsl(140 50% 38% / 0.10)"
+                      : "hsl(var(--olivewood) / 0.08)",
+                    border: `0.5px solid ${
+                      lastActiveLabel.isLive
+                        ? "hsl(140 50% 38% / 0.35)"
+                        : "hsl(var(--olivewood) / 0.20)"
+                    }`,
+                    color: lastActiveLabel.isLive
+                      ? "hsl(140 60% 28%)"
+                      : "hsl(var(--olivewood))",
+                  }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{
+                      background: lastActiveLabel.isLive
+                        ? "hsl(140 60% 42%)"
+                        : "hsl(var(--olivewood) / 0.65)",
+                      boxShadow: lastActiveLabel.isLive
+                        ? "0 0 0 3px hsl(140 60% 42% / 0.18)"
+                        : "none",
+                    }}
+                    aria-hidden
+                  />
+                  <span className="font-medium">{lastActiveLabel.text}</span>
+                </div>
+              )}
               {/* Response Metrics inline */}
               {responseMetrics.totalApplications > 0 && (
                 <div className="flex items-center justify-center gap-3 mt-2 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
@@ -450,6 +600,88 @@ const UserProfile = () => {
                       </span>
                     </>
                   )}
+                </div>
+              )}
+              {/* "Did N jobs nearby" social proof (#31). Two states:
+                  - opt-in pill when viewer hasn't granted geo yet AND the
+                    helper has at least one completed worked job with
+                    coords (otherwise the count would be 0).
+                  - rendered count once geolocation resolves. We always
+                    show the count even when zero — a "0 jobs near you"
+                    fact is a legitimate trust input. Hidden entirely on
+                    your own profile so you don't see your own count. */}
+              {!isOwnProfile && (() => {
+                const hasNearbyEligibleJobs = workedJobs.some(
+                  (j) => j.status === "completed" && typeof j.latitude === "number" && typeof j.longitude === "number",
+                );
+                if (!hasNearbyEligibleJobs) return null;
+                if (!showNearbyProof) {
+                  return (
+                    <div className="mt-1.5 flex justify-center">
+                      <button
+                        onClick={() => setShowNearbyProof(true)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-11 font-medium transition-colors"
+                        style={{
+                          color: "hsl(var(--bark))",
+                          background: "hsl(var(--bark) / 0.06)",
+                          border: "0.5px solid hsl(var(--bark) / 0.18)",
+                        }}
+                      >
+                        <MapPin className="w-3 h-3" />
+                        Show jobs near you
+                      </button>
+                    </div>
+                  );
+                }
+                if (viewerLoc.status === "loading") {
+                  return (
+                    <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+                      <MapPin className="w-3 h-3" />
+                      <span className="italic">Checking nearby…</span>
+                    </div>
+                  );
+                }
+                if (viewerLoc.status === "error") {
+                  return (
+                    <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+                      <MapPin className="w-3 h-3" />
+                      <span className="italic">Location unavailable</span>
+                    </div>
+                  );
+                }
+                if (jobsNearbyCount === null) return null;
+                return (
+                  <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                    <MapPin className="w-3 h-3" />
+                    <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
+                      {jobsNearbyCount}
+                    </span>
+                    <span>{jobsNearbyCount === 1 ? "job" : "jobs"} within {NEARBY_RADIUS_MI}mi of you</span>
+                  </div>
+                );
+              })()}
+              {/* Cancellation rate (#30) — combined helper + poster jobs.
+                  Only renders once the user has >=5 lifetime jobs so a
+                  single early cancellation doesn't read as "100% cancel
+                  rate". Color shifts olive→amber→sienna at 5%/15% so the
+                  signal degrades gracefully rather than feeling punitive. */}
+              {cancellationRate.rate !== null && (
+                <div className="flex items-center justify-center gap-1 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <span
+                    className="font-display italic font-bold tabular-nums"
+                    style={{
+                      color:
+                        cancellationRate.rate < 5
+                          ? "hsl(var(--ink-deep))"
+                          : cancellationRate.rate < 15
+                          ? "hsl(var(--gold-warm))"
+                          : "hsl(var(--burnt-sienna))",
+                    }}
+                  >
+                    {cancellationRate.rate.toFixed(0)}%
+                  </span>
+                  <span>cancel rate</span>
+                  <span style={{ color: "hsl(var(--olivewood) / 0.45)" }}>· {cancellationRate.cancelled}/{cancellationRate.total} jobs</span>
                 </div>
               )}
               {profile.phone && (
@@ -617,61 +849,170 @@ const UserProfile = () => {
             />
           )}
 
-          {/* Reviews expanded inline */}
-          {showReviews && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              {reviews.length > 0 ? reviews.map((r, i) => (
-                <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
-                        ))}
+          {/* Reviews expanded inline — filter by category/rating +
+              progressive pagination (#27). */}
+          {showReviews && (() => {
+            const PAGE_SIZE = 5;
+            // Distinct categories that appear in this helper's reviews,
+            // computed once per render. Sorted alphabetically with a
+            // stable "other" bucket for nulls. Drives the filter chips.
+            const distinctCategories = Array.from(
+              new Set(reviews.map((r) => r.jobCategory).filter((c): c is string => !!c)),
+            ).sort();
+            const filteredReviews = reviews.filter((r) => {
+              if (reviewCategoryFilter && r.jobCategory !== reviewCategoryFilter) return false;
+              if (reviewRatingFilter && r.rating !== reviewRatingFilter) return false;
+              return true;
+            });
+            const hasActiveFilter = reviewCategoryFilter !== null || reviewRatingFilter !== null;
+            const visible = filteredReviews.slice(0, reviewVisibleCount);
+            const hasMore = filteredReviews.length > visible.length;
+
+            return (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Filter row — only render when there's something to filter
+                    (at least one category beyond "other" OR more than one
+                    distinct rating). Avoids cluttering a 1-review profile. */}
+                {reviews.length > 1 && (distinctCategories.length > 0 || new Set(reviews.map((r) => r.rating)).size > 1) && (
+                  <div className="rounded-ds-md liquid-glass p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Filter</span>
+                      {hasActiveFilter && (
+                        <button
+                          onClick={() => {
+                            setReviewCategoryFilter(null);
+                            setReviewRatingFilter(null);
+                            setReviewVisibleCount(PAGE_SIZE);
+                          }}
+                          className="text-ds-11 underline text-muted-foreground hover:text-foreground"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    {distinctCategories.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {distinctCategories.map((cat) => {
+                          const Icon = getCategoryIcon(cat);
+                          const active = reviewCategoryFilter === cat;
+                          return (
+                            <button
+                              key={cat}
+                              onClick={() => {
+                                setReviewCategoryFilter(active ? null : cat);
+                                setReviewVisibleCount(PAGE_SIZE);
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors"
+                              style={{
+                                color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
+                                background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
+                                border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
+                              }}
+                            >
+                              <Icon className="w-3 h-3" />
+                              <span className="capitalize">{cat.replace(/_/g, " ")}</span>
+                            </button>
+                          );
+                        })}
                       </div>
-                      <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {[5, 4, 3, 2, 1].map((rating) => {
+                        const count = reviews.filter((r) => r.rating === rating).length;
+                        if (count === 0) return null;
+                        const active = reviewRatingFilter === rating;
+                        return (
+                          <button
+                            key={rating}
+                            onClick={() => {
+                              setReviewRatingFilter(active ? null : rating);
+                              setReviewVisibleCount(PAGE_SIZE);
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors tabular-nums"
+                            style={{
+                              color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
+                              background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
+                              border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
+                            }}
+                          >
+                            <Star className={`w-3 h-3 ${active ? "fill-current" : "fill-current"}`} />
+                            {rating}
+                            <span className="opacity-70">({count})</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <span className="text-muted-foreground text-ds-11">{new Date(r.created_at).toLocaleDateString()}</span>
                   </div>
-                  {(r.punctuality || r.quality || r.communication) && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {r.punctuality && (
-                        <div className="flex flex-col items-start gap-0.5">
-                          <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
-                          <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                )}
+                {filteredReviews.length > 0 ? (
+                  <>
+                    {visible.map((r, i) => (
+                      <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
+                              ))}
+                            </div>
+                            <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
                           </div>
+                          <span className="text-muted-foreground text-ds-11">{new Date(r.created_at).toLocaleDateString()}</span>
                         </div>
-                      )}
-                      {r.quality && (
-                        <div className="flex flex-col items-start gap-0.5">
-                          <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
-                          <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                        {(r.punctuality || r.quality || r.communication) && (
+                          <div className="grid grid-cols-3 gap-2">
+                            {r.punctuality && (
+                              <div className="flex flex-col items-start gap-0.5">
+                                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
+                                <div className="flex gap-0.5">
+                                  {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                                </div>
+                              </div>
+                            )}
+                            {r.quality && (
+                              <div className="flex flex-col items-start gap-0.5">
+                                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
+                                <div className="flex gap-0.5">
+                                  {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                                </div>
+                              </div>
+                            )}
+                            {r.communication && (
+                              <div className="flex flex-col items-start gap-0.5">
+                                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
+                                <div className="flex gap-0.5">
+                                  {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
-                      {r.communication && (
-                        <div className="flex flex-col items-start gap-0.5">
-                          <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
-                          <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
-                  {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
-                </div>
-              )) : (
-                <div className="rounded-ds-md liquid-glass p-6 text-center">
-                  <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-ds-11 text-muted-foreground">No reviews yet</p>
-                </div>
-              )}
-            </div>
-          )}
+                        )}
+                        <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
+                        {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
+                      </div>
+                    ))}
+                    {hasMore && (
+                      <button
+                        onClick={() => setReviewVisibleCount((n) => n + PAGE_SIZE)}
+                        className="w-full rounded-ds-md liquid-glass p-3 text-ds-13 font-medium text-foreground hover:bg-muted/30 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                        Show {Math.min(PAGE_SIZE, filteredReviews.length - visible.length)} more
+                        <span className="text-muted-foreground">({visible.length} of {filteredReviews.length})</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-ds-md liquid-glass p-6 text-center">
+                    <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-ds-11 text-muted-foreground">
+                      {hasActiveFilter ? "No reviews match this filter" : "No reviews yet"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Posted Jobs expanded inline */}
           {showPostedJobs && (
@@ -739,6 +1080,24 @@ const UserProfile = () => {
           <p className="text-ds-11 text-muted-foreground text-center">
             Member since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
           </p>
+
+          {/* Inline "Report this profile" surface (#29). The header dropdown
+              still exposes Report, but a viewer who feels uneasy after
+              reading the bio shouldn't have to hunt the 3-dot menu. Kept
+              low-key (muted text, no destructive color) so it reads as a
+              safety affordance rather than an accusation. */}
+          {!isOwnProfile && currentUserId && (
+            <div className="pt-2 flex justify-center">
+              <button
+                onClick={() => setShowReport(true)}
+                className="inline-flex items-center gap-1.5 text-ds-11 text-muted-foreground underline-offset-4 hover:underline hover:text-foreground transition-colors min-h-[40px] px-3"
+                aria-label="Report this profile"
+              >
+                <Flag className="w-3 h-3" />
+                Report this profile
+              </button>
+            </div>
+          )}
         </div>
       </main>
 

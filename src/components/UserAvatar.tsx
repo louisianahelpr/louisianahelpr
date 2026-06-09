@@ -90,10 +90,17 @@ const UserAvatar = React.forwardRef<
           // `background-image`, so we explicitly zero out the
           // background-color to keep the from/to stops accurate rather
           // than letting sand bleed through the partly-transparent `to-`.
-          // `text-[hsl(var(--ink-deep))]` keeps initials readable on
-          // every variant; `drop-shadow-sm` adds a hair of separation on
-          // the lighter gradients.
-          "bg-transparent bg-gradient-to-br text-[hsl(var(--ink-deep))] font-display italic font-bold drop-shadow-sm",
+          //
+          // Ring treatment: a hairline ring using `--olivewood` at low
+          // opacity separates the gradient circle from light backgrounds
+          // (cards, parchment page) and gives it a finished edge without
+          // a hard border. `drop-shadow-sm` adds depth on the lighter
+          // variants. `text-[hsl(var(--ink-deep))]` keeps initials legible
+          // on every gradient pair; font-display italic matches the brand
+          // voice used elsewhere for initials and avatar text.
+          "bg-transparent bg-gradient-to-br text-[hsl(var(--ink-deep))] font-display italic font-bold",
+          "ring-[1.5px] ring-[hsl(var(--olivewood)/0.12)] ring-offset-0",
+          "drop-shadow-[0_1px_3px_hsl(var(--olivewood)/0.12)]",
           gradient,
           fallbackClassName,
         )}

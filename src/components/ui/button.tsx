@@ -11,13 +11,15 @@ import { cn } from "@/lib/utils";
 // hierarchy stays legible (a ghost button and a primary CTA must NOT read at
 // the same elevation):
 //
-//   1. ELEVATION  — 2-layer drop shadow that mimics real lift (a tight 1px
-//      contact shadow + a wider 2px/4px ambient shadow). Two layers prevent
-//      the "single hard line" pasted-on look.
-//   2. HIGHLIGHT  — inner 1px top-edge cream highlight, picking up light
-//      from above so the button feels embossed / lit, not painted flat.
-//   3. PRESS      — on `:active`, translate down 1px and collapse the
-//      ambient shadow so the button physically depresses under the finger.
+//   1. ELEVATION  — 3-layer drop shadow: tight 1px contact shadow + a medium
+//      2px/6px ambient + a very soft 8px halo. Three layers prevent the
+//      "single hard line" pasted-on look and give the button real lift.
+//   2. HIGHLIGHT  — inner 1px top-edge cream highlight (cream for filled,
+//      white for outline), picking up light from above so the button feels
+//      embossed / lit rather than painted flat.
+//   3. PRESS      — on `:active`, scale 0.97 (crisper than translate alone)
+//      AND collapse the ambient + halo shadows so the button physically
+//      depresses under the finger. Spring easing bounces back cleanly.
 //   4. GRADIENT   — barely-perceptible 0% → 92% vertical gradient on the
 //      bark PRIMARY CTA only. Just enough that the surface reads as
 //      "solid + lit from above" instead of a flat fill.
@@ -27,14 +29,18 @@ import { cn } from "@/lib/utils";
 // no-op class.
 // ─────────────────────────────────────────────────────────────────────────────
 const ELEV_FILLED =
-  "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.18),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_4px_hsl(var(--ink-deep)/0.12)] " +
-  "active:translate-y-px active:shadow-[inset_0_1px_0_hsl(var(--parchment)/0.18),0_1px_1px_hsl(var(--ink-deep)/0.12)]";
+  "shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12),0_4px_12px_-2px_hsl(var(--ink-deep)/0.08)] " +
+  "active:scale-[0.97] active:shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.14)]";
 const ELEV_OUTLINE =
-  "shadow-[0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_4px_hsl(var(--ink-deep)/0.12)] " +
-  "active:translate-y-px active:shadow-[0_1px_1px_hsl(var(--ink-deep)/0.12)]";
+  "shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.08),0_2px_6px_hsl(var(--ink-deep)/0.10),0_4px_12px_-2px_hsl(var(--ink-deep)/0.06)] " +
+  "active:scale-[0.97] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.10)]";
 
 const buttonVariants = cva(
-  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-3xl text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 disabled:active:translate-y-0 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
+  // transition covers transform + box-shadow so the press collapse and
+  // spring-back animate together. duration-150 on the press (fast, snappy)
+  // and the spring easing bounces back on release without needing two
+  // separate durations — cubic-bezier(0.34,1.56,0.64,1) is our brand spring.
+  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-3xl text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow] duration-[150ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
   {
     variants: {
       variant: {

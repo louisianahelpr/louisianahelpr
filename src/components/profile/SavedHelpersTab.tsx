@@ -10,7 +10,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticWarning } from "@/lib/haptics";
-import { Heart, Briefcase, Send, Star, Search, ArrowUpDown, StickyNote, Check, X } from "lucide-react";
+import { Heart, Briefcase, Send, Star, Search, ArrowUpDown, StickyNote, Check, X, Users } from "lucide-react";
+import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -57,6 +58,10 @@ interface SavedHelper {
       migration 20260609110000 is applied; nullable so older deploys
       return undefined. */
   private_note?: string | null;
+  /** When non-null, this saved-helper row is visible to every active
+      teammate of the named business. Surfaced once migration
+      20260609170000 (business_account_id on favorite_helpers) lands. */
+  business_account_id?: string | null;
 }
 
 interface SavedHelpersTabProps {
@@ -66,7 +71,11 @@ interface SavedHelpersTabProps {
 export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
+  const { business } = useMyBusiness();
   const [helpers, setHelpers] = useState<SavedHelper[]>([]);
+  // Per-helper toggle state for the "Visible to team" pin. Tracks the
+  // in-flight write so two rapid taps can't race.
+  const [togglingShare, setTogglingShare] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Distinguishes "fetch failed" from "fetched, but empty" — without
   // this flag a failed RPC silently falls through to the EmptyState and
@@ -99,7 +108,22 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
       setLoading(false);
       return;
     }
-    setHelpers((data as SavedHelper[]) || []);
+    const list = (data as SavedHelper[]) || [];
+    // Augment with business_account_id from the raw row — the RPC
+    // doesn't surface it yet (the column ships in migration
+    // 20260609170000). Missing column = empty join, leaving every row
+    // with business_account_id = null which is the correct default.
+    if (list.length > 0) {
+      const { data: shareRows } = await supabase
+        .from("favorite_helpers")
+        .select("helper_id, business_account_id" as any)
+        .eq("customer_id", user.id);
+      const byHelper = new Map<string, string | null>(
+        ((shareRows ?? []) as any[]).map((r) => [r.helper_id, r.business_account_id ?? null]),
+      );
+      for (const h of list) h.business_account_id = byHelper.get(h.helper_id) ?? null;
+    }
+    setHelpers(list);
     setLoading(false);
   };
 
@@ -117,7 +141,19 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
         setLoading(false);
         return;
       }
-      setHelpers((data as SavedHelper[]) || []);
+      const list = (data as SavedHelper[]) || [];
+      if (list.length > 0) {
+        const { data: shareRows } = await supabase
+          .from("favorite_helpers")
+          .select("helper_id, business_account_id" as any)
+          .eq("customer_id", user.id);
+        if (cancelled) return;
+        const byHelper = new Map<string, string | null>(
+          ((shareRows ?? []) as any[]).map((r) => [r.helper_id, r.business_account_id ?? null]),
+        );
+        for (const h of list) h.business_account_id = byHelper.get(h.helper_id) ?? null;
+      }
+      setHelpers(list);
       setLoading(false);
     })();
     return () => {
@@ -168,6 +204,40 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
     setEditingNoteFor(null);
     setNoteDraft("");
     toast.success(value ? "Note saved" : "Note removed");
+  };
+
+  /** Flip whether this saved helper is visible to the rest of the
+      business team. Writes `business_account_id` on favorite_helpers
+      (migration 20260609170000). PGRST204 → graceful toast when the
+      migration hasn't reached prod yet. */
+  const toggleTeamShare = async (helperId: string, currentlyShared: boolean) => {
+    if (!user || !business) return;
+    setTogglingShare(helperId);
+    const nextValue = currentlyShared ? null : business.business_id;
+    // Optimistic flip first so the UI feels instant.
+    setHelpers((prev) =>
+      prev.map((h) => (h.helper_id === helperId ? { ...h, business_account_id: nextValue } : h)),
+    );
+    const { error } = await supabase
+      .from("favorite_helpers")
+      .update({ business_account_id: nextValue } as any)
+      .eq("customer_id", user.id)
+      .eq("helper_id", helperId);
+    setTogglingShare(null);
+    if (error) {
+      setHelpers((prev) =>
+        prev.map((h) =>
+          h.helper_id === helperId ? { ...h, business_account_id: currentlyShared ? business.business_id : null } : h,
+        ),
+      );
+      const code = (error as { code?: string }).code;
+      const msg = code === "PGRST204" || code === "42703"
+        ? "Team sharing isn't live yet — we're rolling it out shortly."
+        : "Couldn't update sharing — please try again.";
+      toast.error(msg);
+      return;
+    }
+    toast.success(nextValue ? "Now visible to your team" : "Hidden from your team");
   };
 
   const handleRemove = async (helperId: string) => {
@@ -593,6 +663,24 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                       <Heart className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
                     </Button>
                   </div>
+
+                  {business && (
+                    <button
+                      type="button"
+                      onClick={() => toggleTeamShare(h.helper_id, !!h.business_account_id)}
+                      disabled={togglingShare === h.helper_id}
+                      className="inline-flex items-center gap-1.5 text-ds-11 font-semibold active:opacity-70 self-start"
+                      style={{
+                        color: h.business_account_id
+                          ? "hsl(var(--olivewood))"
+                          : "hsl(var(--bark))",
+                      }}
+                      aria-pressed={!!h.business_account_id}
+                    >
+                      <Users className="w-3 h-3" />
+                      {h.business_account_id ? "Visible to team" : "Share with team"}
+                    </button>
+                  )}
                 </div>
               );
             })}

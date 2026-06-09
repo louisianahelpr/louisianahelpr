@@ -18,7 +18,13 @@ import { channelNonce } from "@/lib/realtimeChannel";
 import { archiveConversation, isArchived } from "@/lib/archivedConversations";
 import { requireOnline } from "@/lib/requireOnline";
 import { getMessageAttachmentSignedUrls, isImageMime } from "@/lib/messageAttachments";
-import { getMutedThreadSet, threadMuteKey, toggleThreadMute } from "@/lib/threadMutes";
+import {
+  getMutedThreadMap,
+  snoozeThread,
+  threadMuteKey,
+  toggleThreadMute,
+  unmuteThread,
+} from "@/lib/threadMutes";
 import { deriveJobSystemEvents, type JobSystemEvent, type JobTimestamps } from "@/lib/jobSystemEvents";
 
 import type { Conversation, Message } from "@/components/messages/types";
@@ -183,12 +189,30 @@ const Messages = () => {
       jobId: v.jobId,
       otherUserId: v.otherUserId,
     }));
-    const [profilesRes, jobsRes, thumbUrlMap, mutedSet] = await Promise.all([
+    // Bulk last-active lookup runs alongside the other inbox RPCs so
+    // every row's "Active now" / "Active 2h ago" pill is resolved in a
+    // single round-trip instead of N. The RPC was shipped in
+    // `20260609090000_user_last_active_rpc.sql` (handoff item #28); we
+    // degrade silently when the function isn't deployed (PGRST202).
+    const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes] = await Promise.all([
       supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
       supabase.from("jobs").select("id, title, status, customer_id").in("id", jobIds),
       getMessageAttachmentSignedUrls(imageThumbPaths),
-      getMutedThreadSet(uid, mutePairs),
+      getMutedThreadMap(uid, mutePairs),
+      (supabase.rpc as any)("get_user_last_active", { user_ids: otherIds }),
     ]);
+    const lastActiveMap = new Map<string, string>();
+    if (
+      lastActiveRes &&
+      !lastActiveRes.error &&
+      Array.isArray(lastActiveRes.data)
+    ) {
+      for (const row of lastActiveRes.data as Array<{ user_id: string; last_active_at: string }>) {
+        if (row?.user_id && row?.last_active_at) {
+          lastActiveMap.set(row.user_id, row.last_active_at);
+        }
+      }
+    }
 
     // If we asked for image thumbs but some paths didn't resolve, the
     // inbox degrades to text-only for those rows. Surface a one-time,
@@ -237,7 +261,15 @@ const Messages = () => {
           : null,
       // Mute state — resolved from the bulk RPC above. Used by the row
       // (bell-slash icon) and the chat header (Muted pill + toggle copy).
-      isMuted: mutedSet.has(threadMuteKey(v.jobId, v.otherUserId)),
+      // `muteUntil` carries the snooze TTL (or null for forever-mute) so
+      // the chat header can render "Muted for 8h" without a follow-up read.
+      isMuted: mutedMap.has(threadMuteKey(v.jobId, v.otherUserId)),
+      muteUntil:
+        mutedMap.get(threadMuteKey(v.jobId, v.otherUserId))?.until ?? null,
+      // Pre-resolved last-active ISO timestamp from the batched RPC
+      // above. The row renders "Active now" / "Active 2h ago" / hides
+      // beyond 7d so a stale signal never masquerades as live presence.
+      otherUserLastActiveAt: lastActiveMap.get(v.otherUserId) ?? null,
     };
     });
 
@@ -820,52 +852,52 @@ const Messages = () => {
     setDeleteConvoConfirm(null);
   };
 
-  // Toggle the muted state of the active thread (or any conversation by
-  // jobId+otherUserId). Optimistic: flip the local flag immediately and
-  // reconcile against the RPC's authoritative return value. On error,
-  // revert and surface a toast so the bell-slash never silently lies.
-  const handleToggleMute = useCallback(
-    async (convo: Conversation) => {
-      if (!userId) return;
-      const prevMuted = !!convo.isMuted;
-      // Optimistic flip — feels instant on iOS.
-      hapticHeavy();
+  // Patch a conversation's mute state across both the list and the
+  // active-thread mirror in one go. Used by every code path that flips
+  // the mute (toggle, snooze, unmute) so they all stay coherent.
+  const patchMuteState = useCallback(
+    (jobId: string, otherUserId: string, muted: boolean, muteUntil: string | null) => {
       setConversations((prev) =>
         prev.map((c) =>
-          c.jobId === convo.jobId && c.otherUserId === convo.otherUserId
-            ? { ...c, isMuted: !prevMuted }
+          c.jobId === jobId && c.otherUserId === otherUserId
+            ? { ...c, isMuted: muted, muteUntil }
             : c,
         ),
       );
       if (
         activeConvoRef.current &&
-        activeConvoRef.current.jobId === convo.jobId &&
-        activeConvoRef.current.otherUserId === convo.otherUserId
+        activeConvoRef.current.jobId === jobId &&
+        activeConvoRef.current.otherUserId === otherUserId
       ) {
-        setActiveConvo((cur) => (cur ? { ...cur, isMuted: !prevMuted } : cur));
+        setActiveConvo((cur) =>
+          cur ? { ...cur, isMuted: muted, muteUntil } : cur,
+        );
       }
+    },
+    [],
+  );
+
+  // Toggle the muted state of the active thread (or any conversation by
+  // jobId+otherUserId). Optimistic: flip the local flag immediately and
+  // reconcile against the RPC's authoritative return value. On error,
+  // revert and surface a toast so the bell-slash never silently lies.
+  //
+  // This is the "binary" toggle — for the picker-driven snooze flow,
+  // callers use `handleSnoozeMute` below.
+  const handleToggleMute = useCallback(
+    async (convo: Conversation) => {
+      if (!userId) return;
+      const prevMuted = !!convo.isMuted;
+      const prevUntil = convo.muteUntil ?? null;
+      hapticHeavy();
+      patchMuteState(convo.jobId, convo.otherUserId, !prevMuted, null);
       try {
         const newMuted = await toggleThreadMute(
           userId,
           convo.jobId,
           convo.otherUserId,
         );
-        // Reconcile with server truth (handles the rare case where local
-        // state and server diverged — e.g. another tab toggled first).
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.jobId === convo.jobId && c.otherUserId === convo.otherUserId
-              ? { ...c, isMuted: newMuted }
-              : c,
-          ),
-        );
-        if (
-          activeConvoRef.current &&
-          activeConvoRef.current.jobId === convo.jobId &&
-          activeConvoRef.current.otherUserId === convo.otherUserId
-        ) {
-          setActiveConvo((cur) => (cur ? { ...cur, isMuted: newMuted } : cur));
-        }
+        patchMuteState(convo.jobId, convo.otherUserId, newMuted, null);
         hapticSuccess();
         toast.success(newMuted ? "Notifications muted" : "Notifications on");
       } catch (err) {
@@ -873,26 +905,89 @@ const Messages = () => {
           severity: "warning",
           tags: { source: "Messages.handleToggleMute" },
         });
-        // Revert optimistic flip on hard failure.
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.jobId === convo.jobId && c.otherUserId === convo.otherUserId
-              ? { ...c, isMuted: prevMuted }
-              : c,
-          ),
-        );
-        if (
-          activeConvoRef.current &&
-          activeConvoRef.current.jobId === convo.jobId &&
-          activeConvoRef.current.otherUserId === convo.otherUserId
-        ) {
-          setActiveConvo((cur) => (cur ? { ...cur, isMuted: prevMuted } : cur));
-        }
+        patchMuteState(convo.jobId, convo.otherUserId, prevMuted, prevUntil);
         hapticError();
         toast.error("Couldn't update mute — try again?");
       }
     },
-    [userId],
+    [userId, patchMuteState],
+  );
+
+  // Snooze a thread until a caller-supplied moment. `null` mutes forever
+  // (same end-state as `handleToggleMute` when going off→on); a past
+  // timestamp explicitly clears the mute. Optimistic with rollback,
+  // mirrors `handleToggleMute`'s recovery model.
+  const handleSnoozeMute = useCallback(
+    async (convo: Conversation, until: Date | null) => {
+      if (!userId) return;
+      const prevMuted = !!convo.isMuted;
+      const prevUntil = convo.muteUntil ?? null;
+      const targetIso = until ? until.toISOString() : null;
+      const targetMuted = until ? until.getTime() > Date.now() : true;
+      hapticHeavy();
+      patchMuteState(
+        convo.jobId,
+        convo.otherUserId,
+        targetMuted,
+        targetMuted ? targetIso : null,
+      );
+      try {
+        const serverUntil = await snoozeThread(
+          userId,
+          convo.jobId,
+          convo.otherUserId,
+          until,
+        );
+        const finalMuted = serverUntil
+          ? Date.parse(serverUntil) > Date.now()
+          : until === null;
+        patchMuteState(
+          convo.jobId,
+          convo.otherUserId,
+          finalMuted,
+          finalMuted ? serverUntil : null,
+        );
+        hapticSuccess();
+        if (until === null) toast.success("Notifications muted");
+        else if (until.getTime() <= Date.now()) toast.success("Notifications on");
+        else toast.success(`Muted until ${until.toLocaleString([], { hour: "numeric", minute: "2-digit", hour12: true })}`);
+      } catch (err) {
+        report(err, {
+          severity: "warning",
+          tags: { source: "Messages.handleSnoozeMute" },
+        });
+        patchMuteState(convo.jobId, convo.otherUserId, prevMuted, prevUntil);
+        hapticError();
+        toast.error("Couldn't update mute — try again?");
+      }
+    },
+    [userId, patchMuteState],
+  );
+
+  // Explicit unmute (clears any forever or snoozed mute). Used by the
+  // mute picker's "Turn notifications back on" action.
+  const handleUnmute = useCallback(
+    async (convo: Conversation) => {
+      if (!userId) return;
+      const prevMuted = !!convo.isMuted;
+      const prevUntil = convo.muteUntil ?? null;
+      hapticHeavy();
+      patchMuteState(convo.jobId, convo.otherUserId, false, null);
+      try {
+        await unmuteThread(userId, convo.jobId, convo.otherUserId);
+        hapticSuccess();
+        toast.success("Notifications on");
+      } catch (err) {
+        report(err, {
+          severity: "warning",
+          tags: { source: "Messages.handleUnmute" },
+        });
+        patchMuteState(convo.jobId, convo.otherUserId, prevMuted, prevUntil);
+        hapticError();
+        toast.error("Couldn't update mute — try again?");
+      }
+    },
+    [userId, patchMuteState],
   );
 
   const deleteMessage = async (messageId: string) => {
@@ -923,6 +1018,8 @@ const Messages = () => {
           setBlockTarget={setBlockTarget}
           setDeleteConvoConfirm={setDeleteConvoConfirm}
           onToggleMute={handleToggleMute}
+          onSnoozeMute={handleSnoozeMute}
+          onUnmute={handleUnmute}
         />
       ) : (
         <ChatView
@@ -948,6 +1045,8 @@ const Messages = () => {
           setBlockTarget={setBlockTarget}
           setDeleteMessageConfirm={setDeleteMessageConfirm}
           onToggleMute={handleToggleMute}
+          onSnoozeMute={handleSnoozeMute}
+          onUnmute={handleUnmute}
           jobSystemEvents={jobSystemEvents}
         />
       )}
@@ -974,6 +1073,15 @@ const Messages = () => {
               setActiveConvo(null);
               navigate("/messages", { replace: true });
             }
+          }}
+          // Block-and-report combo: after the block succeeds, open the
+          // multi-step Report dialog so the trust team gets a flag in
+          // the same gesture. Captures the user id before clearing
+          // `blockTarget` so the report target stays stable.
+          onReportAndBlock={() => {
+            const id = blockTarget.id;
+            setBlockTarget(null);
+            setReportTarget({ type: "user", id });
           }}
         />
       )}

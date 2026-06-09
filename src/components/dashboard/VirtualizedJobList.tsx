@@ -147,6 +147,11 @@ export function VirtualizedJobList<T>({
               // positioned relative to the list container which already
               // sits `scrollMargin` px down.
               transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+              // Ease the position shift so rows below an expand/collapse
+              // glide rather than snapping when measureElement re-reports a
+              // card's height — softens the remeasure flicker. Transform
+              // only (no layout cost), short enough to feel instant.
+              transition: "transform 150ms ease-out",
             }}
           >
             {renderItem(item, virtualRow.index)}

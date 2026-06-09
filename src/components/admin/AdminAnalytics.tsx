@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,7 +66,7 @@ const AdminAnalytics = () => {
       while (true) {
         const { data, error } = await supabase.from("jobs").select("*").range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
         if (error) {
-          console.error("[AdminAnalytics] load jobs page:", error);
+          report(error, { tags: { source: "AdminAnalytics.loadJobs" } });
           break;
         }
         if (!data || data.length === 0) break;
@@ -79,9 +80,9 @@ const AdminAnalytics = () => {
         supabase.from("tips").select("*"),
         supabase.from("user_roles").select("user_id, role"),
       ]);
-      if (profilesRes.error) console.error("[AdminAnalytics] load profiles:", profilesRes.error);
-      if (tipsRes.error) console.error("[AdminAnalytics] load tips:", tipsRes.error);
-      if (rolesRes.error) console.error("[AdminAnalytics] load roles:", rolesRes.error);
+      if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
+      if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });
+      if (rolesRes.error) report(rolesRes.error, { tags: { source: "AdminAnalytics.loadRoles" } });
       setProfiles(profilesRes.data || []);
       setAllJobs(allJobsData);
       setTips(tipsRes.data || []);
@@ -344,18 +345,18 @@ const AdminAnalytics = () => {
     setDrillLoading(true);
     if (type === "users") {
       const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-      if (error) console.error("[AdminAnalytics] drillDown users:", error);
+      if (error) report(error, { tags: { source: "AdminAnalytics.drillDownUsers" } });
       setDrillUsers(data || []);
     } else if (type === "jobs" || type === "revenue" || type === "fees" || type === "payouts") {
       const query = supabase.from("jobs").select("*").order("created_at", { ascending: false });
       if (type === "revenue" || type === "fees") query.in("payment_status", ["escrow", "payout_pending", "released"]);
       if (type === "payouts") query.in("payment_status", ["escrow", "payout_pending", "released"]);
       const { data, error } = await query;
-      if (error) console.error("[AdminAnalytics] drillDown jobs:", error);
+      if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
       setDrillJobs(data || []);
     } else if (type === "subscriptions") {
       const { data, error } = await supabase.from("profiles").select("*").not("subscription_tier", "is", null).order("subscription_tier");
-      if (error) console.error("[AdminAnalytics] drillDown subscriptions:", error);
+      if (error) report(error, { tags: { source: "AdminAnalytics.drillDownSubscriptions" } });
       setDrillUsers(data || []);
     }
     setDrillLoading(false);

@@ -9,14 +9,13 @@ import {
   Repeat,
   Zap,
   CreditCard,
-  Shield,
-  DollarSign,
   ChevronLeft,
   CheckCircle2,
   Users,
 } from "lucide-react";
 import type { HelprActivity } from "@/hooks/useHelprActivity";
 import { EscrowExplainer } from "@/components/payment/EscrowExplainer";
+import { EscrowFlowExplainer } from "@/components/payment/EscrowFlowExplainer";
 
 const isSafeBlobPreviewUrl = (value: string): boolean => {
   if (!value) return false;
@@ -232,27 +231,13 @@ export function CheckoutStep({
         </div>
       </div>
 
-      {/* Trust Signals */}
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Shield className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-ds-13 font-semibold text-foreground">Secure Payment</p>
-            <p className="text-ds-11 text-muted-foreground">Your payment is processed securely via Stripe. The helpr is paid only after both parties confirm job completion.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <DollarSign className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-ds-13 font-semibold text-foreground">Money-Back Guarantee</p>
-            <p className="text-ds-11 text-muted-foreground">If the job isn't completed, your payment will be refunded.</p>
-          </div>
-        </div>
-      </div>
+      {/* Trust Signals — replaced the previous two-icon strip ("Secure
+          Payment" / "Money-Back Guarantee") with a full inline explainer
+          of the hold → verify → release escrow flow. The numbered
+          three-step panel does the same reassurance work AND teaches
+          first-time posters what their money is actually doing, instead
+          of hiding the explanation behind a popover trigger above. */}
+      <EscrowFlowExplainer />
 
       {/* Confirmation Checkbox — the full card is a <label> so tapping
           anywhere on it toggles the checkbox. This makes the tap target

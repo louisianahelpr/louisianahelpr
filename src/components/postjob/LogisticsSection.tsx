@@ -194,7 +194,7 @@ export function LogisticsSection({
 
       <div className="space-y-2.5">
         <Label htmlFor="requirements">Access &amp; parking notes</Label>
-        <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Gate codes, where to park, which door, pets on site… (optional)" rows={2} maxLength={500} />
+        <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Gate codes, where to park, which door, pets on site… (optional)" rows={2} maxLength={500} autoCapitalize="sentences" />
       </div>
 
       {/* Job type — One-time / Recurring / Group are mutually

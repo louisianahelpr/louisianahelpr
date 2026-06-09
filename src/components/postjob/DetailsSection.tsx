@@ -112,7 +112,8 @@ export function DetailsSection({
                 type="button"
                 onClick={() => setCategory(c.value)}
                 aria-pressed={active}
-                className="flex items-center gap-2.5 p-2 rounded-xl transition-all active:scale-[0.97]"
+                aria-label={c.label}
+                className="flex items-center gap-2.5 p-2 rounded-xl transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 style={
                   active
                     ? {
@@ -211,7 +212,7 @@ export function DetailsSection({
         />
         {/* Category-aware prompt — tells the poster exactly what a helpr
             needs to quote accurately. Vague posts get fewer applicants. */}
-        <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+        <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           {descriptionHints[category] ?? descriptionHints.other}
         </p>
       </div>
@@ -235,7 +236,7 @@ export function DetailsSection({
               </span>
             )}
           </div>
-          <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             Posts with a photo get noticeably more applicants.
           </p>
         </div>
@@ -262,18 +263,25 @@ export function DetailsSection({
                   <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
                 </div>
               )}
+              {/* 40px tap target (a11y minimum) with the visible sienna
+                  pill kept at 20px — the button is transparent and just
+                  enlarges the touch area in the photo's corner. */}
               <button
                 type="button"
                 onClick={() => onRemoveImage(i)}
                 aria-label="Remove photo"
-                className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center active:scale-90 transition-all"
-                style={{
-                  background: "hsl(var(--burnt-sienna))",
-                  color: "hsl(var(--parchment))",
-                  boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
-                }}
+                className="absolute -top-1 -right-1 h-10 w-10 flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full"
               >
-                <X className="w-3 h-3" strokeWidth={2.5} />
+                <span
+                  className="w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{
+                    background: "hsl(var(--burnt-sienna))",
+                    color: "hsl(var(--parchment))",
+                    boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                  }}
+                >
+                  <X className="w-3 h-3" strokeWidth={2.5} />
+                </span>
               </button>
             </div>
           ))}

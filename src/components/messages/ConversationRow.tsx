@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Flag, Ban, Trash2, MoreVertical } from "lucide-react";
+import { Flag, Ban, Trash2, MoreVertical, BellOff, Bell } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +25,8 @@ interface ConversationRowProps {
   setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
   setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
   setDeleteConvoConfirm: Dispatch<SetStateAction<Conversation | null>>;
+  /** Toggle the muted state of this thread for the current user. */
+  onToggleMute: (convo: Conversation) => void;
 }
 
 /**
@@ -99,6 +101,7 @@ const ConversationRowBase = ({
   setReportTarget,
   setBlockTarget,
   setDeleteConvoConfirm,
+  onToggleMute,
 }: ConversationRowProps) => {
   // Relative time so the list reads as "active", not as a stack of
   // full dates.
@@ -207,6 +210,18 @@ const ConversationRowBase = ({
                   {statusChip.label}
                 </span>
               )}
+              {/* Muted bell-slash — quiet visual mark that this thread
+                  has notifications off for the current user. iMessage
+                  convention: small icon next to the title/subtitle row,
+                  not a full pill, so a muted row reads as "still here,
+                  just quiet". */}
+              {c.isMuted && (
+                <BellOff
+                  className="w-3 h-3 shrink-0"
+                  style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                  aria-label="Muted"
+                />
+              )}
             </div>
             {/* iMessage-style rich preview row. The image thumbnail (when
                 present) sits to the LEFT of the text. The "You: " prefix
@@ -269,6 +284,22 @@ const ConversationRowBase = ({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {/* Mute / unmute — first item so the most-frequent action is
+              easiest to reach. Icon flips bell ↔ bell-off to match the
+              current state, copy follows iMessage "Hide Alerts" / "Show
+              Alerts" semantics. */}
+          <DropdownMenuItem onClick={() => onToggleMute(c)}>
+            {c.isMuted ? (
+              <>
+                <Bell className="w-4 h-4 mr-2" /> Unmute notifications
+              </>
+            ) : (
+              <>
+                <BellOff className="w-4 h-4 mr-2" /> Mute notifications
+              </>
+            )}
+          </DropdownMenuItem>
+          <div role="separator" className="my-1 h-px bg-border" />
           <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: c.otherUserId })}>
             <Flag className="w-4 h-4 mr-2" /> Report user
           </DropdownMenuItem>

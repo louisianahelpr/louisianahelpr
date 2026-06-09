@@ -63,4 +63,8 @@ export type Conversation = {
       fire one round-trip per row (N+1 across image-last-message threads).
       Stays absent for text-only or non-image attachments. */
   lastMessageAttachmentSignedUrl?: string | null;
+  /** True when the current user has muted this thread — drives a
+      bell-slash icon on the row and a "Muted" pill in the chat header.
+      Resolved in batch from `get_muted_threads` per `loadConversations`. */
+  isMuted?: boolean;
 };

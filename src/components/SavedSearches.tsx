@@ -61,7 +61,12 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-    if (!error) setSearches(data || []);
+    if (error) {
+      hapticError();
+      toast.error("We couldn't load your saved searches — please try again.");
+    } else {
+      setSearches(data || []);
+    }
     setLoading(false);
   };
 

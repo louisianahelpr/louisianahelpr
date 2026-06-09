@@ -105,29 +105,32 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
       // Track cancellation with helpr assigned — 2 warnings then permanent ban on 3rd
       if (hasHelper) {
-        const { data: existing } = await supabase
+        const { data: existing, error: existingErr } = await supabase
           .from("user_violations")
           .select("id")
           .eq("user_id", userId)
           .eq("violation_type", "cancel_with_helper");
+        if (existingErr) report(existingErr, { tags: { source: "CancellationDialog.priorViolations" } });
         const priorCount = existing?.length ?? 0;
 
         let actionTaken = "none";
         if (priorCount >= 2) actionTaken = "permanent_ban";
         else actionTaken = "warning";
 
-        await supabase.from("user_violations").insert({
+        const { error: violationErr } = await supabase.from("user_violations").insert({
           user_id: userId,
           violation_type: "cancel_with_helper",
           description: `Cancelled job with helpr assigned: "${jobTitle}"`,
           job_id: jobId,
           action_taken: actionTaken,
         });
+        if (violationErr) report(violationErr, { tags: { source: "CancellationDialog.recordViolation" } });
 
         const warningNum = priorCount + 1;
 
         if (actionTaken === "warning") {
-          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", userId);
+          const { error: warnErr } = await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", userId);
+          if (warnErr) report(warnErr, { tags: { source: "CancellationDialog.finalWarning" } });
           await createNotification({
             user_id: userId,
             title: `⚠️ Cancellation Warning (${warningNum}/2)`,
@@ -137,20 +140,23 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           });
           toast.warning(`Warning ${warningNum}/2: Cancelling after selecting a helpr is tracked. A 3rd time = permanent ban.`);
         } else if (actionTaken === "permanent_ban") {
-          await supabase.from("user_bans").insert({
+          const { error: banInsertErr } = await supabase.from("user_bans").insert({
             user_id: userId,
             ban_type: "permanent",
             reason: "Cancelled 3 jobs after selecting a helpr",
             banned_by: userId,
           });
-          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", userId);
+          if (banInsertErr) report(banInsertErr, { tags: { source: "CancellationDialog.recordBan" } });
+          const { error: banStatusErr } = await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", userId);
+          if (banStatusErr) report(banStatusErr, { tags: { source: "CancellationDialog.applyBanStatus" } });
           toast.error("Your account has been permanently banned due to 3 cancellations after selecting a helpr.");
         }
 
         // Bulk-fan to admins in one INSERT instead of awaiting per row.
-        const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+        const { data: adminRoles, error: adminRolesErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+        if (adminRolesErr) report(adminRolesErr, { tags: { source: "CancellationDialog.fetchAdmins" } });
         if (adminRoles?.length) {
-          await supabase.from("notifications").insert(
+          const { error: notifyErr } = await supabase.from("notifications").insert(
             adminRoles.map((a: { user_id: string }) => ({
               user_id: a.user_id,
               title: "⚠️ Cancellation with helpr",
@@ -160,6 +166,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               read: false,
             })),
           );
+          if (notifyErr) report(notifyErr, { tags: { source: "CancellationDialog.notifyAdmins" } });
         }
       } else {
         toast.success("Job cancelled.");

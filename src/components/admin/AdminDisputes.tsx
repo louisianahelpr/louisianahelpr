@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Clock, AlertTriangle, Flame } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { CheckCircle2, XCircle, Clock, AlertTriangle, Flame, Scale, History } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -21,42 +23,117 @@ interface DisputedJob {
   stripe_payment_intent_id: string | null;
 }
 
+/** Row in the formal `public.disputes` table — null when the dispute
+ *  predates the migration and we're reading from jobs.dispute_*. */
+interface DisputeRecord {
+  id: string;
+  job_id: string;
+  opener_id: string;
+  reason: string;
+  evidence_urls: string[];
+  status: "open" | "decided" | "withdrawn";
+  created_at: string;
+  decided_at: string | null;
+  decided_by: string | null;
+  decision_text: string | null;
+  payout_split: { poster?: number; helper?: number } | null;
+}
+
+type FilterTab = "open" | "decided";
+
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
+  const [decidedJobs, setDecidedJobs] = useState<DisputedJob[]>([]);
+  const [disputeRecords, setDisputeRecords] = useState<Record<string, DisputeRecord>>({});
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [tiers, setTiers] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ job: DisputedJob; action: "release" | "refund" } | null>(null);
 
-  useEffect(() => {
-    loadDisputes();
-  }, []);
+  // Filter tab — Open is the working queue; Decided is an audit log.
+  const [filter, setFilter] = useState<FilterTab>("open");
 
-  const loadDisputes = async () => {
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by")
-      .eq("status", "disputed")
-      .order("disputed_at", { ascending: false });
+  // Per-job decision panel state (key = job.id). Tracks decision text +
+  // payout split slider position (0 = full poster, 100 = full helper).
+  // Mounting one panel per visible row would be wasteful, so we lazily
+  // expand a single job and store its draft state.
+  const [activePanelJobId, setActivePanelJobId] = useState<string | null>(null);
+  const [decisionText, setDecisionText] = useState("");
+  // Slider position 0..100 represents the helper's share (the helper
+  // is the side the slider points toward by convention — "in their
+  // favour"). Poster share = 100 - helper share.
+  const [helperShare, setHelperShare] = useState<number>(50);
+  const [submittingDecision, setSubmittingDecision] = useState(false);
 
-    if (error) {
-      console.error("[AdminDisputes] loadDisputes:", error);
+  const loadDisputes = useCallback(async () => {
+    setLoading(true);
+    // Load both buckets in parallel — the queue stays responsive when
+    // an admin switches tabs.
+    const [openRes, decidedRes] = await Promise.all([
+      supabase
+        .from("jobs")
+        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by")
+        .eq("status", "disputed")
+        .order("disputed_at", { ascending: false }),
+      supabase
+        .from("jobs")
+        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at")
+        .not("dispute_resolved_at", "is", null)
+        .order("dispute_resolved_at", { ascending: false })
+        .limit(50),
+    ]);
+
+    if (openRes.error) {
+      report(openRes.error, { tags: { source: "AdminDisputes.loadOpen" } });
       toast.error("Failed to load disputes");
       setLoading(false);
       return;
     }
+    if (decidedRes.error) {
+      // Decided list isn't blocking — surface the error but keep the
+      // open queue rendering.
+      report(decidedRes.error, { tags: { source: "AdminDisputes.loadDecided" } });
+    }
 
-    const jobs = (data || []) as unknown as DisputedJob[];
+    const openJobs = (openRes.data || []) as unknown as DisputedJob[];
+    const decided = ((decidedRes.data || []) as unknown as DisputedJob[]);
+
+    // Pull formal dispute records for every visible job in one query.
+    // Falls back silently when the disputes table doesn't exist yet
+    // (PGRST205 / 42P01) — the legacy jobs.dispute_* columns drive the
+    // view in that case.
+    const allJobIds = [...openJobs.map((j) => j.id), ...decided.map((j) => j.id)];
+    const recordsMap: Record<string, DisputeRecord> = {};
+    if (allJobIds.length > 0) {
+      const { data: records, error: recordsErr } = await (supabase.from as any)("disputes")
+        .select("id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split")
+        .in("job_id", allJobIds);
+      if (recordsErr && recordsErr.code !== "PGRST205" && recordsErr.code !== "42P01") {
+        report(recordsErr, { tags: { source: "AdminDisputes.loadRecords" } });
+      }
+      for (const r of (records as DisputeRecord[] | null) ?? []) {
+        // One row per job — if multiple exist (re-files), keep the
+        // most recent.
+        if (!recordsMap[r.job_id] || new Date(r.created_at) > new Date(recordsMap[r.job_id].created_at)) {
+          recordsMap[r.job_id] = r;
+        }
+      }
+    }
+    setDisputeRecords(recordsMap);
 
     // Load profile names and subscription tiers for priority sorting
-    const userIds = [...new Set(jobs.flatMap(j => [j.customer_id, j.helper_id, j.disputed_by].filter(Boolean) as string[]))];
+    const userIds = [
+      ...new Set(
+        [...openJobs, ...decided].flatMap((j) => [j.customer_id, j.helper_id, j.disputed_by].filter(Boolean) as string[]),
+      ),
+    ];
     const tMap: Record<string, string | null> = {};
     if (userIds.length > 0) {
       const { data: profs, error: profsErr } = await supabase.from("profiles").select("user_id, full_name, subscription_tier").in("user_id", userIds);
       if (profsErr) report(profsErr, { tags: { source: "AdminDisputes.loadProfiles" } });
       const map: Record<string, string> = {};
-      profs?.forEach(p => {
+      profs?.forEach((p) => {
         map[p.user_id] = formatName(p.full_name);
         tMap[p.user_id] = p.subscription_tier;
       });
@@ -81,7 +158,7 @@ const AdminDisputes = () => {
       if (!j.disputed_at) return 0;
       return (Date.now() - new Date(j.disputed_at).getTime()) / 3600_000;
     };
-    const sorted = jobs.sort((a, b) => {
+    const sorted = openJobs.sort((a, b) => {
       const aAge = ageHours(a);
       const bAge = ageHours(b);
       const aChargeback = aAge > 120; // 5 days
@@ -97,8 +174,13 @@ const AdminDisputes = () => {
     });
 
     setDisputes(sorted);
+    setDecidedJobs(decided);
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    loadDisputes();
+  }, [loadDisputes]);
 
   // SLA badge — green/amber/red based on time since the dispute was filed.
   // Past 5 days the customer can chargeback through their card issuer
@@ -162,56 +244,171 @@ const AdminDisputes = () => {
     }
   };
 
+  // Record the formal decision (text + split). Optionally fire the
+  // matching Stripe action when the split is 100/0 — anything in
+  // between is recorded but the actual money split is admin-handled
+  // out-of-band (Stripe's API doesn't natively model a partial-split
+  // refund on a Connect destination charge; the platform doesn't have
+  // a webhook for it either). We surface that in the toast.
+  const decide = async (job: DisputedJob) => {
+    if (!decisionText.trim()) {
+      toast.error("Add a decision note first");
+      return;
+    }
+    setSubmittingDecision(true);
+    try {
+      const payoutSplit = {
+        poster: (100 - helperShare) / 100,
+        helper: helperShare / 100,
+      };
+
+      // Try the formal RPC. Cast through `any` until `supabase gen
+      // types` reflects the new migration. PGRST202 = not deployed
+      // yet (migrations don't auto-deploy per CLAUDE.md), in which
+      // case we fall back to a direct UPDATE that records the
+      // decision on the legacy `dispute_resolved_at` column so this
+      // works between merge and the manual `supabase db push`.
+      const { error: rpcError } = await (supabase.rpc as any)(
+        "rpc_decide_dispute",
+        {
+          _dispute_id: disputeRecords[job.id]?.id ?? null,
+          _decision_text: decisionText.trim(),
+          _payout_split: payoutSplit,
+        },
+      );
+
+      if (rpcError && rpcError.code !== "PGRST202") {
+        // The disputes table may not exist yet (PGRST205) — fall back
+        // to writing dispute_resolved_at on the job row + nothing
+        // else. The decision text isn't persisted in that case but
+        // the dispute is at least marked closed.
+        if (rpcError.code !== "PGRST205" && rpcError.code !== "42P01") {
+          throw rpcError;
+        }
+      }
+
+      if (rpcError) {
+        // Legacy fallback — set the resolution timestamp + new job
+        // status. payout split + decision text aren't surfaced
+        // anywhere in this path, but the dispute is at least closed.
+        const newStatus = helperShare === 0 ? "cancelled" : "completed";
+        const { error } = await supabase
+          .from("jobs")
+          .update({ status: newStatus, dispute_resolved_at: new Date().toISOString() })
+          .eq("id", job.id);
+        if (error) throw error;
+      }
+
+      // Optionally trigger the matching Stripe action for the
+      // unambiguous 100/0 cases. Splits are recorded but not
+      // auto-executed.
+      if (helperShare === 100) {
+        const { data, error } = await supabase.functions.invoke("create-payment", {
+          body: { action: "admin_release_dispute", jobId: job.id },
+        });
+        if (error || data?.error) {
+          // Surfacing the Stripe failure but the decision is already
+          // recorded — surface as a warning so the admin can retry the
+          // payout out-of-band.
+          toast.warning("Decision recorded, but Stripe payout failed — retry manually.");
+        } else {
+          toast.success("Decision recorded. Payment released to helpr.");
+        }
+      } else if (helperShare === 0) {
+        const { data, error } = await supabase.functions.invoke("create-payment", {
+          body: { action: "admin_refund_dispute", jobId: job.id },
+        });
+        if (error || data?.error) {
+          toast.warning("Decision recorded, but Stripe refund failed — retry manually.");
+        } else {
+          toast.success("Decision recorded. Payment refunded to poster.");
+        }
+      } else {
+        toast.success(`Decision recorded. Move the ${helperShare}/${100 - helperShare} split in Stripe manually.`);
+      }
+
+      // Reset the panel + reload list.
+      setActivePanelJobId(null);
+      setDecisionText("");
+      setHelperShare(50);
+      loadDisputes();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to record decision");
+    } finally {
+      setSubmittingDecision(false);
+    }
+  };
+
+  const openDecisionPanel = (job: DisputedJob) => {
+    setActivePanelJobId(job.id);
+    setDecisionText("");
+    setHelperShare(50);
+  };
+
   if (loading) return <p className="text-muted-foreground">Loading disputes…</p>;
 
-  if (disputes.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <CheckCircle2 className="w-10 h-10 text-primary mx-auto mb-3 opacity-50" />
-        <p className="text-muted-foreground">No active disputes</p>
-      </div>
-    );
-  }
+  const list = filter === "open" ? disputes : decidedJobs;
 
-  return (
-    <div className="space-y-4">
-      
-      {disputes.map((job) => (
-        <div key={job.id} className="rounded-ds-md border border-destructive/30 bg-card p-4 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold text-foreground">{job.title}</h3>
-                {slaBadge(job.disputed_at)}
-                {[job.customer_id, job.helper_id].some(id => id && tiers[id] === "elite") && (
-                  <span className="text-ds-10 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
-                )}
-              </div>
-              <p className="text-ds-11 text-muted-foreground">${job.budget}</p>
-              <p className="text-ds-11 text-muted-foreground mt-1">
-                Customer: <span className="font-medium text-foreground">{profiles[job.customer_id] || "Unknown"}</span>
-                {job.helper_id && <> · Helpr: <span className="font-medium text-foreground">{profiles[job.helper_id] || "Unknown"}</span></>}
-              </p>
-              {job.disputed_at && (
-                <p className="text-ds-11 text-muted-foreground">
-                  Disputed {new Date(job.disputed_at).toLocaleDateString()} by {profiles[job.disputed_by || ""] || "Unknown"}
-                </p>
+  // Renders one card. Shared between Open and Decided so the visual
+  // layout stays consistent; resolution actions only appear for Open.
+  const renderCard = (job: DisputedJob) => {
+    const record = disputeRecords[job.id];
+    const isActivePanel = activePanelJobId === job.id;
+    const helperName = job.helper_id ? profiles[job.helper_id] || "Unknown" : null;
+    const posterName = profiles[job.customer_id] || "Unknown";
+
+    return (
+      <div key={job.id} className="rounded-ds-md border border-destructive/30 bg-card p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-foreground">{job.title}</h3>
+              {filter === "open" && slaBadge(job.disputed_at)}
+              {filter === "decided" && (
+                <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-primary/15 text-primary font-semibold uppercase tracking-wide">
+                  <CheckCircle2 className="w-3 h-3" /> Decided
+                </span>
+              )}
+              {[job.customer_id, job.helper_id].some((id) => id && tiers[id] === "elite") && (
+                <span className="text-ds-10 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
               )}
             </div>
+            <p className="text-ds-11 text-muted-foreground">${job.budget}</p>
+            <p className="text-ds-11 text-muted-foreground mt-1">
+              Customer: <span className="font-medium text-foreground">{posterName}</span>
+              {helperName && <> · Helpr: <span className="font-medium text-foreground">{helperName}</span></>}
+            </p>
+            {job.disputed_at && (
+              <p className="text-ds-11 text-muted-foreground">
+                Disputed {new Date(job.disputed_at).toLocaleDateString()} by {profiles[job.disputed_by || ""] || "Unknown"}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Timeline — keeps both parties' contributions visible in one place. */}
+        <div className="space-y-2">
+          <div className="p-3 rounded-ds-sm bg-destructive/5 border border-destructive/20">
+            <p className="text-ds-13 text-foreground font-medium flex items-center gap-1">
+              <AlertTriangle className="w-3.5 h-3.5" /> Filed
+              {record && (
+                <span className="ml-1 text-ds-10 text-muted-foreground">
+                  · {new Date(record.created_at).toLocaleString()}
+                </span>
+              )}
+            </p>
+            {(record?.reason ?? job.dispute_reason) && (
+              <p className="text-ds-11 text-muted-foreground mt-1 italic">
+                "{record?.reason ?? job.dispute_reason}"
+              </p>
+            )}
           </div>
 
-          {job.dispute_reason && (
-            <div className="p-3 rounded-ds-sm bg-destructive/5 border border-destructive/20">
-              <p className="text-ds-13 text-foreground font-medium">Reason:</p>
-              <p className="text-ds-11 text-muted-foreground">{job.dispute_reason}</p>
-            </div>
-          )}
-
-          {job.dispute_evidence_urls && job.dispute_evidence_urls.length > 0 && (
+          {(record?.evidence_urls?.length ?? job.dispute_evidence_urls?.length ?? 0) > 0 && (
             <div className="space-y-1">
               <p className="text-ds-11 font-medium text-muted-foreground">Evidence photos:</p>
               <div className="flex gap-2 flex-wrap">
-                {job.dispute_evidence_urls.map((url, i) => (
+                {(record?.evidence_urls ?? job.dispute_evidence_urls ?? []).map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors">
                     <img loading="lazy" decoding="async" src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
                   </a>
@@ -220,16 +417,174 @@ const AdminDisputes = () => {
             </div>
           )}
 
-          <div className="flex gap-2 pt-2 border-t border-border">
-            <Button size="sm" onClick={() => setConfirm({ job, action: "release" })} disabled={resolving === job.id}>
-              <CheckCircle2 className="w-4 h-4 mr-1" /> Release to Helpr
+          {record?.decided_at && (
+            <div className="p-3 rounded-ds-sm bg-primary/5 border border-primary/20">
+              <p className="text-ds-13 text-foreground font-medium flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Decided
+                <span className="ml-1 text-ds-10 text-muted-foreground">
+                  · {new Date(record.decided_at).toLocaleString()}
+                </span>
+              </p>
+              {record.decision_text && (
+                <p className="text-ds-11 text-muted-foreground mt-1 italic">"{record.decision_text}"</p>
+              )}
+              {record.payout_split && (
+                <p className="text-ds-11 text-muted-foreground mt-1">
+                  Split: poster <span className="font-semibold text-foreground tabular-nums">{Math.round((record.payout_split.poster ?? 0) * 100)}%</span>
+                  {" · "}
+                  helper <span className="font-semibold text-foreground tabular-nums">{Math.round((record.payout_split.helper ?? 0) * 100)}%</span>
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {filter === "open" && !isActivePanel && (
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+            <Button size="sm" onClick={() => openDecisionPanel(job)}>
+              <Scale className="w-4 h-4 mr-1" /> Decide…
             </Button>
-            <Button size="sm" variant="destructive" onClick={() => setConfirm({ job, action: "refund" })} disabled={resolving === job.id}>
-              <XCircle className="w-4 h-4 mr-1" /> Refund Customer
+            <Button size="sm" variant="outline" onClick={() => setConfirm({ job, action: "release" })} disabled={resolving === job.id}>
+              <CheckCircle2 className="w-4 h-4 mr-1" /> Quick: Release to Helpr
+            </Button>
+            <Button size="sm" variant="outline" className="text-destructive" onClick={() => setConfirm({ job, action: "refund" })} disabled={resolving === job.id}>
+              <XCircle className="w-4 h-4 mr-1" /> Quick: Refund Customer
             </Button>
           </div>
+        )}
+
+        {filter === "open" && isActivePanel && (
+          <div className="pt-2 border-t border-border space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-ds-11 font-medium">Decision note (recorded for both parties)</Label>
+              <Textarea
+                value={decisionText}
+                onChange={(e) => setDecisionText(e.target.value)}
+                placeholder="Explain the outcome — what tipped the call, what each party should expect."
+                rows={3}
+                maxLength={1000}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-ds-11 font-medium">Payout split</Label>
+              {/* Range input — 0 = 100% poster (full refund), 100 = 100% helper (full release). */}
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={helperShare}
+                onChange={(e) => setHelperShare(Number(e.target.value))}
+                className="w-full accent-primary"
+                aria-label="Helper's share of the payout"
+              />
+              <div className="flex justify-between text-ds-11 tabular-nums">
+                <span className="text-muted-foreground">
+                  Poster <span className="font-semibold text-foreground">{100 - helperShare}%</span>
+                  <span className="ml-1 text-muted-foreground">(${((job.budget * (100 - helperShare)) / 100).toFixed(2)})</span>
+                </span>
+                <span className="text-muted-foreground">
+                  Helper <span className="font-semibold text-foreground">{helperShare}%</span>
+                  <span className="ml-1 text-muted-foreground">(${((job.budget * helperShare) / 100).toFixed(2)})</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setHelperShare(0)}
+                disabled={submittingDecision}
+              >
+                Resolve for poster (0/100)
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setHelperShare(50)}
+                disabled={submittingDecision}
+              >
+                Split 50/50
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setHelperShare(100)}
+                disabled={submittingDecision}
+              >
+                Resolve for helper (100/0)
+              </Button>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                size="sm"
+                onClick={() => decide(job)}
+                disabled={submittingDecision || !decisionText.trim()}
+              >
+                {submittingDecision ? "Recording…" : "Record decision"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setActivePanelJobId(null);
+                  setDecisionText("");
+                  setHelperShare(50);
+                }}
+                disabled={submittingDecision}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filter tabs — Open queue vs. Decided audit log. */}
+      <div className="flex gap-1.5 border-b border-border">
+        <button
+          type="button"
+          onClick={() => setFilter("open")}
+          className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
+            filter === "open" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5" /> Open
+            <span className="text-ds-11 tabular-nums">({disputes.length})</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter("decided")}
+          className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
+            filter === "decided" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <History className="w-3.5 h-3.5" /> Decided
+            <span className="text-ds-11 tabular-nums">({decidedJobs.length})</span>
+          </span>
+        </button>
+      </div>
+
+      {list.length === 0 ? (
+        <div className="text-center py-12">
+          <CheckCircle2 className="w-10 h-10 text-primary mx-auto mb-3 opacity-50" />
+          <p className="text-muted-foreground">
+            {filter === "open" ? "No active disputes" : "No decided disputes in the last 50."}
+          </p>
         </div>
-      ))}
+      ) : (
+        list.map(renderCard)
+      )}
 
       <BrandConfirmDialog
         open={!!confirm}

@@ -258,6 +258,7 @@ function RecenterControl({ center, zoom }: { center: [number, number]; zoom: num
       type="button"
       onClick={() => map.flyTo(center, zoom, { duration: 0.45 })}
       aria-label="Recenter map"
+      title="Recenter map"
       className="absolute z-[400] w-10 h-10 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"
       style={{
         // Sit clear of the floating dock + FAB at the bottom of the

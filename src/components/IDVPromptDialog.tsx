@@ -130,7 +130,7 @@ export function IDVPromptDialog({
             no self-service retry CTA. Per owner policy, Stripe Identity is
             charged once; failures route to manual admin review. */}
         {isAdminReview && (
-          <div className="flex items-start gap-3 p-3 rounded-[12px] bg-amber-500/10 border border-amber-500/30 mt-2">
+          <div className="flex items-start gap-3 p-3 rounded-ds-md bg-amber-500/10 border border-amber-500/30 mt-2">
             <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
             <div className="text-ds-13 text-foreground">
               <p className="font-medium">What happened</p>

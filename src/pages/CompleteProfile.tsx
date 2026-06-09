@@ -402,7 +402,7 @@ const CompleteProfile = () => {
               vertical space on SE (375px). The header always shows progress
               so the user isn't flying blind even when the list is folded.
               On sm+ screens it's always expanded. */}
-          <div className="squircle mb-5 rounded-[24px] border border-border/60 bg-card/80 backdrop-blur-md shadow-[var(--card-shadow)] p-4">
+          <div className="squircle mb-5 rounded-ds-lg border border-border/60 bg-card/80 backdrop-blur-md shadow-[var(--card-shadow)] p-4">
             <button
               type="button"
               aria-expanded={checklistExpanded}
@@ -590,6 +590,7 @@ const CompleteProfile = () => {
                 placeholder="A short intro neighbors will see on your profile (20+ characters)."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
+                autoCapitalize="sentences"
                 className="rounded-ds-md"
               />
             </div>

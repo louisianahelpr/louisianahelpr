@@ -8,7 +8,8 @@ import { test, expect, FAKE_CUSTOMER, mockTable, mockRpc, installSupabaseMocks, 
 // The contract this spec asserts:
 //   1. The marketing landing page renders with a Sign Up CTA
 //   2. /signup loads without crashing (the public-form route entry-point)
-//   3. An authed customer can reach /post-job and see the form step
+//   3. An authed customer can reach /post-job, see the entry landing, and
+//      "Start fresh" into the form step
 //   4. /my-posts surfaces a job the customer "posted" (mocked select)
 
 test.describe("customer post-job happy path", () => {
@@ -76,10 +77,17 @@ test.describe("customer post-job happy path", () => {
 
     await page.goto("/post-job");
 
-    // ProtectedRoute does an async profile fetch + Big-7 gate before it
-    // renders children. Allow extra time for that bootstrap.
-    await expect(page.getByRole("heading", { name: /what do you need done/i })).toBeVisible({
+    // /post-job now opens on the entry-landing step (start fresh / draft /
+    // template) before the full form. ProtectedRoute does an async profile
+    // fetch + Big-7 gate before it renders children, so allow extra time.
+    await expect(page.getByRole("heading", { name: /post a task/i })).toBeVisible({
       timeout: 15_000,
+    });
+
+    // "Start fresh" transitions into the multi-step form.
+    await page.getByRole("button", { name: /start fresh/i }).click();
+    await expect(page.getByRole("heading", { name: /what do you need done/i })).toBeVisible({
+      timeout: 10_000,
     });
 
     // The page must NOT redirect to /login (auth seeding worked).

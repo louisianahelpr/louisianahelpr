@@ -88,6 +88,9 @@ export function usePostJobForm() {
   const [department, setDepartment] = useState("");
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
+  // Helper-side commission (deducted from the helpr's payout). Surfaced
+  // in the budget-step "We keep X% — helpr sees $Y net" preview chip.
+  const [helperFee, setHelperFee] = useState<number | null>(null);
   const salesTaxRate = 10;
   // True once the user has restored the saved draft via loadDraft. The inline
   // "Pick up draft" pill hides after this so an accidental re-tap can't replace
@@ -101,6 +104,30 @@ export function usePostJobForm() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  // Per-image progress 0..1 keyed by current index in `imageFiles`.
+  // Combined view of compression progress (selection time) and upload
+  // progress (submit time) — only one phase runs at any given moment.
+  const [uploadProgressByIndex, setUploadProgressByIndex] = useState<Record<number, number>>({});
+
+  // Optional "Materials I'll provide" note for material-heavy categories.
+  // Stored locally and appended into special_requirements at submit so
+  // helprs see it on the job card without a schema migration.
+  const [includeMaterials, setIncludeMaterials] = useState(false);
+  const [materialsNote, setMaterialsNote] = useState("");
+
+  // Stripe Checkout supports saving a card for future-use via the
+  // `setup_future_usage` session option. The toggle is sticky via
+  // localStorage so a returning poster who opted in once doesn't have to
+  // re-tap it every time. Default off — explicit opt-in only.
+  const [saveCardForFuture, setSaveCardForFutureState] = useState<boolean>(() => {
+    try {
+      return safeStorage.getItem("helpr_save_card_pref") === "1";
+    } catch { return false; }
+  });
+  const setSaveCardForFuture = (next: boolean) => {
+    setSaveCardForFutureState(next);
+    try { safeStorage.setItem("helpr_save_card_pref", next ? "1" : "0"); } catch { /* ignore */ }
+  };
 
   // Direct Offer state — set when arriving via /post-job?offerTo=<helperId>
   const [offerToHelperId, setOfferToHelperId] = useState<string | null>(null);
@@ -125,6 +152,8 @@ export function usePostJobForm() {
         const custFee = row.customer_fee_percent ?? 10;
         setPlatformFee(custFee);
         setCustomerFee(custFee);
+        const helperPct = (row as { helper_fee_percent?: number }).helper_fee_percent ?? 12;
+        setHelperFee(helperPct);
       }
     });
   }, []);
@@ -268,7 +297,29 @@ export function usePostJobForm() {
     // Compress images before storing. The compressImage pipeline re-
     // encodes through a canvas, which also strips EXIF metadata (GPS,
     // device model, timestamps) — see src/lib/imageCompression.ts.
-    const compressed = await Promise.all(safeFiles.map((f) => compressImage(f)));
+    // We feed per-image compression progress into the same map the
+    // thumbnail progress bar reads from during upload, so the user gets
+    // a visible "working on it" signal during the canvas re-encode too.
+    const baseIndex = imageFiles.length;
+    setUploadProgressByIndex((prev) => {
+      const next = { ...prev };
+      safeFiles.forEach((_, i) => { next[baseIndex + i] = 0; });
+      return next;
+    });
+    const compressed = await Promise.all(
+      safeFiles.map((f, i) =>
+        compressImage(f, 1920, 0.8, (p) => {
+          setUploadProgressByIndex((prev) => ({ ...prev, [baseIndex + i]: p }));
+        }),
+      ),
+    );
+    // Clear the synthetic compression progress entries once compression
+    // is done. They get refilled at upload time with real progress.
+    setUploadProgressByIndex((prev) => {
+      const next = { ...prev };
+      safeFiles.forEach((_, i) => { delete next[baseIndex + i]; });
+      return next;
+    });
     const newFiles = [...imageFiles, ...compressed].slice(0, 5);
     setImageFiles(newFiles);
     const previews = newFiles.map((f) => URL.createObjectURL(f));
@@ -302,6 +353,21 @@ export function usePostJobForm() {
     const newFiles = imageFiles.filter((_, i) => i !== index);
     setImageFiles(newFiles);
     setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
+    setUploadProgressByIndex({});
+  };
+
+  /**
+   * Reorder photos locally (pre-submit only). `nextOrder` is the new
+   * sequence of old indices — e.g. moving photo 2 to position 0 yields
+   * `[2, 0, 1]`. Persisted into Supabase Storage in that order at submit.
+   */
+  const reorderImages = (nextOrder: number[]) => {
+    if (nextOrder.length !== imageFiles.length) return;
+    const reordered = nextOrder.map((i) => imageFiles[i]);
+    setImageFiles(reordered);
+    setImagePreviews(reordered.map((f) => URL.createObjectURL(f)));
+    // Reset the progress map — the index→progress mapping is now stale.
+    setUploadProgressByIndex({});
   };
 
   // Tracks upload progress so the submit button can show "Uploading 2/3"
@@ -313,10 +379,21 @@ export function usePostJobForm() {
     const total = imageFiles.length;
     if (total === 0) return urls;
     setUploadProgress({ done: 0, total });
+    // Seed each photo's progress to 0 so the bars render immediately at
+    // the start of upload, instead of jumping from absent → 100%.
+    setUploadProgressByIndex(() => {
+      const next: Record<number, number> = {};
+      for (let i = 0; i < total; i++) next[i] = 0;
+      return next;
+    });
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
       const ext = file.name.split(".").pop();
       const path = `${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      // Supabase storage.upload doesn't expose a fetch-level progress
+      // callback, so we report a coarse 0 → 1 transition per file. It's
+      // enough for the per-image bar to visibly advance and the user to
+      // see which image is currently in flight.
       const { error } = await supabase.storage.from("job-photos").upload(path, file);
       if (error) {
         report(error, { tags: { source: "PostJob.uploadImage" } });
@@ -325,6 +402,7 @@ export function usePostJobForm() {
         urls.push(urlData.publicUrl);
       }
       setUploadProgress({ done: i + 1, total });
+      setUploadProgressByIndex((prev) => ({ ...prev, [i]: 1 }));
     }
     setUploadProgress(null);
     return urls;
@@ -467,6 +545,16 @@ export function usePostJobForm() {
     const user = await runPreSubmitChecks();
     if (!user) return;
 
+    // When the poster opted into "I'll provide materials", append the
+    // note into special_requirements with a tagged prefix so helprs can
+    // see it on the job card. Avoids a schema migration for what's
+    // effectively a label on a freeform note.
+    const composedSpecialRequirements = (() => {
+      if (!includeMaterials || !materialsNote.trim()) return specialRequirements;
+      const prefix = `Materials I'll provide: ${materialsNote.trim()}`;
+      return specialRequirements.trim() ? `${prefix}\n\n${specialRequirements.trim()}` : prefix;
+    })();
+
     // Approval workflow — if this is a business post and the business
     // has set a `require_approval_above` threshold, route the post to
     // pending_approval instead of straight to open.
@@ -493,7 +581,7 @@ export function usePostJobForm() {
         isFlexibleSchedule,
         estimatedHours,
         budget,
-        specialRequirements,
+        specialRequirements: composedSpecialRequirements,
         isRecurring,
         recurrenceInterval,
         recurrenceEndDate,
@@ -540,6 +628,12 @@ export function usePostJobForm() {
 
     // Set cooldown timestamp immediately after successful insert
     safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
+
+    // Stash the just-posted job id so the post-payment success sheet can
+    // show share-this-link / view-applicants / post-another-like-this
+    // CTAs without re-querying Supabase. Cheap to write, the success
+    // page consumes-and-clears so it doesn't leak across sessions.
+    try { safeStorage.setItem("helpr_last_posted_job_id", jobData.id); } catch { /* ignore */ }
 
     // First job action recorded — gates the deferred notification
     // permission prompt (`useNotificationPermissionPrompt`). Idempotent
@@ -593,7 +687,13 @@ export function usePostJobForm() {
 
     try {
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
-        body: { action: "escrow", jobId: jobData.id },
+        body: {
+          action: "escrow",
+          jobId: jobData.id,
+          // Optional opt-in: ask Stripe to save the card for off-session
+          // future-use. The edge function decides whether to honor it.
+          saveCardForFuture,
+        },
       });
 
 
@@ -880,6 +980,16 @@ export function usePostJobForm() {
     imagePreviews,
     handleImageSelect,
     removeImage,
+    reorderImages,
+    uploadProgressByIndex,
+    // materials toggle
+    includeMaterials,
+    setIncludeMaterials,
+    materialsNote,
+    setMaterialsNote,
+    // save-card opt-in (checkout)
+    saveCardForFuture,
+    setSaveCardForFuture,
     // checkout state
     confirmed,
     setConfirmed,
@@ -891,6 +1001,7 @@ export function usePostJobForm() {
     customerFee,
     customerFeeAmount,
     totalCharge,
+    helperFee,
     categoryLabel,
     detailsComplete,
     logisticsComplete,

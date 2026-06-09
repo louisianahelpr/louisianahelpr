@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   ImagePlus,
   MapPin,
@@ -54,6 +55,9 @@ interface CheckoutStepProps {
   totalCharge: number;
   confirmed: boolean;
   setConfirmed: (v: boolean) => void;
+  /** Opt-in to saving the card for off-session future use (Stripe `setup_future_usage`). */
+  saveCardForFuture?: boolean;
+  setSaveCardForFuture?: (v: boolean) => void;
   saving: boolean;
   uploading: boolean;
   uploadProgress?: { done: number; total: number } | null;
@@ -87,6 +91,8 @@ export function CheckoutStep({
   totalCharge,
   confirmed,
   setConfirmed,
+  saveCardForFuture,
+  setSaveCardForFuture,
   saving,
   uploading,
   uploadProgress,
@@ -238,6 +244,29 @@ export function CheckoutStep({
           first-time posters what their money is actually doing, instead
           of hiding the explanation behind a popover trigger above. */}
       <EscrowFlowExplainer />
+
+      {/* "Save card for next time" — optional opt-in passed through to
+          the create-payment edge function. Default off, sticky in
+          localStorage so a returning poster who turned it on once
+          doesn't have to re-tap it every post. */}
+      {setSaveCardForFuture && (
+        <label
+          htmlFor="save-card"
+          className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-4 cursor-pointer"
+        >
+          <span className="text-ds-13 text-foreground leading-snug">
+            <span className="font-semibold block">Save card for next time</span>
+            <span className="text-ds-11 text-muted-foreground">
+              Stripe stores it securely so you can one-tap next time you post.
+            </span>
+          </span>
+          <Switch
+            id="save-card"
+            checked={!!saveCardForFuture}
+            onCheckedChange={(checked) => setSaveCardForFuture(!!checked)}
+          />
+        </label>
+      )}
 
       {/* Confirmation Checkbox — the full card is a <label> so tapping
           anywhere on it toggles the checkbox. This makes the tap target

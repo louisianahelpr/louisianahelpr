@@ -72,7 +72,7 @@ serve(async (req) => {
 
     // ─── ESCROW: Create checkout with manual capture ───
     if (action === "escrow") {
-      const { jobId } = body;
+      const { jobId, saveCardForFuture } = body;
       if (!jobId) throw new Error("Missing jobId");
 
       const { data: job, error: jobError } = await supabaseAdmin
@@ -189,21 +189,30 @@ serve(async (req) => {
         });
       }
 
+      // When the poster opts in to "Save card for next time", ask Stripe
+      // to save the card via off_session setup_future_usage on the
+      // resulting PaymentIntent. Doesn't change the user flow — Stripe
+      // shows a tiny "Save my info" disclosure inside Checkout — but lets
+      // them one-tap the next post via a saved card.
+      const paymentIntentExtras: Record<string, any> = {
+        metadata: {
+          job_id: jobId,
+          customer_id: user.id,
+          customer_fee_percent: String(customerFeePercent),
+          helper_fee_percent: String(helperFeePercent),
+          onboarding_fee_charged: owesOnboardingFee ? "true" : "false",
+        },
+      };
+      if (saveCardForFuture === true) {
+        paymentIntentExtras.setup_future_usage = "off_session";
+      }
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_update: { address: 'auto' },
         line_items: lineItems,
         mode: "payment",
         automatic_tax: { enabled: true },
-        payment_intent_data: {
-          metadata: {
-            job_id: jobId,
-            customer_id: user.id,
-            customer_fee_percent: String(customerFeePercent),
-            helper_fee_percent: String(helperFeePercent),
-            onboarding_fee_charged: owesOnboardingFee ? "true" : "false",
-          },
-        },
+        payment_intent_data: paymentIntentExtras,
         success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,
         cancel_url: `${req.headers.get("origin")}/post-job`,
         metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false" },

@@ -1,20 +1,36 @@
 /**
+ * Optional progress callback. Reports a 0..1 value at major stages of
+ * the canvas re-encode pipeline so callers can render a per-image
+ * progress bar inside the photo thumbnail.
+ */
+export type CompressionProgress = (progress: number) => void;
+
+/**
  * Compresses an image file to a target max dimension and quality, and strips
  * EXIF metadata (GPS coordinates, device info, timestamps) by re-encoding
  * through a canvas. Every image goes through this path — skipping small files
  * would preserve EXIF on uncompressed originals.
  *
  * HEIC files are returned as-is: most browsers cannot canvas-decode HEIC.
+ *
+ * `onProgress` (optional) is invoked at the synchronous milestones in the
+ * pipeline (load, draw, encoded). It's the best-effort signal we can give
+ * without a real chunked encoder — but visually it's enough to show a
+ * progress bar in the thumbnail that doesn't sit at 0% the whole time.
  */
 export async function compressImage(
   file: File,
   maxDimension = 1920,
-  quality = 0.8
+  quality = 0.8,
+  onProgress?: CompressionProgress,
 ): Promise<File> {
   // Skip non-image files and HEIC (canvas cannot decode HEIC in most browsers).
   if (!file.type.startsWith("image/") || file.type === "image/heic") {
+    onProgress?.(1);
     return file;
   }
+
+  onProgress?.(0);
 
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -29,6 +45,7 @@ export async function compressImage(
     img.onload = () => {
       clearTimeout(loadTimeout);
       URL.revokeObjectURL(url);
+      onProgress?.(0.35);
 
       let { width, height } = img;
 
@@ -44,11 +61,13 @@ export async function compressImage(
 
       const ctx = canvas.getContext("2d");
       if (!ctx) {
+        onProgress?.(1);
         resolve(file);
         return;
       }
 
       ctx.drawImage(img, 0, 0, width, height);
+      onProgress?.(0.7);
 
       // Guard against a hung toBlob callback (can stall indefinitely under
       // memory pressure on some mobile browsers).
@@ -58,11 +77,13 @@ export async function compressImage(
         (blob) => {
           clearTimeout(blobTimeout);
           if (!blob) {
+            onProgress?.(1);
             resolve(file);
             return;
           }
           // Always use the canvas-encoded blob — re-encoding strips EXIF
           // (GPS, device model, timestamps) regardless of file size.
+          onProgress?.(1);
           resolve(
             new File([blob], file.name, {
               type: "image/jpeg",

@@ -207,6 +207,8 @@ export function FormStep({ form }: FormStepProps) {
             imageFiles={form.imageFiles}
             onImageSelect={form.handleImageSelect}
             onRemoveImage={form.removeImage}
+            onReorderImages={form.reorderImages}
+            uploadProgressByIndex={form.uploadProgressByIndex}
             detailsComplete={form.detailsComplete}
           />
         </div>
@@ -245,6 +247,11 @@ export function FormStep({ form }: FormStepProps) {
             setHelpersNeeded={form.setHelpersNeeded}
             budgetNum={form.budgetNum}
             logisticsComplete={form.logisticsComplete}
+            category={form.category}
+            includeMaterials={form.includeMaterials}
+            setIncludeMaterials={form.setIncludeMaterials}
+            materialsNote={form.materialsNote}
+            setMaterialsNote={form.setMaterialsNote}
           />
         </div>
 
@@ -265,6 +272,7 @@ export function FormStep({ form }: FormStepProps) {
             customUrgentFee={form.customUrgentFee}
             setCustomUrgentFee={form.setCustomUrgentFee}
             budgetComplete={form.budgetComplete}
+            helperFeePercent={form.helperFee}
           />
         </div>
 

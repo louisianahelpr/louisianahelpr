@@ -1,9 +1,27 @@
-import { Sparkles, FileText, LayoutTemplate, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Sparkles, FileText, LayoutTemplate, ChevronRight, RotateCcw } from "lucide-react";
 import { sampleJobs } from "@/data/sampleJobs";
+import { useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
+import { track } from "@/lib/analytics";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
+import { categoryColors } from "@/components/activity/activityConstants";
 import type { usePostJobForm } from "./usePostJobForm";
 
 interface EntryChoiceProps {
   form: ReturnType<typeof usePostJobForm>;
+}
+
+/** Short relative date phrase for the Repost tile labels. */
+function shortRelativeDate(iso: string): string {
+  if (!iso) return "";
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return "";
+  const days = Math.floor((Date.now() - then.getTime()) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d ago`;
+  // Long enough ago — show a month + day.
+  return then.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 /**
@@ -27,8 +45,102 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // sampleJobs data (the same source the in-form template row uses).
   const quickTemplates = sampleJobs.slice(0, 4);
 
+  // Last 3 jobs this poster has created — shown as "Repost" tiles so a
+  // returning user can spin up a near-duplicate request in one tap. The
+  // hook returns `null` while loading and `[]` when the user has never
+  // posted, so the row hides itself for first-time posters.
+  const recentPosted = useRecentPostedJobs(3);
+  const navigate = useNavigate();
+
+  // Tap a Repost tile → reuse the existing `?rebook=<id>` deep-link the
+  // form already handles, which prefills every field and skips the entry
+  // step. Keeps this entry-screen logic thin.
+  const handleRepost = (jobId: string) => {
+    track("post_job_entry_choice", { choice: "repost_recent" });
+    navigate(`/post-job?rebook=${jobId}`);
+  };
+
   return (
     <div className="space-y-3 animate-ds-page-in">
+      {/* 0 — RECENTLY POSTED (only when the user has posted before) */}
+      {recentPosted && recentPosted.length > 0 && (
+        <div className="rounded-2xl liquid-glass p-4">
+          <div className="flex items-center gap-2.5 mb-3">
+            <span
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full shrink-0"
+              style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
+              aria-hidden
+            >
+              <RotateCcw className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <span
+                className="block font-display italic font-bold"
+                style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+              >
+                Repost a recent task
+              </span>
+              <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                Quickest way to ask for the same help again.
+              </span>
+            </div>
+          </div>
+          <ul className="space-y-2">
+            {recentPosted.map((job) => {
+              const colors = categoryColors[job.category];
+              return (
+                <li key={job.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleRepost(job.id)}
+                    aria-label={`Repost ${job.title}`}
+                    className="w-full rounded-xl text-left p-2.5 flex items-center gap-3 active:scale-[0.98] transition-all"
+                    style={{
+                      background: "hsl(var(--parchment) / 0.7)",
+                      border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+                      boxShadow:
+                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+                        "0 1px 2px hsl(var(--olivewood) / 0.06)",
+                    }}
+                  >
+                    <span
+                      className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${colors?.dot ?? ""}`}
+                      style={!colors?.dot ? { background: "hsl(var(--olivewood) / 0.12)" } : undefined}
+                    >
+                      <CategoryIcon
+                        category={job.category}
+                        aria-hidden
+                        className="w-4 h-4 text-white/90"
+                        strokeWidth={2.25}
+                      />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className="block font-sans font-semibold leading-tight truncate"
+                        style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+                      >
+                        {job.title}
+                      </span>
+                      <span
+                        className="block font-serif italic mt-0.5 text-ds-11 tabular-nums"
+                        style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                      >
+                        {shortRelativeDate(job.created_at)} · ${job.budget.toFixed(0)}
+                      </span>
+                    </span>
+                    <ChevronRight
+                      className="w-4 h-4 shrink-0"
+                      style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                      aria-hidden
+                    />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {/* 1 — START FRESH */}
       <button
         type="button"

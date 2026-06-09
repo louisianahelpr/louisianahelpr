@@ -12,6 +12,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { FileText, Paperclip, Trash2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
+import { errorToast } from "@/lib/toast";
 import { hapticMedium } from "@/lib/haptics";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
@@ -89,7 +90,23 @@ export function ApplyConfirmDialog({
     // clear retry affordance instead.
     if (!online) {
       if (applyMessage) safeStorage.setItem(PITCH_DRAFT_KEY, applyMessage);
-      toast.error("You're offline — we saved your pitch. Try again once you're back online.");
+      // Critical offline state → persistent toast with an explicit Retry
+      // action that re-runs the apply once the user gets back online (or
+      // wants to try optimistically). The Sonner toast persists until
+      // dismissed so the user can't miss it while scrolling other content.
+      errorToast("You're offline", {
+        description: "We saved your pitch. Try again once you're back online.",
+        critical: true,
+        id: "apply-offline",
+        onRetry: () => {
+          // Re-attempt: if we're back online by now, run the confirm; otherwise
+          // surface the same toast again so the user knows nothing changed.
+          if (navigator.onLine) {
+            safeStorage.removeItem(PITCH_DRAFT_KEY);
+            handleApplyConfirm();
+          }
+        },
+      });
       return;
     }
     safeStorage.removeItem(PITCH_DRAFT_KEY);

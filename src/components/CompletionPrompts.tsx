@@ -108,19 +108,20 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
         const lowRatings = allReviews.filter(r => r.rating <= 2).length;
         if (lowRatings >= 3) {
           // Auto-flag for admin review.
-          await supabase.from("user_violations").insert({
+          const { error: flagErr } = await supabase.from("user_violations").insert({
             user_id: revieweeId,
             violation_type: "low_ratings",
             description: `User has ${lowRatings} ratings of 2 stars or below. Auto-flagged for admin review.`,
             reported_by: null,
             action_taken: "warning",
           });
+          if (flagErr) report(flagErr, { tags: { source: "CompletionPrompts.autoFlagLowRating" } });
           // Bulk-insert one row per admin instead of awaiting per admin.
           // For 5+ admins this difference is visible to the user (~1.5s vs ~300ms).
           const { data: adminRoles, error: adminRolesErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
           if (adminRolesErr) report(adminRolesErr, { tags: { source: "CompletionPrompts.lowRatingNotifyAdmins" } });
           if (adminRoles?.length) {
-            await supabase.from("notifications").insert(
+            const { error: notifyErr } = await supabase.from("notifications").insert(
               adminRoles.map((a: { user_id: string }) => ({
                 user_id: a.user_id,
                 title: "⚠️ Low rating alert",
@@ -130,6 +131,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 read: false,
               })),
             );
+            if (notifyErr) report(notifyErr, { tags: { source: "CompletionPrompts.notifyLowRating" } });
           }
         }
       }

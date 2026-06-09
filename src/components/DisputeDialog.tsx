@@ -92,9 +92,10 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
       if (error) throw error;
 
       // Bulk-fan to admins in one INSERT.
-      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      const { data: adminRoles, error: adminRolesError } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      if (adminRolesError) report(adminRolesError, { tags: { source: "DisputeDialog.fetchAdmins" } });
       if (adminRoles?.length) {
-        await supabase.from("notifications").insert(
+        const { error: notifyError } = await supabase.from("notifications").insert(
           adminRoles.map((a: { user_id: string }) => ({
             user_id: a.user_id,
             title: "🚨 Job disputed",
@@ -104,6 +105,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
             read: false,
           })),
         );
+        if (notifyError) report(notifyError, { tags: { source: "DisputeDialog.notifyAdmins" } });
       }
 
       // Fire Slack ops alert (non-blocking)
@@ -204,7 +206,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
                   }}
                 >
                   <span className="truncate max-w-[120px] font-sans font-medium">{file.name}</span>
-                  <button onClick={() => removeFile(i)} aria-label="Remove file" className="active:opacity-70" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  <button onClick={() => removeFile(i)} aria-label="Remove file" className="inline-flex items-center justify-center h-10 w-10 -my-2 -mr-2 active:opacity-70" style={{ color: "hsl(var(--burnt-sienna))" }}>
                     <X className="w-3 h-3" />
                   </button>
                 </div>

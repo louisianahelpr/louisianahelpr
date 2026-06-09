@@ -242,17 +242,36 @@ export function BrowseTasksFeed({
           onRetry={refresh}
         />
       </div>
-      ) : filters.filteredJobs.length === 0 ? (
+      ) : filters.filteredJobs.length === 0 ? (() => {
+        // Geo-aware empty copy: when the "Near me" radius filter is
+        // active and the user's coords resolved, suggest a concrete
+        // wider radius rather than the generic "widen your parish".
+        // Falls back gracefully when coords aren't known or no radius
+        // is set, so the message never reads as broken.
+        const nearbyActive = filters.nearbyMiles !== null && filters.locationFilter.startsWith("nearby:");
+        const currentMiles = filters.nearbyMiles ?? 0;
+        // Next-rung suggestion — round-numbered radii (5/10/25/50) read
+        // cleaner in a sentence than the previous value × 2 ("13 mi").
+        const nextMiles = currentMiles < 5 ? 10 : currentMiles < 10 ? 25 : currentMiles < 25 ? 50 : 100;
+        return (
       <div className="px-3 pt-4 flex-1 min-h-0 flex">
         <EmptyState
           icon={Search}
-          eyebrow={filters.hasFilters ? "No matches" : "All quiet — for now"}
-          title={filters.hasFilters ? "No jobs match your filters." : "Nothing today, neighbor."}
+          eyebrow={filters.hasFilters ? (nearbyActive ? "Nothing within range" : "No matches") : "All quiet — for now"}
+          title={
+            filters.hasFilters
+              ? (nearbyActive
+                ? `No tasks within ${currentMiles} mi of you.`
+                : "No jobs match your filters.")
+              : "Nothing today, neighbor."
+          }
           body={
             filters.hasFilters
               ? filters.boostedOnly
                 ? "No boosted jobs right now — try clearing the filter to see all open work."
-                : "Try widening your parish, raising your budget, or clearing a filter."
+                : nearbyActive
+                  ? `Try widening to ${nextMiles} mi, or clear the radius to see all open work across your parish.`
+                  : "Try widening your parish, raising your budget, or clearing a filter."
               : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
           }
           action={
@@ -265,9 +284,25 @@ export function BrowseTasksFeed({
             // OR opt in to be pinged when a match lands (Notify me),
             // instead of dead-ending on body copy.
             filters.hasFilters ? (
-              <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
-                Clear filters
-              </Button>
+              nearbyActive ? (
+                <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
+                  <BarkPillButton onClick={() => filters.setLocationFilter(`nearby:${nextMiles}`)}>
+                    Widen to {nextMiles} mi
+                  </BarkPillButton>
+                  <Button
+                    variant="ghost"
+                    onClick={() => filters.setLocationFilter("")}
+                    className="rounded-ds-md font-sans font-semibold"
+                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                  >
+                    Browse all parishes
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
+                  Clear filters
+                </Button>
+              )
             ) : (
               <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
                 <BarkPillButton onClick={() => navigate("/post-job")}>
@@ -290,7 +325,8 @@ export function BrowseTasksFeed({
           }
         />
       </div>
-      ) : (() => {
+        );
+      })() : (() => {
         // Show the recommended slot as skeletons while the feed's first page
         // is still resolving and we don't yet have any picks — reserving the
         // header + a couple of card-height placeholders keeps the section

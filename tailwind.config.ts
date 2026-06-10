@@ -3,6 +3,17 @@ import type { Config } from "tailwindcss";
 export default {
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
+  // This is a touch-first Capacitor app. Without this flag Tailwind's
+  // `hover:` styles compile to plain `:hover`, which STICKS after a tap on
+  // touch devices — e.g. the toolbar's ghost buttons (`hover:bg-secondary`,
+  // secondary = sand) leave a tan square highlighted on the map/search/
+  // filter control after you tap it. Gating hover behind `@media (hover:
+  // hover)` means hover affordances only apply with a real pointer, so taps
+  // never leave a stuck highlight. Fixes the class of "selected looks tan/
+  // cream" artifacts across the whole app at the root.
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     container: {
       center: true,

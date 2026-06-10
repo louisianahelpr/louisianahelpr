@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 export type GeoState =
   | { status: "idle" }
@@ -35,18 +36,45 @@ export function useUserLocation(enabled: boolean): GeoState {
       setState({ status: "ready", lat: cached.lat, lng: cached.lng });
       return;
     }
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
+    if (!isNativePlatform && (typeof navigator === "undefined" || !navigator.geolocation)) {
       setState({ status: "error", message: "Location not supported on this device" });
       return;
     }
 
-    const fetchLocation = () =>
+    const onSuccess = (lat: number, lng: number) => {
+      cached = { lat, lng, ts: Date.now() };
+      setState({ status: "ready", lat, lng });
+    };
+
+    // Native (Capacitor) reads through @capacitor/geolocation so iOS/Android
+    // get the OS-native CLLocationManager prompt + accuracy, not the WKWebView
+    // navigator.geolocation shim (which is unreliable inside the native shell).
+    // Dynamic import keeps the plugin chunk off the web critical-path bundle.
+    const fetchNative = async () => {
+      setState({ status: "loading" });
+      try {
+        const { Geolocation } = await import("@capacitor/geolocation");
+        const pos = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: false,
+          timeout: 10000,
+          maximumAge: 5 * 60 * 1000,
+        });
+        onSuccess(pos.coords.latitude, pos.coords.longitude);
+      } catch (err) {
+        const msg = String((err as { message?: string })?.message ?? "");
+        setState({
+          status: "error",
+          message: /denied|permission/i.test(msg) ? "Location permission denied" : "Couldn't get your location",
+        });
+      }
+    };
+
+    const fetchWeb = () =>
       new Promise<void>((resolve) => {
         setState({ status: "loading" });
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            cached = { lat: pos.coords.latitude, lng: pos.coords.longitude, ts: Date.now() };
-            setState({ status: "ready", lat: pos.coords.latitude, lng: pos.coords.longitude });
+            onSuccess(pos.coords.latitude, pos.coords.longitude);
             resolve();
           },
           (err) => {
@@ -59,6 +87,8 @@ export function useUserLocation(enabled: boolean): GeoState {
           { enableHighAccuracy: false, timeout: 10000, maximumAge: 5 * 60 * 1000 },
         );
       });
+
+    const fetchLocation = () => (isNativePlatform ? fetchNative() : fetchWeb());
 
     // Show the friendly "why we want location" dialog before triggering
     // the OS prompt. The rationale hook session-gates itself, so this

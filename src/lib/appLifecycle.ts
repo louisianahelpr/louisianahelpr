@@ -29,6 +29,19 @@ async function clearDeliveredNotifications() {
   }
 }
 
+async function clearAppIconBadge() {
+  try {
+    const { Badge } = await import("@capawesome/capacitor-badge");
+    // Badge throws on devices/platforms without the permission; checking
+    // first keeps a denied state from logging on every foreground.
+    const { isSupported } = await Badge.isSupported();
+    if (!isSupported) return;
+    await Badge.clear();
+  } catch {
+    /* best-effort — the springboard badge isn't worth failing foreground */
+  }
+}
+
 export function useAppLifecycle() {
   useEffect(() => {
     if (!isNativePlatform || attached) return;
@@ -40,7 +53,10 @@ export function useAppLifecycle() {
         const { App } = await import("@capacitor/app");
         const handle = await App.addListener("appStateChange", ({ isActive }) => {
           focusManager.setFocused(isActive);
-          if (isActive) void clearDeliveredNotifications();
+          if (isActive) {
+            void clearDeliveredNotifications();
+            void clearAppIconBadge();
+          }
         });
         removeListener = () => {
           void handle.remove();

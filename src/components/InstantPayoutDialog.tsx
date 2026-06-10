@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { toast } from "sonner";
 import { Zap, Loader2, Clock } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { requireBiometric } from "@/lib/biometricGate";
 
 interface Props {
   open: boolean;
@@ -43,6 +44,10 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
   }, [open]);
 
   const handleConfirm = async () => {
+    // Face ID / Touch ID gate before moving money. No-op on web and on
+    // devices without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric("Confirm your instant cash-out");
+    if (!ok) return;
     setProcessing(true);
     const { data, error } = await supabase.functions.invoke("instant-payout", {
       body: { action: "execute" },

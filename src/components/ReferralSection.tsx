@@ -9,6 +9,7 @@ import { useReferralData } from "@/hooks/useReferralData";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { queryKeys } from "@/lib/queryKeys";
 import { ReferralExtras } from "@/components/profile/ReferralExtras";
+import { requireBiometric } from "@/lib/biometricGate";
 
 /**
  * Single-screen referral dashboard. Backed by React Query (60s staleTime)
@@ -82,6 +83,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   };
 
   const handleCashOut = async () => {
+    // Face ID / Touch ID gate before moving money. No-op on web and on
+    // devices without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric("Confirm your referral cash-out");
+    if (!ok) return;
     setCashingOut(true);
     try {
       const { data: result, error } = await supabase.functions.invoke("cash-out-credits");

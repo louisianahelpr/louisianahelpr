@@ -178,6 +178,12 @@ export function ChatView({
   // Stable ref to the scroll container for the jump handler and the
   // scroll-position observer.
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  // Live "is the user parked near the newest message" flag, updated by the
+  // scroll observer below. Read by the keyboard-open effect so we only
+  // re-anchor to the bottom when the user wasn't scrolled up reading
+  // history. A ref (not state) so the effect closure always sees the
+  // latest value without re-subscribing.
+  const nearBottomRef = useRef(true);
 
   // First unread inbound message — captured ONCE when the conversation
   // opens, BEFORE the openConvo flow optimistically marks rows read.
@@ -262,6 +268,7 @@ export function ChatView({
     const onScroll = () => {
       const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
       setShowJumpToBottom(distFromBottom > 120);
+      nearBottomRef.current = distFromBottom <= 120;
       const firstUnreadId = initialFirstUnreadIdRef.current;
       if (firstUnreadId) {
         const node = el.querySelector<HTMLDivElement>(
@@ -293,6 +300,33 @@ export function ChatView({
     setShowJumpToBottom(false);
     setFirstUnreadOffscreen(false);
   }, [activeConvo.jobId, activeConvo.otherUserId]);
+
+  // Re-anchor to the newest message when the keyboard opens. Tapping the
+  // composer raises the keyboard, which adds `keyboardInset` of bottom
+  // padding and shrinks the visible thread — without this the latest
+  // messages slide up behind the keyboard. We only pull to the bottom if
+  // the user was already parked near it (nearBottomRef); if they'd scrolled
+  // up to read history, yanking them down would be hostile. Double-rAF so
+  // the scroll runs after the padding change has been laid out. We key on
+  // the open transition only (>0) — on close the padding shrinks back and
+  // the content is already in view.
+  const prevKeyboardInsetRef = useRef(keyboardInset);
+  useEffect(() => {
+    const opened = prevKeyboardInsetRef.current === 0 && keyboardInset > 0;
+    prevKeyboardInsetRef.current = keyboardInset;
+    if (!opened || !nearBottomRef.current) return;
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const el = scrollContainerRef.current;
+        if (el) el.scrollTo({ top: el.scrollHeight });
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [keyboardInset]);
 
   // Merge messages and system events into a single chronological
   // timeline so a state-change row ("Helper marked complete") sits

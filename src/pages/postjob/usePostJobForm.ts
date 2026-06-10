@@ -503,11 +503,21 @@ export function usePostJobForm() {
     // IDV used at job-acceptance, applied here so posters can't onboard
     // strangers under a fake identity.
     {
-      const { data: prof } = await supabase
+      const { data: prof, error: profErr } = await supabase
         .from("profiles")
         .select("idv_status, idv_failure_reason")
         .eq("user_id", user.id)
         .single();
+      // Don't drop this error: on a transient fetch failure `prof` is
+      // undefined, which would read as "not verified" and wrongly trap an
+      // already-verified poster in the IDV dialog. Surface it and abort.
+      if (profErr) {
+        report(profErr, { tags: { source: "usePostJobForm.idvGate" } });
+        toast.error("Couldn't check your verification status — please try again.");
+        setSaving(false);
+        submittingRef.current = false;
+        return null;
+      }
       const profStatus = (prof as { idv_status?: string })?.idv_status;
       if (profStatus !== "verified") {
         setIdvStatus(profStatus);

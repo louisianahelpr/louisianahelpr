@@ -137,6 +137,16 @@ const JobDetailDialog = ({
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", customerId).eq("status", "cancelled"),
       ]);
       if (cancelled) return;
+      // Don't silently swallow a failed count query — a dropped error would
+      // skew the rate (a failed `cancelled` count reads as 0 → an
+      // artificially clean rate). On any error, report and show no rate.
+      const firstError = [postedTotalRes, postedCancelRes, workedTotalRes, workedCancelRes]
+        .find((res) => res.error)?.error;
+      if (firstError) {
+        report(firstError, { tags: { source: "JobDetailDialog.posterCancelRate" } });
+        setPosterCancelRate(null);
+        return;
+      }
       const total = (postedTotalRes.count ?? 0) + (workedTotalRes.count ?? 0);
       const cancelledCount = (postedCancelRes.count ?? 0) + (workedCancelRes.count ?? 0);
       if (total >= 5) setPosterCancelRate((cancelledCount / total) * 100);

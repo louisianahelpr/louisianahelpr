@@ -24,7 +24,7 @@ const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap mb-1">
           <h4 className="font-semibold text-ds-13">{job.title}</h4>
-          <span className="text-ds-11 px-2 py-0.5 rounded-full bg-background/50 font-medium">{isPosted ? "Posted" : "Assigned"}</span>
+          <span className="text-ds-11 px-2 py-0.5 rounded-full bg-card font-medium">{isPosted ? "Posted" : "Assigned"}</span>
         </div>
         <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
           <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>

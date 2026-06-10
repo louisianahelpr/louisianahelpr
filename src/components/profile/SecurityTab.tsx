@@ -235,7 +235,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                 if (emailError) setEmailError("");
               }}
               onKeyDown={(e) => { if (e.key === "Enter") handleEmailChange(); }}
-              className="bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40"
+              className="border-[hsl(var(--border)/0.6)] focus-visible:border-primary/40"
             />
             {emailError && (
               <p className="text-ds-11 font-serif italic" role="alert" style={{ color: "hsl(var(--burnt-sienna))" }}>

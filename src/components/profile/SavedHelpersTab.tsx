@@ -506,7 +506,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                         <img loading="lazy" decoding="async"
                           src={h.avatar_url}
                           alt=""
-                          className="w-12 h-12 rounded-full object-cover border border-border"
+                          className="w-12 h-12 rounded-full object-cover border border-[hsl(var(--border)/0.6)]"
                         />
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-display italic font-bold">

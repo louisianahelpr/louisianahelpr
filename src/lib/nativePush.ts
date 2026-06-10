@@ -15,6 +15,7 @@
  */
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -126,11 +127,22 @@ export function useNativePushSetup() {
           report(err, { tags: { source: "push.registrationError" } });
         });
 
-        // Foreground notification received — let the in-app toast/badge handle it.
+        // Foreground notification received. iOS suppresses the system banner
+        // while the app is in the foreground, so surface an in-app toast —
+        // otherwise an actively-browsing user gets no signal on a new
+        // message / job match. Tapping routes to the link in the payload.
         await PushNotifications.addListener("pushNotificationReceived", (notification) => {
           track(AhaEvent.PushReceivedForeground, {
             title: notification.title,
             data: notification.data,
+          });
+          const link = notification.data?.link;
+          const hasInternalLink = typeof link === "string" && link.startsWith("/");
+          toast(notification.title || "New notification", {
+            description: notification.body || undefined,
+            action: hasInternalLink
+              ? { label: "View", onClick: () => navigate(link) }
+              : undefined,
           });
         });
 

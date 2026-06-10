@@ -367,7 +367,7 @@ export function BrowseTasksToolbar({
                 // 150ms delay so a tap on a dropdown row fires before
                 // the blur removes the dropdown from the DOM.
                 onBlur={() => window.setTimeout(() => setSearchFocused(false), 150)}
-                className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md border border-border/50 bg-muted/30 focus:bg-background focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
               />
               {filters.searchQuery && (
                 <button onClick={() => filters.setSearchQuery("")} aria-label="Clear search" className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press">
@@ -376,7 +376,7 @@ export function BrowseTasksToolbar({
               )}
               {showHistoryDropdown && (
                 <div
-                  className="mx-3 mt-1 rounded-ds-md border border-border/50 bg-background shadow-sm overflow-hidden"
+                  className="mx-3 mt-1 rounded-ds-md liquid-glass overflow-hidden"
                   role="listbox"
                   aria-label="Recent searches"
                 >

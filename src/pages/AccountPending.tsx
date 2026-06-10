@@ -60,7 +60,7 @@ const StepRow = ({
 };
 
 const SkeletonCard = () => (
-  <div className="w-full max-w-md rounded-ds-lg bg-white dark:bg-card border border-black/5 shadow-[0_24px_60px_-20px_hsl(0_0%_0%/0.18)] p-7 animate-pulse">
+  <div className="w-full max-w-md rounded-ds-lg bg-card p-7 animate-pulse">
     <div className="w-16 h-16 rounded-2xl bg-muted mx-auto" />
     <div className="h-6 w-2/3 mx-auto mt-5 rounded bg-muted" />
     <div className="h-3 w-5/6 mx-auto mt-3 rounded bg-muted/70" />
@@ -201,7 +201,7 @@ const AccountPending = () => {
   // status-bar region and the row content clears the notch.
   const header = (
     <header
-      className="flex items-center justify-between px-5 h-14 bg-white dark:bg-background border-b border-border/40"
+      className="flex items-center justify-between px-5 h-14 liquid-glass border-b border-[hsl(var(--border)/0.6)]"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <HelprMark to="/" size="md" />
@@ -223,7 +223,7 @@ const AccountPending = () => {
           <SkeletonCard />
         ) : !emailVerified ? (
           // ---------- Email-not-verified variant (kept compact) ----------
-          <div className="w-full max-w-md bg-white dark:bg-card rounded-ds-lg shadow-[0_24px_60px_-20px_hsl(0_0%_0%/0.18)] border border-black/5 p-7 flex flex-col items-center text-center">
+          <div className="w-full max-w-md bg-card rounded-ds-lg p-7 flex flex-col items-center text-center">
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-5">
               <MailCheck className="w-8 h-8 text-amber-500" />
             </div>
@@ -259,7 +259,7 @@ const AccountPending = () => {
           // ---------- Verification Center ----------
           <div className="w-full max-w-md flex flex-col gap-4">
             {/* Status hero */}
-            <div className="shrink-0 bg-white dark:bg-card rounded-ds-lg shadow-[0_24px_60px_-20px_hsl(0_0%_0%/0.18),0_8px_24px_-12px_hsl(0_0%_0%/0.12)] border border-black/5 p-5 sm:p-6">
+            <div className="shrink-0 bg-card rounded-ds-lg p-5 sm:p-6">
               <div className="flex flex-col items-center text-center">
                 <div className="relative w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                   <Clock className="w-8 h-8 text-primary" />

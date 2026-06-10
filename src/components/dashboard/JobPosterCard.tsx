@@ -35,7 +35,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
   return (
     <Link
       to={`/user/${job.customer_id}`}
-      className="relative block p-2.5 rounded-ds-md group transition-colors"
+      className="relative block p-2.5 rounded-ds-md group glass-press transition-colors"
       style={{
         backgroundColor: "hsla(0, 0%, 100%, 0.55)",
         backdropFilter: "blur(16px) saturate(150%)",

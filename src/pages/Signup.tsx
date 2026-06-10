@@ -385,7 +385,7 @@ const Signup = () => {
                     className={`w-6 h-6 rounded-md text-ds-11 font-semibold transition-colors ${
                       step === n
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted hover:bg-muted/80 text-foreground"
+                        : "bg-card text-foreground"
                     }`}
                   >
                     {n}

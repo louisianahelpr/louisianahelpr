@@ -128,7 +128,7 @@ export function ShareJobButton({
         disabled={sharing}
         onClick={handleShare}
         className={cn(
-          "group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95",
+          "group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95",
           className,
         )}
         style={{

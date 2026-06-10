@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { isNativePlatform } from "@/lib/nativeInit";
+import { pickImagesNative } from "@/lib/nativeCamera";
 
 type PhotoProofProps = {
   jobId: string;
@@ -19,12 +21,26 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
   const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files || []);
+  const addFiles = (selected: File[]) => {
+    if (selected.length === 0) return;
     if (files.length + selected.length > 5) { toast.error("Max 5 photos"); return; }
     const newFiles = [...files, ...selected].slice(0, 5);
     setFiles(newFiles);
     setPreviews(newFiles.map(f => URL.createObjectURL(f)));
+  };
+
+  const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addFiles(Array.from(e.target.files || []));
+  };
+
+  const handleNativeAdd = async () => {
+    try {
+      const picked = await pickImagesNative(5 - files.length);
+      addFiles(picked);
+    } catch (err) {
+      report(err, { tags: { source: "PhotoProof.handleNativeAdd" } });
+      toast.error("Couldn't open your photos. Please try again.");
+    }
   };
 
   const removeFile = (i: number) => {
@@ -161,22 +177,42 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                 </div>
               ))}
               {files.length < 5 && (
-                <label
-                  className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
-                  style={{
-                    background: "hsla(0, 0%, 100%, 0.4)",
-                    border: "1.5px dashed hsl(var(--bark) / 0.30)",
-                  }}
-                >
-                  <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-                  <span
-                    className="font-sans font-semibold mt-1"
-                    style={{ fontSize: "0.62rem", color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
+                isNativePlatform ? (
+                  <button
+                    type="button"
+                    onClick={handleNativeAdd}
+                    className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
+                    style={{
+                      background: "hsla(0, 0%, 100%, 0.4)",
+                      border: "1.5px dashed hsl(var(--bark) / 0.30)",
+                    }}
                   >
-                    Add photo
-                  </span>
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleSelect} />
-                </label>
+                    <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                    <span
+                      className="font-sans font-semibold mt-1"
+                      style={{ fontSize: "0.62rem", color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
+                    >
+                      Add photo
+                    </span>
+                  </button>
+                ) : (
+                  <label
+                    className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
+                    style={{
+                      background: "hsla(0, 0%, 100%, 0.4)",
+                      border: "1.5px dashed hsl(var(--bark) / 0.30)",
+                    }}
+                  >
+                    <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                    <span
+                      className="font-sans font-semibold mt-1"
+                      style={{ fontSize: "0.62rem", color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
+                    >
+                      Add photo
+                    </span>
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleSelect} />
+                  </label>
+                )
               )}
             </div>
           </div>

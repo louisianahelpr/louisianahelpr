@@ -18,7 +18,7 @@ iOS app. Map any "native" concept to its React/Capacitor equivalent.
 - **Backend:** Supabase — Postgres, RPCs, edge functions in `supabase/functions/`.
 - **Payments:** Stripe Connect (escrow).
 - **Native bridges:** Capacitor plugins (Haptics, Camera, Geolocation, Push,
-  StatusBar, Keyboard, Social Login).
+  StatusBar, Keyboard, Social Login, Biometric auth, App Badge).
 - **Checks:** `npm run typecheck` · `npm run lint` · `npm run build`.
 
 This is a deliberate architecture — one codebase serves web + iOS + Android.

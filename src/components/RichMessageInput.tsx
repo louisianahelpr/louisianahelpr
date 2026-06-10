@@ -13,6 +13,9 @@ import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import { isNativePlatform } from "@/lib/nativeInit";
+import { pickImagesNative, takePhotoNative } from "@/lib/nativeCamera";
+import { report } from "@/lib/errorLogger";
 import { assertWritable } from "@/hooks/useImpersonation";
 import {
   uploadMessageAttachment,
@@ -121,6 +124,16 @@ export const RichMessageInput = ({
     }
   };
 
+  const stageFile = (file: File): boolean => {
+    if (file.size > MESSAGE_ATTACHMENT_MAX_BYTES) {
+      toast.error(`File must be under ${Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB`);
+      return false;
+    }
+    setStagedFile(file);
+    setImagePreview(isImageMime(file.type) ? URL.createObjectURL(file) : null);
+    return true;
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     // Reset the input regardless of selection so re-picking the same
@@ -128,12 +141,7 @@ export const RichMessageInput = ({
     // resets only its own value.
     if (e.target) e.target.value = "";
     if (!file) return;
-    if (file.size > MESSAGE_ATTACHMENT_MAX_BYTES) {
-      toast.error(`File must be under ${Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB`);
-      return;
-    }
-    setStagedFile(file);
-    setImagePreview(isImageMime(file.type) ? URL.createObjectURL(file) : null);
+    stageFile(file);
   };
 
   const clearStaged = () => {
@@ -142,14 +150,37 @@ export const RichMessageInput = ({
     setImagePreview(null);
   };
 
-  const pickFromCamera = () => {
+  const pickFromCamera = async () => {
     hapticLight();
     setAttachSheetOpen(false);
+    // Native: drive the OS camera through @capacitor/camera (the WebView
+    // `capture="environment"` input is unreliable on iOS). Web keeps the
+    // hidden input so desktop/browser capture still works.
+    if (isNativePlatform) {
+      try {
+        const file = await takePhotoNative();
+        if (file) stageFile(file);
+      } catch (err) {
+        report(err, { tags: { source: "RichMessageInput.pickFromCamera" } });
+        toast.error("Couldn't open the camera. Please try again.");
+      }
+      return;
+    }
     cameraInputRef.current?.click();
   };
-  const pickFromLibrary = () => {
+  const pickFromLibrary = async () => {
     hapticLight();
     setAttachSheetOpen(false);
+    if (isNativePlatform) {
+      try {
+        const picked = await pickImagesNative(1);
+        if (picked[0]) stageFile(picked[0]);
+      } catch (err) {
+        report(err, { tags: { source: "RichMessageInput.pickFromLibrary" } });
+        toast.error("Couldn't open your photos. Please try again.");
+      }
+      return;
+    }
     libraryInputRef.current?.click();
   };
   const pickFromFiles = () => {
@@ -181,15 +212,28 @@ export const RichMessageInput = ({
   };
 
   const handleShareLocation = async () => {
-    if (!navigator.geolocation) {
+    if (!isNativePlatform && !navigator.geolocation) {
       toast.error("This device can't share location.");
       return;
     }
     // Soft pre-prompt before triggering the OS permission dialog.
     // Improves accept rates and keeps the OS prompt from being burned
     // by a panic-tap "deny."
-    await requestPermission("location", () => {
-      return new Promise<void>((resolve) => {
+    await requestPermission("location", async () => {
+      // Native reads through @capacitor/geolocation (CLLocationManager) —
+      // the WKWebView navigator.geolocation shim is unreliable in the shell.
+      if (isNativePlatform) {
+        try {
+          const { Geolocation } = await import("@capacitor/geolocation");
+          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
+          const { latitude, longitude } = pos.coords;
+          onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`);
+        } catch {
+          toast.error("Location access denied");
+        }
+        return;
+      }
+      await new Promise<void>((resolve) => {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const { latitude, longitude } = pos.coords;

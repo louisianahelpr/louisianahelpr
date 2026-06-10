@@ -27,9 +27,12 @@
     "*.{ts,tsx}": "eslint --fix"
   },
   "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
     "@capacitor/app": "^8.0.1",
+    "@capacitor/camera": "^8.2.0",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
+    "@capacitor/geolocation": "^8.2.0",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.4.0",
     "@capacitor/keyboard": "^8.0.2",
@@ -38,6 +41,7 @@
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
+    "@capawesome/capacitor-badge": "^8.0.2",
     "@capgo/capacitor-social-login": "^8.3.22",
     "@radix-ui/react-alert-dialog": "^1.1.16",
     "@radix-ui/react-avatar": "^1.1.12",

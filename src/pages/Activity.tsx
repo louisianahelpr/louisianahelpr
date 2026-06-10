@@ -217,6 +217,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     <>
       <PageScaffold
         animate
+        scrollRef={containerRef}
         header={<DashboardHeader />}
         titleCard={
             <div className="flex flex-col leading-none">

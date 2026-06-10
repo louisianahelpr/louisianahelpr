@@ -649,6 +649,7 @@ const Dashboard = () => {
     <PageScaffold
       animate
       panelElevation="raised"
+      scrollRef={containerRef}
       header={
         <>
           <DashboardHeader />

@@ -1,6 +1,8 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useRef } from "react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
 import { motion } from "framer-motion";
 import AppShell from "@/components/AppShell";
+import { useCollapsibleTitle } from "@/hooks/useCollapsibleTitle";
 
 /**
  * PageScaffold — the shared "two-card" page shell used by Dashboard,
@@ -51,6 +53,10 @@ interface PageScaffoldProps {
   titleCardClassName?: string;
   /** Extra classes appended to the scaffold root (e.g. a CSS mount fade). */
   className?: string;
+  /** Scroll container ref (the page's `PullToRefreshWrapper` div). When
+   *  provided, the title card becomes an iOS-style large title that shrinks
+   *  into its compact form as this container scrolls. */
+  scrollRef?: RefObject<HTMLElement | null>;
 }
 
 const TITLE_CARD_CLASS =
@@ -101,7 +107,20 @@ export function PageScaffold({
   animate = false,
   className,
   titleCardClassName,
+  scrollRef,
 }: PageScaffoldProps) {
+  // Stable fallback so the hook is always called unconditionally even when
+  // a page opts out of the collapsing title (no scrollRef → progress 0).
+  const fallbackRef = useRef<HTMLElement | null>(null);
+  const collapse = useCollapsibleTitle(scrollRef ?? fallbackRef);
+  // Expanded rest state is ~12% larger than the compact size, shrinking to
+  // 1.0 as the user scrolls. Origin left-center so it shrinks toward the
+  // title's leading edge, like iOS. Vertical padding tightens in step so
+  // the whole card height collapses, not just the text.
+  const titleScale = 1.12 - 0.12 * collapse;
+  const titlePadY = 18 - 8 * collapse;
+  const collapseActive = scrollRef != null;
+
   const titleCardClass = titleCardClassName
     ? `${TITLE_CARD_CLASS} ${titleCardClassName}`
     : TITLE_CARD_CLASS;
@@ -135,17 +154,37 @@ export function PageScaffold({
     transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
   };
 
+  // When collapse is active, override the card's vertical padding (inline
+  // beats the `py-*` class) and scale only the inner content — never the
+  // card chrome (gradient/shadow), which must stay crisp.
+  const cardStyle: CSSProperties = collapseActive
+    ? { ...TITLE_CARD_STYLE, paddingTop: titlePadY, paddingBottom: titlePadY }
+    : TITLE_CARD_STYLE;
+  const titleInner = collapseActive ? (
+    <div
+      style={{
+        transform: `scale(${titleScale})`,
+        transformOrigin: "left center",
+        willChange: "transform",
+      }}
+    >
+      {titleCard}
+    </div>
+  ) : (
+    titleCard
+  );
+
   const titleEl = !titleCard ? null : animate ? (
     <motion.div
       {...PAGE_IN}
       className={titleCardClass}
-      style={TITLE_CARD_STYLE}
+      style={cardStyle}
     >
-      {titleCard}
+      {titleInner}
     </motion.div>
   ) : (
-    <div className={titleCardClass} style={TITLE_CARD_STYLE}>
-      {titleCard}
+    <div className={titleCardClass} style={cardStyle}>
+      {titleInner}
     </div>
   );
 

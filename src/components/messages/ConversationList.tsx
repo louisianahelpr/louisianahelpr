@@ -158,6 +158,7 @@ export function ConversationList({
   return (
     <PageScaffold
       header={<DashboardHeader />}
+      scrollRef={containerRef}
       titleCard={
           <div className="flex flex-col leading-none">
             {/* Canonical page-title — same `.text-page-title` (Bodoni Moda

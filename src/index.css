@@ -968,6 +968,54 @@ button,
     0 36px 72px -16px hsl(var(--olivewood) / 0.15);
 }
 
+/* ─────────────────────────────────────────────────────────────────
+   Depth-on-press — Apple "liquid glass" tactile feedback
+   ─────────────────────────────────────────────────────────────────
+   Add to any tappable card / row / button so it physically depresses
+   under the finger: a small scale-down plus an inset shadow that reads
+   as the glass sinking toward the page, then springs back on release.
+   Pairs with the haptics fired in JS. Cheap (transform + shadow only,
+   GPU-composited) so it stays smooth even on long lists. */
+.glass-press {
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.glass-press:active {
+  transform: scale(0.97);
+  box-shadow:
+    inset 0 1px 3px 0 hsl(var(--olivewood) / 0.14),
+    inset 0 0 0 1px hsl(var(--olivewood) / 0.04),
+    0 1px 2px hsl(var(--olivewood) / 0.05);
+}
+
+/* Hairline separator — the iOS list-divider treatment: a warm 1px rule
+   that fades to nothing at both ends instead of a hard edge-to-edge
+   border. Use as a thin element (h-px) between rows inside glass, or as
+   a left-inset divider. Replaces full-strength `border-border` lines
+   that read as heavy/old against the warm material. */
+.hairline {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    hsl(var(--border) / 0.55) 12%,
+    hsl(var(--border) / 0.55) 88%,
+    transparent 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-press {
+    transition: none;
+  }
+  .glass-press:active {
+    transform: none;
+  }
+}
+
 /* Category marquee — continuous left-scroll loop. The track contains the
    list of pills duplicated twice; animating translateX from 0 to -50%
    creates a seamless loop because the second copy reaches the viewport

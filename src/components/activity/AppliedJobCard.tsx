@@ -405,7 +405,7 @@ function AppliedJobCardInner({
 
           {/* Confirmed: show tracking + message */}
           {isConfirmed && (
-            <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
               {/* Job countdown */}
               <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
               {/* Tracking — only active on the day of the job */}
@@ -423,7 +423,7 @@ function AppliedJobCardInner({
 
           {/* In Progress / Revision */}
           {isActive && (
-            <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
               {/* Live tracking for in-progress jobs */}
               <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} />
 
@@ -713,7 +713,7 @@ function AppliedJobCardInner({
 
           {/* Completed - not yet reviewed: always show photo proof + review button */}
           {isCompleted && !isFullyDone && (
-            <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
               <PhotoProofGroup
                 jobId={app.job_id}
                 beforeUrls={job.proof_before_urls || []}
@@ -754,13 +754,13 @@ function AppliedJobCardInner({
 
           {/* Fully done (reviewed) - collapsible */}
           {isFullyDone && (
-            <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
+            <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
               <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Reviewed</span>
               {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
             </div>
           )}
           {isFullyDone && isExpanded && (
-            <div className="px-4 py-3 border-t border-border/30 bg-muted/10 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
               <PhotoProofGroup
                 jobId={app.job_id}
                 beforeUrls={job.proof_before_urls || []}

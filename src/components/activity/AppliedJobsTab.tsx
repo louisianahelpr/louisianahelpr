@@ -341,7 +341,7 @@ export const AppliedJobsTab = ({
                     className={`px-3 py-2 rounded-ds-md text-[12.5px] font-medium transition-all active:scale-[0.97] ${
                       active
                         ? "bg-primary/10 text-primary border border-primary/35"
-                        : "bg-white text-foreground border border-border/60 hover:bg-secondary/40"
+                        : "bg-card text-foreground border border-[hsl(var(--border)/0.6)] glass-press hover:bg-secondary/40"
                     }`}
                   >
                     {label}
@@ -356,7 +356,7 @@ export const AppliedJobsTab = ({
                 placeholder="Tell us briefly — helps us improve helpr."
                 rows={2}
                 aria-label="Withdraw reason — other"
-                className="mt-2 rounded-ds-md bg-white border-border/60 focus-visible:border-primary/40 text-[14px] leading-relaxed resize-none"
+                className="mt-2 rounded-ds-md focus-visible:border-primary/40 text-[14px] leading-relaxed resize-none"
               />
             )}
           </fieldset>

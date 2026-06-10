@@ -474,7 +474,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         ariaLabel={locked ? `${label} — locked until your account is approved` : label}
         ariaCurrent={isActive ? "page" : undefined}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
-        style={{ color: isActive ? "hsl(var(--olivewood))" : "hsl(48 9% 47%)" }}
+        style={{ color: isActive ? "hsl(var(--bark))" : "hsl(48 9% 47%)" }}
       >
         {/* Sliding active pill — single shared layoutId across all items
             so the pill animates between tabs when you switch. Sits BEHIND
@@ -486,20 +486,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             layoutId="mobile-nav-pill"
             className="absolute inset-x-2 inset-y-1 rounded-full pointer-events-none"
             style={{
-              // Olive-green glass lens — the brand's action color (bark/olive),
-              // lit from above. Selected reads as the brand green, not cream.
-              // The pill is a soft bark wash; the icon + label sit on top in a
-              // deeper olivewood so the contrast stays crisp (no olive-on-olive
-              // mud).
+              // Luminous cream glass lens — a lit-from-above frosted pill with
+              // a warm gold-tinted base, replacing the old flat olive wash. The
+              // bark-colored icon + label ride on top, so the contrast reads
+              // crisp and modern (iOS-dock-like) rather than olive-on-olive.
               background:
-                "radial-gradient(120% 120% at 30% 18%, hsl(var(--bark) / 0.20) 0%, hsl(var(--bark) / 0.14) 50%, hsl(var(--bark) / 0.22) 100%)",
-              border: "0.5px solid hsl(var(--bark) / 0.30)",
+                "radial-gradient(120% 120% at 30% 18%, hsl(45 55% 99% / 0.98) 0%, hsl(42 40% 96% / 0.9) 50%, hsl(var(--gold-warm) / 0.22) 100%)",
+              border: "0.5px solid hsl(var(--bark) / 0.16)",
               boxShadow:
-                "inset 0 1px 1.5px 0 hsl(45 40% 98% / 0.55), " +
-                "inset 0 -1.5px 2px 0 hsl(var(--bark) / 0.18), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.16), " +
-                "0 6px 14px -4px hsl(var(--olivewood) / 0.24), " +
-                "0 12px 22px -8px hsl(var(--olivewood) / 0.18)",
+                "inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95), " +
+                "inset 0 -1.5px 2px 0 hsl(var(--bark) / 0.12), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.14), " +
+                "0 6px 14px -4px hsl(var(--olivewood) / 0.22), " +
+                "0 12px 22px -8px hsl(var(--olivewood) / 0.16)",
             }}
             transition={{ type: "spring", stiffness: 380, damping: 32 }}
             aria-hidden
@@ -509,7 +508,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           <Icon
             className="w-[22px] h-[22px] transition-all duration-200"
             strokeWidth={isActive ? 2.3 : 1.8}
-            fill={isActive ? "hsl(var(--olivewood) / 0.20)" : "none"}
+            fill={isActive ? "hsl(var(--bark) / 0.22)" : "none"}
           />
           {/* No per-tab padlock for guests — three padlocks in a row read
               as a barrier wall on a first-time guest's home screen. The tab
@@ -537,7 +536,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             fontSize: "0.66rem",
             fontWeight: isActive ? 700 : 500,
             letterSpacing: isActive ? "0.01em" : "0.02em",
-            color: isActive ? "hsl(var(--olivewood))" : undefined,
+            color: isActive ? "hsl(var(--bark))" : undefined,
           }}
         >
           {label}

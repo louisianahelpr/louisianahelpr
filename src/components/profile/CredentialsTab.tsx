@@ -366,7 +366,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
         {licensedOn && (
           <div className="space-y-3">
             {data.license_url ? (
-              <div className="flex items-center gap-3 rounded-ds-md border border-border bg-secondary/40 p-3">
+              <div className="flex items-center gap-3 rounded-ds-md bg-card p-3">
                 <FileText className="w-5 h-5 text-primary shrink-0" />
                 <button
                   type="button"
@@ -386,7 +386,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
                 </Button>
               </div>
             ) : (
-              <label className="flex items-center justify-center gap-2 rounded-ds-md border-2 border-dashed border-border bg-secondary/30 px-4 py-6 cursor-pointer hover:border-primary/40 hover:bg-secondary/50 transition-colors">
+              <label className="glass-field flex items-center justify-center gap-2 rounded-ds-md border-2 border-dashed border-[hsl(var(--border)/0.6)] px-4 py-6 cursor-pointer hover:border-primary/40 transition-colors">
                 <Upload className="w-5 h-5 text-muted-foreground" />
                 <span className="text-ds-13 font-medium">
                   {uploading === "license" ? "Uploading..." : "Upload license (image or PDF)"}
@@ -462,7 +462,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
         {insuredOn && (
           <div className="space-y-3">
             {data.insurance_url ? (
-              <div className="flex items-center gap-3 rounded-ds-md border border-border bg-secondary/40 p-3">
+              <div className="flex items-center gap-3 rounded-ds-md bg-card p-3">
                 <FileText className="w-5 h-5 text-primary shrink-0" />
                 <button
                   type="button"
@@ -482,7 +482,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
                 </Button>
               </div>
             ) : (
-              <label className="flex items-center justify-center gap-2 rounded-ds-md border-2 border-dashed border-border bg-secondary/30 px-4 py-6 cursor-pointer hover:border-primary/40 hover:bg-secondary/50 transition-colors">
+              <label className="glass-field flex items-center justify-center gap-2 rounded-ds-md border-2 border-dashed border-[hsl(var(--border)/0.6)] px-4 py-6 cursor-pointer hover:border-primary/40 transition-colors">
                 <Upload className="w-5 h-5 text-muted-foreground" />
                 <span className="text-ds-13 font-medium">
                   {uploading === "insurance" ? "Uploading..." : "Upload insurance (image or PDF)"}

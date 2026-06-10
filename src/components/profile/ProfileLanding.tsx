@@ -848,7 +848,7 @@ export function ProfileLanding({
                     />
                   )}
                 </div>
-                <div className="rounded-ds-lg bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
+                <div className="rounded-ds-lg liquid-glass overflow-hidden">
                   {group.items.map((item, idx) => (
                     <button
                       key={item.label}
@@ -856,12 +856,12 @@ export function ProfileLanding({
                         if (item.href) onNavigate(item.href);
                         else onSelectTab(item.key);
                       }}
-                      className="group/row w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
+                      className="glass-press group/row w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
                     >
                       {idx > 0 && (
                         <span
                           aria-hidden
-                          className="pointer-events-none absolute top-0 left-[60px] right-[14px] h-px bg-border/55"
+                          className="hairline pointer-events-none absolute top-0 left-[60px] right-[14px]"
                         />
                       )}
                       <div className="flex items-center gap-3.5 min-w-0">
@@ -922,14 +922,14 @@ export function ProfileLanding({
               touches week-to-week. */}
           <section>
             <div
-              className="rounded-ds-lg bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden"
+              className="rounded-ds-lg liquid-glass overflow-hidden"
             >
               <button
                 type="button"
                 onClick={() => setMoreOpen((o) => !o)}
                 aria-expanded={moreOpen}
                 aria-controls="profile-more-section"
-                className="w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left"
+                className="glass-press w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left"
               >
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div className="shrink-0">
@@ -962,11 +962,11 @@ export function ProfileLanding({
                         if (item.href) onNavigate(item.href);
                         else onSelectTab(item.key);
                       }}
-                      className="group/row w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
+                      className="glass-press group/row w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
                     >
                       <span
                         aria-hidden
-                        className="pointer-events-none absolute top-0 left-[60px] right-[14px] h-px bg-border/55"
+                        className="hairline pointer-events-none absolute top-0 left-[60px] right-[14px]"
                       />
                       <div className="flex items-center gap-3.5 min-w-0">
                         <div className="shrink-0">
@@ -999,7 +999,7 @@ export function ProfileLanding({
             <button
               type="button"
               onClick={onRequestLogout}
-              className="w-full rounded-ds-lg bg-secondary/60 py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary transition-all"
+              className="glass-press w-full rounded-ds-lg bg-card py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
               style={{
                 color: "hsl(var(--bark))",
                 fontFamily: "Montserrat, system-ui, sans-serif",

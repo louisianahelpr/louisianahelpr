@@ -45,7 +45,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             <Link
               key={to}
               to={to}
-              className="block rounded-2xl border border-border bg-card squircle p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+              className="glass-press block rounded-2xl liquid-glass squircle p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">

@@ -53,7 +53,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               const Icon = icon;
               return (
                 <div className={`rounded-2xl liquid-glass border-2 ${palette.ring} p-6 text-center space-y-3`}>
-                  <div className={`w-14 h-14 rounded-full bg-white/60 mx-auto flex items-center justify-center`}>
+                  <div className={`w-14 h-14 rounded-full bg-card mx-auto flex items-center justify-center`}>
                     <Icon className={`w-7 h-7 ${palette.icon}`} />
                   </div>
                   <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
@@ -102,7 +102,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                       }`}>
                         {v.action_taken.replace(/_/g, " ")}
                       </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-ds-10 font-medium bg-secondary text-secondary-foreground shrink-0">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-ds-10 font-medium bg-[hsl(var(--burnt-sienna)/0.1)] text-[hsl(var(--burnt-sienna))] shrink-0">
                         {v.violation_type.replace(/_/g, " ")}
                       </span>
                     </div>

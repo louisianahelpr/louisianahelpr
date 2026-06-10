@@ -395,7 +395,7 @@ const JobDetailDialog = ({
               </span>
             )}
             {job.is_recurring && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/40 text-foreground/80 text-ds-10 font-semibold uppercase tracking-wider border border-border/60">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[hsl(var(--burnt-sienna)/0.08)] text-[hsl(var(--burnt-sienna))] text-ds-10 font-semibold uppercase tracking-wider border border-[hsl(var(--burnt-sienna)/0.2)]">
                 <Repeat className="w-3 h-3" strokeWidth={2.25} />
                 {job.recurrence_interval || "Recurring"}
               </span>
@@ -483,7 +483,7 @@ const JobDetailDialog = ({
             facts (where, when, how long, deadline) before they see the
             payout. Where + Date are clickable: Where opens Google Maps,
             Date opens Google Calendar. */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {(() => {
             const dateNeeded = parseLocalDate(job.date_needed);
             const dateValid = !isNaN(dateNeeded.getTime());
@@ -551,7 +551,7 @@ const JobDetailDialog = ({
                 <Wrapper
                   key={label}
                   {...wrapperProps}
-                  className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${href ? "transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
+                  className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
                   style={{
                     backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "hsla(0, 0%, 100%, 0.45)",
                     backdropFilter: "blur(18px) saturate(160%)",
@@ -605,7 +605,7 @@ const JobDetailDialog = ({
           type="button"
           onClick={() => setPayoutExpanded((v) => !v)}
           aria-expanded={payoutExpanded}
-          className="w-full text-left rounded-ds-md p-3 transition-shadow hover:shadow-lg relative overflow-hidden"
+          className="w-full text-left glass-press rounded-ds-md p-3 transition-shadow hover:shadow-lg relative overflow-hidden"
           style={{
             background:
               "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
@@ -752,7 +752,7 @@ const JobDetailDialog = ({
             variant="ghost"
             size="icon"
             aria-label="Report this job"
-            className="group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={() => { onReport(job.id); onClose(); }}
             style={{
               backgroundColor: "hsla(0, 0%, 100%, 0.32)",
@@ -781,7 +781,7 @@ const JobDetailDialog = ({
               size="icon"
               aria-label={isSaved ? "Unsave job" : "Save job"}
               aria-pressed={isSaved}
-              className="group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+              className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
               onClick={() => onToggleSave(job.id, !isSaved)}
               style={{
                 backgroundColor: isSaved ? "hsl(var(--primary) / 0.12)" : "hsla(0, 0%, 100%, 0.32)",
@@ -819,7 +819,7 @@ const JobDetailDialog = ({
             variant="ghost"
             size="icon"
             aria-label="Ask a question"
-            className="group rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={handleAskQuestion}
             style={{
               backgroundColor: "hsla(0, 0%, 100%, 0.32)",

@@ -134,7 +134,10 @@ function PostedJobCardInner({
             expandable={isFullyCompleted}
             expanded={isExpanded}
             onToggle={() => setExpandedJobId(isExpanded ? null : job.id)}
-            className="group relative"
+            // scroll-mt keeps a card's title from ghosting up under the
+            // translucent (~0.85 opacity) page title card when it scrolls
+            // to the top of the list.
+            className="group relative scroll-mt-3"
           >
             <JobCardTitleBar title={job.title} amount={String(job.budget)} />
 
@@ -301,14 +304,14 @@ function PostedJobCardInner({
               const hasReviewed = cMeta?.reviewed;
               if (hasTipped && hasReviewed) {
                 return (
-                  <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15 flex items-center justify-between">
+                  <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
                     <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tipped & Reviewed</span>
                     {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
                   </div>
                 );
               }
               return (!hasTipped || !hasReviewed) ? (
-                <div className="px-4 py-1.5 border-t border-border/40 bg-muted/15">
+                <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card">
                   <span className="text-ds-11 text-muted-foreground">
                     {!hasTipped && !hasReviewed ? "Tip & review" : !hasTipped ? "Leave a tip" : "Leave a review"}
                   </span>
@@ -425,7 +428,7 @@ function PostedJobCardInner({
               )}
 
               {/* Actions */}
-              <div className="border-t border-border/30 bg-muted/8 px-4 py-3">
+              <div className="border-t border-[hsl(var(--olivewood)/0.1)] bg-card px-4 py-3">
                 <div className="space-y-2">
                   {job.status === "open" && (() => {
                     // Boost cooldown — show when the job is currently
@@ -490,21 +493,24 @@ function PostedJobCardInner({
                           </p>
                         </div>
                       )}
-                      {/* 2×2 grid: four equal full-width buttons. A single
-                          row crammed all four (Boost / Edit / Share / Cancel)
-                          past the card width on a phone, clipping "Cancel"
-                          to "Cance". The grid gives every label room with
-                          comfortable h-11 tap targets. */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button size="sm" className="w-full bg-accent/15 text-accent hover:bg-accent/25 border-0" disabled={!!isBoosted} onClick={() => onBoost(job.id)}>
+                      {/* Calm hierarchy: one primary brand-green action
+                          (Boost — the visibility lever the stale-nudge
+                          points to) sits full-width, with Edit / Share /
+                          Cancel as quiet glass secondaries beneath it.
+                          Avoids the old wall of equally-weighted tinted
+                          fills while keeping every handler intact. */}
+                      <div className="space-y-2">
+                        <Button variant="bark" size="sm" className="w-full rounded-ds-md glass-press" disabled={!!isBoosted} onClick={() => onBoost(job.id)}>
                           <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
                         </Button>
-                        <Button size="sm" className="w-full bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--bark)/0.20)] border-0" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-                        <ShareJobButton
-                          job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-                          className="w-full"
-                        />
-                        <Button size="sm" className="w-full bg-destructive/10 text-destructive hover:bg-destructive/20 border-0" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Button variant="outline" size="sm" className="w-full liquid-glass glass-press" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                          <ShareJobButton
+                            job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
+                            className="w-full !bg-transparent liquid-glass glass-press !text-foreground hover:!bg-transparent border"
+                          />
+                          <Button variant="outline" size="sm" className="w-full liquid-glass glass-press text-destructive hover:text-destructive" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                        </div>
                       </div>
                     </>
                     );
@@ -695,7 +701,7 @@ function PostedJobCardInner({
                             <RotateCcw className="w-4 h-4 mr-1" /> Hire {helperName} again
                           </Button>
                         ) : (
-                          <Button size="sm" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
+                          <Button size="sm" variant="outline" className="w-full liquid-glass glass-press" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
                             <RotateCcw className="w-4 h-4 mr-1" /> Rebook this task
                           </Button>
                         )}
@@ -764,7 +770,7 @@ function PostedJobCardInner({
                           />
                         )}
                       </div>
-                      <div className="p-2 rounded-ds-sm bg-muted/50 border border-border">
+                      <div className="p-2 rounded-ds-sm bg-card">
                         <p className="text-ds-10 text-muted-foreground leading-relaxed">
                           <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the helpr.
                         </p>

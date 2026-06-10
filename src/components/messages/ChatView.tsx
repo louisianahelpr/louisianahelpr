@@ -827,7 +827,7 @@ export function ChatView({
                composer so there's no disabled control to fight with. The
                backend RLS policy enforces the same rule server-side. */
             <div
-              className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+              className="pt-2 pb-3 glass-header sticky bottom-0"
               style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
             >
               <div
@@ -877,7 +877,7 @@ export function ChatView({
 
               {/* Rich message input */}
               <div
-                className="pt-2 pb-3 border-t border-border sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+                className="pt-2 pb-3 glass-header sticky bottom-0"
                 style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
               >
                 <RichMessageInput

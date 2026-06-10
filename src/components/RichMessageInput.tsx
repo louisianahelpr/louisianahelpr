@@ -296,7 +296,7 @@ export const RichMessageInput = ({
           {imagePreview && imagePreview.startsWith("blob:") ? (
             <img loading="lazy" decoding="async" src={imagePreview} alt="Preview" className="h-20 w-20 rounded-ds-sm object-cover border border-border" />
           ) : (
-            <div className="h-20 w-32 rounded-ds-sm border border-border bg-muted flex items-center gap-2 px-3">
+            <div className="h-20 w-32 rounded-ds-sm bg-card flex items-center gap-2 px-3">
               <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
               <span className="text-ds-11 text-foreground truncate">{stagedFile.name}</span>
             </div>
@@ -316,7 +316,7 @@ export const RichMessageInput = ({
         <Button
           variant="ghost"
           size="icon"
-          className="shrink-0 h-9 w-9"
+          className="shrink-0 h-9 w-9 rounded-full liquid-glass glass-press"
           onClick={() => { hapticLight(); setAttachSheetOpen(true); }}
           disabled={disabled || uploading}
           aria-label="Attach photo or PDF"
@@ -327,7 +327,7 @@ export const RichMessageInput = ({
         <Button
           variant="ghost"
           size="icon"
-          className="shrink-0 h-9 w-9"
+          className="shrink-0 h-9 w-9 rounded-full liquid-glass glass-press"
           onClick={handleShareLocation}
           disabled={disabled || uploading}
           aria-label="Share location"
@@ -360,7 +360,7 @@ export const RichMessageInput = ({
             type="button"
             variant="ghost"
             size="icon"
-            className="shrink-0 h-9 w-9 relative"
+            className="shrink-0 h-9 w-9 relative rounded-full liquid-glass glass-press"
             onClick={toggleVoice}
             disabled={disabled || uploading}
             aria-label={voice.isListening ? "Stop dictating" : "Dictate a message"}

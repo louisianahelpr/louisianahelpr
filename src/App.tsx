@@ -18,6 +18,7 @@ import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
+import { useAppLifecycle } from "@/lib/appLifecycle";
 import { useDynamicTypeSync } from "@/lib/accessibility";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
@@ -233,6 +234,7 @@ const SessionManager = () => {
   useSessionTimeout();
   useLoginTracking();
   useNativePushSetup();
+  useAppLifecycle();
   useDynamicTypeSync();
   useCppVariantRouter();
   useAppShellViewport();

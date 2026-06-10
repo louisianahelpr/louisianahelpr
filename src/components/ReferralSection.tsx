@@ -10,6 +10,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { queryKeys } from "@/lib/queryKeys";
 import { ReferralExtras } from "@/components/profile/ReferralExtras";
 import { requireBiometric } from "@/lib/biometricGate";
+import { shareNative } from "@/lib/nativeShare";
 
 /**
  * Single-screen referral dashboard. Backed by React Query (60s staleTime)
@@ -48,18 +49,16 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   const shareReferral = async () => {
     if (!referralCode) return;
     const { url, text, combined } = buildShareBody(referralCode);
-    // Native share where available (iOS, Android, supported desktop) —
-    // falls back to clipboard so the action never silently fails.
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({ title: "Louisiana Helpr", text, url });
-        return;
-      } catch {
-        // User cancelled or share API errored — fall through to clipboard.
-      }
-    }
-    await navigator.clipboard.writeText(combined);
-    toast.success("Share link copied!");
+    // Native-first share chain (Capacitor Share Sheet → Web Share API →
+    // clipboard) so the OS sheet is used on the iOS/Android shell instead
+    // of the WKWebView navigator.share shim.
+    await shareNative({
+      title: "Louisiana Helpr",
+      text,
+      url,
+      dialogTitle: "Share your referral",
+      clipboardText: combined,
+    });
   };
 
   // SMS-specific shortcut. `sms:` deep link is supported on iOS (Capacitor)

@@ -9,16 +9,20 @@
  * `appStateChange` into TanStack's `focusManager` so the existing config
  * actually fires a background refetch on foreground. It also clears
  * delivered notifications when the app becomes active so the Notification
- * Center / badge don't pile up after the user has already opened the app.
+ * Center / badge don't pile up after the user has already opened the app,
+ * and feeds @capacitor/network into TanStack's `onlineManager` so queries
+ * pause/refetch on real OS reachability rather than the flaky WKWebView
+ * navigator.onLine signal.
  *
  * No-op on web (the browser events already work there).
  */
 import { useEffect } from "react";
-import { focusManager } from "@tanstack/react-query";
+import { focusManager, onlineManager } from "@tanstack/react-query";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { report } from "@/lib/errorLogger";
 
 let attached = false;
+let networkAttached = false;
 
 async function clearDeliveredNotifications() {
   try {
@@ -69,6 +73,36 @@ export function useAppLifecycle() {
     return () => {
       removeListener?.();
       attached = false;
+    };
+  }, []);
+
+  // Feed @capacitor/network into TanStack's onlineManager so queries pause
+  // while offline and refetch the moment connectivity returns. The default
+  // onlineManager relies on the window online/offline events, which — like
+  // navigator.onLine — are unreliable inside a WKWebView; the Network plugin
+  // reports real OS reachability. Web is left on the TanStack default.
+  useEffect(() => {
+    if (!isNativePlatform || networkAttached) return;
+    networkAttached = true;
+
+    let removeListener: (() => void) | undefined;
+    void (async () => {
+      try {
+        const { Network } = await import("@capacitor/network");
+        const initial = await Network.getStatus();
+        onlineManager.setOnline(initial.connected);
+        const handle = await Network.addListener("networkStatusChange", (s) => {
+          onlineManager.setOnline(s.connected);
+        });
+        removeListener = () => void handle.remove();
+      } catch (err) {
+        report(err, { tags: { source: "useAppLifecycle.network" } });
+      }
+    })();
+
+    return () => {
+      removeListener?.();
+      networkAttached = false;
     };
   }, []);
 }

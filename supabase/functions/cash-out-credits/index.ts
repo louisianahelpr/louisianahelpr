@@ -8,6 +8,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function sha256Hex(input: string): Promise<string> {
+  const bytes = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -42,25 +50,37 @@ serve(async (req) => {
       );
     }
 
-    // Get unredeemed credits
-    const { data: credits, error: creditsError } = await supabase
+    // Race-safe atomic claim: flip redeemed=true FIRST and return only the
+    // rows this call actually claimed. A concurrent double-tap/retry that
+    // reads the same unredeemed rows will claim zero here (the .eq filter no
+    // longer matches), so only one request ever transfers. Without this the
+    // read→transfer→mark sequence let two requests pay out the same credits.
+    const { data: claimed, error: claimError } = await supabase
       .from("referral_credits")
-      .select("id, amount")
+      .update({ redeemed: true })
       .eq("user_id", userId)
-      .eq("redeemed", false);
+      .eq("redeemed", false)
+      .select("id, amount");
 
-    if (creditsError) throw new Error("Failed to load credits");
-    if (!credits || credits.length === 0) {
+    if (claimError) throw new Error("Failed to load credits");
+    if (!claimed || claimed.length === 0) {
       return new Response(
         JSON.stringify({ error: "No available credits to cash out." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
 
-    const totalAmount = credits.reduce((sum, c) => sum + Number(c.amount), 0);
+    const creditIds = claimed.map((c) => c.id);
+    const totalAmount = claimed.reduce((sum, c) => sum + Number(c.amount), 0);
     const totalCents = Math.round(totalAmount * 100);
 
+    // Roll back the claim helper — credits must not be lost if we bail or the
+    // transfer fails, so we flip redeemed back to false for the claimed rows.
+    const rollbackClaim = () =>
+      supabase.from("referral_credits").update({ redeemed: false }).in("id", creditIds);
+
     if (totalCents < 100) {
+      await rollbackClaim();
       return new Response(
         JSON.stringify({ error: "Minimum cash-out amount is $1.00." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
@@ -72,19 +92,26 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const transfer = await stripe.transfers.create({
-      amount: totalCents,
-      currency: "usd",
-      destination: profile.stripe_account_id,
-      description: `Helpr referral credit cash-out ($${totalAmount.toFixed(2)})`,
-    });
+    // Idempotency key derived from the exact claimed credit set, so a retried
+    // transfer for the same claim never double-sends on Stripe's side.
+    const idempotencyKey = `cashout-${await sha256Hex(creditIds.slice().sort().join(","))}`;
 
-    // Mark all credits as redeemed
-    const creditIds = credits.map((c) => c.id);
-    await supabase
-      .from("referral_credits")
-      .update({ redeemed: true })
-      .in("id", creditIds);
+    let transfer;
+    try {
+      transfer = await stripe.transfers.create(
+        {
+          amount: totalCents,
+          currency: "usd",
+          destination: profile.stripe_account_id,
+          description: `Helpr referral credit cash-out ($${totalAmount.toFixed(2)})`,
+        },
+        { idempotencyKey }
+      );
+    } catch (transferError) {
+      // Transfer failed — release the claim so the user keeps their credits.
+      await rollbackClaim();
+      throw transferError;
+    }
 
     // Notify user
     await supabase.from("notifications").insert({

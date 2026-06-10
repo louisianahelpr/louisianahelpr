@@ -27,6 +27,7 @@ import ImpersonationBanner from "@/components/ImpersonationBanner";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
+import { useSoftUpdatePrompt } from "@/hooks/useSoftUpdatePrompt";
 const ForceUpdate = lazy(() => import("@/components/ForceUpdate"));
 
 // Toaster, Sonner and TooltipProvider pull in sonner + @radix-ui/react-toast +
@@ -234,6 +235,7 @@ const SessionManager = () => {
   useSessionTimeout();
   useLoginTracking();
   useNativePushSetup();
+  useSoftUpdatePrompt();
   useAppLifecycle();
   useDynamicTypeSync();
   useCppVariantRouter();

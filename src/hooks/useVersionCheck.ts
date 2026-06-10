@@ -62,10 +62,14 @@ export const parseBuild = (raw: string | undefined | null): number => {
 interface VersionCheckResult {
   /** True when the binary is older than MIN_SUPPORTED_BUILD. */
   forceUpdate: boolean;
+  /** True when a newer build exists but the current one is still supported. */
+  updateAvailable: boolean;
   /** Numeric build code currently installed (0 if unknown / web). */
   installedBuild: number;
   /** Build code we require (mirrored from `MIN_SUPPORTED_BUILD`). */
   minSupportedBuild: number;
+  /** Newest build available in the stores (0 if unknown). */
+  latestBuild: number;
 }
 
 export const useVersionCheck = (): VersionCheckResult => {
@@ -76,6 +80,9 @@ export const useVersionCheck = (): VersionCheckResult => {
   // or the column doesn't exist (migration not deployed). The DB
   // value, if any, takes precedence — that's the whole point.
   const [dbMin, setDbMin] = useState<number | null>(null);
+  // Newest build available in the stores, also from platform_settings.
+  // Drives the soft (non-blocking) update nudge.
+  const [dbLatest, setDbLatest] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isNativePlatform) return;
@@ -105,7 +112,7 @@ export const useVersionCheck = (): VersionCheckResult => {
     (async () => {
       try {
         const { data, error } = await (supabase.from as any)("platform_settings")
-          .select("min_supported_build")
+          .select("min_supported_build, latest_build")
           .limit(1)
           .maybeSingle();
         if (cancelled) return;
@@ -115,6 +122,8 @@ export const useVersionCheck = (): VersionCheckResult => {
         if (error) return;
         const v = typeof data?.min_supported_build === "number" ? data.min_supported_build : null;
         if (v !== null && Number.isFinite(v)) setDbMin(v);
+        const latest = typeof data?.latest_build === "number" ? data.latest_build : null;
+        if (latest !== null && Number.isFinite(latest)) setDbLatest(latest);
       } catch {
         /* network errors are fine — local fallback continues to work */
       }
@@ -130,5 +139,20 @@ export const useVersionCheck = (): VersionCheckResult => {
     installedBuild > 0 &&
     installedBuild < effectiveMin;
 
-  return { forceUpdate, installedBuild, minSupportedBuild: effectiveMin };
+  const latestBuild = dbLatest ?? 0;
+  // A newer build exists but the current one is still supported — show the
+  // soft nudge, never alongside the hard force-update gate.
+  const updateAvailable =
+    !forceUpdate &&
+    latestBuild > 0 &&
+    installedBuild > 0 &&
+    installedBuild < latestBuild;
+
+  return {
+    forceUpdate,
+    updateAvailable,
+    installedBuild,
+    minSupportedBuild: effectiveMin,
+    latestBuild,
+  };
 };

@@ -345,7 +345,7 @@ function PostedJobCardInner({
               {/* Applicants button + inline expanded applicant list */}
               {job.status === "open" && (
                 <div className="px-4 py-2 space-y-2" onClick={(e) => e.stopPropagation()}>
-                  <Button size="sm" className="w-full" onClick={() => onLoadApplications(job)}>
+                  <Button size="sm" className="w-full rounded-ds-md glass-press" onClick={() => onLoadApplications(job)}>
                     <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}
                   </Button>
 
@@ -452,7 +452,10 @@ function PostedJobCardInner({
                       (applicantCounts[job.id] || 0) === 0;
                     return (
                     <>
-                      {isStale && (
+                      {/* Hidden when expanded — the inline applicants empty
+                          state already says "No applicants yet," so showing
+                          the stale nudge too read as the message twice. */}
+                      {isStale && !isExpanded && (
                         <div
                           className="rounded-ds-md px-3 py-2 mb-2 flex items-start gap-2"
                           style={{
@@ -493,23 +496,44 @@ function PostedJobCardInner({
                           </p>
                         </div>
                       )}
-                      {/* Calm hierarchy: one primary brand-green action
-                          (Boost — the visibility lever the stale-nudge
-                          points to) sits full-width, with Edit / Share /
-                          Cancel as quiet glass secondaries beneath it.
-                          Avoids the old wall of equally-weighted tinted
-                          fills while keeping every handler intact. */}
+                      {/* Color-coded actions — each lever gets its own muted
+                          hue so the row reads at a glance without shouting:
+                          Boost = orange (visibility), Edit = gold/yellow,
+                          Share = blue, Cancel = red. Applicants (above) stays
+                          the single solid-green primary. Tints are kept low so
+                          it's colorful, not loud. */}
                       <div className="space-y-2">
-                        <Button variant="bark" size="sm" className="w-full rounded-ds-md glass-press" disabled={!!isBoosted} onClick={() => onBoost(job.id)}>
+                        <Button
+                          variant="outline" size="sm"
+                          className="w-full rounded-ds-md glass-press border-0"
+                          style={{ background: "hsl(25 75% 48% / 0.14)", color: "hsl(25 72% 36%)", border: "0.5px solid hsl(25 75% 48% / 0.34)" }}
+                          disabled={!!isBoosted}
+                          onClick={() => onBoost(job.id)}
+                        >
                           <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
                         </Button>
                         <div className="grid grid-cols-3 gap-2">
-                          <Button variant="outline" size="sm" className="w-full liquid-glass glass-press" onClick={() => onEdit(job)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+                          <Button
+                            variant="outline" size="sm"
+                            className="w-full glass-press border-0"
+                            style={{ background: "hsl(var(--gold-warm) / 0.16)", color: "hsl(38 60% 34%)", border: "0.5px solid hsl(var(--gold-warm) / 0.36)" }}
+                            onClick={() => onEdit(job)}
+                          >
+                            <Pencil className="w-4 h-4 mr-1" /> Edit
+                          </Button>
                           <ShareJobButton
                             job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-                            className="w-full !bg-transparent liquid-glass glass-press !text-foreground hover:!bg-transparent border"
+                            className="w-full glass-press border-0"
+                            style={{ background: "hsl(210 55% 47% / 0.12)", color: "hsl(210 52% 38%)", border: "0.5px solid hsl(210 55% 47% / 0.32)" }}
                           />
-                          <Button variant="outline" size="sm" className="w-full liquid-glass glass-press text-destructive hover:text-destructive" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
+                          <Button
+                            variant="outline" size="sm"
+                            className="w-full glass-press border-0"
+                            style={{ background: "hsl(6 58% 46% / 0.11)", color: "hsl(6 55% 42%)", border: "0.5px solid hsl(6 58% 46% / 0.32)" }}
+                            onClick={() => onCancel(job)}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" /> Cancel
+                          </Button>
                         </div>
                       </div>
                     </>

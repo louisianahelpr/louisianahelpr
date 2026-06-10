@@ -871,7 +871,7 @@ export function ProfileLanding({
                             header) is the readable signal, and three
                             stacked reds was visual noise. */}
                         <div className="shrink-0">
-                          <div className="w-10 h-10 rounded-ds-md bg-muted/60 text-muted-foreground flex items-center justify-center transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
+                          <div className="w-10 h-10 rounded-ds-md glass-field text-[hsl(var(--olivewood)/0.72)] flex items-center justify-center transition-all group-hover/row:text-[hsl(var(--bark))] group-hover/row:shadow-sm">
                             {item.icon}
                           </div>
                         </div>
@@ -933,7 +933,7 @@ export function ProfileLanding({
               >
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div className="shrink-0">
-                    <div className="w-10 h-10 rounded-ds-md bg-muted/60 text-muted-foreground flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-ds-md glass-field text-[hsl(var(--olivewood)/0.72)] flex items-center justify-center">
                       <MoreHorizontal className="w-5 h-5" />
                     </div>
                   </div>
@@ -970,7 +970,7 @@ export function ProfileLanding({
                       />
                       <div className="flex items-center gap-3.5 min-w-0">
                         <div className="shrink-0">
-                          <div className="w-10 h-10 rounded-ds-md bg-muted/60 text-muted-foreground flex items-center justify-center transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
+                          <div className="w-10 h-10 rounded-ds-md glass-field text-[hsl(var(--olivewood)/0.72)] flex items-center justify-center transition-all group-hover/row:text-[hsl(var(--bark))] group-hover/row:shadow-sm">
                             {item.icon}
                           </div>
                         </div>

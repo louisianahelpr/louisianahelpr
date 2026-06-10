@@ -2,8 +2,28 @@ import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
+import { hapticLight } from "@/lib/haptics";
 
-const Tabs = TabsPrimitive.Root;
+// Wrap Root so a light tick fires on every real selection change. Radix
+// calls onValueChange in both controlled and uncontrolled modes, and only
+// when the value actually changes — so re-tapping the active tab stays
+// silent, mirroring the bottom-nav rule that the haptic must track real
+// navigation. No-ops on web (see hapticLight). Per-call onValueChange is
+// preserved.
+const Tabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>
+>(({ onValueChange, ...props }, ref) => {
+  const handleValueChange = React.useCallback(
+    (value: string) => {
+      void hapticLight();
+      onValueChange?.(value);
+    },
+    [onValueChange],
+  );
+  return <TabsPrimitive.Root ref={ref} onValueChange={handleValueChange} {...props} />;
+});
+Tabs.displayName = TabsPrimitive.Root.displayName;
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,

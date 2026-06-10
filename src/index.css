@@ -217,6 +217,19 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* AppShell's internal scroll surface (src/components/AppShell.tsx, set on
+   every fixed-shell page). Without containment a flick past the top/bottom
+   of a list chains out of this element and rubber-bands the entire
+   WKWebView frame — the cream background flashes in from behind the app and
+   it reads as a web page, not a native app. `contain` keeps the list's own
+   momentum bounce (native feel) while stopping the chain at this element's
+   edge; `touch` restores the iOS inertia that the global body lock above
+   otherwise flattens. Same recipe as `.glass-modal`. */
+.app-shell-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
 /* Scrollbars are never shown — app-wide. This is a native-feel mobile UI;
    scrolling still works (touch / wheel / trackpad), just with no visible
    scrollbar on any element, on any platform. */

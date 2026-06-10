@@ -159,6 +159,11 @@ export function ShareJobButton({
     <Button
       type="button"
       size="sm"
+      // The default variant pins its text to parchment-cream with
+      // `!important`, which an inline `style.color` can't beat. When a host
+      // recolors via `style`, drop to the ghost variant (no forced text) so
+      // the override actually renders; the no-style mount keeps `default`.
+      variant={style ? "ghost" : "default"}
       aria-label={ariaLabel ?? "Share this job"}
       disabled={sharing}
       onClick={handleShare}

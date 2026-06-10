@@ -320,7 +320,11 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       // Native-only Capacitor plugins that aren't installed in the web build.
       // They're loaded via dynamic import() and silently no-op on web.
-      external: ["@capacitor-community/in-app-review", "react-is"],
+      // NOTE: do NOT add browser/runtime deps here. `react-is` was wrongly
+      // listed and shipped as an unresolvable bare `import "react-is"` in the
+      // output, crashing every chunk that pulls recharts (Profile charts,
+      // post-job price stats) with "Failed to resolve module specifier".
+      external: ["@capacitor-community/in-app-review"],
       output: {
         // Bundle all lucide icons into a single chunk so we don't ship 40+
         // tiny per-icon files (HTTP overhead > byte savings).

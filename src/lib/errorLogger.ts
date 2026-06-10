@@ -8,6 +8,7 @@
  * call Sentry.captureException(err, { extra }) and you're done.
  */
 
+import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";
 
 // ── Tunables ─────────────────────────────────────────────────────────
@@ -69,6 +70,11 @@ function sanitizeUrl(url: string | null | undefined): string | null {
 // never reach the production error_logs table — they're noise.
 function isDevEnvironment(stack: string | null | undefined): boolean {
   if (typeof window === "undefined") return false;
+  // The native iOS/Android shell serves from capacitor://localhost (and
+  // Android's https://localhost), so hostname === "localhost" here would
+  // otherwise silently drop EVERY real native crash. A native platform is
+  // never the dev environment — bail before the hostname checks.
+  if (Capacitor.isNativePlatform()) return false;
   const host = window.location.hostname;
   if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".local")) return true;
   if (stack && (stack.includes("localhost:") || stack.includes("@vite/client"))) return true;

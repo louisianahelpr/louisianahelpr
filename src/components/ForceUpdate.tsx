@@ -1,4 +1,5 @@
 import { ArrowUpRight, RefreshCw } from "lucide-react";
+import { detectStoreUrl } from "@/lib/storeUrl";
 
 /**
  * ForceUpdate — full-screen blocker shown when the installed native
@@ -11,25 +12,6 @@ import { ArrowUpRight, RefreshCw } from "lucide-react";
  * Web / dev never see this — `useVersionCheck` short-circuits when
  * `isNativePlatform` is false.
  */
-
-const APP_STORE_URL = "https://apps.apple.com/app/id6748060989";
-const PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=com.louisianahelpr.app";
-
-const detectStoreUrl = (): string => {
-  if (typeof navigator === "undefined") return APP_STORE_URL;
-  // Capacitor exposes the platform via the global; fall back to a UA
-  // string sniff so this works even if the bridge is half-initialized
-  // by the time the ForceUpdate component renders.
-  const cap = (window as { Capacitor?: { getPlatform?: () => string } })
-    .Capacitor;
-  const platform = cap?.getPlatform?.();
-  if (platform === "android") return PLAY_STORE_URL;
-  if (platform === "ios") return APP_STORE_URL;
-  // Browser fallback — should be unreachable since the check is gated
-  // on `isNativePlatform`, but we still pick a sensible default.
-  return /Android/i.test(navigator.userAgent) ? PLAY_STORE_URL : APP_STORE_URL;
-};
 
 interface Props {
   /** Optional override for the store URL — primarily for tests. */

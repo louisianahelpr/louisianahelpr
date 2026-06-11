@@ -506,7 +506,7 @@ function PostedJobCardInner({
                         <Button
                           variant="outline" size="sm"
                           className="w-full rounded-ds-md glass-press border-0"
-                          style={{ background: "hsl(25 75% 48% / 0.14)", color: "hsl(25 72% 36%)", border: "0.5px solid hsl(25 75% 48% / 0.34)" }}
+                          style={{ background: "hsl(25 75% 48% / 0.14)", color: "hsl(25 82% 28%)", border: "0.5px solid hsl(25 75% 48% / 0.34)" }}
                           disabled={!!isBoosted}
                           onClick={() => onBoost(job.id)}
                         >
@@ -516,7 +516,7 @@ function PostedJobCardInner({
                           <Button
                             variant="outline" size="sm"
                             className="w-full glass-press border-0"
-                            style={{ background: "hsl(var(--gold-warm) / 0.16)", color: "hsl(38 60% 34%)", border: "0.5px solid hsl(var(--gold-warm) / 0.36)" }}
+                            style={{ background: "hsl(var(--gold-warm) / 0.16)", color: "hsl(36 72% 25%)", border: "0.5px solid hsl(var(--gold-warm) / 0.36)" }}
                             onClick={() => onEdit(job)}
                           >
                             <Pencil className="w-4 h-4 mr-1" /> Edit
@@ -524,12 +524,12 @@ function PostedJobCardInner({
                           <ShareJobButton
                             job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                             className="w-full glass-press border-0"
-                            style={{ background: "hsl(210 55% 47% / 0.12)", color: "hsl(210 52% 38%)", border: "0.5px solid hsl(210 55% 47% / 0.32)" }}
+                            style={{ background: "hsl(210 55% 47% / 0.12)", color: "hsl(210 62% 30%)", border: "0.5px solid hsl(210 55% 47% / 0.32)" }}
                           />
                           <Button
                             variant="outline" size="sm"
                             className="w-full glass-press border-0"
-                            style={{ background: "hsl(6 58% 46% / 0.11)", color: "hsl(6 55% 42%)", border: "0.5px solid hsl(6 58% 46% / 0.32)" }}
+                            style={{ background: "hsl(6 58% 46% / 0.11)", color: "hsl(6 62% 34%)", border: "0.5px solid hsl(6 58% 46% / 0.32)" }}
                             onClick={() => onCancel(job)}
                           >
                             <XCircle className="w-4 h-4 mr-1" /> Cancel

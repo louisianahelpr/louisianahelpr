@@ -284,34 +284,33 @@ export function ApplyConfirmDialog({
             {/* Starter sentences — clickable to insert. Surfaces the
                 "what should I even say?" question by showing concrete,
                 time-aware openers. Tapping one appends to the current
-                draft so chips compose. */}
+                draft so chips compose. A labelled header makes it read as
+                "tap a suggestion," and the chips scroll horizontally on one
+                row so they don't stack three-tall and balloon the dialog. */}
             {applyMessage.length < MAX_PITCH_LENGTH - 20 && (
-              <div
-                className="flex items-start gap-1.5"
-                role="group"
-                aria-label="Suggested opening sentences"
-              >
-                <Sparkles
-                  className="w-3 h-3 mt-1 shrink-0"
-                  style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
-                  strokeWidth={2.25}
-                  aria-hidden
-                />
-                <div className="flex flex-wrap gap-1.5">
+              <div role="group" aria-label="Suggested opening sentences">
+                <div
+                  className="flex items-center gap-1 mb-1.5 font-serif italic"
+                  style={{ fontSize: "0.66rem", color: "hsl(var(--burnt-sienna) / 0.75)", letterSpacing: "0.04em" }}
+                >
+                  <Sparkles className="w-3 h-3 shrink-0" strokeWidth={2.25} aria-hidden />
+                  <span>Tap a suggested opener</span>
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-0.5">
                   {starterSentences.map((sentence) => {
                     // Show a truncated preview as the chip label —
                     // tapping inserts the full sentence.
-                    const preview = sentence.length > 38 ? `${sentence.slice(0, 36)}…` : sentence;
+                    const preview = sentence.length > 34 ? `${sentence.slice(0, 32)}…` : sentence;
                     return (
                       <button
                         key={sentence}
                         type="button"
                         onClick={() => handleStarterTap(sentence)}
-                        className="text-[0.72rem] font-serif italic px-2 py-1 rounded-full transition-colors active:scale-[0.97]"
+                        className="shrink-0 whitespace-nowrap text-[0.72rem] font-serif italic px-2.5 py-1 rounded-full transition-colors active:scale-[0.97]"
                         style={{
-                          background: "hsla(0, 0%, 100%, 0.55)",
-                          color: "hsl(var(--ink-deep) / 0.85)",
-                          border: "0.5px solid hsl(var(--bark) / 0.18)",
+                          background: "hsl(var(--bark) / 0.07)",
+                          color: "hsl(var(--ink-deep) / 0.88)",
+                          border: "0.5px solid hsl(var(--bark) / 0.24)",
                           boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.5)",
                         }}
                         aria-label={`Insert: ${sentence}`}
@@ -357,12 +356,15 @@ export function ApplyConfirmDialog({
                     : "hsl(var(--muted-foreground))",
                 }}
               >
-                {charsLeft}
+                {applyMessage.length}/{MAX_PITCH_LENGTH}
               </span>
             </div>
           </div>
           {/* File attachments */}
-          <div className="space-y-1.5 mt-2">
+          <div
+            className="space-y-1.5 mt-3.5 pt-3.5"
+            style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+          >
             {/* Was a bare <label> with no `htmlFor` — that fails the form-
                 control association rule. The file input below is wrapped
                 in its own inner <label> (which is the real picker

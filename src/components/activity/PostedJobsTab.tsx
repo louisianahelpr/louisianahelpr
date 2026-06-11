@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft, Check, Loader2, SearchX, Star, Users, Wrench } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, SearchX, Star, Users, Wrench } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { VirtualList } from "@/components/VirtualList";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
@@ -379,11 +381,25 @@ export const PostedJobsTab = ({
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="max-w-2xl mx-auto w-full">
             {applicationsLoading ? (
-              /* Loading state — prevents a blank modal from masquerading
-                 as "no applicants" while the fetch is in-flight. */
-              <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-                <Loader2 className="w-7 h-7 animate-spin" />
-                <p className="text-ds-13">Loading applicants…</p>
+              /* Loading state — skeleton applicant rows (matching the real
+                 card silhouette) instead of a bare spinner, so the wait
+                 reads as "content arriving" and is consistent with every
+                 other list's loading treatment. */
+              <div className="space-y-3" aria-label="Loading applicants" aria-busy="true">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="rounded-ds-md bg-card p-3 flex items-center gap-3"
+                    style={{ border: "0.5px solid hsl(var(--olivewood) / 0.12)" }}
+                  >
+                    <Skeleton className="w-11 h-11 rounded-full shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-3.5 w-1/2" />
+                      <Skeleton className="h-3 w-3/4" />
+                    </div>
+                    <Skeleton className="h-8 w-16 rounded-ds-sm shrink-0" />
+                  </div>
+                ))}
               </div>
             ) : applicationsError ? (
               /* Error state — surface the failure clearly so the poster
@@ -408,7 +424,14 @@ export const PostedJobsTab = ({
                 variant="inline"
                 icon={Users}
                 title="No applications yet"
-                body="When helprs apply to this task, they'll show up here for you to review."
+                body="When helprs apply to this task, they'll show up here for you to review. Sharing it reaches more helprs nearby."
+                action={
+                  selectedJob ? (
+                    <ShareJobButton
+                      job={{ id: selectedJob.id, title: selectedJob.title, budget: selectedJob.budget, category: selectedJob.category }}
+                    />
+                  ) : undefined
+                }
               />
             ) : (
               <div className="space-y-3">

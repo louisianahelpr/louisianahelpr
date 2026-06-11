@@ -8,6 +8,7 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 // Card-matching skeleton — mirrors the actual ConversationRow shape
@@ -222,6 +223,7 @@ export function ConversationList({
             <div className="px-3 pt-4 flex-1 min-h-0 flex">
               <EmptyState
                 icon={MessageSquare}
+                illustration={<EmptyStateIllustration variant="inbox" />}
                 eyebrow="Quiet for now"
                 title="No messages yet."
                 body="Apply to a task or accept a helpr's offer — conversations appear here once they start."

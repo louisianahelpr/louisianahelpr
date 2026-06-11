@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Heart, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { successToast } from "@/lib/toast";
 import { hapticLight } from "@/lib/haptics";
 
 interface SaveHelperButtonProps {
@@ -25,6 +27,7 @@ export const SaveHelperButton = ({
   className = "",
   onChange,
 }: SaveHelperButtonProps) => {
+  const navigate = useNavigate();
   const [saved, setSaved] = useState<boolean | null>(null);
   const [working, setWorking] = useState(false);
 
@@ -79,7 +82,9 @@ export const SaveHelperButton = ({
       onChange?.(previousSaved);
       toast.error(previousSaved ? "Couldn't unsave helpr" : "Couldn't save helpr");
     } else if (nextSaved) {
-      toast.success("Saved! Find them under Saved Helprs.");
+      successToast("Saved to your helprs", {
+        action: { label: "View", onClick: () => navigate("/saved-helpers") },
+      });
     } else {
       toast.success("Removed from your saved helprs");
     }

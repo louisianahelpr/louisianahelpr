@@ -143,4 +143,40 @@ export function authExpiredToast(opts: { onSignIn?: () => void } = {}) {
   });
 }
 
+export interface SuccessToastOptions {
+  /** Inline description rendered below the title. */
+  description?: string;
+  /** Toast duration in ms. Default: Sonner's default (~4000ms). */
+  duration?: number;
+  /** Stable id so repeated triggers de-dupe. */
+  id?: string | number;
+  /**
+   * Optional follow-up action — e.g. "View" after applying to a job, or
+   * "Undo" after a destructive-but-reversible action. Renders as the same
+   * filled bark pill our Toaster preset styles other action buttons with.
+   */
+  action?: { label: string; onClick: () => void | Promise<void> };
+}
+
+/**
+ * Brand-aware success toast.
+ *
+ * Top apps don't just confirm an action — they offer the obvious next step
+ * inline ("Applied ✓ · View"). Pass `action` to surface that one-tap path
+ * so the user doesn't have to go hunting for what they just created.
+ *
+ * No action? It behaves like a plain `toast.success` with our defaults.
+ */
+export function successToast(message: string, options: SuccessToastOptions = {}) {
+  const { description, duration, id, action } = options;
+  return toast.success(message, {
+    description,
+    duration,
+    id,
+    action: action
+      ? { label: action.label, onClick: () => void action.onClick() }
+      : undefined,
+  });
+}
+
 export { toast };

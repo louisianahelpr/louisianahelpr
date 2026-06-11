@@ -24,6 +24,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useLongPress } from "@/hooks/useLongPress";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { setAppIconBadge } from "@/lib/appBadge";
 import {
   Sheet,
   SheetContent,
@@ -272,6 +273,15 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       supabase.removeChannel(channel);
     };
   }, [user?.id]);
+
+  // Mirror the live unread count onto the native springboard (app-icon)
+  // badge, so the home-screen icon carries the unread number like every
+  // other messaging app — even while the app is backgrounded. No-op on web
+  // and best-effort on native (see setAppIconBadge). A signed-out/guest user
+  // has nothing to badge, so force it to zero.
+  useEffect(() => {
+    void setAppIconBadge(user ? unreadCount : 0);
+  }, [user, unreadCount]);
 
   // Long-press quick-action handlers. Each one closes the sheet and runs
   // the action; the action itself may navigate, fire a toast, or trigger a

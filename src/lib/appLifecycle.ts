@@ -8,9 +8,11 @@
  * balances until staleTime + a remount. This hook bridges Capacitor's
  * `appStateChange` into TanStack's `focusManager` so the existing config
  * actually fires a background refetch on foreground. It also clears
- * delivered notifications when the app becomes active so the Notification
- * Center / badge don't pile up after the user has already opened the app,
- * and feeds @capacitor/network into TanStack's `onlineManager` so queries
+ * delivered notification banners when the app becomes active so the
+ * Notification Center doesn't pile up after the user has already opened the
+ * app (the numeric icon badge is owned by MobileNav, which pins it to the
+ * live unread count), and feeds @capacitor/network into TanStack's
+ * `onlineManager` so queries
  * pause/refetch on real OS reachability rather than the flaky WKWebView
  * navigator.onLine signal.
  *
@@ -33,19 +35,6 @@ async function clearDeliveredNotifications() {
   }
 }
 
-async function clearAppIconBadge() {
-  try {
-    const { Badge } = await import("@capawesome/capacitor-badge");
-    // Badge throws on devices/platforms without the permission; checking
-    // first keeps a denied state from logging on every foreground.
-    const { isSupported } = await Badge.isSupported();
-    if (!isSupported) return;
-    await Badge.clear();
-  } catch {
-    /* best-effort — the springboard badge isn't worth failing foreground */
-  }
-}
-
 export function useAppLifecycle() {
   useEffect(() => {
     if (!isNativePlatform || attached) return;
@@ -58,8 +47,11 @@ export function useAppLifecycle() {
         const handle = await App.addListener("appStateChange", ({ isActive }) => {
           focusManager.setFocused(isActive);
           if (isActive) {
+            // Clear stacked notification banners from the Notification
+            // Center, but leave the numeric icon badge alone — MobileNav
+            // owns it and keeps it pinned to the live unread count (so the
+            // badge reflects unread messages, not just "app was opened").
             void clearDeliveredNotifications();
-            void clearAppIconBadge();
           }
         });
         removeListener = () => {

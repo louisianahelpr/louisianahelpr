@@ -4,7 +4,8 @@
 // Drives all branching through signInWithProvider in src/lib/socialAuth.ts
 // so the per-provider flow stays in one place. The buttons themselves
 // only know:
-//   - render a label + provider mark
+//   - render the provider mark (icon-only, side-by-side; the accessible
+//     name lives on aria-label)
 //   - keep a spinner while sign-in is in flight
 //   - on cancel → hapticError + dismissable toast (no scary copy)
 //   - on success (native) → navigate to redirectTo (default /dashboard)
@@ -40,7 +41,7 @@ export function SocialAuthButtons({
   redirectTo,
 }: SocialAuthButtonsProps) {
   return (
-    <div className="space-y-2">
+    <div className="flex gap-2.5">
       <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} />
       <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} />
     </div>
@@ -100,18 +101,18 @@ function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps)
       type="button"
       variant="outline"
       size="lg"
-      className="w-full rounded-ds-md border-border/70 font-medium hover:bg-muted/40"
+      className="flex-1 rounded-ds-md border-border/70 hover:bg-muted/40"
       onClick={handleClick}
       disabled={loading}
+      aria-label={loading ? "Connecting…" : label}
     >
       {loading ? (
-        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+        <Loader2 className="w-5 h-5 animate-spin" />
       ) : provider === "apple" ? (
         <AppleMark />
       ) : (
         <GoogleMark />
       )}
-      {loading ? "Connecting…" : label}
     </Button>
   );
 }
@@ -119,7 +120,7 @@ function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps)
 function AppleMark() {
   return (
     <svg
-      className="w-4 h-4 mr-2"
+      className="w-5 h-5"
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden="true"
@@ -131,7 +132,7 @@ function AppleMark() {
 
 function GoogleMark() {
   return (
-    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

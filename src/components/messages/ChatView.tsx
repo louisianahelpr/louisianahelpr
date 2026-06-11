@@ -438,7 +438,10 @@ export function ChatView({
         <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col">
         <div
           className="flex flex-col flex-1 min-h-0 transition-[padding] duration-150"
-          style={{ paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : "env(safe-area-inset-bottom)" }}
+          // Only pad for the keyboard here. The sticky composer already adds
+          // its own safe-area-inset-bottom — padding it on the wrapper too
+          // double-counts the inset and leaves a dead gap below the composer.
+          style={{ paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : 0 }}
         >
           {/* Chat header — compact, vertically centered. Avatar uses
               the other user's photo when available, name is brand-

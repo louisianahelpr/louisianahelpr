@@ -31,6 +31,13 @@ interface ShareJobButtonProps {
   variant?: "default" | "icon";
   /** Optional aria-label override for the icon-only variant. */
   ariaLabel?: string;
+  /**
+   * Inline style passthrough for the default (pill) variant so a host
+   * row can recolor the button (e.g. the muted-blue Share in the My
+   * Posts action grid) without the component baking a single tint in.
+   * Ignored by the icon-only variant, which owns its glass-chip look.
+   */
+  style?: React.CSSProperties;
 }
 
 /**
@@ -62,6 +69,7 @@ export function ShareJobButton({
   className,
   variant = "default",
   ariaLabel,
+  style,
 }: ShareJobButtonProps) {
   // Disable the button while a share is in flight so impatient
   // double-taps don't queue duplicate share sheets.
@@ -151,15 +159,22 @@ export function ShareJobButton({
     <Button
       type="button"
       size="sm"
+      // The default variant pins its text to parchment-cream with
+      // `!important`, which an inline `style.color` can't beat. When a host
+      // recolors via `style`, drop to the ghost variant (no forced text) so
+      // the override actually renders; the no-style mount keeps `default`.
+      variant={style ? "ghost" : "default"}
       aria-label={ariaLabel ?? "Share this job"}
       disabled={sharing}
       onClick={handleShare}
+      style={style}
       className={cn(
         "border-0",
-        // Match the surrounding action-row tone — neutral parchment
-        // tint via the bark token, keyed off the same CSS-var palette
-        // as the Edit / Cancel siblings.
-        "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--bark)/0.20)]",
+        // Default tint: neutral parchment-green via the bark token. When
+        // the host passes an inline `style` (e.g. the muted-blue Share in
+        // My Posts) the green is dropped so the override wins cleanly,
+        // including on hover.
+        !style && "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--bark)/0.20)]",
         className,
       )}
     >

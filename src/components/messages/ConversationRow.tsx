@@ -190,6 +190,13 @@ const ConversationRowBase = ({
   return (
     <div
       className="w-full text-left p-3 rounded-ds-md liquid-glass hover:shadow-md transition-shadow flex items-center gap-2.5"
+      style={{
+        // liquid-glass alone (0.42 white) is near-invisible on the
+        // ~0.97-white conversations panel. A hairline border + a soft
+        // lift give each card a readable edge against the backdrop.
+        border: "0.5px solid hsl(var(--olivewood) / 0.12)",
+        boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 4px 12px hsl(var(--olivewood) / 0.05)",
+      }}
     >
       {/* Avatar — uses real photo when available, falls
           back to bark-tinted initials circle. */}

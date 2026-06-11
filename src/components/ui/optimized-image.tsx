@@ -50,6 +50,17 @@ export interface OptimizedImageProps
    * the image as early as possible. Overrides `loading` if both are set.
    */
   priority?: boolean;
+  /**
+   * Fade the image in once it decodes, over a tinted parchment placeholder —
+   * the soft "develops in" feel top photo apps use so a lazy image doesn't
+   * pop in hard against the layout. Opt-in (default off) so existing avatars
+   * and icons that already paint instantly aren't given an unwanted flicker;
+   * reach for it on photo-heavy surfaces (job photos, lightbox thumbs).
+   *
+   * A cached image still fires `load`, so this stays a single quick fade
+   * rather than a stall.
+   */
+  fadeIn?: boolean;
 }
 
 const OptimizedImage = React.forwardRef<HTMLImageElement, OptimizedImageProps>(
@@ -64,10 +75,15 @@ const OptimizedImage = React.forwardRef<HTMLImageElement, OptimizedImageProps>(
       loading,
       decoding,
       priority = false,
+      fadeIn = false,
+      onLoad,
+      onError,
+      style,
       ...rest
     },
     ref,
   ) {
+    const [loaded, setLoaded] = React.useState(false);
     const transformOptions: BuildImageUrlOptions = React.useMemo(
       () => ({ width, height, quality }),
       [width, height, quality],
@@ -87,6 +103,28 @@ const OptimizedImage = React.forwardRef<HTMLImageElement, OptimizedImageProps>(
       ? { fetchpriority: "high" }
       : {};
 
+    // Fade-in: start transparent over a parchment tint, transition to opaque
+    // once the image reports loaded. Composed into the caller's own `style`
+    // so a passed `style` prop still wins for anything it sets.
+    const fadeStyle: React.CSSProperties = fadeIn
+      ? {
+          backgroundColor: loaded ? undefined : "hsl(var(--parchment) / 0.5)",
+          opacity: loaded ? 1 : 0,
+          transition: "opacity 320ms ease-out",
+        }
+      : {};
+
+    const handleLoad: React.ReactEventHandler<HTMLImageElement> = (e) => {
+      if (fadeIn) setLoaded(true);
+      onLoad?.(e);
+    };
+
+    const handleError: React.ReactEventHandler<HTMLImageElement> = (e) => {
+      // Reveal a broken/failed image rather than leaving it stuck at opacity 0.
+      if (fadeIn) setLoaded(true);
+      onError?.(e);
+    };
+
     return (
       <img
         ref={ref}
@@ -97,6 +135,9 @@ const OptimizedImage = React.forwardRef<HTMLImageElement, OptimizedImageProps>(
         loading={resolvedLoading}
         decoding={resolvedDecoding}
         sizes={sizes}
+        onLoad={handleLoad}
+        onError={handleError}
+        style={fadeIn ? { ...fadeStyle, ...style } : style}
         {...priorityAttrs}
         {...rest}
       />

@@ -13,6 +13,19 @@ import {
   SEARCH_HISTORY_MIN_LENGTH,
 } from "@/lib/searchHistory";
 
+// Popular task searches surfaced when the box is focused but empty — gives
+// a brand-new helper (no history yet) something to tap instead of a blank
+// dropdown, the way top apps seed an empty search with trending picks.
+// Curated from the most-posted categories rather than the full filter list.
+const POPULAR_SEARCHES = [
+  "Cleaning",
+  "Yard Work",
+  "Moving",
+  "Handyman",
+  "Delivery",
+  "Pet Care",
+] as const;
+
 interface BrowseTasksToolbarProps {
   /** Dashboard filter state + setters (from useDashboardFilters). */
   filters: ReturnType<typeof useDashboardFilters>;
@@ -124,8 +137,19 @@ export function BrowseTasksToolbar({
     return () => window.clearTimeout(timer);
   }, [filters.searchQuery]);
 
-  const showHistoryDropdown =
-    searchFocused && filters.searchQuery.length === 0 && recentSearches.length > 0;
+  // When the box is focused and empty we always have something to offer:
+  // recent searches (if any) and a popular-picks row beneath them.
+  const showSearchDropdown = searchFocused && filters.searchQuery.length === 0;
+
+  // Shared "commit this query" path for both a recent row and a popular
+  // chip — set it, remember it, and close the dropdown.
+  const applySuggestion = (q: string) => {
+    filters.setSearchQuery(q);
+    pushRecentSearch(q);
+    lastPushedRef.current = q;
+    setRecentSearches(getRecentSearches());
+    setSearchFocused(false);
+  };
 
   // Active-filter recap chip row — only render when 3+ filters are
   // active simultaneously. With <3 active, the existing input controls
@@ -374,58 +398,85 @@ export function BrowseTasksToolbar({
                   <X className="w-4 h-4" />
                 </button>
               )}
-              {showHistoryDropdown && (
+              {showSearchDropdown && (
                 <div
                   className="mx-3 mt-1 rounded-ds-md liquid-glass overflow-hidden"
                   role="listbox"
-                  aria-label="Recent searches"
+                  aria-label="Search suggestions"
                 >
-                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30">
+                  {recentSearches.length > 0 && (
+                    <>
+                      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30">
+                        <span
+                          className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
+                          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                        >
+                          Recent
+                        </span>
+                        <button
+                          type="button"
+                          // onMouseDown fires before the input's blur, so the
+                          // dropdown is still mounted when we update state.
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            clearRecentSearches();
+                            setRecentSearches([]);
+                          }}
+                          className="text-ds-10 text-muted-foreground hover:text-destructive btn-press"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <ul>
+                        {recentSearches.map((q) => (
+                          <li key={q}>
+                            <button
+                              type="button"
+                              role="option"
+                              aria-selected={false}
+                              // Beat the input blur so the dropdown
+                              // doesn't unmount before the click resolves.
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                applySuggestion(q);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-left text-ds-13 hover:bg-muted/50 btn-press"
+                            >
+                              <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate">{q}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  <div className="px-3 py-1.5 border-b border-border/30">
                     <span
                       className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
                       style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                     >
-                      Recent
+                      Popular
                     </span>
-                    <button
-                      type="button"
-                      // onMouseDown fires before the input's blur, so the
-                      // dropdown is still mounted when we update state.
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        clearRecentSearches();
-                        setRecentSearches([]);
-                      }}
-                      className="text-ds-10 text-muted-foreground hover:text-destructive btn-press"
-                    >
-                      Clear
-                    </button>
                   </div>
-                  <ul>
-                    {recentSearches.map((q) => (
-                      <li key={q}>
-                        <button
-                          type="button"
-                          role="option"
-                          aria-selected={false}
-                          onMouseDown={(e) => {
-                            // Beat the input blur so the dropdown
-                            // doesn't unmount before the click resolves.
-                            e.preventDefault();
-                            filters.setSearchQuery(q);
-                            pushRecentSearch(q);
-                            lastPushedRef.current = q;
-                            setRecentSearches(getRecentSearches());
-                            setSearchFocused(false);
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-left text-ds-13 hover:bg-muted/50 btn-press"
-                        >
-                          <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <span className="truncate">{q}</span>
-                        </button>
-                      </li>
+                  <div className="flex flex-wrap gap-1.5 px-3 py-2.5">
+                    {POPULAR_SEARCHES.map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        role="option"
+                        aria-selected={false}
+                        // Beat the input blur (same reason as the recent rows).
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          applySuggestion(q);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.08)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.18)] text-ds-11 font-medium hover:bg-[hsl(var(--bark)/0.14)] btn-press"
+                      >
+                        <Search className="w-3 h-3 shrink-0" />
+                        {q}
+                      </button>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
             </div>

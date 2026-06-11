@@ -43,6 +43,7 @@ export function JobCardPhotoStrip({
             width={dims.w}
             height={dims.h}
             alt={`Photo ${i + 1}`}
+            fadeIn
             className={`${dims.cls} rounded-ds-sm object-cover border border-border hover:border-primary transition-colors`}
           />
         </a>

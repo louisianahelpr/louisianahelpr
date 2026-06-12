@@ -160,6 +160,9 @@ const ProfilePage = () => {
   const [lastName, setLastName] = useState("");
   const [idUploading, setIdUploading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  // Senior mode — local state shadows profile.senior_mode; applied to
+  // <html> as a CSS class so all pages get the enlarged styles.
+  const [seniorMode, setSeniorMode] = useState(false);
 
   useEffect(() => {
     // Once auth loading is done, resolve the loading state
@@ -181,6 +184,7 @@ const ProfilePage = () => {
         setSkills(cachedProfile.skills || "");
         setHourlyRate(cachedProfile.hourly_rate?.toString() || "");
         setDateOfBirth(cachedProfile.date_of_birth || "");
+        setSeniorMode(!!(cachedProfile as unknown as { senior_mode?: boolean }).senior_mode);
       }
       setLoading(false);
       // Stats load via useProfileStats — enabled once `user` is set below.
@@ -238,6 +242,28 @@ const ProfilePage = () => {
     }
   };
 
+
+  const handleToggleSeniorMode = async (enabled: boolean) => {
+    if (!user) return;
+    // Optimistic update
+    setSeniorMode(enabled);
+    document.documentElement.classList.toggle("senior-mode", enabled);
+    // Persist to profile — graceful fallback for PGRST202 if migration
+    // hasn't been applied yet (senior_mode column may not exist on prod yet).
+    const { error } = await supabase
+      .from("profiles")
+      .update({ senior_mode: enabled })
+      .eq("user_id", user.id);
+    if (error) {
+      // Roll back optimistic update only if it's not a missing-column error
+      if (!error.message?.includes("senior_mode")) {
+        setSeniorMode(!enabled);
+        document.documentElement.classList.toggle("senior-mode", !enabled);
+        toast.error("Couldn't save setting — try again.");
+      }
+      // Missing column = migration not yet pushed; keep UI state, don't toast.
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -437,6 +463,8 @@ const ProfilePage = () => {
               reviewsError={reviewsQuery.isError}
               onRetryStats={() => { statsQuery.refetch(); }}
               onRetryReviews={() => { reviewsQuery.refetch(); }}
+              seniorMode={seniorMode}
+              onToggleSeniorMode={handleToggleSeniorMode}
             />
           </PullToRefreshWrapper>
         ) : (

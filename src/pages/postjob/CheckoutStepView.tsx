@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { CheckoutStep } from "@/components/postjob/CheckoutStep";
 import { PostingQualityMeter } from "@/components/postjob/PostingQualityMeter";
 import { usePostingQuality } from "@/hooks/usePostingQuality";
@@ -28,6 +30,31 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
     credentialTier: form.credentialTier,
     pricingMode: form.pricingMode,
   });
+
+  // Fetch the preferred helper's name so the checkout card can show
+  // "Send to [Name] first?" — only fires when there's a preferredHelperId.
+  const preferredHelperId = form.preferredHelperId;
+  const { data: preferredHelperProfile } = useQuery({
+    queryKey: ["profile_stub", preferredHelperId],
+    queryFn: async () => {
+      const res = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("user_id", preferredHelperId!)
+        .maybeSingle();
+      if (res.error) throw res.error;
+      return res.data;
+    },
+    enabled: !!preferredHelperId,
+    staleTime: 5 * 60_000,
+  });
+
+  const preferredHelper = preferredHelperId
+    ? {
+        id: preferredHelperId,
+        name: preferredHelperProfile?.full_name ?? null,
+      }
+    : null;
 
   return (
     <div key="checkout-step" className="space-y-6 animate-ds-page-in">
@@ -82,6 +109,10 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         helperFee={form.helperFee}
         isInstantBook={form.isInstantBook}
         parish={null}
+        preferredHelper={preferredHelper}
+        sendToPreferred={form.sendToPreferred}
+        onSendToPreferredChange={form.setSendToPreferred}
+        timeCreditsMinutes={form.timeCreditsApplied > 0 ? form.timeCreditsApplied : undefined}
       />
     </div>
   );

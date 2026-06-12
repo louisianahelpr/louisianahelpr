@@ -57,6 +57,8 @@ interface ReviewPreview {
 
 interface ProfileLandingProps {
   profile: Profile | null;
+  /** The auth'd user's UUID — used to build the public profile share URL. */
+  userId?: string | null;
   displayName: string;
   initials: string;
   avatarBroken: boolean;
@@ -85,6 +87,7 @@ interface ProfileLandingProps {
 
 export function ProfileLanding({
   profile,
+  userId,
   displayName,
   initials,
   avatarBroken,
@@ -307,20 +310,47 @@ export function ProfileLanding({
             "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
         }}
       >
-        {/* Labeled "Edit" pill — a bare pencil circle was easy to miss;
-            the text makes the affordance obvious. */}
-        <button
-          onClick={() => onSelectTab("profile")}
-          aria-label="Edit profile"
-          // h-10 hits the iOS/Android 40pt minimum tap target; nudged
-          // down half a step so it doesn't crowd the status bar inset.
-          className="absolute top-3.5 right-3 h-10 pl-2.5 pr-3 rounded-full bg-[hsl(var(--bark)/0.10)] hover:bg-[hsl(var(--bark)/0.16)] active:scale-95 inline-flex items-center gap-1 text-[hsl(var(--bark))] transition-all"
-        >
-          <Edit className="w-3.5 h-3.5" />
-          <span className="text-ds-11 font-sans font-semibold">Edit</span>
-        </button>
+        {/* Action row — Edit pill (right) + Share icon (left of Edit).
+            Both sit in the top-right corner without crowding the header. */}
+        <div className="absolute top-3.5 right-3 flex items-center gap-1.5">
+          {/* Share profile — only shown when we have a userId to build
+              the deep-link from. Opens the OS share sheet on native. */}
+          {userId && (
+            <button
+              type="button"
+              aria-label="Share your profile"
+              onClick={() => {
+                const ratingText = avgRating
+                  ? avgRating.toFixed(1) + "★"
+                  : "New helper";
+                void shareNative({
+                  title: `${displayName} on Helpr`,
+                  text: `${displayName} · ${completedCount} job${completedCount === 1 ? "" : "s"} · ${ratingText}\n\nHire me on Helpr:`,
+                  url: `https://www.louisianahelpr.com/user/${userId}`,
+                  dialogTitle: "Share your profile",
+                });
+              }}
+              className="h-10 w-10 rounded-full bg-[hsl(var(--bark)/0.10)] hover:bg-[hsl(var(--bark)/0.16)] active:scale-95 inline-flex items-center justify-center text-[hsl(var(--bark))] transition-all"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button
+            onClick={() => onSelectTab("profile")}
+            aria-label="Edit profile"
+            // h-10 hits the iOS/Android 40pt minimum tap target; nudged
+            // down half a step so it doesn't crowd the status bar inset.
+            className="h-10 pl-2.5 pr-3 rounded-full bg-[hsl(var(--bark)/0.10)] hover:bg-[hsl(var(--bark)/0.16)] active:scale-95 inline-flex items-center gap-1 text-[hsl(var(--bark))] transition-all"
+          >
+            <Edit className="w-3.5 h-3.5" />
+            <span className="text-ds-11 font-sans font-semibold">Edit</span>
+          </button>
+        </div>
 
-        <div className="flex flex-row items-center gap-4 pr-[84px]">
+        {/* pr-[132px] reserves space for the Share icon (40px) + gap (6px)
+            + Edit pill (~86px) so the name/location row never wraps into
+            those controls on narrow phones. */}
+        <div className="flex flex-row items-center gap-4 pr-[132px]">
           {/* Avatar — a real focal point on this applicant-facing page.
               Tier-styled ring uses gold for elite, sienna for pro,
               bark for everyone else. ID-verified checkmark sits on the

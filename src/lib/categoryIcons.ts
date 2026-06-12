@@ -41,6 +41,8 @@ import {
   Hammer,
   MoreHorizontal,
   Briefcase,
+  CloudLightning,
+  PartyPopper,
   type LucideIcon,
 } from "lucide-react";
 
@@ -50,16 +52,18 @@ import {
  *
  * Mapping rationale — picked to be visually distinct at 14px (the smallest
  * surface we render them on, the chip overlay on JobCard's avatar):
- *   cleaning   → Sparkles      (clean / fresh)
- *   yard_work  → Leaf          (foliage, lawn)
- *   moving     → Truck         (transport of bulky items)
- *   errands    → ShoppingBag   (a stop on the errand)
- *   handyman   → Wrench        (general fix-it tool)
- *   painting   → Paintbrush    (the implement, not the can)
- *   delivery   → Package       (parcel)
- *   pet_care   → PawPrint      (paw)
- *   assembly   → Hammer        (build / put together)
- *   other      → MoreHorizontal (catch-all neutral glyph)
+ *   cleaning    → Sparkles        (clean / fresh)
+ *   yard_work   → Leaf            (foliage, lawn)
+ *   moving      → Truck           (transport of bulky items)
+ *   errands     → ShoppingBag     (a stop on the errand)
+ *   handyman    → Wrench          (general fix-it tool)
+ *   painting    → Paintbrush      (the implement, not the can)
+ *   delivery    → Package         (parcel)
+ *   pet_care    → PawPrint        (paw)
+ *   assembly    → Hammer          (build / put together)
+ *   storm_prep  → CloudLightning  (storm warning — Louisiana hurricane country)
+ *   events      → PartyPopper     (celebration / Mardi Gras / LSU game day)
+ *   other       → MoreHorizontal  (catch-all neutral glyph)
  */
 export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   cleaning: Sparkles,
@@ -71,6 +75,8 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   delivery: Package,
   pet_care: PawPrint,
   assembly: Hammer,
+  storm_prep: CloudLightning,
+  events: PartyPopper,
   other: MoreHorizontal,
 };
 

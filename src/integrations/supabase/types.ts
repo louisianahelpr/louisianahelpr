@@ -4153,6 +4153,7 @@ export const Constants = {
         "pet_care",
         "assembly",
         "storm_prep",
+        "events",
         "other",
       ],
       job_status: [

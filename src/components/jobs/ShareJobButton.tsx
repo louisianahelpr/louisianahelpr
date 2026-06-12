@@ -8,12 +8,14 @@ import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 
 interface ShareJobButtonProps {
-  /** The job being shared — only the title/budget/category/id are referenced. */
+  /** The job being shared — only the title/budget/category/id/city are referenced. */
   job: {
     id: string;
     title: string;
     budget?: number;
     category?: string;
+    /** City string (no state suffix) shown in the share text. */
+    city?: string;
   };
   /**
    * Optional className passthrough so the host action row can size and
@@ -80,9 +82,10 @@ export function ShareJobButton({
     setSharing(true);
     // Light haptic on press — confirms the tap on native, no-ops on web.
     void hapticLight();
-    const url = `${window.location.origin}/dashboard?job=${job.id}`;
-    const title = job.title;
-    const text = `${job.title} — posted on Louisiana Helpr.`;
+    const location = job.city || "Louisiana";
+    const url = `https://www.louisianahelpr.com/jobs/${job.id}`;
+    const title = `${job.title} — Need help in ${location}`;
+    const text = `${job.title} · $${job.budget != null ? job.budget : "?"} · ${location}\n\nApply on Helpr:`;
 
     try {
       // 1. Native Share Sheet — only on actual iOS/Android shells.
@@ -98,8 +101,9 @@ export function ShareJobButton({
       }
 
       // 3. Clipboard fallback — paste-to-share.
+      const clipText = `${text}\n${url}`;
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(clipText);
         toast.success("Link copied. Paste it anywhere.");
         return;
       }

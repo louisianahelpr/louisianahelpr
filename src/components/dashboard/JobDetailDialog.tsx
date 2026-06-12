@@ -58,6 +58,9 @@ const JobDetailDialog = ({
   // the "you're #3 of 7" banner that replaces the generic "X applied"
   // line for already-applied helpers, so the feed feels accountable.
   const [viewerAppPosition, setViewerAppPosition] = useState<number | null>(null);
+  // The auth'd user's ID — used to hide the Share button for jobs the
+  // current user posted (they're the owner, not a potential helper).
+  const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   // Repeat-customer count — number of completed jobs between this
   // helper and this poster. Drives the "Worked with you N times"
   // badge that surfaces emotional re-booking trust.
@@ -120,6 +123,7 @@ const JobDetailDialog = ({
     setLightboxIndex(null);
     setApplicationCount(null);
     setViewerAppPosition(null);
+    setViewerUserId(null);
     setPosterCancelRate(null);
     setDescExpanded(false);
   }, [job?.id]);
@@ -157,9 +161,11 @@ const JobDetailDialog = ({
       setApplicationCount(rows.length);
       const helperId = userRes?.user?.id;
       if (helperId) {
+        setViewerUserId(helperId);
         const idx = rows.findIndex((a) => a.helper_id === helperId);
         setViewerAppPosition(idx >= 0 ? idx + 1 : null);
       } else {
+        setViewerUserId(null);
         setViewerAppPosition(null);
       }
     })();
@@ -774,14 +780,16 @@ const JobDetailDialog = ({
               />
             </Button>
           )}
-          {/* Share — helpers occasionally want to forward a great job
-              to another helper. Matches the icon-row sizing of its
-              neighbours (Flag · Save · Message). */}
-          <ShareJobButton
-            variant="icon"
-            job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-            ariaLabel="Share this job with another helpr"
-          />
+          {/* Share — helpers forward great jobs to neighbours / friends.
+              Hidden for the poster (they already own it). Matches the
+              icon-row sizing of its neighbours (Flag · Save · Message). */}
+          {viewerUserId !== job.customer_id && (
+            <ShareJobButton
+              variant="icon"
+              job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCityState(job.location).replace(/,\s*LA\s*$/i, "") }}
+              ariaLabel="Share this job"
+            />
+          )}
           <Button
             variant="ghost"
             size="icon"

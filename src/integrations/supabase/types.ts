@@ -1330,6 +1330,42 @@ export type Database = {
           },
         ]
       }
+      home_maintenance_reminders: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_completed_date: string | null
+          last_job_id: string | null
+          next_reminder_date: string | null
+          reminder_interval_days: number
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_completed_date?: string | null
+          last_job_id?: string | null
+          next_reminder_date?: string | null
+          reminder_interval_days?: number
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_completed_date?: string | null
+          last_job_id?: string | null
+          next_reminder_date?: string | null
+          reminder_interval_days?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           boost_auto_extended: boolean
@@ -1701,6 +1737,45 @@ export type Database = {
           resolution_note?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      worker_protection_credits: {
+        Row: {
+          amount: number
+          created_at: string
+          credit_type: string
+          expires_at: string | null
+          helper_id: string
+          id: string
+          issued_at: string | null
+          job_id: string | null
+          reason: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credit_type: string
+          expires_at?: string | null
+          helper_id: string
+          id?: string
+          issued_at?: string | null
+          job_id?: string | null
+          reason?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credit_type?: string
+          expires_at?: string | null
+          helper_id?: string
+          id?: string
+          issued_at?: string | null
+          job_id?: string | null
+          reason?: string | null
           status?: string
         }
         Relationships: []

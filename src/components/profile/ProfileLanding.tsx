@@ -12,6 +12,7 @@ import {
   Users, Type, PawPrint,
   ClipboardList, FileText,
   Sun, Moon, Monitor,
+  CheckCircle2,
 } from "lucide-react";
 import { useDarkMode, type Theme } from "@/hooks/useDarkMode";
 import {
@@ -1254,6 +1255,54 @@ export function ProfileLanding({
               )}
             </div>
           </section>
+
+          {/* Worker protections card — static info card reassuring helpers
+              that Helpr has their back on late cancellations and payment
+              disputes. Shown on every helper's own profile. */}
+          <div
+            className="rounded-ds-lg overflow-hidden"
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(155 50% 35% / 0.06) 0%, hsl(155 50% 35% / 0.02) 100%)",
+              border: "0.5px solid hsl(155 50% 35% / 0.18)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255,255,255,0.40), 0 2px 8px -2px hsl(var(--olivewood) / 0.06)",
+            }}
+          >
+            <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2">
+              <ShieldCheck
+                className="w-4 h-4 shrink-0"
+                style={{ color: "hsl(155 50% 32%)" }}
+              />
+              <p
+                className="text-ds-13 font-semibold leading-tight"
+                style={{ color: "hsl(155 50% 25%)" }}
+              >
+                Your protections
+              </p>
+            </div>
+            <div className="px-4 pb-3.5 space-y-2">
+              {([
+                "Late-cancellation credit ($10) if a poster cancels < 24h before start",
+                "Payment within 48h of confirmed completion — even during disputes",
+                "Your rating stays protected if a job is cancelled through no fault of yours",
+              ] as const).map((line) => (
+                <div key={line} className="flex items-start gap-2">
+                  <CheckCircle2
+                    className="w-3.5 h-3.5 mt-0.5 shrink-0"
+                    style={{ color: "hsl(155 50% 38%)" }}
+                    strokeWidth={2.25}
+                  />
+                  <p
+                    className="font-serif italic text-ds-12 leading-snug"
+                    style={{ color: "hsl(155 40% 35%)" }}
+                  >
+                    {line}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Helpr Wrapped banner — year-in-review shortcut. Year-round
               because the data is always there; links into /wrapped which

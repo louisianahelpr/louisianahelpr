@@ -17,6 +17,7 @@ import {
   BadgeCheck,
   Users2,
   Wand2,
+  CloudLightning,
 } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { categoryColors } from "@/components/activity/activityConstants";
@@ -36,6 +37,7 @@ export const categories = [
   { value: "delivery", label: "Delivery" },
   { value: "pet_care", label: "Pet Care" },
   { value: "assembly", label: "Assembly" },
+  { value: "storm_prep", label: "Storm Prep" },
   { value: "other", label: "Other" },
 ];
 
@@ -72,6 +74,7 @@ const titlePlaceholders: Record<string, string> = {
   delivery: "e.g. Pick up a dresser and drop it off",
   pet_care: "e.g. Walk my dog twice a day this week",
   assembly: "e.g. Assemble an IKEA wardrobe",
+  storm_prep: "e.g. Board up windows before the storm",
   other: "e.g. Help me with a quick task",
 };
 
@@ -88,6 +91,7 @@ const categorySearchAliases: Record<string, string[]> = {
   delivery: ["deliver", "drop off", "transport", "courier"],
   pet_care: ["pet", "dog", "cat", "walk", "sit", "feed", "boarding"],
   assembly: ["assemble", "ikea", "furniture", "build", "put together"],
+  storm_prep: ["storm", "hurricane", "flood", "board", "window", "shutter", "generator", "sandbag", "debris", "prep"],
   other: ["misc", "other", "miscellaneous", "general"],
 };
 
@@ -103,6 +107,7 @@ const descriptionHints: Record<string, string> = {
   delivery: "Mention pickup and drop-off addresses, item size, and whether a truck is needed.",
   pet_care: "Mention pet type and temperament, the schedule, and any feeding or medication.",
   assembly: "Mention the item(s), whether you have the manual, and what tools are available.",
+  storm_prep: "Describe what needs doing (boarding, debris, generator setup, etc.), the timeline, and any materials or equipment you already have.",
   other: "Add anything a helpr needs to quote accurately — access, timing, and supplies.",
 };
 
@@ -210,6 +215,13 @@ export function DetailsSection({
   // height. Matches against the label AND a small alias list so typing
   // "lawn" hits Yard Work, "ikea" hits Assembly, etc.
   const [categoryQuery, setCategoryQuery] = useState("");
+
+  // Hurricane season: June–Nov (months 5–10, 0-indexed). Used to surface
+  // the Storm Prep seasonal pick above the regular category grid.
+  const isHurricaneSeason = useMemo(() => {
+    const month = new Date().getMonth();
+    return month >= 5 && month <= 10;
+  }, []);
   const visibleCategories = useMemo(() => {
     const q = categoryQuery.trim().toLowerCase();
     if (!q) return categories;
@@ -293,6 +305,42 @@ export function DetailsSection({
             </button>
           )}
         </div>
+        {/* Hurricane-season pick — only surfaces June–Nov.
+            Appears above the grid so it's the first thing a poster sees
+            during active season. Tapping it selects storm_prep just like
+            tapping any chip in the grid below. */}
+        {isHurricaneSeason && (
+          <button
+            type="button"
+            onClick={() => {
+              autoCategoryArmedRef.current = false;
+              setAutoCategoryHint(null);
+              setCategory("storm_prep");
+            }}
+            aria-pressed={category === "storm_prep"}
+            aria-label="Storm Prep — seasonal pick"
+            className="w-full rounded-ds-md p-2.5 flex items-center gap-2 transition-all active:scale-[0.97]"
+            style={{
+              background: category === "storm_prep" ? "hsl(210 25% 15% / 0.85)" : "hsl(210 25% 15% / 0.4)",
+              border: `0.5px solid hsl(210 25% 40% / ${category === "storm_prep" ? "0.7" : "0.3"})`,
+            }}
+          >
+            <CloudLightning className="w-4 h-4 shrink-0" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={2} />
+            <span className="font-display italic font-semibold text-ds-14 leading-tight" style={{ color: "hsl(210 30% 90%)" }}>
+              Storm Prep
+            </span>
+            {category === "storm_prep" && (
+              <Check className="w-3.5 h-3.5 ml-1 shrink-0" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={3} />
+            )}
+            <span
+              className="ml-auto text-ds-10 font-sans font-semibold uppercase px-1.5 py-0.5 rounded-ds-sm shrink-0"
+              style={{ background: "hsl(210 60% 40% / 0.4)", color: "hsl(210 60% 80%)", letterSpacing: "0.06em" }}
+            >
+              In season
+            </span>
+          </button>
+        )}
+
         {/* Compact horizontal chips — icon + label on one row, two
             columns. Cuts the category block from ~4 stacked rows of
             tall cards (~400px) to ~5 short rows (~240px) so the form

@@ -3504,6 +3504,17 @@ export type Database = {
         Returns: undefined
       }
       get_marketplace_activity_count: { Args: never; Returns: number }
+      get_fill_rate_stats: {
+        Args: { p_days?: number }
+        Returns: {
+          total_jobs: number | null
+          filled_jobs: number | null
+          fill_rate_pct: number | null
+          median_minutes_to_first_app: number | null
+          parish: string | null
+          parish_fill_rate_pct: number | null
+        }[]
+      }
       get_open_jobs_for_map: {
         Args: never
         Returns: {
@@ -3907,6 +3918,7 @@ export type Database = {
         | "delivery"
         | "pet_care"
         | "assembly"
+        | "storm_prep"
         | "other"
       job_status:
         | "open"
@@ -4057,6 +4069,7 @@ export const Constants = {
         "delivery",
         "pet_care",
         "assembly",
+        "storm_prep",
         "other",
       ],
       job_status: [

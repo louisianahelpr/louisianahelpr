@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense, type SetStateAction } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense, useMemo, type SetStateAction } from "react";
 
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import AppShell from "@/components/AppShell";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, Star, X, Search } from "lucide-react";
+import { Clock, XCircle, Star, X, Search, CloudLightning } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
@@ -221,6 +221,20 @@ const Dashboard = () => {
   // hidden even though the query data still says they're eligible.
   const [inactiveNudgeDismissed, setInactiveNudgeDismissed] = useState(false);
   const inactiveNudge = inactiveNudgeEligible && !inactiveNudgeDismissed;
+
+  // Hurricane season banner — active June–November (months 5–10, 0-indexed).
+  // Dismissal persists for the calendar day via localStorage; resets each
+  // new day so repeat visitors see it again without a full daily annoyance.
+  const isHurricaneSeason = useMemo(() => {
+    const month = new Date().getMonth(); // 0-indexed
+    return month >= 5 && month <= 10;   // June (5) through November (10)
+  }, []);
+  const [stormBannerDismissed, setStormBannerDismissed] = useState(() => {
+    try {
+      return safeStorage.getItem("storm-banner-dismissed") === new Date().toDateString();
+    } catch { return false; }
+  });
+  const showStormBanner = isHurricaneSeason && !stormBannerDismissed;
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");
@@ -888,6 +902,43 @@ const Dashboard = () => {
               here. It moved off the home feed onto the Profile landing
               screen (ProfileLanding's completion meter) so the job feed
               is no longer pushed below the fold. */}
+
+          {/* Hurricane season banner — June–Nov only, dismissible for the day. */}
+          {showStormBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="shrink-0 mx-4 mb-1 rounded-ds-md p-3 flex items-center gap-2.5"
+              style={{
+                background: "hsl(210 25% 15% / 0.85)",
+                border: "0.5px solid hsl(210 25% 40% / 0.4)",
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              <CloudLightning className="shrink-0 w-5 h-5" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={2} />
+              <div className="flex-1 min-w-0">
+                <p className="font-display italic font-semibold text-ds-13 leading-tight" style={{ color: "hsl(210 30% 90%)" }}>
+                  Hurricane season is active
+                </p>
+                <p className="font-serif italic text-ds-11 leading-tight mt-0.5" style={{ color: "hsl(210 20% 70%)" }}>
+                  Post storm prep work · helpers are ready
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setStormBannerDismissed(true);
+                  try { safeStorage.setItem("storm-banner-dismissed", new Date().toDateString()); } catch { /* ignore */ }
+                }}
+                aria-label="Dismiss hurricane season banner"
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-white/[0.08]"
+                style={{ color: "hsl(210 20% 60%)" }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
 
           {/* Inactive subscriber nudge — gentle reminder for paid helpers
               who haven't applied in 7+ days. Dismissible per-session. */}

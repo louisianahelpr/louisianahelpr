@@ -39,6 +39,7 @@ import {
   Package,
   PawPrint,
   Hammer,
+  CloudLightning,
   MoreHorizontal,
   Briefcase,
   type LucideIcon,
@@ -71,6 +72,7 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   delivery: Package,
   pet_care: PawPrint,
   assembly: Hammer,
+  storm_prep: CloudLightning,
   other: MoreHorizontal,
 };
 

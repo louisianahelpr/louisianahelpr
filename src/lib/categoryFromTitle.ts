@@ -83,6 +83,15 @@ const KEYWORD_TO_CATEGORY: Array<[RegExp, string]> = [
   [/\bput\s*together\b/i, "assembly"],
   [/\bdresser\b/i, "assembly"],
   [/\bdesk\b/i, "assembly"],
+
+  // storm_prep — hurricane / storm preparation work
+  [/\bhurricane\b/i, "storm_prep"],
+  [/\bstorm\s*prep\b/i, "storm_prep"],
+  [/\bboard(?:ing)?\s*up\b/i, "storm_prep"],
+  [/\bshutter(?:ing)?\b/i, "storm_prep"],
+  [/\bsandbag\b/i, "storm_prep"],
+  [/\bgenerator\s*(?:set|install|hook)\b/i, "storm_prep"],
+  [/\bstorm\s*(?:drain|damage|debris|cleanup|clear|ready|prep)\b/i, "storm_prep"],
 ];
 
 /**

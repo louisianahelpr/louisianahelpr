@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft, Check, Play, SearchX, Sparkles, Star, Users, Wrench, X } from "lucide-react";
+import { toast } from "sonner";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { scoreApplicant, type ApplicantData } from "@/lib/applicantScoring";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -179,6 +180,44 @@ export const PostedJobsTab = ({
   const [applicantSort, setApplicantSort] = useState<"recommended" | "rated" | "soonest">("recommended");
   // Video preview modal — stores the URL of the video currently playing.
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
+
+  // Counter-offer state — keyed by application id.
+  // `counterInputs`  — the current text in each counter price input.
+  // `counterShowing` — which app id currently has the inline counter form open.
+  // `counterSending` — set while the RPC is in-flight so the button disables.
+  const [counterInputs, setCounterInputs] = useState<Record<string, string>>({});
+  const [counterShowing, setCounterShowing] = useState<string | null>(null);
+  // Optimistic negotiation state — tracks pending/sent counters in local
+  // state so the UI updates immediately without waiting for a refetch.
+  const [localNegotiation, setLocalNegotiation] = useState<Record<string, { status: string; price: number | null }>>({});
+  const [counterSending, setCounterSending] = useState(false);
+
+  const handleCounter = useCallback(async (appId: string, counterPrice: number) => {
+    setCounterSending(true);
+    try {
+      const { error } = await (supabase.rpc as any)("counter_application_bid", {
+        p_application_id: appId,
+        p_counter_price: counterPrice,
+      });
+      if (error) {
+        if ((error as any).code === "PGRST202") {
+          toast.error("Counter-offer feature not yet deployed — try again later.");
+        } else {
+          toast.error("Couldn't send counter-offer. Please try again.");
+        }
+        return;
+      }
+      toast.success("Counter sent! Waiting for the helpr's response.");
+      // Optimistic update so the UI reflects the sent counter immediately.
+      setLocalNegotiation((prev) => ({ ...prev, [appId]: { status: "countered", price: counterPrice } }));
+      setCounterShowing(null);
+      setCounterInputs((prev) => { const next = { ...prev }; delete next[appId]; return next; });
+    } catch {
+      toast.error("Something went wrong.");
+    } finally {
+      setCounterSending(false);
+    }
+  }, []);
 
   // Bulk-dismiss for cancelled posts — long-press a Cancelled card to
   // enter selection mode, then bulk-hide them from view. The hide is
@@ -734,18 +773,138 @@ export const PostedJobsTab = ({
                                   {visibleSignals.join(" · ")}
                                 </p>
                               )}
-                              {/* Proposed bid price — only shown on accept_bids jobs */}
-                              {(app as any).proposed_price != null && (
-                                <span
-                                  className="inline-flex items-center gap-1 mt-0.5 text-ds-12 font-sans font-semibold px-2 py-0.5 rounded-full"
-                                  style={{
-                                    background: "hsl(var(--sage) / 0.15)",
-                                    color: "hsl(var(--sage))",
-                                  }}
-                                >
-                                  Bid: ${(app as any).proposed_price}
-                                </span>
-                              )}
+                              {/* Proposed bid price + counter-offer UI.
+                                  Only shown on accept_bids jobs. The counter
+                                  form is inline (not a modal) — minimal
+                                  friction for a common negotiation action. */}
+                              {(app as any).proposed_price != null && (() => {
+                                const localState = localNegotiation[app.id];
+                                const negotiationStatus = localState?.status ?? (app as any).negotiation_status ?? "open";
+                                const counterPrice = localState?.price ?? (app as any).counter_price;
+                                const isCounterShowing = counterShowing === app.id;
+
+                                // Countered: poster already sent a price — show amber pill.
+                                if (negotiationStatus === "countered") {
+                                  return (
+                                    <span
+                                      className="inline-flex items-center gap-1 mt-0.5 text-ds-12 font-sans font-semibold px-2 py-0.5 rounded-full"
+                                      style={{
+                                        background: "hsl(var(--heritage-gold) / 0.15)",
+                                        color: "hsl(var(--heritage-gold) / 0.85)",
+                                      }}
+                                    >
+                                      Countered: ${counterPrice}
+                                    </span>
+                                  );
+                                }
+
+                                // Counter accepted by helper — show green pill.
+                                if (negotiationStatus === "counter_accepted") {
+                                  return (
+                                    <span
+                                      className="inline-flex items-center gap-1 mt-0.5 text-ds-12 font-sans font-semibold px-2 py-0.5 rounded-full"
+                                      style={{
+                                        background: "hsl(var(--sage) / 0.15)",
+                                        color: "hsl(var(--sage))",
+                                      }}
+                                    >
+                                      Accepted at ${counterPrice}
+                                    </span>
+                                  );
+                                }
+
+                                // Counter declined by helper — show muted label.
+                                if (negotiationStatus === "counter_declined") {
+                                  return (
+                                    <span
+                                      className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans px-2 py-0.5 rounded-full"
+                                      style={{
+                                        background: "hsl(var(--olivewood) / 0.08)",
+                                        color: "hsl(var(--olivewood) / 0.6)",
+                                      }}
+                                    >
+                                      Counter declined
+                                    </span>
+                                  );
+                                }
+
+                                // Open: show the bid pill + a "Counter" button,
+                                // or the inline counter form.
+                                return (
+                                  <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+                                    <span
+                                      className="inline-flex items-center gap-1 text-ds-12 font-sans font-semibold px-2 py-0.5 rounded-full"
+                                      style={{
+                                        background: "hsl(var(--sage) / 0.15)",
+                                        color: "hsl(var(--sage))",
+                                      }}
+                                    >
+                                      Bid: ${(app as any).proposed_price}
+                                    </span>
+                                    {!isCounterShowing && app.status === "pending" && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setCounterShowing(app.id); }}
+                                        className="inline-flex items-center gap-0.5 text-ds-11 font-sans font-semibold px-2 py-0.5 rounded-full active:opacity-70 transition-opacity"
+                                        style={{
+                                          background: "hsl(var(--heritage-gold) / 0.12)",
+                                          color: "hsl(var(--heritage-gold) / 0.85)",
+                                          border: "0.5px solid hsl(var(--heritage-gold) / 0.30)",
+                                        }}
+                                      >
+                                        Counter
+                                      </button>
+                                    )}
+                                    {isCounterShowing && (
+                                      <div
+                                        className="flex items-center gap-1.5 mt-1 w-full"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <span className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>$</span>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          step="1"
+                                          placeholder="0"
+                                          value={counterInputs[app.id] ?? ""}
+                                          onChange={(e) => setCounterInputs((prev) => ({ ...prev, [app.id]: e.target.value }))}
+                                          className="w-20 text-ds-12 font-sans rounded px-2 py-0.5 outline-none"
+                                          style={{
+                                            background: "hsla(0,0%,100%,0.65)",
+                                            border: "0.5px solid hsl(var(--heritage-gold) / 0.45)",
+                                            color: "hsl(var(--ink-deep))",
+                                          }}
+                                          autoFocus
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={counterSending || !counterInputs[app.id] || Number(counterInputs[app.id]) <= 0}
+                                          onClick={() => {
+                                            const val = Number(counterInputs[app.id]);
+                                            if (val > 0) handleCounter(app.id, val);
+                                          }}
+                                          className="text-ds-11 font-semibold px-2 py-0.5 rounded-full disabled:opacity-50"
+                                          style={{
+                                            background: "hsl(var(--heritage-gold) / 0.18)",
+                                            color: "hsl(var(--heritage-gold) / 0.9)",
+                                            border: "0.5px solid hsl(var(--heritage-gold) / 0.40)",
+                                          }}
+                                        >
+                                          {counterSending ? "…" : "Send"}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setCounterShowing(null)}
+                                          className="text-ds-11 px-1.5 py-0.5 rounded-full active:opacity-70"
+                                          style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                               {/* Neighborhood trust signal — shown standalone
                                   when > 0 neighbors hired this helper near
                                   the job address (from get_neighbor_hire_count RPC).

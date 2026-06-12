@@ -7,19 +7,18 @@
  *  3. Collapsible full perk comparison table
  *  4. FAQ section
  *
- * Upgrade taps: Stripe billing is a TODO; for now a confirmation sheet
- * captures the user's interest in subscription_waitlist (PGRST202-safe).
+ * Upgrade taps: Calls create-pro-checkout edge function and redirects to
+ * Stripe Checkout. Paid users get a "Manage plan" button that opens the
+ * Stripe billing portal via pro-customer-portal edge function.
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Crown, CheckCircle, Minus, ChevronDown, ChevronUp,
-  Sparkles, Briefcase, Star, X, Loader2,
+  Sparkles, Briefcase, Star, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
@@ -73,56 +72,44 @@ const PERK_ROWS: Array<{ label: string; key: keyof typeof TIER_PERKS.free }> = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function SubscriptionPage() {
-  const navigate = useNavigate();
   const { profile } = useCurrentUser();
   const currentTier = toSubscriptionTier(profile?.subscription_tier);
 
-  // Waitlist confirmation sheet state
-  const [waitlistTier, setWaitlistTier] = useState<Exclude<SubscriptionTier, "free"> | null>(null);
-  const [joining, setJoining] = useState(false);
-  const [joined, setJoined] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
 
   // Full comparison table collapse state
   const [tableOpen, setTableOpen] = useState(false);
 
   async function handleUpgrade(tier: Exclude<SubscriptionTier, "free">) {
-    setWaitlistTier(tier);
-    setJoined(false);
-  }
-
-  async function handleJoinWaitlist() {
-    if (!waitlistTier) return;
-    setJoining(true);
+    setUpgrading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Sign in to join the waitlist.");
-        setJoining(false);
-        return;
-      }
-      // PGRST202-safe: subscription_waitlist table may not exist on production
-      // until the migration is pushed. Upsert ignores duplicate rows via the
-      // UNIQUE (user_id, desired_tier) constraint.
-      // Cast through `any` because the table isn't in the generated DB types yet.
-      const { error } = await (supabase as any)
-        .from("subscription_waitlist")
-        .upsert({ user_id: user.id, desired_tier: waitlistTier }, { onConflict: "user_id,desired_tier" });
-      if (error && (error as { code?: string }).code !== "PGRST202") {
-        // Non-fatal — we still confirm to the user; Slack ops can backfill.
-        console.warn("subscription_waitlist insert:", error.message);
-      }
-      setJoined(true);
-    } catch {
-      // Best-effort; don't surface an error for a waitlist sign-up
-      setJoined(true);
+      const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
+        body: { tier, billing_cycle: "monthly" },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      if ((data as any)?.url) window.location.href = (data as any).url;
+      else throw new Error("Couldn't start checkout. Please try again.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Couldn't start checkout";
+      toast.error(message);
     } finally {
-      setJoining(false);
+      setUpgrading(false);
     }
   }
 
-  function closeSheet() {
-    setWaitlistTier(null);
-    setJoined(false);
+  async function handleManagePortal() {
+    setUpgrading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pro-customer-portal");
+      if (error) throw error;
+      if ((data as any)?.url) window.location.href = (data as any).url;
+      else throw new Error("Couldn't open billing portal");
+    } catch {
+      toast.error("Couldn't open billing portal. Please try again.");
+    } finally {
+      setUpgrading(false);
+    }
   }
 
   const tierPerks = TIER_PERKS[currentTier];
@@ -194,11 +181,15 @@ export default function SubscriptionPage() {
           </p>
           {currentTier !== "free" && (
             <button
-              onClick={() => navigate("/profile")}
-              className="mt-3 text-ds-12 font-sans font-semibold underline underline-offset-2"
+              onClick={handleManagePortal}
+              disabled={upgrading}
+              className="mt-3 text-ds-12 font-sans font-semibold underline underline-offset-2 inline-flex items-center gap-1"
               style={{ color: "hsl(var(--bark))" }}
             >
-              Manage subscription →
+              {upgrading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : null}
+              Manage plan →
             </button>
           )}
         </div>
@@ -349,7 +340,8 @@ export default function SubscriptionPage() {
                       {!isActive && (
                         <button
                           onClick={() => handleUpgrade(tier as Exclude<SubscriptionTier, "free">)}
-                          className="mt-1 inline-flex items-center justify-center gap-1 px-3 h-7 rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96]"
+                          disabled={upgrading}
+                          className="mt-1 inline-flex items-center justify-center gap-1 px-3 h-7 rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96] disabled:opacity-60"
                           style={{
                             background: isElite
                               ? "hsl(var(--gold-warm))"
@@ -360,6 +352,9 @@ export default function SubscriptionPage() {
                             boxShadow: `0 3px 8px -2px ${soft}`,
                           }}
                         >
+                          {upgrading ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : null}
                           {perks.ctaLabel}
                         </button>
                       )}
@@ -499,158 +494,6 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      {/* ── Upgrade / waitlist confirmation sheet ──────────────────────────── */}
-      {waitlistTier && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center"
-          style={{ background: "rgba(20, 15, 8, 0.45)" }}
-          onClick={closeSheet}
-        >
-          <div
-            className="w-full max-w-lg rounded-t-3xl p-6 pb-safe-bottom"
-            style={{
-              background:
-                "radial-gradient(60% 80% at 50% 0%, hsl(var(--parchment) / 0.98) 0%, transparent 70%), " +
-                "hsl(var(--parchment) / 0.96)",
-              backdropFilter: "blur(28px) saturate(180%)",
-              WebkitBackdropFilter: "blur(28px) saturate(180%)",
-              boxShadow: "0 -8px 40px -8px hsl(var(--bark) / 0.22)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={closeSheet}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: "hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood))" }}
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {joined ? (
-              <div className="text-center py-4 space-y-3">
-                <CheckCircle
-                  className="w-12 h-12 mx-auto"
-                  style={{ color: "hsl(var(--gold-warm))" }}
-                  strokeWidth={1.75}
-                />
-                <h3
-                  className="font-display italic font-bold"
-                  style={{ fontSize: "1.45rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.022em" }}
-                >
-                  You're on the list!
-                </h3>
-                <p
-                  className="font-serif italic"
-                  style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.78)" }}
-                >
-                  We'll reach out as soon as{" "}
-                  <span style={{ color: "hsl(var(--ink-deep))" }}>
-                    {TIER_PERKS[waitlistTier].name}
-                  </span>{" "}
-                  billing launches. You'll be first in line.
-                </p>
-                <Button
-                  onClick={closeSheet}
-                  className="rounded-ds-md mt-2"
-                  style={{
-                    background: "hsl(var(--bark))",
-                    color: "hsl(var(--parchment))",
-                    fontFamily: "Montserrat, system-ui, sans-serif",
-                    fontWeight: 600,
-                  }}
-                >
-                  Done
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <p
-                    className="font-serif italic uppercase"
-                    style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-                  >
-                    Upgrade coming soon
-                  </p>
-                  <h3
-                    className="font-display italic font-bold mt-1 leading-tight"
-                    style={{ fontSize: "1.45rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.022em" }}
-                  >
-                    {TIER_PERKS[waitlistTier].name}
-                  </h3>
-                  <p
-                    className="font-serif italic mt-1"
-                    style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.78)" }}
-                  >
-                    Stripe billing is being wired up. Join the waitlist and we'll notify you the moment it's live — with a launch discount.
-                  </p>
-                </div>
-
-                <div
-                  className="rounded-ds-md p-3 space-y-1"
-                  style={{
-                    background: "hsl(var(--gold-warm) / 0.10)",
-                    border: "0.5px solid hsl(var(--gold-warm) / 0.28)",
-                  }}
-                >
-                  <p className="font-sans text-ds-11 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                    What you unlock with {TIER_PERKS[waitlistTier].name}
-                  </p>
-                  <ul className="space-y-0.5">
-                    {waitlistTier === "pro" && (
-                      <>
-                        <PerkBullet color="hsl(var(--burnt-sienna))">10% platform fee — 2% lower than free</PerkBullet>
-                        <PerkBullet color="hsl(var(--burnt-sienna))">Priority placement in applicant lists</PerkBullet>
-                        <PerkBullet color="hsl(var(--burnt-sienna))">Advanced earnings analytics</PerkBullet>
-                      </>
-                    )}
-                    {waitlistTier === "elite" && (
-                      <>
-                        <PerkBullet color="hsl(var(--gold-warm))">8% platform fee — biggest savings</PerkBullet>
-                        <PerkBullet color="hsl(var(--gold-warm))">Featured crown badge on all cards</PerkBullet>
-                        <PerkBullet color="hsl(var(--gold-warm))">10-min early access to new jobs</PerkBullet>
-                      </>
-                    )}
-                    {waitlistTier === "business" && (
-                      <>
-                        <PerkBullet color="hsl(var(--bark))">Verified business badge for posters</PerkBullet>
-                        <PerkBullet color="hsl(var(--bark))">Multi-tech team management</PerkBullet>
-                        <PerkBullet color="hsl(var(--bark))">Dedicated support SLA</PerkBullet>
-                      </>
-                    )}
-                  </ul>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={closeSheet}
-                    className="flex-1 rounded-ds-md"
-                  >
-                    Not now
-                  </Button>
-                  <Button
-                    onClick={handleJoinWaitlist}
-                    disabled={joining}
-                    className="flex-1 rounded-ds-md"
-                    style={{
-                      background: "hsl(var(--bark))",
-                      color: "hsl(var(--parchment))",
-                      fontFamily: "Montserrat, system-ui, sans-serif",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {joining ? (
-                      <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Joining…</>
-                    ) : (
-                      "Join the waitlist"
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

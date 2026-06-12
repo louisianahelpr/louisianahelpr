@@ -10,6 +10,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
 import HelprMark from "@/components/HelprMark";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
   ALLOWED_IMAGE_TYPES,
@@ -36,6 +37,13 @@ const Signup = () => {
     ogTitle: "Sign Up — Helpr",
     ogDescription: "Join Helpr in under a minute and start posting tasks or earning as a verified helper across Louisiana.",
   });
+  // An already-authenticated visitor has no business on the signup form —
+  // bounce them into the app. Wait for isReady so we don't redirect on the
+  // pre-bootstrap null snapshot.
+  const { user, isReady } = useAuthReady();
+  useEffect(() => {
+    if (isReady && user) navigate("/dashboard", { replace: true });
+  }, [isReady, user, navigate]);
   // Funnel event: user landed on signup page (top of activation funnel)
   useEffect(() => {
     track(AhaEvent.SignupStarted, { source: "web", ...ppoTrackingProps() });

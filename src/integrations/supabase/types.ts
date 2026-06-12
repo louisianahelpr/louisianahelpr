@@ -1039,6 +1039,7 @@ export type Database = {
           helper_on_the_way_at: string | null
           helpers_needed: number | null
           id: string
+          instant_book: boolean
           is_flexible_schedule: boolean
           is_group_job: boolean | null
           is_recurring: boolean | null
@@ -1125,6 +1126,7 @@ export type Database = {
           helper_on_the_way_at?: string | null
           helpers_needed?: number | null
           id?: string
+          instant_book?: boolean
           is_flexible_schedule?: boolean
           is_group_job?: boolean | null
           is_recurring?: boolean | null
@@ -1211,6 +1213,7 @@ export type Database = {
           helper_on_the_way_at?: string | null
           helpers_needed?: number | null
           id?: string
+          instant_book?: boolean
           is_flexible_schedule?: boolean
           is_group_job?: boolean | null
           is_recurring?: boolean | null
@@ -2232,6 +2235,7 @@ export type Database = {
           feedback: string | null
           id: string
           job_id: string
+          photo_urls: string[] | null
           punctuality: number | null
           quality: number | null
           rating: number
@@ -2244,6 +2248,7 @@ export type Database = {
           feedback?: string | null
           id?: string
           job_id: string
+          photo_urls?: string[] | null
           punctuality?: number | null
           quality?: number | null
           rating: number
@@ -2256,6 +2261,7 @@ export type Database = {
           feedback?: string | null
           id?: string
           job_id?: string
+          photo_urls?: string[] | null
           punctuality?: number | null
           quality?: number | null
           rating?: number

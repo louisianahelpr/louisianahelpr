@@ -79,6 +79,7 @@ export function usePostJobForm() {
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
+  const [isInstantBook, setIsInstantBook] = useState(false);
   const [isUrgent, setIsUrgent] = useState(false);
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
@@ -608,6 +609,7 @@ export function usePostJobForm() {
         platformFee,
         salesTaxRate,
         offerToHelperId,
+        isInstantBook: opts.withExtras ? isInstantBook : false,
         department: opts.withExtras ? department : null,
         initialStatus: opts.withExtras && requiresApproval ? "pending_approval" : undefined,
         requiresW9: opts.withExtras && business ? requiresW9 : false,
@@ -986,6 +988,11 @@ export function usePostJobForm() {
     // budget fields
     budget,
     setBudget,
+    /** When true the job is flagged instant-book: a helper who applies is
+        auto-confirmed without poster review, reusing the direct-offer accept
+        path (helper_confirmed_at set immediately). */
+    isInstantBook,
+    setIsInstantBook,
     isUrgent,
     setIsUrgent,
     urgentFee,

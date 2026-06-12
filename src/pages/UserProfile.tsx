@@ -22,6 +22,7 @@ import CredentialBadge from "@/components/CredentialBadge";
 import BusinessBadge from "@/components/BusinessBadge";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
+import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 
 import ReportDialog from "@/components/ReportDialog";
@@ -1236,6 +1237,18 @@ const UserProfile = () => {
               </div>
             );
           })()}
+
+          {/* Skill endorsements — pills showing the helper's endorsed
+              skills. Past clients (mutual job count > 0) see a + button
+              to endorse. Own profile hides the section here (managed
+              in ProfileLanding instead). */}
+          {!isOwnProfile && (
+            <SkillEndorsements
+              profileUserId={userId!}
+              viewerUserId={currentUserId}
+              canEndorse={!isOwnProfile && mutualJobsCount > 0}
+            />
+          )}
 
           {/* Recent reviews — public trust-signal wall (#86). Always
               visible on other-user profiles so prospective posters see

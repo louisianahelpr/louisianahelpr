@@ -288,6 +288,39 @@ export const PostedJobsTab = ({
     return map;
   }, [applications, neighborCountQueries]);
 
+  // Deduplicated helper ids — stable reference so the completed-counts
+  // query key doesn't churn on every render.
+  const helperIds = useMemo(
+    () => [...new Set(applications.map((a) => a.helper_id))],
+    [applications],
+  );
+
+  // Batch-fetch completed job counts for all applicants in one RPC call.
+  // Feeds the completedJobs dimension in scoreApplicant so the
+  // "Recommended" sort can rank more experienced helpers higher.
+  // Falls back to {} on PGRST202 (migration not yet deployed on prod)
+  // or any other error so the panel is never blocked.
+  const { data: completedCountsData } = useQuery({
+    queryKey: ["helper-completed-counts", helperIds],
+    queryFn: async (): Promise<Map<string, number>> => {
+      if (helperIds.length === 0) return new Map();
+      const { data, error } = await (supabase.rpc as any)("get_helper_completed_counts", {
+        p_user_ids: helperIds,
+      });
+      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
+      const map = new Map<string, number>();
+      if (Array.isArray(data)) {
+        for (const row of data as Array<{ user_id: string; completed_jobs: number }>) {
+          map.set(row.user_id, Number(row.completed_jobs));
+        }
+      }
+      return map;
+    },
+    staleTime: 5 * 60 * 1000, // 5 min — completed counts are slow-moving
+    enabled: applications.length > 0,
+  });
+  const completedCountsMap: Map<string, number> = completedCountsData ?? new Map();
+
   // Batch-fetch view counts for all posted jobs so each PostedJobCard
   // can show "Seen by X helprs" without N+1 queries. Falls back to {}
   // on PGRST202 (function not yet deployed to production).
@@ -375,7 +408,7 @@ export const PostedJobsTab = ({
         userId: app.helper_id,
         avgRating: app.avgRating ?? null,
         reviewCount: app.reviewCount ?? 0,
-        completedJobs: 0,       // not returned by get_safe_profiles yet
+        completedJobs: completedCountsMap.get(app.helper_id) ?? 0,
         repeatHirePercent: null, // not available without migration
         onTimePercent: null,     // not available without migration
         credentialTier,
@@ -418,7 +451,7 @@ export const PostedJobsTab = ({
     }
 
     return { sortedApplications: sorted, scoreMap: map };
-  }, [applications, applicantSort]);
+  }, [applications, applicantSort, neighborCountMap, completedCountsMap]);
 
   // Private poster notes — stored in localStorage, never sent to the server.
   // Must be declared after sortedApplications (useMemo above) because the

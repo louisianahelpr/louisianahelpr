@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { RouteSuspenseFallback } from "@/components/RouteSuspenseFallback";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
 import { track, AhaEvent } from "@/lib/analytics";
 
@@ -88,8 +89,9 @@ const ProtectedRoute = ({
   allowUnapproved = false,
   allowPending = false,
 }: ProtectedRouteProps) => {
-  const { user, profile, isLoading, isError } = useCurrentUser();
+  const { user, profile, isLoading, isError, refresh } = useCurrentUser();
   const location = useLocation();
+  const [retrying, setRetrying] = useState(false);
 
   // Note: previously this component fired a `refresh()` on every mount,
   // doubling cold-start latency by issuing a redundant Supabase profile
@@ -137,25 +139,44 @@ const ProtectedRoute = ({
   // and will land on a subsequent render. When the fetch has actually
   // failed, no re-render is coming for the rest of the session, so a
   // banned / denied / unverified user would otherwise get full UI access
-  // to /dashboard, /post-job, /admin etc. RLS protects mutations, but
-  // read-only damage (especially on admin surfaces) is real. Bounce them
-  // to /login — a fresh session attempt is the safest recovery and avoids
-  // serving any unguarded protected UI.
+  // to /dashboard, /post-job, /admin etc.
+  //
+  // We MUST NOT render protected children here — but we must also NOT bounce
+  // to /login. The session (`user`) is still valid; a profile-fetch failure
+  // is almost always a transient network/timeout blip in the iOS WebView
+  // (the same blip that fails the parallel jobs query). Redirecting a
+  // logged-in user to /login on a transient read error reads as a silent
+  // mid-session logout — the #1 churn complaint from the native audit. A
+  // genuinely dead session is handled by the `!user` branch above (auth
+  // emits SIGNED_OUT → user becomes null → that branch fires the real
+  // /login redirect). So here we show a recoverable, in-app error screen
+  // that just re-fetches the profile, keeping the user signed in.
   if (isError && !profile) {
-    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/login", reason: "profile-fetch-error" });
-    // Observability — this exact bounce silently absorbed PR #355 + #358
+    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute recoverable error", { path: location.pathname, reason: "profile-fetch-error" });
+    // Observability — this exact failure silently absorbed PR #355 + #358
     // for hours before manual diagnosis. Reporting it gives Sentry a
-    // dedicated tag to alert on, and the analytics event powers the
-    // PostHog dashboard-pageview funnel-drop anomaly. Note: useCurrentUser
-    // has already retried 2x and reported the underlying PostgrestError;
-    // this is the *behavioral* signal (user was bounced) on top of that.
-    report(new Error("ProtectedRoute: forced /login bounce after profile fetch error"), {
+    // dedicated tag to alert on. Note: useCurrentUser has already retried
+    // 2x and reported the underlying PostgrestError; this is the route-level
+    // signal that the user hit the non-fatal error gate.
+    report(new Error("ProtectedRoute: profile fetch error (recoverable, session kept)"), {
       severity: "error",
       tags: { source: "ProtectedRoute.profileFetchError" },
       context: { path: location.pathname, userId: user.id },
     });
     track(AhaEvent.ForcedLogoutBounce, { reason: "profile_fetch_error", path: location.pathname });
-    return <Navigate to="/login" replace />;
+    return (
+      <div className="min-h-screen flex bg-premium-page">
+        <ErrorState
+          title="We couldn't load your account."
+          body="Looks like a brief connection hiccup — you're still signed in. Tap Try again."
+          retryDisabled={retrying}
+          onRetry={() => {
+            setRetrying(true);
+            void refresh().finally(() => setRetrying(false));
+          }}
+        />
+      </div>
+    );
   }
 
   // Profile-based gates: only fire once the profile has actually loaded.

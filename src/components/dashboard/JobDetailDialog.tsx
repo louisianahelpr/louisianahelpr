@@ -533,14 +533,18 @@ const JobDetailDialog = ({
                 href: null,
                 urgent: false,
               },
-              {
-                Icon: Timer,
-                label: "Closes",
-                value: job.expires_at ? formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) : "—",
-                sub: null,
-                href: null,
-                urgent: closesUrgent,
-              },
+              // Closes tile is omitted entirely when the job has no expiry —
+              // an empty "—" deadline read as a bug rather than "no deadline".
+              ...(job.expires_at
+                ? [{
+                    Icon: Timer,
+                    label: "Closes",
+                    value: formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }),
+                    sub: null,
+                    href: null,
+                    urgent: closesUrgent,
+                  }]
+                : []),
             ];
             return tiles.map(({ Icon, label, value, sub, href, urgent }) => {
               const Wrapper: any = href ? "a" : "div";

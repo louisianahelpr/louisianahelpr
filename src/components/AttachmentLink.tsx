@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { FileText, ExternalLink as ExternalLinkIcon, Loader2 } from "lucide-react";
+import { FileText, ExternalLink as ExternalLinkIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { getAttachmentSignedUrl, getAttachmentFilename, extractAttachmentPath } from "@/lib/applicationAttachments";
 
@@ -57,9 +58,7 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
             className="w-20 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors"
           />
         ) : (
-          <div className="w-20 h-14 rounded-ds-sm border border-border bg-muted flex items-center justify-center">
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-          </div>
+          <Skeleton className="w-20 h-14 rounded-ds-sm" />
         )}
       </button>
     );

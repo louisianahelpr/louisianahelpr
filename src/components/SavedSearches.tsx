@@ -7,6 +7,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Bell, BellOff, Bookmark, Loader2, Plus, Trash2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
@@ -229,8 +230,19 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.12)" }}
         >
           {loading ? (
-            <div className="flex justify-center py-6">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            // Shape-matched placeholders for the saved-search rows below
+            // (title line + meta line + bell control) so the loaded list
+            // doesn't jump in over a lone centered spinner.
+            <div className="space-y-2" aria-hidden="true">
+              {[0, 1].map((i) => (
+                <div key={i} className="flex items-center gap-2 rounded-ds-md liquid-glass p-3">
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <Skeleton className="h-3.5 w-2/5" />
+                    <Skeleton className="h-3 w-3/5" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-ds-sm shrink-0" />
+                </div>
+              ))}
             </div>
           ) : searches.length === 0 ? (
             <div className="flex flex-col items-center text-center px-6 py-6 gap-2">

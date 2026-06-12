@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Star, Flag } from "lucide-react";
+import { Star, Flag, ImagePlus, X as XIcon } from "lucide-react";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
@@ -11,6 +11,25 @@ import { maybeCelebrate } from "@/lib/celebrate";
 import { hapticLight, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { TipDialog } from "@/components/TipDialog";
+import { isNativePlatform } from "@/lib/nativeInit";
+import { pickImagesNative } from "@/lib/nativeCamera";
+import { report } from "@/lib/errorLogger";
+import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
+
+// Only render image URLs whose scheme we control. Local previews are
+// `blob:` (createObjectURL) and stored review photos are `https:` Supabase
+// public URLs — anything else (e.g. a `javascript:`/`data:` value smuggled
+// into a stored photo_urls row) is dropped rather than handed to the DOM.
+const safeImageSrc = (url: string): string | undefined => {
+  try {
+    const scheme = new URL(url, window.location.origin).protocol;
+    return scheme === "blob:" || scheme === "https:" || scheme === "http:"
+      ? url
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 interface ReviewFormProps {
   open: boolean;
@@ -109,11 +128,46 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
   });
   const [feedback, setFeedback] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Photo attachments — up to 3 photos per review.
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // When a poster leaves a 5-star review, surface a tip prompt before
   // closing the form. Tighter than the separate Tip flow — caught at
   // the moment of peak satisfaction.
   const [tipPromptOpen, setTipPromptOpen] = useState(false);
   const [tipDialogOpen, setTipDialogOpen] = useState(false);
+
+  const MAX_PHOTOS = 3;
+
+  const addPhotoFiles = (selected: File[]) => {
+    if (selected.length === 0) return;
+    const combined = [...photoFiles, ...selected].slice(0, MAX_PHOTOS);
+    setPhotoFiles(combined);
+    setPhotoPreviews(combined.map((f) => URL.createObjectURL(f)));
+  };
+
+  const removePhoto = (i: number) => {
+    const next = photoFiles.filter((_, idx) => idx !== i);
+    setPhotoFiles(next);
+    setPhotoPreviews(next.map((f) => URL.createObjectURL(f)));
+  };
+
+  const handlePhotoInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addPhotoFiles(Array.from(e.target.files || []));
+    // Reset the input so the same file can be re-selected after removal.
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleNativePhotoPick = async () => {
+    try {
+      const picked = await pickImagesNative(MAX_PHOTOS - photoFiles.length);
+      addPhotoFiles(picked);
+    } catch (err) {
+      report(err, { tags: { source: "ReviewForm.handleNativePhotoPick" } });
+      toast.error("Couldn't open your photos. Please try again.");
+    }
+  };
 
   const quickOptions = ["Great communicator", "On time", "Quality work", "Very professional", "Highly recommend", "Friendly & helpful"];
 
@@ -147,6 +201,26 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { hapticError(); toast.error("Please sign back in to leave your review."); setSubmitting(false); return; }
 
+    // Upload any attached photos to the proof-photos bucket under
+    // reviews/<userId>/<timestamp>. We attempt uploads but don't block
+    // the review submission if they fail — photos are a bonus.
+    let uploadedPhotoUrls: string[] | null = null;
+    if (photoFiles.length > 0) {
+      const urls: string[] = [];
+      for (const file of photoFiles) {
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `reviews/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("proof-photos").upload(path, file);
+        if (upErr) {
+          report(upErr, { tags: { source: "ReviewForm.uploadPhoto" } });
+          continue;
+        }
+        const { data: urlData } = supabase.storage.from("proof-photos").getPublicUrl(path);
+        if (urlData?.publicUrl) urls.push(urlData.publicUrl);
+      }
+      if (urls.length > 0) uploadedPhotoUrls = urls;
+    }
+
     const { error } = await supabase.from("reviews").insert({
       job_id: jobId,
       reviewer_id: user.id,
@@ -158,6 +232,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       quality: scores.quality > 0 ? scores.quality : null,
       communication: scores.communication > 0 ? scores.communication : null,
       feedback: feedback.trim() || null,
+      photo_urls: uploadedPhotoUrls,
     });
 
     if (error) {
@@ -282,6 +357,70 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             rows={3}
             className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
           />
+
+          {/* Photo attachments — up to 3 photos */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {photoPreviews.map((url, i) => (
+                <div key={url} className="relative w-16 h-16 rounded-ds-sm overflow-hidden shrink-0"
+                  style={{ border: "0.5px solid hsl(var(--olivewood) / 0.18)" }}
+                >
+                  <img
+                    src={safeImageSrc(url)}
+                    alt={`Review photo ${i + 1}`}
+                    className="w-full h-full object-cover"
+                    decoding="async"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    aria-label={`Remove photo ${i + 1}`}
+                    className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ background: "hsla(38, 18%, 12%, 0.72)" }}
+                  >
+                    <XIcon className="w-3 h-3 text-white" />
+                  </button>
+                </div>
+              ))}
+              {photoFiles.length < MAX_PHOTOS && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isNativePlatform) {
+                      void handleNativePhotoPick();
+                    } else {
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  aria-label="Add review photo"
+                  className="w-16 h-16 rounded-ds-sm flex flex-col items-center justify-center gap-0.5 transition-opacity hover:opacity-80 active:scale-95"
+                  style={{
+                    border: "1px dashed hsl(var(--olivewood) / 0.3)",
+                    background: "hsla(0,0%,100%,0.45)",
+                  }}
+                >
+                  <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} />
+                  <span className="font-serif italic" style={{ fontSize: "0.58rem", color: "hsl(var(--olivewood) / 0.65)" }}>
+                    {photoFiles.length === 0 ? "Add photo" : "Add more"}
+                  </span>
+                </button>
+              )}
+            </div>
+            {photoFiles.length > 0 && (
+              <p className="font-serif italic" style={{ fontSize: "0.68rem", color: "hsl(var(--olivewood) / 0.55)" }}>
+                {photoFiles.length}/{MAX_PHOTOS} photo{photoFiles.length !== 1 ? "s" : ""} attached
+              </p>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              aria-hidden="true"
+              onChange={handlePhotoInput}
+            />
+          </div>
         </div>
         <DialogFooter className="!flex-col !gap-2 !items-stretch">
           <Button
@@ -380,6 +519,7 @@ type Review = {
   feedback: string | null;
   created_at: string;
   reviewer_id: string;
+  photo_urls?: string[] | null;
   reviewerName?: string;
 };
 
@@ -396,6 +536,9 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
   const [loaded, setLoaded] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [reportReviewId, setReportReviewId] = useState<string | null>(null);
+  // Lightbox state — flat list of all review photos for the active review card.
+  const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -512,6 +655,34 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
               </div>
             )}
             {r.feedback && <p className="text-ds-13 text-foreground">{r.feedback}</p>}
+
+            {/* Photo thumbnails — tapping opens the lightbox */}
+            {r.photo_urls && r.photo_urls.length > 0 && (
+              <div className="flex gap-1.5 mt-2 flex-wrap">
+                {r.photo_urls.map((url, pi) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => {
+                      setLightboxPhotos(r.photo_urls!);
+                      setLightboxIndex(pi);
+                    }}
+                    aria-label={`View review photo ${pi + 1}`}
+                    className="w-14 h-14 rounded-ds-sm overflow-hidden shrink-0 transition-transform active:scale-95 hover:opacity-90"
+                    style={{ border: "0.5px solid hsl(var(--olivewood) / 0.15)" }}
+                  >
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={safeImageSrc(url)}
+                      alt={`Review photo ${pi + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
             <p className="text-ds-11 text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</p>
           </div>
         ))}
@@ -524,6 +695,13 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
           reportedId={reportReviewId}
         />
       )}
+      {/* Lightbox for review photos — reuses the same fullscreen viewer
+          as JobDetailDialog photos. */}
+      <PhotoLightbox
+        photos={lightboxPhotos}
+        lightboxIndex={lightboxIndex}
+        setLightboxIndex={setLightboxIndex}
+      />
     </div>
   );
 };

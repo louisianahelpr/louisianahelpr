@@ -31,6 +31,7 @@ import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
 import { HelperScheduleStrip } from "@/components/profile/HelperScheduleStrip";
 import { HelperStreakBadge } from "@/components/profile/HelperStreakBadge";
+import { MonthlyGoalCard } from "@/components/profile/MonthlyGoalCard";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import { jobStatusColorClasses } from "@/lib/statusColors";
@@ -608,6 +609,25 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               </p>
             )}
           </div>
+        )}
+
+        {/* Monthly earning goal — localStorage-backed; no DB migration needed */}
+        {!loading && (
+          <MonthlyGoalCard
+            completedJobs={completedJobs.map((j) => {
+              const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
+              const perHelper = j.budget / helpers;
+              const commissionPercent = j.helper_fee_percent ?? 10;
+              const commission = (perHelper * commissionPercent) / 100;
+              const netPayout = perHelper - commission + (j.urgent_fee ?? 0);
+              return {
+                // prefer helper_completed_at so the month bucket matches when
+                // the job was actually done, not when it was posted
+                created_at: j.helper_completed_at ?? j.created_at,
+                netPayout,
+              };
+            })}
+          />
         )}
 
         {/* Compact secondary stats — 3-up tiny tiles */}

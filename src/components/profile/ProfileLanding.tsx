@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { shareNative } from "@/lib/nativeShare";
 import type { Database } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";

@@ -2423,6 +2423,9 @@ export type Database = {
           insurance_reviewed_by: string | null
           insurance_status: string
           insurance_url: string | null
+          intro_video_duration_seconds: number | null
+          intro_video_thumbnail_url: string | null
+          intro_video_url: string | null
           is_insured: boolean
           is_legacy_user: boolean
           is_licensed: boolean
@@ -2494,6 +2497,9 @@ export type Database = {
           insurance_reviewed_by?: string | null
           insurance_status?: string
           insurance_url?: string | null
+          intro_video_duration_seconds?: number | null
+          intro_video_thumbnail_url?: string | null
+          intro_video_url?: string | null
           is_insured?: boolean
           is_legacy_user?: boolean
           is_licensed?: boolean
@@ -2565,6 +2571,9 @@ export type Database = {
           insurance_reviewed_by?: string | null
           insurance_status?: string
           insurance_url?: string | null
+          intro_video_duration_seconds?: number | null
+          intro_video_thumbnail_url?: string | null
+          intro_video_url?: string | null
           is_insured?: boolean
           is_legacy_user?: boolean
           is_licensed?: boolean

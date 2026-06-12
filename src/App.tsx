@@ -18,12 +18,10 @@ import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
-import { useAppLifecycle } from "@/lib/appLifecycle";
 import { useDynamicTypeSync } from "@/lib/accessibility";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import ScrollToTop from "@/components/ScrollToTop";
-import ImpersonationBanner from "@/components/ImpersonationBanner";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -80,12 +78,8 @@ const VerifyHelper = lazy(() => import("./pages/VerifyHelper"));
 const LocalPricingGuide = lazy(() => import("./pages/LocalPricingGuide"));
 const DischargeConcierge = lazy(() => import("./pages/DischargeConcierge"));
 const InsuranceClaim = lazy(() => import("./pages/InsuranceClaim"));
-
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
-const Community = lazy(() => import("./pages/Community"));
-const ParishPage = lazy(() => import("./pages/ParishPage"));
-const ParishesPage = lazy(() => import("./pages/ParishesPage"));
-const HelprWrapped = lazy(() => import("./pages/HelprWrapped"));
+const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 const BusinessBilling = lazy(() => import("./pages/business/BusinessBilling"));
 const BusinessApi = lazy(() => import("./pages/business/BusinessApi"));
@@ -166,10 +160,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/support" element={<Navigate to="/profile?tab=support" replace />} />
 
-      {/* Public trust + discovery pages — no auth required */}
-      <Route path="/verify/:helperId" element={<RouteErrorBoundary>{routeEl(<PageTransition><VerifyHelper /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/local-guide" element={<RouteErrorBoundary>{routeEl(<PageTransition><LocalPricingGuide /></PageTransition>)}</RouteErrorBoundary>} />
-
       <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
@@ -188,8 +178,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           a no-account preview, though the marketing landing remains canonical. */}
       <Route path="/browse" element={<RouteErrorBoundary>{routeEl(<PageTransition><DashboardGuest /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
-      {/* Community feed — before/after photos, milestone posts, helper spotlights. */}
-      <Route path="/community" element={<RouteErrorBoundary>{routeEl(<Community />)}</RouteErrorBoundary>} />
+      {/* /community is a legacy/external-link redirect stub — the content
+          lives as a tab inside /legal. Without this redirect, old search
+          indexes and external links 404. The sitemap lists the canonical
+          /legal URL, not this stub. Mirrors the /rules → /legal?tab=community
+          pattern above. */}
+      <Route path="/community" element={<Navigate to="/legal?tab=community" replace />} />
 
       {/* Settings-style pages live inside the Profile shell so the
           shared back button + safe-area top padding stay consistent.
@@ -206,6 +200,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/api" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessApi /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -293,8 +288,6 @@ const SessionManager = () => {
   useSessionTimeout();
   useLoginTracking();
   useNativePushSetup();
-  useSoftUpdatePrompt();
-  useAppLifecycle();
   useDynamicTypeSync();
   useDarkMode(); // initializes data-theme from localStorage / system preference
   useCppVariantRouter();
@@ -309,27 +302,8 @@ const SessionManager = () => {
     document.documentElement.classList.toggle("senior-mode", enabled);
   }, [profile]);
 
-  return null;
-};
 
-/**
- * Top-level gate: when the installed native binary is older than the
- * minimum supported build, render the full-screen `<ForceUpdate />`
- * instead of the app. The check is a no-op on web and when
- * `MIN_SUPPORTED_BUILD` is still its default of 0 (see useVersionCheck).
- * Lives inside BrowserRouter so the children of the gate still see the
- * router (the blocker itself does not need it).
- */
-const ForceUpdateGate = ({ children }: { children: ReactElement }) => {
-  const { forceUpdate } = useVersionCheck();
-  if (forceUpdate) {
-    return (
-      <Suspense fallback={null}>
-        <ForceUpdate />
-      </Suspense>
-    );
-  }
-  return children;
+  return null;
 };
 
 /**
@@ -429,13 +403,10 @@ const App = () => (
             the page content (AppShell reads the offset to reserve space).
             See src/lib/offlineBannerLayout.tsx. */}
         <OfflineBannerLayoutProvider>
-          <ForceUpdateGate>
-          <>
           <ScrollToTop />
           <SessionManager />
           <NativeLaunchRouter />
           <OfflineBanner />
-          <ImpersonationBanner />
           <Suspense fallback={null}>
             <StrikeBanner />
           </Suspense>
@@ -450,8 +421,6 @@ const App = () => (
             <PermissionRationaleDialog />
           </Suspense>
           <SpeedInsightsRouted />
-          </>
-          </ForceUpdateGate>
         </OfflineBannerLayoutProvider>
       </BrowserRouter>
       <Analytics />

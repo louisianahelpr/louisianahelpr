@@ -11,6 +11,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { ReferralExtras } from "@/components/profile/ReferralExtras";
 import { requireBiometric } from "@/lib/biometricGate";
 import { shareNative } from "@/lib/nativeShare";
+import { hapticLight, hapticSuccess } from "@/lib/haptics";
 
 /**
  * Single-screen referral dashboard. Backed by React Query (60s staleTime)
@@ -32,6 +33,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     if (!referralCode) return;
     navigator.clipboard.writeText(referralCode);
     setCopied(true);
+    hapticSuccess();
     toast.success("Referral code copied!");
     setTimeout(() => setCopied(false), 2000);
   };
@@ -48,6 +50,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
 
   const shareReferral = async () => {
     if (!referralCode) return;
+    hapticLight();
     const { url, text, combined } = buildShareBody(referralCode);
     // Native-first share chain (Capacitor Share Sheet → Web Share API →
     // clipboard) so the OS sheet is used on the iOS/Android shell instead
@@ -68,6 +71,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   // pre-fill the number so `?body=` is correct.
   const shareViaSMS = () => {
     if (!referralCode) return;
+    hapticLight();
     const { combined } = buildShareBody(referralCode);
     const href = `sms:?&body=${encodeURIComponent(combined)}`;
     // Use a transient <a> click rather than location.href so we don't

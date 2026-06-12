@@ -329,6 +329,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               applicationsLoading={actions.applicationsLoading}
               applicationsError={actions.applicationsError}
               onAcceptApplication={actions.acceptApplication}
+              onDeclineApplication={actions.declineApplication}
               onLoadInlineApplicants={actions.loadInlineApplicants}
               inlineApplicants={actions.inlineApplicants}
               loadingApplicants={actions.loadingApplicants}

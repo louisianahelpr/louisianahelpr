@@ -225,6 +225,60 @@ export function useActivityActions({
     setDeadlineDialogApp(app);
   };
 
+  /**
+   * Poster declines a pending applicant. Marks the application as "rejected"
+   * and, when `note` is provided, sends an in-app notification to the helper
+   * so they know why.
+   */
+  const declineApplication = async (
+    app: EnrichedApplication,
+    note: string,
+    jobTitle: string,
+  ) => {
+    hapticMedium();
+    const { error } = await supabase
+      .from("applications")
+      .update({ status: "rejected" })
+      .eq("id", app.id);
+    if (error) {
+      hapticError();
+      toast.error("Couldn't decline that applicant — please try again.");
+      return;
+    }
+    // Optimistically update the in-memory applications list so the card
+    // flips to "Declined" without waiting on a full refresh.
+    setApplications((prev) =>
+      prev.map((a) => (a.id === app.id ? { ...a, status: "rejected" as const } : a)),
+    );
+    setInlineApplicants((prev) => {
+      const updated: typeof prev = {};
+      for (const [jobId, apps] of Object.entries(prev)) {
+        updated[jobId] = apps.map((a) =>
+          a.id === app.id ? { ...a, status: "rejected" as const } : a,
+        );
+      }
+      return updated;
+    });
+    if (note.trim()) {
+      // Fetch the poster's first name from their profile for the message.
+      const posterFirstName = user
+        ? await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("user_id", user.id)
+            .single()
+            .then(({ data }) => (data?.full_name ?? "").split(" ")[0] || "The poster")
+        : "The poster";
+      await createNotification({
+        user_id: app.helper_id,
+        title: "Application declined",
+        message: `${posterFirstName} declined your application for "${jobTitle}": ${note.trim()}`,
+        type: "info",
+      });
+    }
+    toast.info("Applicant declined.");
+  };
+
   const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
     if (!deadlineDialogApp || !selectedJob || !user) return;
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
@@ -815,6 +869,7 @@ export function useActivityActions({
     loadApplications,
     loadInlineApplicants,
     acceptApplication,
+    declineApplication,
     confirmAcceptWithDeadline,
     handleHelperResponse,
     tryCancelJob,

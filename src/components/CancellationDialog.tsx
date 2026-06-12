@@ -307,6 +307,37 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             )}
           </div>
 
+          {/* Fee summary callout — surfaces the exact dollar amount before
+              the user taps confirm so there's no ambiguity. Only shown when
+              a non-zero fee applies (hasHelper + late). */}
+          {hasHelper && cancellationFee > 0 && (
+            <div
+              className="flex items-start gap-2.5 rounded-ds-md p-3.5"
+              style={{
+                background: "hsl(var(--destructive) / 0.07)",
+                border: "1px solid hsl(var(--destructive) / 0.28)",
+              }}
+            >
+              <DollarSign
+                className="w-4 h-4 shrink-0 mt-0.5"
+                style={{ color: "hsl(var(--destructive))" }}
+              />
+              <div>
+                <p
+                  className="font-sans font-bold"
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--destructive))", letterSpacing: "-0.01em" }}
+                >
+                  A cancellation fee of{" "}
+                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cancellationFee)}{" "}
+                  applies
+                </p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">
+                  {cancellationFeePercent}% of the ${jobBudget.toFixed(2)} budget · {feeTier.toLowerCase()}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <label
               className="font-serif italic uppercase block"

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { lazy, Suspense, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,12 @@ import { toast } from "sonner";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { report } from "@/lib/errorLogger";
+
+// Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
+// pulled in when an active "on_the_way" tracking card is visible.
+const TrackingMap = lazy(() =>
+  import("@/components/TrackingMap").then((m) => ({ default: m.TrackingMap }))
+);
 
 const STATUSES = [
   { key: "assigned", label: "Offered", icon: Clock, color: "text-muted-foreground" },
@@ -38,6 +44,8 @@ export function JobTracking({
   helperConfirmedAt: initialHelperConfirmedAt,
   posterConfirmedAt: initialPosterConfirmedAt,
   initialTracking,
+  jobLatitude,
+  jobLongitude,
 }: {
   jobId: string;
   helperId: string | null;
@@ -58,6 +66,14 @@ export function JobTracking({
    * falls back to its own per-mount fetch.
    */
   initialTracking?: TrackingData | null;
+  /**
+   * Job destination coordinates (from the jobs row). When provided alongside
+   * helper live location, an Uber-style mini-map is shown while the helper
+   * is "on_the_way". Both must be non-null for the map to render — the
+   * existing ETA text is shown as fallback.
+   */
+  jobLatitude?: number | null;
+  jobLongitude?: number | null;
 }) {
   // Seed from the parent-batched tracking row when present so we don't
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
@@ -354,6 +370,26 @@ export function JobTracking({
           }}
         />
       </div>
+
+      {/* Live-tracking map — shown while helper is on the way and both
+          positions are known. Lazy-loaded so the Leaflet chunk isn't paid
+          for by cards that never enter this state. Falls back silently to
+          the ETA text below when coordinates are unavailable or the
+          Leaflet bundle hasn't loaded yet. */}
+      {tracking?.status === "on_the_way" &&
+        tracking.latitude != null &&
+        tracking.longitude != null &&
+        jobLatitude != null &&
+        jobLongitude != null && (
+          <Suspense fallback={null}>
+            <TrackingMap
+              helperLat={tracking.latitude}
+              helperLng={tracking.longitude}
+              destLat={jobLatitude}
+              destLng={jobLongitude}
+            />
+          </Suspense>
+        )}
 
       {/* ETA */}
       {tracking?.eta_minutes && tracking.status === "on_the_way" && (

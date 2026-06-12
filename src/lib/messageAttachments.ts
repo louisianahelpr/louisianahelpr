@@ -141,3 +141,38 @@ export function getMessageAttachmentFilename(path: string, fallback = "Attachmen
     return stripped;
   }
 }
+
+/** Maximum voice note size: 10 MB (60s audio at ~128kbps = ~1 MB — 10× headroom). */
+export const VOICE_NOTE_MAX_BYTES = 10 * 1024 * 1024;
+
+export function isAudioMime(mime: string | null | undefined): boolean {
+  return !!mime && mime.startsWith("audio/");
+}
+
+/**
+ * Uploads a voice note Blob to the message-attachments bucket.
+ * Returns { path, mime, size } on success, { error } on failure.
+ * The path uses the same scoping convention as image attachments:
+ *   voice-notes/<jobId>/<senderId>/<uuid>.<ext>
+ */
+export async function uploadVoiceNote(
+  blob: Blob,
+  mime: string,
+  jobId: string,
+  senderId: string,
+): Promise<{ path: string; mime: string; size: number } | { error: string }> {
+  if (blob.size > VOICE_NOTE_MAX_BYTES) {
+    return { error: "Voice note too large (max 10 MB)." };
+  }
+
+  const ext = mime.includes("webm") ? "webm" : "m4a";
+  const uuid = crypto.randomUUID();
+  const path = `voice-notes/${jobId}/${senderId}/${uuid}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, blob, { contentType: mime, upsert: false });
+
+  if (error) return { error: error.message };
+  return { path, mime, size: blob.size };
+}

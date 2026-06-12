@@ -90,12 +90,22 @@ export function FormStep({ form }: FormStepProps) {
     form.detailsComplete && form.logisticsComplete && form.budgetComplete;
   const submitDisabled = atOpenJobLimit || !formReady;
 
-  // Contextual label — points the poster at the first unfinished
-  // section instead of always promising "Review & pay".
+  // Contextual label — names the first unfinished *field* (not just the
+  // section) so the poster knows exactly what's blocking the button.
   let submitLabel = "Review & pay";
-  if (!form.detailsComplete) submitLabel = "Add task details to continue";
-  else if (!form.logisticsComplete) submitLabel = "Add when & where to continue";
-  else if (!form.budgetComplete) submitLabel = "Set a budget to continue";
+  if (!form.detailsComplete) {
+    if (!form.title.trim()) submitLabel = "Add a title to continue";
+    else if (!form.description.trim()) submitLabel = "Add a description to continue";
+    else submitLabel = "Pick a category to continue";
+  } else if (!form.logisticsComplete) {
+    if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
+      submitLabel = "Add the address to continue";
+    else if (!form.dateNeeded) submitLabel = "Pick a date to continue";
+    else if (!form.startTime) submitLabel = "Pick a start time to continue";
+    else submitLabel = "Set the hours to continue";
+  } else if (!form.budgetComplete) {
+    submitLabel = "Set a budget to continue";
+  }
 
   return (
     <div key="form-step" className="space-y-5 animate-ds-page-in">

@@ -97,7 +97,7 @@ interface ChatViewProps {
    *  typed text on `false` so a blocked message isn't silently lost. */
   sendMessage: (
     content: string,
-    attachment?: { path: string; mime: string; size: number },
+    attachment?: { path: string; mime: string; size: number; duration?: number },
   ) => Promise<boolean>;
   /** Re-dispatch a previously failed optimistic message by its clientId. */
   retryMessage: (clientId: string) => void;
@@ -1015,6 +1015,7 @@ function MessageBubble({
             path={m.attachment_url}
             mime={m.attachment_mime}
             size={m.attachment_size}
+            duration={m.attachment_duration}
             mine={mine}
           />
         )}

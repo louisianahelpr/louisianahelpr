@@ -15,6 +15,8 @@ export type Message = {
   attachment_url: string | null;
   attachment_mime: string | null;
   attachment_size: number | null;
+  /** Duration in seconds — only set for audio/voice-note messages. */
+  attachment_duration: number | null;
   /**
    * Optimistic-send bookkeeping. Absent on rows loaded from the DB or
    * received over realtime — present only on bubbles the local user has

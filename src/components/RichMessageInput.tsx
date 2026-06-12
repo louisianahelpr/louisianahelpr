@@ -1,7 +1,7 @@
 import { useCallback, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Paperclip, MapPin, X, ShieldAlert, FileText, Loader2, Mic, MicOff, Camera, Image as ImageIcon, FilePlus2 } from "lucide-react";
+import { Send, Paperclip, MapPin, X, ShieldAlert, FileText, Loader2, Mic, MicOff, Camera, Image as ImageIcon, FilePlus2, Square, AudioLines } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -13,12 +13,14 @@ import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative, takePhotoNative } from "@/lib/nativeCamera";
 import { report } from "@/lib/errorLogger";
 import { assertWritable } from "@/hooks/useImpersonation";
 import {
   uploadMessageAttachment,
+  uploadVoiceNote,
   isImageMime,
   isPdfMime,
   MESSAGE_ATTACHMENT_MAX_BYTES,
@@ -38,6 +40,8 @@ export type SendAttachment = {
   path: string;
   mime: string;
   size: number;
+  /** Duration in seconds — only set for voice notes. */
+  duration?: number;
 };
 
 interface RichMessageInputProps {
@@ -122,6 +126,45 @@ export const RichMessageInput = ({
       hapticMedium();
       voice.start();
     }
+  };
+
+  // Voice recorder — records a short audio clip and sends it as a voice note.
+  const recorder = useVoiceRecorder({ maxSeconds: 60 });
+
+  const handleVoiceNoteRecord = async () => {
+    if (!assertWritable()) return;
+    if (recorder.state === "recording") {
+      hapticLight();
+      recorder.stop();
+      return;
+    }
+    if (recorder.state === "stopped") {
+      // Send the completed note
+      if (!recorder.blob || !jobId || !senderId) {
+        toast.error("Missing chat context for voice note.");
+        recorder.discard();
+        return;
+      }
+      setUploading(true);
+      const result = await uploadVoiceNote(recorder.blob, recorder.mime, jobId, senderId);
+      setUploading(false);
+      if ("error" in result) {
+        toast.error(result.error);
+        recorder.discard();
+        return;
+      }
+      onSend("", { path: result.path, mime: result.mime, size: result.size, duration: recorder.duration });
+      recorder.discard();
+      return;
+    }
+    // Start recording
+    hapticMedium();
+    await recorder.start();
+  };
+
+  const handleVoiceNoteDiscard = () => {
+    hapticLight();
+    recorder.discard();
   };
 
   const stageFile = (file: File): boolean => {
@@ -312,13 +355,75 @@ export const RichMessageInput = ({
           {stagedIsPdf && <p className="text-ds-10 text-muted-foreground mt-1">PDF · {(stagedFile.size / 1024).toFixed(0)} KB</p>}
         </div>
       )}
+      {/* Voice note recording indicator — replaces the full input row
+          while recording or after stop (ready-to-send state). */}
+      {(recorder.state === "recording" || recorder.state === "stopped") && (
+        <div
+          className="flex items-center gap-2 rounded-2xl px-3 py-2.5 mb-1"
+          style={{
+            background: "hsl(var(--bark) / 0.07)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.16)",
+          }}
+        >
+          {/* Red pulse dot while recording */}
+          {recorder.state === "recording" && (
+            <span
+              aria-hidden="true"
+              className="w-2 h-2 rounded-full animate-pulse shrink-0"
+              style={{ background: "hsl(var(--burnt-sienna))", boxShadow: "0 0 4px hsl(var(--burnt-sienna) / 0.6)" }}
+            />
+          )}
+          <span
+            className="flex-1 text-ds-13 tabular-nums font-sans"
+            style={{ color: "hsl(var(--ink-deep))" }}
+          >
+            {recorder.state === "recording"
+              ? `Recording… ${recorder.elapsed}s / 60s`
+              : `Voice note — ${recorder.duration}s`}
+          </span>
+          {/* Discard */}
+          <button
+            type="button"
+            aria-label="Discard voice note"
+            onClick={handleVoiceNoteDiscard}
+            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+            style={{ background: "hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood))" }}
+          >
+            <X className="w-4 h-4" />
+          </button>
+          {/* Stop (while recording) or Send (when stopped) */}
+          {recorder.state === "recording" ? (
+            <button
+              type="button"
+              aria-label="Stop recording"
+              onClick={() => { hapticLight(); recorder.stop(); }}
+              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+              style={{ background: "hsl(var(--burnt-sienna))", color: "white" }}
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              aria-label="Send voice note"
+              onClick={() => void handleVoiceNoteRecord()}
+              disabled={uploading}
+              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+              style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
+            >
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex gap-1.5 items-center">
         <Button
           variant="ghost"
           size="icon"
           className="shrink-0 h-9 w-9 rounded-full liquid-glass glass-press"
           onClick={() => { hapticLight(); setAttachSheetOpen(true); }}
-          disabled={disabled || uploading}
+          disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
           aria-label="Attach photo or PDF"
           title="Attach photo or PDF"
         >
@@ -329,7 +434,7 @@ export const RichMessageInput = ({
           size="icon"
           className="shrink-0 h-9 w-9 rounded-full liquid-glass glass-press"
           onClick={handleShareLocation}
-          disabled={disabled || uploading}
+          disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
           aria-label="Share location"
           title="Share location"
         >
@@ -348,14 +453,14 @@ export const RichMessageInput = ({
           onChange={(e) => { setText(e.target.value); notifyTyping(); }}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           className="flex-1"
-          disabled={disabled || uploading}
+          disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
         />
         {/* Voice-to-text mic — appended just before Send so the most
             frequent action (Send) keeps the rightmost slot. Mounts only
             on platforms with SpeechRecognition (degrades cleanly on web
             browsers without it and on Capacitor WebViews that don't
             expose it). Live red dot indicates an active session. */}
-        {voice.supported && (
+        {voice.supported && recorder.state === "idle" && (
           <Button
             type="button"
             variant="ghost"
@@ -386,10 +491,28 @@ export const RichMessageInput = ({
             )}
           </Button>
         )}
+        {/* Voice note record button — tap to start recording; recording
+            indicator (above the toolbar) takes over. Shows the AudioLines
+            icon to distinguish it from the dictation mic. Hidden when a
+            file is staged (can't send both) or dictation is active. */}
+        {recorder.state === "idle" && !voice.isListening && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 relative rounded-full liquid-glass glass-press"
+            onClick={() => void handleVoiceNoteRecord()}
+            disabled={disabled || uploading || !!stagedFile}
+            aria-label="Record voice note"
+            title="Record voice note"
+          >
+            <AudioLines className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+          </Button>
+        )}
         <Button
           size="icon"
           onClick={handleSend}
-          disabled={(!text.trim() && !stagedFile) || uploading || disabled}
+          disabled={(!text.trim() && !stagedFile) || uploading || disabled || recorder.state === "recording" || recorder.state === "stopped"}
           aria-label="Send message"
         >
           <Send className="w-4 h-4" />

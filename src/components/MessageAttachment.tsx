@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import { FileText, ExternalLink, Loader2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { FileText, ExternalLink, Loader2, X, Play, Pause } from "lucide-react";
 import {
   getMessageAttachmentSignedUrl,
   getMessageAttachmentFilename,
   isImageMime,
   isPdfMime,
+  isAudioMime,
 } from "@/lib/messageAttachments";
 
 interface MessageAttachmentProps {
@@ -12,11 +13,166 @@ interface MessageAttachmentProps {
   path: string;
   mime: string | null;
   size: number | null;
+  /** Duration in seconds for audio attachments. */
+  duration?: number | null;
   /** Bubble owner controls light/dark text */
   mine?: boolean;
 }
 
-export function MessageAttachment({ path, mime, size, mine }: MessageAttachmentProps) {
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/** Audio player bubble for voice notes. */
+function AudioPlayer({
+  path,
+  duration,
+  mine,
+}: {
+  path: string;
+  duration?: number | null;
+  mine?: boolean;
+}) {
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentSec, setCurrentSec] = useState(0);
+  const [totalSec, setTotalSec] = useState(duration ?? 0);
+  const [loading, setLoading] = useState(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Resolve a signed URL on mount (audio can't play from a storage path).
+  useEffect(() => {
+    let cancelled = false;
+    void getMessageAttachmentSignedUrl(path, 60 * 30).then((url) => {
+      if (!cancelled) {
+        setAudioUrl(url);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [path]);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio || !audioUrl) return;
+    if (playing) {
+      audio.pause();
+    } else {
+      void audio.play();
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    setCurrentSec(Math.floor(audio.currentTime));
+    if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+      setTotalSec(Math.floor(audio.duration));
+    }
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const audio = audioRef.current;
+    if (!audio || !totalSec) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audio.currentTime = ratio * audio.duration;
+  };
+
+  const progress = totalSec > 0 ? currentSec / totalSec : 0;
+  const displayTotal = totalSec > 0 ? totalSec : (duration ?? 0);
+  const displayCurrent = playing ? currentSec : 0;
+
+  const fgColor = mine ? "hsl(var(--parchment))" : "hsl(var(--bark))";
+  const trackBg = mine ? "hsl(var(--parchment) / 0.22)" : "hsl(var(--bark) / 0.14)";
+  const trackFill = mine ? "hsl(var(--parchment) / 0.75)" : "hsl(var(--bark) / 0.70)";
+
+  return (
+    <div
+      className="flex items-center gap-2.5 rounded-2xl px-3 py-2.5 min-w-[180px] max-w-[240px]"
+      style={{
+        background: mine ? "hsl(var(--parchment) / 0.12)" : "hsl(var(--bark) / 0.07)",
+        border: `0.5px solid ${mine ? "hsl(var(--parchment) / 0.22)" : "hsl(var(--olivewood) / 0.16)"}`,
+      }}
+    >
+      {/* Hidden <audio> element — we drive it imperatively */}
+      {audioUrl && (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          preload="metadata"
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => { setPlaying(false); setCurrentSec(0); }}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleTimeUpdate}
+        />
+      )}
+
+      {/* Play / Pause button */}
+      <button
+        type="button"
+        aria-label={playing ? "Pause voice note" : "Play voice note"}
+        onClick={togglePlay}
+        disabled={loading || !audioUrl}
+        className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
+        style={{
+          background: fgColor,
+          opacity: loading ? 0.5 : 1,
+        }}
+      >
+        {loading ? (
+          <Loader2
+            className="w-4 h-4 animate-spin"
+            style={{ color: mine ? "hsl(var(--bark))" : "hsl(var(--parchment))" }}
+          />
+        ) : playing ? (
+          <Pause
+            className="w-4 h-4"
+            style={{ color: mine ? "hsl(var(--bark))" : "hsl(var(--parchment))" }}
+          />
+        ) : (
+          <Play
+            className="w-4 h-4 ml-0.5"
+            style={{ color: mine ? "hsl(var(--bark))" : "hsl(var(--parchment))" }}
+          />
+        )}
+      </button>
+
+      {/* Progress track + time */}
+      <div className="flex-1 flex flex-col gap-1 min-w-0">
+        {/* Scrub bar */}
+        <div
+          className="relative h-1.5 rounded-full cursor-pointer overflow-hidden"
+          style={{ background: trackBg }}
+          onClick={handleSeek}
+          role="progressbar"
+          aria-valuenow={Math.round(progress * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className="absolute inset-y-0 left-0 rounded-full transition-all"
+            style={{ width: `${progress * 100}%`, background: trackFill }}
+          />
+        </div>
+        {/* Time display */}
+        <span
+          className="text-[0.65rem] tabular-nums font-sans"
+          style={{ color: mine ? "hsl(var(--parchment) / 0.75)" : "hsl(var(--olivewood))" }}
+        >
+          {playing
+            ? `${formatDuration(displayCurrent)} / ${formatDuration(displayTotal)}`
+            : formatDuration(displayTotal)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function MessageAttachment({ path, mime, size, duration, mine }: MessageAttachmentProps) {
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -64,6 +220,10 @@ export function MessageAttachment({ path, mime, size, mine }: MessageAttachmentP
   };
 
   const filename = getMessageAttachmentFilename(path);
+
+  if (isAudioMime(mime)) {
+    return <AudioPlayer path={path} duration={duration} mine={mine} />;
+  }
 
   if (isImageMime(mime)) {
     return (

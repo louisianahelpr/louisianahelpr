@@ -724,6 +724,12 @@ const Messages = () => {
         attachment_url: optimistic.attachment_url,
         attachment_mime: optimistic.attachment_mime,
         attachment_size: optimistic.attachment_size,
+        // attachment_duration may be null pre-migration — Supabase ignores unknown
+        // columns gracefully until the migration is pushed; if the column exists
+        // it is stored, if not the row still inserts (no column → ignored by Postgres).
+        ...(optimistic.attachment_duration != null
+          ? { attachment_duration: optimistic.attachment_duration }
+          : {}),
       })
       .select("*")
       .single();
@@ -765,7 +771,7 @@ const Messages = () => {
   // so they don't silently lose what they wrote.
   const sendMessage = async (
     content: string,
-    attachment?: { path: string; mime: string; size: number },
+    attachment?: { path: string; mime: string; size: number; duration?: number },
   ): Promise<boolean> => {
     if (!requireOnline()) return false;
     if (!activeConvo || !userId) return false;
@@ -808,6 +814,7 @@ const Messages = () => {
       attachment_url: attachment?.path ?? null,
       attachment_mime: attachment?.mime ?? null,
       attachment_size: attachment?.size ?? null,
+      attachment_duration: attachment?.duration ?? null,
       clientId,
       sendStatus: "sending",
     };

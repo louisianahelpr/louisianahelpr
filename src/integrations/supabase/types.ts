@@ -1379,6 +1379,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachment_duration: number | null
           attachment_mime: string | null
           attachment_size: number | null
           attachment_url: string | null
@@ -1393,6 +1394,7 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          attachment_duration?: number | null
           attachment_mime?: string | null
           attachment_size?: number | null
           attachment_url?: string | null
@@ -1407,6 +1409,7 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          attachment_duration?: number | null
           attachment_mime?: string | null
           attachment_size?: number | null
           attachment_url?: string | null

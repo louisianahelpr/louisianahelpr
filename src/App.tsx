@@ -99,6 +99,8 @@ const PayItForward = lazy(() => import("./pages/PayItForward"));
 const ImpactPage = lazy(() => import("./pages/ImpactPage"));
 const BecomeAPartner = lazy(() => import("./pages/BecomeAPartner"));
 const EnterprisePage = lazy(() => import("./pages/EnterprisePage"));
+const HowItWorks = lazy(() => import("./pages/HowItWorks"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
 const PetProfiles = lazy(() => import("./pages/PetProfiles"));
@@ -225,6 +227,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Growth / business-development pages — no auth required */}
       <Route path="/become-a-partner" element={<RouteErrorBoundary>{routeEl(<PageTransition><BecomeAPartner /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/enterprise" element={<RouteErrorBoundary>{routeEl(<PageTransition><EnterprisePage /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/how-it-works" element={<RouteErrorBoundary>{routeEl(<PageTransition><HowItWorks /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/parishes" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishesPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/parish/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Helpr Wrapped — auth-gated, HelprWrapped handles the redirect */}

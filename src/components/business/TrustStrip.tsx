@@ -4,7 +4,7 @@ const TRUST_ITEMS = [
   {
     icon: UserCheck,
     title: "Stripe ID-verified",
-    blurb: "Every helpr submits a government ID reviewed before activation",
+    blurb: "Stripe Identity verification run on every helpr before activation",
   },
   {
     icon: Star,

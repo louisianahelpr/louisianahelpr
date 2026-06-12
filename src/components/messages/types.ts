@@ -31,6 +31,12 @@ export type Message = {
    */
   clientId?: string;
   sendStatus?: "sending" | "failed";
+  /**
+   * True for DB-generated status-change notifications (sender_id is NULL).
+   * These render as centered italic pills in the thread instead of chat
+   * bubbles. Never set on messages created by a human sender.
+   */
+  is_system?: boolean;
 };
 
 export type Conversation = {

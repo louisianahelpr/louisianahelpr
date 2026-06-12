@@ -153,6 +153,11 @@ const Messages = () => {
     if (!msgs || msgs.length === 0) { loadedOnceRef.current = true; setLoading(false); return; }
 
     const filteredMsgs = msgs.filter((m: any) => {
+      // System messages (sender_id IS NULL) never drive the conversation
+      // list — they belong inside the thread view only. Skip them here so
+      // they don't inflate unread counts or appear as the "last message"
+      // preview in the inbox.
+      if (m.is_system) return false;
       const other = m.sender_id === uid ? m.receiver_id : m.sender_id;
       return !blockedSet.has(other);
     });
@@ -355,7 +360,7 @@ const Messages = () => {
         .from("messages")
         .select("*")
         .eq("job_id", convo.jobId)
-        .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId})`)
+        .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId}),is_system.eq.true`)
         .order("created_at", { ascending: false })
         .limit(CHAT_PAGE_SIZE),
       supabase
@@ -439,7 +444,7 @@ const Messages = () => {
       .from("messages")
       .select("*")
       .eq("job_id", activeConvo.jobId)
-      .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId})`)
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId}),is_system.eq.true`)
       .order("created_at", { ascending: false })
       .limit(CHAT_PAGE_SIZE);
 
@@ -474,7 +479,7 @@ const Messages = () => {
       .from("messages")
       .select("*")
       .eq("job_id", activeConvo.jobId)
-      .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId})`)
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId}),is_system.eq.true`)
       .lt("created_at", oldestMsg.created_at)
       .order("created_at", { ascending: false })
       .limit(CHAT_PAGE_SIZE);
@@ -516,6 +521,9 @@ const Messages = () => {
   // gets resolved.
   const patchConversationForMessage = (msg: Message) => {
     if (!userId) return;
+    // System messages have no human sender — they're status notifications
+    // that don't update the inbox preview or unread count.
+    if (msg.is_system) return;
     const other = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
     let matched = false;
     setConversations((prev) => {

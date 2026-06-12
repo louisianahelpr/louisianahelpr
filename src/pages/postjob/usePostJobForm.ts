@@ -60,6 +60,11 @@ export function usePostJobForm() {
   // start-fresh / draft / template choice first, which declutters the page.
   const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
+  // Time credits applied as discount — read from ?credits=N query param
+  const creditsParam = parseInt(searchParams.get("credits") || "0", 10);
+  const [timeCreditsApplied] = useState<number>(
+    isNaN(creditsParam) || creditsParam <= 0 ? 0 : creditsParam,
+  );
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");
@@ -144,6 +149,25 @@ export function usePostJobForm() {
   // Combined view of compression progress (selection time) and upload
   // progress (submit time) — only one phase runs at any given moment.
   const [uploadProgressByIndex, setUploadProgressByIndex] = useState<Record<number, number>>({});
+
+  // Scope video — optional short video the poster records/uploads to give
+  // helpers a visual sense of the job before they quote.
+  const [scopeVideoFile, setScopeVideoFile] = useState<File | null>(null);
+  const [scopeVideoPreviewUrl, setScopeVideoPreviewUrl] = useState<string | null>(null);
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("video/")) return;
+    const url = URL.createObjectURL(file);
+    setScopeVideoFile(file);
+    setScopeVideoPreviewUrl(url);
+  };
+
+  const clearVideo = () => {
+    setScopeVideoFile(null);
+    setScopeVideoPreviewUrl(null);
+  };
 
   // Optional "Materials I'll provide" note for material-heavy categories.
   // Stored locally and appended into special_requirements at submit so
@@ -590,6 +614,30 @@ export function usePostJobForm() {
     setUploading(false);
   };
 
+  /**
+   * Uploads the optional scope video to the job-photos bucket and patches
+   * the job row's `scope_video_url` column. No-op when no video selected.
+   */
+  const uploadAndAttachScopeVideo = async (jobId: string) => {
+    if (!scopeVideoFile) return;
+    const ext = scopeVideoFile.name.split(".").pop() || "mp4";
+    const path = `${jobId}/scope-video.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("job-photos")
+      .upload(path, scopeVideoFile, { contentType: scopeVideoFile.type, upsert: true });
+    if (uploadError) {
+      report(uploadError, "scope-video-upload");
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
+    if (urlData?.publicUrl) {
+      await supabase
+        .from("jobs")
+        .update({ scope_video_url: urlData.publicUrl } as any)
+        .eq("id", jobId);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!requireOnline()) return;
     const user = await runPreSubmitChecks();
@@ -722,6 +770,7 @@ export function usePostJobForm() {
     }
 
     await uploadAndAttachPhotos(jobData.id);
+    await uploadAndAttachScopeVideo(jobData.id);
 
     hapticSuccess();
     void maybeFireFirstPostConfetti();
@@ -1074,6 +1123,12 @@ export function usePostJobForm() {
     removeImage,
     reorderImages,
     uploadProgressByIndex,
+    // scope video
+    scopeVideoPreviewUrl,
+    handleVideoSelect,
+    clearVideo,
+    // time credits applied as discount from ?credits= param
+    timeCreditsApplied,
     // materials toggle
     includeMaterials,
     setIncludeMaterials,

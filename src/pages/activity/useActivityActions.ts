@@ -540,6 +540,26 @@ export function useActivityActions({
           }
         }
 
+        // Time banking — award 60 min credit to the helper on completion.
+        // Fire-and-forget; the table may not exist on prod yet (PGRST202)
+        // so errors are swallowed to never break the completion flow.
+        if (isHelper && user) {
+          const postedJob =
+            postedJobs.find((j) => j.id === jobId) ||
+            (appliedApps.find((a) => a.job_id === jobId) as any)?.job;
+          supabase
+            .from("time_credits" as any)
+            .insert({
+              user_id: user.id,
+              amount_minutes: 60,
+              credit_type: "job_completed",
+              job_id: jobId,
+              description: `1 hour earned for completing${postedJob?.title ? ` "${postedJob.title}"` : " a job"}`,
+            })
+            .then(() => {})
+            .catch(() => {});
+        }
+
         // Milestone community posts — fire-and-forget when the helper
         // crosses a job-count threshold (10, 25, 50, 100, 200, 500).
         // Only generated when the helper is the one calling completeJob

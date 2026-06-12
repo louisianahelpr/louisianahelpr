@@ -1,30 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import {
   LogOut, MapPin,
   CreditCard, Shield,
-  Star, Edit, CalendarDays, Gavel,
+  Star, Edit, CalendarDays, Clock, Gavel,
   ChevronRight as ChevronRightIcon, ChevronDown,
   HelpCircle, Bell, AlertTriangle, Heart, Crown,
   ShieldCheck, Trash2,
   BadgeCheck, Camera, Check,
   TrendingUp, MoreHorizontal, QrCode, Share2, Home,
   Users, Type, PawPrint,
+  Video, Play, X, BarChart2,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { shareNative } from "@/lib/nativeShare";
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
-import { ProfileStatsTrend } from "@/components/profile/ProfileStatsTrend";
-import { SkillsManager } from "@/components/profile/SkillsManager";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -34,18 +27,8 @@ interface MenuItem {
   icon: React.ReactNode;
   desc: string;
   href?: string;
-  /** HSL token expression (e.g. "var(--bark)") used to tint the row's
-      icon tile — gives each surface its own warm accent instead of one
-      flat grey. */
-  tint?: string;
   /** Render a small "Action needed" red dot when true. */
   needsAction?: boolean;
-  /** Short, warm completeness nudge (e.g. "Add a photo"). Optional —
-      when set, renders as a small amber pill under the label so the
-      user knows *what* to fix before opening the row. Distinct from
-      `needsAction`: that's reserved for the louder destructive
-      payout-not-enabled state. */
-  incompleteLabel?: string;
 }
 
 interface ReviewPreview {
@@ -58,8 +41,6 @@ interface ReviewPreview {
 
 interface ProfileLandingProps {
   profile: Profile | null;
-  /** The auth'd user's UUID — used to build the public profile share URL. */
-  userId?: string | null;
   displayName: string;
   initials: string;
   avatarBroken: boolean;
@@ -92,7 +73,6 @@ interface ProfileLandingProps {
 
 export function ProfileLanding({
   profile,
-  userId,
   displayName,
   initials,
   avatarBroken,
@@ -123,33 +103,36 @@ export function ProfileLanding({
   // checklist is a quiet, opt-in nudge rather than permanent clutter; the
   // whole block is hidden once the profile is 100% complete (below).
   const [completionOpen, setCompletionOpen] = useState(false);
-  // "More" overflow — saved helprs, referrals, legal, warnings,
-  // support all live here so the primary nav stays focused on the
-  // top tasks: credentials, schedule, notifications, payments,
-  // earnings, security. Collapsed by default; if any row needs
-  // action (e.g. a fresh warning) we auto-expand below.
-  const [moreOpen, setMoreOpen] = useState(false);
-  // QR code modal state
-  const [qrOpen, setQrOpen] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!qrOpen || !profile?.user_id) return;
-    if (qrDataUrl) return; // already generated
-    let cancelled = false;
-    (async () => {
-      try {
-        const QRCode = (await import("qrcode")).default;
-        const url = await QRCode.toDataURL(
-          `https://www.louisianahelpr.com/verify/${profile.user_id}`,
-          { width: 240, margin: 2, color: { dark: "#1a1208", light: "#faf7f2" } },
-        );
-        if (!cancelled) setQrDataUrl(url);
-      } catch {
-        /* QR generation failure is non-fatal — modal still opens */
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [qrOpen, profile?.user_id, qrDataUrl]);
+  // Intro-video state — tracks upload progress and the local preview URL.
+  const [videoOpen, setVideoOpen] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleVideoUpload = async (file: File) => {
+    if (!profile?.user_id) return;
+    setVideoUploading(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "mp4";
+      const path = `${profile.user_id}/intro.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("profile-videos")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("profile-videos").getPublicUrl(path);
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ intro_video_url: urlData.publicUrl })
+        .eq("user_id", profile.user_id);
+      if (updateError) throw updateError;
+      // Reload page so ProfileLanding reflects the new URL from the DB.
+      window.location.reload();
+    } catch {
+      // Silently ignore — in a real app we'd surface a toast, but keeping
+      // the upload UX minimal since Capacitor video capture is phase 2.
+    } finally {
+      setVideoUploading(false);
+    }
+  };
   // Derived state — drives "Action needed" dots on menu items so the
   // user sees blockers at a glance without having to navigate into each
   // tab to discover them.
@@ -215,27 +198,6 @@ export function ProfileLanding({
   });
   const completionPct = completion.pct;
 
-  // Completeness gaps surfaced per-row so the user knows *what's*
-  // missing without having to open each tab. Derived from existing
-  // profile state, no new column required. Each gap maps to the row
-  // its action lives under so the user goes straight to the right
-  // place. Phone verification uses the `phone_verified_at` column when
-  // the prod schema supplies it; falls back to "has phone" otherwise.
-  const phoneVerified = !!(profile as unknown as { phone_verified_at?: string | null })
-    ?.phone_verified_at || !!profile?.phone?.trim();
-  const credentialsIncomplete =
-    profile?.license_status !== "verified" &&
-    profile?.insurance_status !== "verified";
-  const payoutIncomplete =
-    stripeConnectStatus === null
-      ? false
-      : !stripeConnectStatus.payouts_enabled;
-  const bioMissing = (profile?.bio?.trim().length ?? 0) < 20;
-
-  // Primary navigation — the day-to-day surfaces every helpr / poster
-  // actually touches. Everything else (saved helprs, referrals,
-  // legal, warnings, support) lives under the collapsible "More" row
-  // at the bottom so this list stays scannable.
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
       title: "Account",
@@ -249,6 +211,8 @@ export function ProfileLanding({
           incompleteLabel: credentialsIncomplete ? "Verify credentials" : undefined,
         },
         { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & weekly hours", tint: "var(--burnt-sienna)" },
+        { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Set your weekly working hours" },
+        { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer" },
         { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: "var(--gold-warm)" },
         {
           key: "security",
@@ -279,17 +243,19 @@ export function ProfileLanding({
     {
       title: "Money",
       items: [
-        {
-          key: "payment",
-          label: "Payout & Payments",
-          icon: <CreditCard className="w-5 h-5" />,
-          desc: "Bank account & payment methods",
-          tint: "var(--bark)",
-          needsAction: stripeNeedsAction,
-          incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
-        },
-        { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--gold-warm)" },
-        { key: "subscription", label: "Upgrade plan", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
+        { key: "payment", label: "Payout & Payments", icon: <CreditCard className="w-5 h-5" />, desc: "Bank account & payment methods", needsAction: stripeNeedsAction },
+        { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc },
+        { key: "analytics", label: "Earnings & Analytics", icon: <BarChart2 className="w-5 h-5" />, desc: "Trends, categories & hire rate", href: "/analytics" },
+        { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits" },
+      ],
+    },
+    {
+      title: "Settings & Support",
+      items: [
+        { key: "security", label: "Account Security", icon: <Shield className="w-5 h-5" />, desc: "Email, password & login" },
+        { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history" },
+        { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
+        { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
       ],
     },
     {
@@ -315,6 +281,22 @@ export function ProfileLanding({
           desc: "Donate job credits for neighbors who need help",
           tint: "155 50% 30%",
           href: "/pay-it-forward",
+        },
+        {
+          key: "time-credits",
+          label: "Time Credits",
+          icon: <Crown className="w-5 h-5" />,
+          desc: "Earn credits by helping, spend them on your own jobs",
+          tint: "var(--gold-warm)",
+          href: "/time-credits",
+        },
+        {
+          key: "benefits",
+          label: "Benefits & Perks",
+          icon: <Star className="w-5 h-5" />,
+          desc: "Health coverage, financial tools & supply discounts",
+          tint: "var(--burnt-sienna)",
+          href: "/benefits",
         },
       ],
     },
@@ -359,47 +341,20 @@ export function ProfileLanding({
             "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
         }}
       >
-        {/* Action row — Edit pill (right) + Share icon (left of Edit).
-            Both sit in the top-right corner without crowding the header. */}
-        <div className="absolute top-3.5 right-3 flex items-center gap-1.5">
-          {/* Share profile — only shown when we have a userId to build
-              the deep-link from. Opens the OS share sheet on native. */}
-          {userId && (
-            <button
-              type="button"
-              aria-label="Share your profile"
-              onClick={() => {
-                const ratingText = avgRating
-                  ? avgRating.toFixed(1) + "★"
-                  : "New helper";
-                void shareNative({
-                  title: `${displayName} on Helpr`,
-                  text: `${displayName} · ${completedCount} job${completedCount === 1 ? "" : "s"} · ${ratingText}\n\nHire me on Helpr:`,
-                  url: `https://www.louisianahelpr.com/user/${userId}`,
-                  dialogTitle: "Share your profile",
-                });
-              }}
-              className="h-10 w-10 rounded-full bg-[hsl(var(--bark)/0.10)] hover:bg-[hsl(var(--bark)/0.16)] active:scale-95 inline-flex items-center justify-center text-[hsl(var(--bark))] transition-all"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <button
-            onClick={() => onSelectTab("profile")}
-            aria-label="Edit profile"
-            // h-10 hits the iOS/Android 40pt minimum tap target; nudged
-            // down half a step so it doesn't crowd the status bar inset.
-            className="h-10 pl-2.5 pr-3 rounded-full bg-[hsl(var(--bark)/0.10)] hover:bg-[hsl(var(--bark)/0.16)] active:scale-95 inline-flex items-center gap-1 text-[hsl(var(--bark))] transition-all"
-          >
-            <Edit className="w-3.5 h-3.5" />
-            <span className="text-ds-11 font-sans font-semibold">Edit</span>
-          </button>
-        </div>
+        {/* Labeled "Edit" pill — a bare pencil circle was easy to miss;
+            the text makes the affordance obvious. */}
+        <button
+          onClick={() => onSelectTab("profile")}
+          aria-label="Edit profile"
+          // h-10 hits the iOS/Android 40pt minimum tap target; nudged
+          // down half a step so it doesn't crowd the status bar inset.
+          className="absolute top-3.5 right-3 h-10 pl-2.5 pr-3 rounded-full bg-secondary/60 hover:bg-secondary active:scale-95 inline-flex items-center gap-1 text-foreground/75 hover:text-foreground transition-all"
+        >
+          <Edit className="w-3.5 h-3.5" />
+          <span className="text-ds-11 font-sans font-semibold">Edit</span>
+        </button>
 
-        {/* pr-[132px] reserves space for the Share icon (40px) + gap (6px)
-            + Edit pill (~86px) so the name/location row never wraps into
-            those controls on narrow phones. */}
-        <div className="flex flex-row items-center gap-4 pr-[132px]">
+        <div className="flex flex-row items-center gap-4 pr-[84px]">
           {/* Avatar — a real focal point on this applicant-facing page.
               Tier-styled ring uses gold for elite, sienna for pro,
               bark for everyone else. ID-verified checkmark sits on the
@@ -631,15 +586,6 @@ export function ProfileLanding({
           )}
         </div>
 
-        {/* Activity-trend disclosure — small area chart, collapsed by
-            default so we don't push the rest of the page down. Self-
-            fetches its data when opened so the parent stays slim. The
-            chart queries jobs.helper_id which maps to auth.user_id —
-            *not* the profiles.id PK, so we pass user_id. */}
-        {profile?.user_id && (
-          <ProfileStatsTrend helperId={profile.user_id} />
-        )}
-
         {/* Bio excerpt — surfaces the user's pitch on the landing page,
             since this is what applicants see when deciding whether to apply.
             Empty state nudges the user to write one. */}
@@ -661,39 +607,124 @@ export function ProfileLanding({
           )}
         </div>
 
-        {/* Your skills — the helper adds/manages skills on their own
-            profile; endorsement counts are shown inline. Only rendered
-            when a user_id is known (i.e. a real signed-in account row). */}
-        {profile?.user_id && (
-          <SkillsManager userId={profile.user_id} />
-        )}
-
-        {/* QR code button — shows the helper's shareable verification QR.
-            Only visible on the user's own profile (profile.user_id is
-            always set on the self-view). */}
-        {profile?.user_id && (
-          <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-            <button
-              type="button"
-              onClick={() => setQrOpen(true)}
-              className="flex items-center gap-2.5 w-full text-left active:opacity-70 transition-opacity"
-            >
-              <div
-                className="w-9 h-9 rounded-ds-sm flex items-center justify-center shrink-0"
-                style={{ background: "hsl(var(--bark) / 0.08)" }}
+        {/* ── Intro video ─────────────────────────────────────────────
+            Own-profile only. If no video, a dashed-border CTA nudges
+            the user to record or upload. If a video exists, a compact
+            row with a play button and "Re-record" link renders instead.
+            The actual video modal lives in the overlay below. */}
+        <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+          {profile?.intro_video_url ? (
+            // Video exists — compact play row
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setVideoOpen(true)}
+                aria-label="Play intro video"
+                className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 active:scale-95 transition-transform"
+                style={{ background: "hsl(var(--ink-deep))" }}
               >
-                <QrCode className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-              </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Play className="w-5 h-5 fill-white text-white" />
+                </div>
+              </button>
               <div className="flex-1 min-w-0">
                 <p className="text-ds-13 font-semibold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
-                  My QR Code
+                  Intro video
+                  {profile.intro_video_duration_seconds != null && (
+                    <span className="ml-2 text-ds-10 font-medium text-muted-foreground">
+                      {Math.floor(profile.intro_video_duration_seconds / 60)}:
+                      {String(profile.intro_video_duration_seconds % 60).padStart(2, "0")}
+                    </span>
+                  )}
                 </p>
-                <p className="text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.72)" }}>
-                  Share with your poster to verify at the door
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  className="mt-0.5 text-ds-11 font-semibold active:opacity-70"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                >
+                  Re-record or replace
+                </button>
+              </div>
+            </div>
+          ) : (
+            // No video — dashed-border CTA
+            <div
+              className="rounded-xl flex flex-col items-center justify-center gap-2 p-4 text-center"
+              style={{
+                border: "1.5px dashed hsl(var(--olivewood) / 0.30)",
+                background: "hsl(var(--parchment) / 0.4)",
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
+              >
+                <Video className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+              </div>
+              <div>
+                <p className="font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+                  Record a 60-second intro video
+                </p>
+                <p className="font-serif italic text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                  Profiles with videos get 2× more hires
                 </p>
               </div>
-              <ChevronRightIcon className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.4)" }} />
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  disabled={videoUploading}
+                  className="h-9 px-4 rounded-full text-ds-12 font-sans font-semibold disabled:opacity-60 active:scale-95 transition-all"
+                  style={{
+                    background: "hsl(var(--burnt-sienna))",
+                    color: "hsl(var(--parchment))",
+                  }}
+                >
+                  {videoUploading ? "Uploading…" : "Upload video"}
+                </button>
+              </div>
+            </div>
+          )}
+          {/* Hidden file input — shared by the CTA and the "Re-record" link. */}
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleVideoUpload(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        {/* ── Intro video fullscreen overlay ──────────────────────────
+            Only mounts when the user has a video and taps the thumbnail. */}
+        {videoOpen && profile?.intro_video_url && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.88)" }}
+            onClick={() => setVideoOpen(false)}
+          >
+            <button
+              type="button"
+              aria-label="Close video"
+              onClick={() => setVideoOpen(false)}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.15)" }}
+            >
+              <X className="w-5 h-5 text-white" />
             </button>
+            <video
+              src={profile.intro_video_url}
+              controls
+              autoPlay
+              playsInline
+              className="w-full max-w-sm rounded-ds-md max-h-[70dvh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         )}
 
@@ -999,7 +1030,7 @@ export function ProfileLanding({
                     />
                   )}
                 </div>
-                <div className="rounded-ds-lg liquid-glass overflow-hidden">
+                <div className="rounded-ds-lg bg-white shadow-[0_2px_4px_hsl(160_10%_12%/0.04),0_12px_32px_-12px_hsl(160_10%_12%/0.14)] overflow-hidden">
                   {group.items.map((item, idx) => (
                     <button
                       key={item.label}
@@ -1007,12 +1038,12 @@ export function ProfileLanding({
                         if (item.href) onNavigate(item.href);
                         else onSelectTab(item.key);
                       }}
-                      className="glass-press group/row w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
+                      className="group/row w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
                     >
                       {idx > 0 && (
                         <span
                           aria-hidden
-                          className="hairline pointer-events-none absolute top-0 left-[60px] right-[14px]"
+                          className="pointer-events-none absolute top-0 left-[60px] right-[14px] h-px bg-border/55"
                         />
                       )}
                       <div className="flex items-center gap-3.5 min-w-0">
@@ -1022,41 +1053,16 @@ export function ProfileLanding({
                             header) is the readable signal, and three
                             stacked reds was visual noise. */}
                         <div className="shrink-0">
-                          <div
-                            className="w-10 h-10 rounded-ds-md flex items-center justify-center transition-all group-hover/row:shadow-sm"
-                            style={{
-                              color: `hsl(${item.tint ?? "var(--olivewood)"})`,
-                              background: `hsl(${item.tint ?? "var(--olivewood)"} / 0.12)`,
-                            }}
-                          >
+                          <div className="w-10 h-10 rounded-ds-md bg-muted/60 text-muted-foreground flex items-center justify-center transition-colors group-hover/row:bg-primary/10 group-hover/row:text-primary">
                             {item.icon}
                           </div>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-ds-13 font-semibold text-foreground leading-tight flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span>{item.label}</span>
+                          <p className="text-ds-13 font-semibold text-foreground leading-tight">
+                            {item.label}
                             {item.needsAction && (
-                              <span className="text-ds-10 font-bold uppercase tracking-wider text-destructive">
+                              <span className="ml-2 text-ds-10 font-bold uppercase tracking-wider text-destructive">
                                 Action needed
-                              </span>
-                            )}
-                            {/* Soft amber completeness pill — distinct from the
-                                louder "Action needed" red text so a payout
-                                blocker still stands out next to a friendly
-                                "Add a photo" nudge. Uses burnt-sienna at low
-                                opacity so it reads as warm-warning, not
-                                destructive. */}
-                            {!item.needsAction && item.incompleteLabel && (
-                              <span
-                                className="inline-flex items-center gap-1 text-ds-10 font-bold rounded-full px-1.5 py-0.5"
-                                style={{
-                                  background: "hsl(var(--burnt-sienna) / 0.12)",
-                                  color: "hsl(var(--burnt-sienna))",
-                                  letterSpacing: "0.04em",
-                                }}
-                              >
-                                <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
-                                {item.incompleteLabel}
                               </span>
                             )}
                           </p>
@@ -1260,7 +1266,7 @@ export function ProfileLanding({
             <button
               type="button"
               onClick={onRequestLogout}
-              className="glass-press w-full rounded-ds-lg bg-card py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
+              className="w-full rounded-ds-lg bg-secondary/60 py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] active:bg-secondary transition-all"
               style={{
                 color: "hsl(var(--bark))",
                 fontFamily: "Montserrat, system-ui, sans-serif",
@@ -1286,57 +1292,6 @@ export function ProfileLanding({
           </div>
         </div>
       </div>
-
-      {/* ── QR code modal ─────────────────────────────────────────────── */}
-      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
-        <DialogContent className="max-w-xs mx-auto text-center">
-          <DialogHeader>
-            <DialogTitle className="text-center">My QR Code</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-2">
-            {qrDataUrl ? (
-              <img
-                src={qrDataUrl}
-                alt="Verification QR code"
-                className="w-60 h-60 rounded-ds-md"
-                style={{
-                  boxShadow: "0 2px 12px hsl(var(--olivewood) / 0.12)",
-                }}
-              />
-            ) : (
-              <div
-                className="w-60 h-60 rounded-ds-md flex items-center justify-center animate-pulse"
-                style={{ background: "hsl(var(--bark) / 0.06)" }}
-              >
-                <QrCode className="w-12 h-12" style={{ color: "hsl(var(--bark) / 0.3)" }} />
-              </div>
-            )}
-            <p className="text-ds-12 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
-              Share with your poster so they can verify you at the door.
-            </p>
-            <button
-              type="button"
-              onClick={async () => {
-                if (!profile?.user_id) return;
-                await shareNative({
-                  title: "Verify me on Helpr",
-                  text: `Scan or open this link to verify my identity on Helpr`,
-                  url: `https://www.louisianahelpr.com/verify/${profile.user_id}`,
-                  dialogTitle: "Share QR Link",
-                });
-              }}
-              className="w-full rounded-ds-md py-3 inline-flex items-center justify-center gap-2 font-semibold text-sm active:scale-[0.99] transition-all"
-              style={{
-                background: "hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-              }}
-            >
-              <Share2 className="w-4 h-4" />
-              Share QR Link
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

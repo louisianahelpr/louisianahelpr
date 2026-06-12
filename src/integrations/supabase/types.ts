@@ -383,80 +383,6 @@ export type Database = {
         }
         Relationships: []
       }
-      community_post_likes: {
-        Row: {
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      community_posts: {
-        Row: {
-          after_photo_url: string | null
-          author_id: string
-          before_photo_url: string | null
-          body: string | null
-          category: string | null
-          created_at: string
-          id: string
-          is_approved: boolean
-          job_id: string | null
-          like_count: number
-          parish: string | null
-          photos: string[]
-          post_type: string
-          title: string | null
-        }
-        Insert: {
-          after_photo_url?: string | null
-          author_id: string
-          before_photo_url?: string | null
-          body?: string | null
-          category?: string | null
-          created_at?: string
-          id?: string
-          is_approved?: boolean
-          job_id?: string | null
-          like_count?: number
-          parish?: string | null
-          photos?: string[]
-          post_type: string
-          title?: string | null
-        }
-        Update: {
-          after_photo_url?: string | null
-          author_id?: string
-          before_photo_url?: string | null
-          body?: string | null
-          category?: string | null
-          created_at?: string
-          id?: string
-          is_approved?: boolean
-          job_id?: string | null
-          like_count?: number
-          parish?: string | null
-          photos?: string[]
-          post_type?: string
-          title?: string | null
-        }
-        Relationships: []
-      }
       email_send_log: {
         Row: {
           created_at: string
@@ -946,224 +872,6 @@ export type Database = {
         }
         Relationships: []
       }
-      helper_credentials: {
-        Row: {
-          id: string
-          user_id: string
-          credential_type: string
-          status: string
-          license_number: string | null
-          license_state: string | null
-          trade_category: string | null
-          issuing_authority: string | null
-          document_url: string | null
-          expiration_date: string | null
-          verified_at: string | null
-          rejection_reason: string | null
-          vendor_check_id: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          credential_type: string
-          status?: string
-          license_number?: string | null
-          license_state?: string | null
-          trade_category?: string | null
-          issuing_authority?: string | null
-          document_url?: string | null
-          expiration_date?: string | null
-          verified_at?: string | null
-          rejection_reason?: string | null
-          vendor_check_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          credential_type?: string
-          status?: string
-          license_number?: string | null
-          license_state?: string | null
-          trade_category?: string | null
-          issuing_authority?: string | null
-          document_url?: string | null
-          expiration_date?: string | null
-          verified_at?: string | null
-          rejection_reason?: string | null
-          vendor_check_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      helper_skills: {
-        Row: {
-          id: string
-          user_id: string
-          skill: string
-          category: string | null
-          endorsement_count: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          skill: string
-          category?: string | null
-          endorsement_count?: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          skill?: string
-          category?: string | null
-          endorsement_count?: number
-          created_at?: string
-        }
-        Relationships: []
-      }
-      verification_checks: {
-        Row: {
-          id: string
-          credential_id: string
-          user_id: string
-          vendor: string
-          vendor_check_id: string | null
-          check_type: string
-          status: string
-          raw_result: Json | null
-          failure_reason: string | null
-          initiated_at: string
-          completed_at: string | null
-          expires_at: string | null
-          next_check_at: string | null
-        }
-        Insert: {
-          id?: string
-          credential_id: string
-          user_id: string
-          vendor: string
-          vendor_check_id?: string | null
-          check_type: string
-          status?: string
-          raw_result?: Json | null
-          failure_reason?: string | null
-          initiated_at?: string
-          completed_at?: string | null
-          expires_at?: string | null
-          next_check_at?: string | null
-        }
-        Update: {
-          id?: string
-          credential_id?: string
-          user_id?: string
-          vendor?: string
-          vendor_check_id?: string | null
-          check_type?: string
-          status?: string
-          raw_result?: Json | null
-          failure_reason?: string | null
-          initiated_at?: string
-          completed_at?: string | null
-          expires_at?: string | null
-          next_check_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "verification_checks_credential_id_fkey"
-            columns: ["credential_id"]
-            isOneToOne: false
-            referencedRelation: "helper_credentials"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      verification_exceptions: {
-        Row: {
-          id: string
-          check_id: string | null
-          credential_id: string | null
-          user_id: string
-          exception_type: string
-          notes: string | null
-          assigned_to: string | null
-          status: string
-          resolution: string | null
-          created_at: string
-          resolved_at: string | null
-        }
-        Insert: {
-          id?: string
-          check_id?: string | null
-          credential_id?: string | null
-          user_id: string
-          exception_type: string
-          notes?: string | null
-          assigned_to?: string | null
-          status?: string
-          resolution?: string | null
-          created_at?: string
-          resolved_at?: string | null
-        }
-        Update: {
-          id?: string
-          check_id?: string | null
-          credential_id?: string | null
-          user_id?: string
-          exception_type?: string
-          notes?: string | null
-          assigned_to?: string | null
-          status?: string
-          resolution?: string | null
-          created_at?: string
-          resolved_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "verification_exceptions_check_id_fkey"
-            columns: ["check_id"]
-            isOneToOne: false
-            referencedRelation: "verification_checks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "verification_exceptions_credential_id_fkey"
-            columns: ["credential_id"]
-            isOneToOne: false
-            referencedRelation: "helper_credentials"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      skill_endorsements: {
-        Row: {
-          id: string
-          skill_id: string
-          endorser_id: string
-          job_id: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          skill_id: string
-          endorser_id: string
-          job_id?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          skill_id?: string
-          endorser_id?: string
-          job_id?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
       instant_payouts: {
         Row: {
           created_at: string
@@ -1338,7 +1046,6 @@ export type Database = {
           budget: number
           business_id: string | null
           cancellation_fee: number | null
-          credential_tier: number
           cancellation_fee_status: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -1395,8 +1102,6 @@ export type Database = {
           poster_confirmed_working_at: string | null
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
-          protection_fee: number | null
-          protection_opted_in: boolean
           recurrence_end_date: string | null
           recurrence_interval: string | null
           removal_reason: string | null
@@ -1443,7 +1148,6 @@ export type Database = {
           category?: Database["public"]["Enums"]["job_category"]
           commission_tax_amount?: number | null
           created_at?: string
-          credential_tier?: number
           customer_fee_amount?: number | null
           customer_id: string
           date_needed: string
@@ -1493,8 +1197,6 @@ export type Database = {
           poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
-          protection_fee?: number | null
-          protection_opted_in?: boolean
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
           removal_reason?: string | null
@@ -1541,7 +1243,6 @@ export type Database = {
           category?: Database["public"]["Enums"]["job_category"]
           commission_tax_amount?: number | null
           created_at?: string
-          credential_tier?: number
           customer_fee_amount?: number | null
           customer_id?: string
           date_needed?: string
@@ -1591,8 +1292,6 @@ export type Database = {
           poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
-          protection_fee?: number | null
-          protection_opted_in?: boolean
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
           removal_reason?: string | null
@@ -1662,84 +1361,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      job_disputes: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          job_id: string
-          opened_by: string
-          photos: string[] | null
-          reason: string
-          resolution_note: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          job_id: string
-          opened_by: string
-          photos?: string[] | null
-          reason: string
-          resolution_note?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          job_id?: string
-          opened_by?: string
-          photos?: string[] | null
-          reason?: string
-          resolution_note?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-        }
-        Relationships: []
-      }
-      job_revisions: {
-        Row: {
-          created_at: string
-          description: string
-          helper_response: string | null
-          id: string
-          job_id: string
-          photos: string[] | null
-          requested_by: string
-          resolved_at: string | null
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          description: string
-          helper_response?: string | null
-          id?: string
-          job_id: string
-          photos?: string[] | null
-          requested_by: string
-          resolved_at?: string | null
-          status?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string
-          helper_response?: string | null
-          id?: string
-          job_id?: string
-          photos?: string[] | null
-          requested_by?: string
-          resolved_at?: string | null
-          status?: string
-        }
-        Relationships: []
       }
       legal_acceptances: {
         Row: {
@@ -1821,7 +1442,6 @@ export type Database = {
       }
       messages: {
         Row: {
-          attachment_duration: number | null
           attachment_mime: string | null
           attachment_size: number | null
           attachment_url: string | null
@@ -1836,7 +1456,6 @@ export type Database = {
           sender_id: string
         }
         Insert: {
-          attachment_duration?: number | null
           attachment_mime?: string | null
           attachment_size?: number | null
           attachment_url?: string | null
@@ -1851,7 +1470,6 @@ export type Database = {
           sender_id: string
         }
         Update: {
-          attachment_duration?: number | null
           attachment_mime?: string | null
           attachment_size?: number | null
           attachment_url?: string | null
@@ -2332,12 +1950,10 @@ export type Database = {
           experience_level: string | null
           extra_comments: string | null
           full_name: string | null
-          has_applied_before: boolean
           hear_about_us: string | null
           hourly_rate: number | null
           id: string
           id_document_url: string | null
-          id_verification_status: string
           idv_attempted_at: string | null
           idv_confidence: number | null
           idv_failure_reason: string | null
@@ -2380,6 +1996,9 @@ export type Database = {
           user_id: string
           verification_email_count: number
           zip_code: string | null
+          intro_video_url: string | null
+          intro_video_thumbnail_url: string | null
+          intro_video_duration_seconds: number | null
         }
         Insert: {
           accepted_terms_at?: string | null
@@ -2403,12 +2022,10 @@ export type Database = {
           experience_level?: string | null
           extra_comments?: string | null
           full_name?: string | null
-          has_applied_before?: boolean
           hear_about_us?: string | null
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
-          id_verification_status?: string
           idv_attempted_at?: string | null
           idv_confidence?: number | null
           idv_failure_reason?: string | null
@@ -2451,6 +2068,9 @@ export type Database = {
           user_id: string
           verification_email_count?: number
           zip_code?: string | null
+          intro_video_url?: string | null
+          intro_video_thumbnail_url?: string | null
+          intro_video_duration_seconds?: number | null
         }
         Update: {
           accepted_terms_at?: string | null
@@ -2474,12 +2094,10 @@ export type Database = {
           experience_level?: string | null
           extra_comments?: string | null
           full_name?: string | null
-          has_applied_before?: boolean
           hear_about_us?: string | null
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
-          id_verification_status?: string
           idv_attempted_at?: string | null
           idv_confidence?: number | null
           idv_failure_reason?: string | null
@@ -2522,6 +2140,9 @@ export type Database = {
           user_id?: string
           verification_email_count?: number
           zip_code?: string | null
+          intro_video_url?: string | null
+          intro_video_thumbnail_url?: string | null
+          intro_video_duration_seconds?: number | null
         }
         Relationships: []
       }
@@ -2737,7 +2358,6 @@ export type Database = {
           feedback: string | null
           id: string
           job_id: string
-          photo_urls: string[] | null
           punctuality: number | null
           quality: number | null
           rating: number
@@ -2750,7 +2370,6 @@ export type Database = {
           feedback?: string | null
           id?: string
           job_id: string
-          photo_urls?: string[] | null
           punctuality?: number | null
           quality?: number | null
           rating: number
@@ -2763,7 +2382,6 @@ export type Database = {
           feedback?: string | null
           id?: string
           job_id?: string
-          photo_urls?: string[] | null
           punctuality?: number | null
           quality?: number | null
           rating?: number
@@ -3197,39 +2815,36 @@ export type Database = {
         }
         Relationships: []
       }
-      user_strikes: {
+      time_credits: {
         Row: {
-          created_at: string
-          dispute_id: string | null
-          expires_at: string | null
           id: string
-          issued_by: string | null
-          job_id: string | null
-          reason: string
-          severity: number
           user_id: string
+          amount_minutes: number
+          credit_type: string
+          job_id: string | null
+          description: string | null
+          balance_after: number | null
+          created_at: string
         }
         Insert: {
-          created_at?: string
-          dispute_id?: string | null
-          expires_at?: string | null
           id?: string
-          issued_by?: string | null
-          job_id?: string | null
-          reason: string
-          severity?: number
           user_id: string
+          amount_minutes: number
+          credit_type: string
+          job_id?: string | null
+          description?: string | null
+          balance_after?: number | null
+          created_at?: string
         }
         Update: {
-          created_at?: string
-          dispute_id?: string | null
-          expires_at?: string | null
           id?: string
-          issued_by?: string | null
-          job_id?: string | null
-          reason?: string
-          severity?: number
           user_id?: string
+          amount_minutes?: number
+          credit_type?: string
+          job_id?: string | null
+          description?: string | null
+          balance_after?: number | null
+          created_at?: string
         }
         Relationships: []
       }
@@ -3931,14 +3546,6 @@ export type Database = {
       // These RPCs exist in the database but were missing from the last
       // generated types. Re-running `npm run db:types` folds them in
       // properly and this block can then be deleted.
-      endorse_skill: {
-        Args: { p_skill_id: string }
-        Returns: undefined
-      }
-      get_user_credential_tier: {
-        Args: { p_user_id: string }
-        Returns: number
-      }
       accept_application: {
         Args: {
           p_application_id: string
@@ -3970,17 +3577,6 @@ export type Database = {
         Returns: undefined
       }
       get_marketplace_activity_count: { Args: never; Returns: number }
-      get_fill_rate_stats: {
-        Args: { p_days?: number }
-        Returns: {
-          total_jobs: number | null
-          filled_jobs: number | null
-          fill_rate_pct: number | null
-          median_minutes_to_first_app: number | null
-          parish: string | null
-          parish_fill_rate_pct: number | null
-        }[]
-      }
       get_open_jobs_for_map: {
         Args: never
         Returns: {
@@ -3994,15 +3590,6 @@ export type Database = {
           parish: string | null
           created_at: string
         }[]
-      }
-      get_neighbor_hire_count: {
-        Args: {
-          p_helper_id: string
-          p_lat: number
-          p_lng: number
-          p_radius_km?: number
-        }
-        Returns: number
       }
       // ─────────────────────────────────────────────────────────────────
       are_users_blocked: {
@@ -4293,13 +3880,6 @@ export type Database = {
         }[]
       }
       get_user_business_ids: { Args: { _user_id: string }; Returns: string[] }
-      get_user_last_active: {
-        Args: { user_ids: string[] }
-        Returns: {
-          last_active_at: string
-          user_id: string
-        }[]
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4393,7 +3973,6 @@ export type Database = {
         | "delivery"
         | "pet_care"
         | "assembly"
-        | "storm_prep"
         | "other"
       job_status:
         | "open"
@@ -4544,8 +4123,6 @@ export const Constants = {
         "delivery",
         "pet_care",
         "assembly",
-        "storm_prep",
-        "events",
         "other",
       ],
       job_status: [

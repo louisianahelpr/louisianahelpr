@@ -17,8 +17,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/rules",
   "/data-rights",
 
-  "/verify",      // /verify/:helperId — public helper verification card
-  "/local-guide", // local pricing guide — public marketing page
   "/jobs", // public marketing /jobs (uses Navbar + long page)
   "/support",
 
@@ -66,12 +64,15 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/str-settings", // Rental host automation — long-form min-h-screen document-scroll
   "/pets",        // Pet profiles (PageHeader + min-h-screen document-scroll)
   "/evacuation",  // Disaster evacuation mode (PageHeader + min-h-screen document-scroll)
+  "/analytics",    // HelperAnalytics (PageHeader + min-h-screen document-scroll)
 
   // Community discovery pages — long-form, document-scroll SEO content
   "/parishes",   // Parish directory listing all 8 supported parishes
   "/parish",     // /parish/:slug — individual parish community pages
   "/wrapped",    // Helpr Wrapped year-in-review
   "/impact",     // Public impact transparency page — long-form, document-scroll
+  "/time-credits", // Time banking — earn credits, redeem discounts (document-scroll)
+  "/benefits",    // Benefits marketplace — partner perks (document-scroll)
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

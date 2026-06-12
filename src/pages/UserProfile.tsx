@@ -144,7 +144,7 @@ const UserProfile = () => {
       // blocks the row read.
       const wantsMutual = !!currentUserId && currentUserId !== userId;
 
-      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes] = await Promise.all([
+      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
@@ -206,6 +206,10 @@ const UserProfile = () => {
           .select("rating, job_id")
           .eq("reviewee_id", userId!)
           .lte("feedback_visible_at", new Date().toISOString()),
+        // Repeat-hire % (#milestones) — % of unique customers who hired
+        // this helper more than once. PGRST202-safe: function may not be
+        // deployed on production yet; falls back to null (milestone hidden).
+        supabase.rpc("get_user_repeat_hire_percent" as any, { p_user_id: userId! }),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -236,6 +240,15 @@ const UserProfile = () => {
         report(lastActiveRes.error, {
           severity: "warning",
           tags: { area: "user_profile.last_active" },
+          context: { viewed_user_id: userId },
+        });
+      }
+      // Repeat-hire % RPC: same PGRST202-safe pattern — expected between
+      // merge and `supabase db push`. Any other error stays observable.
+      if (repeatHireRes.error && repeatHireRes.error.code !== "PGRST202") {
+        report(repeatHireRes.error, {
+          severity: "warning",
+          tags: { area: "user_profile.repeat_hire_percent" },
           context: { viewed_user_id: userId },
         });
       }
@@ -404,6 +417,9 @@ const UserProfile = () => {
         posterReputation,
         postedTotalCount: postedTotalRes.count ?? 0,
         postedCancelledCount: postedCancelledRes.count ?? 0,
+        // Repeat-hire % — null when the RPC isn't deployed yet (PGRST202)
+        // or when the helper has no completed jobs yet.
+        repeatHirePercent: repeatHireRes?.error ? null : (typeof repeatHireRes?.data === "number" ? repeatHireRes.data : null),
       };
     },
   });
@@ -1442,7 +1458,7 @@ const UserProfile = () => {
             const milestoneStats = {
               completedJobs: stats.completedJobs,
               avgRating: stats.avgRating,
-              repeatHirePercent: 0, // not yet tracked client-side
+              repeatHirePercent: data?.repeatHirePercent ?? 0,
               credentialTier,
             };
             return (

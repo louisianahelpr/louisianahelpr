@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Paperclip, Trash2, WifiOff, Sparkles, Shield } from "lucide-react";
+import { FileText, Paperclip, Trash2, WifiOff, Sparkles, Shield, BookmarkCheck } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticLight } from "@/lib/haptics";
@@ -39,6 +39,9 @@ function pitchDraftKey(jobId: string | undefined | null) {
  *  it once into the current job's key so an in-flight pitch from the
  *  pre-update build isn't dropped. */
 const LEGACY_PITCH_DRAFT_KEY = "helpr_apply_pitch_draft";
+
+/** localStorage key for the helpr's saved default pitch template. */
+const TEMPLATE_KEY = "helpr_pitch_template";
 
 /** Two-to-three sentence starters — clickable to insert/replace. We
  *  swap in time-of-day on the first one so the greeting feels live. */
@@ -177,6 +180,7 @@ export function ApplyConfirmDialog({
   const jobId = confirmApplyJob?.id ?? null;
   const draftKey = pitchDraftKey(jobId);
   const starterSentences = useMemo(() => buildStarterSentences(confirmApplyJob), [confirmApplyJob]);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
 
   // Restore a saved draft for THIS job when the dialog (re)opens with an
   // empty field — per-job scoping so switching jobs doesn't bleed text
@@ -201,6 +205,20 @@ export function ApplyConfirmDialog({
     // Intentionally keyed on `open` + jobId only — restore once per open.
 
   }, [open, jobId]);
+
+  // When the dialog opens and no draft was found, pre-fill from the saved
+  // pitch template so the helpr doesn't start from a blank field every time.
+  // We only pre-fill when the message is empty — if the draft-restore above
+  // already loaded something, we leave it untouched.
+  useEffect(() => {
+    if (!open) return;
+    const template = localStorage.getItem(TEMPLATE_KEY);
+    if (template && !applyMessage) {
+      setApplyMessage(template);
+    }
+    // Fire once per open; applyMessage intentionally omitted so we don't loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Auto-save the in-progress pitch on every change, so the back button or
   // an accidental dialog dismiss never loses what the helpr typed. Save is
@@ -254,6 +272,10 @@ export function ApplyConfirmDialog({
       return;
     }
     safeStorage.removeItem(draftKey);
+    if (saveAsTemplate && applyMessage.trim()) {
+      localStorage.setItem(TEMPLATE_KEY, applyMessage.trim());
+    }
+    setSaveAsTemplate(false);
     handleApplyConfirm();
   };
 
@@ -426,6 +448,23 @@ export function ApplyConfirmDialog({
                 </div>
               </div>
             )}
+            {/* "Use saved pitch" chip — shown when a template is saved but the
+                current message differs, so the helpr can one-tap restore it. */}
+            {(() => {
+              const template = localStorage.getItem(TEMPLATE_KEY);
+              if (!template || applyMessage === template) return null;
+              return (
+                <button
+                  type="button"
+                  onClick={() => setApplyMessage(template)}
+                  className="text-ds-12 flex items-center gap-1 hover:opacity-80"
+                  style={{ color: "hsl(var(--sage))" }}
+                >
+                  <BookmarkCheck className="w-3.5 h-3.5" />
+                  Use saved pitch
+                </button>
+              );
+            })()}
             <Textarea
               id="apply-message"
               value={applyMessage}
@@ -463,6 +502,17 @@ export function ApplyConfirmDialog({
                 {applyMessage.length}/{MAX_PITCH_LENGTH}
               </span>
             </div>
+            {/* Save as default template — lets helprs reuse a good pitch
+                across applications without retyping it every time. */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={saveAsTemplate}
+                onChange={(e) => setSaveAsTemplate(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-ds-12 text-muted-foreground">Save as my default pitch</span>
+            </label>
           </div>
           {/* Smart apply tips — context-aware nudges based on job attributes */}
           {(() => {

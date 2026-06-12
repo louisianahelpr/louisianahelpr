@@ -74,6 +74,9 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
+const VerifyHelper = lazy(() => import("./pages/VerifyHelper"));
+const LocalPricingGuide = lazy(() => import("./pages/LocalPricingGuide"));
+
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 const BusinessBilling = lazy(() => import("./pages/business/BusinessBilling"));
@@ -138,6 +141,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/support" element={<Navigate to="/profile?tab=support" replace />} />
+
+      {/* Public trust + discovery pages — no auth required */}
+      <Route path="/verify/:helperId" element={<RouteErrorBoundary>{routeEl(<PageTransition><VerifyHelper /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/local-guide" element={<RouteErrorBoundary>{routeEl(<PageTransition><LocalPricingGuide /></PageTransition>)}</RouteErrorBoundary>} />
 
       <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />

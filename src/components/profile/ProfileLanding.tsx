@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import {
   LogOut, MapPin,
@@ -8,8 +8,15 @@ import {
   HelpCircle, Bell, AlertTriangle, Heart, Crown,
   ShieldCheck, Trash2,
   BadgeCheck, Camera, Check,
-  TrendingUp, MoreHorizontal,
+  TrendingUp, MoreHorizontal, QrCode, Share2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { shareNative } from "@/lib/nativeShare";
 import type { Database } from "@/integrations/supabase/types";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
@@ -111,6 +118,27 @@ export function ProfileLanding({
   // earnings, security. Collapsed by default; if any row needs
   // action (e.g. a fresh warning) we auto-expand below.
   const [moreOpen, setMoreOpen] = useState(false);
+  // QR code modal state
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!qrOpen || !profile?.user_id) return;
+    if (qrDataUrl) return; // already generated
+    let cancelled = false;
+    (async () => {
+      try {
+        const QRCode = (await import("qrcode")).default;
+        const url = await QRCode.toDataURL(
+          `https://www.louisianahelpr.com/verify/${profile.user_id}`,
+          { width: 240, margin: 2, color: { dark: "#1a1208", light: "#faf7f2" } },
+        );
+        if (!cancelled) setQrDataUrl(url);
+      } catch {
+        /* QR generation failure is non-fatal — modal still opens */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [qrOpen, profile?.user_id, qrDataUrl]);
   // Derived state — drives "Action needed" dots on menu items so the
   // user sees blockers at a glance without having to navigate into each
   // tab to discover them.
@@ -552,6 +580,35 @@ export function ProfileLanding({
             >+ Add a short bio so applicants know who they're hiring.</button>
           )}
         </div>
+
+        {/* QR code button — shows the helper's shareable verification QR.
+            Only visible on the user's own profile (profile.user_id is
+            always set on the self-view). */}
+        {profile?.user_id && (
+          <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+            <button
+              type="button"
+              onClick={() => setQrOpen(true)}
+              className="flex items-center gap-2.5 w-full text-left active:opacity-70 transition-opacity"
+            >
+              <div
+                className="w-9 h-9 rounded-ds-sm flex items-center justify-center shrink-0"
+                style={{ background: "hsl(var(--bark) / 0.08)" }}
+              >
+                <QrCode className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-ds-13 font-semibold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
+                  My QR Code
+                </p>
+                <p className="text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.72)" }}>
+                  Share with your poster to verify at the door
+                </p>
+              </div>
+              <ChevronRightIcon className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.4)" }} />
+            </button>
+          </div>
+        )}
 
         {/* Work & reviews — collapsed into one disclosure so the header
             stays short. Renders only when there's something to show, OR
@@ -1044,6 +1101,57 @@ export function ProfileLanding({
           </div>
         </div>
       </div>
+
+      {/* ── QR code modal ─────────────────────────────────────────────── */}
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="max-w-xs mx-auto text-center">
+          <DialogHeader>
+            <DialogTitle className="text-center">My QR Code</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-2">
+            {qrDataUrl ? (
+              <img
+                src={qrDataUrl}
+                alt="Verification QR code"
+                className="w-60 h-60 rounded-ds-md"
+                style={{
+                  boxShadow: "0 2px 12px hsl(var(--olivewood) / 0.12)",
+                }}
+              />
+            ) : (
+              <div
+                className="w-60 h-60 rounded-ds-md flex items-center justify-center animate-pulse"
+                style={{ background: "hsl(var(--bark) / 0.06)" }}
+              >
+                <QrCode className="w-12 h-12" style={{ color: "hsl(var(--bark) / 0.3)" }} />
+              </div>
+            )}
+            <p className="text-ds-12 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+              Share with your poster so they can verify you at the door.
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!profile?.user_id) return;
+                await shareNative({
+                  title: "Verify me on Helpr",
+                  text: `Scan or open this link to verify my identity on Helpr`,
+                  url: `https://www.louisianahelpr.com/verify/${profile.user_id}`,
+                  dialogTitle: "Share QR Link",
+                });
+              }}
+              className="w-full rounded-ds-md py-3 inline-flex items-center justify-center gap-2 font-semibold text-sm active:scale-[0.99] transition-all"
+              style={{
+                background: "hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+              }}
+            >
+              <Share2 className="w-4 h-4" />
+              Share QR Link
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

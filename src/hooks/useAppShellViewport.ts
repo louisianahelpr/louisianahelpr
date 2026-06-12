@@ -62,6 +62,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
   "/community",    // Community feed (PageHeader + min-h-screen document-scroll)
   "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
+  "/str-settings", // Rental host automation — long-form min-h-screen document-scroll
 
   // Community discovery pages — long-form, document-scroll SEO content
   "/parishes",   // Parish directory listing all 8 supported parishes

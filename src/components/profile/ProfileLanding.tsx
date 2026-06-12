@@ -8,7 +8,7 @@ import {
   HelpCircle, Bell, AlertTriangle, Heart, Crown,
   ShieldCheck, Trash2,
   BadgeCheck, Camera, Check,
-  TrendingUp, MoreHorizontal, QrCode, Share2,
+  TrendingUp, MoreHorizontal, QrCode, Share2, Home,
 } from "lucide-react";
 import {
   Dialog,
@@ -267,6 +267,19 @@ export function ProfileLanding({
         },
         { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--gold-warm)" },
         { key: "subscription", label: "Upgrade plan", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
+      ],
+    },
+    {
+      title: "Host & Property",
+      items: [
+        {
+          key: "str-settings",
+          label: "Host Automation",
+          icon: <Home className="w-5 h-5" />,
+          desc: "Auto-post cleanings on Airbnb / VRBO checkout",
+          tint: "var(--bark)",
+          href: "/str-settings",
+        },
       ],
     },
   ];

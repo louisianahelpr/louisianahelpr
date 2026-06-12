@@ -75,6 +75,10 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/impact",     // Public impact transparency page — long-form, document-scroll
   "/time-credits", // Time banking — earn credits, redeem discounts (document-scroll)
   "/benefits",    // Benefits marketplace — partner perks (document-scroll)
+
+  // Growth / business-development pages — public, long-form, document-scroll
+  "/become-a-partner", // Partner intake form for service businesses
+  "/enterprise",       // B2B / enterprise integration page
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

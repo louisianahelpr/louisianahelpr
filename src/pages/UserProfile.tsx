@@ -48,11 +48,26 @@ const UserProfile = () => {
   usePageTitle("User Profile — Helpr");
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user: currentAuthUser } = useCurrentUser();
   const currentUserId = currentAuthUser?.id ?? null;
 
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
+
+  // Handle Stripe subscription checkout return
+  useEffect(() => {
+    const pro = searchParams.get("pro");
+    if (!pro) return;
+    if (pro === "success") {
+      toast.success("You're now upgraded — welcome to your new plan!");
+    } else if (pro === "cancel") {
+      toast.info("Upgrade cancelled — you can upgrade any time from your profile.");
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("pro");
+    setSearchParams(next, { replace: true });
+  }, []);
+
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
   const [showReport, setShowReport] = useState(false);

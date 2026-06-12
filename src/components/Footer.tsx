@@ -152,6 +152,11 @@ const Footer = () => (
                 By Parish
               </Link>
             </li>
+            <li>
+              <Link to="/impact" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Our impact
+              </Link>
+            </li>
           </ul>
         </div>
 

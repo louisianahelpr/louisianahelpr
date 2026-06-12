@@ -97,6 +97,8 @@ const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
 const ImpactPage = lazy(() => import("./pages/ImpactPage"));
+const BecomeAPartner = lazy(() => import("./pages/BecomeAPartner"));
+const EnterprisePage = lazy(() => import("./pages/EnterprisePage"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
 const PetProfiles = lazy(() => import("./pages/PetProfiles"));
@@ -220,6 +222,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Community discovery — public, document-scroll, SEO-indexable */}
       {/* Public impact transparency page — no auth required */}
       <Route path="/impact" element={<RouteErrorBoundary>{routeEl(<PageTransition><ImpactPage /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Growth / business-development pages — no auth required */}
+      <Route path="/become-a-partner" element={<RouteErrorBoundary>{routeEl(<PageTransition><BecomeAPartner /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/enterprise" element={<RouteErrorBoundary>{routeEl(<PageTransition><EnterprisePage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/parishes" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishesPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/parish/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Helpr Wrapped — auth-gated, HelprWrapped handles the redirect */}

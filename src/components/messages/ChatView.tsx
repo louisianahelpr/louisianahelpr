@@ -879,6 +879,72 @@ export function ChatView({
                 />
               )}
 
+              {/* Quick-reply suggestion chips — context-aware phrases that
+                  pre-fill the composer (no auto-send). Shown when the
+                  conversation is "fresh": either empty or the last message
+                  came from the other participant. Hidden as soon as the
+                  user starts typing (draft has content) or when the user
+                  themselves sent the last message (no reply needed).
+                  Job-context threads get job-relevant phrases; general
+                  chat falls back to universal replies. */}
+              {(() => {
+                // Find the last real (non-system) message to decide
+                // whose turn it is to reply.
+                const realMessages = messages.filter((m) => !m.is_system);
+                const lastReal = realMessages[realMessages.length - 1];
+                // Suppress chips when the user typed last (they already
+                // spoke), when they're currently composing, or when the
+                // load errored out. Empty thread (no lastReal) = show.
+                const userSentLast =
+                  realMessages.length > 0 && lastReal?.sender_id === userId;
+                const showChips =
+                  !chatLoadError && !draft.trim() && !userSentLast;
+                if (!showChips) return null;
+
+                const hasJobContext = !!activeConvo.jobId;
+                const jobChips = [
+                  "I'm interested!",
+                  "What time works?",
+                  "I'm on my way",
+                  "Job is done ✓",
+                ];
+                const generalChips = [
+                  "Sounds good!",
+                  "On my way",
+                  "Give me a moment",
+                ];
+                const chips = hasJobContext ? jobChips : generalChips;
+
+                return (
+                  <div
+                    className="flex gap-2 overflow-x-auto pb-1 pr-5 pt-1 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]"
+                    role="group"
+                    aria-label="Suggested replies"
+                  >
+                    {chips.map((text) => (
+                      <button
+                        key={text}
+                        type="button"
+                        className="shrink-0 inline-flex items-center min-h-[32px] rounded-full px-3.5 py-1.5 text-ds-12 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
+                        style={{
+                          background: "hsl(var(--parchment) / 0.8)",
+                          color: "hsl(var(--bark))",
+                          border: "1px solid hsl(var(--bark) / 0.22)",
+                          boxShadow:
+                            "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
+                            "0 1px 2px hsl(var(--bark) / 0.10)",
+                        }}
+                        onClick={() => {
+                          setDraft(text);
+                        }}
+                      >
+                        {text}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+
               {/* Quick replies — most chips populate the composer; the
                   status-aware smart-reply chips ("On my way", "Running
                   5 min late", "Done", from #15) fire on tap so an

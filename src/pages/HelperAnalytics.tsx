@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Crown, TrendingUp, Target, Calendar, BarChart2, Star } from "lucide-react";
+import { Crown, TrendingUp, Target, Calendar, BarChart2, Star, Clock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -31,16 +31,17 @@ async function fetchAnalytics(userId: string) {
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   const iso6m = sixMonthsAgo.toISOString();
 
-  const [profileRes, completedJobsRes, allAppsRes, ratingsRes, benchRes] = await Promise.all([
+  const [profileRes, completedJobsRes, allAppsRes, ratingsRes, benchRes, repeatHireRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("subscription_tier, full_name")
       .eq("user_id", userId)
       .maybeSingle(),
     // Completed jobs where this user was the helper — last 6 months.
+    // Include timing fields for on-time arrival rate.
     supabase
       .from("jobs")
-      .select("id, budget, category, updated_at")
+      .select("id, budget, category, updated_at, helper_arrived_at, date_needed, start_time")
       .eq("helper_id", userId)
       .eq("status", "completed")
       .gte("updated_at", iso6m),
@@ -57,6 +58,8 @@ async function fetchAnalytics(userId: string) {
       .order("created_at", { ascending: false }),
     // Platform-wide benchmarks (PGRST202 silently ignored — fallback values used).
     (supabase.rpc as any)("get_platform_benchmarks"),
+    // Repeat hire percent — PGRST202 silently ignored (card hidden on error or < 3 jobs).
+    (supabase.rpc as any)("get_user_repeat_hire_percent", { p_user_id: userId }),
   ]);
 
   if (profileRes.error) throw profileRes.error;
@@ -130,6 +133,27 @@ async function fetchAnalytics(userId: string) {
   const platformFee = Math.round(totalEarnings * PLATFORM_FEE_PERCENT);
   const netEarnings = totalEarnings - platformFee;
 
+  // ── On-time arrival rate ─────────────────────────────────────────────────
+  // Requires at least 5 jobs with both helper_arrived_at and date_needed.
+  // Grace window: arrived within 10 minutes of scheduled start counts as on-time.
+  const timingRows = completedJobs.filter((j: any) => j.helper_arrived_at && j.date_needed);
+  let onTimeRate: number | null = null;
+  if (timingRows.length >= 5) {
+    const onTime = timingRows.filter((j: any) => {
+      const arrived = new Date(j.helper_arrived_at).getTime();
+      const iso = j.start_time ? `${j.date_needed}T${j.start_time}` : `${j.date_needed}T00:00:00`;
+      const scheduled = new Date(iso).getTime();
+      return !isNaN(scheduled) && !isNaN(arrived) && arrived - scheduled <= 10 * 60_000;
+    }).length;
+    onTimeRate = Math.round((onTime / timingRows.length) * 100);
+  }
+
+  // ── Repeat hire percent ───────────────────────────────────────────────────
+  // Hide the card entirely if the RPC errored (PGRST202 graceful fallback).
+  const repeatHirePercent: number | null = repeatHireRes?.error
+    ? null
+    : (typeof repeatHireRes?.data === "number" ? repeatHireRes.data : null);
+
   // ── Ratings & reviews ────────────────────────────────────────────────────
   // Per-star buckets 1–5.
   const starBuckets: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -164,6 +188,10 @@ async function fetchAnalytics(userId: string) {
     reviewCount,
     starBuckets,
     PLATFORM_AVERAGE_RATING,
+    // Trust signals
+    onTimeRate,
+    timingJobCount: timingRows.length,
+    repeatHirePercent,
   };
 }
 
@@ -369,6 +397,64 @@ const HelperAnalytics = () => {
               </div>
             )}
           </SectionCard>
+
+          {/* On-time arrival rate — only shown when >= 5 jobs have check-in data */}
+          {analytics?.onTimeRate !== null && analytics?.onTimeRate !== undefined && (
+            <SectionCard
+              title="On-time arrival"
+              icon={<Clock className="w-4 h-4" />}
+              hasAccess={hasAnalyticsAccess}
+              isLoading={isLoadingData}
+              onUpgrade={() => navigate("/profile?tab=subscription")}
+            >
+              {analytics && (
+                <div className="text-center py-2 space-y-1">
+                  <p
+                    className="font-display italic font-bold"
+                    style={{ fontSize: "2.2rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
+                  >
+                    {analytics.onTimeRate}%
+                  </p>
+                  <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                    of jobs you arrived on time or early
+                  </p>
+                  <p className="text-ds-11 text-muted-foreground">
+                    Based on {analytics.timingJobCount} job{analytics.timingJobCount !== 1 ? "s" : ""} with check-in data
+                  </p>
+                </div>
+              )}
+            </SectionCard>
+          )}
+
+          {/* Repeat hire rate — only shown when RPC returns a value (>= 3 completed jobs) */}
+          {analytics?.repeatHirePercent !== null && analytics?.repeatHirePercent !== undefined && (
+            <SectionCard
+              title="Repeat hire rate"
+              icon={<RefreshCw className="w-4 h-4" />}
+              hasAccess={hasAnalyticsAccess}
+              isLoading={isLoadingData}
+              onUpgrade={() => navigate("/profile?tab=subscription")}
+            >
+              {analytics && (
+                <div className="text-center py-2 space-y-1">
+                  <p
+                    className="font-display italic font-bold"
+                    style={{ fontSize: "2.2rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
+                  >
+                    {analytics.repeatHirePercent}%
+                  </p>
+                  <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                    of clients hired you more than once
+                  </p>
+                  {analytics.repeatHirePercent >= 30 && (
+                    <p className="text-ds-11 font-medium" style={{ color: "hsl(var(--bark))" }}>
+                      Clients keep coming back — great sign
+                    </p>
+                  )}
+                </div>
+              )}
+            </SectionCard>
+          )}
 
           {/* Best days of week */}
           <SectionCard

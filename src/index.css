@@ -1534,6 +1534,32 @@ button,
 }
 
 /* ──────────────────────────────────────────────────────────────────────
+   GLOBAL REDUCE-MOTION CATCH-ALL
+   Collapses every CSS animation and transition to near-zero duration so
+   any component that forgot a per-selector @media block is still covered.
+   Tailwind's `animate-pulse` / `animate-spin` / `animate-bounce` etc.
+   all respect this automatically since they are CSS animations.
+
+   The per-selector blocks elsewhere in this file (observe-fade-up,
+   seal-spin, attention-nudge, animate-fade-in …) are kept as-is: they
+   target `animation: none` or a specific no-motion state, which is more
+   precise than the duration-based override and wins via specificity.
+
+   scroll-behavior: auto prevents the smooth scroll-snap effect on the
+   dashboard feed from animating on every page load for reduced-motion
+   users (it still works — just snaps instantly). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
    PRINT STYLESHEET
    Mostly drives the /legal page (users save Terms / Privacy / Community
    as PDFs for personal records, dispute filings, and tax/legal use), but

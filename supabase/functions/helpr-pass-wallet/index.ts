@@ -15,6 +15,7 @@
 // arrive — only the signing step is stubbed.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +24,13 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const rl = await checkRateLimit(req, {
+    windowMs: 60_000,
+    maxRequests: 10,
+    keyPrefix: "helpr-pass-wallet",
+  });
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;

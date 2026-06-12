@@ -1,11 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rl = await checkRateLimit(req, {
+    windowMs: 300_000,
+    maxRequests: 3,
+    keyPrefix: "delete-own-account",
+  });
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 300, corsHeaders);
 
   try {
     const supabaseAdmin = createClient(

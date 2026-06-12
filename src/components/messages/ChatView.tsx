@@ -545,6 +545,18 @@ export function ChatView({
                 })()}
               </div>
             </div>
+            {/* Quick-report shortcut — one-tap surface for the most
+                urgent safety action. The same handler is reachable via
+                the MoreVertical dropdown ("Report user") for users who
+                look there first; the Flag button saves one tap for users
+                who need it urgently and scan the header icons. */}
+            <button
+              className="p-2 rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
+              aria-label="Report user"
+              onClick={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}
+            >
+              <Flag className="w-4 h-4" />
+            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button

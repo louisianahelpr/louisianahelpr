@@ -1333,6 +1333,7 @@ export type Database = {
           helpers_needed: number | null
           id: string
           instant_book: boolean
+          is_auto_created: boolean
           is_flexible_schedule: boolean
           is_group_job: boolean | null
           is_recurring: boolean | null
@@ -1428,6 +1429,7 @@ export type Database = {
           helpers_needed?: number | null
           id?: string
           instant_book?: boolean
+          is_auto_created?: boolean
           is_flexible_schedule?: boolean
           is_group_job?: boolean | null
           is_recurring?: boolean | null
@@ -1523,6 +1525,7 @@ export type Database = {
           helpers_needed?: number | null
           id?: string
           instant_book?: boolean
+          is_auto_created?: boolean
           is_flexible_schedule?: boolean
           is_group_job?: boolean | null
           is_recurring?: boolean | null
@@ -2853,6 +2856,107 @@ export type Database = {
           processed_at?: string
         }
         Relationships: []
+      }
+      str_calendar_connections: {
+        Row: {
+          id: string
+          user_id: string
+          platform: string
+          ical_url: string
+          property_name: string | null
+          property_address: string | null
+          auto_create_cleaning: boolean
+          cleaning_budget: number | null
+          cleaning_notes: string | null
+          preferred_helper_id: string | null
+          last_synced_at: string | null
+          last_sync_error: string | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          platform: string
+          ical_url: string
+          property_name?: string | null
+          property_address?: string | null
+          auto_create_cleaning?: boolean
+          cleaning_budget?: number | null
+          cleaning_notes?: string | null
+          preferred_helper_id?: string | null
+          last_synced_at?: string | null
+          last_sync_error?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          platform?: string
+          ical_url?: string
+          property_name?: string | null
+          property_address?: string | null
+          auto_create_cleaning?: boolean
+          cleaning_budget?: number | null
+          cleaning_notes?: string | null
+          preferred_helper_id?: string | null
+          last_synced_at?: string | null
+          last_sync_error?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "str_calendar_connections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      str_processed_events: {
+        Row: {
+          id: string
+          connection_id: string
+          event_uid: string
+          checkout_date: string
+          job_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          connection_id: string
+          event_uid: string
+          checkout_date: string
+          job_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          connection_id?: string
+          event_uid?: string
+          checkout_date?: string
+          job_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "str_processed_events_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "str_calendar_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "str_processed_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suppressed_emails: {
         Row: {

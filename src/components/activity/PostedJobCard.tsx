@@ -327,17 +327,16 @@ function PostedJobCardInner({
                       );
                     })()}
                   </div>
-                  {/* Relist CTA — only for auto-expired jobs, not manual cancellations */}
-                  {job.cancellation_reason?.toLowerCase().includes('expired') && (
-                    <Button
-                      size="sm"
-                      variant="bark"
-                      className="w-full rounded-ds-md mt-2"
-                      onClick={() => navigate(`/post-job?rebook=${job.id}`)}
-                    >
-                      <RotateCcw className="w-4 h-4 mr-1.5" /> Relist this task
-                    </Button>
-                  )}
+                  {/* Relist / Post again CTA — all cancelled jobs */}
+                  <Button
+                    size="sm"
+                    variant="bark"
+                    className="w-full rounded-ds-md mt-2"
+                    onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1.5" />
+                    {job.cancellation_reason?.toLowerCase().includes('expired') ? 'Relist this task' : 'Post again'}
+                  </Button>
                 </div>
               )}
 
@@ -457,6 +456,20 @@ function PostedJobCardInner({
                 </div>
               ) : null;
             })()}
+
+            {/* Post again CTA — completed jobs */}
+            {job.status === "completed" && (
+              <div className="px-4 pb-3 pt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full rounded-ds-md"
+                  onClick={(e) => { e.stopPropagation(); navigate(`/post-job?rebook=${job.id}`); }}
+                >
+                  <RotateCcw className="w-4 h-4 mr-1.5" /> Post again
+                </Button>
+              </div>
+            )}
 
             {/* Additional details - collapsible for fully completed jobs */}
             {(!isFullyCompleted || isExpanded) && (

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
   Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Wrench,
-  RotateCw, Check, ChevronDown, ChevronUp,
+  RotateCw, Check, ChevronDown, ChevronUp, Ban,
 } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -206,6 +206,56 @@ function PostedJobCardInner({
                   <a href={`/user/${job.helper_id}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline">
                     {helperNames[job.helper_id] || "Helpr"}
                   </a>
+                </div>
+              )}
+
+              {/* Cancelled: show fee info if a fee was recorded */}
+              {job.status === "cancelled" && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span
+                      className="inline-flex items-center gap-1 text-ds-11 font-medium px-2 py-0.5 rounded-full"
+                      style={{
+                        background: "hsl(var(--destructive) / 0.08)",
+                        color: "hsl(var(--destructive))",
+                        border: "0.5px solid hsl(var(--destructive) / 0.22)",
+                      }}
+                    >
+                      <Ban className="w-3 h-3" /> Cancelled
+                    </span>
+                    {/* Fee status badge — only when a fee was actually assessed */}
+                    {job.cancellation_fee != null && job.cancellation_fee > 0 && job.cancellation_fee_status && (() => {
+                      const feeAmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(job.cancellation_fee);
+                      const statusCopy: Record<string, string> = {
+                        pending: `Fee ${feeAmt} · pending`,
+                        charged: `Fee ${feeAmt} · charged`,
+                        waived:  `Fee ${feeAmt} · waived`,
+                      };
+                      const label = statusCopy[job.cancellation_fee_status] ?? `Fee ${feeAmt}`;
+                      const isPending = job.cancellation_fee_status === "pending";
+                      const isCharged = job.cancellation_fee_status === "charged";
+                      return (
+                        <span
+                          className="inline-flex items-center gap-1 text-ds-11 font-medium px-2 py-0.5 rounded-full"
+                          style={{
+                            background: isCharged
+                              ? "hsl(var(--destructive) / 0.07)"
+                              : isPending
+                              ? "hsl(var(--gold-warm) / 0.12)"
+                              : "hsl(var(--olivewood) / 0.08)",
+                            color: isCharged
+                              ? "hsl(var(--destructive))"
+                              : isPending
+                              ? "hsl(36 72% 28%)"
+                              : "hsl(var(--olivewood))",
+                            border: `0.5px solid ${isCharged ? "hsl(var(--destructive) / 0.20)" : isPending ? "hsl(var(--gold-warm) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
+                          }}
+                        >
+                          <DollarSign className="w-3 h-3" /> {label}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
 

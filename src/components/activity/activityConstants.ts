@@ -93,6 +93,9 @@ export type EnrichedApplication = Application & {
     /** Intro video URL — shows a play icon on the applicant card when set. */
     intro_video_url?: string | null;
     intro_video_duration_seconds?: number | null;
+    /** "Available now" expiry — set to NOW()+4h when the helper signals
+        readiness; shown as a green pill on the applicant card. */
+    available_until?: string | null;
   } | null;
   reviewCount?: number;
   avgRating?: number;

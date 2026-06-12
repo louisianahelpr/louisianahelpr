@@ -11,12 +11,15 @@
 // so the URL `?tab=` param stays in sync with the user's selection
 // without a full route navigation.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Database } from "@/integrations/supabase/types";
 import { ScheduleTab } from "@/components/profile/ScheduleTab";
 import { HelperAvailability } from "@/components/HelperAvailability";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { CalendarDays, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { hapticSuccess } from "@/lib/haptics";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -44,6 +47,51 @@ export function ScheduleAvailabilityTab({
   onBack,
 }: ScheduleAvailabilityTabProps) {
   const [view, setView] = useState<ScheduleSubView>(initialView);
+
+  // "Available now" toggle state
+  const [availableUntil, setAvailableUntil] = useState<Date | null>(null);
+  const [toggling, setToggling] = useState(false);
+
+  // Load current availability status from profiles.
+  // `available_until` is a new column added by migration; use `any` cast
+  // because the generated types won't include it until types are regenerated.
+  useEffect(() => {
+    (supabase.from("profiles") as any)
+      .select("available_until")
+      .eq("user_id", userId)
+      .single()
+      .then(({ data }: { data: any }) => {
+        if (data?.available_until) {
+          const until = new Date(data.available_until as string);
+          setAvailableUntil(until > new Date() ? until : null);
+        }
+      });
+  }, [userId]);
+
+  const isAvailable = availableUntil != null && availableUntil > new Date();
+
+  const toggleAvailability = async () => {
+    setToggling(true);
+    hapticSuccess();
+    try {
+      if (isAvailable) {
+        const { error } = await (supabase.rpc as any)("clear_available_now");
+        if (error && error.code !== "PGRST202") throw error;
+        setAvailableUntil(null);
+        toast.success("Availability cleared");
+      } else {
+        const { data, error } = await (supabase.rpc as any)("set_available_now", { p_hours: 4 });
+        if (error && error.code !== "PGRST202") throw error;
+        if (data) setAvailableUntil(new Date(data));
+        else setAvailableUntil(new Date(Date.now() + 4 * 60 * 60 * 1000));
+        toast.success("You're marked as available for the next 4 hours");
+      }
+    } catch {
+      toast.error("Couldn't update availability — try again");
+    } finally {
+      setToggling(false);
+    }
+  };
 
   const switchView = (next: ScheduleSubView) => {
     if (next === view) return;
@@ -78,9 +126,45 @@ export function ScheduleAvailabilityTab({
           hideHeader
         />
       ) : (
-        <div className="rounded-2xl liquid-glass p-5">
-          <HelperAvailability userId={userId} />
-        </div>
+        <>
+          {/* "Available now" toggle — quick 4-hour signal for helprs
+              who are ready to start a job today. Shows on applicant
+              cards so posters can prioritize immediately-available helpers. */}
+          <div
+            className="rounded-ds-lg px-4 py-3.5 flex items-center justify-between gap-4 mb-4"
+            style={{
+              background: isAvailable ? "hsl(var(--sage) / 0.08)" : "hsl(var(--parchment) / 0.5)",
+              border: isAvailable ? "1px solid hsl(var(--sage) / 0.25)" : "1px solid hsl(var(--olivewood) / 0.12)",
+            }}
+          >
+            <div>
+              <p className="text-ds-14 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                {isAvailable ? "Available now" : "Mark as available"}
+              </p>
+              <p className="text-ds-12 text-muted-foreground">
+                {isAvailable
+                  ? `Until ${availableUntil!.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+                  : "Signal you're ready to start a job today"}
+              </p>
+            </div>
+            <button
+              onClick={toggleAvailability}
+              disabled={toggling}
+              className="relative w-12 h-6 rounded-full transition-colors duration-200"
+              style={{ background: isAvailable ? "hsl(var(--sage))" : "hsl(var(--olivewood) / 0.25)" }}
+              aria-label={isAvailable ? "Turn off available now" : "Turn on available now"}
+            >
+              <span
+                className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200"
+                style={{ left: isAvailable ? "calc(100% - 1.375rem)" : "2px" }}
+              />
+            </button>
+          </div>
+
+          <div className="rounded-2xl liquid-glass p-5">
+            <HelperAvailability userId={userId} />
+          </div>
+        </>
       )}
     </div>
   );

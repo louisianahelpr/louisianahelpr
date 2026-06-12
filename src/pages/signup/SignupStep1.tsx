@@ -145,10 +145,7 @@ export function SignupStep1({
               Personal account
             </p>
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Post jobs or earn as a neighbor — every account can do both.{" "}
-              <Link to="/signup?type=business" replace className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
-                Business instead?
-              </Link>
+              Post jobs or earn as a neighbor — every account can do both.
             </p>
           </div>
         </div>

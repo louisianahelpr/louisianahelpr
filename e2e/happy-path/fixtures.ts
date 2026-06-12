@@ -370,6 +370,11 @@ export async function seedAuthedSession(context: BrowserContext, user: FakeUser,
     },
     { key: SUPABASE_AUTH_STORAGE_KEY, value: JSON.stringify(session) },
   );
+  // Dismiss the first-run welcome modal for smoke tests — the modal
+  // intercepts pointer events and breaks click-based test flows.
+  await context.addInitScript(() => {
+    try { window.localStorage.setItem('helpr_welcomed', '1'); } catch { /* SSR guard */ }
+  });
   // Some browsers gate localStorage on origin — touch the origin once so
   // the addInitScript above lands on the right localStorage partition.
   // (This is a no-op on file:// or about:blank for the same reason.)

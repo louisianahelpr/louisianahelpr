@@ -37,6 +37,7 @@ const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 const JitVerifySheet = lazy(() => import("@/components/dashboard/JitVerifySheet").then(m => ({ default: m.JitVerifySheet })));
 const JobMapView = lazy(() => import("@/components/dashboard/JobMapView").then(m => ({ default: m.JobMapView })));
+const WelcomeModal = lazy(() => import("@/components/dashboard/WelcomeModal"));
 import SectionBoundary from "@/components/SectionBoundary";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -128,6 +129,26 @@ const Dashboard = () => {
   // The greeting card's "stat of the day" line was removed — it added a
   // third line to the title card and pushed the job feed down. The
   // headline job count it surfaced still shows in the date eyebrow.
+
+  // First-run welcome modal — shown once for accounts < 7 days old that
+  // haven't dismissed it yet. Computed lazily from localStorage + profile
+  // so it's stable after the first render; profile?.created_at is checked
+  // below in a separate effect to re-evaluate once the profile loads.
+  const [showWelcome, setShowWelcome] = useState(false);
+  useEffect(() => {
+    if (loading) return; // wait for profile to resolve
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem("helpr_welcomed")) return;
+    if (!profile?.created_at) return;
+    const ageDays =
+      (Date.now() - new Date(profile.created_at).getTime()) / 86_400_000;
+    if (ageDays < 7) setShowWelcome(true);
+  }, [loading, profile?.created_at]);
+
+  const handleWelcomeDismiss = useCallback(() => {
+    try { localStorage.setItem("helpr_welcomed", "1"); } catch { /* private-browsing / quota — ignore */ }
+    setShowWelcome(false);
+  }, []);
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
@@ -1455,6 +1476,15 @@ const Dashboard = () => {
           was the "stacked plus buttons" bug visible in TestFlight build
           screenshots. Desktop surfaces the CTA in the header (md:flex)
           so no desktop replacement is needed. */}
+
+      {/* First-run welcome modal — lazy-loaded; only mounts for new users
+          (accounts < 7 days) who haven't dismissed it yet. Dismissed state
+          persists to localStorage so it never shows again after first close. */}
+      {showWelcome && (
+        <Suspense fallback={null}>
+          <WelcomeModal open={showWelcome} onDismiss={handleWelcomeDismiss} />
+        </Suspense>
+      )}
     </>
   );
 };

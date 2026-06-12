@@ -282,6 +282,19 @@ export function ProfileLanding({
         },
       ],
     },
+    {
+      title: "Community",
+      items: [
+        {
+          key: "pay-it-forward",
+          label: "Pay It Forward",
+          icon: <Heart className="w-5 h-5" />,
+          desc: "Donate job credits for neighbors who need help",
+          tint: "155 50% 30%",
+          href: "/pay-it-forward",
+        },
+      ],
+    },
   ];
 
   // "Profile" row in the header (Edit) doesn't get a pill — its own

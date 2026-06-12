@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Paperclip, Trash2, WifiOff, Sparkles } from "lucide-react";
+import { FileText, Paperclip, Trash2, WifiOff, Sparkles, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticLight } from "@/lib/haptics";
@@ -80,6 +80,9 @@ interface ApplyConfirmDialogProps {
   setApplyFiles: Dispatch<SetStateAction<File[]>>;
   /** True while the application is being submitted — disables the controls. */
   applyLoading: boolean;
+  /** Optional reliability stake amount ($5, $10, $25, or null). */
+  stakeAmount: number | null;
+  setStakeAmount: (value: number | null) => void;
   /** Submits the application. */
   handleApplyConfirm: () => void;
 }
@@ -103,6 +106,8 @@ export function ApplyConfirmDialog({
   applyFiles,
   setApplyFiles,
   applyLoading,
+  stakeAmount,
+  setStakeAmount,
   handleApplyConfirm,
 }: ApplyConfirmDialogProps) {
   const { online } = useOnlineStatus();
@@ -360,6 +365,45 @@ export function ApplyConfirmDialog({
               </span>
             </div>
           </div>
+          {/* Reliability stake */}
+          <div
+            className="mt-3.5 rounded-ds-md p-3"
+            style={{ background: "hsl(var(--bark) / 0.05)", border: "0.5px solid hsl(var(--bark) / 0.15)" }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Shield className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+              <p className="font-display italic font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+                Add a reliability stake
+              </p>
+              <span
+                className="ml-auto text-ds-10 font-sans font-semibold uppercase px-1.5 py-0.5 rounded-ds-sm"
+                style={{ background: "hsl(var(--bark) / 0.1)", color: "hsl(var(--bark))", letterSpacing: "0.06em" }}
+              >
+                Optional
+              </span>
+            </div>
+            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              Put $5–$25 on the line. Complete the job → get it back plus 10% bonus. Cancel last-minute → it goes to the poster. Shows posters you're serious.
+            </p>
+            <div className="flex gap-2">
+              {[0, 5, 10, 25].map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => setStakeAmount(amt === 0 ? null : amt)}
+                  className="flex-1 py-1.5 rounded-ds-sm text-ds-12 font-sans font-semibold"
+                  style={{
+                    background: stakeAmount === (amt === 0 ? null : amt) ? "hsl(var(--bark) / 0.15)" : "transparent",
+                    border: `1px solid hsl(var(--bark) / ${stakeAmount === (amt === 0 ? null : amt) ? "0.4" : "0.15"})`,
+                    color: "hsl(var(--bark))",
+                  }}
+                >
+                  {amt === 0 ? "None" : `$${amt}`}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* File attachments */}
           <div
             className="space-y-1.5 mt-3.5 pt-3.5"

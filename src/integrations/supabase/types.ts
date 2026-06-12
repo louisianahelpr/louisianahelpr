@@ -117,6 +117,8 @@ export type Database = {
           message: string | null
           offer_message: string | null
           proposed_rate: number | null
+          stake_amount: number | null
+          stake_status: string
           status: Database["public"]["Enums"]["application_status"]
           updated_at: string
         }
@@ -129,6 +131,8 @@ export type Database = {
           message?: string | null
           offer_message?: string | null
           proposed_rate?: number | null
+          stake_amount?: number | null
+          stake_status?: string
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
         }
@@ -141,6 +145,8 @@ export type Database = {
           message?: string | null
           offer_message?: string | null
           proposed_rate?: number | null
+          stake_amount?: number | null
+          stake_status?: string
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
         }
@@ -2179,6 +2185,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pif_credits: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          donor_id: string
+          expires_at: string | null
+          id: string
+          job_id: string | null
+          message: string | null
+          parish: string | null
+          recipient_id: string | null
+          redeemed_at: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          donor_id: string
+          expires_at?: string | null
+          id?: string
+          job_id?: string | null
+          message?: string | null
+          parish?: string | null
+          recipient_id?: string | null
+          redeemed_at?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          donor_id?: string
+          expires_at?: string | null
+          id?: string
+          job_id?: string | null
+          message?: string | null
+          parish?: string | null
+          recipient_id?: string | null
+          redeemed_at?: string | null
+          status?: string
+        }
+        Relationships: []
       }
       platform_settings: {
         Row: {

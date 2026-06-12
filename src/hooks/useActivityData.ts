@@ -181,6 +181,8 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
       offer_message: null,
       attachment_urls: null,
       proposed_rate: null,
+      stake_amount: null,
+      stake_status: "none",
       created_at: job.created_at,
       updated_at: job.updated_at,
       job,

@@ -31,7 +31,7 @@ async function fetchAnalytics(userId: string) {
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   const iso6m = sixMonthsAgo.toISOString();
 
-  const [profileRes, completedJobsRes, allAppsRes, ratingsRes] = await Promise.all([
+  const [profileRes, completedJobsRes, allAppsRes, ratingsRes, benchRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("subscription_tier, full_name")
@@ -55,6 +55,8 @@ async function fetchAnalytics(userId: string) {
       .select("rating, created_at")
       .eq("reviewee_id", userId)
       .order("created_at", { ascending: false }),
+    // Platform-wide benchmarks (PGRST202 silently ignored — fallback values used).
+    (supabase.rpc as any)("get_platform_benchmarks"),
   ]);
 
   if (profileRes.error) throw profileRes.error;
@@ -117,8 +119,11 @@ async function fetchAnalytics(userId: string) {
   const successRate = allApps.length > 0
     ? Math.round((accepted / allApps.length) * 100)
     : null;
-  // Industry benchmark — fixed for now, future: fetch from platform_settings.
-  const PLATFORM_AVERAGE_SUCCESS_RATE = 32;
+  // Live platform benchmark — falls back to 32 if RPC not yet deployed (PGRST202).
+  const benchRow = Array.isArray(benchRes.data) ? benchRes.data[0] : benchRes.data;
+  const PLATFORM_AVERAGE_SUCCESS_RATE = benchRes.error || !benchRow
+    ? 32
+    : (benchRow.avg_application_success_rate ?? 32);
 
   // ── Platform fee estimate ─────────────────────────────────────────────────
   const PLATFORM_FEE_PERCENT = 0.10;
@@ -136,8 +141,10 @@ async function fetchAnalytics(userId: string) {
   }
   const reviewCount = allRatings.length;
   const avgRating = reviewCount > 0 ? ratingSum / reviewCount : null;
-  // Platform benchmark — helpers with ≥3 reviews average ~4.2 on the platform.
-  const PLATFORM_AVERAGE_RATING = 4.2;
+  // Live platform benchmark — falls back to 4.2 if RPC not yet deployed (PGRST202).
+  const PLATFORM_AVERAGE_RATING = benchRes.error || !benchRow
+    ? 4.2
+    : (benchRow.avg_helper_rating ?? 4.2);
 
   return {
     tier,

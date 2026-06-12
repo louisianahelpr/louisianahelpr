@@ -642,6 +642,19 @@ const Dashboard = () => {
       if (rpcError) {
         const errCode = (rpcError as { code?: string }).code;
         if (errCode !== "PGRST202") {
+          // Rate limit errors from apply_to_job come back as PostgrestError with
+          // .message = "rate_limit_minute" / "rate_limit_hour" / "rate_limit_day".
+          // Convert them to a RATE_LIMITED throw so onError can toast the right copy.
+          const msg = (rpcError as { message?: string }).message ?? "";
+          if (msg === "rate_limit_minute") {
+            throw Object.assign(new Error("Slow down — you can apply again in a minute."), { code: "RATE_LIMITED" });
+          }
+          if (msg === "rate_limit_hour") {
+            throw Object.assign(new Error("You've applied to a lot of jobs this hour — try again in a bit."), { code: "RATE_LIMITED" });
+          }
+          if (msg === "rate_limit_day") {
+            throw Object.assign(new Error("You've hit today's application limit — check back tomorrow."), { code: "RATE_LIMITED" });
+          }
           // Real error (duplicate, job closed, price-required, etc.) — surface it.
           throw rpcError as Error & { code?: string };
         }

@@ -433,6 +433,35 @@ const UserProfile = () => {
   });
   const hasSubmittedCredentials = (submittedCredentialsData?.count ?? 0) > 0;
 
+  // Pet care trust signal — count of distinct pets cared for + report cards
+  // sent by this user. PGRST202-safe: silently hides badge if tables aren't
+  // deployed yet.
+  const { data: petCareSignal } = useQuery({
+    queryKey: ["user_pet_care_signal", userId],
+    enabled: !!userId && !!data?.profile,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      try {
+        const [petsRes, reportsRes] = await Promise.all([
+          supabase
+            .from("pet_report_cards")
+            .select("pet_id", { count: "exact" })
+            .eq("helper_id", userId!),
+          supabase
+            .from("pet_report_cards")
+            .select("id", { count: "exact", head: true })
+            .eq("helper_id", userId!),
+        ]);
+        if (petsRes.error?.code === "PGRST202" || reportsRes.error?.code === "PGRST202") return null;
+        if (petsRes.error || reportsRes.error) return null;
+        const distinctPets = new Set((petsRes.data ?? []).map((r: any) => r.pet_id)).size;
+        return { distinctPets, reportCount: reportsRes.count ?? 0 };
+      } catch {
+        return null;
+      }
+    },
+  });
+
   const profile = (data?.profile ?? null) as Profile | null;
   const reviews = (data?.reviews ?? []) as Array<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string; jobCategory: string | null }>;
   const stats = data?.stats ?? { completedJobs: 0, avgRating: 0, reviewCount: 0 };
@@ -958,6 +987,18 @@ const UserProfile = () => {
                     style={{ fontSize: "0.78rem", color: "hsl(155 50% 35%)" }}
                   >
                     ✓ No disputes on record
+                  </span>
+                </div>
+              )}
+              {/* Pet care trust signal — only shown when there's real history */}
+              {petCareSignal && petCareSignal.distinctPets > 0 && (
+                <div className="flex items-center justify-center mt-1.5">
+                  <span
+                    className="inline-flex items-center gap-1 font-serif italic"
+                    style={{ fontSize: "0.78rem", color: "hsl(278 22% 48%)" }}
+                  >
+                    <ClipboardList className="w-3 h-3" />
+                    Cared for {petCareSignal.distinctPets} {petCareSignal.distinctPets === 1 ? "pet" : "pets"} · {petCareSignal.reportCount} {petCareSignal.reportCount === 1 ? "report" : "reports"} sent
                   </span>
                 </div>
               )}

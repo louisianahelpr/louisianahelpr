@@ -27,6 +27,7 @@ import {
   requestPushPermission as requestWebPushPermission,
 } from "@/lib/pushNotifications";
 import { normalizeDeepLinkUrl } from "@/lib/deepLinkRoute";
+import { captureJobRef } from "@/lib/jobLinkRef";
 
 let listenersAttached = false;
 
@@ -95,6 +96,27 @@ async function savePushToken(token: string, platform: "ios" | "android") {
 }
 
 /**
+ * Append a `?ref=<token>` param to an internal path (e.g. "/dashboard?job=abc").
+ * Preserves any existing query params; does NOT override an existing `ref` so
+ * a notification that itself carries a ref (e.g. a shared link forwarded via
+ * push) keeps the more-specific attribution.
+ */
+function appendRef(path: string, ref: string): string {
+  try {
+    // Use a dummy base so URL can parse relative paths.
+    const url = new URL(path, "https://x");
+    if (!url.searchParams.has("ref")) {
+      url.searchParams.set("ref", ref);
+    }
+    // Return just path+search (strip the dummy base).
+    return url.pathname + (url.search || "");
+  } catch {
+    // Malformed path — return as-is rather than breaking navigation.
+    return path;
+  }
+}
+
+/**
  * Mount once at the app root. Sets up listeners but does NOT request
  * permission. Call requestPushPermission() from a UX-appropriate moment.
  */
@@ -138,10 +160,17 @@ export function useNativePushSetup() {
           });
           const link = notification.data?.link;
           const hasInternalLink = typeof link === "string" && link.startsWith("/");
+          // Append ?ref=notif so we can attribute sessions that open a job
+          // from a foreground-toast "View" tap (same attribution path as a
+          // background-tap open). captureJobRef validates the token before
+          // persisting — "notif" is always valid.
+          const linkWithRef = hasInternalLink
+            ? appendRef(link as string, "notif")
+            : link;
           toast(notification.title || "New notification", {
             description: notification.body || undefined,
             action: hasInternalLink
-              ? { label: "View", onClick: () => navigate(link) }
+              ? { label: "View", onClick: () => navigate(linkWithRef as string) }
               : undefined,
           });
         });
@@ -151,7 +180,10 @@ export function useNativePushSetup() {
           track(AhaEvent.AppOpenedFromPush, { action: action.actionId });
           const link = action.notification?.data?.link;
           if (typeof link === "string" && link.startsWith("/")) {
-            navigate(link);
+            // Tag the navigation with ?ref=notif so the receiving page can
+            // capture the attribution source via useJobRef().
+            captureJobRef("notif");
+            navigate(appendRef(link, "notif"));
           }
         });
 

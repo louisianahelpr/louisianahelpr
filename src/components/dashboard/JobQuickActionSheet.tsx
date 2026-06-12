@@ -46,7 +46,9 @@ export function JobQuickActionSheet({
   const handleShare = async () => {
     // Confirm tap on native; no-op on web.
     void hapticLight();
-    const url = `${window.location.origin}/dashboard?job=${job.id}`;
+    // Use the canonical public job URL with ?ref=share so recipients who
+    // tap the link are attributed to the share surface.
+    const url = `https://www.louisianahelpr.com/jobs/${job.id}?ref=share`;
     const title = job.title;
     const text = `${job.title} — posted on Louisiana Helpr.`;
     try {

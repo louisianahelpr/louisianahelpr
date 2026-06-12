@@ -83,7 +83,9 @@ export function ShareJobButton({
     // Light haptic on press — confirms the tap on native, no-ops on web.
     void hapticLight();
     const location = job.city || "Louisiana";
-    const url = `https://www.louisianahelpr.com/jobs/${job.id}`;
+    // Append ?ref=share so recipients who tap the link are attributed to
+    // the share surface (OS Share Sheet / clipboard) when they open the job.
+    const url = `https://www.louisianahelpr.com/jobs/${job.id}?ref=share`;
     const title = `${job.title} — Need help in ${location}`;
     const text = `${job.title} · $${job.budget != null ? job.budget : "?"} · ${location}\n\nApply on Helpr:`;
 

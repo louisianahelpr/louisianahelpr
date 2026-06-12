@@ -12,6 +12,7 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
+import { CompactJobCard } from "@/components/dashboard/CompactJobCard";
 import {
   RecommendedJobCardSkeleton,
 } from "@/components/ui/skeletons/JobCardSkeleton";
@@ -19,6 +20,7 @@ import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 // Lazy-load BrowseMap so the ~45KB leaflet bundle only ships when an
 // authenticated user toggles to map view. List view stays cheap.
@@ -53,6 +55,8 @@ type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 interface BrowseTasksFeedProps {
   /** List vs Map view — selects which body renders. */
   view: "list" | "map";
+  /** Card density: comfortable (default full cards) or compact (single-line rows). */
+  density: FeedDensity;
   /** Dashboard filter state (from useDashboardFilters). */
   filters: ReturnType<typeof useDashboardFilters>;
   user: SupaUser | null;
@@ -91,6 +95,9 @@ interface BrowseTasksFeedProps {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: () => void;
+  /** Desktop split-screen hover sync — the hovered job's map pin scales up. */
+  hoveredJobId?: string | null;
+  setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
 }
 
 /**
@@ -103,6 +110,7 @@ interface BrowseTasksFeedProps {
  */
 export function BrowseTasksFeed({
   view,
+  density,
   filters,
   user,
   allJobs,
@@ -130,6 +138,8 @@ export function BrowseTasksFeed({
   hasNextPage,
   isFetchingNextPage,
   fetchNextPage,
+  hoveredJobId,
+  setHoveredJobId,
 }: BrowseTasksFeedProps) {
   // Lift the viewer's cached coords out of filters.userLoc — or fall back
   // to the module-level cache populated by any prior useUserLocation()
@@ -338,7 +348,7 @@ export function BrowseTasksFeed({
           recommendedLoading && !filters.hasFilters && recommendedVisible.length === 0;
         return (
           <>
-            {showRecommendedSkeleton && (
+            {showRecommendedSkeleton && density === "comfortable" && (
               <>
                 <div
                   className="px-4 pt-3 pb-1.5 flex items-center justify-between"
@@ -401,29 +411,46 @@ export function BrowseTasksFeed({
                     {recommendedVisible.length}
                   </span>
                 </div>
-                <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5">
-                  {/* AnimatePresence with initial={false} — only NEW
-                      recommended jobs slide in (e.g. when a fresh match
-                      arrives or the user dismisses a sibling). The
-                      first paint stays static so the section doesn't
-                      feel laggy when the dashboard loads. The virtualized
-                      "Everything else" list below is intentionally NOT
-                      wrapped — animating across an absolute-positioned
-                      virtualizer fights its layout math. */}
-                  <AnimatePresence initial={false}>
-                    {recommendedVisible.map((job, i) => (
-                      <motion.div
-                        key={`rec-${job.id}`}
-                        initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-                        animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-                        transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
-                      >
-                        <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
-                      </motion.div>
+                {density === "compact" ? (
+                  <ul>
+                    {recommendedVisible.map((job) => (
+                      <CompactJobCard
+                        key={job.id}
+                        job={job}
+                        onSelect={(j) => setDetailJob(j)}
+                        isHighlighted={hoveredJobId === job.id}
+                        onMouseEnter={() => setHoveredJobId?.(job.id)}
+                        onMouseLeave={() => setHoveredJobId?.(null)}
+                      />
                     ))}
-                  </AnimatePresence>
-                </div>
+                  </ul>
+                ) : (
+                  <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5">
+                    {/* AnimatePresence with initial={false} — only NEW
+                        recommended jobs slide in (e.g. when a fresh match
+                        arrives or the user dismisses a sibling). The
+                        first paint stays static so the section doesn't
+                        feel laggy when the dashboard loads. The virtualized
+                        "Everything else" list below is intentionally NOT
+                        wrapped — animating across an absolute-positioned
+                        virtualizer fights its layout math. */}
+                    <AnimatePresence initial={false}>
+                      {recommendedVisible.map((job, i) => (
+                        <motion.div
+                          key={`rec-${job.id}`}
+                          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                          animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                          transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+                          onMouseEnter={() => setHoveredJobId?.(job.id)}
+                          onMouseLeave={() => setHoveredJobId?.(null)}
+                        >
+                          <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
                 {visibleJobs.length > 0 && (
                   <div
                     className="px-4 pt-3 pb-1.5"
@@ -442,40 +469,63 @@ export function BrowseTasksFeed({
                 )}
               </>
             )}
-            {/* Main "Everything else" feed — virtualized. This is the
-                only unbounded list on the dashboard (50+ rows after
-                infinite scroll, each mounting framer-motion drag state),
-                so it scrolls via an element-scroll virtualizer that
-                renders just the visible window. The recommended section,
-                section headers, and the infinite-scroll sentinel stay as
-                normal DOM — recommended is capped at 5 and the rest are
-                fixed-size. The outer div keeps the horizontal padding,
-                top padding, and dock clearance; per-card vertical spacing
-                is baked into each virtualized row so it survives the
-                absolute positioning the virtualizer applies. */}
-            <div
-              className="px-3 pt-3"
-              style={{
-                // Dock clearance — last jobs scroll *under* the
-                // floating bottom nav, so we add safe room below
-                // the final card to let the user reach it.
-                paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
-              }}
-            >
-              <VirtualizedJobList
-                items={visibleJobs}
-                scrollElementRef={containerRef}
-                getKey={(job) => job.id}
-                renderItem={(job, i) => (
-                  // Gap between cards — `space-y-*` can't apply once the
-                  // virtualizer absolutely-positions rows, so the gap is
-                  // bottom padding measured as part of the row height.
-                  <div className="pb-2.5 lg:pb-4 xl:pb-5">
-                    <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
-                  </div>
-                )}
-              />
-            </div>
+            {/* Main "Everything else" feed */}
+            {density === "compact" ? (
+              /* Compact: plain list of 48px rows — no virtualizer needed
+                 at this row height for typical feed sizes. */
+              <ul
+                style={{
+                  paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
+                }}
+              >
+                {visibleJobs.map((job) => (
+                  <CompactJobCard
+                    key={job.id}
+                    job={job}
+                    onSelect={(j) => setDetailJob(j)}
+                    isHighlighted={hoveredJobId === job.id}
+                    onMouseEnter={() => setHoveredJobId?.(job.id)}
+                    onMouseLeave={() => setHoveredJobId?.(null)}
+                  />
+                ))}
+              </ul>
+            ) : (
+              /* Comfortable: virtualized — this is the only unbounded list
+                 on the dashboard (50+ rows after infinite scroll, each
+                 mounting framer-motion drag state), so it scrolls via an
+                 element-scroll virtualizer that renders just the visible
+                 window. The recommended section, section headers, and the
+                 infinite-scroll sentinel stay as normal DOM — recommended
+                 is capped at 5 and the rest are fixed-size. The outer div
+                 keeps the horizontal padding, top padding, and dock
+                 clearance; per-card vertical spacing is baked into each
+                 virtualized row so it survives the absolute positioning
+                 the virtualizer applies. */
+              <div
+                className="px-3 pt-3"
+                style={{
+                  paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
+                }}
+              >
+                <VirtualizedJobList
+                  items={visibleJobs}
+                  scrollElementRef={containerRef}
+                  getKey={(job) => job.id}
+                  renderItem={(job, i) => (
+                    // Gap between cards — `space-y-*` can't apply once the
+                    // virtualizer absolutely-positions rows, so the gap is
+                    // bottom padding measured as part of the row height.
+                    <div
+                      className="pb-2.5 lg:pb-4 xl:pb-5"
+                      onMouseEnter={() => setHoveredJobId?.(job.id)}
+                      onMouseLeave={() => setHoveredJobId?.(null)}
+                    >
+                      <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
+                    </div>
+                  )}
+                />
+              </div>
+            )}
             {/* Infinite scroll sentinel + manual fallback */}
             {hasNextPage && (
               <div ref={loadMoreRef} className="px-4 py-4 flex justify-center">

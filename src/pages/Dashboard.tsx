@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, lazy, Suspense, useMemo, type SetStateAction } from "react";
+import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -35,6 +36,7 @@ const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 const JitVerifySheet = lazy(() => import("@/components/dashboard/JitVerifySheet").then(m => ({ default: m.JitVerifySheet })));
+const JobMapView = lazy(() => import("@/components/dashboard/JobMapView").then(m => ({ default: m.JobMapView })));
 import SectionBoundary from "@/components/SectionBoundary";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -143,6 +145,24 @@ const Dashboard = () => {
   // resetting to "list" on next mount matches user expectation that
   // the default landing surface is the curated feed.
   const [view, setView] = usePersistedBrowseView("list");
+
+  // Feed density — comfortable (full cards) or compact (48px rows).
+  // Persisted to localStorage so the user's preference survives sessions.
+  const [density, setDensityState] = useState<FeedDensity>(() => {
+    try {
+      const stored = window.localStorage.getItem("job-feed-density");
+      return stored === "compact" || stored === "comfortable" ? stored : "comfortable";
+    } catch { return "comfortable"; }
+  });
+  const setDensity = useCallback((next: FeedDensity) => {
+    setDensityState(next);
+    try { window.localStorage.setItem("job-feed-density", next); } catch { /* ignore */ }
+  }, []);
+
+  // Desktop split-screen hover sync — hovering a list card scales up the
+  // corresponding map pin. null = no card hovered.
+  const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
+
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
@@ -1037,6 +1057,8 @@ const Dashboard = () => {
               helperAvailability={helperAvailability}
               view={view}
               setView={setView}
+              density={density}
+              setDensity={setDensity}
               onClearAllFilters={() => {
                 // After clearing filters, snap the feed back to the top
                 // so the user lands on the fresh unfiltered head of the
@@ -1053,41 +1075,63 @@ const Dashboard = () => {
                 page-level ErrorBoundary above still catches anything
                 that escapes this. */}
             <SectionBoundary label="the job feed">
-            <BrowseTasksFeed
-              view={view}
-              filters={filters}
-              user={user}
-              allJobs={allJobs}
-              loadError={loadError}
-              refresh={refresh}
-              recommendedJobs={recommendedJobs}
-              // Reserve the "Picked for you" slot with skeletons while a feed
-              // fetch is in flight and no picks exist yet — recommendations are
-              // derived from loaded pages, so they can arrive a beat after the
-              // feed itself (refresh / next-page), and the empty→filled swap
-              // would otherwise shove the list down (CLS).
-              recommendedLoading={refreshing || isFetchingNextPage}
-              dismissedJobIds={dismissedJobIds}
-              effectiveFee={effectiveFee}
-              handleApplyRequest={handleApplyRequest}
-              handleDismissRequest={handleDismissRequest}
-              handleToggleSave={handleToggleSave}
-              handleLongPressCard={handleLongPressCard}
-              confirmDismissJobId={confirmDismissJobId}
-              expandedCardId={expandedCardId}
-              setExpandedCardId={setExpandedCardId}
-              savedJobIds={savedJobIds}
-              setReportJobId={setReportJobId}
-              setDetailJob={openDetailJob}
-              containerRef={containerRef}
-              pullDistance={pullDistance}
-              refreshing={refreshing}
-              isPulling={isPulling}
-              loadMoreRef={loadMoreRef}
-              hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              fetchNextPage={fetchNextPage}
-            />
+              {/* Split-screen layout on lg+ viewports: job list (420px
+                  fixed left) + Leaflet map (right). Completely hidden on
+                  mobile — no layout changes touch the Capacitor native
+                  app which is always <1024px. */}
+              <div className="flex flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 lg:w-[420px] lg:flex-none lg:border-r lg:border-[hsl(var(--olivewood)/0.1)] min-w-0 overflow-hidden flex flex-col">
+                  <BrowseTasksFeed
+                    view={view}
+                    density={density}
+                    filters={filters}
+                    user={user}
+                    allJobs={allJobs}
+                    loadError={loadError}
+                    refresh={refresh}
+                    recommendedJobs={recommendedJobs}
+                    // Reserve the "Picked for you" slot with skeletons while a feed
+                    // fetch is in flight and no picks exist yet — recommendations are
+                    // derived from loaded pages, so they can arrive a beat after the
+                    // feed itself (refresh / next-page), and the empty→filled swap
+                    // would otherwise shove the list down (CLS).
+                    recommendedLoading={refreshing || isFetchingNextPage}
+                    dismissedJobIds={dismissedJobIds}
+                    effectiveFee={effectiveFee}
+                    handleApplyRequest={handleApplyRequest}
+                    handleDismissRequest={handleDismissRequest}
+                    handleToggleSave={handleToggleSave}
+                    handleLongPressCard={handleLongPressCard}
+                    confirmDismissJobId={confirmDismissJobId}
+                    expandedCardId={expandedCardId}
+                    setExpandedCardId={setExpandedCardId}
+                    savedJobIds={savedJobIds}
+                    setReportJobId={setReportJobId}
+                    setDetailJob={openDetailJob}
+                    containerRef={containerRef}
+                    pullDistance={pullDistance}
+                    refreshing={refreshing}
+                    isPulling={isPulling}
+                    loadMoreRef={loadMoreRef}
+                    hasNextPage={hasNextPage}
+                    isFetchingNextPage={isFetchingNextPage}
+                    fetchNextPage={fetchNextPage}
+                    hoveredJobId={hoveredJobId}
+                    setHoveredJobId={setHoveredJobId}
+                  />
+                </div>
+                {/* Map panel — desktop only. Lazy-loaded so the Leaflet
+                    bundle isn't paid for by mobile users. */}
+                <div className="hidden lg:flex lg:flex-1 lg:relative min-h-0">
+                  <Suspense fallback={<div className="flex-1 bg-muted/20 animate-pulse" />}>
+                    <JobMapView
+                      jobs={filters.filteredJobs}
+                      hoveredJobId={hoveredJobId}
+                      onJobClick={openDetailJob}
+                    />
+                  </Suspense>
+                </div>
+              </div>
             </SectionBoundary>
 
             {/* Community teaser — surfaces the feed from the Dashboard so

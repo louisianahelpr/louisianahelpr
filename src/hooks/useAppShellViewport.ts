@@ -62,6 +62,8 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
   "/community",    // Community feed (PageHeader + min-h-screen document-scroll)
   "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
+  "/home-history", // HomeHistory (PageHeader + min-h-screen document-scroll)
+  "/work-record",  // WorkRecord (PageHeader + min-h-screen document-scroll)
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

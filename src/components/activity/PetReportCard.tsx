@@ -108,7 +108,7 @@ export function SendReportCard({
       if (insertRes.error) {
         // PGRST202 = table not yet in production; degrade gracefully
         if (insertRes.error.code === "PGRST202") {
-          toast.info("Report cards aren't live on production yet — coming soon!");
+          toast("Pet report cards are on the way — we'll notify you when they launch!");
           onClose();
           return;
         }

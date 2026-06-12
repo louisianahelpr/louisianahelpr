@@ -45,6 +45,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
       <CheckoutStep
         title={form.title}
         description={form.description}
+        category={form.category}
         categoryLabel={form.categoryLabel}
         imagePreviews={form.imagePreviews}
         streetAddress={form.streetAddress}
@@ -66,6 +67,9 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         customerFee={form.customerFee}
         customerFeeAmount={form.customerFeeAmount}
         totalCharge={form.totalCharge}
+        protectionOptedIn={form.protectionOptedIn}
+        setProtectionOptedIn={form.setProtectionOptedIn}
+        protectionFeeNum={form.protectionFeeNum}
         confirmed={form.confirmed}
         setConfirmed={form.setConfirmed}
         saveCardForFuture={form.saveCardForFuture}

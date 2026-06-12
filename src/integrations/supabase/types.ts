@@ -1355,6 +1355,8 @@ export type Database = {
           poster_confirmed_working_at: string | null
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
+          protection_fee: number | null
+          protection_opted_in: boolean
           recurrence_end_date: string | null
           recurrence_interval: string | null
           removal_reason: string | null
@@ -1448,6 +1450,8 @@ export type Database = {
           poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
+          protection_fee?: number | null
+          protection_opted_in?: boolean
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
           removal_reason?: string | null
@@ -1541,6 +1545,8 @@ export type Database = {
           poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
+          protection_fee?: number | null
+          protection_opted_in?: boolean
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
           removal_reason?: string | null

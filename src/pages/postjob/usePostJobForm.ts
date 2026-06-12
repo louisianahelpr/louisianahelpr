@@ -155,6 +155,10 @@ export function usePostJobForm() {
   // `setup_future_usage` session option. The toggle is sticky via
   // localStorage so a returning poster who opted in once doesn't have to
   // re-tap it every time. Default off — explicit opt-in only.
+  // Job Protection add-on — $3 flat fee that funds Helpr's happiness
+  // guarantee. Stored in jobs.protection_opted_in / protection_fee.
+  const [protectionOptedIn, setProtectionOptedIn] = useState(false);
+
   const [saveCardForFuture, setSaveCardForFutureState] = useState<boolean>(() => {
     try {
       return safeStorage.getItem("helpr_save_card_pref") === "1";
@@ -649,9 +653,17 @@ export function usePostJobForm() {
         bidsSealed: opts.withExtras ? bidsSealed : false,
       });
 
+    // Merge Job Protection opt-in into the payload when enabled.
+    // protection_opted_in / protection_fee ship in migration 20260612120000;
+    // cast through `as any` so a pre-push prod (missing the columns) still
+    // gets the fallback retry via the PGRST204/42703 error path.
+    const protectionExtras = protectionOptedIn
+      ? ({ protection_opted_in: true, protection_fee: 3.0 } as Record<string, unknown>)
+      : {};
+
     let { data: jobData, error } = await supabase
       .from("jobs")
-      .insert(buildPayload({ withExtras: true }))
+      .insert({ ...buildPayload({ withExtras: true }), ...protectionExtras } as any)
       .select("id")
       .single();
 
@@ -817,7 +829,8 @@ export function usePostJobForm() {
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
   const customerFeeAmount = budgetNum * ((customerFee ?? 10) / 100);
-  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum; // + Sales tax at checkout
+  const protectionFeeNum = protectionOptedIn ? 3.0 : 0;
+  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum + protectionFeeNum; // + Sales tax at checkout
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   // Section completion for the 3-step progress bar. Photos are optional
@@ -1066,6 +1079,10 @@ export function usePostJobForm() {
     setIncludeMaterials,
     materialsNote,
     setMaterialsNote,
+    // job protection opt-in (checkout)
+    protectionOptedIn,
+    setProtectionOptedIn,
+    protectionFeeNum,
     // save-card opt-in (checkout)
     saveCardForFuture,
     setSaveCardForFuture,

@@ -164,7 +164,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[90vh] px-5 sm:px-8 lg:px-12 pt-32 sm:pt-40 lg:pt-48 pb-16">
+    <section className="relative min-h-[90vh] px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-16">
       {/* Status light — proof-of-life pill anchored to the top-right of the
           entire hero section. Pulsing glow halo (status-pill-glow) reads
           as a "live" heartbeat for the whole platform. */}

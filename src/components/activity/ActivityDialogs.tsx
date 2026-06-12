@@ -198,6 +198,8 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           jobId={props.completionPromptJob.job.id} jobTitle={props.completionPromptJob.job.title}
           revieweeId={props.completionPromptJob.revieweeId} revieweeName={props.completionPromptJob.revieweeName}
           userId={props.user.id} onDone={() => props.setCompletionPromptJob(null)}
+          isHelper={props.user.id === props.completionPromptJob.job.helper_id}
+          jobCategory={props.completionPromptJob.job.category}
         />
       )}
 

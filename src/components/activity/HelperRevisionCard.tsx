@@ -12,7 +12,7 @@
  * the legacy jobs.revision_note column instead.
  */
 import { useEffect, useState } from "react";
-import { AlertTriangle, MessageSquare, Wrench } from "lucide-react";
+import { AlertTriangle, ChevronDown, MessageSquare, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -177,6 +177,26 @@ export function HelperRevisionCard({
           ))}
         </div>
       )}
+
+      {/* Dispute-avoidance tips — collapsible to keep the card compact */}
+      <details className="group text-left" style={{ fontSize: "0.78rem" }}>
+        <summary
+          className="cursor-pointer select-none font-medium list-none flex items-center gap-1"
+          style={{ color: "hsl(36 72% 30%)", opacity: 0.75 }}
+        >
+          <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
+          How to handle this well
+        </summary>
+        <ul
+          className="mt-1.5 space-y-1 pl-1"
+          style={{ color: "hsl(var(--olivewood) / 0.75)", lineHeight: 1.55 }}
+        >
+          <li>• Message the poster before tapping "I'll fix it" — one sentence goes a long way</li>
+          <li>• Take a clear after-photo when you're done and attach it in chat</li>
+          <li>• If you disagree with the request, discuss it first via the chat, not after</li>
+          <li>• Once fixed, mark complete and wait for the poster to confirm</li>
+        </ul>
+      </details>
 
       {/* Actions */}
       <div className="flex gap-2 pt-0.5">

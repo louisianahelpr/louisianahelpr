@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft, Check, SearchX, Star, Users, Wrench } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, SearchX, Sparkles, Star, Users, Wrench } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
+import { scoreApplicant, type ApplicantData } from "@/lib/applicantScoring";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -169,11 +170,79 @@ export const PostedJobsTab = ({
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
 
+  // Sort order for the applicants comparison panel.
+  // "recommended" = multi-factor score desc (default)
+  // "rated"       = avgRating desc, then reviewCount desc
+  // "soonest"     = created_at asc (first to apply)
+  const [applicantSort, setApplicantSort] = useState<"recommended" | "rated" | "soonest">("recommended");
+
   // Bulk-dismiss for cancelled posts — long-press a Cancelled card to
   // enter selection mode, then bulk-hide them from view. The hide is
   // local (sessionStorage) so the audit record on the server stays
   // intact.
   const bulkDismiss = useBulkDismiss("posted");
+
+  // Build scored + sorted applicant list for the comparison panel.
+  // Scoring is purely client-side — no extra queries needed.
+  // The score map is keyed by helper_id so the "Recommended" badge
+  // can identify the top pick in O(1).
+  const { sortedApplications, scoreMap } = useMemo(() => {
+    type ScoredApp = { app: EnrichedApplication; score: number; signals: string[] };
+    if (applications.length === 0) return { sortedApplications: [] as ScoredApp[], scoreMap: new Map<string, number>() };
+
+    const map = new Map<string, number>();
+    const scored = applications.map((app) => {
+      // Map EnrichedApplication fields onto ApplicantData — pass null
+      // for fields the current query doesn't return so the scoring
+      // function skips those dimensions gracefully.
+      const tier = app.profiles?.subscription_tier;
+      // subscription_tier ("elite"=3, "pro"=2, "basic"=1, else 0) is
+      // the closest proxy for credentialTier available without a migration.
+      const credentialTier = tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
+      const data: ApplicantData = {
+        userId: app.helper_id,
+        avgRating: app.avgRating ?? null,
+        reviewCount: app.reviewCount ?? 0,
+        completedJobs: 0,       // not returned by get_safe_profiles yet
+        repeatHirePercent: null, // not available without migration
+        onTimePercent: null,     // not available without migration
+        credentialTier,
+        distanceKm: null,        // not available in this context
+        responseTimeMinutes: null,
+        neighborCount: 0,        // trust graph not yet built
+      };
+      const result = scoreApplicant(data);
+      map.set(app.helper_id, result.score);
+      return { app, score: result.score, signals: result.signals };
+    });
+
+    const sorted = [...scored];
+    if (applicantSort === "recommended") {
+      sorted.sort((a, b) => b.score - a.score);
+    } else if (applicantSort === "rated") {
+      sorted.sort((a, b) => {
+        const ratingDiff = (b.app.avgRating ?? 0) - (a.app.avgRating ?? 0);
+        if (ratingDiff !== 0) return ratingDiff;
+        return (b.app.reviewCount ?? 0) - (a.app.reviewCount ?? 0);
+      });
+    } else {
+      // "soonest" = first to apply (ascending created_at)
+      sorted.sort((a, b) => a.app.created_at.localeCompare(b.app.created_at));
+    }
+
+    return { sortedApplications: sorted, scoreMap: map };
+  }, [applications, applicantSort]);
+
+  // The top recommended applicant — used to render the badge.
+  const topHelperIdByScore = useMemo(() => {
+    if (applications.length === 0) return null;
+    let topId: string | null = null;
+    let topScore = -Infinity;
+    scoreMap.forEach((score, id) => {
+      if (score > topScore) { topScore = score; topId = id; }
+    });
+    return topId;
+  }, [applications, scoreMap]);
 
   // Filter the incoming jobs through the dismissed set so a previously
   // hidden cancelled job stays hidden across re-renders. Cancelled jobs
@@ -308,10 +377,19 @@ export const PostedJobsTab = ({
         />
       )}
 
-      {/* Applicants full-screen view */}
+      {/* Applicants full-screen comparison view */}
       {selectedJob && (
-        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-right duration-200">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card">
+        <div className="fixed inset-0 z-50 flex flex-col animate-in slide-in-from-right duration-200" style={{ background: "hsl(var(--parchment))" }}>
+          {/* Header */}
+          <div
+            className="flex items-center gap-2 px-4 py-3"
+            style={{
+              borderBottom: "0.5px solid hsl(var(--bark) / 0.12)",
+              background: "hsla(0, 0%, 100%, 0.72)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+            }}
+          >
             <Button
               variant="ghost"
               size="sm"
@@ -322,221 +400,307 @@ export const PostedJobsTab = ({
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div className="min-w-0 flex-1">
-              <h2 className="font-display font-semibold text-foreground truncate">Applicants</h2>
-              <p className="text-ds-11 text-muted-foreground truncate">{selectedJob.title}</p>
+              <h2
+                className="font-display italic font-bold leading-tight truncate"
+                style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
+                Applicants
+              </h2>
+              <p className="text-ds-11 font-serif italic truncate" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                {selectedJob.title}
+              </p>
             </div>
           </div>
-          {/* Modal body — capped at iPad-comfortable width so it doesn't
-              stretch wall-to-wall on large screens. */}
+
+          {/* Modal body — capped at iPad-comfortable width */}
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="max-w-2xl mx-auto w-full">
-            {applicationsLoading ? (
-              /* Loading state — skeleton applicant rows (matching the real
-                 card silhouette) instead of a bare spinner, so the wait
-                 reads as "content arriving" and is consistent with every
-                 other list's loading treatment. */
-              <div className="space-y-3" aria-label="Loading applicants" aria-busy="true">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="rounded-ds-md bg-card p-3 flex items-center gap-3"
-                    style={{ border: "0.5px solid hsl(var(--olivewood) / 0.12)" }}
-                  >
-                    <Skeleton className="w-11 h-11 rounded-full shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-3.5 w-1/2" />
-                      <Skeleton className="h-3 w-3/4" />
+              {applicationsLoading ? (
+                /* Loading: 2 skeleton cards matching the real card height */
+                <div className="space-y-3" aria-label="Loading applicants" aria-busy="true">
+                  {[0, 1].map((i) => (
+                    <div
+                      key={i}
+                      className="rounded-ds-md p-3.5 flex items-start gap-3"
+                      style={{
+                        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                        backdropFilter: "blur(16px)",
+                        WebkitBackdropFilter: "blur(16px)",
+                        border: "0.5px solid hsl(var(--bark) / 0.18)",
+                      }}
+                    >
+                      <Skeleton className="w-11 h-11 rounded-full shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-3.5 w-2/5" />
+                        <Skeleton className="h-3 w-3/5" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                      <Skeleton className="h-9 w-16 rounded-ds-sm shrink-0" />
                     </div>
-                    <Skeleton className="h-8 w-16 rounded-ds-sm shrink-0" />
-                  </div>
-                ))}
-              </div>
-            ) : applicationsError ? (
-              /* Error state — surface the failure clearly so the poster
-                 knows to retry rather than concluding there are no applicants. */
-              <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-6">
-                <AlertCircle className="w-8 h-8 text-destructive" />
-                <div className="space-y-1">
-                  <p className="font-semibold text-foreground text-ds-15">Couldn't load applicants</p>
-                  <p className="text-ds-13 text-muted-foreground">Check your connection and try again.</p>
+                  ))}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-ds-md btn-press"
-                  onClick={() => onLoadApplications(selectedJob)}
-                >
-                  Retry
-                </Button>
-              </div>
-            ) : applications.length === 0 ? (
-              <EmptyState
-                variant="inline"
-                icon={Users}
-                title="No applications yet"
-                body="When helprs apply to this task, they'll show up here for you to review. Sharing it reaches more helprs nearby."
-                action={
-                  selectedJob ? (
-                    <ShareJobButton
-                      job={{ id: selectedJob.id, title: selectedJob.title, budget: selectedJob.budget, category: selectedJob.category }}
-                    />
-                  ) : undefined
-                }
-              />
-            ) : (
-              <div className="space-y-3">
-                {applications.map((app) => {
-                  const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
-                  const isElite = helperTier === "elite";
-                  const isPro = helperTier === "pro";
-                  const haloColor = isElite
-                    ? "hsl(var(--gold-warm))"
-                    : isPro
-                      ? "hsl(var(--burnt-sienna))"
-                      : null;
-                  const helperName = formatName(app.profiles?.full_name, "Helpr");
-                  const helperInitials = helperName
-                    .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-                  return (
-                  <div key={app.id} className="p-4 rounded-ds-md liquid-glass space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      {/* Avatar with Pro/Elite halo ring — gold for Elite,
-                          sienna for Pro, no ring for free helpers. Makes
-                          subscribed applicants pop in the poster's review. */}
-                      <a
-                        href={`/user/${app.helper_id}`}
-                        className="shrink-0 w-11 h-11 rounded-full overflow-hidden inline-flex items-center justify-center"
-                        style={{
-                          background: "hsl(var(--bark) / 0.12)",
-                          boxShadow: haloColor
-                            ? `0 0 0 2.5px ${haloColor}`
-                            : "0 0 0 1px hsl(var(--olivewood) / 0.18)",
-                        }}
-                      >
-                        {app.profiles?.avatar_url ? (
-                          <OptimizedImage
-                            // Helper avatar renders into a fixed 44px (w-11 h-11)
-                            // circle — request a matching thumbnail via the
-                            // Vercel edge (AVIF/WebP) on web.
-                            src={app.profiles.avatar_url}
-                            width={44}
-                            height={44}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="font-display italic font-bold text-[0.85rem]" style={{ color: "hsl(var(--bark))" }}>
-                            {helperInitials}
-                          </span>
-                        )}
-                      </a>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <a
-                            href={`/user/${app.helper_id}`}
-                            className="font-display italic font-bold truncate hover:underline"
-                            style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
-                          >
-                            {helperName}
-                          </a>
-                          {isElite && (
+              ) : applicationsError ? (
+                /* Error state */
+                <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-6">
+                  <AlertCircle className="w-8 h-8 text-destructive" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground text-ds-15">Couldn't load applicants</p>
+                    <p className="text-ds-13 text-muted-foreground">Check your connection and try again.</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-ds-md btn-press"
+                    onClick={() => onLoadApplications(selectedJob)}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : applications.length === 0 ? (
+                /* Empty state — warmer copy when no one has applied yet */
+                <div className="flex flex-col items-center text-center gap-5 pt-12 pb-6 px-6">
+                  <div
+                    className="w-14 h-14 rounded-full inline-flex items-center justify-center"
+                    style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
+                  >
+                    <Users className="w-7 h-7" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} strokeWidth={1.5} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p
+                      className="font-display italic font-bold"
+                      style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                    >
+                      No one has applied yet
+                    </p>
+                    <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      Your job was just posted! Sharing it reaches more helprs nearby.
+                    </p>
+                  </div>
+                  <ShareJobButton
+                    job={{ id: selectedJob.id, title: selectedJob.title, budget: selectedJob.budget, category: selectedJob.category }}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {/* Sort control — horizontal pill row */}
+                  <div className="flex items-center gap-1.5 mb-4" role="group" aria-label="Sort applicants by">
+                    {(["recommended", "rated", "soonest"] as const).map((opt) => {
+                      const label = opt === "recommended" ? "Recommended" : opt === "rated" ? "Highest rated" : "Soonest available";
+                      const active = applicantSort === opt;
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setApplicantSort(opt)}
+                          aria-pressed={active}
+                          className="px-3 py-1.5 rounded-full text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
+                          style={{
+                            background: active ? "hsl(var(--bark) / 0.10)" : "hsla(0, 0%, 100%, 0.45)",
+                            color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.6)",
+                            border: active
+                              ? "0.5px solid hsl(var(--bark) / 0.3)"
+                              : "0.5px solid hsl(var(--bark) / 0.12)",
+                            backdropFilter: "blur(12px)",
+                            WebkitBackdropFilter: "blur(12px)",
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Applicant cards */}
+                  {sortedApplications.map(({ app, signals }) => {
+                    const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
+                    const isElite = helperTier === "elite";
+                    const isPro = helperTier === "pro";
+                    const haloColor = isElite
+                      ? "hsl(var(--gold-warm))"
+                      : isPro
+                        ? "hsl(var(--burnt-sienna))"
+                        : null;
+                    const helperName = formatName(app.profiles?.full_name, "Helpr");
+                    const helperInitials = helperName
+                      .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+                    const isTopPick = applicantSort === "recommended" && app.helper_id === topHelperIdByScore && applications.length > 1;
+                    // Show up to 3 trust signals as inline text
+                    const visibleSignals = signals.slice(0, 3);
+
+                    return (
+                      <div key={app.id}>
+                        {/* "Helpr Recommended" badge above the top pick */}
+                        {isTopPick && (
+                          <div className="flex items-center gap-1.5 mb-1.5 pl-1">
+                            <Sparkles className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))" }} />
                             <span
-                              className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
-                              style={{
-                                background: "hsl(var(--gold-warm) / 0.14)",
-                                color: "hsl(var(--gold-warm))",
-                                letterSpacing: "0.08em",
-                              }}
+                              className="text-ds-10 font-sans font-semibold uppercase"
+                              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.06em" }}
                             >
-                              Elite
-                            </span>
-                          )}
-                          {isPro && (
-                            <span
-                              className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
-                              style={{
-                                background: "hsl(var(--burnt-sienna) / 0.12)",
-                                color: "hsl(var(--burnt-sienna))",
-                                letterSpacing: "0.08em",
-                              }}
-                            >
-                              Pro
-                            </span>
-                          )}
-                        </div>
-                        {app.profiles?.skills && (
-                          <p className="font-serif italic mt-0.5 line-clamp-1" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.75)" }}>
-                            {app.profiles.skills}
-                          </p>
-                        )}
-                        {app.reviewCount !== undefined && app.reviewCount > 0 && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <Star className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
-                            <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                              {app.avgRating?.toFixed(1)} ({app.reviewCount} review{app.reviewCount === 1 ? "" : "s"})
+                              Helpr Recommended
                             </span>
                           </div>
                         )}
-                      </div>
-                      {app.status === "pending" && (
-                        <Button
-                          variant="bark"
-                          size="sm"
-                          className="rounded-ds-md btn-press shrink-0"
-                          aria-label={`Select ${helperName}`}
-                          onClick={() => onAcceptApplication(app)}
+
+                        {/* Compact applicant card */}
+                        <div
+                          className="rounded-ds-md p-3.5 space-y-2.5"
+                          style={{
+                            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                            backdropFilter: "blur(16px)",
+                            WebkitBackdropFilter: "blur(16px)",
+                            border: isTopPick
+                              ? "0.5px solid hsl(var(--burnt-sienna) / 0.30)"
+                              : "0.5px solid hsl(var(--bark) / 0.18)",
+                            boxShadow: isTopPick
+                              ? "0 0 0 2px hsl(var(--burnt-sienna) / 0.08), inset 0 1px 1px 0 rgba(255,255,255,0.55)"
+                              : "inset 0 1px 1px 0 rgba(255,255,255,0.55)",
+                          }}
                         >
-                          Select
-                        </Button>
-                      )}
-                      {/* Application-status pills — rounded-ds-pill + dot matches
-                          the StatusBadge visual system for consistency. */}
-                      {app.status === "accepted" && (
-                        <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]">
-                          <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--bark))]" aria-hidden="true" />
-                          Selected
-                        </span>
-                      )}
-                      {app.status === "rejected" && (
-                        <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.7)]">
-                          <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--olivewood)/0.7)]" aria-hidden="true" />
-                          Declined
-                        </span>
-                      )}
-                    </div>
+                          {/* Row 1: avatar + name + rating + hire button */}
+                          <div className="flex items-center gap-3">
+                            <a
+                              href={`/user/${app.helper_id}`}
+                              className="shrink-0 w-11 h-11 rounded-full overflow-hidden inline-flex items-center justify-center"
+                              style={{
+                                background: "hsl(var(--bark) / 0.12)",
+                                boxShadow: haloColor
+                                  ? `0 0 0 2.5px ${haloColor}`
+                                  : "0 0 0 1px hsl(var(--olivewood) / 0.18)",
+                              }}
+                            >
+                              {app.profiles?.avatar_url ? (
+                                <OptimizedImage
+                                  src={app.profiles.avatar_url}
+                                  width={44}
+                                  height={44}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="font-display italic font-bold text-[0.85rem]" style={{ color: "hsl(var(--bark))" }}>
+                                  {helperInitials}
+                                </span>
+                              )}
+                            </a>
 
-                    {/* Applicant message */}
-                    {app.message && (
-                      <div className="rounded-ds-sm bg-primary/5 border border-primary/15 p-3">
-                        <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide mb-1">Their Message</p>
-                        <p className="text-ds-13 text-foreground leading-relaxed">{app.message}</p>
-                      </div>
-                    )}
+                            <div className="flex-1 min-w-0">
+                              {/* Name + tier badge */}
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <a
+                                  href={`/user/${app.helper_id}`}
+                                  className="font-display italic font-bold truncate hover:underline"
+                                  style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                                >
+                                  {helperName}
+                                </a>
+                                {isElite && (
+                                  <span
+                                    className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                                    style={{
+                                      background: "hsl(var(--gold-warm) / 0.14)",
+                                      color: "hsl(var(--gold-warm))",
+                                      letterSpacing: "0.08em",
+                                    }}
+                                  >
+                                    Elite
+                                  </span>
+                                )}
+                                {isPro && (
+                                  <span
+                                    className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                                    style={{
+                                      background: "hsl(var(--burnt-sienna) / 0.12)",
+                                      color: "hsl(var(--burnt-sienna))",
+                                      letterSpacing: "0.08em",
+                                    }}
+                                  >
+                                    Pro
+                                  </span>
+                                )}
+                                {/* Inline rating — compact ★ 4.9 (23) */}
+                                {(app.reviewCount ?? 0) > 0 && (
+                                  <span className="flex items-center gap-0.5 shrink-0">
+                                    <Star
+                                      className="w-3 h-3"
+                                      style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }}
+                                    />
+                                    <span className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                                      {(app.avgRating ?? 0).toFixed(1)}{" "}
+                                      <span style={{ color: "hsl(var(--olivewood) / 0.55)" }}>({app.reviewCount})</span>
+                                    </span>
+                                  </span>
+                                )}
+                              </div>
+                              {/* Trust signals row */}
+                              {visibleSignals.length > 0 && (
+                                <p
+                                  className="font-serif italic mt-0.5 leading-snug"
+                                  style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.68)" }}
+                                >
+                                  {visibleSignals.join(" · ")}
+                                </p>
+                              )}
+                            </div>
 
-                    {/* Applicant attachments */}
-                    {(app.attachment_urls || []).length > 0 && (
-                      <div className="space-y-1.5">
-                        <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide">Attached Files</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {(app.attachment_urls || []).map((url, i) => {
-                            const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-                            return (
-                              <AttachmentLink
-                                key={i}
-                                url={url}
-                                index={i}
-                                variant={isImage ? "thumb" : "chip"}
-                              />
-                            );
-                          })}
+                            {/* Status / hire button */}
+                            {app.status === "pending" && (
+                              <Button
+                                variant="bark"
+                                size="sm"
+                                className="rounded-ds-md btn-press shrink-0"
+                                aria-label={`Select ${helperName}`}
+                                onClick={() => onAcceptApplication(app)}
+                              >
+                                Hire
+                              </Button>
+                            )}
+                            {app.status === "accepted" && (
+                              <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]">
+                                <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--bark))]" aria-hidden="true" />
+                                Selected
+                              </span>
+                            )}
+                            {app.status === "rejected" && (
+                              <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.7)]">
+                                <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--olivewood)/0.7)]" aria-hidden="true" />
+                                Declined
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Row 2: applicant message — compact quote style */}
+                          {app.message && (
+                            <p
+                              className="font-serif italic text-ds-13 leading-snug line-clamp-2 pl-14"
+                              style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
+                            >
+                              "{app.message}"
+                            </p>
+                          )}
+
+                          {/* Row 3: attachments */}
+                          {(app.attachment_urls || []).length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pl-14">
+                              {(app.attachment_urls || [] as string[]).map((url: string, i: number) => {
+                                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                                return (
+                                  <AttachmentLink
+                                    key={i}
+                                    url={url}
+                                    index={i}
+                                    variant={isImage ? "thumb" : "chip"}
+                                  />
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    )}
-                  </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

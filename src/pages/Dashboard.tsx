@@ -34,6 +34,7 @@ const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
+const JitVerifySheet = lazy(() => import("@/components/dashboard/JitVerifySheet").then(m => ({ default: m.JitVerifySheet })));
 import SectionBoundary from "@/components/SectionBoundary";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -146,6 +147,11 @@ const Dashboard = () => {
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
+  // JIT verify gate — shown on first-ever Apply tap (has_applied_before=false).
+  // pendingJobIdForVerify holds the job they tapped Apply on so we can
+  // proceed once they dismiss the sheet.
+  const [jitVerifyOpen, setJitVerifyOpen] = useState(false);
+  const [pendingJobIdForVerify, setPendingJobIdForVerify] = useState<string | null>(null);
   const [payoutSetupDialogOpen, setPayoutSetupDialogOpen] = useState(false);
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
@@ -339,10 +345,34 @@ const Dashboard = () => {
     if (!user) { navigate("/login"); return; }
     const job = allJobs.find((j) => j.id === jobId);
     if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
-    // Apply has no gate — Stripe Connect payout setup + IDV both fire at
-    // first Accept (see Activity.tsx → handleHelperResponse). Applying
-    // is just expressing interest; no need to make users set up payouts
-    // for jobs they may never win.
+
+    // JIT verify gate: on the very first Apply tap, check whether the user
+    // has applied before. If not AND they haven't been prompted yet, show the
+    // identity-nudge sheet before proceeding. This is a soft nudge — not a
+    // hard block. If the profile columns don't exist yet (PGRST202), skip
+    // the check and proceed normally.
+    try {
+      const { data: profileSnap, error: profileErr } = await supabase
+        .from("profiles")
+        .select("has_applied_before, id_verification_status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!profileErr && profileSnap) {
+        const needsNudge =
+          !profileSnap.has_applied_before &&
+          profileSnap.id_verification_status === "unverified";
+        if (needsNudge) {
+          setPendingJobIdForVerify(jobId);
+          setJitVerifyOpen(true);
+          return;
+        }
+      }
+      // PGRST202 or any other error: fall through silently and proceed.
+    } catch {
+      // Non-fatal — fall through.
+    }
+
     setConfirmApplyJobId(jobId);
   }, [user, allJobs, navigate]);
 
@@ -529,6 +559,37 @@ const Dashboard = () => {
       { onSettled: () => setApplyLoading(false) },
     );
   }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, applyMutation]);
+
+  // JIT verify handlers. Both paths (Verify + Later) flip has_applied_before
+  // so the nudge never shows again. "Later" also records 'prompted' status
+  // so we know the user saw the sheet, then proceeds with the application.
+  const handleJitVerifyProceed = useCallback(async (goVerify: boolean) => {
+    setJitVerifyOpen(false);
+    const jobId = pendingJobIdForVerify;
+    setPendingJobIdForVerify(null);
+    // Update profile flags in the background — non-blocking. Fall back
+    // gracefully if the columns aren't in prod yet (PGRST202).
+    if (user) {
+      supabase
+        .from("profiles")
+        .update({
+          has_applied_before: true,
+          id_verification_status: goVerify ? "submitted" : "prompted",
+        })
+        .eq("user_id", user.id)
+        .then(({ error }) => {
+          if (error && (error as { code?: string }).code !== "PGRST202") {
+            // Non-fatal — just observe.
+          }
+        });
+    }
+    if (goVerify) {
+      navigate("/profile");
+      return;
+    }
+    // "Later" — proceed with the application.
+    if (jobId) setConfirmApplyJobId(jobId);
+  }, [user, pendingJobIdForVerify, navigate]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);
@@ -1012,6 +1073,20 @@ const Dashboard = () => {
       {payoutSetupDialogOpen && (
         <Suspense fallback={null}>
           <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />
+        </Suspense>
+      )}
+
+      {/* JIT verify nudge — shown once on the helper's very first Apply tap.
+          Soft nudge only; "I'll do this later" still proceeds with the
+          application. The sheet is lazy-loaded because it's only needed once
+          per lifetime per account. */}
+      {jitVerifyOpen && (
+        <Suspense fallback={null}>
+          <JitVerifySheet
+            open={jitVerifyOpen}
+            onVerify={() => handleJitVerifyProceed(true)}
+            onLater={() => handleJitVerifyProceed(false)}
+          />
         </Suspense>
       )}
 

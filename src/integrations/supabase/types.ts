@@ -887,6 +887,57 @@ export type Database = {
         }
         Relationships: []
       }
+      helper_skills: {
+        Row: {
+          id: string
+          user_id: string
+          skill: string
+          category: string | null
+          endorsement_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          skill: string
+          category?: string | null
+          endorsement_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          skill?: string
+          category?: string | null
+          endorsement_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      skill_endorsements: {
+        Row: {
+          id: string
+          skill_id: string
+          endorser_id: string
+          job_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          skill_id: string
+          endorser_id: string
+          job_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          skill_id?: string
+          endorser_id?: string
+          job_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       instant_payouts: {
         Row: {
           created_at: string
@@ -1914,10 +1965,12 @@ export type Database = {
           experience_level: string | null
           extra_comments: string | null
           full_name: string | null
+          has_applied_before: boolean
           hear_about_us: string | null
           hourly_rate: number | null
           id: string
           id_document_url: string | null
+          id_verification_status: string
           idv_attempted_at: string | null
           idv_confidence: number | null
           idv_failure_reason: string | null
@@ -1981,10 +2034,12 @@ export type Database = {
           experience_level?: string | null
           extra_comments?: string | null
           full_name?: string | null
+          has_applied_before?: boolean
           hear_about_us?: string | null
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
+          id_verification_status?: string
           idv_attempted_at?: string | null
           idv_confidence?: number | null
           idv_failure_reason?: string | null
@@ -2048,10 +2103,12 @@ export type Database = {
           experience_level?: string | null
           extra_comments?: string | null
           full_name?: string | null
+          has_applied_before?: boolean
           hear_about_us?: string | null
           hourly_rate?: number | null
           id?: string
           id_document_url?: string | null
+          id_verification_status?: string
           idv_attempted_at?: string | null
           idv_confidence?: number | null
           idv_failure_reason?: string | null
@@ -3178,6 +3235,10 @@ export type Database = {
       // These RPCs exist in the database but were missing from the last
       // generated types. Re-running `npm run db:types` folds them in
       // properly and this block can then be deleted.
+      endorse_skill: {
+        Args: { p_skill_id: string }
+        Returns: undefined
+      }
       get_user_credential_tier: {
         Args: { p_user_id: string }
         Returns: number

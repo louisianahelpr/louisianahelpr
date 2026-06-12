@@ -23,6 +23,7 @@ import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import { ProfileStatsTrend } from "@/components/profile/ProfileStatsTrend";
+import { SkillsManager } from "@/components/profile/SkillsManager";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -580,6 +581,13 @@ export function ProfileLanding({
             >+ Add a short bio so applicants know who they're hiring.</button>
           )}
         </div>
+
+        {/* Your skills — the helper adds/manages skills on their own
+            profile; endorsement counts are shown inline. Only rendered
+            when a user_id is known (i.e. a real signed-in account row). */}
+        {profile?.user_id && (
+          <SkillsManager userId={profile.user_id} />
+        )}
 
         {/* QR code button — shows the helper's shareable verification QR.
             Only visible on the user's own profile (profile.user_id is

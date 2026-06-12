@@ -30,6 +30,7 @@ import { deriveJobSystemEvents, type JobSystemEvent, type JobTimestamps } from "
 import type { Conversation, Message } from "@/components/messages/types";
 import { ChatView } from "@/components/messages/ChatView";
 import { ConversationList } from "@/components/messages/ConversationList";
+import { SectionBoundary } from "@/components/SectionBoundary";
 
 const CHAT_PAGE_SIZE = 50;
 
@@ -1014,48 +1015,52 @@ const Messages = () => {
   return (
     <>
       {!activeConvo ? (
-        <ConversationList
-          conversations={conversations}
-          loading={loading}
-          loadError={loadError}
-          userId={userId}
-          loadConversations={loadConversations}
-          openConvo={openConvo}
-          setReportTarget={setReportTarget}
-          setBlockTarget={setBlockTarget}
-          setDeleteConvoConfirm={setDeleteConvoConfirm}
-          onToggleMute={handleToggleMute}
-          onSnoozeMute={handleSnoozeMute}
-          onUnmute={handleUnmute}
-        />
+        <SectionBoundary label="conversations">
+          <ConversationList
+            conversations={conversations}
+            loading={loading}
+            loadError={loadError}
+            userId={userId}
+            loadConversations={loadConversations}
+            openConvo={openConvo}
+            setReportTarget={setReportTarget}
+            setBlockTarget={setBlockTarget}
+            setDeleteConvoConfirm={setDeleteConvoConfirm}
+            onToggleMute={handleToggleMute}
+            onSnoozeMute={handleSnoozeMute}
+            onUnmute={handleUnmute}
+          />
+        </SectionBoundary>
       ) : (
-        <ChatView
-          activeConvo={activeConvo}
-          setActiveConvo={setActiveConvo}
-          keyboardInset={keyboardInset}
-          isOtherOnline={isOtherOnline}
-          isOtherTyping={isOtherTyping}
-          broadcastTyping={broadcastTyping}
-          messages={messages}
-          userId={userId}
-          chatLoadError={chatLoadError}
-          onRetryLoad={() => openConvo(activeConvo)}
-          hasMoreMessages={hasMoreMessages}
-          loadingMore={loadingMore}
-          loadOlderMessages={loadOlderMessages}
-          onRefreshThread={refreshActiveThread}
-          sendMessage={sendMessage}
-          retryMessage={retryMessage}
-          chatContainerRef={chatContainerRef}
-          bottomRef={bottomRef}
-          setReportTarget={setReportTarget}
-          setBlockTarget={setBlockTarget}
-          setDeleteMessageConfirm={setDeleteMessageConfirm}
-          onToggleMute={handleToggleMute}
-          onSnoozeMute={handleSnoozeMute}
-          onUnmute={handleUnmute}
-          jobSystemEvents={jobSystemEvents}
-        />
+        <SectionBoundary label="chat">
+          <ChatView
+            activeConvo={activeConvo}
+            setActiveConvo={setActiveConvo}
+            keyboardInset={keyboardInset}
+            isOtherOnline={isOtherOnline}
+            isOtherTyping={isOtherTyping}
+            broadcastTyping={broadcastTyping}
+            messages={messages}
+            userId={userId}
+            chatLoadError={chatLoadError}
+            onRetryLoad={() => openConvo(activeConvo)}
+            hasMoreMessages={hasMoreMessages}
+            loadingMore={loadingMore}
+            loadOlderMessages={loadOlderMessages}
+            onRefreshThread={refreshActiveThread}
+            sendMessage={sendMessage}
+            retryMessage={retryMessage}
+            chatContainerRef={chatContainerRef}
+            bottomRef={bottomRef}
+            setReportTarget={setReportTarget}
+            setBlockTarget={setBlockTarget}
+            setDeleteMessageConfirm={setDeleteMessageConfirm}
+            onToggleMute={handleToggleMute}
+            onSnoozeMute={handleSnoozeMute}
+            onUnmute={handleUnmute}
+            jobSystemEvents={jobSystemEvents}
+          />
+        </SectionBoundary>
       )}
 
       {reportTarget && (

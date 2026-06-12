@@ -197,16 +197,14 @@ const Index = () => {
           Self-hides when there's no recent payout data OR when the
           public RPC hasn't been pushed yet (PGRST202 fallback), so a
           fresh / quiet platform doesn't show an empty placeholder. */}
-      <div className="px-5 sm:px-8 lg:px-12 pt-10 sm:pt-12 lg:pt-14">
+      <div className="px-5 sm:px-8 lg:px-12 pt-6 sm:pt-8">
         <Suspense fallback={null}>
           <PayoutTicker />
         </Suspense>
       </div>
 
-      {/* City strip — sense-of-place transition between hero and process,
-          replacing the previous "hugs the marquee" placement inside the
-          hero with proper breathing room above the Three Steps section. */}
-      <div className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-20 pb-4 sm:pb-6">
+      {/* City strip — sense-of-place transition between hero and process. */}
+      <div className="px-5 sm:px-8 lg:px-12 pt-5 sm:pt-6 pb-2 sm:pb-3">
         <p
           className="text-center font-serif italic text-ds-11 sm:text-ds-13 tracking-[0.18em] uppercase"
           style={{ color: "hsl(var(--burnt-sienna))", opacity: 0.55 }}

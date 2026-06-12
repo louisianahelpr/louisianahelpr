@@ -51,6 +51,9 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         uploadProgress={form.uploadProgress}
         onEdit={() => form.setStep("form")}
         onSubmit={form.handleSubmit}
+        helperFee={form.helperFee}
+        isInstantBook={form.isInstantBook}
+        parish={null}
       />
     </div>
   );

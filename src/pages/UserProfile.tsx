@@ -121,7 +121,7 @@ const UserProfile = () => {
       // blocks the row read.
       const wantsMutual = !!currentUserId && currentUserId !== userId;
 
-      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes] = await Promise.all([
+      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
@@ -174,6 +174,15 @@ const UserProfile = () => {
           .eq("status", "completed")
           .order("created_at", { ascending: false })
           .limit(50),
+        // Poster-side reputation — reviews left for this user in their role
+        // as a job poster (customer). We look up jobs posted by this user,
+        // then fetch reviews where the reviewee is this user AND the job is
+        // in that set. Degrades gracefully to empty on error.
+        supabase
+          .from("reviews")
+          .select("rating, job_id")
+          .eq("reviewee_id", userId!)
+          .lte("feedback_visible_at", new Date().toISOString()),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -186,7 +195,7 @@ const UserProfile = () => {
         ["applications", appsRes], ["trust_signals", idCheckRes],
         ["posted_total", postedTotalRes], ["posted_cancelled", postedCancelledRes],
         ["worked_total", workedTotalRes], ["worked_cancelled", workedCancelledRes],
-        ["worked_timing", workedTimingRes],
+        ["worked_timing", workedTimingRes], ["poster_reviews", posterReviewsRes],
       ] as const) {
         if (res.error) {
           report(res.error, {
@@ -327,6 +336,23 @@ const UserProfile = () => {
         });
       }
 
+      // Poster-side reputation — determine which reviews were received
+      // for jobs where this user was the customer (poster). We resolve
+      // job_id → customer_id by checking against postedJobs. Reviews
+      // whose job_id maps to a job the user posted are "poster reviews".
+      // Only show when there are 3+ poster reviews (same minimum as the
+      // helper-side chart) to avoid noisy stats on fresh accounts.
+      const postedJobIdSet = new Set(postedJobs.map((j) => j.id));
+      const allReviewRows = (posterReviewsRes.data || []) as Array<{ rating: number; job_id: string }>;
+      const posterReviewRows = allReviewRows.filter((r) => postedJobIdSet.has(r.job_id));
+      const posterRatings = posterReviewRows.map((r) => r.rating);
+      const posterReputation = posterRatings.length >= 3
+        ? {
+            reviewCount: posterRatings.length,
+            avgRating: posterRatings.reduce((a, b) => a + b, 0) / posterRatings.length,
+          }
+        : null;
+
       return {
         profile: prof as Profile,
         reviews,
@@ -349,6 +375,9 @@ const UserProfile = () => {
           idv_status: idCheckRes.data?.idv_status ?? null,
           stripe_account_id: idCheckRes.data?.stripe_account_id ?? null,
         },
+        posterReputation,
+        postedTotalCount: postedTotalRes.count ?? 0,
+        postedCancelledCount: postedCancelledRes.count ?? 0,
       };
     },
   });
@@ -366,6 +395,9 @@ const UserProfile = () => {
   const lastActiveAt = data?.lastActiveIso ? new Date(data.lastActiveIso) : null;
   const isIdVerified = data?.isIdVerified ?? false;
   const tierProfile = data?.tierProfile ?? null;
+  const posterReputation = data?.posterReputation ?? null;
+  const postedTotalCount = data?.postedTotalCount ?? 0;
+  const postedCancelledCount = data?.postedCancelledCount ?? 0;
   const loading = isLoading && !data;
 
   // Geo for the "did N jobs nearby" badge (#31). Only enable the hook
@@ -1003,6 +1035,204 @@ const UserProfile = () => {
                 {reviewBtn}
                 {postedBtn}
                 {workedBtn}
+              </div>
+            );
+          })()}
+
+          {/* ── Rating distribution bar chart (1a) ────────────────────
+              Shows the 5→1 star breakdown when there are 3+ reviews.
+              Each bar is relative to the total, so a user with all 5s
+              gets a full-width bark fill at row 5 and empty tracks
+              on rows 1-4. The count label on the right gives an exact
+              sense of how representative each bucket is. */}
+          {reviews.length >= 3 && (() => {
+            const buckets = [5, 4, 3, 2, 1].map((star) => ({
+              star,
+              count: reviews.filter((r) => Math.round(r.rating) === star).length,
+            }));
+            const total = reviews.length;
+
+            // Sub-rating averages — compute from reviews that have the
+            // column filled in (null skipped, not dragged to 0). Gate on
+            // 3+ sub-rated reviews so a single detailed review doesn't
+            // look authoritative.
+            const subReviews = reviews.filter(
+              (r) => r.punctuality !== null || r.quality !== null || r.communication !== null,
+            );
+            const subAvg = (key: "punctuality" | "quality" | "communication") => {
+              const vals = subReviews
+                .map((r) => r[key])
+                .filter((v): v is number => v !== null);
+              return vals.length >= 3
+                ? { avg: vals.reduce((a, b) => a + b, 0) / vals.length, count: vals.length }
+                : null;
+            };
+            const punctualityAvg = subAvg("punctuality");
+            const qualityAvg = subAvg("quality");
+            const communicationAvg = subAvg("communication");
+            const hasSubRatings = punctualityAvg !== null || qualityAvg !== null || communicationAvg !== null;
+
+            return (
+              <div className="rounded-ds-md liquid-glass p-4 space-y-3">
+                {/* Distribution chart */}
+                <p
+                  className="text-[10px] uppercase tracking-wide font-semibold"
+                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                >
+                  Rating breakdown
+                </p>
+                <div className="space-y-1.5">
+                  {buckets.map(({ star, count }) => (
+                    <div key={star} className="flex items-center gap-2">
+                      <span
+                        className="text-ds-11 font-semibold tabular-nums w-5 shrink-0 text-right"
+                        style={{ color: "hsl(var(--ink-deep))" }}
+                      >
+                        {star}
+                      </span>
+                      <Star
+                        className="w-2.5 h-2.5 shrink-0"
+                        style={{ color: "hsl(var(--bark))", fill: "hsl(var(--bark))" }}
+                      />
+                      {/* Track + fill */}
+                      <div
+                        className="relative flex-1 h-2 rounded-full overflow-hidden"
+                        style={{ background: "hsl(var(--bark) / 0.10)" }}
+                      >
+                        <div
+                          className="absolute inset-y-0 left-0 rounded-full transition-all"
+                          style={{
+                            width: total > 0 ? `${(count / total) * 100}%` : "0%",
+                            background: "hsl(var(--bark))",
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="text-ds-11 tabular-nums w-4 shrink-0 text-right"
+                        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                      >
+                        {count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Sub-rating mini bars (1b) */}
+                {hasSubRatings && (
+                  <>
+                    <div className="h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
+                    <p
+                      className="text-[10px] uppercase tracking-wide font-semibold"
+                      style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                    >
+                      Sub-ratings
+                    </p>
+                    <div className="space-y-1.5">
+                      {[
+                        { label: "Punctuality", data: punctualityAvg },
+                        { label: "Quality", data: qualityAvg },
+                        { label: "Communication", data: communicationAvg },
+                      ].map(({ label, data: d }) =>
+                        d === null ? null : (
+                          <div key={label} className="flex items-center gap-2">
+                            <span
+                              className="text-ds-11 w-24 shrink-0"
+                              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                            >
+                              {label}
+                            </span>
+                            <div
+                              className="relative flex-1 h-2 rounded-full overflow-hidden"
+                              style={{ background: "hsl(var(--bark) / 0.10)" }}
+                            >
+                              <div
+                                className="absolute inset-y-0 left-0 rounded-full"
+                                style={{
+                                  width: `${(d.avg / 5) * 100}%`,
+                                  background: "hsl(var(--bark))",
+                                }}
+                              />
+                            </div>
+                            <span
+                              className="text-ds-11 font-semibold tabular-nums w-7 shrink-0 text-right"
+                              style={{ color: "hsl(var(--ink-deep))" }}
+                            >
+                              {d.avg.toFixed(1)}
+                            </span>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── As a job poster (1c) ────────────────────────────────
+              Every user is both a potential poster AND a helper — this
+              section makes their poster reputation visible. Shows the
+              average rating they've received as a job poster, how many
+              jobs they've posted, and their poster cancellation rate.
+              Only renders when the user has posted at least one job
+              and received at least 3 poster reviews (same quality gate
+              as the helper-side chart). */}
+          {(() => {
+            const hasPosterActivity = postedTotalCount > 0;
+            if (!hasPosterActivity) return null;
+
+            const posterCancelRate =
+              postedTotalCount >= 5
+                ? (postedCancelledCount / postedTotalCount) * 100
+                : null;
+
+            return (
+              <div className="rounded-ds-md liquid-glass p-4 space-y-2">
+                <p
+                  className="text-[10px] uppercase tracking-wide font-semibold"
+                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                >
+                  As a job poster
+                </p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-ds-11">
+                  <span className="flex items-center gap-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                    <ClipboardList className="w-3 h-3" />
+                    <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
+                      {postedTotalCount}
+                    </span>
+                    {" "}job{postedTotalCount !== 1 ? "s" : ""} posted
+                  </span>
+                  {posterReputation !== null && (
+                    <span className="flex items-center gap-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      <Star className="w-3 h-3" style={{ fill: "hsl(var(--bark))", color: "hsl(var(--bark))" }} />
+                      <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {posterReputation.avgRating.toFixed(1)}
+                      </span>
+                      {" "}avg poster rating
+                      <span style={{ color: "hsl(var(--olivewood) / 0.45)" }}>
+                        ({posterReputation.reviewCount})
+                      </span>
+                    </span>
+                  )}
+                  {posterCancelRate !== null && (
+                    <span className="flex items-center gap-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      <span
+                        className="font-display italic font-bold tabular-nums"
+                        style={{
+                          color:
+                            posterCancelRate < 5
+                              ? "hsl(var(--ink-deep))"
+                              : posterCancelRate < 15
+                              ? "hsl(var(--gold-warm))"
+                              : "hsl(var(--burnt-sienna))",
+                        }}
+                      >
+                        {posterCancelRate.toFixed(0)}%
+                      </span>
+                      {" "}cancel rate
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })()}

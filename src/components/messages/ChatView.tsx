@@ -754,6 +754,22 @@ export function ChatView({
                 );
               }
               const m = item.message;
+              // System messages — DB rows where sender_id is NULL and
+              // is_system is true. Render as centered italic pill (same
+              // visual idiom as the derived `jobSystemEvents` rows above),
+              // no bubble, no avatar, no meta row.
+              if (m.is_system) {
+                return (
+                  <div key={item.key} className="flex justify-center py-1.5">
+                    <span
+                      className="text-ds-11 font-serif italic px-3 py-0.5 rounded-full"
+                      style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                    >
+                      {m.content}
+                    </span>
+                  </div>
+                );
+              }
               return (
                 <MessageBubble
                   key={item.key}

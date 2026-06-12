@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { safeStorage } from "@/lib/safeStorage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { useLongPress } from "@/hooks/useLongPress";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
@@ -181,11 +182,11 @@ const TabButton = ({
 
 const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
-  { path: "/my-posts", icon: Send, label: "Posts" },
+  { path: "/my-posts", icon: Send, label: "Posts", badgeKey: "posts" as const },
 ];
 
 const rightItems = [
-  { path: "/my-jobs", icon: ClipboardList, label: "Jobs" },
+  { path: "/my-jobs", icon: ClipboardList, label: "Jobs", badgeKey: "jobs" as const },
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
   { path: "/profile", icon: User, label: "Profile" },
 ];
@@ -206,6 +207,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // (loadCounts) overwrites this on success and also writes back to the
   // cache so the next session is up to date.
   const [unreadCount, setUnreadCount] = useState<number>(() => readCachedUnread());
+  // Lightweight "actionable activity" counts for the Posts / Jobs tab
+  // badges (new applicants on your posts; pending direct offers to you).
+  // Count-only queries — deliberately not the heavy useActivityData hook.
+  const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateLabel, setGateLabel] = useState("this feature");
   // Long-press quick-action sheet — one sheet, with content keyed by which
@@ -400,7 +405,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     setGateOpen(true);
   };
 
-  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "activity" }) => {
+  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "posts" | "jobs" }) => {
     // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
     // that mirrors the real /dashboard), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
@@ -421,7 +426,18 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       (isGuest && path === "/dashboard" && (location.pathname === "/browse" || location.pathname === "/jobs"));
 
     const inStack = !isGuest && isInStack(path);
-    const badgeCount = !isGuest && badgeKey === "messages" ? unreadCount : 0;
+    // Guests never carry a badge (nothing to count). Each badged tab pulls
+    // from its own count source: Messages → unread DMs, Posts → new
+    // applicants on your jobs, Jobs → pending direct offers to you.
+    const badgeCount = isGuest
+      ? 0
+      : badgeKey === "messages"
+        ? unreadCount
+        : badgeKey === "posts"
+          ? postsCount
+          : badgeKey === "jobs"
+            ? jobsCount
+            : 0;
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {

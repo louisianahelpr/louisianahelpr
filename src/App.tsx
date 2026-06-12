@@ -94,6 +94,9 @@ const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
 const ImpactPage = lazy(() => import("./pages/ImpactPage"));
+const HomeHistory = lazy(() => import("./pages/HomeHistory"));
+const WorkRecord = lazy(() => import("./pages/WorkRecord"));
+
 // Lazy load less-critical global components
 
 const FamilyDashboard = lazy(() => import("./pages/FamilyDashboard"));
@@ -200,6 +203,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/business/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessOnboarding /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/reports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessReports /></ProtectedRoute>)}</RouteErrorBoundary>} />
 
+      <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/work-record" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><WorkRecord /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
 
       {/* Community discovery — public, document-scroll, SEO-indexable */}

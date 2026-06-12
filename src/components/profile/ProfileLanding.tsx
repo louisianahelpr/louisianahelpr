@@ -10,6 +10,7 @@ import {
   BadgeCheck, Camera, Check,
   TrendingUp, MoreHorizontal, QrCode, Share2, Home,
   Users, Type, PawPrint,
+  ClipboardList, FileText,
 } from "lucide-react";
 import {
   Dialog,
@@ -315,6 +316,27 @@ export function ProfileLanding({
           desc: "Donate job credits for neighbors who need help",
           tint: "155 50% 30%",
           href: "/pay-it-forward",
+        },
+      ],
+    },
+    {
+      title: "Records",
+      items: [
+        {
+          key: "home-history",
+          label: "Home History",
+          icon: <ClipboardList className="w-5 h-5" />,
+          desc: "Your home's permanent maintenance record",
+          tint: "var(--sage)",
+          href: "/home-history",
+        },
+        {
+          key: "work-record",
+          label: "Work Record",
+          icon: <FileText className="w-5 h-5" />,
+          desc: "Shareable verified earnings document",
+          tint: "var(--gold-warm)",
+          href: "/work-record",
         },
       ],
     },

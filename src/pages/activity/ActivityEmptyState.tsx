@@ -23,6 +23,10 @@ export interface ActivityEmptyStateProps {
   loadError: boolean;
   postedJobsCount: number;
   appliedAppsCount: number;
+  /** Active status filter — drives the "no matches" copy. */
+  statusFilter: string;
+  /** Whether a search query is currently narrowing the list. */
+  hasSearch: boolean;
   onRetry: () => void;
   onNavigate: (to: string) => void;
 }
@@ -32,6 +36,8 @@ export function ActivityEmptyState({
   loadError,
   postedJobsCount,
   appliedAppsCount,
+  statusFilter,
+  hasSearch,
   onRetry,
   onNavigate,
 }: ActivityEmptyStateProps) {
@@ -52,13 +58,18 @@ export function ActivityEmptyState({
     ? (isPosted ? "Nothing posted yet." : "No applications yet.")
     : "No tasks in this view.";
   // Cross-tab nudge: posted-empty hints at the helper side, applied-empty
-  // hints at posting. Filtered-but-empty keeps the "try a different
-  // filter" line.
+  // hints at posting. For the filtered-but-empty case the copy depends on
+  // *why* it's empty — a search with no hits, an "all" filter (no other
+  // status to try), or a specific status filter that's hiding the rest.
   const body = isTrulyEmpty
     ? (isPosted
         ? "While you wait for the right moment to post, you can earn on the helper side — browse open tasks near you and apply."
         : "While you scout for the right gig, post one of your own — your neighbors might be the perfect match.")
-    : "Try a different filter — there might be tasks in another status.";
+    : hasSearch
+      ? "No tasks match your search — try a different term."
+      : statusFilter === "all"
+        ? "No tasks match the current view."
+        : "Try a different filter — there might be tasks in another status.";
   // Swap the CTAs on the empty state so each tab promotes the OTHER side
   // of the marketplace. When the user has data ("no matches" view) we
   // keep them on the same side they're filtering.

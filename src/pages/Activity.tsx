@@ -33,7 +33,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
   const tab = defaultTab as Tab;
-  const defaultFilter = defaultTab === "applied" ? "pending" : "open";
+  // My Posts defaults to "all" (the grouped Active/Completed/Cancelled view)
+  // so a poster whose only tasks are completed/cancelled still sees them on
+  // landing instead of an empty "open" view that reads as "0 posts".
+  const defaultFilter = defaultTab === "applied" ? "pending" : "all";
   // Filter + search seed from URL params so a deep link (or browser
   // back/forward) lands the user on the exact view they had. We keep the
   // local-state mirror because the dropdown/search inputs need a
@@ -284,6 +287,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               loadError={!!loadError}
               postedJobsCount={postedJobs.length}
               appliedAppsCount={appliedApps.length}
+              statusFilter={statusFilter}
+              hasSearch={!!searchQuery.trim()}
               onRetry={refresh}
               onNavigate={navigate}
             />

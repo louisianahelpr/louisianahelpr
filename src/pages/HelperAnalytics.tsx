@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Crown, TrendingUp, Target, Calendar, BarChart2, Star } from "lucide-react";
+import { Crown, TrendingUp, Target, Calendar, BarChart2, Star, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -31,7 +31,7 @@ async function fetchAnalytics(userId: string) {
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   const iso6m = sixMonthsAgo.toISOString();
 
-  const [profileRes, completedJobsRes, allAppsRes, ratingsRes, benchRes] = await Promise.all([
+  const [profileRes, completedJobsRes, allAppsRes, ratingsRes, benchRes, profileViewsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("subscription_tier, full_name")
@@ -57,6 +57,9 @@ async function fetchAnalytics(userId: string) {
       .order("created_at", { ascending: false }),
     // Platform-wide benchmarks (PGRST202 silently ignored — fallback values used).
     (supabase.rpc as any)("get_platform_benchmarks"),
+    // Profile view count — PGRST202 silently falls back to 0 if not yet deployed.
+    (supabase.rpc as any)("get_monthly_profile_view_count", { p_user_id: userId })
+      .catch(() => ({ data: null, error: { code: "PGRST202" } })),
   ]);
 
   if (profileRes.error) throw profileRes.error;
@@ -146,6 +149,13 @@ async function fetchAnalytics(userId: string) {
     ? 4.2
     : (benchRow.avg_helper_rating ?? 4.2);
 
+  const profileViewCount =
+    profileViewsRes.error || profileViewsRes.data === null
+      ? 0
+      : typeof profileViewsRes.data === "number"
+      ? profileViewsRes.data
+      : 0;
+
   return {
     tier,
     totalEarnings,
@@ -164,6 +174,7 @@ async function fetchAnalytics(userId: string) {
     reviewCount,
     starBuckets,
     PLATFORM_AVERAGE_RATING,
+    profileViewCount,
   };
 }
 
@@ -318,6 +329,34 @@ const HelperAnalytics = () => {
                 ) : (
                   <p className="text-ds-12 text-muted-foreground text-center py-2">
                     Complete jobs to see your top categories.
+                  </p>
+                )}
+              </div>
+            )}
+          </SectionCard>
+
+          {/* Profile views */}
+          <SectionCard
+            title="Profile views"
+            icon={<Eye className="w-4 h-4" />}
+            hasAccess={hasAnalyticsAccess}
+            isLoading={isLoadingData}
+            onUpgrade={() => navigate("/profile?tab=subscription")}
+          >
+            {analytics && (
+              <div className="text-center py-2 space-y-1">
+                <p
+                  className="font-display italic font-bold"
+                  style={{ fontSize: "2.2rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
+                >
+                  {analytics.profileViewCount}
+                </p>
+                <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                  profile views in the last 30 days
+                </p>
+                {analytics.profileViewCount === 0 && (
+                  <p className="text-ds-11 text-muted-foreground">
+                    Views are counted once per visitor per hour.
                   </p>
                 )}
               </div>

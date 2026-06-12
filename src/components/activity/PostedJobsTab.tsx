@@ -249,6 +249,7 @@ export const PostedJobsTab = ({
         distanceKm: null,        // not available in this context
         responseTimeMinutes: null,
         neighborCount,           // live from get_neighbor_hire_count RPC
+        stakeAmount: (app as any).stake_amount ?? null,
       };
       const result = scoreApplicant(data);
       map.set(app.helper_id, result.score);
@@ -697,6 +698,19 @@ export const PostedJobsTab = ({
                                     aria-hidden="true"
                                   />
                                   {neighborCount} neighbor{neighborCount > 1 ? "s" : ""} hired them
+                                </span>
+                              )}
+                              {(app as any).stake_amount > 0 && (
+                                <span
+                                  className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
+                                  style={{ color: "hsl(155 50% 35%)" }}
+                                >
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                    style={{ background: "hsl(155 50% 35%)" }}
+                                    aria-hidden="true"
+                                  />
+                                  ${(app as any).stake_amount} staked
                                 </span>
                               )}
                             </div>

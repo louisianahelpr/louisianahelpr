@@ -91,6 +91,7 @@ const BusinessOnboarding = lazy(() => import("./pages/business/BusinessOnboardin
 const BusinessReports = lazy(() => import("./pages/business/BusinessReports"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
+const PayItForward = lazy(() => import("./pages/PayItForward"));
 
 // Lazy load less-critical global components
 
@@ -182,6 +183,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/saved-helpers" element={<Navigate to="/profile?tab=saved_helpers" replace />} />
       <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SubscriptionPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* Pay It Forward — community credit marketplace */}
+      <Route path="/pay-it-forward" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />

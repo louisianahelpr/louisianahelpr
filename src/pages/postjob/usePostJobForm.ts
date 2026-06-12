@@ -60,6 +60,11 @@ export function usePostJobForm() {
   // start-fresh / draft / template choice first, which declutters the page.
   const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
+  // Time credits applied from /time-credits page via ?credits=<minutes>.
+  // Displayed as a discount line at checkout; actual Stripe deduction is
+  // a future integration — for now this is a UI intent display only.
+  const creditsParam = parseInt(searchParams.get("credits") || "0", 10);
+  const [timeCreditsApplied] = useState<number>(isNaN(creditsParam) || creditsParam <= 0 ? 0 : creditsParam);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");
@@ -140,6 +145,25 @@ export function usePostJobForm() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  // Scope video — optional 30s clip attached to the job.
+  // Stored as a blob URL locally for preview; uploaded to storage on submit.
+  const [scopeVideoFile, setScopeVideoFile] = useState<File | null>(null);
+  const [scopeVideoPreviewUrl, setScopeVideoPreviewUrl] = useState<string | null>(null);
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("video/")) return;
+    const url = URL.createObjectURL(file);
+    setScopeVideoFile(file);
+    setScopeVideoPreviewUrl(url);
+  };
+
+  const clearVideo = () => {
+    setScopeVideoFile(null);
+    setScopeVideoPreviewUrl(null);
+  };
   // Per-image progress 0..1 keyed by current index in `imageFiles`.
   // Combined view of compression progress (selection time) and upload
   // progress (submit time) — only one phase runs at any given moment.
@@ -168,6 +192,11 @@ export function usePostJobForm() {
     setSaveCardForFutureState(next);
     try { safeStorage.setItem("helpr_save_card_pref", next ? "1" : "0"); } catch { /* ignore */ }
   };
+
+  // Preferred helper shortcut — when the poster has a trusted repeat helper,
+  // a card at checkout lets them route this job to that helper first.
+  // Defaults to true so the opt-in is pre-checked (opt-out, not opt-in).
+  const [sendToPreferred, setSendToPreferred] = useState(true);
 
   // Direct Offer state — set when arriving via /post-job?offerTo=<helperId>
   const [offerToHelperId, setOfferToHelperId] = useState<string | null>(null);
@@ -579,13 +608,37 @@ export function usePostJobForm() {
    * Uploads the selected photos to storage and, if any landed, patches
    * the job row's `photos` column. No-op when there are no images.
    * Toggles the `uploading` flag around the work.
+   * Also uploads the scope video if one was selected.
    */
   const uploadAndAttachPhotos = async (jobId: string) => {
-    if (imageFiles.length === 0) return;
+    const hasPhotos = imageFiles.length > 0;
+    const hasVideo = !!scopeVideoFile;
+    if (!hasPhotos && !hasVideo) return;
     setUploading(true);
-    const photoUrls = await uploadImages(jobId);
+    const photoUrls = hasPhotos ? await uploadImages(jobId) : [];
     if (photoUrls.length > 0) {
       await supabase.from("jobs").update({ photos: photoUrls }).eq("id", jobId);
+    }
+    // Upload scope video — PGRST204/42703 safe (column may not exist on prod yet)
+    if (hasVideo && scopeVideoFile) {
+      try {
+        const ext = scopeVideoFile.name.split(".").pop() || "mp4";
+        const path = `${jobId}/scope-video.${ext}`;
+        const { error: vidErr } = await supabase.storage
+          .from("job-photos")
+          .upload(path, scopeVideoFile, { upsert: true });
+        if (!vidErr) {
+          const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
+          await supabase
+            .from("jobs")
+            .update({ scope_video_url: urlData.publicUrl } as any)
+            .eq("id", jobId);
+        } else {
+          report(vidErr, { tags: { source: "PostJob.uploadScopeVideo" } });
+        }
+      } catch (e) {
+        report(e as Error, { tags: { source: "PostJob.uploadScopeVideo" } });
+      }
     }
     setUploading(false);
   };
@@ -1074,6 +1127,10 @@ export function usePostJobForm() {
     removeImage,
     reorderImages,
     uploadProgressByIndex,
+    // scope video
+    scopeVideoPreviewUrl,
+    handleVideoSelect,
+    clearVideo,
     // materials toggle
     includeMaterials,
     setIncludeMaterials,
@@ -1089,8 +1146,16 @@ export function usePostJobForm() {
     // checkout state
     confirmed,
     setConfirmed,
+    // preferred helper shortcut
+    sendToPreferred,
+    setSendToPreferred,
+    /** The poster's preferred repeat helper, derived from their profile.
+     *  Shown as a "Send to [name] first?" card at checkout. */
+    preferredHelperId: (profile as unknown as { preferred_helper_id?: string | null })?.preferred_helper_id ?? null,
     // ai builder
     applyAiJob,
+    // time credits applied from ?credits= param
+    timeCreditsApplied,
     // derived values
     budgetNum,
     urgentFeeNum,

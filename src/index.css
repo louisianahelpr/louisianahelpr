@@ -1672,3 +1672,17 @@ button,
   }
 }
 
+/* ── Senior mode — larger text + bigger tap targets ─────────────────────────
+   Applied to <html> via document.documentElement.classList.toggle("senior-mode")
+   when the user enables the toggle in Profile > Senior mode.
+   Mirrors the pattern used for html.app-shell (see above). */
+.senior-mode {
+  font-size: 110%;
+}
+.senior-mode .text-ds-12 { font-size: 0.875rem; }
+.senior-mode .text-ds-13 { font-size: 0.9375rem; }
+.senior-mode .text-ds-14 { font-size: 1rem; }
+.senior-mode button, .senior-mode a {
+  min-height: 48px;
+}
+

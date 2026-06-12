@@ -99,6 +99,9 @@ const EvacuationMode = lazy(() => import("./pages/EvacuationMode"));
 
 // Lazy load less-critical global components
 
+const FamilyDashboard = lazy(() => import("./pages/FamilyDashboard"));
+const FamilyAcceptPage = lazy(() => import("./pages/FamilyAcceptPage"));
+
 const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 
 // Lazy load route wrappers
@@ -189,6 +192,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Pay It Forward — community credit marketplace */}
       <Route path="/pay-it-forward" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />

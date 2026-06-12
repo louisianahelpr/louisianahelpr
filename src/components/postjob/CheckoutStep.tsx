@@ -80,6 +80,13 @@ interface CheckoutStepProps {
   isInstantBook?: boolean;
   /** Poster's parish — shown in the location row when available. */
   parish?: string | null;
+  /** Preferred helper stub — shown as a "Send to [name] first?" shortcut
+   *  when the poster has a trusted repeat helper set on their profile. */
+  preferredHelper?: { id: string; name: string | null } | null;
+  /** Whether the "send to preferred helper first" checkbox is checked. */
+  sendToPreferred?: boolean;
+  /** Callback when the checkbox changes. */
+  onSendToPreferredChange?: (checked: boolean) => void;
 }
 
 export function CheckoutStep({
@@ -122,6 +129,9 @@ export function CheckoutStep({
   helperFee,
   isInstantBook,
   parish,
+  preferredHelper,
+  sendToPreferred,
+  onSendToPreferredChange,
 }: CheckoutStepProps) {
   // Compute helper's net payout: budget minus the helper-side commission.
   // Shown in the "Review & Post" summary so posters understand both sides
@@ -492,6 +502,42 @@ export function CheckoutStep({
           </span>
         </div>
       </label>
+
+      {/* Preferred helper shortcut — shown when the poster has a trusted
+          repeat helper. Lets them route this job to that helper first
+          before broadcasting to all. Preference stored in job metadata. */}
+      {preferredHelper && onSendToPreferredChange && (
+        <div
+          className="rounded-ds-md p-3 flex items-center gap-2.5"
+          style={{
+            background: "hsl(var(--bark) / 0.06)",
+            border: "0.5px solid hsl(var(--bark) / 0.15)",
+          }}
+        >
+          <Users className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
+          <div className="flex-1 min-w-0">
+            <p
+              className="font-display italic font-semibold text-ds-13"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
+              Send to {preferredHelper.name ?? "your trusted helper"} first?
+            </p>
+            <p
+              className="font-serif italic text-ds-11"
+              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            >
+              Your trusted helper from past jobs
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={!!sendToPreferred}
+            onChange={(e) => onSendToPreferredChange(e.target.checked)}
+            className="w-5 h-5 accent-[hsl(var(--bark))] cursor-pointer"
+            aria-label={`Send to ${preferredHelper.name ?? "trusted helper"} first`}
+          />
+        </div>
+      )}
 
       {/* Confirmation Checkbox — the full card is a <label> so tapping
           anywhere on it toggles the checkbox. This makes the tap target

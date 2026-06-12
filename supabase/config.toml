@@ -53,6 +53,8 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.expiring-jobs-push]
     verify_jwt = false
+  [functions.payment-confirm-reminder]
+    verify_jwt = false
   [functions.send-push-notification]
     verify_jwt = false
   # Service-role-only: send-notification-email accepts a bearer token equal to

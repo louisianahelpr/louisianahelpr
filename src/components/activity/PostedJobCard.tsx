@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
   Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Wrench,
-  RotateCw, Check, ChevronDown, ChevronUp, Ban, Zap,
+  RotateCw, Check, ChevronDown, ChevronUp, Ban, Zap, Eye,
 } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -82,6 +82,8 @@ interface PostedJobCardProps {
   /** Refetch the posted-jobs feed after an inline mutation (dispute
       resolve/escalate) instead of a full-page reload. */
   onActionComplete: () => void;
+  /** Number of unique helprs who have viewed this job. Only shown when > 0. */
+  viewCount?: number;
 }
 
 /**
@@ -124,6 +126,7 @@ function PostedJobCardInner({
   initialTracking,
   initialGroupHelpers,
   onActionComplete,
+  viewCount,
 }: PostedJobCardProps) {
   const navigate = useNavigate();
   const [completionSheetOpen, setCompletionSheetOpen] = useState(false);
@@ -216,6 +219,12 @@ function PostedJobCardInner({
               >
                 {(applicantCounts[job.id] || 0) > 0 && job.status === "open" && (
                   <span className="flex items-center gap-1 text-primary font-medium"><Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}</span>
+                 )}
+                 {viewCount != null && viewCount > 0 && (
+                   <span className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                     <Eye className="w-3 h-3 shrink-0" />
+                     {viewCount} {viewCount === 1 ? "view" : "views"}
+                   </span>
                  )}
                  {job.is_recurring && (
                    <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3 shrink-0 text-primary" /> {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}</span>

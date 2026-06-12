@@ -40,7 +40,7 @@ interface JobFiltersProps {
 }
 
 const chipBase =
-  "inline-flex items-center gap-1 px-2.5 rounded-full text-[10px] font-semibold tracking-tight transition-all duration-200 btn-press squircle border h-8";
+  "inline-flex items-center gap-1 px-2.5 rounded-ds-md text-[10px] font-semibold tracking-tight transition-all duration-200 btn-press squircle border h-8";
 const chipActive =
   "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] border-[hsl(var(--bark)/0.38)]";
 const chipIdle =
@@ -58,7 +58,7 @@ const surfaceGradient =
 // scroll row instead of getting crushed to icon-only circles when the
 // flex container tries to share width across 5 chips on a narrow phone.
 const triggerBase =
-  "inline-flex items-center justify-between gap-1.5 h-9 pl-3 pr-2.5 rounded-full text-[12px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap shrink-0";
+  "inline-flex items-center justify-between gap-1.5 h-9 pl-3 pr-2.5 rounded-ds-md text-[12px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap shrink-0";
 
 const sortOptions = [
   // "Best match" (value "smart") is the default — a composite recency +

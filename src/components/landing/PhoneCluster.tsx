@@ -603,8 +603,8 @@ const PhoneCluster = () => {
       className="relative mx-auto md:mx-0 md:ml-auto overflow-hidden"
       style={{
         width: "100%",
-        maxWidth: "440px",
-        height: "440px",
+        maxWidth: "460px",
+        height: "460px",
         perspective: "1200px",
         ["--tilt-x" as string]: "0deg",
         ["--tilt-y" as string]: "0deg",
@@ -659,7 +659,7 @@ const PhoneCluster = () => {
       <div
         className="absolute z-10"
         style={{
-          right: "0%",
+          right: "2%",
           top: "12%",
           transform:
             "translateY(calc(var(--scroll-t) * -28px)) rotateX(var(--tilt-x)) rotateY(calc(var(--tilt-y) + var(--scroll-t) * 1.5deg))",

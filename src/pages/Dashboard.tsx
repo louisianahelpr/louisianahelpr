@@ -457,6 +457,27 @@ const Dashboard = () => {
       )[0]
     : null;
 
+  // Upcoming booked job — nearest accepted or in-progress job where the
+  // current user is the helper. Surfaced as a reminder card on the dashboard
+  // so helpers don't forget their active commitments.
+  const { data: upcomingJob = null } = useQuery({
+    queryKey: ["helper_upcoming_job", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("id, title, date_needed, start_time, status")
+        .eq("helper_id", user!.id)
+        .in("status", ["accepted", "in_progress"])
+        .order("date_needed", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000,
+  });
+
   // Save / un-save a job. Optimistic: the heart flips the instant the
   // user taps, both in local state and in the cached `savedJobs` query,
   // so the action feels sub-100ms. On failure we roll the snapshot back
@@ -1099,6 +1120,36 @@ const Dashboard = () => {
                 </p>
               </button>
             </motion.div>
+          )}
+
+          {/* Upcoming booked-job reminder — only visible to helpers with an
+              accepted or in-progress job. Keeps commitments front-of-mind
+              without forcing a trip to Activity > My Jobs. */}
+          {upcomingJob && (
+            <div className="mx-4 mb-3 rounded-ds-lg bg-[hsl(var(--bark))] text-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium opacity-70 uppercase tracking-wide mb-0.5">
+                    {upcomingJob.status === "in_progress" ? "Job in progress" : "Upcoming job"}
+                  </p>
+                  <p className="font-semibold text-sm truncate">{upcomingJob.title}</p>
+                  {upcomingJob.date_needed && (
+                    <p className="text-xs opacity-80 mt-0.5">
+                      {new Date(upcomingJob.date_needed).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                      {upcomingJob.start_time ? ` at ${upcomingJob.start_time}` : ""}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-white border border-white/30 hover:bg-white/10 shrink-0 text-xs px-3 h-8"
+                  onClick={() => navigate("/activity?tab=myjobs")}
+                >
+                  View
+                </Button>
+              </div>
+            </div>
           )}
 
           {/* Quick-rebook strip — the customer's saved helprs, one tap

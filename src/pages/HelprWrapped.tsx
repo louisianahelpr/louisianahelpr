@@ -1,0 +1,358 @@
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { Gift, Share2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import PageHeader from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { shareNative } from "@/lib/nativeShare";
+import { report } from "@/lib/errorLogger";
+
+const YEAR = new Date().getFullYear();
+
+// $15/hr proxy for converting budget → approximate hours
+const HOURLY_PROXY = 15;
+
+interface WrappedStats {
+  jobsPosted: number;
+  totalSpent: number;
+  jobsCompleted: number;
+  totalEarned: number;
+  uniquePeople: number;
+  topCategory: string | null;
+  bestRating: number | null;
+  reviewsGiven: number;
+  reviewsReceived: number;
+  approxHours: number;
+}
+
+async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
+  const yearStart = `${YEAR}-01-01T00:00:00.000Z`;
+  const yearEnd = `${YEAR}-12-31T23:59:59.999Z`;
+
+  const [postedRes, completedRes, reviewsGivenRes, reviewsReceivedRes] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("id, budget, category, helper_id")
+      .eq("customer_id", userId)
+      .gte("created_at", yearStart)
+      .lte("created_at", yearEnd),
+    supabase
+      .from("jobs")
+      .select("id, budget, category, customer_id")
+      .eq("helper_id", userId)
+      .eq("status", "completed")
+      .gte("created_at", yearStart)
+      .lte("created_at", yearEnd),
+    supabase
+      .from("reviews")
+      .select("id, rating")
+      .eq("reviewer_id", userId)
+      .gte("created_at", yearStart)
+      .lte("created_at", yearEnd),
+    supabase
+      .from("reviews")
+      .select("id, rating")
+      .eq("reviewee_id", userId)
+      .gte("created_at", yearStart)
+      .lte("created_at", yearEnd),
+  ]);
+
+  for (const [label, res] of [
+    ["posted", postedRes],
+    ["completed", completedRes],
+    ["reviews_given", reviewsGivenRes],
+    ["reviews_received", reviewsReceivedRes],
+  ] as const) {
+    if (res.error) {
+      report(res.error, {
+        severity: "warning",
+        tags: { area: `helpr_wrapped.${label}` },
+        context: { user_id: userId },
+      });
+    }
+  }
+
+  const posted = postedRes.data ?? [];
+  const completed = completedRes.data ?? [];
+  const reviewsGiven = reviewsGivenRes.data ?? [];
+  const reviewsReceived = reviewsReceivedRes.data ?? [];
+
+  // Total spent = sum of budgets on posted jobs (proxy)
+  const totalSpent = posted.reduce((acc, j) => acc + (j.budget ?? 0), 0);
+  // Total earned = sum of budgets on completed helper jobs (pre-fee proxy)
+  const totalEarned = completed.reduce((acc, j) => acc + (j.budget ?? 0), 0);
+
+  // Unique people worked with — union of helper_ids from posted jobs (who accepted)
+  // and customer_ids from completed helper jobs
+  const peopleWorkedWith = new Set<string>([
+    ...posted.map((j) => j.helper_id).filter(Boolean) as string[],
+    ...completed.map((j) => j.customer_id).filter(Boolean) as string[],
+  ]);
+
+  // Top category by count across both sides
+  const categoryCount: Record<string, number> = {};
+  for (const j of [...posted, ...completed]) {
+    if (j.category) categoryCount[j.category] = (categoryCount[j.category] ?? 0) + 1;
+  }
+  const topCategory =
+    Object.keys(categoryCount).sort((a, b) => (categoryCount[b] ?? 0) - (categoryCount[a] ?? 0))[0] ?? null;
+
+  // Best rating received
+  const receivedRatings = reviewsReceived.map((r) => r.rating).filter((r): r is number => typeof r === "number");
+  const bestRating = receivedRatings.length > 0 ? Math.max(...receivedRatings) : null;
+
+  // Approximate hours — derived from total budget activity ÷ $15/hr
+  const approxHours = Math.round((totalSpent + totalEarned) / HOURLY_PROXY);
+
+  return {
+    jobsPosted: posted.length,
+    totalSpent,
+    jobsCompleted: completed.length,
+    totalEarned,
+    uniquePeople: peopleWorkedWith.size,
+    topCategory,
+    bestRating,
+    reviewsGiven: reviewsGiven.length,
+    reviewsReceived: reviewsReceived.length,
+    approxHours,
+  };
+}
+
+interface StatCardProps {
+  label: string;
+  value: string;
+  sublabel?: string;
+}
+
+const StatCard = ({ label, value, sublabel }: StatCardProps) => (
+  <div
+    className="rounded-ds-md p-4 text-center space-y-1 flex flex-col items-center justify-center"
+    style={{
+      background: "rgba(255,255,255,0.28)",
+      backdropFilter: "blur(12px) saturate(150%)",
+      WebkitBackdropFilter: "blur(12px) saturate(150%)",
+      border: "0.5px solid rgba(255,255,255,0.5)",
+      boxShadow:
+        "inset 0 1px 1px 0 rgba(255,255,255,0.6), 0 2px 8px -2px hsl(var(--olivewood) / 0.12)",
+    }}
+  >
+    <p
+      className="text-ds-28 font-display italic font-bold tabular-nums leading-none"
+      style={{ color: "hsl(var(--ink-deep))" }}
+    >
+      {value}
+    </p>
+    <p className="text-[0.7rem] font-sans font-semibold uppercase tracking-wider leading-tight" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+      {label}
+    </p>
+    {sublabel && (
+      <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--burnt-sienna) / 0.65)" }}>
+        {sublabel}
+      </p>
+    )}
+  </div>
+);
+
+const HelprWrapped = () => {
+  usePageTitle(`Helpr Wrapped ${YEAR}`);
+  const navigate = useNavigate();
+  const { user, isReady } = useAuthReady();
+
+  // Guard: redirect to /login once auth resolves with no user.
+  // Must be an effect — can't call navigate() before all hooks.
+  useEffect(() => {
+    if (isReady && !user) {
+      navigate("/login", { replace: true });
+    }
+  }, [isReady, user, navigate]);
+
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["helpr-wrapped", user?.id, YEAR],
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    queryFn: () => fetchWrappedStats(user!.id),
+  });
+
+  const handleShare = async () => {
+    const helpedCount = (stats?.jobsPosted ?? 0) + (stats?.jobsCompleted ?? 0);
+    const earned = stats?.totalEarned ?? 0;
+    await shareNative({
+      title: `My ${YEAR} on Helpr`,
+      text: `I helped ${helpedCount} neighbor${helpedCount !== 1 ? "s" : ""} and earned $${earned.toLocaleString()} on @LouisianaHelpr this year! 🎉`,
+      url: "https://www.louisianahelpr.com",
+      dialogTitle: "Share your Helpr Wrapped",
+    });
+  };
+
+  // Stat cards to render — only show if value > 0
+  const statCards: StatCardProps[] = [];
+
+  if (!isLoading && stats) {
+    const helpersHired = stats.jobsPosted;
+    const jobsDone = stats.jobsCompleted;
+
+    if (helpersHired > 0) {
+      statCards.push({
+        value: String(helpersHired),
+        label: helpersHired === 1 ? "job posted" : "jobs posted",
+      });
+    }
+    if (jobsDone > 0) {
+      statCards.push({
+        value: String(jobsDone),
+        label: jobsDone === 1 ? "neighbor helped" : "neighbors helped",
+      });
+    }
+    if (stats.totalEarned > 0) {
+      statCards.push({
+        value: `$${stats.totalEarned.toLocaleString()}`,
+        label: "earned",
+        sublabel: stats.approxHours > 0 ? `~${stats.approxHours} hrs` : undefined,
+      });
+    }
+    if (stats.totalSpent > 0 && stats.totalEarned === 0) {
+      statCards.push({
+        value: `$${stats.totalSpent.toLocaleString()}`,
+        label: "invested in community",
+      });
+    }
+    if (stats.uniquePeople > 0) {
+      statCards.push({
+        value: String(stats.uniquePeople),
+        label: stats.uniquePeople === 1 ? "person worked with" : "people worked with",
+      });
+    }
+    if (stats.topCategory) {
+      statCards.push({
+        value: stats.topCategory.replace(/_/g, " "),
+        label: "top category",
+      });
+    }
+    if (stats.bestRating !== null && stats.bestRating > 0) {
+      statCards.push({
+        value: `${stats.bestRating.toFixed(1)}★`,
+        label: "best rating",
+      });
+    }
+    if (stats.reviewsReceived > 0) {
+      statCards.push({
+        value: String(stats.reviewsReceived),
+        label: stats.reviewsReceived === 1 ? "review received" : "reviews received",
+      });
+    }
+  }
+
+  const hasActivity = statCards.length > 0;
+
+  return (
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
+      <PageHeader eyebrow="Louisiana Helpr" title={`Your ${YEAR} Wrapped`} />
+
+      <main className="px-5 py-6 flex flex-col items-center">
+        <div
+          className="w-full max-w-[420px] rounded-ds-lg overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, hsl(var(--bark) / 0.08) 0%, hsl(var(--burnt-sienna) / 0.08) 100%)",
+            border: "0.5px solid hsl(var(--bark) / 0.18)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255,255,255,0.45), " +
+              "0 4px 24px -6px hsl(var(--olivewood) / 0.18), " +
+              "0 24px 48px -12px hsl(var(--olivewood) / 0.12)",
+          }}
+        >
+          {/* Header band */}
+          <div
+            className="px-6 pt-8 pb-4 text-center"
+            style={{
+              backgroundImage:
+                "radial-gradient(80% 60% at 50% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 100%)",
+            }}
+          >
+            <Gift
+              className="w-10 h-10 mx-auto mb-3"
+              style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }}
+            />
+            <h1
+              className="text-ds-28 font-display italic font-bold leading-tight"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
+              Your {YEAR} on Helpr.
+            </h1>
+            <p
+              className="mt-1 font-serif italic text-ds-13"
+              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            >
+              Louisiana Helpr Community
+            </p>
+          </div>
+
+          {/* Stats grid */}
+          <div className="px-5 pb-5">
+            {isLoading || !isReady ? (
+              <div className="grid grid-cols-2 gap-2.5">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="rounded-ds-md p-4 h-20 animate-pulse"
+                    style={{ background: "rgba(255,255,255,0.20)" }}
+                  />
+                ))}
+              </div>
+            ) : !hasActivity ? (
+              <div className="text-center py-6 space-y-2">
+                <p className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                  No activity yet in {YEAR}
+                </p>
+                <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  Post a job or help a neighbor to start building your story.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2.5">
+                {statCards.map((card, i) => (
+                  <StatCard key={i} {...card} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Share button */}
+          {hasActivity && (
+            <div className="px-5 pb-7 space-y-3">
+              <Button
+                variant="hero"
+                size="lg"
+                className="w-full rounded-full squircle"
+                onClick={handleShare}
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Share your Wrapped
+              </Button>
+              <p
+                className="text-center text-ds-11 font-serif italic"
+                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+              >
+                <a
+                  href="/wrapped"
+                  onClick={(e) => e.preventDefault()}
+                  className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+                  style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+                  aria-label="Share your Helpr Wrapped with others"
+                >
+                  See yours
+                </a>{" "}
+                — share with the community
+              </p>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default HelprWrapped;

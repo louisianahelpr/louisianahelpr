@@ -62,6 +62,11 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
   "/community",    // Community feed (PageHeader + min-h-screen document-scroll)
   "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
+
+  // Community discovery pages — long-form, document-scroll SEO content
+  "/parishes",   // Parish directory listing all 8 supported parishes
+  "/parish",     // /parish/:slug — individual parish community pages
+  "/wrapped",    // Helpr Wrapped year-in-review
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

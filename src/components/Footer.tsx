@@ -128,8 +128,30 @@ const Footer = () => (
           </ul>
         </div>
 
+        {/* Resources */}
+        <div className="md:col-span-2">
+          <h3
+            className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
+            style={{ color: "hsl(var(--heritage-gold))" }}
+          >
+            Resources
+          </h3>
+          <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
+            <li>
+              <Link to="/jobs" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Browse Jobs
+              </Link>
+            </li>
+            <li>
+              <Link to="/parishes" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                By Parish
+              </Link>
+            </li>
+          </ul>
+        </div>
+
         {/* Connect */}
-        <div className="md:col-span-3">
+        <div className="md:col-span-1">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}

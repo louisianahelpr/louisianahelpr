@@ -113,6 +113,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     appliedApps,
     refresh,
     setStatusFilter,
+    helperNames,
+    completedJobMeta,
   });
 
   // Status-filter definitions + memoized list/count derivations.

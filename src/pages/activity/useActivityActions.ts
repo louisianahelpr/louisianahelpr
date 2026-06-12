@@ -7,7 +7,7 @@ import { checkProximity } from "@/lib/locationUtils";
 import { aggregateRatings } from "@/lib/reviewStats";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
-import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { fetchProfile } from "@/hooks/useProfile";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
@@ -36,6 +36,8 @@ export interface UseActivityActionsArgs {
   appliedApps: AppliedApp[];
   refresh: () => void | Promise<unknown>;
   setStatusFilter: (filter: string) => void;
+  helperNames?: Record<string, string>;
+  completedJobMeta?: Record<string, { tipped: boolean; reviewed: boolean }>;
 }
 
 export function useActivityActions({
@@ -44,6 +46,8 @@ export function useActivityActions({
   appliedApps,
   refresh,
   setStatusFilter,
+  helperNames = {},
+  completedJobMeta = {},
 }: UseActivityActionsArgs) {
   const queryClient = useQueryClient();
   const { checkHelperStripeConnect } = useStripeConnectCheck();
@@ -516,6 +520,25 @@ export function useActivityActions({
         void maybeCelebrate("first_complete", { particleCount: 120 });
         await refresh();
         setStatusFilter("completed");
+
+        // Tip-after-completion prompt — only for the poster (customer) side.
+        // Gate on per-job relationship: the poster is the one who isn't the
+        // helper on this job. Also suppress if a tip was already recorded
+        // for this job (e.g. tipped earlier via the Tip button on the card).
+        const isPoster = !isHelper;
+        const alreadyTipped = completedJobMeta[jobId]?.tipped === true;
+        if (isPoster && !alreadyTipped) {
+          const postedJob = postedJobs.find((j) => j.id === jobId);
+          if (postedJob?.helper_id) {
+            const helperName = helperNames[postedJob.helper_id] || "your helpr";
+            hapticLight();
+            setCompletionPromptJob({
+              job: postedJob,
+              revieweeId: postedJob.helper_id,
+              revieweeName: helperName,
+            });
+          }
+        }
       } else {
         hapticMedium();
         toast.success("You've marked this job as complete. Waiting for the other party to confirm.");

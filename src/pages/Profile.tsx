@@ -414,6 +414,7 @@ const ProfilePage = () => {
           >
             <ProfileLanding
               profile={profile}
+              userId={userId}
               displayName={displayName}
               initials={initials}
               avatarBroken={avatarBroken}

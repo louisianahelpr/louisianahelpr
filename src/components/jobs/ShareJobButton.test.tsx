@@ -88,9 +88,9 @@ describe("ShareJobButton", () => {
       expect(capacitorShareMock).toHaveBeenCalledTimes(1);
     });
     expect(capacitorShareMock).toHaveBeenCalledWith({
-      title: "Move couch upstairs",
-      text: "Move couch upstairs — posted on Louisiana Helpr.",
-      url: "https://example.test/dashboard?job=abc-123",
+      title: "Move couch upstairs — Need help in Louisiana",
+      text: "Move couch upstairs · $80 · Louisiana\n\nApply on Helpr:",
+      url: "https://www.louisianahelpr.com/jobs/abc-123",
       dialogTitle: "Share this job",
     });
     // Native handoff — neither clipboard toast nor error toast.
@@ -110,9 +110,9 @@ describe("ShareJobButton", () => {
       expect(navigatorShare).toHaveBeenCalledTimes(1);
     });
     expect(navigatorShare).toHaveBeenCalledWith({
-      title: "Move couch upstairs",
-      text: "Move couch upstairs — posted on Louisiana Helpr.",
-      url: "https://example.test/dashboard?job=abc-123",
+      title: "Move couch upstairs — Need help in Louisiana",
+      text: "Move couch upstairs · $80 · Louisiana\n\nApply on Helpr:",
+      url: "https://www.louisianahelpr.com/jobs/abc-123",
     });
     expect(capacitorShareMock).not.toHaveBeenCalled();
   });
@@ -130,7 +130,9 @@ describe("ShareJobButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Share this job" }));
 
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith("https://example.test/dashboard?job=abc-123");
+      expect(writeText).toHaveBeenCalledWith(
+        "Move couch upstairs · $80 · Louisiana\n\nApply on Helpr:\nhttps://www.louisianahelpr.com/jobs/abc-123"
+      );
     });
     expect(toastSuccessMock).toHaveBeenCalledWith("Link copied. Paste it anywhere.");
     expect(capacitorShareMock).not.toHaveBeenCalled();

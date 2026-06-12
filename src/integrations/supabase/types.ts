@@ -3693,6 +3693,8 @@ export const Constants = {
         "delivery",
         "pet_care",
         "assembly",
+        "storm_prep",
+        "events",
         "other",
       ],
       job_status: [

@@ -29,6 +29,8 @@ const JOB_CATEGORIES = [
   "delivery",
   "pet_care",
   "assembly",
+  "storm_prep",
+  "events",
   "other",
 ] as const;
 

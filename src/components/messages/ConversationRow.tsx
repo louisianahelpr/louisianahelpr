@@ -13,6 +13,8 @@ import {
 } from "@/lib/messageAttachments";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColor } from "@/lib/statusColors";
+import { avatarGradientFor } from "@/lib/avatarGradient";
+import { cn } from "@/lib/utils";
 import type { Conversation } from "./types";
 
 interface ConversationRowProps {
@@ -198,14 +200,16 @@ const ConversationRowBase = ({
         boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 4px 12px hsl(var(--olivewood) / 0.05)",
       }}
     >
-      {/* Avatar — uses real photo when available, falls
-          back to bark-tinted initials circle. */}
+      {/* Avatar — uses real photo when available, otherwise a per-person
+          deterministic warm gradient (hashed off the other user's id) so
+          threads read as visually distinct at a glance rather than a stack
+          of identical bark circles. */}
       <div
-        className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center overflow-hidden self-center"
-        style={{
-          background: "hsl(var(--bark) / 0.12)",
-          border: "1px solid hsl(var(--bark) / 0.22)",
-        }}
+        className={cn(
+          "shrink-0 w-11 h-11 rounded-full flex items-center justify-center overflow-hidden self-center bg-gradient-to-br",
+          !c.otherUserAvatarUrl && avatarGradientFor(c.otherUserId),
+        )}
+        style={{ border: "1px solid hsl(var(--olivewood) / 0.20)" }}
       >
         {c.otherUserAvatarUrl ? (
           <img
@@ -216,7 +220,7 @@ const ConversationRowBase = ({
             className="w-full h-full object-cover"
           />
         ) : (
-          <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--bark))" }}>
+          <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
             {c.otherUserName.charAt(0).toUpperCase()}
           </span>
         )}

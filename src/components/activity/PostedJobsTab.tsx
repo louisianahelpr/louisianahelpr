@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
@@ -12,7 +12,6 @@ import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { VirtualList } from "@/components/VirtualList";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
-import { ListFilterBar, type StatusChip } from "./ListFilterBar";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
 import { bucketPostedJob } from "@/pages/activity/activityFilters";
 import { useBulkDismiss } from "@/pages/activity/useBulkDismiss";
@@ -21,26 +20,6 @@ import { useLongPress } from "@/hooks/useLongPress";
 import { hapticMedium } from "@/lib/haptics";
 import type { TrackingData } from "@/components/JobTracking";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
-
-/** Status chips for the poster's jobs list — collapses the seven raw
- *  job-status enum values into the four states a poster thinks in. */
-const POSTED_STATUS_CHIPS: StatusChip[] = [
-  { value: "open", label: "Open" },
-  { value: "active", label: "Active" },
-  { value: "completed", label: "Completed" },
-  { value: "closed", label: "Closed" },
-];
-
-/** Bucket a job into one of the chip values above. */
-function postedBucket(job: Job): string {
-  switch (job.status) {
-    case "open": return "open";
-    case "completed": return "completed";
-    case "cancelled":
-    case "disputed": return "closed";
-    default: return "active"; // accepted / in_progress / revision_requested
-  }
-}
 
 /**
  * BulkDismissibleWrapper — when selectionMode is off, presses are
@@ -170,9 +149,9 @@ interface PostedJobsTabProps {
   onActionComplete: () => void;
   /** When true, render items grouped into collapsible Active /
    *  Completed / Cancelled sections instead of a flat virtualized
-   *  list. Driven by the page-level "All" status filter; hides the
-   *  in-tab ListFilterBar in that mode (the page's outer header is
-   *  the source of truth for filter + search). */
+   *  list. Driven by the page-level "All" status filter. The page's
+   *  outer header (ActivityHeader) is the sole source of truth for
+   *  filter + search in both modes. */
   groupByStatus?: boolean;
 }
 
@@ -189,9 +168,6 @@ export const PostedJobsTab = ({
   onActionComplete, groupByStatus = false,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
-  // Client-side search + status filter over the already-loaded list.
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
 
   // Bulk-dismiss for cancelled posts — long-press a Cancelled card to
   // enter selection mode, then bulk-hide them from view. The hide is
@@ -210,19 +186,6 @@ export const PostedJobsTab = ({
     }),
     [jobs, bulkDismiss.dismissed],
   );
-
-  const filteredJobs = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return visibleJobs.filter((job) => {
-      if (statusFilter !== "all" && postedBucket(job) !== statusFilter) return false;
-      if (!q) return true;
-      return (
-        (job.title ?? "").toLowerCase().includes(q) ||
-        (job.category ?? "").toLowerCase().includes(q) ||
-        (job.location ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [visibleJobs, searchQuery, statusFilter]);
 
   // One source of truth for the per-row render so both the flat
   // VirtualList view and the grouped Sectioned view paint identical
@@ -299,11 +262,11 @@ export const PostedJobsTab = ({
     );
   }
 
-  // Grouped view — driven by the page's "All" status filter. Skips the
-  // in-tab ListFilterBar (the page header owns search + filter in this
-  // mode) and routes every card through the collapsible 3-section
-  // shell. The applicants full-screen modal renders below as a
-  // sibling so it surfaces in either mode.
+  // The page header (ActivityHeader) owns the only search + status
+  // filter — both modes render the already-filtered list. "All" routes
+  // through the collapsible 3-section grouped shell; a specific status
+  // renders a flat list. The applicants full-screen modal renders below
+  // as a sibling so it surfaces in either mode.
   const listView = groupByStatus ? (
     <ActivitySectionedView
       tab="posted"
@@ -312,36 +275,23 @@ export const PostedJobsTab = ({
       bucketize={bucketPostedJob}
       renderItem={renderJobCard}
     />
+  ) : visibleJobs.length === 0 ? (
+    <EmptyState
+      variant="inline"
+      icon={SearchX}
+      title="No matches in this view"
+      body="Nothing here fits that filter yet — try a different status from the filter button to see more."
+    />
   ) : (
-    <>
-      <ListFilterBar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        chips={POSTED_STATUS_CHIPS}
-        searchPlaceholder="Search your posts…"
-      />
-
-      {filteredJobs.length === 0 ? (
-        <EmptyState
-          variant="inline"
-          icon={SearchX}
-          title="No matches in this view"
-          body="Nothing here fits that search or filter yet — try a different word or clear the filter to see everything."
-        />
-      ) : (
-      <VirtualList
-        items={filteredJobs}
-        getKey={(job) => job.id}
-        estimateSize={260}
-        overscan={4}
-        className="space-y-0"
-        itemClassName="pb-3"
-        renderItem={renderJobCard}
-      />
-      )}
-    </>
+    <VirtualList
+      items={visibleJobs}
+      getKey={(job) => job.id}
+      estimateSize={260}
+      overscan={4}
+      className="space-y-0"
+      itemClassName="pb-3"
+      renderItem={renderJobCard}
+    />
   );
 
   return (

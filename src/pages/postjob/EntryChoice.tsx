@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, FileText, LayoutTemplate, ChevronRight, RotateCcw } from "lucide-react";
+import { Sparkles, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
 import { sampleJobs } from "@/data/sampleJobs";
 import { useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
@@ -52,6 +53,11 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   const recentPosted = useRecentPostedJobs(3);
   const navigate = useNavigate();
 
+  // Repost + template lists are collapsed by default so "Start fresh" reads
+  // as the primary action — the user opens a section only when they want it.
+  const [repostOpen, setRepostOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+
   // Tap a Repost tile → reuse the existing `?rebook=<id>` deep-link the
   // form already handles, which prefills every field and skips the entry
   // step. Keeps this entry-screen logic thin.
@@ -60,88 +66,11 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     navigate(`/post-job?rebook=${jobId}`);
   };
 
+  const hasRecent = recentPosted && recentPosted.length > 0;
+
   return (
     <div className="space-y-3 animate-ds-page-in">
-      {/* 0 — RECENTLY POSTED (only when the user has posted before) */}
-      {recentPosted && recentPosted.length > 0 && (
-        <div className="rounded-2xl liquid-glass p-4">
-          <div className="flex items-center gap-2.5 mb-3">
-            <span
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full shrink-0"
-              style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
-              aria-hidden
-            >
-              <RotateCcw className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <span
-                className="block font-display italic font-bold"
-                style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
-              >
-                Repost a recent task
-              </span>
-              <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                Quickest way to ask for the same help again.
-              </span>
-            </div>
-          </div>
-          <ul className="space-y-2">
-            {recentPosted.map((job) => {
-              const colors = categoryColors[job.category];
-              return (
-                <li key={job.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleRepost(job.id)}
-                    aria-label={`Repost ${job.title}`}
-                    className="w-full rounded-xl text-left p-2.5 flex items-center gap-3 active:scale-[0.98] transition-all"
-                    style={{
-                      background: "hsl(var(--parchment) / 0.7)",
-                      border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-                      boxShadow:
-                        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-                        "0 1px 2px hsl(var(--olivewood) / 0.06)",
-                    }}
-                  >
-                    <span
-                      className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${colors?.dot ?? ""}`}
-                      style={!colors?.dot ? { background: "hsl(var(--olivewood) / 0.12)" } : undefined}
-                    >
-                      <CategoryIcon
-                        category={job.category}
-                        aria-hidden
-                        className="w-4 h-4 text-white/90"
-                        strokeWidth={2.25}
-                      />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className="block font-sans font-semibold leading-tight truncate"
-                        style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
-                      >
-                        {job.title}
-                      </span>
-                      <span
-                        className="block font-serif italic mt-0.5 text-ds-11 tabular-nums"
-                        style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                      >
-                        {shortRelativeDate(job.created_at)} · ${job.budget.toFixed(0)}
-                      </span>
-                    </span>
-                    <ChevronRight
-                      className="w-4 h-4 shrink-0"
-                      style={{ color: "hsl(var(--olivewood) / 0.5)" }}
-                      aria-hidden
-                    />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      {/* 1 — START FRESH */}
+      {/* 1 — START FRESH (primary action, always first) */}
       <button
         type="button"
         onClick={form.startFresh}
@@ -197,9 +126,106 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         </button>
       )}
 
-      {/* 3 — USE A TEMPLATE */}
+      {/* 3 — REPOST A RECENT TASK (collapsed by default) */}
+      {hasRecent && (
+        <div className="rounded-2xl liquid-glass p-4">
+          <button
+            type="button"
+            onClick={() => setRepostOpen((v) => !v)}
+            aria-expanded={repostOpen}
+            className="w-full flex items-center gap-4 text-left active:scale-[0.99] transition-transform"
+          >
+            <span
+              className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
+              style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
+              aria-hidden
+            >
+              <RotateCcw className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className="block font-display italic font-bold"
+                style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+              >
+                Repost a recent task
+              </span>
+              <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                Quickest way to ask for the same help again.
+              </span>
+            </span>
+            <ChevronDown
+              className="w-5 h-5 shrink-0 transition-transform duration-200"
+              style={{ color: "hsl(var(--olivewood) / 0.5)", transform: repostOpen ? "rotate(180deg)" : undefined }}
+              aria-hidden
+            />
+          </button>
+
+          {repostOpen && (
+            <ul className="space-y-2 mt-3">
+              {recentPosted!.map((job) => {
+                const colors = categoryColors[job.category];
+                return (
+                  <li key={job.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleRepost(job.id)}
+                      aria-label={`Repost ${job.title}`}
+                      className="w-full rounded-xl text-left p-2.5 flex items-center gap-3 active:scale-[0.98] transition-all"
+                      style={{
+                        background: "hsl(var(--parchment) / 0.7)",
+                        border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+                        boxShadow:
+                          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+                          "0 1px 2px hsl(var(--olivewood) / 0.06)",
+                      }}
+                    >
+                      <span
+                        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${colors?.dot ?? ""}`}
+                        style={!colors?.dot ? { background: "hsl(var(--olivewood) / 0.12)" } : undefined}
+                      >
+                        <CategoryIcon
+                          category={job.category}
+                          aria-hidden
+                          className="w-4 h-4 text-white/90"
+                          strokeWidth={2.25}
+                        />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className="block font-sans font-semibold leading-tight truncate"
+                          style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+                        >
+                          {job.title}
+                        </span>
+                        <span
+                          className="block font-serif italic mt-0.5 text-ds-11 tabular-nums"
+                          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                        >
+                          {shortRelativeDate(job.created_at)} · ${job.budget.toFixed(0)}
+                        </span>
+                      </span>
+                      <ChevronRight
+                        className="w-4 h-4 shrink-0"
+                        style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                        aria-hidden
+                      />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* 4 — USE A TEMPLATE (collapsed by default) */}
       <div className="rounded-2xl liquid-glass p-4">
-        <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => setTemplatesOpen((v) => !v)}
+          aria-expanded={templatesOpen}
+          className="w-full flex items-center gap-4 text-left active:scale-[0.99] transition-transform"
+        >
           <span
             className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
             style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
@@ -207,7 +233,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           >
             <LayoutTemplate className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
           </span>
-          <div className="min-w-0 flex-1">
+          <span className="min-w-0 flex-1">
             <span
               className="block font-display italic font-bold"
               style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
@@ -217,61 +243,70 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               Start from a common task and tweak the details.
             </span>
-          </div>
-        </div>
-
-        {/* Quick-start template cards — one tap pre-fills the form. */}
-        <div className="grid grid-cols-2 gap-2.5 mt-3">
-          {quickTemplates.map((sample) => (
-            <button
-              key={sample.id}
-              type="button"
-              onClick={() => form.useTemplate(() => form.applyTemplateFields(sample))}
-              aria-label={`Use template: ${sample.title}`}
-              className="w-full min-w-0 rounded-xl text-left p-3 active:scale-[0.97] transition-all"
-              style={{
-                background: "hsl(var(--parchment) / 0.7)",
-                border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-                boxShadow:
-                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-                  "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                  "0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
-              }}
-            >
-              <span
-                className="inline-flex items-center justify-center w-8 h-8 rounded-full text-base mb-2"
-                style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
-                aria-hidden
-              >
-                {sample.icon}
-              </span>
-              <p
-                className="font-sans font-semibold leading-tight"
-                style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
-              >
-                {sample.title}
-              </p>
-              <p
-                className="font-serif italic mt-1 text-ds-11 tabular-nums"
-                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-              >
-                typical ${sample.typical_price} · ~
-                {sample.typical_duration_minutes < 60
-                  ? `${sample.typical_duration_minutes} min`
-                  : `${Math.round((sample.typical_duration_minutes / 60) * 10) / 10} hr`}
-              </p>
-            </button>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => form.useTemplate()}
-          className="mt-3 text-ds-11 font-sans font-semibold active:scale-95 transition-transform"
-          style={{ color: "hsl(var(--bark))" }}
-        >
-          Browse all templates in the form →
+          </span>
+          <ChevronDown
+            className="w-5 h-5 shrink-0 transition-transform duration-200"
+            style={{ color: "hsl(var(--olivewood) / 0.5)", transform: templatesOpen ? "rotate(180deg)" : undefined }}
+            aria-hidden
+          />
         </button>
+
+        {templatesOpen && (
+          <>
+            {/* Quick-start template cards — one tap pre-fills the form. */}
+            <div className="grid grid-cols-2 gap-2.5 mt-3">
+              {quickTemplates.map((sample) => (
+                <button
+                  key={sample.id}
+                  type="button"
+                  onClick={() => form.useTemplate(() => form.applyTemplateFields(sample))}
+                  aria-label={`Use template: ${sample.title}`}
+                  className="w-full min-w-0 rounded-xl text-left p-3 active:scale-[0.97] transition-all"
+                  style={{
+                    background: "hsl(var(--parchment) / 0.7)",
+                    border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+                    boxShadow:
+                      "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+                      "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                      "0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
+                  }}
+                >
+                  <span
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-full text-base mb-2"
+                    style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
+                    aria-hidden
+                  >
+                    {sample.icon}
+                  </span>
+                  <p
+                    className="font-sans font-semibold leading-tight"
+                    style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+                  >
+                    {sample.title}
+                  </p>
+                  <p
+                    className="font-serif italic mt-1 text-ds-11 tabular-nums"
+                    style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                  >
+                    typical ${sample.typical_price} · ~
+                    {sample.typical_duration_minutes < 60
+                      ? `${sample.typical_duration_minutes} min`
+                      : `${Math.round((sample.typical_duration_minutes / 60) * 10) / 10} hr`}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => form.useTemplate()}
+              className="mt-3 text-ds-11 font-sans font-semibold active:scale-95 transition-transform"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Browse all templates in the form →
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

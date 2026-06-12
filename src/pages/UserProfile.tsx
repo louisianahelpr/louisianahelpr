@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { formatName } from "@/lib/utils";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -10,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, ChevronDown, MessageSquare, Users, Timer, RotateCcw, Play, X } from "lucide-react";
+import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, ChevronDown, MessageSquare, Users, Timer, RotateCcw } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -56,7 +57,6 @@ const UserProfile = () => {
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showBlock, setShowBlock] = useState(false);
-  const [videoOpen, setVideoOpen] = useState(false);
   // Viewer opts in to the "did N jobs nearby" social proof (#31).
   // Gated so we don't fire the geolocation prompt just to render a badge.
   // The hook caches across pages, so once requested it's near-instant on
@@ -72,6 +72,11 @@ const UserProfile = () => {
   // the granular per-star breakdown.
   const [reviewRatingFilter, setReviewRatingFilter] = useState<"all" | "5" | "4" | "low">("all");
   const [reviewVisibleCount, setReviewVisibleCount] = useState(5);
+  // Response-to-review state: which review is being responded to, and the draft text.
+  const [respondingToReview, setRespondingToReview] = useState<string | null>(null);
+  const [responseText, setResponseText] = useState("");
+  // Local reviews state for optimistic updates after saving a response.
+  const [localReviews, setLocalReviews] = useState<any[] | null>(null);
 
   // React Query: cached for 60s, instant on revisit, refresh in background.
   const { data, isLoading, isError, refetch } = useQuery({
@@ -96,7 +101,7 @@ const UserProfile = () => {
         prof = unwrap(
           await supabase
             .from("profiles")
-            .select("user_id, full_name, avatar_url, bio, location, skills, hourly_rate, subscription_tier, portfolio_urls, created_at, intro_video_url, intro_video_thumbnail_url, intro_video_duration_seconds")
+            .select("user_id, full_name, avatar_url, bio, location, skills, hourly_rate, subscription_tier, portfolio_urls, created_at")
             .eq("user_id", userId!)
             .maybeSingle(),
         );
@@ -128,7 +133,7 @@ const UserProfile = () => {
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
-        supabase.from("reviews").select("rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id").eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).order("created_at", { ascending: false }),
+        supabase.from("reviews").select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, response_text, response_at").eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).order("created_at", { ascending: false }),
         supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!),
@@ -326,6 +331,7 @@ const UserProfile = () => {
         reviews = reviewsRes.data.map((r: any) => {
           const j = jobMap.get(r.job_id);
           return {
+            id: r.id,
             rating: r.rating,
             punctuality: r.punctuality ?? null,
             quality: r.quality ?? null,
@@ -335,6 +341,8 @@ const UserProfile = () => {
             reviewerName: nameMap.get(r.reviewer_id) || "User",
             jobTitle: j?.title || "Job",
             jobCategory: j?.category ?? null,
+            response_text: r.response_text ?? null,
+            response_at: r.response_at ?? null,
           };
         });
       }
@@ -465,7 +473,13 @@ const UserProfile = () => {
   });
 
   const profile = (data?.profile ?? null) as Profile | null;
-  const reviews = (data?.reviews ?? []) as Array<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string; jobCategory: string | null }>;
+  const reviewsFromQuery = (data?.reviews ?? []) as Array<{ id: string; rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string; jobCategory: string | null; response_text: string | null; response_at: string | null }>;
+  // Sync localReviews whenever the query result changes (new fetch).
+  // localReviews is used for optimistic updates after saving a response.
+  useEffect(() => {
+    setLocalReviews(reviewsFromQuery);
+  }, [data?.reviews]);
+  const reviews = (localReviews ?? reviewsFromQuery) as typeof reviewsFromQuery;
   const stats = data?.stats ?? { completedJobs: 0, avgRating: 0, reviewCount: 0 };
   const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
   const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
@@ -618,6 +632,38 @@ const UserProfile = () => {
     return null;
   })();
 
+  // Save or update the reviewee's public response to a review they received.
+  const handleSaveResponse = async (reviewId: string) => {
+    if (!responseText.trim()) return;
+    try {
+      const { error } = await (supabase.rpc as any)("respond_to_review", {
+        _review_id: reviewId,
+        _response_text: responseText.trim(),
+      });
+      if (error) {
+        if (error.code === "PGRST202") {
+          toast.error("Feature not yet deployed — please try again later.");
+        } else {
+          toast.error("Couldn't save response. Please try again.");
+        }
+        return;
+      }
+      // Optimistic update locally so the response appears immediately.
+      setLocalReviews((prev) =>
+        (prev ?? reviewsFromQuery).map((r) =>
+          r.id === reviewId
+            ? { ...r, response_text: responseText.trim(), response_at: new Date().toISOString() }
+            : r,
+        ),
+      );
+      setRespondingToReview(null);
+      setResponseText("");
+      toast.success("Response saved.");
+    } catch {
+      toast.error("Something went wrong.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
@@ -741,53 +787,7 @@ const UserProfile = () => {
                   <ShieldCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
                 </div>
               )}
-              {/* Intro video play button — overlays the bottom-left of
-                  the avatar so it doesn't collide with the ID-verified
-                  badge at bottom-right. Only renders when the helper has
-                  uploaded an intro video. */}
-              {(profile as any).intro_video_url && (
-                <button
-                  type="button"
-                  onClick={() => setVideoOpen(true)}
-                  aria-label="Play intro video"
-                  className="absolute -bottom-1 -left-1 w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-transform"
-                  style={{
-                    background: "hsl(var(--burnt-sienna))",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                    border: "2px solid hsl(var(--parchment))",
-                  }}
-                >
-                  <Play className="w-3.5 h-3.5 fill-white text-white" />
-                </button>
-              )}
             </div>
-
-            {/* Intro video fullscreen modal */}
-            {videoOpen && (profile as any).intro_video_url && (
-              <div
-                className="fixed inset-0 z-50 flex items-center justify-center"
-                style={{ background: "rgba(0,0,0,0.88)" }}
-                onClick={() => setVideoOpen(false)}
-              >
-                <button
-                  type="button"
-                  aria-label="Close video"
-                  onClick={() => setVideoOpen(false)}
-                  className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(255,255,255,0.15)" }}
-                >
-                  <X className="w-5 h-5 text-white" />
-                </button>
-                <video
-                  src={(profile as any).intro_video_url}
-                  controls
-                  autoPlay
-                  playsInline
-                  className="w-full max-w-sm rounded-ds-md max-h-[70dvh] object-contain"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-            )}
             <div>
               <h1 className="text-page-title leading-tight">
                 {displayName}
@@ -1620,6 +1620,82 @@ const UserProfile = () => {
                         )}
                         <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
                         {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
+                        {/* Existing public response — visible to everyone */}
+                        {(r as any).response_text && (
+                          <div className="mt-3 pt-3 border-t border-[hsl(var(--bark)/0.10)]">
+                            <p
+                              className="text-ds-11 font-semibold uppercase tracking-[0.06em] mb-1.5"
+                              style={{ color: "hsl(var(--olivewood)/0.55)" }}
+                            >
+                              Response from {profile.full_name}
+                            </p>
+                            <p
+                              className="text-ds-13 font-serif italic leading-relaxed"
+                              style={{ color: "hsl(var(--olivewood)/0.80)" }}
+                            >
+                              {(r as any).response_text}
+                            </p>
+                          </div>
+                        )}
+                        {/* Add/Edit response — own profile only */}
+                        {isOwnProfile && !(r as any).response_text && (
+                          <button
+                            type="button"
+                            className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
+                            style={{ color: "hsl(var(--burnt-sienna))" }}
+                            onClick={() => {
+                              setResponseText("");
+                              setRespondingToReview(r.id);
+                            }}
+                          >
+                            Add response
+                          </button>
+                        )}
+                        {isOwnProfile && (r as any).response_text && (
+                          <button
+                            type="button"
+                            className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
+                            style={{ color: "hsl(var(--olivewood)/0.55)" }}
+                            onClick={() => {
+                              setResponseText((r as any).response_text ?? "");
+                              setRespondingToReview(r.id);
+                            }}
+                          >
+                            Edit response
+                          </button>
+                        )}
+                        {/* Inline response editor */}
+                        {isOwnProfile && respondingToReview === r.id && (
+                          <div className="mt-3 space-y-2">
+                            <textarea
+                              value={responseText}
+                              onChange={(e) => setResponseText(e.target.value)}
+                              maxLength={500}
+                              rows={3}
+                              placeholder="Write a brief public response…"
+                              className="w-full rounded-ds-md border border-[hsl(var(--bark)/0.20)] bg-white/60 px-3 py-2 text-ds-13 font-sans resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--bark)/0.40)]"
+                              style={{ color: "hsl(var(--ink-deep))" }}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleSaveResponse(r.id)}
+                                className="btn-press px-4 py-1.5 rounded-full text-ds-12 font-semibold text-white"
+                                style={{ backgroundColor: "hsl(var(--burnt-sienna))" }}
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setRespondingToReview(null)}
+                                className="btn-press px-4 py-1.5 rounded-full text-ds-12 font-semibold"
+                                style={{ color: "hsl(var(--olivewood)/0.70)" }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                     {hasMore && (

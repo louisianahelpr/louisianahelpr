@@ -80,6 +80,10 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/discharge",       // Healthcare Discharge Concierge
   "/insurance-claim", // Insurance Claim Concierge
 
+  // Public marketing / informational pages (document-scroll)
+  "/how-it-works", // How It Works — conversion page for new visitors
+  "/help",         // Help Center — static FAQ / support page
+
   // Growth / business-development pages — public, long-form, document-scroll
   "/become-a-partner", // Partner intake form for service businesses
   "/enterprise",       // B2B / enterprise integration page

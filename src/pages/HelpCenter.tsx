@@ -1,0 +1,506 @@
+import { lazy, Suspense, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Search,
+  Rocket,
+  ClipboardList,
+  Briefcase,
+  CreditCard,
+  ShieldCheck,
+  Settings,
+  Mail,
+  MapPin,
+  ChevronDown,
+} from "lucide-react";
+import PageHeader from "@/components/PageHeader";
+import { usePageMeta } from "@/hooks/usePageMeta";
+
+const Navbar = lazy(() => import("@/components/Navbar"));
+const Footer = lazy(() => import("@/components/Footer"));
+
+// ─── Topic cards ──────────────────────────────────────────────────────────────
+
+const TOPICS = [
+  {
+    icon: Rocket,
+    label: "Getting Started",
+    desc: "New to Helpr? Start here.",
+    color: "hsl(var(--burnt-sienna))",
+    bg: "hsl(var(--burnt-sienna) / 0.10)",
+  },
+  {
+    icon: ClipboardList,
+    label: "Posting a Job",
+    desc: "Write a great post and get results.",
+    color: "hsl(var(--bark))",
+    bg: "hsl(var(--bark) / 0.10)",
+  },
+  {
+    icon: Briefcase,
+    label: "Finding Work",
+    desc: "Apply, get hired, and grow your income.",
+    color: "hsl(var(--sage))",
+    bg: "hsl(var(--sage) / 0.15)",
+  },
+  {
+    icon: CreditCard,
+    label: "Payments & Escrow",
+    desc: "How money is held, released, and paid.",
+    color: "hsl(var(--olive))",
+    bg: "hsl(var(--olive) / 0.12)",
+  },
+  {
+    icon: ShieldCheck,
+    label: "Trust & Safety",
+    desc: "Verification, disputes, and reporting.",
+    color: "hsl(var(--burnt-sienna))",
+    bg: "hsl(var(--burnt-sienna) / 0.10)",
+  },
+  {
+    icon: Settings,
+    label: "Account & Settings",
+    desc: "Email, password, deletion, Senior Mode.",
+    color: "hsl(var(--olivewood))",
+    bg: "hsl(var(--olivewood) / 0.10)",
+  },
+];
+
+// ─── FAQ data ─────────────────────────────────────────────────────────────────
+
+interface FaqItem {
+  q: string;
+  a: string;
+}
+
+interface FaqSection {
+  topic: string;
+  items: FaqItem[];
+}
+
+const FAQ_SECTIONS: FaqSection[] = [
+  {
+    topic: "Getting Started",
+    items: [
+      {
+        q: "Do I need an account to browse jobs?",
+        a: "No, you can browse without signing up. You'll need an account to post or apply.",
+      },
+      {
+        q: "Is Helpr available everywhere in Louisiana?",
+        a: "We're active in 64 parishes and growing. If your area isn't busy yet, posting a job is the best way to attract local helprs.",
+      },
+      {
+        q: "Can I both post jobs and work as a helper?",
+        a: 'Yes — every account can do both. There\'s no separate "poster" or "helper" mode.',
+      },
+    ],
+  },
+  {
+    topic: "Posting a Job",
+    items: [
+      {
+        q: "What should I write in my job description?",
+        a: "The more specific, the better. Include the exact task, how long you expect it to take, any equipment needed, and whether parking is available.",
+      },
+      {
+        q: "How is the price determined?",
+        a: "You can set your own price, accept bids from competing helprs, or use Helpr's Smart Price suggestion based on local market data.",
+      },
+      {
+        q: "Can I cancel after someone applies?",
+        a: "Yes, before accepting an applicant. Once you accept and payment is held in escrow, a cancellation fee applies.",
+      },
+    ],
+  },
+  {
+    topic: "Finding Work",
+    items: [
+      {
+        q: "How do I get my first application accepted?",
+        a: "A complete profile (photo, bio, skills) gets 3× more views. Respond fast — posters notice quick turnaround.",
+      },
+      {
+        q: "When do I get paid?",
+        a: "Payment releases to your Helpr account after the poster confirms completion. Same-day transfer to your bank if your payout account is set up.",
+      },
+      {
+        q: "What if a poster doesn't confirm completion?",
+        a: "If a poster doesn't confirm within 48 hours of you marking work done, it auto-completes and payment releases.",
+      },
+    ],
+  },
+  {
+    topic: "Payments & Escrow",
+    items: [
+      {
+        q: "What is Helpr Escrow?",
+        a: "When a poster accepts your application, their payment is held securely by Helpr (via Stripe). It releases to you only after completion is confirmed. Neither side can touch it mid-job.",
+      },
+      {
+        q: "What fees does Helpr charge?",
+        a: "Free account helpers keep 88% (12% platform fee). Pro members keep 90%, Elite keeps 92%. Posters pay a small service fee at checkout.",
+      },
+      {
+        q: "What if there's a dispute?",
+        a: "Open a dispute from the job detail screen. Our team reviews both sides and can release escrow to either party.",
+      },
+    ],
+  },
+  {
+    topic: "Trust & Safety",
+    items: [
+      {
+        q: "How are helpers verified?",
+        a: "Every helper submits a government-issued ID. Licensed trade work (electrical, plumbing) requires matching verified license.",
+      },
+      {
+        q: "What is the cancellation rate?",
+        a: "We show a helper's cancellation history on their profile once they've completed 5+ jobs. Low cancellation is a strong trust signal.",
+      },
+      {
+        q: "Can I report a helper or poster?",
+        a: 'Yes — the "Report" option is in every job detail and profile. Our team reviews all reports within 24 hours.',
+      },
+    ],
+  },
+  {
+    topic: "Account & Settings",
+    items: [
+      {
+        q: "How do I change my email or password?",
+        a: "Go to Profile → Account Security.",
+      },
+      {
+        q: "Can I delete my account?",
+        a: "Yes. Profile → ··· menu → Delete account. We retain transaction records per Louisiana law but remove all personal data.",
+      },
+      {
+        q: "What is Senior Mode?",
+        a: "Senior Mode simplifies the interface and enables a trusted family member to monitor jobs on your behalf. Enable it in Profile → Settings.",
+      },
+    ],
+  },
+];
+
+// ─── FaqAccordionItem ─────────────────────────────────────────────────────────
+
+const FaqAccordionItem = ({ q, a }: FaqItem) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div
+      className="border-b last:border-0"
+      style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-start justify-between gap-3 py-4 text-left transition-opacity hover:opacity-80"
+      >
+        <span
+          className="font-sans font-semibold text-ds-14 leading-snug"
+          style={{ color: "hsl(var(--ink-deep))" }}
+        >
+          {q}
+        </span>
+        <ChevronDown
+          className="w-4 h-4 shrink-0 mt-0.5 transition-transform duration-200"
+          style={{
+            color: "hsl(var(--olivewood))",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+          strokeWidth={2}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <div className="pb-4">
+          <p
+            className="font-sans text-ds-13 leading-relaxed"
+            style={{ color: "hsl(var(--olivewood))" }}
+          >
+            {a}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Louisiana outline icon (inline SVG) ─────────────────────────────────────
+
+const LouisianaOutline = () => (
+  <svg
+    viewBox="0 0 80 100"
+    className="w-7 h-7 shrink-0"
+    aria-hidden
+    fill="none"
+  >
+    <path
+      d="M12,12 L68,12 L70,40 L66,64 L60,74 L56,86 Q52,92 48,90 Q42,93 38,88 Q32,84 32,80 L22,70 L16,64 L12,44 Z"
+      fill="hsl(var(--burnt-sienna) / 0.15)"
+      stroke="hsl(var(--burnt-sienna) / 0.5)"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+// ─── HelpCenter ───────────────────────────────────────────────────────────────
+
+const HelpCenter = () => {
+  const navigate = useNavigate();
+
+  usePageMeta({
+    title: "Help Center — Louisiana Helpr",
+    description:
+      "Find answers to common questions about posting jobs, finding work, Helpr Escrow, payments, and account settings.",
+    canonical: "https://www.louisianahelpr.com/help",
+    ogTitle: "Louisiana Helpr Help Center",
+    ogDescription:
+      "Quick answers about posting jobs, earning as a helper, escrow, disputes, and more.",
+  });
+
+  return (
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
+      <Suspense fallback={null}>
+        <Navbar />
+      </Suspense>
+
+      <PageHeader
+        eyebrow="Support"
+        title="Help Center"
+        showBrand
+        onBack={() => navigate(-1)}
+      />
+
+      <div className="mx-auto max-w-2xl px-5 lg:px-8 pb-16 space-y-10">
+
+        {/* ── Decorative search header ── */}
+        <div
+          className="rounded-2xl p-6 lg:p-8 space-y-4 relative overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(var(--parchment) / 0.55) 0%, hsl(var(--sage) / 0.18) 100%)",
+            border: "1px solid hsl(var(--olivewood) / 0.18)",
+          }}
+        >
+          <div
+            aria-hidden
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 80% 60% at 90% 10%, hsl(var(--burnt-sienna) / 0.07) 0%, transparent 70%)",
+            }}
+          />
+
+          <h2
+            className="font-display italic font-bold text-ds-24 tracking-[-0.025em] text-balance"
+            style={{ color: "hsl(var(--ink-deep))" }}
+          >
+            How can we help?
+          </h2>
+
+          {/* Decorative search input — visual only */}
+          <div
+            className="flex items-center gap-3 rounded-ds-md px-4 py-3"
+            style={{
+              background: "hsl(var(--parchment) / 0.80)",
+              border: "1px solid hsl(var(--olivewood) / 0.22)",
+            }}
+            aria-hidden
+          >
+            <Search
+              className="w-4 h-4 shrink-0"
+              style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              strokeWidth={1.75}
+            />
+            <span
+              className="font-sans text-ds-14"
+              style={{ color: "hsl(var(--olivewood) / 0.50)" }}
+            >
+              Search help articles...
+            </span>
+          </div>
+
+          <p
+            className="font-sans text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.60)" }}
+          >
+            Browse by topic below or scroll to popular questions.
+          </p>
+        </div>
+
+        {/* ── Topic cards grid ── */}
+        <section aria-labelledby="topics-heading">
+          <h2
+            id="topics-heading"
+            className="font-display italic font-semibold text-ds-18 mb-4"
+            style={{ color: "hsl(var(--ink-deep))" }}
+          >
+            Browse by topic
+          </h2>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {TOPICS.map(({ icon: Icon, label, desc, color, bg }) => (
+              <div
+                key={label}
+                className="rounded-xl p-4 space-y-2 cursor-default"
+                style={{
+                  background:
+                    "linear-gradient(135deg, hsl(var(--parchment) / 0.70) 0%, hsl(var(--parchment) / 0.40) 100%)",
+                  border: "1px solid hsl(var(--olivewood) / 0.12)",
+                  boxShadow:
+                    "inset 0 1px 0 hsl(255 100% 100% / 0.35), 0 1px 4px -1px hsl(var(--olivewood) / 0.08)",
+                }}
+              >
+                <div
+                  className="w-9 h-9 rounded-ds-sm flex items-center justify-center"
+                  style={{ background: bg }}
+                >
+                  <Icon
+                    className="w-4 h-4"
+                    style={{ color }}
+                    strokeWidth={1.75}
+                  />
+                </div>
+                <p
+                  className="font-sans font-semibold text-ds-13 leading-tight"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
+                  {label}
+                </p>
+                <p
+                  className="font-sans text-ds-11 leading-snug"
+                  style={{ color: "hsl(var(--olivewood))" }}
+                >
+                  {desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Popular questions accordion ── */}
+        <section aria-labelledby="faq-heading">
+          <h2
+            id="faq-heading"
+            className="font-display italic font-semibold text-ds-18 mb-5"
+            style={{ color: "hsl(var(--ink-deep))" }}
+          >
+            Popular questions
+          </h2>
+
+          <div className="space-y-4">
+            {FAQ_SECTIONS.map((section) => (
+              <div
+                key={section.topic}
+                className="liquid-glass rounded-xl overflow-hidden"
+              >
+                {/* Topic header */}
+                <div
+                  className="px-5 py-3"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, hsl(var(--parchment) / 0.55) 0%, transparent 100%)",
+                    borderBottom: "1px solid hsl(var(--olivewood) / 0.10)",
+                  }}
+                >
+                  <p
+                    className="font-sans font-semibold uppercase text-[0.65rem] tracking-widest"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.80)" }}
+                  >
+                    {section.topic}
+                  </p>
+                </div>
+
+                {/* Items */}
+                <div className="px-5">
+                  {section.items.map((item) => (
+                    <FaqAccordionItem key={item.q} q={item.q} a={item.a} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Contact section ── */}
+        <section
+          aria-labelledby="contact-heading"
+          className="rounded-2xl p-5 lg:p-7 space-y-4"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(var(--bark) / 0.06) 0%, hsl(var(--burnt-sienna) / 0.06) 100%)",
+            border: "1px solid hsl(var(--bark) / 0.14)",
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <LouisianaOutline />
+            <div>
+              <h2
+                id="contact-heading"
+                className="font-sans font-semibold text-ds-15"
+                style={{ color: "hsl(var(--ink-deep))" }}
+              >
+                Still need help? Reach a real person.
+              </h2>
+              <p
+                className="font-sans text-ds-12"
+                style={{ color: "hsl(var(--olivewood))" }}
+              >
+                Louisiana Helpr support team
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Mail
+                className="w-4 h-4 shrink-0"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+                strokeWidth={1.75}
+              />
+              <a
+                href="mailto:support@louisianahelpr.com"
+                className="font-sans font-semibold text-ds-13 transition-opacity hover:opacity-75"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                support@louisianahelpr.com
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <MapPin
+                className="w-4 h-4 shrink-0"
+                style={{ color: "hsl(var(--olivewood))" }}
+                strokeWidth={1.75}
+              />
+              <p
+                className="font-sans text-ds-13"
+                style={{ color: "hsl(var(--olivewood))" }}
+              >
+                Mon–Fri, 8am–6pm CST
+              </p>
+            </div>
+          </div>
+
+          <p
+            className="font-serif italic text-ds-13 leading-relaxed"
+            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+          >
+            We review every message and aim to respond within one business day.
+            For urgent safety or dispute concerns, flag it in the subject line.
+          </p>
+        </section>
+
+      </div>
+
+      <Suspense fallback={null}>
+        <Footer />
+      </Suspense>
+    </div>
+  );
+};
+
+export default HelpCenter;

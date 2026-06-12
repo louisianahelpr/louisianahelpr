@@ -270,34 +270,19 @@ const NotificationPanel = () => {
         className="w-full sm:max-w-md p-0 gap-0 flex flex-col h-[100dvh]"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <SheetHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0 text-left sm:text-left space-y-2">
-          {/* Left-aligned title + Mark-all-read row sits beside the
-              safe-area-aware close button (40px frosted circle in the
-              top-right via Sheet primitive). pr-12 reserves room so
-              long titles can't run under the close. */}
-          <SheetTitle
-            className="text-page-title text-left pr-12"
-          >
+        <SheetHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0 text-left sm:text-left space-y-3">
+          {/* Title sits alone on the top line with pr-12 reserving room
+              for the safe-area-aware close button (40px frosted circle,
+              top-right via the Sheet primitive). */}
+          <SheetTitle className="text-page-title text-left pr-12">
             Notifications
           </SheetTitle>
-          {(unreadCount > 0 || (pushSupported && !pushEnabled)) && (
-            <div className="flex items-center gap-2">
-              {pushSupported && !pushEnabled && (
-                <Button variant="ghost" size="sm" onClick={enablePush} className="text-ds-11 text-primary h-7 px-2">
-                  <BellRing className="w-3.5 h-3.5 mr-1" /> Enable push
-                </Button>
-              )}
-              {unreadCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={markAllRead} className="text-ds-11 text-muted-foreground h-7 px-2 ml-auto">
-                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
-                </Button>
-              )}
-            </div>
-          )}
-          {/* Filter pills — All / Unread. Lets users triage in feeds
-              with volume; auto-falls-back to "All" when the active
-              filter would render nothing (so unread→empty doesn't
-              feel like the page is broken). */}
+          {/* One controls row: filter pills on the left, the
+              Mark-all-read / Enable-push actions on the right. Keeping
+              them on a single justified line (rather than a standalone
+              right-floated button row) keeps the header compact and away
+              from the close button. */}
+          <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             {([
               { key: "all" as Filter, label: "All", count: notifications.length },
@@ -309,7 +294,7 @@ const NotificationPanel = () => {
                   key={opt.key}
                   type="button"
                   onClick={() => setFilter(opt.key)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 h-7 text-ds-11 font-sans font-semibold transition-all active:scale-[0.96] ${
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 h-7 text-ds-11 font-sans font-semibold transition-all active:scale-[0.96] ${
                     isActive
                       ? ""
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -338,6 +323,29 @@ const NotificationPanel = () => {
                 </button>
               );
             })}
+          </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {pushSupported && !pushEnabled && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={enablePush}
+                  className="text-ds-11 text-[hsl(var(--bark))] h-7 px-2 rounded-full hover:bg-[hsl(var(--bark)/0.08)] hover:text-[hsl(var(--bark))]"
+                >
+                  <BellRing className="w-3.5 h-3.5 mr-1" /> Enable push
+                </Button>
+              )}
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAllRead}
+                  className="text-ds-11 text-[hsl(var(--bark))] h-7 px-2 rounded-full hover:bg-[hsl(var(--bark)/0.08)] hover:text-[hsl(var(--bark))]"
+                >
+                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
+                </Button>
+              )}
+            </div>
           </div>
         </SheetHeader>
         <PullToRefreshWrapper

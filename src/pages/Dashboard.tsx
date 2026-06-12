@@ -50,6 +50,8 @@ import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { queryKeys } from "@/lib/queryKeys";
 import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
+import { getActiveTriggers, type TriggerContext } from "@/lib/lifeEventTriggers";
+import { LifeEventCard } from "@/components/dashboard/LifeEventCard";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -291,6 +293,37 @@ const Dashboard = () => {
     } catch { return false; }
   });
   const showEarlyAccessBanner = isFreeTierHelper && !earlyAccessBannerDismissed;
+
+  // Life-event trigger — personalized contextual prompt above the storm banner.
+  // Re-computed from stable profile + jobs data; dismissed via localStorage.
+  // Re-keyed on dismiss so the card animates out via AnimatePresence.
+  const [lifeEventDismissedAt, setLifeEventDismissedAt] = useState(0);
+  const activeTrigger = useMemo(() => {
+    const ctx: TriggerContext = {
+      recentJobCategories: (allJobs as any[])
+        .filter((j) => (j as any).customer_id === user?.id)
+        .slice(0, 10)
+        .map((j) => (j as any).category ?? ""),
+      isHurricaneSeason: [5, 6, 7, 8, 9, 10].includes(new Date().getMonth()),
+      hasPostedBefore: (allJobs as any[]).some((j) => (j as any).customer_id === user?.id),
+      accountAgeDays: profile?.created_at
+        ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86_400_000)
+        : 0,
+      completedJobsAsHelper: (profile as any)?.completed_jobs ?? 0,
+      lastJobPostedDaysAgo: (() => {
+        const myJobs = (allJobs as any[]).filter((j) => (j as any).customer_id === user?.id);
+        if (!myJobs.length) return null;
+        const latest = myJobs[0]?.created_at;
+        if (!latest) return null;
+        return Math.floor((Date.now() - new Date(latest).getTime()) / 86_400_000);
+      })(),
+      profileHasCity: !!(profile?.location || profile?.parish),
+      hasPets: false, // TODO: wire pet_profiles count when available
+    };
+    // lifeEventDismissedAt in deps re-runs this after a dismiss clears localStorage.
+    void lifeEventDismissedAt;
+    return getActiveTriggers(ctx)[0] ?? null;
+  }, [user?.id, allJobs, profile?.created_at, profile?.location, profile?.parish, lifeEventDismissedAt]);
 
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
@@ -963,6 +996,15 @@ const Dashboard = () => {
               here. It moved off the home feed onto the Profile landing
               screen (ProfileLanding's completion meter) so the job feed
               is no longer pushed below the fold. */}
+
+          {/* Life-event trigger — personalized prompt, shown above storm banner
+              (more contextual). Max 1 at a time. Dismisses via localStorage. */}
+          {activeTrigger && (
+            <LifeEventCard
+              trigger={activeTrigger}
+              onDismiss={() => setLifeEventDismissedAt(Date.now())}
+            />
+          )}
 
           {/* Hurricane season banner — June–Nov only, dismissible for the day. */}
           {showStormBanner && (

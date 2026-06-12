@@ -69,6 +69,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/parishes",   // Parish directory listing all 8 supported parishes
   "/parish",     // /parish/:slug — individual parish community pages
   "/wrapped",    // Helpr Wrapped year-in-review
+  "/impact",     // Public impact transparency page — long-form, document-scroll
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

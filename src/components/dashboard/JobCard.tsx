@@ -1,8 +1,8 @@
-import { memo, type KeyboardEvent } from "react";
+import { memo, useCallback, useRef, useState, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock, Heart,
 } from "lucide-react";
-import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { hapticLight, hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
@@ -73,10 +73,58 @@ interface JobCardProps {
 // gradient tints are kept for the boosted/recommended highlight strip.
 const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, onLongPress }: JobCardProps) => {
   const isGuest = variant === "guest";
+
+  // Double-tap-to-save (Instagram-style). A single tap still opens the
+  // detail view, but we delay it ~280ms so a fast second tap can claim
+  // the gesture as a "save" instead. Double-tap only ever SAVES — it
+  // never un-saves — so a quick double-tap can't accidentally remove a
+  // bookmark the user already has. The heart-pop overlay + success
+  // haptic only fire when the tap actually adds the save.
+  const DOUBLE_TAP_MS = 280;
+  const [showHeart, setShowHeart] = useState(false);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTapRef = useRef(0);
+  // Keep the latest isSaved in a ref so the tap handler reads fresh state
+  // without re-creating itself (and re-spreading on the card) every render.
+  const isSavedRef = useRef(_isSaved);
+  isSavedRef.current = _isSaved;
+
+  const handleTap = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+      // Second tap inside the window → double-tap: cancel the pending
+      // single-tap navigation and save (only if not already saved).
+      lastTapRef.current = 0;
+      if (tapTimerRef.current) {
+        clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = null;
+      }
+      if (_onToggleSave) {
+        // Double-tap only ever SAVES — only toggle when not already saved
+        // (so a quick double-tap can't accidentally un-bookmark). The
+        // heart-pop + success haptic fire either way as confirmation.
+        if (!isSavedRef.current) _onToggleSave(job.id, true);
+        hapticSuccess();
+        setShowHeart(true);
+      } else {
+        hapticLight();
+      }
+      return;
+    }
+    lastTapRef.current = now;
+    tapTimerRef.current = setTimeout(() => {
+      tapTimerRef.current = null;
+      hapticLight();
+      onSelect(job);
+    }, DOUBLE_TAP_MS);
+  }, [job, onSelect, _onToggleSave]);
+
   // Long-press hook — fires onLongPress after 500ms hold, falls through
   // to a normal tap (onSelect) when the user lifts before the threshold.
   // We always create the hook to keep the component's render shape
   // stable across renders, but ignore its props when there's no handler.
+  // The tap is routed through handleTap so the double-tap-to-save gesture
+  // works alongside the long-press quick-action sheet.
   const longPress = useLongPress({
     threshold: 500,
     onLongPress: () => {
@@ -85,10 +133,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         onLongPress(job.id);
       }
     },
-    onTap: () => {
-      hapticLight();
-      onSelect(job);
-    },
+    onTap: handleTap,
   });
   // Show the gross posted budget (vs the helper's net take-home) whenever
   // the full guest variant is active OR the lighter guestPricing flag is set.
@@ -203,7 +248,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           ...prefetchHandlers,
         }
       : {
-          onClick: () => { hapticLight(); onSelect(job); },
+          onClick: handleTap,
           role: "button" as const,
           tabIndex: 0,
           "aria-label": `View ${job.title} — $${job.budget}`,
@@ -536,6 +581,29 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         </div>
       )}
       </div>
+
+      {/* Double-tap-to-save heart pop — Instagram-style. Centered over the
+          card, pops in then fades up over ~600ms. pointer-events-none so it
+          never blocks taps; unmounts on animation end. */}
+      {showHeart && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 z-30 animate-heart-pop"
+          onAnimationEnd={() => setShowHeart(false)}
+          style={{
+            filter: "drop-shadow(0 4px 12px hsl(var(--burnt-sienna) / 0.45))",
+          }}
+        >
+          <Heart
+            className="w-20 h-20"
+            strokeWidth={1.5}
+            style={{
+              color: "hsl(var(--burnt-sienna))",
+              fill: "hsl(var(--burnt-sienna))",
+            }}
+          />
+        </span>
+      )}
     </div>
   );
 };

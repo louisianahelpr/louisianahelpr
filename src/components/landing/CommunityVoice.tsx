@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
@@ -10,6 +11,27 @@ import { ArrowRight } from "lucide-react";
  * Closes with an inline CTA below the FAQ — gives engaged scrollers a
  * landing point without competing with the hero.
  */
+
+const testimonials = [
+  {
+    quote: "I typed in what I needed. Three helprs applied within the hour, and I picked one. That was it.",
+    name: "Camille R.",
+    location: "Mid-City",
+    avatarLabel: "+ 127 happy customers",
+  },
+  {
+    quote: "Made $340 last weekend helping with moves. Easy money — I set my own schedule and Helpr handles the rest.",
+    name: "Darius T.",
+    location: "Baton Rouge",
+    avatarLabel: "+ 84 active helprs",
+  },
+  {
+    quote: "Our rental turnovers used to take days to schedule. Now I post, pick a helpr same morning, and it's done.",
+    name: "Sandra M.",
+    location: "Lafayette",
+    avatarLabel: "+ 127 happy customers",
+  },
+];
 
 const faqs = [
   {
@@ -39,6 +61,17 @@ const avatars = [
 
 const CommunityVoice = () => {
   const navigate = useNavigate();
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // Auto-advance testimonials every 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const active = testimonials[activeIndex];
 
   const goToPostJob = async () => {
     const { supabase } = await import("@/integrations/supabase/client");
@@ -73,8 +106,7 @@ const CommunityVoice = () => {
           </div>
 
           <blockquote className="editorial-quote text-center md:text-left">
-            &ldquo;I typed in what I needed. Three helprs applied within the
-            hour, and I picked one. That was it.&rdquo;
+            &ldquo;{active.quote}&rdquo;
           </blockquote>
 
           {/* Attribution */}
@@ -87,10 +119,10 @@ const CommunityVoice = () => {
                 lineHeight: 1,
               }}
             >
-              Camille R.
+              {active.name}
             </span>
             <span className="text-display-eyebrow" style={{ fontSize: "0.65rem" }}>
-              Mid-City
+              {active.location}
             </span>
           </div>
 
@@ -116,8 +148,27 @@ const CommunityVoice = () => {
               className="font-serif italic text-ds-13 sm:text-ds-15"
               style={{ color: "hsl(var(--stormy-sky))" }}
             >
-              + 127 happy customers
+              {active.avatarLabel}
             </span>
+          </div>
+
+          {/* Dot indicators */}
+          <div className="mt-6 flex items-center justify-center md:justify-start gap-2">
+            {testimonials.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Go to testimonial ${i + 1}`}
+                onClick={() => setActiveIndex(i)}
+                className="w-2 h-2 rounded-full transition-colors duration-300"
+                style={{
+                  backgroundColor:
+                    i === activeIndex
+                      ? "hsl(var(--burnt-sienna))"
+                      : "hsl(var(--burnt-sienna) / 0.25)",
+                }}
+              />
+            ))}
           </div>
         </div>
 

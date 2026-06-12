@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Building2, ArrowRight } from "lucide-react";
+import { Building2, ArrowRight, RefreshCw, Home, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -39,6 +39,26 @@ const BusinessCTASection = () => (
               Helpr handles your recurring tasks — cleanings, hauling, repairs, and
               turnovers — on demand, with ID-verified local help.
             </p>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {[
+                { Icon: RefreshCw, label: "Recurring cleanings" },
+                { Icon: Home, label: "Property turnovers" },
+                { Icon: Truck, label: "On-demand hauling" },
+              ].map(({ Icon, label }) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ds-11 font-sans font-medium"
+                  style={{
+                    backgroundColor: "hsl(var(--bark) / 0.08)",
+                    color: "hsl(var(--olivewood))",
+                    border: "1px solid hsl(var(--bark) / 0.15)",
+                  }}
+                >
+                  <Icon className="w-3 h-3 shrink-0" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+                  {label}
+                </span>
+              ))}
+            </div>
           </div>
           <Button
             asChild

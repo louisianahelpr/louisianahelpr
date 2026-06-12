@@ -5,6 +5,7 @@ import {
   Lock,
   Shield,
   Check,
+  ArrowRight,
 } from "lucide-react";
 
 const steps = [
@@ -40,7 +41,7 @@ const trustFacts = [
 const HowItWorksSection = () => (
   <section
     id="how-it-works"
-    className="py-6 sm:py-10 lg:py-14 px-4 sm:px-6 lg:px-8 scroll-mt-24"
+    className="py-10 sm:py-14 lg:py-20 px-4 sm:px-6 lg:px-8 scroll-mt-24"
   >
     <div className="container mx-auto max-w-6xl">
       {/* Eyebrow + headline live OUTSIDE the glass — same pattern as the FAQ,
@@ -70,7 +71,7 @@ const HowItWorksSection = () => (
             return (
               <article
                 key={step.title}
-                className="observe-fade-up p-6 sm:p-7 flex flex-col justify-between gap-5 min-h-[14rem] sm:min-h-[16rem] rounded-[2rem]"
+                className="observe-fade-up relative p-6 sm:p-7 flex flex-col justify-between gap-5 min-h-[14rem] sm:min-h-[16rem] rounded-[2rem]"
                 style={{
                   transitionDelay: `${i * 100}ms`,
                   border: "1px solid rgba(255, 255, 255, 0.18)",
@@ -80,7 +81,16 @@ const HowItWorksSection = () => (
                   <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
                     <Icon className="w-6 h-6 text-primary" strokeWidth={1.25} />
                   </div>
-                  <span className="text-display-eyebrow">{step.accent}</span>
+                  {/* Step number badge — monospaced, prominent pill */}
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-ds-13"
+                    style={{
+                      backgroundColor: "hsl(var(--burnt-sienna) / 0.12)",
+                      color: "hsl(var(--burnt-sienna))",
+                    }}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-ds-20 sm:text-ds-24 font-display font-semibold text-foreground tracking-tight leading-tight">
@@ -90,6 +100,16 @@ const HowItWorksSection = () => (
                     {step.description}
                   </p>
                 </div>
+                {/* Arrow connector — visible only on md+ between steps */}
+                {i < steps.length - 1 && (
+                  <div className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 z-10">
+                    <ArrowRight
+                      className="w-5 h-5"
+                      style={{ color: "hsl(var(--sage) / 0.5)" }}
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                )}
               </article>
             );
           })}

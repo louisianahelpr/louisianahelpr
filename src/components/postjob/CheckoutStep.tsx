@@ -13,6 +13,8 @@ import {
   ChevronLeft,
   CheckCircle2,
   Users,
+  BookOpen,
+  DollarSign,
 } from "lucide-react";
 import type { HelprActivity } from "@/hooks/useHelprActivity";
 import { EscrowExplainer } from "@/components/payment/EscrowExplainer";
@@ -63,6 +65,13 @@ interface CheckoutStepProps {
   uploadProgress?: { done: number; total: number } | null;
   onEdit: () => void;
   onSubmit: () => void;
+  /** Helper-side commission percent — used to compute "helper earns $X" in
+   *  the fee summary row. Optional: omit to hide that line. */
+  helperFee?: number | null;
+  /** Whether instant-book is enabled for this post. */
+  isInstantBook?: boolean;
+  /** Poster's parish — shown in the location row when available. */
+  parish?: string | null;
 }
 
 export function CheckoutStep({
@@ -98,10 +107,177 @@ export function CheckoutStep({
   uploadProgress,
   onEdit,
   onSubmit,
+  helperFee,
+  isInstantBook,
+  parish,
 }: CheckoutStepProps) {
+  // Compute helper's net payout: budget minus the helper-side commission.
+  // Shown in the "Review & Post" summary so posters understand both sides
+  // of the fee structure — transparency here reduces post-job disputes.
+  const helperEarns =
+    helperFee != null && budgetNum > 0
+      ? budgetNum - budgetNum * (helperFee / 100)
+      : null;
   return (
     <>
       <p className="text-muted-foreground text-ds-11">Review your task before paying</p>
+
+      {/* ── Review & Post summary card ─────────────────────────────
+          A clean read-only summary of everything the poster set. Shows
+          the key fields at a glance so they can catch mistakes before
+          committing to payment. The fee breakdown shows both sides:
+          "You pay $X · Helper earns $Y" for full transparency. */}
+      <div className="rounded-ds-md liquid-glass overflow-hidden">
+        <div
+          className="px-4 py-2.5 flex items-center gap-2 border-b border-border"
+          style={{ background: "hsl(var(--bark) / 0.04)" }}
+        >
+          <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
+          <p
+            className="text-[10px] uppercase tracking-wide font-semibold"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Your post at a glance
+          </p>
+        </div>
+        <div className="divide-y divide-border">
+          {/* Title + category */}
+          <div className="px-4 py-3 flex items-start justify-between gap-3">
+            <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5">Job</span>
+            <div className="flex-1 min-w-0 text-right">
+              <p className="text-ds-13 font-semibold text-foreground truncate">{title}</p>
+              <span
+                className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[0.65rem] font-semibold capitalize"
+                style={{
+                  background: "hsl(var(--bark) / 0.09)",
+                  color: "hsl(var(--bark))",
+                }}
+              >
+                {categoryLabel}
+              </span>
+            </div>
+          </div>
+
+          {/* Description (clamped to 3 lines) */}
+          {description && (
+            <div className="px-4 py-3 flex items-start gap-3">
+              <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5">Details</span>
+              <p
+                className="flex-1 text-ds-11 text-foreground leading-relaxed line-clamp-3"
+                style={{ wordBreak: "break-word" }}
+              >
+                {description}
+              </p>
+            </div>
+          )}
+
+          {/* Budget with fee breakdown */}
+          <div className="px-4 py-3 flex items-start justify-between gap-3">
+            <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
+              <DollarSign className="w-3 h-3" />Budget
+            </span>
+            <div className="text-right">
+              <p className="text-ds-13 font-bold text-foreground">${budgetNum.toFixed(2)}</p>
+              {helperEarns !== null && (
+                <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  You pay{" "}
+                  <span className="font-semibold text-foreground">
+                    ${(budgetNum + customerFeeAmount + urgentFeeNum).toFixed(2)}
+                  </span>
+                  {" · "}helper earns{" "}
+                  <span className="font-semibold text-foreground">
+                    ${helperEarns.toFixed(2)}
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="px-4 py-3 flex items-start gap-3">
+            <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
+              <MapPin className="w-3 h-3" />Location
+            </span>
+            <p className="flex-1 text-ds-11 text-foreground text-right">
+              {city}{parish ? `, ${parish} Parish` : addrState ? `, ${addrState}` : ""}
+            </p>
+          </div>
+
+          {/* Date */}
+          {dateNeeded && (
+            <div className="px-4 py-3 flex items-start gap-3">
+              <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
+                <Calendar className="w-3 h-3" />When
+              </span>
+              <p className="flex-1 text-ds-11 text-foreground text-right">
+                {new Date(dateNeeded + "T00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                {isFlexibleSchedule ? " · Flexible" : startTime ? ` · ${startTime}` : ""}
+              </p>
+            </div>
+          )}
+
+          {/* Photos (thumbnail row) */}
+          {imagePreviews.length > 0 && (
+            <div className="px-4 py-3 flex items-start gap-3">
+              <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
+                <ImagePlus className="w-3 h-3" />Photos
+              </span>
+              <div className="flex-1 flex gap-1.5 flex-wrap justify-end">
+                {imagePreviews.slice(0, 5).map((src, i) =>
+                  isSafeBlobPreviewUrl(src) ? (
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      key={i}
+                      src={src}
+                      alt=""
+                      className="w-10 h-10 rounded-ds-sm object-cover"
+                      style={{ border: "0.5px solid hsl(var(--olivewood) / 0.15)" }}
+                    />
+                  ) : null,
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Instant book badge */}
+          {isInstantBook && (
+            <div className="px-4 py-3 flex items-center justify-between gap-3">
+              <span className="text-ds-11 text-muted-foreground w-20 shrink-0">Booking</span>
+              <span
+                className="text-ds-11 font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  background: "hsl(var(--bark) / 0.09)",
+                  color: "hsl(var(--bark))",
+                }}
+              >
+                Instant Book on
+              </span>
+            </div>
+          )}
+
+          {/* Special requirements */}
+          {specialRequirements && (
+            <div className="px-4 py-3 flex items-start gap-3">
+              <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5">Notes</span>
+              <p className="flex-1 text-ds-11 text-foreground text-right line-clamp-2">
+                {specialRequirements}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Edit link */}
+        <div className="px-4 py-2.5 border-t border-border">
+          <button
+            onClick={onEdit}
+            className="text-ds-11 underline-offset-2 hover:underline"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Go back to edit
+          </button>
+        </div>
+      </div>
 
       {/* Two-sided liquidity signal — a quiet confidence cue that the
           helpr side is active before the poster commits to paying.

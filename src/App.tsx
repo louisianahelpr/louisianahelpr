@@ -26,6 +26,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
+import { useDarkMode } from "@/hooks/useDarkMode";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { useSoftUpdatePrompt } from "@/hooks/useSoftUpdatePrompt";
 const ForceUpdate = lazy(() => import("@/components/ForceUpdate"));
@@ -92,6 +93,7 @@ const BusinessReports = lazy(() => import("./pages/business/BusinessReports"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
+const ImpactPage = lazy(() => import("./pages/ImpactPage"));
 
 // Lazy load less-critical global components
 
@@ -197,6 +199,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
 
       {/* Community discovery — public, document-scroll, SEO-indexable */}
+      {/* Public impact transparency page — no auth required */}
+      <Route path="/impact" element={<RouteErrorBoundary>{routeEl(<PageTransition><ImpactPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/parishes" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishesPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/parish/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Helpr Wrapped — auth-gated, HelprWrapped handles the redirect */}
@@ -257,6 +261,7 @@ const SessionManager = () => {
   useSoftUpdatePrompt();
   useAppLifecycle();
   useDynamicTypeSync();
+  useDarkMode(); // initializes data-theme from localStorage / system preference
   useCppVariantRouter();
   useAppShellViewport();
   useStatusBarStyle();

@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
+import { TrustRow } from "@/components/TrustRow";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -468,6 +469,47 @@ function PostedJobCardInner({
                           >
                             Share your task or Boost it (below) to reach more helprs nearby.
                           </p>
+                        </div>
+                      );
+                    }
+
+                    // Render the inline applicant list with TrustRow
+                    // showing each applicant's completed jobs and rating.
+                    if (apps !== undefined && apps.length > 0) {
+                      return (
+                        <div className="space-y-2 py-1">
+                          {apps.map((app) => {
+                            const name = app.profiles?.full_name || "Helpr";
+                            return (
+                              <div
+                                key={app.id}
+                                className="flex items-start gap-2 px-2.5 py-2 rounded-ds-sm"
+                                style={{
+                                  background: "hsl(var(--olivewood) / 0.05)",
+                                  border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+                                }}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p
+                                    className="font-display italic font-bold truncate"
+                                    style={{ fontSize: "0.82rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                                  >
+                                    {name}
+                                  </p>
+                                  <TrustRow
+                                    completedJobs={
+                                      typeof (app as { completedJobs?: number }).completedJobs === "number"
+                                        ? (app as { completedJobs?: number }).completedJobs
+                                        : undefined
+                                    }
+                                    avgRating={app.avgRating ?? undefined}
+                                    reviewCount={app.reviewCount ?? undefined}
+                                    className="mt-0.5"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     }

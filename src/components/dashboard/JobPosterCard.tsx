@@ -1,7 +1,8 @@
-import { Star, ChevronRight, Lock, Crown, Sparkles, Users } from "lucide-react";
+import { Star, ChevronRight, Lock, Crown, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
+import { TrustRow } from "@/components/TrustRow";
 import type { EnrichedJob } from "./types";
 
 interface JobPosterCardProps {
@@ -141,26 +142,30 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
         />
       </div>
 
-      {/* Trust signal row — only show truthful platform/poster facts.
-          Helpr escrow is always true (platform guarantee). Pro/Elite
-          tier badge only renders when the poster actually has one.
-          Repeat-poster badge shows when they've posted multiple jobs. */}
+      {/* Trust signal row — platform guarantees (Helpr Escrow, tier) are
+          rendered inline; poster-data signals (Trusted, Worked together)
+          go through the shared TrustRow component for code reuse. */}
       <div
-        className="flex items-center justify-center gap-3 mt-2 pt-2 text-ds-10 font-sans font-semibold uppercase"
+        className="flex items-center justify-center gap-3 mt-2 pt-2"
         style={{
-          color: "hsl(var(--olivewood) / 0.7)",
-          letterSpacing: "0.06em",
           borderTop: "0.5px solid hsl(var(--bark) / 0.12)",
         }}
       >
-        <span className="inline-flex items-center gap-1">
+        {/* Platform-level chips — always truthful regardless of poster data */}
+        <span
+          className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
+          style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.06em" }}
+        >
           <Lock className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} />
           Helpr Escrow
         </span>
         {job.posterSubscriptionTier === "elite" && (
           <>
             <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-            <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--gold-warm))" }}>
+            <span
+              className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
+              style={{ color: "hsl(var(--gold-warm))", letterSpacing: "0.06em" }}
+            >
               <Crown className="w-3.5 h-3.5" strokeWidth={2.25} />
               Elite Poster
             </span>
@@ -169,30 +174,27 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
         {job.posterSubscriptionTier === "pro" && (
           <>
             <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-            <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
+            <span
+              className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.06em" }}
+            >
               <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} />
               Pro Poster
             </span>
           </>
         )}
-        {(job.posterReviewCount ?? 0) >= 3 && (
-          <>
-            <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-            <span className="inline-flex items-center gap-1">
-              <Star className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} fill="currentColor" />
-              Trusted
-            </span>
-          </>
-        )}
-        {repeatJobs >= 2 && (
-          <>
-            <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-            <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--bark))" }}>
-              <Users className="w-3.5 h-3.5" strokeWidth={2.25} />
-              Worked together {repeatJobs}×
-            </span>
-          </>
-        )}
+        {/* Poster-data trust signals via the reusable TrustRow component.
+            "Trusted" maps to avgRating+reviewCount (shown when ≥3 reviews).
+            "Worked together N×" maps to repeatHirePercent (≥2 jobs → 100%). */}
+        <TrustRow
+          avgRating={
+            (job.posterReviewCount ?? 0) >= 3 ? (job.posterAvgRating ?? undefined) : undefined
+          }
+          reviewCount={
+            (job.posterReviewCount ?? 0) >= 3 ? (job.posterReviewCount ?? undefined) : undefined
+          }
+          repeatHirePercent={repeatJobs >= 2 ? 100 : undefined}
+        />
       </div>
     </Link>
   );

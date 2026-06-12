@@ -84,6 +84,16 @@ interface PostedJobCardProps {
   onActionComplete: () => void;
   /** Number of unique helprs who have viewed this job. Only shown when > 0. */
   viewCount?: number;
+  /** Pre-computed analytics for this job — views, applicant count,
+   *  conversion rate, and bid range (bid fields only for accept_bids jobs). */
+  jobAnalytics?: {
+    viewCount: number;
+    applicantCount: number;
+    conversionRate: number | null;
+    bidMin: number | null;
+    bidMax: number | null;
+    bidAvg: number | null;
+  };
 }
 
 /**
@@ -127,6 +137,7 @@ function PostedJobCardInner({
   initialGroupHelpers,
   onActionComplete,
   viewCount,
+  jobAnalytics,
 }: PostedJobCardProps) {
   const navigate = useNavigate();
   const [completionSheetOpen, setCompletionSheetOpen] = useState(false);
@@ -316,6 +327,17 @@ function PostedJobCardInner({
                       );
                     })()}
                   </div>
+                  {/* Relist CTA — only for auto-expired jobs, not manual cancellations */}
+                  {job.cancellation_reason?.toLowerCase().includes('expired') && (
+                    <Button
+                      size="sm"
+                      variant="bark"
+                      className="w-full rounded-ds-md mt-2"
+                      onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+                    >
+                      <RotateCcw className="w-4 h-4 mr-1.5" /> Relist this task
+                    </Button>
+                  )}
                 </div>
               )}
 
@@ -595,6 +617,41 @@ function PostedJobCardInner({
 
                     return null;
                   })()}
+                </div>
+              )}
+
+              {/* Analytics mini-panel — only shown when there's data to display */}
+              {jobAnalytics && (jobAnalytics.viewCount > 0 || jobAnalytics.applicantCount > 0) && (
+                <div
+                  className="mx-4 rounded-ds-md px-3 py-2.5 space-y-1.5 mb-2"
+                  style={{ background: "hsl(var(--parchment) / 0.4)", border: "1px solid hsl(var(--olivewood) / 0.1)" }}
+                >
+                  <p className="text-ds-11 font-semibold uppercase tracking-[0.1em]" style={{ color: "hsl(var(--olivewood) / 0.5)" }}>
+                    Activity
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    {jobAnalytics.viewCount > 0 && (
+                      <span className="text-ds-12 flex items-center gap-1" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
+                        <Eye className="w-3 h-3" /> {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
+                      </span>
+                    )}
+                    {jobAnalytics.applicantCount > 0 && (
+                      <span className="text-ds-12 flex items-center gap-1" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
+                        <Users className="w-3 h-3" /> {jobAnalytics.applicantCount} applied
+                      </span>
+                    )}
+                    {jobAnalytics.conversionRate !== null && (
+                      <span className="text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
+                        {jobAnalytics.conversionRate}% applied
+                      </span>
+                    )}
+                  </div>
+                  {/* Bid range — only for accept_bids jobs */}
+                  {jobAnalytics.bidAvg !== null && (
+                    <p className="text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
+                      Bids: ${jobAnalytics.bidMin?.toFixed(0)}–${jobAnalytics.bidMax?.toFixed(0)} · avg ${jobAnalytics.bidAvg.toFixed(0)}
+                    </p>
+                  )}
                 </div>
               )}
 

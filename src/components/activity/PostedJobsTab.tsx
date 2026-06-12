@@ -291,6 +291,41 @@ export const PostedJobsTab = ({
   });
   const viewCounts: Record<string, number> = viewCountsData ?? {};
 
+  // Build per-job analytics for the PostedJobCard mini-panel.
+  // Uses the already-fetched viewCounts + applicantCounts + inlineApplicants
+  // (for bid prices on accept_bids jobs). No extra queries needed.
+  const jobAnalyticsMap = useMemo(() => {
+    const map: Record<string, {
+      viewCount: number;
+      applicantCount: number;
+      conversionRate: number | null;
+      bidMin: number | null;
+      bidMax: number | null;
+      bidAvg: number | null;
+    }> = {};
+    for (const job of jobs) {
+      const views = viewCounts[job.id] ?? 0;
+      const appCount = applicantCounts[job.id] ?? 0;
+      const conversionRate = views > 0 ? Math.round((appCount / views) * 100) : null;
+
+      // Bid prices — derive from inline applicants if loaded; otherwise null
+      const apps = inlineApplicants[job.id] ?? [];
+      const bids = apps
+        .map((a) => (a as any).proposed_price)
+        .filter((p): p is number => typeof p === "number" && p > 0);
+
+      map[job.id] = {
+        viewCount: views,
+        applicantCount: appCount,
+        conversionRate,
+        bidMin: bids.length > 0 ? Math.min(...bids) : null,
+        bidMax: bids.length > 0 ? Math.max(...bids) : null,
+        bidAvg: bids.length > 0 ? bids.reduce((a, b) => a + b, 0) / bids.length : null,
+      };
+    }
+    return map;
+  }, [jobs, viewCounts, applicantCounts, inlineApplicants]);
+
   // Build scored + sorted applicant list for the comparison panel.
   // Scoring is purely client-side — no extra queries needed.
   // The score map is keyed by helper_id so the "Recommended" badge
@@ -382,6 +417,7 @@ export const PostedJobsTab = ({
         completedJobMeta={completedJobMeta}
         startRequestedJobIds={startRequestedJobIds}
         viewCount={viewCounts[job.id]}
+        jobAnalytics={jobAnalyticsMap[job.id]}
         // `latestTracking[job.id]` may legitimately be `null` ("we
         // looked, no row exists") — the card forwards that down so
         // <JobTracking> skips its own initial fetch. If the key is

@@ -50,6 +50,11 @@ export interface BuildJobInsertPayloadInput {
       'pending_approval' when the business's `require_approval_above`
       threshold is crossed. */
   initialStatus?: "open" | "pending_approval";
+  /** When true, a helper who applies is auto-confirmed immediately without
+      poster review. Stored as jobs.instant_book (migration 20260612090000).
+      Only included in the INSERT when true so a pre-push prod still accepts
+      the payload (treats missing as the DB default of false). */
+  isInstantBook?: boolean;
 }
 
 /**
@@ -78,6 +83,7 @@ export function computeExpiresAt(dateNeeded: string, startTime: string): string 
  */
 export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobInsertPayload {
   const requiresW9 = input.requiresW9 ?? false;
+  const isInstantBook = input.isInstantBook ?? false;
   const {
     userId,
     businessId,
@@ -152,6 +158,11 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // cast through `as any` to keep typecheck green between merge and
     // the manual `supabase db push`.
     ...(requiresW9 ? ({ requires_w9: true } as any) : {}),
+    // instant_book column ships in migration 20260612090000. Only include
+    // in the payload when true so a pre-push prod INSERT (which doesn't
+    // have the column yet) still succeeds with code 42703/PGRST204 falling
+    // through the retry path in usePostJobForm → buildPayload({withExtras:false}).
+    ...(isInstantBook ? ({ instant_book: true } as Record<string, unknown>) : {}),
     // jobs.department + jobs.status — both ship in migration
     // 20260609170000. Cast through `any` because the generated Supabase
     // types haven't picked them up yet, and don't include the keys at

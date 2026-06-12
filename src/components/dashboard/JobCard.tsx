@@ -1,6 +1,6 @@
 import { memo, useCallback, useRef, useState, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock, Heart,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock, Heart, CheckCheck,
 } from "lucide-react";
 import { hapticLight, hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -336,15 +336,29 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           {/* Right column: price tile with Boosted / Urgent badges
               overlapping its top edge. */}
           <div className="relative shrink-0 flex flex-col items-end">
-          {/* Badge cluster — both Boosted and Urgent sit at the top-right
-              corner of the price tile. Stacked horizontally with Urgent
-              (alarm cue) inner-most so it reads first when both apply. */}
-          {(job.isBoosted || job.is_urgent) && (
+          {/* Badge cluster — Boosted, Urgent, and Instant Book sit at the
+              top-right corner of the price tile. Stacked horizontally with
+              Urgent inner-most so it reads first when both apply. */}
+          {(job.isBoosted || job.is_urgent || (job as { instant_book?: boolean }).instant_book) && (
             // Sits just inside the card's rounded edge so the cluster
             // isn't clipped by the root `overflow-hidden` (which is kept
             // so the colored category rail stays inside the rounded
             // corners). Previously `-top-2 -right-2` got chopped.
             <div className="absolute -top-1 -right-1 z-10 flex items-center gap-1">
+              {(job as { instant_book?: boolean }).instant_book && (
+                <span
+                  aria-label="Instant book — apply and get confirmed immediately"
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider"
+                  style={{
+                    background: "hsl(var(--sage) / 0.15)",
+                    color: "hsl(var(--sage))",
+                    border: "0.5px solid hsl(var(--sage) / 0.45)",
+                  }}
+                >
+                  <CheckCheck className="w-2.5 h-2.5" strokeWidth={2.25} />
+                  Instant
+                </span>
+              )}
               {job.isBoosted && (
                 <span
                   aria-label="Boosted"

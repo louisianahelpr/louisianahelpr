@@ -359,13 +359,18 @@ const Dashboard = () => {
     helperId: string;
     message: string;
     files: File[];
+    /** When the poster enabled instant-book, confirm the booking immediately
+        after the application INSERT — no poster review required. Reuses the
+        same jobs UPDATE path as handleHelperResponse (helper_confirmed_at).
+        Treated as false when the column isn't on prod yet (pre-push). */
+    isInstantBook?: boolean;
   };
   type ApplySnapshot = {
     previousContext: unknown;
     userId: string;
   };
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
-    mutationFn: async ({ jobId, helperId, message, files }) => {
+    mutationFn: async ({ jobId, helperId, message, files, isInstantBook }) => {
       // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
       // attachment uploads — don't waste storage bandwidth on a blocked
       // attempt. The helper falls back to "allowed" if the RPC isn't
@@ -400,6 +405,24 @@ const Dashboard = () => {
       // failed record call shouldn't surface to the user since the apply
       // already landed. PGRST202 is silently no-op'd inside the helper.
       void recordApplicationAttempt({ applicantId: helperId });
+
+      // Instant-book: auto-confirm immediately after applying, mirroring the
+      // direct-offer accept path (helper_confirmed_at set, no poster review).
+      // Wrapped in try/catch so a failure here (e.g. column not on prod yet)
+      // degrades gracefully — the application still lands, the job just needs
+      // manual poster acceptance. The `helper_confirmed_at` column is NOT
+      // instant_book-specific; it's the same field set in handleHelperResponse.
+      if (isInstantBook) {
+        try {
+          const confirmedAt = new Date().toISOString();
+          await supabase
+            .from("jobs")
+            .update({ helper_confirmed_at: confirmedAt, helper_id: helperId, status: "accepted" as const, response_deadline: null })
+            .eq("id", jobId);
+        } catch {
+          // Best-effort — apply still landed.
+        }
+      }
     },
     onMutate: async ({ jobId, helperId }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.dashboard.context(helperId) });
@@ -448,15 +471,21 @@ const Dashboard = () => {
       // helper is idempotent, so this is safe even on the 100th apply.
       recordJobActionForPermissionPrompt();
       // Funnel: track first application separately for activation analysis.
-      track(AhaEvent.JobApplied, { job_id: vars.jobId });
+      track(AhaEvent.JobApplied, { job_id: vars.jobId, instant_book: vars.isInstantBook ?? false });
       const { count } = await supabase
         .from("applications")
         .select("id", { count: "exact", head: true })
         .eq("helper_id", vars.helperId);
       if ((count ?? 0) <= 1) track(AhaEvent.FirstJobApplication, { job_id: vars.jobId });
-      toast.success("Application sent! Track it in My Jobs.", {
-        action: { label: "View", onClick: () => navigate("/my-jobs") },
-      });
+      if (vars.isInstantBook) {
+        toast.success("You're booked! Check My Jobs for details.", {
+          action: { label: "View", onClick: () => navigate("/my-jobs") },
+        });
+      } else {
+        toast.success("Application sent! Track it in My Jobs.", {
+          action: { label: "View", onClick: () => navigate("/my-jobs") },
+        });
+      }
     },
     onSettled: async (_data, _err, vars) => {
       // Reconcile against the server now that the optimistic state has
@@ -482,6 +511,10 @@ const Dashboard = () => {
     const jobId = confirmApplyJobId;
     const files = applyFiles;
     const message = applyMessage;
+    // Read the instant_book flag from the job in the feed. Cast through
+    // `any` because EnrichedJob predates this column; the DB default is
+    // false so a missing key is treated the same way.
+    const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
     // Close the dialog + reset its state synchronously so the next paint
     // already has the optimistic feed. The mutation continues in the
     // background; React Query's onError rolls things back on failure.
@@ -492,10 +525,10 @@ const Dashboard = () => {
     // set it true here so a fast double-tap can't enqueue twice.
     setApplyLoading(true);
     applyMutation.mutate(
-      { jobId, helperId: user.id, message, files },
+      { jobId, helperId: user.id, message, files, isInstantBook },
       { onSettled: () => setApplyLoading(false) },
     );
-  }, [user, confirmApplyJobId, applyLoading, applyFiles, applyMessage, applyMutation]);
+  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, applyMutation]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);

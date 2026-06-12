@@ -19,11 +19,13 @@ import { bucketPostedJob } from "@/pages/activity/activityFilters";
 import { useBulkDismiss } from "@/pages/activity/useBulkDismiss";
 import { BulkDismissBar } from "@/pages/activity/BulkDismissBar";
 import { useLongPress } from "@/hooks/useLongPress";
-import { hapticMedium } from "@/lib/haptics";
+import { hapticMedium, hapticLight } from "@/lib/haptics";
 import type { TrackingData } from "@/components/JobTracking";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 
 /**
  * BulkDismissibleWrapper — when selectionMode is off, presses are
@@ -145,6 +147,7 @@ interface PostedJobsTabProps {
   /** True when the full-screen applicants fetch failed. */
   applicationsError?: boolean;
   onAcceptApplication: (app: EnrichedApplication) => void;
+  onDeclineApplication: (app: EnrichedApplication, note: string, jobTitle: string) => void;
   onLoadInlineApplicants: (jobId: string) => void;
   inlineApplicants: Record<string, EnrichedApplication[]>;
   loadingApplicants: Record<string, boolean>;
@@ -167,7 +170,7 @@ export const PostedJobsTab = ({
   onRevision, onNoShow, onTip, onReview, onDispute, onViewDispute, onConfirmStart, onConfirmArrival, onConfirmWorking,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   applicationsLoading = false, applicationsError = false,
-  onAcceptApplication, onLoadInlineApplicants,
+  onAcceptApplication, onDeclineApplication, onLoadInlineApplicants,
   inlineApplicants, loadingApplicants, applicantErrors,
   onActionComplete, groupByStatus = false,
 }: PostedJobsTabProps) => {
@@ -193,6 +196,16 @@ export const PostedJobsTab = ({
   // state so the UI updates immediately without waiting for a refetch.
   const [localNegotiation, setLocalNegotiation] = useState<Record<string, { status: string; price: number | null }>>({});
   const [counterSending, setCounterSending] = useState(false);
+
+  // Decline confirmation sheet — open when poster taps "Decline" on an applicant.
+  // `declineTarget` holds the app being declined; the sheet collects an optional
+  // note + a reason chip before calling onDeclineApplication.
+  const [declineTarget, setDeclineTarget] = useState<EnrichedApplication | null>(null);
+  const [declineNote, setDeclineNote] = useState("");
+  const [declineReason, setDeclineReason] = useState<string | null>(null);
+  const [declineSending, setDeclineSending] = useState(false);
+  const DECLINE_NOTE_MAX = 200;
+  const DECLINE_REASONS = ["Found someone else", "Job is on hold", "Not the right fit"] as const;
 
   const handleCounter = useCallback(async (appId: string, counterPrice: number) => {
     setCounterSending(true);
@@ -220,6 +233,18 @@ export const PostedJobsTab = ({
       setCounterSending(false);
     }
   }, []);
+
+  const handleDeclineConfirm = useCallback(async () => {
+    if (!declineTarget || !selectedJob) return;
+    setDeclineSending(true);
+    // Build the full note: prepend the selected reason chip if one was tapped.
+    const fullNote = [declineReason, declineNote.trim()].filter(Boolean).join(" — ");
+    await onDeclineApplication(declineTarget, fullNote, selectedJob.title);
+    setDeclineTarget(null);
+    setDeclineNote("");
+    setDeclineReason(null);
+    setDeclineSending(false);
+  }, [declineTarget, declineNote, declineReason, selectedJob, onDeclineApplication]);
 
   // Bulk-dismiss for cancelled posts — long-press a Cancelled card to
   // enter selection mode, then bulk-hide them from view. The hide is
@@ -1113,17 +1138,36 @@ export const PostedJobsTab = ({
                               })()}
                             </div>
 
-                            {/* Status / hire button */}
+                            {/* Status / hire + decline buttons */}
                             {app.status === "pending" && (
-                              <Button
-                                variant="bark"
-                                size="sm"
-                                className="rounded-ds-md btn-press shrink-0"
-                                aria-label={`Select ${helperName}`}
-                                onClick={() => onAcceptApplication(app)}
-                              >
-                                Hire
-                              </Button>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <Button
+                                  variant="bark"
+                                  size="sm"
+                                  className="rounded-ds-md btn-press"
+                                  aria-label={`Select ${helperName}`}
+                                  onClick={() => onAcceptApplication(app)}
+                                >
+                                  Hire
+                                </Button>
+                                <button
+                                  type="button"
+                                  aria-label={`Decline ${helperName}`}
+                                  onClick={() => {
+                                    hapticLight();
+                                    setDeclineTarget(app);
+                                    setDeclineNote("");
+                                    setDeclineReason(null);
+                                  }}
+                                  className="w-8 h-8 rounded-ds-sm flex items-center justify-center active:opacity-60 transition-opacity"
+                                  style={{
+                                    background: "hsl(var(--olivewood) / 0.08)",
+                                    border: "0.5px solid hsl(var(--olivewood) / 0.2)",
+                                  }}
+                                >
+                                  <X className="w-3.5 h-3.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+                                </button>
+                              </div>
                             )}
                             {app.status === "accepted" && (
                               <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]">
@@ -1175,6 +1219,145 @@ export const PostedJobsTab = ({
           </div>
         </div>
       )}
+      {/* Decline confirmation sheet — collects an optional reason + note
+          before calling onDeclineApplication. Keeps the UX low-friction:
+          no note is required; the poster can just tap "Confirm decline". */}
+      <Sheet
+        open={!!declineTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeclineTarget(null);
+            setDeclineNote("");
+            setDeclineReason(null);
+          }
+        }}
+      >
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl pb-safe-nav"
+          style={{ background: "hsl(var(--parchment))" }}
+        >
+          {declineTarget && (() => {
+            const targetName = formatName(declineTarget.profiles?.full_name, "this applicant");
+            return (
+              <div className="px-1 pt-1 pb-2 space-y-4">
+                {/* Header */}
+                <div>
+                  <p
+                    className="font-serif italic uppercase"
+                    style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                  >
+                    Decline applicant
+                  </p>
+                  <h2
+                    className="font-display italic font-bold leading-tight mt-1"
+                    style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
+                  >
+                    Decline {targetName}?
+                  </h2>
+                </div>
+
+                {/* Quick-tap reason chips */}
+                <div role="group" aria-label="Decline reason">
+                  <p
+                    className="font-serif italic mb-2"
+                    style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    Choose a reason (optional)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {DECLINE_REASONS.map((reason) => {
+                      const active = declineReason === reason;
+                      return (
+                        <button
+                          key={reason}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => {
+                            hapticLight();
+                            setDeclineReason(active ? null : reason);
+                          }}
+                          className="px-3 py-1.5 rounded-full text-ds-12 font-sans font-semibold transition-all duration-150 active:scale-95"
+                          style={{
+                            background: active ? "hsl(var(--bark) / 0.10)" : "hsla(0, 0%, 100%, 0.55)",
+                            color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.65)",
+                            border: active
+                              ? "0.5px solid hsl(var(--bark) / 0.35)"
+                              : "0.5px solid hsl(var(--olivewood) / 0.2)",
+                            backdropFilter: "blur(8px)",
+                            WebkitBackdropFilter: "blur(8px)",
+                          }}
+                        >
+                          {reason}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Optional freetext note */}
+                <div className="space-y-1">
+                  <label
+                    htmlFor="decline-note"
+                    className="font-serif italic uppercase block"
+                    style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                  >
+                    Add a note (optional)
+                  </label>
+                  <Textarea
+                    id="decline-note"
+                    value={declineNote}
+                    onChange={(e) => setDeclineNote(e.target.value.slice(0, DECLINE_NOTE_MAX))}
+                    maxLength={DECLINE_NOTE_MAX}
+                    placeholder="The helper will see this as a notification…"
+                    rows={2}
+                    className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed resize-none"
+                  />
+                  <p
+                    className="text-ds-11 text-right tabular-nums"
+                    style={{
+                      color: declineNote.length > DECLINE_NOTE_MAX - 20
+                        ? "hsl(var(--burnt-sienna))"
+                        : "hsl(var(--muted-foreground))",
+                    }}
+                  >
+                    {declineNote.length}/{DECLINE_NOTE_MAX}
+                  </p>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    className="flex-1 rounded-ds-md"
+                    disabled={declineSending}
+                    onClick={() => {
+                      setDeclineTarget(null);
+                      setDeclineNote("");
+                      setDeclineReason(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1 rounded-ds-md"
+                    disabled={declineSending}
+                    onClick={handleDeclineConfirm}
+                    style={{
+                      background: "hsl(var(--olivewood))",
+                      border: "1px solid hsl(var(--olivewood))",
+                      color: "hsl(var(--parchment))",
+                    }}
+                  >
+                    {declineSending ? "Declining…" : "Confirm decline"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
+
       {/* Video modal — shown when poster taps a helper's intro video pill */}
       {playingVideoUrl && (
         <div

@@ -22,7 +22,7 @@ const faqs = [
   },
   {
     q: "How much does Helpr cost?",
-    a: "Posting a job is free. At checkout, posters pay a 10% service fee on top of the budget, and helprs receive 90% of the agreed price — a flat 10% platform fee on each side. No surprise charges, no monthly subscription.",
+    a: "Posting a job is free. Helpers receive 88–92% of the agreed price depending on their plan — free accounts pay a 12% platform fee, while Pro and Elite members pay 10% and 8% respectively. Posters pay a small service fee at checkout. No surprise charges.",
   },
   {
     q: "How fast will someone respond?",

@@ -160,6 +160,15 @@ export default {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-14px)" },
         },
+        // Instagram-style double-tap heart: pops in over-scale, settles,
+        // then fades + drifts up. Centered overlay, runs once (~600ms).
+        "heart-pop": {
+          "0%": { opacity: "0", transform: "translate(-50%, -50%) scale(0.3)" },
+          "15%": { opacity: "1", transform: "translate(-50%, -50%) scale(1.25)" },
+          "30%": { opacity: "1", transform: "translate(-50%, -50%) scale(0.92)" },
+          "45%": { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
+          "100%": { opacity: "0", transform: "translate(-50%, -58%) scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -168,6 +177,7 @@ export default {
         "ds-page-in": "ds-page-in 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards",
         "float-slow": "float-slow 5s ease-in-out infinite",
         "float-slower": "float-slower 7s ease-in-out infinite",
+        "heart-pop": "heart-pop 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards",
       },
     },
   },

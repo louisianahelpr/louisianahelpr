@@ -1,4 +1,6 @@
 import { CheckoutStep } from "@/components/postjob/CheckoutStep";
+import { PostingQualityMeter } from "@/components/postjob/PostingQualityMeter";
+import { usePostingQuality } from "@/hooks/usePostingQuality";
 import { CheckoutStepIndicator } from "./CheckoutStepIndicator";
 import type { usePostJobForm } from "./usePostJobForm";
 
@@ -15,9 +17,31 @@ interface CheckoutStepViewProps {
  * checkout was the page-header arrow, which the user often missed.
  */
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
+  const quality = usePostingQuality({
+    title: form.title,
+    description: form.description,
+    budget: form.budgetNum || null,
+    category: form.category,
+    photos: form.imagePreviews,
+    city: form.city,
+    scheduledDate: form.dateNeeded || null,
+    credentialTier: form.credentialTier,
+    pricingMode: form.pricingMode,
+  });
+
   return (
     <div key="checkout-step" className="space-y-6 animate-ds-page-in">
       <CheckoutStepIndicator onBackToForm={() => form.setStep("form")} />
+      {/* Quality meter — placed above the summary card so the poster can
+          see their post strength before committing to payment. Shows
+          completed/missing signals so they know exactly what to improve. */}
+      <PostingQualityMeter
+        score={quality.score}
+        label={quality.label}
+        color={quality.color}
+        completedChecks={quality.completedChecks}
+        missingChecks={quality.missingChecks}
+      />
       <CheckoutStep
         title={form.title}
         description={form.description}

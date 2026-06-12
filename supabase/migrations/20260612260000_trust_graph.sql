@@ -4,6 +4,12 @@
 --
 -- Pure SQL Haversine (no PostGIS needed). Stable + SECURITY DEFINER so
 -- it runs as the owner and the caller never needs direct table access.
+
+-- Ensure profiles has lat/lng columns before the function body references them.
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS latitude numeric,
+  ADD COLUMN IF NOT EXISTS longitude numeric;
+
 CREATE OR REPLACE FUNCTION get_neighbor_hire_count(
   p_helper_id uuid,
   p_lat numeric,
@@ -33,8 +39,3 @@ AS $$
 $$;
 
 GRANT EXECUTE ON FUNCTION get_neighbor_hire_count TO authenticated;
-
--- Ensure profiles has lat/lng columns (may already exist from a prior migration).
-ALTER TABLE profiles
-  ADD COLUMN IF NOT EXISTS latitude numeric,
-  ADD COLUMN IF NOT EXISTS longitude numeric;

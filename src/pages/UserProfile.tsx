@@ -409,6 +409,30 @@ const UserProfile = () => {
   // (hide the badge), 0 = no disputes opened by this user (show signal).
   const hasCleanRecord = disputeCheckData?.count === 0;
 
+  // Check for submitted credentials awaiting vendor verification — shows
+  // an amber "Verification in progress" indicator on the profile.
+  // Separate query so a PGRST202 (table not yet deployed) silently hides
+  // the indicator rather than blocking the whole profile load.
+  const { data: submittedCredentialsData } = useQuery({
+    queryKey: ["user_submitted_credentials", userId],
+    enabled: !!userId && !!data?.profile,
+    staleTime: 2 * 60_000,
+    queryFn: async () => {
+      try {
+        const { count, error } = await supabase
+          .from("helper_credentials")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId!)
+          .eq("status", "submitted");
+        if (error) return null;
+        return { count: count ?? 0 };
+      } catch {
+        return null;
+      }
+    },
+  });
+  const hasSubmittedCredentials = (submittedCredentialsData?.count ?? 0) > 0;
+
   const profile = (data?.profile ?? null) as Profile | null;
   const reviews = (data?.reviews ?? []) as Array<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string; jobCategory: string | null }>;
   const stats = data?.stats ?? { completedJobs: 0, avgRating: 0, reviewCount: 0 };
@@ -984,6 +1008,19 @@ const UserProfile = () => {
                   size="md"
                 />
                 <CredentialBadge credentials={profile as any} size="md" />
+                {/* Verification in progress — shown only when the user has
+                    submitted a credential to a vendor but it hasn't resolved
+                    yet. Hides gracefully if helper_credentials table isn't
+                    deployed (PGRST202 returns null from the query). */}
+                {hasSubmittedCredentials && (
+                  <span
+                    className="inline-flex items-center rounded-full font-medium border bg-amber-50 text-amber-700 border-amber-300/50 text-ds-11 px-2.5 py-1 gap-1"
+                    title="Credential submitted — verification in progress"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    Verification in progress
+                  </span>
+                )}
                 <BusinessBadge userId={userId!} size="md" />
               </div>
             </div>

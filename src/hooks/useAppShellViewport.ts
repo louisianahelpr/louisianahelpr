@@ -64,8 +64,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/pay-it-forward",  // Pay It Forward credit marketplace — long-form document-scroll
   "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
   "/str-settings", // Rental host automation — long-form min-h-screen document-scroll
-  "/pets",        // Pet profiles (PageHeader + min-h-screen document-scroll)
-  "/evacuation",  // Disaster evacuation mode (PageHeader + min-h-screen document-scroll)
   "/family",      // Family & care dashboard + accept-invite (min-h-screen document-scroll)
 
   // Community discovery pages — long-form, document-scroll SEO content

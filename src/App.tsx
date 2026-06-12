@@ -94,9 +94,6 @@ const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
 const ImpactPage = lazy(() => import("./pages/ImpactPage"));
-const PetProfiles = lazy(() => import("./pages/PetProfiles"));
-const EvacuationMode = lazy(() => import("./pages/EvacuationMode"));
-
 // Lazy load less-critical global components
 
 const FamilyDashboard = lazy(() => import("./pages/FamilyDashboard"));
@@ -202,9 +199,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/business/exports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessExports /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessOnboarding /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/reports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessReports /></ProtectedRoute>)}</RouteErrorBoundary>} />
-
-      <Route path="/pets" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PetProfiles /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/evacuation" element={<RouteErrorBoundary>{routeEl(<PageTransition><EvacuationMode /></PageTransition>)}</RouteErrorBoundary>} />
 
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
 

@@ -14,7 +14,7 @@ import { ArrowRight } from "lucide-react";
 const faqs = [
   {
     q: "How do I know my helper is trustworthy?",
-    a: "Every helper goes through identity verification before they can apply. You also see their ratings, reviews, and how many jobs they've completed for other Louisiana neighbors — all before you choose.",
+    a: "Every helper submits a government-issued ID and is reviewed by our team before being activated. You also see their ratings, reviews, and how many jobs they've completed for other Louisiana neighbors — all before you choose.",
   },
   {
     q: "What if the job isn't done right?",

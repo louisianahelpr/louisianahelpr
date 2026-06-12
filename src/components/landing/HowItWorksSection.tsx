@@ -19,7 +19,7 @@ const steps = [
     icon: Users,
     title: "Pick your helpr",
     description:
-      "Local applicants come to you. Compare profiles, ratings, and verifications — choose with confidence.",
+      "Local applicants come to you. Compare profiles, ratings, and reviews — choose with confidence.",
     accent: "Step 02",
   },
   {
@@ -33,7 +33,7 @@ const steps = [
 
 const trustFacts = [
   { icon: Lock, label: "Escrow-protected payment" },
-  { icon: Shield, label: "Verified helprs" },
+  { icon: Shield, label: "ID-verified helprs" },
   { icon: Check, label: "Free to post" },
 ];
 

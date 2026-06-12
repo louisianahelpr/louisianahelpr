@@ -1,21 +1,15 @@
-import { ShieldCheck, UserCheck, FileText, Lock } from "lucide-react";
+import { UserCheck, FileText, Lock, Star } from "lucide-react";
 
-/**
- * Trust strip — horizontal row of badges + one-line copy.
- *
- * Kept to four claims we can substantiate today. BBB-accredited is
- * deliberately omitted until a real accreditation number is in hand.
- */
 const TRUST_ITEMS = [
   {
-    icon: ShieldCheck,
-    title: "Up to $1M task insurance",
-    blurb: "Per-task liability coverage on every booking",
+    icon: UserCheck,
+    title: "Stripe ID-verified",
+    blurb: "Every helpr submits a government ID reviewed before activation",
   },
   {
-    icon: UserCheck,
-    title: "All helprs background-checked",
-    blurb: "County + federal criminal, sex-offender registry",
+    icon: Star,
+    title: "Rated & reviewed",
+    blurb: "Ratings, completed-job counts, and reviews on every profile",
   },
   {
     icon: FileText,

@@ -277,7 +277,7 @@ const ForBusiness = () => {
         {/* Case studies — variant-aware highlight + 2 baseline cards. */}
         <CaseStudyCarousel highlight={variant.caseStudy} />
 
-        {/* Compliance disclosure — background checks, insurance, COI. */}
+        {/* Compliance disclosure — identity verification, escrow, W-9/1099. */}
         <ComplianceSection />
 
         {/* Pricing tiers — marketing summary, leads back to /signup. */}

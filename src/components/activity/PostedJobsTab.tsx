@@ -1,9 +1,9 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft, Check, Play, SearchX, Sparkles, Star, Users, Wrench, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, Pencil, Play, Plus, SearchX, Sparkles, Star, Users, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { scoreApplicant, type ApplicantData } from "@/lib/applicantScoring";
@@ -191,6 +191,42 @@ export const PostedJobsTab = ({
   // state so the UI updates immediately without waiting for a refetch.
   const [localNegotiation, setLocalNegotiation] = useState<Record<string, { status: string; price: number | null }>>({});
   const [counterSending, setCounterSending] = useState(false);
+
+  // Private poster notes — stored in localStorage, never sent to the server.
+  // keyed by application id so notes survive across sessions and job switches.
+  const [applicantNotes, setApplicantNotes] = useState<Record<string, string>>({});
+  // appId of the note currently open for editing (null = none open)
+  const [noteEditing, setNoteEditing] = useState<string | null>(null);
+  // Draft text for the note currently being edited
+  const [noteDraft, setNoteDraft] = useState("");
+
+  // Load saved notes from localStorage whenever the applications list changes.
+  useEffect(() => {
+    const notes: Record<string, string> = {};
+    for (const { app } of sortedApplications) {
+      const saved = localStorage.getItem(`helpr_applicant_note_${app.id}`);
+      if (saved) notes[app.id] = saved;
+    }
+    setApplicantNotes(notes);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedApplications.length]);
+
+  const saveNote = useCallback((appId: string) => {
+    const trimmed = noteDraft.trim();
+    if (trimmed) {
+      localStorage.setItem(`helpr_applicant_note_${appId}`, trimmed);
+    } else {
+      localStorage.removeItem(`helpr_applicant_note_${appId}`);
+    }
+    setApplicantNotes((prev) => {
+      const next = { ...prev };
+      if (trimmed) next[appId] = trimmed;
+      else delete next[appId];
+      return next;
+    });
+    setNoteEditing(null);
+    setNoteDraft("");
+  }, [noteDraft]);
 
   const handleCounter = useCallback(async (appId: string, counterPrice: number) => {
     setCounterSending(true);
@@ -1108,6 +1144,53 @@ export const PostedJobsTab = ({
                               })}
                             </div>
                           )}
+
+                          {/* Row 4: private poster note — localStorage only, never sent to server */}
+                          <div className="pt-1.5">
+                            {noteEditing === app.id ? (
+                              <div className="flex gap-2 items-start">
+                                <textarea
+                                  autoFocus
+                                  value={noteDraft}
+                                  onChange={(e) => setNoteDraft(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveNote(app.id); }
+                                    if (e.key === "Escape") setNoteEditing(null);
+                                  }}
+                                  placeholder="Private note — only you can see this"
+                                  className="flex-1 text-ds-12 rounded-ds-sm border border-input bg-background px-2 py-1 resize-none"
+                                  rows={2}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => saveNote(app.id)}
+                                  className="text-ds-12 font-medium px-2 py-1 rounded"
+                                  style={{ color: "hsl(var(--sage))" }}
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            ) : applicantNotes[app.id] ? (
+                              <button
+                                type="button"
+                                onClick={() => { setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id]); }}
+                                className="text-left w-full text-ds-12 italic flex items-start gap-1.5"
+                                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                              >
+                                <Pencil className="w-3 h-3 mt-0.5 shrink-0" />
+                                {applicantNotes[app.id]}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => { setNoteEditing(app.id); setNoteDraft(""); }}
+                                className="text-ds-11 flex items-center gap-1"
+                                style={{ color: "hsl(var(--olivewood) / 0.4)" }}
+                              >
+                                <Plus className="w-3 h-3" /> Add private note
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

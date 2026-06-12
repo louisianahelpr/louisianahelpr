@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 interface BenefitItem {
   name: string;
   tagline: string;
-  url: string; // TODO: replace with real affiliate / referral URLs before launch
+  url: string;
   comingSoon?: boolean;
 }
 
@@ -33,12 +33,12 @@ const SECTIONS: BenefitSection[] = [
       {
         name: "Stride Health",
         tagline: "Find affordable health, dental & vision plans for independent workers.",
-        url: "https://example.com", // TODO: https://stridehealth.com
+        url: "https://stridehealth.com",
       },
       {
         name: "Teladoc",
         tagline: "Virtual doctor visits 24/7 — no insurance required.",
-        url: "https://example.com", // TODO: https://teladoc.com
+        url: "https://teladoc.com",
       },
     ],
   },
@@ -50,12 +50,12 @@ const SECTIONS: BenefitSection[] = [
       {
         name: "Catch",
         tagline: "Automated tax withholding and benefits for freelancers.",
-        url: "https://example.com", // TODO: https://catch.co
+        url: "https://catch.co",
       },
       {
         name: "Dave",
         tagline: "Cash advances and budgeting tools between gigs.",
-        url: "https://example.com", // TODO: https://dave.com
+        url: "https://dave.com",
       },
     ],
   },
@@ -67,17 +67,17 @@ const SECTIONS: BenefitSection[] = [
       {
         name: "Toolbarn",
         tagline: "Trade pricing on tools, equipment & safety gear.",
-        url: "https://example.com", // TODO: https://toolbarn.com
+        url: "https://toolbarn.com",
       },
       {
         name: "Home Depot Pro Xtra",
         tagline: "Members-only pricing, job-site delivery & volume discounts.",
-        url: "https://example.com", // TODO: https://homedepot.com/c/pro_xtra
+        url: "https://www.homedepot.com/c/pro_xtra",
       },
       {
         name: "Sam's Club",
         tagline: "Bulk supplies, cleaning products & food for helpers.",
-        url: "https://example.com", // TODO: https://samsclub.com
+        url: "https://www.samsclub.com",
       },
     ],
   },

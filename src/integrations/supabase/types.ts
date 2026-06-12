@@ -2232,6 +2232,7 @@ export type Database = {
           feedback: string | null
           id: string
           job_id: string
+          photo_urls: string[] | null
           punctuality: number | null
           quality: number | null
           rating: number
@@ -2244,6 +2245,7 @@ export type Database = {
           feedback?: string | null
           id?: string
           job_id: string
+          photo_urls?: string[] | null
           punctuality?: number | null
           quality?: number | null
           rating: number
@@ -2256,6 +2258,7 @@ export type Database = {
           feedback?: string | null
           id?: string
           job_id?: string
+          photo_urls?: string[] | null
           punctuality?: number | null
           quality?: number | null
           rating?: number

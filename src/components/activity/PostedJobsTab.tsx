@@ -3,16 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft, Loader2, SearchX, Star, Users, Wrench, Play, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, Loader2, Play, SearchX, Sparkles, Star, Users, Wrench, X } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
+import { scoreApplicant, type ApplicantData } from "@/lib/applicantScoring";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { VirtualList } from "@/components/VirtualList";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
+import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
+import { bucketPostedJob } from "@/pages/activity/activityFilters";
+import { useBulkDismiss } from "@/pages/activity/useBulkDismiss";
+import { BulkDismissBar } from "@/pages/activity/BulkDismissBar";
+import { useLongPress } from "@/hooks/useLongPress";
+import { hapticMedium } from "@/lib/haptics";
 import { ListFilterBar, type StatusChip } from "./ListFilterBar";
 import type { TrackingData } from "@/components/JobTracking";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
+import { useQueries } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 /** Status chips for the poster's jobs list — collapses the seven raw
  *  job-status enum values into the four states a poster thinks in. */
@@ -32,6 +43,71 @@ function postedBucket(job: Job): string {
     case "disputed": return "closed";
     default: return "active"; // accepted / in_progress / revision_requested
   }
+}
+
+interface BulkDismissibleWrapperProps {
+  selectionMode: boolean;
+  selected: boolean;
+  onLongPress: () => void;
+  onTapInSelection: () => void;
+  children: React.ReactNode;
+}
+
+function BulkDismissibleWrapper({
+  selectionMode,
+  selected,
+  onLongPress,
+  onTapInSelection,
+  children,
+}: BulkDismissibleWrapperProps) {
+  const longPressProps = useLongPress({
+    threshold: 500,
+    onLongPress: () => {
+      hapticMedium();
+      onLongPress();
+    },
+  });
+
+  return (
+    <div
+      {...(selectionMode ? {} : longPressProps)}
+      className="relative"
+      style={{ touchAction: selectionMode ? "manipulation" : undefined }}
+    >
+      {selectionMode && (
+        <button
+          type="button"
+          onClick={onTapInSelection}
+          aria-pressed={selected}
+          aria-label={selected ? "Deselect this post" : "Select this post"}
+          className="absolute inset-0 z-10 rounded-ds-md transition"
+          style={{
+            background: selected
+              ? "hsl(var(--bark) / 0.18)"
+              : "hsl(var(--olivewood) / 0.04)",
+            border: selected
+              ? "1.5px solid hsl(var(--bark))"
+              : "1.5px solid hsl(var(--olivewood) / 0.2)",
+          }}
+        >
+          <span
+            className="absolute top-3 right-3 w-6 h-6 rounded-full inline-flex items-center justify-center"
+            style={{
+              background: selected ? "hsl(var(--bark))" : "hsl(var(--parchment))",
+              border: selected
+                ? "1.5px solid hsl(var(--bark))"
+                : "1.5px solid hsl(var(--olivewood) / 0.35)",
+              boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.18)",
+            }}
+            aria-hidden="true"
+          >
+            {selected && <Check className="w-3.5 h-3.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={3} />}
+          </span>
+        </button>
+      )}
+      {children}
+    </div>
+  );
 }
 
 interface PostedJobsTabProps {
@@ -58,6 +134,7 @@ interface PostedJobsTabProps {
   onTip: (jobId: string, helperName: string) => void;
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
+  onViewDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
   onConfirmArrival: (jobId: string) => void;
   onConfirmWorking: (jobId: string) => void;
@@ -76,6 +153,10 @@ interface PostedJobsTabProps {
   applicantErrors: Record<string, boolean>;
   /** Refetch the feed after an inline card mutation (e.g. dispute action). */
   onActionComplete: () => void;
+  /** When true, jobs are rendered in a 3-section grouped shell (Open /
+   *  Active / Completed–Closed) instead of a flat list. Driven by the
+   *  page-level "All" status filter. */
+  groupByStatus?: boolean;
 }
 
 export const PostedJobsTab = ({
@@ -83,12 +164,12 @@ export const PostedJobsTab = ({
   helperNames, completedJobMeta, startRequestedJobIds,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
-  onRevision, onNoShow, onTip, onReview, onDispute, onConfirmStart, onConfirmArrival, onConfirmWorking,
+  onRevision, onNoShow, onTip, onReview, onDispute, onViewDispute, onConfirmStart, onConfirmArrival, onConfirmWorking,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onLoadInlineApplicants,
   inlineApplicants, loadingApplicants, applicantErrors,
-  onActionComplete,
+  onActionComplete, groupByStatus = false,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
   // Client-side search + status filter over the already-loaded list.
@@ -133,7 +214,7 @@ export const PostedJobsTab = ({
       queryFn: async (): Promise<number> => {
         if (!selectedJob?.latitude || !selectedJob?.longitude) return 0;
         try {
-          const { data, error } = await supabase.rpc("get_neighbor_hire_count", {
+          const { data, error } = await (supabase.rpc as any)("get_neighbor_hire_count", {
             p_helper_id: app.helper_id,
             p_lat: selectedJob.latitude,
             p_lng: selectedJob.longitude,
@@ -362,6 +443,7 @@ export const PostedJobsTab = ({
             onTip={onTip}
             onReview={onReview}
             onDispute={onDispute}
+            onViewDispute={onViewDispute}
             onConfirmStart={onConfirmStart}
             onConfirmArrival={onConfirmArrival}
             onConfirmWorking={onConfirmWorking}

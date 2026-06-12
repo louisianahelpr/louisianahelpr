@@ -547,7 +547,7 @@ export function useActivityActions({
           const postedJob =
             postedJobs.find((j) => j.id === jobId) ||
             (appliedApps.find((a) => a.job_id === jobId) as any)?.job;
-          supabase
+          void supabase
             .from("time_credits" as any)
             .insert({
               user_id: user.id,
@@ -555,9 +555,7 @@ export function useActivityActions({
               credit_type: "job_completed",
               job_id: jobId,
               description: `1 hour earned for completing${postedJob?.title ? ` "${postedJob.title}"` : " a job"}`,
-            })
-            .then(() => {})
-            .catch(() => {});
+            });
         }
 
         // Milestone community posts — fire-and-forget when the helper
@@ -577,7 +575,7 @@ export function useActivityActions({
               const milestones = [10, 25, 50, 100, 200, 500];
               if (milestones.includes(completedCount)) {
                 const helperParish: string | null = null; // parish fetched separately if needed
-                await supabase.from("community_posts").insert({
+                await supabase.from("community_posts" as any).insert({
                   author_id: user.id,
                   post_type: "milestone",
                   body: `just completed their ${completedCount}${completedCount === 1 ? "st" : completedCount === 2 ? "nd" : completedCount === 3 ? "rd" : "th"} job on Helpr!`,

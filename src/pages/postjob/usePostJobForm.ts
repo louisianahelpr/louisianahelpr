@@ -626,7 +626,7 @@ export function usePostJobForm() {
       .from("job-photos")
       .upload(path, scopeVideoFile, { contentType: scopeVideoFile.type, upsert: true });
     if (uploadError) {
-      report(uploadError, "scope-video-upload");
+      report(uploadError, { tags: { source: "usePostJobForm.scopeVideoUpload" } });
       return;
     }
     const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);

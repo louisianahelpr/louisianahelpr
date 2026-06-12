@@ -5,7 +5,7 @@ import { report } from "@/lib/errorLogger";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowRight } from "lucide-react";
+import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 type CancellationDialogProps = {
@@ -335,6 +335,35 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                   {cancellationFeePercent}% of the ${jobBudget.toFixed(2)} budget · {feeTier.toLowerCase()}
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Worker protection notice — shown when the poster cancels within
+              24h of the scheduled time and a helper is assigned. Lets the poster
+              know the helper is covered, and the helper will see their credit. */}
+          {hasHelper && hoursUntilJob < 24 && hoursUntilJob >= 0 && (
+            <div
+              className="rounded-ds-md p-3"
+              style={{
+                background: "hsl(155 50% 35% / 0.08)",
+                border: "0.5px solid hsl(155 50% 35% / 0.20)",
+              }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(155 50% 30%)" }} strokeWidth={2.25} />
+                <p
+                  className="font-display italic font-semibold text-ds-13"
+                  style={{ color: "hsl(155 50% 30%)" }}
+                >
+                  Your helpr is protected
+                </p>
+              </div>
+              <p
+                className="font-serif italic text-ds-12"
+                style={{ color: "hsl(155 40% 40%)" }}
+              >
+                Since this is a last-minute cancellation, {helperName || "your helpr"} will receive a $10 Helpr credit within 24 hours — separate from any cancellation fee above.
+              </p>
             </div>
           )}
 

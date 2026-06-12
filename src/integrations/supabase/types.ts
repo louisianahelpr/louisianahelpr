@@ -2848,39 +2848,6 @@ export type Database = {
         }
         Relationships: []
       }
-      time_credits: {
-        Row: {
-          id: string
-          user_id: string
-          amount_minutes: number
-          credit_type: string
-          job_id: string | null
-          description: string | null
-          balance_after: number | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          amount_minutes: number
-          credit_type: string
-          job_id?: string | null
-          description?: string | null
-          balance_after?: number | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          amount_minutes?: number
-          credit_type?: string
-          job_id?: string | null
-          description?: string | null
-          balance_after?: number | null
-          created_at?: string
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           id: string

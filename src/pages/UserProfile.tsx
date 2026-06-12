@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, Play, X } from "lucide-react";
+import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, Play, X, Timer, RotateCcw } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -35,6 +35,8 @@ import { jobStatusColorClasses } from "@/lib/statusColors";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
+import { haversineMiles } from "@/lib/geo";
+import { useUserLocation } from "@/hooks/useUserLocation";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -52,6 +54,7 @@ const UserProfile = () => {
   const [showReport, setShowReport] = useState(false);
   const [showBlock, setShowBlock] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
+  const [showNearbyProof, setShowNearbyProof] = useState(false);
 
   // React Query: cached for 60s, instant on revisit, refresh in background.
   const { data, isLoading, isError, refetch } = useQuery({
@@ -205,7 +208,7 @@ const UserProfile = () => {
     staleTime: 2 * 60_000,
     queryFn: async () => {
       try {
-        const { count, error } = await supabase
+        const { count, error } = await (supabase as any)
           .from("job_disputes")
           .select("id", { count: "exact", head: true })
           .eq("opened_by", userId!);
@@ -231,7 +234,7 @@ const UserProfile = () => {
     staleTime: 2 * 60_000,
     queryFn: async () => {
       try {
-        const { count, error } = await supabase
+        const { count, error } = await (supabase as any)
           .from("helper_credentials")
           .select("id", { count: "exact", head: true })
           .eq("user_id", userId!)
@@ -277,12 +280,32 @@ const UserProfile = () => {
   const profile = (data?.profile ?? null) as Profile | null;
   const reviews = (data?.reviews ?? []) as Array<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string }>;
   const stats = data?.stats ?? { completedJobs: 0, avgRating: 0, reviewCount: 0 };
-  const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }>;
-  const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string }>;
+  const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
+  const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
+  const cancellationRate = (data as any)?.cancellationRate ?? { total: 0, cancelled: 0, rate: null as number | null };
+  const onTimeArrivalRate: number | null = (data as any)?.onTimeArrivalRate ?? null;
+  const revisionFrequency: number | null = (data as any)?.revisionFrequency ?? null;
   const isIdVerified = data?.isIdVerified ?? false;
   const tierProfile = data?.tierProfile ?? null;
   const loading = isLoading && !data;
+
+  // Geo for "did N jobs nearby" badge — only enable when viewer opts in.
+  const viewerLoc = useUserLocation(showNearbyProof);
+  const NEARBY_RADIUS_MI = 25;
+  const jobsNearbyCount = (() => {
+    if (viewerLoc.status !== "ready") return null;
+    let n = 0;
+    for (const j of workedJobs) {
+      if (j.status !== "completed") continue;
+      if (typeof j.latitude !== "number" || typeof j.longitude !== "number") continue;
+      if (haversineMiles(viewerLoc.lat, viewerLoc.lng, j.latitude, j.longitude) <= NEARBY_RADIUS_MI) {
+        n += 1;
+      }
+    }
+    return n;
+  })();
+  void cancellationRate;
 
   // Computed up-front so the loading skeleton can render the same
   // PageHeader (eyebrow/title/meta) as the loaded state — both only

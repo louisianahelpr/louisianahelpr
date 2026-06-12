@@ -29,6 +29,10 @@ interface MenuItem {
   href?: string;
   /** Render a small "Action needed" red dot when true. */
   needsAction?: boolean;
+  /** Optional CSS color token for the icon tint. */
+  tint?: string;
+  /** Optional label to show as a yellow "action" chip on the row. */
+  incompleteLabel?: string;
 }
 
 interface ReviewPreview {
@@ -41,6 +45,7 @@ interface ReviewPreview {
 
 interface ProfileLandingProps {
   profile: Profile | null;
+  userId?: string | null;
   displayName: string;
   initials: string;
   avatarBroken: boolean;
@@ -73,6 +78,7 @@ interface ProfileLandingProps {
 
 export function ProfileLanding({
   profile,
+  userId: _userId,
   displayName,
   initials,
   avatarBroken,
@@ -103,6 +109,9 @@ export function ProfileLanding({
   // checklist is a quiet, opt-in nudge rather than permanent clutter; the
   // whole block is hidden once the profile is 100% complete (below).
   const [completionOpen, setCompletionOpen] = useState(false);
+  // "More" overflow section (saved helprs, referrals, support, legal).
+  // Collapsed by default so the primary nav stays focused.
+  const [moreOpen, setMoreOpen] = useState(false);
   // Intro-video state — tracks upload progress and the local preview URL.
   const [videoOpen, setVideoOpen] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
@@ -197,6 +206,20 @@ export function ProfileLanding({
     core: coreComplete,
   });
   const completionPct = completion.pct;
+
+  // Completeness gaps surfaced per-row so the user knows *what's*
+  // missing without having to open each tab. Derived from existing
+  // profile state, no new column required.
+  const phoneVerified = !!(profile as unknown as { phone_verified_at?: string | null })
+    ?.phone_verified_at || !!profile?.phone?.trim();
+  const credentialsIncomplete =
+    profile?.license_status !== "verified" &&
+    profile?.insurance_status !== "verified";
+  const payoutIncomplete =
+    stripeConnectStatus === null
+      ? false
+      : !stripeConnectStatus.payouts_enabled;
+  const bioMissing = (profile?.bio?.trim().length ?? 0) < 20;
 
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {

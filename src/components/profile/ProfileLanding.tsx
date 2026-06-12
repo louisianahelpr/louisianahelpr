@@ -9,6 +9,7 @@ import {
   ShieldCheck, Trash2,
   BadgeCheck, Camera, Check,
   TrendingUp, MoreHorizontal,
+  ClipboardList, FileText,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
@@ -235,6 +236,27 @@ export function ProfileLanding({
         },
         { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--gold-warm)" },
         { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)" },
+      ],
+    },
+    {
+      title: "Records",
+      items: [
+        {
+          key: "home-history",
+          label: "Home History",
+          icon: <ClipboardList className="w-5 h-5" />,
+          desc: "Your home's permanent maintenance record",
+          tint: "var(--sage)",
+          href: "/home-history",
+        },
+        {
+          key: "work-record",
+          label: "Work Record",
+          icon: <FileText className="w-5 h-5" />,
+          desc: "Shareable verified earnings document",
+          tint: "var(--gold-warm)",
+          href: "/work-record",
+        },
       ],
     },
   ];

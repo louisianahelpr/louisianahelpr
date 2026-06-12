@@ -339,12 +339,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           {/* Badge cluster — Boosted, Urgent, and Instant Book sit at the
               top-right corner of the price tile. Stacked horizontally with
               Urgent inner-most so it reads first when both apply. */}
-          {(job.isBoosted || job.is_urgent || (job as { instant_book?: boolean }).instant_book) && (
+          {(job.isBoosted || job.is_urgent || (job as { instant_book?: boolean }).instant_book || (job as { pricing_mode?: string }).pricing_mode === "accept_bids") && (
             // Sits just inside the card's rounded edge so the cluster
             // isn't clipped by the root `overflow-hidden` (which is kept
             // so the colored category rail stays inside the rounded
             // corners). Previously `-top-2 -right-2` got chopped.
             <div className="absolute -top-1 -right-1 z-10 flex items-center gap-1">
+              {(job as { pricing_mode?: string }).pricing_mode === "accept_bids" && (
+                <span
+                  className="text-ds-10 font-sans font-semibold uppercase px-1.5 py-0.5 rounded-ds-sm"
+                  style={{ background: "hsl(var(--bark) / 0.1)", color: "hsl(var(--bark))", letterSpacing: "0.06em", border: "0.5px solid hsl(var(--bark) / 0.3)" }}
+                >
+                  Open bids
+                </span>
+              )}
               {(job as { instant_book?: boolean }).instant_book && (
                 <span
                   aria-label="Instant book — apply and get confirmed immediately"

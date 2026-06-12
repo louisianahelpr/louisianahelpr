@@ -1141,6 +1141,10 @@ export type Database = {
           updated_at: string
           urgent_fee: number | null
           zip_code: string | null
+          pricing_mode: string
+          bid_deadline: string | null
+          bid_ceiling: number | null
+          bids_sealed: boolean
         }
         Insert: {
           boost_auto_extended?: boolean
@@ -1229,6 +1233,10 @@ export type Database = {
           updated_at?: string
           urgent_fee?: number | null
           zip_code?: string | null
+          pricing_mode?: string
+          bid_deadline?: string | null
+          bid_ceiling?: number | null
+          bids_sealed?: boolean
         }
         Update: {
           boost_auto_extended?: boolean
@@ -1317,6 +1325,10 @@ export type Database = {
           updated_at?: string
           urgent_fee?: number | null
           zip_code?: string | null
+          pricing_mode?: string
+          bid_deadline?: string | null
+          bid_ceiling?: number | null
+          bids_sealed?: boolean
         }
         Relationships: [
           {

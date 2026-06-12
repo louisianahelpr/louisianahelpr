@@ -59,6 +59,18 @@ export interface BuildJobInsertPayloadInput {
    *  Only included in the INSERT when > 0 so a pre-push prod still accepts
    *  the payload (migration 20260612150000). */
   credentialTier?: number;
+  /** Pricing mode — 'set_price' | 'accept_bids' | 'smart_price'.
+   *  Stored in jobs.pricing_mode (migration 20260612180000). Omitted when
+   *  not provided so a pre-push prod (without the column) still accepts the
+   *  payload via the retry path. */
+  pricingMode?: "set_price" | "accept_bids" | "smart_price";
+  /** Optional bid ceiling for accept_bids mode. */
+  bidCeiling?: number | null;
+  /** Deadline label (e.g. "24 hours") or null. Stored as a text note; the
+   *  edge function / cron can interpret it. */
+  bidDeadline?: string | null;
+  /** When true, helpers can't see each other's bids. */
+  bidsSealed?: boolean;
 }
 
 /**
@@ -89,6 +101,10 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   const requiresW9 = input.requiresW9 ?? false;
   const isInstantBook = input.isInstantBook ?? false;
   const credentialTier = input.credentialTier ?? 0;
+  const pricingMode = input.pricingMode;
+  const bidCeiling = input.bidCeiling ?? null;
+  const bidDeadline = input.bidDeadline ?? null;
+  const bidsSealed = input.bidsSealed ?? false;
   const {
     userId,
     businessId,
@@ -189,6 +205,20 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
           direct_offer_status: "pending",
           direct_offer_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         }
+      : {}),
+    // pricing_mode columns ship in migration 20260612180000. Only include in
+    // the payload when pricingMode is defined so a pre-push prod INSERT (which
+    // doesn't have the column yet) still succeeds — the retry path strips them
+    // via buildPayload({ withExtras: false }) → pricingMode: 'set_price' which
+    // itself would fail on prod, so we use undefined to omit entirely.
+    ...(pricingMode != null
+      ? ({
+          pricing_mode: pricingMode,
+          bid_ceiling: bidCeiling,
+          bids_sealed: bidsSealed,
+          // bid_deadline stored as a text label for now; edge functions can parse it.
+          ...(bidDeadline ? { bid_deadline: bidDeadline } : {}),
+        } as Record<string, unknown>)
       : {}),
   } as JobInsertPayload;
 }

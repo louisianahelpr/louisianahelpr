@@ -22,18 +22,6 @@ import { supabase } from "@/integrations/supabase/client";
  *
  * Web is always treated as up-to-date — there is no installed binary
  * to force, and the user already has the latest code on every load.
- *
- * TODO(version-check): wire `MIN_SUPPORTED_BUILD` to a runtime source
- * so we can bump it without shipping a new build. Options:
- *
- *   1. A new `app_config` row in Supabase (`SELECT min_supported_build
- *      FROM app_config WHERE platform = $1`).
- *   2. A static JSON file served from the marketing domain
- *      (`https://louisianahelpr.com/app-config.json`) — no Supabase
- *      round-trip, cacheable on a CDN.
- *
- * Until then the constant defaults to `0` so the check never fires
- * in production; bumping it to a real value triggers the gate.
  */
 
 /** Minimum CFBundleVersion / Android versionCode supported by this

@@ -344,6 +344,80 @@ export type Database = {
         }
         Relationships: []
       }
+      community_post_likes: {
+        Row: {
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_posts: {
+        Row: {
+          after_photo_url: string | null
+          author_id: string
+          before_photo_url: string | null
+          body: string | null
+          category: string | null
+          created_at: string
+          id: string
+          is_approved: boolean
+          job_id: string | null
+          like_count: number
+          parish: string | null
+          photos: string[]
+          post_type: string
+          title: string | null
+        }
+        Insert: {
+          after_photo_url?: string | null
+          author_id: string
+          before_photo_url?: string | null
+          body?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          job_id?: string | null
+          like_count?: number
+          parish?: string | null
+          photos?: string[]
+          post_type: string
+          title?: string | null
+        }
+        Update: {
+          after_photo_url?: string | null
+          author_id?: string
+          before_photo_url?: string | null
+          body?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          job_id?: string | null
+          like_count?: number
+          parish?: string | null
+          photos?: string[]
+          post_type?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -3504,6 +3578,17 @@ export type Database = {
         Returns: undefined
       }
       get_marketplace_activity_count: { Args: never; Returns: number }
+      get_fill_rate_stats: {
+        Args: { p_days?: number }
+        Returns: {
+          total_jobs: number | null
+          filled_jobs: number | null
+          fill_rate_pct: number | null
+          median_minutes_to_first_app: number | null
+          parish: string | null
+          parish_fill_rate_pct: number | null
+        }[]
+      }
       get_open_jobs_for_map: {
         Args: never
         Returns: {
@@ -3907,6 +3992,7 @@ export type Database = {
         | "delivery"
         | "pet_care"
         | "assembly"
+        | "storm_prep"
         | "other"
       job_status:
         | "open"
@@ -4057,6 +4143,7 @@ export const Constants = {
         "delivery",
         "pet_care",
         "assembly",
+        "storm_prep",
         "other",
       ],
       job_status: [

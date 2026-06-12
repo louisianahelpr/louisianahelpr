@@ -78,6 +78,7 @@ const VerifyHelper = lazy(() => import("./pages/VerifyHelper"));
 const LocalPricingGuide = lazy(() => import("./pages/LocalPricingGuide"));
 
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
+const Community = lazy(() => import("./pages/Community"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 const BusinessBilling = lazy(() => import("./pages/business/BusinessBilling"));
 const BusinessApi = lazy(() => import("./pages/business/BusinessApi"));
@@ -164,12 +165,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           a no-account preview, though the marketing landing remains canonical. */}
       <Route path="/browse" element={<RouteErrorBoundary>{routeEl(<PageTransition><DashboardGuest /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
-      {/* /community is a legacy/external-link redirect stub — the content
-          lives as a tab inside /legal. Without this redirect, old search
-          indexes and external links 404. The sitemap lists the canonical
-          /legal URL, not this stub. Mirrors the /rules → /legal?tab=community
-          pattern above. */}
-      <Route path="/community" element={<Navigate to="/legal?tab=community" replace />} />
+      {/* Community feed — before/after photos, milestone posts, helper spotlights. */}
+      <Route path="/community" element={<RouteErrorBoundary>{routeEl(<Community />)}</RouteErrorBoundary>} />
 
       {/* Settings-style pages live inside the Profile shell so the
           shared back button + safe-area top padding stay consistent.

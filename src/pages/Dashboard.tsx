@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense, type SetStateAction } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense, useMemo, type SetStateAction } from "react";
 
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import AppShell from "@/components/AppShell";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, Star, X, Search } from "lucide-react";
+import { Clock, XCircle, Star, X, Search, CloudLightning } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
@@ -221,6 +221,20 @@ const Dashboard = () => {
   // hidden even though the query data still says they're eligible.
   const [inactiveNudgeDismissed, setInactiveNudgeDismissed] = useState(false);
   const inactiveNudge = inactiveNudgeEligible && !inactiveNudgeDismissed;
+
+  // Hurricane season banner — active June–November (months 5–10, 0-indexed).
+  // Dismissal persists for the calendar day via localStorage; resets each
+  // new day so repeat visitors see it again without a full daily annoyance.
+  const isHurricaneSeason = useMemo(() => {
+    const month = new Date().getMonth(); // 0-indexed
+    return month >= 5 && month <= 10;   // June (5) through November (10)
+  }, []);
+  const [stormBannerDismissed, setStormBannerDismissed] = useState(() => {
+    try {
+      return safeStorage.getItem("storm-banner-dismissed") === new Date().toDateString();
+    } catch { return false; }
+  });
+  const showStormBanner = isHurricaneSeason && !stormBannerDismissed;
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");
@@ -889,6 +903,43 @@ const Dashboard = () => {
               screen (ProfileLanding's completion meter) so the job feed
               is no longer pushed below the fold. */}
 
+          {/* Hurricane season banner — June–Nov only, dismissible for the day. */}
+          {showStormBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="shrink-0 mx-4 mb-1 rounded-ds-md p-3 flex items-center gap-2.5"
+              style={{
+                background: "hsl(210 25% 15% / 0.85)",
+                border: "0.5px solid hsl(210 25% 40% / 0.4)",
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              <CloudLightning className="shrink-0 w-5 h-5" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={2} />
+              <div className="flex-1 min-w-0">
+                <p className="font-display italic font-semibold text-ds-13 leading-tight" style={{ color: "hsl(210 30% 90%)" }}>
+                  Hurricane season is active
+                </p>
+                <p className="font-serif italic text-ds-11 leading-tight mt-0.5" style={{ color: "hsl(210 20% 70%)" }}>
+                  Post storm prep work · helpers are ready
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setStormBannerDismissed(true);
+                  try { safeStorage.setItem("storm-banner-dismissed", new Date().toDateString()); } catch { /* ignore */ }
+                }}
+                aria-label="Dismiss hurricane season banner"
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-white/[0.08]"
+                style={{ color: "hsl(210 20% 60%)" }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+
           {/* Inactive subscriber nudge — gentle reminder for paid helpers
               who haven't applied in 7+ days. Dismissible per-session. */}
           {inactiveNudge && (
@@ -984,6 +1035,45 @@ const Dashboard = () => {
               fetchNextPage={fetchNextPage}
             />
             </SectionBoundary>
+
+            {/* Community teaser — surfaces the feed from the Dashboard so
+                users discover it without a new nav tab. Shows up at the
+                bottom of the scroll surface, below all job cards. */}
+            <div className="px-1 pt-2 pb-4">
+              <button
+                type="button"
+                onClick={() => navigate("/community")}
+                className="w-full rounded-ds-sm px-4 py-4 flex items-center gap-3 active:opacity-75 transition-opacity text-left"
+                style={{
+                  background:
+                    "radial-gradient(120% 120% at 20% 20%, hsl(var(--bark) / 0.14) 0%, hsl(45 36% 90% / 0.35) 60%, hsl(var(--parchment) / 0.25) 100%)",
+                  border: "0.5px solid hsl(var(--bark) / 0.28)",
+                }}
+              >
+                <span
+                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{ background: "hsl(var(--bark) / 0.18)", fontSize: "1.1rem" }}
+                  aria-hidden
+                >
+                  🏘️
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="font-display italic font-bold leading-tight"
+                    style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                  >
+                    Community feed
+                  </p>
+                  <p
+                    className="font-serif italic mt-0.5 truncate"
+                    style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.70)" }}
+                  >
+                    Before &amp; afters, milestones, helper spotlights.
+                  </p>
+                </div>
+                <span style={{ color: "hsl(var(--olivewood) / 0.45)", fontSize: "0.85rem" }}>›</span>
+              </button>
+            </div>
     </PageScaffold>
 
       {/* Dialog chunks load on demand — only mounted once the user opens

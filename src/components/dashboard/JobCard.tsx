@@ -155,9 +155,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   const earnings = amountCents % 100 === 0 ? String(amountCents / 100) : (amountCents / 100).toFixed(2);
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
-  // Freshness signal: a job posted within the last 48h gets a "New" chip in
-  // the meta row so a browsing guest sees the feed is live, not stale.
-  const isNew = differenceInHours(new Date(), new Date(job.created_at)) < 48;
+  // Freshness signal: a job posted within the last 30 minutes gets a "New"
+  // chip — aligned with the Pro/Elite early-access window so the badge
+  // appears exactly when fresh jobs flow into the feed for paid subscribers.
+  // After 30 min the badge drops away and all helpers can see the job.
+  const isNew = Date.now() - new Date(job.created_at).getTime() < 30 * 60_000;
 
   const cityState = getCityState(job.location);
 

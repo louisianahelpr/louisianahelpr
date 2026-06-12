@@ -235,6 +235,19 @@ const Dashboard = () => {
     } catch { return false; }
   });
   const showStormBanner = isHurricaneSeason && !stormBannerDismissed;
+
+  // Early-access upsell banner — shown once (dismissible, localStorage key
+  // "early-access-banner-dismissed") to free-tier helpers so they know
+  // Pro/Elite subscribers see new jobs 10 minutes sooner. Tapping "Learn more"
+  // navigates to /subscription.
+  const isFreeTierHelper = !isPaidSubscriber;
+  const [earlyAccessBannerDismissed, setEarlyAccessBannerDismissed] = useState(() => {
+    try {
+      return safeStorage.getItem("early-access-banner-dismissed") === "1";
+    } catch { return false; }
+  });
+  const showEarlyAccessBanner = isFreeTierHelper && !earlyAccessBannerDismissed;
+
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");
@@ -971,6 +984,47 @@ const Dashboard = () => {
                 style={{ color: "hsl(var(--olivewood) / 0.55)" }}
               >
                 <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+
+          {/* Early-access upsell — free-tier helpers see this once.
+              Explains that Pro/Elite subscribers get a 10-minute head
+              start on new jobs. Dismissible to localStorage. */}
+          {showEarlyAccessBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="shrink-0 mx-4 mb-1 rounded-ds-md px-3 py-2.5 flex items-center gap-2.5"
+              style={{
+                background: "hsl(var(--bark) / 0.07)",
+                border: "0.5px solid hsl(var(--bark) / 0.20)",
+              }}
+            >
+              <Clock className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={2} />
+              <p className="flex-1 font-serif italic text-ds-12 leading-snug min-w-0" style={{ color: "hsl(var(--ink-deep) / 0.80)" }}>
+                Pro helpers see new jobs 10 min sooner{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate("/subscription")}
+                  className="font-sans font-semibold not-italic underline underline-offset-2 active:opacity-70"
+                  style={{ color: "hsl(var(--bark))" }}
+                >
+                  Learn more →
+                </button>
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setEarlyAccessBannerDismissed(true);
+                  try { safeStorage.setItem("early-access-banner-dismissed", "1"); } catch { /* ignore */ }
+                }}
+                aria-label="Dismiss early access banner"
+                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
+                style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              >
+                <X className="w-3.5 h-3.5" />
               </button>
             </motion.div>
           )}

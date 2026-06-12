@@ -914,6 +914,119 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_checks: {
+        Row: {
+          id: string
+          credential_id: string
+          user_id: string
+          vendor: string
+          vendor_check_id: string | null
+          check_type: string
+          status: string
+          raw_result: Json | null
+          failure_reason: string | null
+          initiated_at: string
+          completed_at: string | null
+          expires_at: string | null
+          next_check_at: string | null
+        }
+        Insert: {
+          id?: string
+          credential_id: string
+          user_id: string
+          vendor: string
+          vendor_check_id?: string | null
+          check_type: string
+          status?: string
+          raw_result?: Json | null
+          failure_reason?: string | null
+          initiated_at?: string
+          completed_at?: string | null
+          expires_at?: string | null
+          next_check_at?: string | null
+        }
+        Update: {
+          id?: string
+          credential_id?: string
+          user_id?: string
+          vendor?: string
+          vendor_check_id?: string | null
+          check_type?: string
+          status?: string
+          raw_result?: Json | null
+          failure_reason?: string | null
+          initiated_at?: string
+          completed_at?: string | null
+          expires_at?: string | null
+          next_check_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_checks_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "helper_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verification_exceptions: {
+        Row: {
+          id: string
+          check_id: string | null
+          credential_id: string | null
+          user_id: string
+          exception_type: string
+          notes: string | null
+          assigned_to: string | null
+          status: string
+          resolution: string | null
+          created_at: string
+          resolved_at: string | null
+        }
+        Insert: {
+          id?: string
+          check_id?: string | null
+          credential_id?: string | null
+          user_id: string
+          exception_type: string
+          notes?: string | null
+          assigned_to?: string | null
+          status?: string
+          resolution?: string | null
+          created_at?: string
+          resolved_at?: string | null
+        }
+        Update: {
+          id?: string
+          check_id?: string | null
+          credential_id?: string | null
+          user_id?: string
+          exception_type?: string
+          notes?: string | null
+          assigned_to?: string | null
+          status?: string
+          resolution?: string | null
+          created_at?: string
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_exceptions_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "verification_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_exceptions_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "helper_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_endorsements: {
         Row: {
           id: string

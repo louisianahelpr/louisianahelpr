@@ -8,7 +8,7 @@ import {
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, TrendingDown, Activity,
   X, Banknote, MapPin, Award, ChevronRight, ShieldCheck,
-  Shield, LogOut, ArrowLeft, Mail, Building2, Landmark,
+  Shield, LogOut, ArrowLeft, Mail, Building2, Landmark, ClipboardList,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
@@ -48,8 +48,9 @@ const AdminMarketing = lazy(() => import("@/components/admin/AdminMarketing"));
 const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredentialQueue"));
 const AdminBusinessVerificationQueue = lazy(() => import("@/components/admin/AdminBusinessVerificationQueue"));
 const AdminBusinessAccounts = lazy(() => import("@/components/admin/AdminBusinessAccounts"));
+const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminExceptionQueue"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify" | "business_accounts";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions";
 
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -68,6 +69,7 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "people", label: "Users", icon: Users },
       { id: "idv", label: "Identity Verify", icon: ShieldCheck },
       { id: "credentials", label: "License & Insurance", icon: ShieldCheck },
+      { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
       { id: "business_verify", label: "Business Verification", icon: Building2 },
       { id: "business_accounts", label: "Business Accounts", icon: Building2 },
       { id: "jobs", label: "Jobs", icon: Briefcase },
@@ -427,6 +429,7 @@ const Admin = () => {
     payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helpr Tiers",
     idv: "Identity Verify", geography: "Geography", marketing: "Marketing",
     credentials: "License & Insurance",
+    exceptions: "Exception Queue",
     business_verify: "Business Verification",
     business_accounts: "Business Accounts",
   };
@@ -454,6 +457,7 @@ const Admin = () => {
       case "tiers": return <AdminHelperTiers />;
       case "idv": return <AdminIDVQueue />;
       case "credentials": return <AdminCredentialQueue />;
+      case "exceptions": return <AdminExceptionQueue />;
       case "business_verify": return <AdminBusinessVerificationQueue />;
       case "business_accounts": return <AdminBusinessAccounts />;
       case "geography": return <AdminParishActivity />;

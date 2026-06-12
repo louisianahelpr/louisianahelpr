@@ -10,6 +10,7 @@
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
@@ -100,12 +101,6 @@ const BENEFIT_CARDS = [
   },
 ];
 
-const SOCIAL_PROOF = [
-  { stat: "500+", label: "active helpers in Louisiana" },
-  { stat: "4.9★", label: "average rating" },
-  { stat: "30 min", label: "median response time" },
-];
-
 const inputClass =
   "w-full rounded-ds-md px-3 py-2.5 text-ds-14 text-foreground border focus:outline-none focus:ring-2 transition-all";
 const inputStyle = {
@@ -117,6 +112,32 @@ const inputFocusRing = { "--tw-ring-color": "hsl(var(--bark) / 0.35)" } as React
 const BecomeAPartner = () => {
   usePageTitle("Become a Helpr Partner — Grow Your Service Business");
   const navigate = useNavigate();
+
+  const { data: platformStats } = useQuery({
+    queryKey: ["platform_impact_stats"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("get_platform_impact_stats");
+      if (error) return null;
+      return Array.isArray(data) ? data[0] : data;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const helperCount = platformStats?.total_helpers_active ?? null;
+  const helperStat = helperCount !== null
+    ? `${Math.max(helperCount, 1).toLocaleString()}+`
+    : "500+";
+
+  const responseMinutes = platformStats?.avg_response_minutes ?? null;
+  const responseStat = responseMinutes !== null
+    ? `${Math.round(Number(responseMinutes))} min`
+    : "30 min";
+
+  const socialProof = [
+    { stat: helperStat, label: "active helpers in Louisiana" },
+    { stat: "4.9★", label: "average rating" },
+    { stat: responseStat, label: "median response time" },
+  ];
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -614,7 +635,7 @@ const BecomeAPartner = () => {
           }}
         >
           <div className="flex items-center justify-around gap-2 flex-wrap">
-            {SOCIAL_PROOF.map(({ stat, label }) => (
+            {socialProof.map(({ stat, label }) => (
               <div key={label} className="text-center px-2">
                 <p
                   className="font-display font-bold italic text-ds-20"

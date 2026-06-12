@@ -45,7 +45,6 @@ export const categories = Object.entries(categoryLabels).map(([value, label]) =>
  *   other       → warm stone       (neutral default)
  */
 export const categoryColors: Record<string, { badge: string; title: string; dot: string }> = {
-<<<<<<< HEAD
   cleaning:   { badge: "bg-[hsl(180_30%_94%)] text-[hsl(182_26%_33%)] border-[hsl(180_22%_80%)]",  title: "text-[hsl(182_26%_33%)]", dot: "bg-[hsl(182_28%_44%)]" },
   yard_work:  { badge: "bg-[hsl(140_28%_94%)] text-[hsl(142_28%_31%)] border-[hsl(140_22%_78%)]",  title: "text-[hsl(142_28%_31%)]", dot: "bg-[hsl(142_30%_40%)]" },
   moving:     { badge: "bg-[hsl(38_46%_93%)] text-[hsl(32_42%_37%)] border-[hsl(36_38%_78%)]",     title: "text-[hsl(32_42%_37%)]",  dot: "bg-[hsl(34_44%_47%)]" },

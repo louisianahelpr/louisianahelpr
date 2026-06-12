@@ -42,7 +42,6 @@ import {
   CloudLightning,
   MoreHorizontal,
   Briefcase,
-  CloudLightning,
   PartyPopper,
   type LucideIcon,
 } from "lucide-react";

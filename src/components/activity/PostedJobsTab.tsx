@@ -321,6 +321,84 @@ export const PostedJobsTab = ({
   });
   const completedCountsMap: Map<string, number> = completedCountsData ?? new Map();
 
+  // Batch-fetch repeat-hire percents for all applicants in one RPC call.
+  // Returns the share of unique customers who hired a helper more than once.
+  // Minimum 3 unique customers required before a result is emitted so the
+  // stat isn't skewed by very sparse histories.
+  // Falls back to an empty Map on PGRST202 or any other error.
+  const { data: repeatHireData } = useQuery({
+    queryKey: ["helper-repeat-hire-percents", helperIds],
+    queryFn: async (): Promise<Map<string, number>> => {
+      if (helperIds.length === 0) return new Map();
+      const { data, error } = await (supabase.rpc as any)("get_helper_repeat_hire_percents", {
+        p_user_ids: helperIds,
+      });
+      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
+      const map = new Map<string, number>();
+      if (Array.isArray(data)) {
+        for (const row of data as Array<{ user_id: string; repeat_hire_percent: number }>) {
+          map.set(row.user_id, Number(row.repeat_hire_percent));
+        }
+      }
+      return map;
+    },
+    staleTime: 10 * 60 * 1000, // 10 min — repeat-hire % is slow-moving
+    enabled: applications.length > 0,
+  });
+  const repeatHireMap: Map<string, number> = repeatHireData ?? new Map();
+
+  // Batch-fetch on-time arrival percents for all applicants in one RPC call.
+  // Measures how often a helper arrived within 10 min of the scheduled start.
+  // Minimum 5 timed jobs required before a result is emitted.
+  // Falls back to an empty Map on PGRST202 or any other error.
+  const { data: onTimeData } = useQuery({
+    queryKey: ["helper-on-time-percents", helperIds],
+    queryFn: async (): Promise<Map<string, number>> => {
+      if (helperIds.length === 0) return new Map();
+      const { data, error } = await (supabase.rpc as any)("get_helper_on_time_percents", {
+        p_user_ids: helperIds,
+      });
+      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
+      const map = new Map<string, number>();
+      if (Array.isArray(data)) {
+        for (const row of data as Array<{ user_id: string; on_time_percent: number }>) {
+          map.set(row.user_id, Number(row.on_time_percent));
+        }
+      }
+      return map;
+    },
+    staleTime: 10 * 60 * 1000, // 10 min — on-time % is slow-moving
+    enabled: applications.length > 0,
+  });
+  const onTimeMap: Map<string, number> = onTimeData ?? new Map();
+
+  // Batch-fetch distances (km) from the selected job to each applicant.
+  // Requires profiles.latitude/longitude (trust-graph migration) and
+  // jobs.latitude/longitude (set at post time via geocoding).
+  // Falls back to an empty Map on PGRST202 or any other error.
+  // Only enabled when a job is selected and has coordinates.
+  const { data: distanceData } = useQuery({
+    queryKey: ["helper-distances-from-job", selectedJob?.id, helperIds],
+    queryFn: async (): Promise<Map<string, number>> => {
+      if (helperIds.length === 0 || !selectedJob?.id) return new Map();
+      const { data, error } = await (supabase.rpc as any)("get_helper_distances_from_job", {
+        p_job_id: selectedJob.id,
+        p_user_ids: helperIds,
+      });
+      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
+      const map = new Map<string, number>();
+      if (Array.isArray(data)) {
+        for (const row of data as Array<{ user_id: string; distance_km: number }>) {
+          map.set(row.user_id, Number(row.distance_km));
+        }
+      }
+      return map;
+    },
+    staleTime: 5 * 60 * 1000, // 5 min — distance is stable for a given job
+    enabled: helperIds.length > 0 && !!selectedJob?.id && selectedJob.latitude != null,
+  });
+  const distanceMap: Map<string, number> = distanceData ?? new Map();
+
   // Batch-fetch view counts for all posted jobs so each PostedJobCard
   // can show "Seen by X helprs" without N+1 queries. Falls back to {}
   // on PGRST202 (function not yet deployed to production).
@@ -409,10 +487,10 @@ export const PostedJobsTab = ({
         avgRating: app.avgRating ?? null,
         reviewCount: app.reviewCount ?? 0,
         completedJobs: completedCountsMap.get(app.helper_id) ?? 0,
-        repeatHirePercent: null, // not available without migration
-        onTimePercent: null,     // not available without migration
+        repeatHirePercent: repeatHireMap.get(app.helper_id) ?? null,
+        onTimePercent: onTimeMap.get(app.helper_id) ?? null,
         credentialTier,
-        distanceKm: null,        // not available in this context
+        distanceKm: distanceMap.get(app.helper_id) ?? null,
         responseTimeMinutes: null,
         neighborCount,           // live from get_neighbor_hire_count RPC
         stakeAmount: (app as any).stake_amount ?? null,
@@ -451,7 +529,7 @@ export const PostedJobsTab = ({
     }
 
     return { sortedApplications: sorted, scoreMap: map };
-  }, [applications, applicantSort, neighborCountMap, completedCountsMap]);
+  }, [applications, applicantSort, neighborCountMap, completedCountsMap, repeatHireMap, onTimeMap, distanceMap]);
 
   // Private poster notes — stored in localStorage, never sent to the server.
   // Must be declared after sortedApplications (useMemo above) because the

@@ -75,6 +75,10 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/impact",     // Public impact transparency page — long-form, document-scroll
   "/time-credits", // Time banking — earn credits, redeem discounts (document-scroll)
   "/benefits",    // Benefits marketplace — partner perks (document-scroll)
+
+  // Public vertical landing pages (PageHeader + min-h-screen document-scroll)
+  "/discharge",       // Healthcare Discharge Concierge
+  "/insurance-claim", // Insurance Claim Concierge
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

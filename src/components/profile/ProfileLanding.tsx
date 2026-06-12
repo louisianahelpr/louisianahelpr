@@ -1075,6 +1075,48 @@ export function ProfileLanding({
             </div>
           </section>
 
+          {/* Helpr Wrapped banner — year-in-review shortcut. Year-round
+              because the data is always there; links into /wrapped which
+              handles its own auth gate. */}
+          <button
+            type="button"
+            onClick={() => onNavigate("/wrapped")}
+            aria-label={`View your ${new Date().getFullYear()} Helpr Wrapped`}
+            className="w-full rounded-ds-lg overflow-hidden active:scale-[0.99] transition-transform text-left"
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(var(--bark) / 0.10) 0%, hsl(var(--burnt-sienna) / 0.12) 100%)",
+              border: "0.5px solid hsl(var(--bark) / 0.20)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255,255,255,0.40), 0 2px 8px -2px hsl(var(--olivewood) / 0.10)",
+            }}
+          >
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <TrendingUp
+                className="w-5 h-5 shrink-0"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              />
+              <div className="flex-1 min-w-0">
+                <p
+                  className="text-ds-13 font-semibold leading-tight"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
+                  Your {new Date().getFullYear()} Wrapped
+                </p>
+                <p
+                  className="text-ds-11 font-serif italic mt-0.5"
+                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                >
+                  See your year on Helpr
+                </p>
+              </div>
+              <MoreHorizontal
+                className="w-4 h-4 shrink-0"
+                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+              />
+            </div>
+          </button>
+
           {/* Account actions — two stacked pills of the same shape so the
               footer reads as a finished pair. Sign out is a soft muted
               fill in brand bark; Delete account is the same pill outlined

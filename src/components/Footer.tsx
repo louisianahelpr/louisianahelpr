@@ -147,6 +147,11 @@ const Footer = () => (
                 Browse Jobs
               </Link>
             </li>
+            <li>
+              <Link to="/parishes" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                By Parish
+              </Link>
+            </li>
           </ul>
         </div>
 

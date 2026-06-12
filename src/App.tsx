@@ -79,6 +79,9 @@ const LocalPricingGuide = lazy(() => import("./pages/LocalPricingGuide"));
 
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
 const Community = lazy(() => import("./pages/Community"));
+const ParishPage = lazy(() => import("./pages/ParishPage"));
+const ParishesPage = lazy(() => import("./pages/ParishesPage"));
+const HelprWrapped = lazy(() => import("./pages/HelprWrapped"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 const BusinessBilling = lazy(() => import("./pages/business/BusinessBilling"));
 const BusinessApi = lazy(() => import("./pages/business/BusinessApi"));
@@ -187,6 +190,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/business/reports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessReports /></ProtectedRoute>)}</RouteErrorBoundary>} />
 
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
+
+      {/* Community discovery — public, document-scroll, SEO-indexable */}
+      <Route path="/parishes" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishesPage /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/parish/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishPage /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Helpr Wrapped — auth-gated, HelprWrapped handles the redirect */}
+      <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<HelprWrapped />)}</RouteErrorBoundary>} />
       {/* Legacy paths surfaced by 404s in error_logs (external links, old
           bookmarks, search-engine indexes) — redirect to their modern
           equivalents instead of dumping users on the NotFound page. */}

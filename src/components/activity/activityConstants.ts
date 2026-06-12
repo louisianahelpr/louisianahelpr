@@ -17,7 +17,7 @@ export const categoryIcons = CATEGORY_ICONS;
 export const categoryLabels: Record<string, string> = {
   cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",
   handyman: "Handyman", painting: "Painting", delivery: "Delivery", pet_care: "Pet Care",
-  assembly: "Assembly", other: "Other",
+  assembly: "Assembly", storm_prep: "Storm Prep", events: "Events", other: "Other",
 };
 
 export const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));
@@ -30,29 +30,33 @@ export const categories = Object.entries(categoryLabels).map(([value, label]) =>
  * Custom HSL arbitrary values are used instead of Tailwind's named
  * shades because the named -600/-700 steps are too saturated to feel
  * muted. Each hue is mapped to the category it evokes:
- *   cleaning  → dusty teal     (fresh / sanitised)
- *   yard_work → muted green    (grass / outdoors)
- *   moving    → warm amber      (cardboard / boxes)
- *   errands   → soft olive-lime (quick / on-the-go)
- *   handyman  → clay sienna     (tools)
- *   painting  → magenta rose    (colour / creative — pushed off assembly's
- *                                brick-red so the two warm reds stay distinct)
- *   delivery  → slate blue      (transit / motion)
- *   pet_care  → muted mauve     (soft / friendly)
- *   assembly  → brick red       (precise / build)
- *   other     → warm stone      (neutral default)
+ *   cleaning    → dusty teal       (fresh / sanitised)
+ *   yard_work   → muted green      (grass / outdoors)
+ *   moving      → warm amber       (cardboard / boxes)
+ *   errands     → soft olive-lime  (quick / on-the-go)
+ *   handyman    → clay sienna      (tools)
+ *   painting    → magenta rose     (colour / creative — pushed off assembly's
+ *                                   brick-red so the two warm reds stay distinct)
+ *   delivery    → slate blue       (transit / motion)
+ *   pet_care    → muted mauve      (soft / friendly)
+ *   assembly    → brick red        (precise / build)
+ *   storm_prep  → steely blue-grey (storm sky feel — Louisiana hurricane country)
+ *   events      → warm gold/amber  (festive — Mardi Gras, crawfish boils, LSU games)
+ *   other       → warm stone       (neutral default)
  */
 export const categoryColors: Record<string, { badge: string; title: string; dot: string }> = {
-  cleaning:  { badge: "bg-[hsl(180_30%_94%)] text-[hsl(182_26%_33%)] border-[hsl(180_22%_80%)]",  title: "text-[hsl(182_26%_33%)]", dot: "bg-[hsl(182_28%_44%)]" },
-  yard_work: { badge: "bg-[hsl(140_28%_94%)] text-[hsl(142_28%_31%)] border-[hsl(140_22%_78%)]",  title: "text-[hsl(142_28%_31%)]", dot: "bg-[hsl(142_30%_40%)]" },
-  moving:    { badge: "bg-[hsl(38_46%_93%)] text-[hsl(32_42%_37%)] border-[hsl(36_38%_78%)]",     title: "text-[hsl(32_42%_37%)]",  dot: "bg-[hsl(34_44%_47%)]" },
-  errands:   { badge: "bg-[hsl(75_32%_92%)] text-[hsl(74_32%_30%)] border-[hsl(74_26%_76%)]",     title: "text-[hsl(74_32%_30%)]",  dot: "bg-[hsl(73_32%_40%)]" },
-  handyman:  { badge: "bg-[hsl(22_50%_93%)] text-[hsl(18_44%_41%)] border-[hsl(20_42%_80%)]",     title: "text-[hsl(18_44%_41%)]",  dot: "bg-[hsl(19_46%_49%)]" },
-  painting:  { badge: "bg-[hsl(330_44%_94%)] text-[hsl(330_38%_47%)] border-[hsl(330_34%_84%)]",  title: "text-[hsl(330_38%_47%)]", dot: "bg-[hsl(330_40%_56%)]" },
-  delivery:  { badge: "bg-[hsl(214_34%_94%)] text-[hsl(214_28%_42%)] border-[hsl(214_26%_82%)]",  title: "text-[hsl(214_28%_42%)]", dot: "bg-[hsl(214_30%_51%)]" },
-  pet_care:  { badge: "bg-[hsl(278_26%_94%)] text-[hsl(278_22%_48%)] border-[hsl(278_22%_84%)]",  title: "text-[hsl(278_22%_48%)]", dot: "bg-[hsl(278_24%_57%)]" },
-  assembly:  { badge: "bg-[hsl(6_44%_94%)] text-[hsl(6_40%_46%)] border-[hsl(6_36%_84%)]",        title: "text-[hsl(6_40%_46%)]",   dot: "bg-[hsl(6_42%_53%)]" },
-  other:     { badge: "bg-[hsl(40_14%_92%)] text-[hsl(40_9%_42%)] border-[hsl(40_12%_80%)]",      title: "text-[hsl(40_9%_42%)]",   dot: "bg-[hsl(40_10%_55%)]" },
+  cleaning:   { badge: "bg-[hsl(180_30%_94%)] text-[hsl(182_26%_33%)] border-[hsl(180_22%_80%)]",  title: "text-[hsl(182_26%_33%)]", dot: "bg-[hsl(182_28%_44%)]" },
+  yard_work:  { badge: "bg-[hsl(140_28%_94%)] text-[hsl(142_28%_31%)] border-[hsl(140_22%_78%)]",  title: "text-[hsl(142_28%_31%)]", dot: "bg-[hsl(142_30%_40%)]" },
+  moving:     { badge: "bg-[hsl(38_46%_93%)] text-[hsl(32_42%_37%)] border-[hsl(36_38%_78%)]",     title: "text-[hsl(32_42%_37%)]",  dot: "bg-[hsl(34_44%_47%)]" },
+  errands:    { badge: "bg-[hsl(75_32%_92%)] text-[hsl(74_32%_30%)] border-[hsl(74_26%_76%)]",     title: "text-[hsl(74_32%_30%)]",  dot: "bg-[hsl(73_32%_40%)]" },
+  handyman:   { badge: "bg-[hsl(22_50%_93%)] text-[hsl(18_44%_41%)] border-[hsl(20_42%_80%)]",     title: "text-[hsl(18_44%_41%)]",  dot: "bg-[hsl(19_46%_49%)]" },
+  painting:   { badge: "bg-[hsl(330_44%_94%)] text-[hsl(330_38%_47%)] border-[hsl(330_34%_84%)]",  title: "text-[hsl(330_38%_47%)]", dot: "bg-[hsl(330_40%_56%)]" },
+  delivery:   { badge: "bg-[hsl(214_34%_94%)] text-[hsl(214_28%_42%)] border-[hsl(214_26%_82%)]",  title: "text-[hsl(214_28%_42%)]", dot: "bg-[hsl(214_30%_51%)]" },
+  pet_care:   { badge: "bg-[hsl(278_26%_94%)] text-[hsl(278_22%_48%)] border-[hsl(278_22%_84%)]",  title: "text-[hsl(278_22%_48%)]", dot: "bg-[hsl(278_24%_57%)]" },
+  assembly:   { badge: "bg-[hsl(6_44%_94%)] text-[hsl(6_40%_46%)] border-[hsl(6_36%_84%)]",        title: "text-[hsl(6_40%_46%)]",   dot: "bg-[hsl(6_42%_53%)]" },
+  storm_prep: { badge: "bg-[hsl(220_30%_94%)] text-[hsl(218_28%_38%)] border-[hsl(220_24%_80%)]",  title: "text-[hsl(218_28%_38%)]", dot: "bg-[hsl(220_28%_48%)]" },
+  events:     { badge: "bg-[hsl(45_48%_93%)] text-[hsl(42_44%_36%)] border-[hsl(44_40%_78%)]",     title: "text-[hsl(42_44%_36%)]",  dot: "bg-[hsl(43_46%_46%)]" },
+  other:      { badge: "bg-[hsl(40_14%_92%)] text-[hsl(40_9%_42%)] border-[hsl(40_12%_80%)]",      title: "text-[hsl(40_9%_42%)]",   dot: "bg-[hsl(40_10%_55%)]" },
 };
 
 /**

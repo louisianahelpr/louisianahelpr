@@ -1,0 +1,597 @@
+/**
+ * /evacuation — public emergency page for pet evacuation coordination.
+ *
+ * No auth required to view the "I can help" list. Auth required to register
+ * a pet or take a transport assignment.
+ *
+ * PGRST202 graceful fallback: if evacuation_pets doesn't exist in production
+ * yet (between merge and `supabase db push`), the page renders a static
+ * message rather than an error.
+ */
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
+import { report } from "@/lib/errorLogger";
+import {
+  Siren, AlertTriangle, CheckCircle2, Truck, MapPin,
+  ChevronRight, PawPrint,
+} from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type EvacPet = Database["public"]["Tables"]["evacuation_pets"]["Row"] & {
+  pet_profiles?: { name: string; species: string; breed: string | null } | null;
+};
+type PetProfile = Database["public"]["Tables"]["pet_profiles"]["Row"];
+
+const STATUS_STEPS = [
+  { key: "needs_transport", label: "Needs transport", icon: AlertTriangle, color: "hsl(var(--burnt-sienna))" },
+  { key: "helper_assigned", label: "Helper assigned", icon: Truck, color: "hsl(var(--bark))" },
+  { key: "evacuated", label: "Evacuated", icon: Truck, color: "hsl(var(--gold-warm))" },
+  { key: "safe", label: "Safe", icon: CheckCircle2, color: "hsl(var(--sage))" },
+  { key: "reunited", label: "Reunited", icon: CheckCircle2, color: "hsl(var(--bark))" },
+] as const;
+
+type EvacStatus = (typeof STATUS_STEPS)[number]["key"];
+
+const statusMeta = (status: string) =>
+  STATUS_STEPS.find((s) => s.key === status) ?? STATUS_STEPS[0];
+
+const speciesEmoji = (species: string) =>
+  ({ dog: "🐕", cat: "🐈", bird: "🐦", rabbit: "🐇", reptile: "🦎", other: "🐾" }[species] ?? "🐾");
+
+// ─── Register-pet modal ───────────────────────────────────────────────────────
+
+interface RegisterPetModalProps {
+  ownerId: string;
+  onClose: () => void;
+  onRegistered: () => void;
+}
+
+function RegisterPetModal({ ownerId, onClose, onRegistered }: RegisterPetModalProps) {
+  const [notes, setNotes] = useState("");
+  const [destination, setDestination] = useState("");
+  const [selectedPetId, setSelectedPetId] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  const { data: pets, isLoading } = useQuery<PetProfile[]>({
+    queryKey: ["pet_profiles", ownerId],
+    queryFn: async () => {
+      const res = await supabase
+        .from("pet_profiles")
+        .select("id, name, species, breed")
+        .eq("owner_id", ownerId);
+      if (res.error) {
+        if (res.error.code === "PGRST202") return [];
+        throw res.error;
+      }
+      return (res.data ?? []) as unknown as PetProfile[];
+    },
+  });
+
+  const handleRegister = async () => {
+    if (!selectedPetId) {
+      toast.error("Please select a pet");
+      hapticError();
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await supabase.from("evacuation_pets").insert({
+        pet_id: selectedPetId,
+        owner_id: ownerId,
+        destination_address: destination || null,
+        notes: notes || null,
+        status: "needs_transport",
+      });
+      if (res.error) {
+        if (res.error.code === "PGRST202") {
+          toast.info("Evacuation registry is coming online — check back shortly.");
+          onClose();
+          return;
+        }
+        throw res.error;
+      }
+      toast.success("Your pet is registered for evacuation help");
+      onRegistered();
+      onClose();
+    } catch (err) {
+      report(err, { tags: { area: "evacuation_pets.insert" } });
+      toast.error("Couldn't register — please try again");
+      hapticError();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-premium-page overflow-y-auto">
+      <div
+        className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b"
+        style={{ background: "hsl(var(--parchment))", borderColor: "hsl(var(--olivewood) / 0.12)" }}
+      >
+        <h2 className="font-display font-bold text-ds-18" style={{ color: "hsl(var(--ink-deep))" }}>
+          Register pet for transport
+        </h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-10 h-10 flex items-center justify-center rounded-full active:bg-secondary/60 transition-colors text-muted-foreground font-bold text-lg"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="px-4 py-4 space-y-4 pb-safe-nav">
+        {/* Select pet */}
+        <div>
+          <label className="text-ds-13 font-semibold text-foreground block mb-2">Which pet?</label>
+          {isLoading ? (
+            <div className="h-10 rounded-ds-md liquid-glass animate-pulse" />
+          ) : pets && pets.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {pets.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedPetId(p.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ds-13 font-medium transition-all"
+                  style={{
+                    background:
+                      selectedPetId === p.id
+                        ? "hsl(var(--burnt-sienna) / 0.15)"
+                        : "hsl(var(--olivewood) / 0.06)",
+                    color:
+                      selectedPetId === p.id
+                        ? "hsl(var(--burnt-sienna))"
+                        : "hsl(var(--olivewood) / 0.72)",
+                    border:
+                      selectedPetId === p.id
+                        ? "1px solid hsl(var(--burnt-sienna) / 0.30)"
+                        : "1px solid transparent",
+                  }}
+                >
+                  {speciesEmoji(p.species)} {p.name}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-ds-13 text-muted-foreground">
+              You haven't added pet profiles yet.{" "}
+              <a href="/pets" className="underline font-medium" style={{ color: "hsl(var(--bark))" }}>
+                Add one now
+              </a>
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-ds-13 font-semibold text-foreground block mb-1">
+            Destination (optional)
+          </label>
+          <input
+            className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
+            placeholder="e.g. Baton Rouge, LA or family address"
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="text-ds-13 font-semibold text-foreground block mb-1">
+            Notes for helper (optional)
+          </label>
+          <textarea
+            rows={3}
+            className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
+            placeholder="Carrier included, kennel cough, needs medication twice daily…"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+
+        <Button className="w-full" size="lg" disabled={saving} onClick={handleRegister}>
+          {saving ? "Registering…" : "Register for transport"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+const EvacuationMode = () => {
+  usePageTitle("Pet Evacuation Help — Helpr");
+  const { user } = useCurrentUser();
+  const userId = user?.id ?? null;
+  const queryClient = useQueryClient();
+
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+
+  // My registered pets (logged-in owner view)
+  const { data: myEvacPets, refetch: refetchMine } = useQuery<EvacPet[]>({
+    queryKey: ["evacuation_pets_mine", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const res = await supabase
+        .from("evacuation_pets")
+        .select("*, pet_profiles(name, species, breed)")
+        .eq("owner_id", userId!);
+      if (res.error) {
+        if (res.error.code === "PGRST202") return [];
+        throw res.error;
+      }
+      return (res.data ?? []) as unknown as EvacPet[];
+    },
+  });
+
+  // Public list of pets needing transport
+  const { data: needsTransport, isLoading: loadingTransport } = useQuery<EvacPet[]>({
+    queryKey: ["evacuation_pets_public"],
+    queryFn: async () => {
+      const res = await supabase
+        .from("evacuation_pets")
+        .select("*, pet_profiles(name, species, breed)")
+        .in("status", ["needs_transport", "helper_assigned"])
+        .order("created_at", { ascending: true })
+        .limit(50);
+      if (res.error) {
+        if (res.error.code === "PGRST202") return [];
+        throw res.error;
+      }
+      return (res.data ?? []) as unknown as EvacPet[];
+    },
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: async (evacId: string) => {
+      if (!userId) throw new Error("Sign in to help");
+      const res = await supabase
+        .from("evacuation_pets")
+        .update({ helper_id: userId, status: "helper_assigned", updated_at: new Date().toISOString() })
+        .eq("id", evacId)
+        .eq("status", "needs_transport");
+      if (res.error) {
+        if (res.error.code === "PGRST202") {
+          toast.info("Transport registry coming online shortly");
+          return;
+        }
+        throw res.error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["evacuation_pets_public"] });
+      toast.success("You've been assigned — the owner will be notified!");
+    },
+    onError: (err) => {
+      report(err, { tags: { area: "evacuation_pets.claim" } });
+      toast.error("Couldn't claim this transport — please try again");
+      hapticError();
+    },
+  });
+
+  const statusStep = (status: EvacStatus) => {
+    const idx = STATUS_STEPS.findIndex((s) => s.key === status);
+    return idx;
+  };
+
+  return (
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
+      {/* Emergency header */}
+      <div
+        className="px-4 pt-14 pb-5"
+        style={{
+          background:
+            "linear-gradient(135deg, hsl(var(--burnt-sienna) / 0.15), hsl(var(--bark) / 0.08))",
+          borderBottom: "1px solid hsl(var(--burnt-sienna) / 0.20)",
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: "hsl(var(--burnt-sienna) / 0.15)" }}
+          >
+            <Siren className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+          </div>
+          <div>
+            <h1
+              className="font-display font-bold text-ds-20 leading-tight"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
+              Pet Evacuation Help
+            </h1>
+            <p
+              className="text-ds-12 font-semibold mt-0.5"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
+              Hurricane Season Active
+            </p>
+            <p className="text-ds-12 text-muted-foreground mt-1 leading-snug">
+              Louisiana Helpr connects pet owners with volunteer transport helpers
+              during declared emergencies. No charge — community helping community.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 pt-4 space-y-5">
+        {/* CTA row */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (!userId) {
+                toast.info("Sign in to register your pet for evacuation help");
+                return;
+              }
+              setShowRegisterModal(true);
+            }}
+            className="flex flex-col items-center gap-1.5 rounded-ds-lg px-3 py-4 text-center active:scale-[0.98] transition-transform"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.10)",
+              border: "1px solid hsl(var(--burnt-sienna) / 0.22)",
+            }}
+          >
+            <PawPrint className="w-6 h-6" style={{ color: "hsl(var(--burnt-sienna))" }} />
+            <p className="text-ds-13 font-bold leading-tight" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              I need help evacuating my pet
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!userId) {
+                toast.info("Sign in to offer transport help");
+                return;
+              }
+              // Scroll to the needs-transport list below
+              document.getElementById("needs-transport-list")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="flex flex-col items-center gap-1.5 rounded-ds-lg px-3 py-4 text-center active:scale-[0.98] transition-transform"
+            style={{
+              background: "hsl(var(--bark) / 0.09)",
+              border: "1px solid hsl(var(--bark) / 0.20)",
+            }}
+          >
+            <Truck className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} />
+            <p className="text-ds-13 font-bold leading-tight" style={{ color: "hsl(var(--bark))" }}>
+              I can help transport pets
+            </p>
+          </button>
+        </div>
+
+        {/* My pets section — logged-in owners */}
+        {userId && myEvacPets && myEvacPets.length > 0 && (
+          <section>
+            <h2
+              className="font-serif italic uppercase text-ds-9 mb-3"
+              style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              My pets registered for transport
+            </h2>
+            <div className="space-y-2">
+              {myEvacPets.map((ep) => {
+                const meta = statusMeta(ep.status);
+                const currentStep = statusStep(ep.status as EvacStatus);
+                return (
+                  <div
+                    key={ep.id}
+                    className="rounded-ds-lg liquid-glass overflow-hidden"
+                  >
+                    <div className="px-4 py-3 flex items-start gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-lg shrink-0"
+                        style={{ background: "hsl(var(--bark) / 0.10)" }}
+                      >
+                        {ep.pet_profiles ? speciesEmoji(ep.pet_profiles.species) : "🐾"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-ds-14 font-semibold text-foreground">
+                          {ep.pet_profiles?.name ?? "Pet"}
+                        </p>
+                        {ep.pet_profiles?.breed && (
+                          <p className="text-ds-11 text-muted-foreground">{ep.pet_profiles.breed}</p>
+                        )}
+                        <div
+                          className="inline-flex items-center gap-1 text-ds-10 font-bold uppercase mt-1 px-2 py-0.5 rounded-full"
+                          style={{ background: `${meta.color}22`, color: meta.color, letterSpacing: "0.06em" }}
+                        >
+                          <meta.icon className="w-2.5 h-2.5" />
+                          {meta.label}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status progress bar */}
+                    <div className="px-4 pb-3">
+                      <div className="flex items-center gap-1">
+                        {STATUS_STEPS.map((step, i) => (
+                          <div
+                            key={step.key}
+                            className="flex-1 h-1.5 rounded-full"
+                            style={{
+                              background:
+                                i <= currentStep
+                                  ? step.color
+                                  : "hsl(var(--olivewood) / 0.15)",
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-ds-9 text-muted-foreground">Needs transport</span>
+                        <span className="text-ds-9 text-muted-foreground">Reunited</span>
+                      </div>
+                    </div>
+
+                    {ep.notes && (
+                      <div
+                        className="px-4 pb-3"
+                        style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.08)" }}
+                      >
+                        <p className="text-ds-11 text-muted-foreground mt-2">{ep.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Helpers: needs-transport list */}
+        <section id="needs-transport-list">
+          <h2
+            className="font-serif italic uppercase text-ds-9 mb-3"
+            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          >
+            Pets needing transport
+          </h2>
+
+          {loadingTransport && (
+            <div className="space-y-2">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="rounded-ds-lg liquid-glass h-16 animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          {!loadingTransport && needsTransport?.length === 0 && (
+            <div
+              className="rounded-ds-lg liquid-glass px-4 py-5 text-center"
+            >
+              <CheckCircle2
+                className="w-8 h-8 mx-auto mb-2"
+                style={{ color: "hsl(var(--sage))" }}
+              />
+              <p className="text-ds-14 font-semibold text-foreground">All pets accounted for</p>
+              <p className="text-ds-12 text-muted-foreground mt-0.5">
+                No pets are currently waiting for transport. Check back if conditions change.
+              </p>
+            </div>
+          )}
+
+          {!loadingTransport && (needsTransport ?? []).length > 0 && (
+            <div className="space-y-2">
+              {(needsTransport ?? []).map((ep) => {
+                const meta = statusMeta(ep.status);
+                const alreadyAssigned = ep.status === "helper_assigned";
+                const isMyAssignment = ep.helper_id === userId;
+                return (
+                  <div
+                    key={ep.id}
+                    className="rounded-ds-lg liquid-glass overflow-hidden"
+                  >
+                    <div className="px-4 py-3 flex items-center gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-lg shrink-0"
+                        style={{ background: "hsl(var(--bark) / 0.10)" }}
+                      >
+                        {ep.pet_profiles ? speciesEmoji(ep.pet_profiles.species) : "🐾"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-ds-14 font-semibold text-foreground">
+                          {ep.pet_profiles?.name ?? "Pet"}{" "}
+                          {ep.pet_profiles?.species
+                            ? `(${ep.pet_profiles.species})`
+                            : ""}
+                        </p>
+                        {ep.pet_profiles?.breed && (
+                          <p className="text-ds-11 text-muted-foreground">{ep.pet_profiles.breed}</p>
+                        )}
+                        {ep.destination_address && (
+                          <p className="text-ds-11 text-muted-foreground flex items-center gap-0.5 mt-0.5">
+                            <MapPin className="w-2.5 h-2.5 shrink-0" />
+                            {ep.destination_address}
+                          </p>
+                        )}
+                        <div
+                          className="inline-flex items-center gap-1 text-ds-9 font-bold uppercase mt-1 px-1.5 py-0.5 rounded-full"
+                          style={{ background: `${meta.color}22`, color: meta.color, letterSpacing: "0.06em" }}
+                        >
+                          <meta.icon className="w-2.5 h-2.5" />
+                          {meta.label}
+                        </div>
+                      </div>
+                      {!alreadyAssigned && userId && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={claimMutation.isPending}
+                          onClick={() => claimMutation.mutate(ep.id)}
+                          className="shrink-0"
+                          style={{ borderColor: "hsl(var(--bark) / 0.30)", color: "hsl(var(--bark))" }}
+                        >
+                          Help
+                        </Button>
+                      )}
+                      {alreadyAssigned && isMyAssignment && (
+                        <span className="text-ds-10 font-bold text-muted-foreground shrink-0">Your run</span>
+                      )}
+                      {alreadyAssigned && !isMyAssignment && (
+                        <span className="text-ds-10 font-bold text-muted-foreground shrink-0">Covered</span>
+                      )}
+                    </div>
+
+                    {ep.notes && (
+                      <div
+                        className="px-4 pb-2.5"
+                        style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.08)" }}
+                      >
+                        <p className="text-ds-11 text-muted-foreground mt-2">{ep.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Info block */}
+        <div
+          className="rounded-ds-lg px-4 py-3"
+          style={{
+            background: "hsl(var(--olivewood) / 0.05)",
+            border: "1px solid hsl(var(--olivewood) / 0.12)",
+          }}
+        >
+          <p className="text-ds-12 text-muted-foreground leading-snug">
+            <span className="font-semibold text-foreground">How it works:</span>{" "}
+            Pet owners register their animals and a destination. Volunteer helpers claim
+            transport runs and update the status. All coordination is community-driven and
+            free of charge during declared emergencies.
+          </p>
+          {!userId && (
+            <a
+              href="/login"
+              className="mt-2 inline-flex items-center gap-1 text-ds-12 font-semibold"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Sign in to register or help <ChevronRight className="w-3.5 h-3.5" />
+            </a>
+          )}
+        </div>
+      </div>
+
+      {showRegisterModal && userId && (
+        <RegisterPetModal
+          ownerId={userId}
+          onClose={() => setShowRegisterModal(false)}
+          onRegistered={() => {
+            queryClient.invalidateQueries({ queryKey: ["evacuation_pets_mine", userId] });
+            refetchMine();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default EvacuationMode;

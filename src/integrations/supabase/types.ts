@@ -249,6 +249,39 @@ export type Database = {
         }
         Relationships: []
       }
+      care_relationships: {
+        Row: {
+          caregiver_id: string
+          care_recipient_id: string
+          created_at: string
+          id: string
+          invite_token: string | null
+          permissions: string[]
+          relationship: string
+          status: string
+        }
+        Insert: {
+          caregiver_id: string
+          care_recipient_id: string
+          created_at?: string
+          id?: string
+          invite_token?: string | null
+          permissions?: string[]
+          relationship: string
+          status?: string
+        }
+        Update: {
+          caregiver_id?: string
+          care_recipient_id?: string
+          created_at?: string
+          id?: string
+          invite_token?: string | null
+          permissions?: string[]
+          relationship?: string
+          status?: string
+        }
+        Relationships: []
+      }
       business_members: {
         Row: {
           business_id: string
@@ -1393,6 +1426,8 @@ export type Database = {
           bid_ceiling: number | null
           bids_sealed: boolean
           has_active_dispute: boolean
+          scope_video_url: string | null
+          scope_video_thumbnail_url: string | null
         }
         Insert: {
           boost_auto_extended?: boolean
@@ -1489,6 +1524,8 @@ export type Database = {
           bid_ceiling?: number | null
           bids_sealed?: boolean
           has_active_dispute?: boolean
+          scope_video_url?: string | null
+          scope_video_thumbnail_url?: string | null
         }
         Update: {
           boost_auto_extended?: boolean
@@ -1585,6 +1622,8 @@ export type Database = {
           bid_ceiling?: number | null
           bids_sealed?: boolean
           has_active_dispute?: boolean
+          scope_video_url?: string | null
+          scope_video_thumbnail_url?: string | null
         }
         Relationships: [
           {
@@ -2329,6 +2368,8 @@ export type Database = {
           parish: string | null
           phone: string | null
           portfolio_urls: string[] | null
+          preferred_helper_id: string | null
+          senior_mode: boolean
           skills: string | null
           stripe_account_id: string | null
           subscription_expires_at: string | null
@@ -2398,6 +2439,8 @@ export type Database = {
           parish?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null
+          preferred_helper_id?: string | null
+          senior_mode?: boolean
           skills?: string | null
           stripe_account_id?: string | null
           subscription_expires_at?: string | null
@@ -2467,6 +2510,8 @@ export type Database = {
           parish?: string | null
           phone?: string | null
           portfolio_urls?: string[] | null
+          preferred_helper_id?: string | null
+          senior_mode?: boolean
           skills?: string | null
           stripe_account_id?: string | null
           subscription_expires_at?: string | null
@@ -3188,6 +3233,39 @@ export type Database = {
         }
         Relationships: []
       }
+      time_credits: {
+        Row: {
+          id: string
+          user_id: string
+          amount_minutes: number
+          credit_type: string
+          job_id: string | null
+          description: string | null
+          balance_after: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount_minutes: number
+          credit_type: string
+          job_id?: string | null
+          description?: string | null
+          balance_after?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount_minutes?: number
+          credit_type?: string
+          job_id?: string | null
+          description?: string | null
+          balance_after?: number | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -3267,6 +3345,159 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pet_profiles: {
+        Row: {
+          id: string
+          owner_id: string
+          name: string
+          species: string
+          breed: string | null
+          age_years: number | null
+          weight_lbs: number | null
+          color_markings: string | null
+          microchip_id: string | null
+          vet_name: string | null
+          vet_phone: string | null
+          medical_notes: string | null
+          behavioral_notes: string | null
+          emergency_contact: string | null
+          feeding_schedule: string | null
+          photo_url: string | null
+          is_evacuation_registered: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          owner_id: string
+          name: string
+          species: string
+          breed?: string | null
+          age_years?: number | null
+          weight_lbs?: number | null
+          color_markings?: string | null
+          microchip_id?: string | null
+          vet_name?: string | null
+          vet_phone?: string | null
+          medical_notes?: string | null
+          behavioral_notes?: string | null
+          emergency_contact?: string | null
+          feeding_schedule?: string | null
+          photo_url?: string | null
+          is_evacuation_registered?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          owner_id?: string
+          name?: string
+          species?: string
+          breed?: string | null
+          age_years?: number | null
+          weight_lbs?: number | null
+          color_markings?: string | null
+          microchip_id?: string | null
+          vet_name?: string | null
+          vet_phone?: string | null
+          medical_notes?: string | null
+          behavioral_notes?: string | null
+          emergency_contact?: string | null
+          feeding_schedule?: string | null
+          photo_url?: string | null
+          is_evacuation_registered?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pet_report_cards: {
+        Row: {
+          id: string
+          job_id: string
+          pet_id: string
+          helper_id: string
+          owner_id: string
+          report_date: string
+          ate_well: boolean | null
+          exercise_duration_minutes: number | null
+          potty_breaks: number | null
+          mood: string | null
+          notes: string | null
+          photos: string[] | null
+          gps_walk_summary: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          job_id: string
+          pet_id: string
+          helper_id: string
+          owner_id: string
+          report_date?: string
+          ate_well?: boolean | null
+          exercise_duration_minutes?: number | null
+          potty_breaks?: number | null
+          mood?: string | null
+          notes?: string | null
+          photos?: string[] | null
+          gps_walk_summary?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          job_id?: string
+          pet_id?: string
+          helper_id?: string
+          owner_id?: string
+          report_date?: string
+          ate_well?: boolean | null
+          exercise_duration_minutes?: number | null
+          potty_breaks?: number | null
+          mood?: string | null
+          notes?: string | null
+          photos?: string[] | null
+          gps_walk_summary?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      evacuation_pets: {
+        Row: {
+          id: string
+          pet_id: string
+          owner_id: string
+          status: string
+          destination_address: string | null
+          helper_id: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          pet_id: string
+          owner_id: string
+          status?: string
+          destination_address?: string | null
+          helper_id?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          pet_id?: string
+          owner_id?: string
+          status?: string
+          destination_address?: string | null
+          helper_id?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {

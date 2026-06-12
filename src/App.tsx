@@ -26,6 +26,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { useSoftUpdatePrompt } from "@/hooks/useSoftUpdatePrompt";
 const ForceUpdate = lazy(() => import("@/components/ForceUpdate"));
@@ -93,6 +94,8 @@ const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
 const ImpactPage = lazy(() => import("./pages/ImpactPage"));
+const PetProfiles = lazy(() => import("./pages/PetProfiles"));
+const EvacuationMode = lazy(() => import("./pages/EvacuationMode"));
 
 // Lazy load less-critical global components
 
@@ -195,6 +198,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/business/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessOnboarding /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/reports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessReports /></ProtectedRoute>)}</RouteErrorBoundary>} />
 
+      <Route path="/pets" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PetProfiles /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/evacuation" element={<RouteErrorBoundary>{routeEl(<PageTransition><EvacuationMode /></PageTransition>)}</RouteErrorBoundary>} />
+
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
 
       {/* Community discovery — public, document-scroll, SEO-indexable */}
@@ -263,6 +269,15 @@ const SessionManager = () => {
   useCppVariantRouter();
   useAppShellViewport();
   useStatusBarStyle();
+
+  // Apply senior-mode CSS class on <html> whenever the loaded profile
+  // has senior_mode enabled (e.g. after sign-in or a page refresh).
+  const { profile } = useCurrentUser();
+  useEffect(() => {
+    const enabled = !!(profile as unknown as { senior_mode?: boolean })?.senior_mode;
+    document.documentElement.classList.toggle("senior-mode", enabled);
+  }, [profile]);
+
   return null;
 };
 

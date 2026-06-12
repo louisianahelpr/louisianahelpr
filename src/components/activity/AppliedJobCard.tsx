@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ import {
   CheckCircle2, Star, MessageSquare, Users, AlertTriangle,
   RefreshCw, ThumbsUp, ThumbsDown, Send, XCircle,
   Paperclip, FileText, Trash2, Pencil, Check, X, ChevronRight,
-  ChevronUp, ChevronDown,
+  ChevronUp, ChevronDown, ClipboardList,
 } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { formatDistanceToNow } from "date-fns";
@@ -31,6 +31,7 @@ import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
+import { SendReportCard } from "./PetReportCard";
 
 interface AppliedJobCardProps {
   /** The application + its embedded job — one row of the applied feed. */
@@ -124,6 +125,7 @@ function AppliedJobCardInner({
   handleRemoveAttachment,
 }: AppliedJobCardProps) {
   const navigate = useNavigate();
+  const [showReportCard, setShowReportCard] = useState(false);
   const job = app.job;
   if (!job) return null;
   const status = job.status;
@@ -153,6 +155,7 @@ function AppliedJobCardInner({
   const escrowStep = isMinimalCard || isPending ? null : deriveEscrowStepFromJob(job);
 
   return (
+    <>
         <JobCardShell
           expandable={!isMinimalCard}
           expanded={isExpanded}
@@ -470,6 +473,19 @@ function AppliedJobCardInner({
                   itself (e.g. "did I bring the bug spray?"). Stays
                   collapsed and renders nothing for uncovered categories. */}
               <WhatToBringChecklist jobId={app.job_id} category={job.category} />
+
+              {/* Pet care report card — only for pet_care jobs */}
+              {job.category === "pet_care" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowReportCard(true)}
+                >
+                  <ClipboardList className="w-4 h-4 mr-1.5" />
+                  Send report card
+                </Button>
+              )}
 
               {/* Completion status — right after tracker */}
               {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && (
@@ -831,6 +847,18 @@ function AppliedJobCardInner({
             </div>
           )}
         </JobCardShell>
+
+      {/* Pet report card sheet — mounted outside JobCardShell to avoid
+          z-index clipping inside the card's overflow:hidden container */}
+      {showReportCard && job.customer_id && (
+        <SendReportCard
+          jobId={app.job_id}
+          helperId={userId}
+          ownerId={job.customer_id}
+          onClose={() => setShowReportCard(false)}
+        />
+      )}
+    </>
   );
 }
 

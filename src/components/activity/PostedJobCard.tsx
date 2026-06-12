@@ -33,6 +33,7 @@ import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
+import { IncomingReportCard } from "./PetReportCard";
 
 interface PostedJobCardProps {
   /** The job + its embedded data — one row of the posted feed. */
@@ -315,6 +316,13 @@ function PostedJobCardInner({
               {(job.status === "accepted" || job.status === "in_progress") && job.helper_id && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} />
+                </div>
+              )}
+
+              {/* Pet care report card — show incoming daily reports from helper */}
+              {job.category === "pet_care" && (job.status === "accepted" || job.status === "in_progress" || job.status === "completed") && (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <IncomingReportCard jobId={job.id} />
                 </div>
               )}
 

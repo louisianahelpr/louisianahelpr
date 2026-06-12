@@ -66,7 +66,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/str-settings", // Rental host automation — long-form min-h-screen document-scroll
   "/pets",        // Pet profiles (PageHeader + min-h-screen document-scroll)
   "/evacuation",  // Disaster evacuation mode (PageHeader + min-h-screen document-scroll)
-  "/family",      // Family & care dashboard + accept-invite (min-h-screen document-scroll)
 
   // Community discovery pages — long-form, document-scroll SEO content
   "/parishes",   // Parish directory listing all 8 supported parishes

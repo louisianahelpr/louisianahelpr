@@ -1426,6 +1426,8 @@ export type Database = {
           bid_ceiling: number | null
           bids_sealed: boolean
           has_active_dispute: boolean
+          scope_video_url: string | null
+          scope_video_thumbnail_url: string | null
         }
         Insert: {
           boost_auto_extended?: boolean
@@ -1522,6 +1524,8 @@ export type Database = {
           bid_ceiling?: number | null
           bids_sealed?: boolean
           has_active_dispute?: boolean
+          scope_video_url?: string | null
+          scope_video_thumbnail_url?: string | null
         }
         Update: {
           boost_auto_extended?: boolean
@@ -1618,6 +1622,8 @@ export type Database = {
           bid_ceiling?: number | null
           bids_sealed?: boolean
           has_active_dispute?: boolean
+          scope_video_url?: string | null
+          scope_video_thumbnail_url?: string | null
         }
         Relationships: [
           {
@@ -3224,6 +3230,39 @@ export type Database = {
           reason?: string
           severity?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      time_credits: {
+        Row: {
+          id: string
+          user_id: string
+          amount_minutes: number
+          credit_type: string
+          job_id: string | null
+          description: string | null
+          balance_after: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount_minutes: number
+          credit_type: string
+          job_id?: string | null
+          description?: string | null
+          balance_after?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount_minutes?: number
+          credit_type?: string
+          job_id?: string | null
+          description?: string | null
+          balance_after?: number | null
+          created_at?: string
         }
         Relationships: []
       }

@@ -506,7 +506,7 @@ const Admin = () => {
           </header>
 
           <main
-            className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(10rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(11rem+env(safe-area-inset-bottom,0px))]"
+            className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px))]"
           >
             {view !== "home" && (
               <div className="mb-5 sm:mb-6 flex items-start gap-2">

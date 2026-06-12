@@ -7,10 +7,16 @@ import { prefetchRoute } from "@/lib/routePrefetch";
 import HelprMark from "@/components/HelprMark";
 import { cn } from "@/lib/utils";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // Session-only auth (no profile DB round-trip) so the marketing nav can
+  // reflect logged-in state: an authenticated visitor landing on a public
+  // page (/for-business, /legal, /) should see an "Open app" CTA instead of
+  // the logged-out "Log in / Get started" pair.
+  const { user } = useAuthReady();
   // This nav is `position: fixed; top: 0`, so the global OfflineBanner (also
   // fixed at top:0) would overlay it. The `#root` padding that reserves space
   // for the banner on document-scroll pages can't move a fixed element, so
@@ -84,41 +90,63 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             Business
           </Link>
           <div className="flex items-center gap-1">
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="rounded-ds-md btn-press"
-            >
-              <Link
-                to="/login"
-                onMouseEnter={() => prefetchRoute("/login")}
-                onFocus={() => prefetchRoute("/login")}
+            {user ? (
+              // Authenticated visitor on a public/marketing page — send them
+              // back into the app instead of showing logged-out auth CTAs.
+              <Button
+                asChild
+                size="sm"
+                className="rounded-ds-md btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                style={{ color: "hsl(var(--parchment))" }}
               >
-                Log in
-              </Link>
-            </Button>
-            {/* "Get started" — explicit light-cream text. The `default`
-                variant nominally resolves text-primary-foreground →
-                --parchment, but that two-hop token chain has repeatedly
-                rendered dark-on-olive in the WebView. Pin the color
-                locally — `!text-...` on the button itself plus a
-                belt-and-braces inline style — so it can never lose the
-                cascade, independent of variant token resolution. */}
-            <Button
-              asChild
-              size="sm"
-              className="rounded-ds-md btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
-              style={{ color: "hsl(var(--parchment))" }}
-            >
-              <Link
-                to="/signup"
-                onMouseEnter={() => prefetchRoute("/signup")}
-                onFocus={() => prefetchRoute("/signup")}
-              >
-                Get started
-              </Link>
-            </Button>
+                <Link
+                  to="/dashboard"
+                  onMouseEnter={() => prefetchRoute("/dashboard")}
+                  onFocus={() => prefetchRoute("/dashboard")}
+                >
+                  Open app
+                  <ArrowRight className="ml-1.5 w-4 h-4" strokeWidth={1.75} />
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-ds-md btn-press"
+                >
+                  <Link
+                    to="/login"
+                    onMouseEnter={() => prefetchRoute("/login")}
+                    onFocus={() => prefetchRoute("/login")}
+                  >
+                    Log in
+                  </Link>
+                </Button>
+                {/* "Get started" — explicit light-cream text. The `default`
+                    variant nominally resolves text-primary-foreground →
+                    --parchment, but that two-hop token chain has repeatedly
+                    rendered dark-on-olive in the WebView. Pin the color
+                    locally — `!text-...` on the button itself plus a
+                    belt-and-braces inline style — so it can never lose the
+                    cascade, independent of variant token resolution. */}
+                <Button
+                  asChild
+                  size="sm"
+                  className="rounded-ds-md btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                  style={{ color: "hsl(var(--parchment))" }}
+                >
+                  <Link
+                    to="/signup"
+                    onMouseEnter={() => prefetchRoute("/signup")}
+                    onFocus={() => prefetchRoute("/signup")}
+                  >
+                    Get started
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -209,43 +237,68 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                 Business
               </Link>
               <div className="flex flex-col gap-3 mt-auto pt-6">
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  className="liquid-glass w-full rounded-2xl font-sans font-semibold"
-                  style={{
-                    color: "hsl(var(--olivewood))",
-                    border: "1px solid hsla(0,0%,100%,0.6)",
-                  }}
-                >
-                  <Link to="/login" onClick={() => setMobileOpen(false)}>
-                    Log in
-                  </Link>
-                </Button>
-                {/* Mobile sign-up CTA — same explicit light-cream pin as
-                    the desktop "Get started". The descendant `[&_*]` rule
-                    guarantees the <Link> text stays parchment even though
-                    asChild renders an <a> that can otherwise inherit a
-                    darker color from the sheet's `color: --olivewood`. */}
-                <Button
-                  asChild
-                  size="lg"
-                  className="btn-liquid-fill group w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
-                  style={{
-                    color: "hsl(var(--parchment))",
-                    backgroundColor: "hsl(var(--bark))",
-                    backgroundImage: "none",
-                    border: "1px solid hsl(var(--bark))",
-                    boxShadow:
-                      "inset 0 1px 0 0 rgba(255,255,255,0.25), 0 1px 2px rgba(0,0,0,0.04), 0 8px 32px -8px rgba(0,0,0,0.06)",
-                  }}
-                >
-                  <Link to="/signup" onClick={() => setMobileOpen(false)}>
-                    Get started
-                    <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
-                  </Link>
-                </Button>
+                {user ? (
+                  // Authenticated visitor — single "Open app" CTA back into
+                  // the dashboard instead of the logged-out Log in/Get started.
+                  <Button
+                    asChild
+                    size="lg"
+                    className="btn-liquid-fill group w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                    style={{
+                      color: "hsl(var(--parchment))",
+                      backgroundColor: "hsl(var(--bark))",
+                      backgroundImage: "none",
+                      border: "1px solid hsl(var(--bark))",
+                      boxShadow:
+                        "inset 0 1px 0 0 rgba(255,255,255,0.25), 0 1px 2px rgba(0,0,0,0.04), 0 8px 32px -8px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
+                      Open app
+                      <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="lg"
+                      className="liquid-glass w-full rounded-2xl font-sans font-semibold"
+                      style={{
+                        color: "hsl(var(--olivewood))",
+                        border: "1px solid hsla(0,0%,100%,0.6)",
+                      }}
+                    >
+                      <Link to="/login" onClick={() => setMobileOpen(false)}>
+                        Log in
+                      </Link>
+                    </Button>
+                    {/* Mobile sign-up CTA — same explicit light-cream pin as
+                        the desktop "Get started". The descendant `[&_*]` rule
+                        guarantees the <Link> text stays parchment even though
+                        asChild renders an <a> that can otherwise inherit a
+                        darker color from the sheet's `color: --olivewood`. */}
+                    <Button
+                      asChild
+                      size="lg"
+                      className="btn-liquid-fill group w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                      style={{
+                        color: "hsl(var(--parchment))",
+                        backgroundColor: "hsl(var(--bark))",
+                        backgroundImage: "none",
+                        border: "1px solid hsl(var(--bark))",
+                        boxShadow:
+                          "inset 0 1px 0 0 rgba(255,255,255,0.25), 0 1px 2px rgba(0,0,0,0.04), 0 8px 32px -8px rgba(0,0,0,0.06)",
+                      }}
+                    >
+                      <Link to="/signup" onClick={() => setMobileOpen(false)}>
+                        Get started
+                        <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>

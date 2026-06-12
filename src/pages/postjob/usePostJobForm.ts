@@ -435,14 +435,9 @@ export function usePostJobForm() {
     if (!title.trim()) { toast.error("Task title is required"); scrollToField("title"); return; }
     if (!description.trim()) { toast.error("Description is required"); scrollToField("description"); return; }
     if (!category) { toast.error("Category is required"); scrollToField("category-picker"); return; }
-    // At least one photo is required — posts with a photo dramatically
-    // outperform photo-less ones for both applicant count and quote
-    // accuracy, so we now gate submit on it (issue #114).
-    if (imageFiles.length === 0) {
-      toast.error("Add at least one photo so helprs know what they're applying for.");
-      scrollToField("photo-grid");
-      return;
-    }
+    // Photo is optional — a photo dramatically improves applicant count and
+    // quote accuracy, so it's strongly nudged in the UI, but tasks like
+    // dog-walking or errands have no natural photo and shouldn't be blocked.
     if (!streetAddress.trim()) { toast.error("Street address is required"); scrollToField("streetAddress"); return; }
     if (!city.trim()) { toast.error("City is required"); scrollToField("city"); return; }
     if (!addrState.trim()) { toast.error("State is required"); scrollToField("state"); return; }
@@ -786,9 +781,10 @@ export function usePostJobForm() {
   const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum; // + Sales tax at checkout
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
-  // Section completion for the 3-step progress bar — photos are now
-  // required (issue #114) so the chapter isn't "done" until one is in.
-  const detailsComplete = !!(title.trim() && description.trim() && category && imageFiles.length >= 1);
+  // Section completion for the 3-step progress bar. Photos are optional
+  // (strongly nudged, never required), so the Details chapter is "done"
+  // once title, description, and category are set.
+  const detailsComplete = !!(title.trim() && description.trim() && category);
   const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && estimatedHours && parseFloat(estimatedHours) >= 0.5);
   const budgetComplete = !!(budget && parseFloat(budget) >= 5);
 

@@ -441,14 +441,14 @@ export function DetailsSection({
           get a sienna delete pill (always visible on touch, since there
           is no hover state on mobile). The empty Add tile uses a
           parchment "+" badge with a soft inset shadow so it reads as
-          tappable affordance, not chrome. Photos are now required
-          (issue #114): label + inline error reflect that. */}
+          tappable affordance, not chrome. Photos are optional but strongly
+          nudged: label + inline copy frame them as a quality boost. */}
       <div className="space-y-2.5">
         <div className="space-y-0.5">
           <div className="flex items-center justify-between gap-2">
             <Label>
-              Photos <span className="text-destructive">*</span>{" "}
-              <span className="font-normal text-muted-foreground">(at least 1, up to 5)</span>
+              Photos{" "}
+              <span className="font-normal text-muted-foreground">(optional, up to 5)</span>
             </Label>
             {imageFiles.length > 0 && (
               <span className="text-[0.66rem] tabular-nums text-muted-foreground">
@@ -635,7 +635,7 @@ export function DetailsSection({
             })}
             {imageFiles.length < 5 && (
               <label
-                aria-label={imageFiles.length === 0 ? "Add a photo (required)" : "Add another photo"}
+                aria-label={imageFiles.length === 0 ? "Add a photo (optional)" : "Add another photo"}
                 className="w-20 h-20 rounded-2xl flex items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
                 style={{
                   background: "hsl(var(--parchment) / 0.7)",
@@ -666,8 +666,8 @@ export function DetailsSection({
           </div>
         )}
         {imageFiles.length === 0 && (
-          <p className="text-[0.7rem] leading-snug text-destructive">
-            Add at least one photo so helprs know what they're applying for.
+          <p className="text-[0.7rem] leading-snug text-muted-foreground">
+            Optional, but posts with a photo get more applicants and better quotes.
           </p>
         )}
       </div>

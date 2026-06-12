@@ -2,25 +2,30 @@
  * applyRateLimit — client wrapper for the server-side job-application
  * rate limiter.
  *
- * Server source of truth lives in `public.application_rate_log` +
- * `rpc_check_application_rate` + `rpc_record_application_attempt`
- * (migration 20260609130000). The decided limits are:
+ * Server source of truth lives in `public.application_attempts` +
+ * `rpc_record_application_attempt` (migration 20260612050500). The
+ * decided limits are:
  *
  *   • 10 applications / minute
  *   • 50 applications / hour
  *   • 200 applications / day
  *
- * Flow at the call site:
- *   1. checkApplicationRate({ applicantId })  — BEFORE inserting.
- *      • allowed = true → proceed.
- *      • allowed = false → show the formatted message + retry hint.
- *   2. recordApplicationAttempt({ applicantId }) — AFTER the insert succeeds.
+ * Preferred flow (single combined RPC):
+ *   const gate = await recordAndCheckApplicationRate({ applicantId });
+ *   if (!gate.allowed) { toast(gate.message); return; }
+ *   // ... insert application row ...
  *
- * Migrations don't auto-deploy (CLAUDE.md working rules), so both helpers
- * ship a graceful fallback for PGRST202 ("function not found"). When the
- * RPC isn't present yet, the check returns `allowed = true` — we do not
- * want to block legitimate applies between merge and the manual db push.
- * The record helper is best-effort; a missing RPC is silently swallowed.
+ * The single RPC both records the attempt AND checks all three windows in
+ * one round-trip (migration 20260612050500). Blocked attempts still count
+ * toward the window (insert-then-check).
+ *
+ * Legacy two-step helpers (checkApplicationRate / recordApplicationAttempt)
+ * are kept for backward compatibility with the 20260609130000 migration path.
+ *
+ * Migrations don't auto-deploy (CLAUDE.md working rules), so every helper
+ * ships a graceful PGRST202 fallback — when the RPC isn't present yet,
+ * it returns `allowed = true` so applies don't break on production between
+ * merge and the manual db push.
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -137,6 +142,9 @@ export async function checkApplicationRate(args: {
  *
  * PGRST202 ("function not found") is the expected state on production
  * between merge and the manual db push, and is treated as a no-op.
+ *
+ * @deprecated Prefer `recordAndCheckApplicationRate` (single combined RPC,
+ * migration 20260612050500) over this two-step legacy pair.
  */
 export async function recordApplicationAttempt(args: {
   applicantId: string;
@@ -154,4 +162,63 @@ export async function recordApplicationAttempt(args: {
   } catch (err) {
     console.warn("[applyRateLimit] record threw:", err);
   }
+}
+
+/**
+ * Combined check-and-record: calls `rpc_record_application_attempt`
+ * (migration 20260612050500) which atomically inserts the attempt row
+ * AND checks all three rolling windows, returning a uniform jsonb result.
+ *
+ * Replaces the legacy two-step checkApplicationRate + recordApplicationAttempt
+ * pair — one network round-trip instead of two, and the attempt is always
+ * counted (even blocked ones) so the window is consistent server-side.
+ *
+ * PGRST202 fallback: if the RPC isn't deployed to prod yet (between merge
+ * and `supabase db push`), returns allowed=true so applies keep working.
+ * Other errors also fail open — a transient network hiccup shouldn't block
+ * a legitimate apply.
+ */
+export async function recordAndCheckApplicationRate(args: {
+  applicantId: string;
+}): Promise<RateLimitCheck> {
+  if (!args.applicantId) {
+    return {
+      allowed: false,
+      reason: "not_authenticated",
+      retryAfterSeconds: 0,
+      message: formatRateLimitMessage("not_authenticated", 0),
+    };
+  }
+
+  // Cast through `any` until `supabase gen types` picks up the new RPC
+  // from migration 20260612050500.
+  const { data, error } = await (supabase.rpc as any)(
+    "rpc_record_application_attempt",
+    { applicant_id: args.applicantId },
+  );
+
+  if (error) {
+    if (isMissingRpc(error)) {
+      // RPC not deployed yet — fail open.
+      return { allowed: true };
+    }
+    // Any other error: fail open (network blip etc).
+    return { allowed: true };
+  }
+
+  // The RPC returns jsonb: {allowed, retry_after_seconds, reason}.
+  // supabase-js unwraps jsonb columns directly into the JS object.
+  const result = typeof data === "object" && data !== null ? data : {};
+  if (result.allowed === true || result.allowed == null) {
+    return { allowed: true };
+  }
+
+  const reason = (result.reason ?? "rate_limit_minute") as RateLimitReason;
+  const retryAfterSeconds = Number(result.retry_after_seconds ?? 0);
+  return {
+    allowed: false,
+    reason,
+    retryAfterSeconds,
+    message: formatRateLimitMessage(reason, retryAfterSeconds),
+  };
 }

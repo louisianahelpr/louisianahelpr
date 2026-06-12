@@ -46,7 +46,7 @@ import { requireOnline } from "@/lib/requireOnline";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { queryKeys } from "@/lib/queryKeys";
-import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
+import { recordAndCheckApplicationRate } from "@/lib/applyRateLimit";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -366,16 +366,20 @@ const Dashboard = () => {
   };
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
     mutationFn: async ({ jobId, helperId, message, files }) => {
-      // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
-      // attachment uploads — don't waste storage bandwidth on a blocked
-      // attempt. The helper falls back to "allowed" if the RPC isn't
-      // deployed yet (PGRST202), so this doesn't break apply on prod
-      // between merge and the manual supabase db push.
-      const gate = await checkApplicationRate({ applicantId: helperId });
+      // Combined rate-limit check + record (10/min, 50/hr, 200/day).
+      // rpc_record_application_attempt atomically inserts the attempt row
+      // AND checks all three rolling windows in one round-trip, returning
+      // jsonb {allowed, retry_after_seconds, reason}. Blocked attempts still
+      // count toward the window (insert-then-check, per spec).
+      //
+      // PGRST202 fallback: if the RPC isn't deployed to prod yet (between
+      // merge and `supabase db push`), recordAndCheckApplicationRate returns
+      // allowed=true so this never blocks on production prematurely.
+      const gate = await recordAndCheckApplicationRate({ applicantId: helperId });
       if (gate.allowed === false) {
         throw Object.assign(new Error(gate.message), { code: "RATE_LIMITED" });
       }
-      // Upload attachments first (store storage paths; resolve signed URLs at view time).
+      // Upload attachments (store storage paths; resolve signed URLs at view time).
       const attachmentUrls: string[] = [];
       for (const file of files) {
         const ext = file.name.split('.').pop();
@@ -396,10 +400,6 @@ const Dashboard = () => {
         attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
       });
       if (error) throw error as Error & { code?: string };
-      // Insert succeeded — bump the rate-limit counter. Best-effort: a
-      // failed record call shouldn't surface to the user since the apply
-      // already landed. PGRST202 is silently no-op'd inside the helper.
-      void recordApplicationAttempt({ applicantId: helperId });
     },
     onMutate: async ({ jobId, helperId }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.dashboard.context(helperId) });

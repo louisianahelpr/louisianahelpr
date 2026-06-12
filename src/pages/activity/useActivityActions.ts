@@ -150,15 +150,32 @@ export function useActivityActions({
       if (visibleApps.length === 0) return [];
 
       const helperIds = visibleApps.map((a) => a.helper_id);
-      const [profilesRes, reviewsRes] = await Promise.all([
+      const [profilesRes, reviewsRes, availabilityRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds).lte("feedback_visible_at", new Date().toISOString()),
+        // "Available now" field — new column; use `any` cast because the
+        // generated types don't include it yet. Errors are ignored so the
+        // panel never blocks on a not-yet-deployed migration.
+        (supabase.from("profiles") as any).select("user_id, available_until").in("user_id", helperIds),
       ]);
       const reviewStatsMap = aggregateRatings(reviewsRes.data);
+      // Map helper_id → available_until for O(1) merge below.
+      const availabilityMap = new Map<string, string | null>();
+      if (availabilityRes?.data) {
+        for (const row of availabilityRes.data as Array<{ user_id: string; available_until: string | null }>) {
+          availabilityMap.set(row.user_id, row.available_until);
+        }
+      }
       const enriched = visibleApps.map((app) => {
         const prof = profilesRes.data?.find((p) => p.user_id === app.helper_id) || null;
         const stats = reviewStatsMap.get(app.helper_id);
-        return { ...app, profiles: prof, reviewCount: stats?.count ?? 0, avgRating: stats?.avg ?? 0 };
+        const available_until = availabilityMap.get(app.helper_id) ?? null;
+        return {
+          ...app,
+          profiles: prof ? { ...prof, available_until } : null,
+          reviewCount: stats?.count ?? 0,
+          avgRating: stats?.avg ?? 0,
+        };
       });
       // Boosted Visibility: Pro/Elite helpers appear first in applicant lists
       const tierOrder = (tier: string | null | undefined) => tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;

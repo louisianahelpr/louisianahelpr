@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DollarSign, ChevronDown } from "lucide-react";
 
 export interface FeeBreakdownProps {
@@ -8,6 +9,12 @@ export interface FeeBreakdownProps {
   /** Number of helpers splitting the budget; default 1. */
   helperCount?: number;
   className?: string;
+  /**
+   * When true, renders a small "Helper Pro reduces your fee to 10%" upsell
+   * line below the micro-breakdown. Only show for free-tier helpers viewing
+   * a job (not for already-subscribed users, not on poster-facing surfaces).
+   */
+  showProUpsell?: boolean;
 }
 
 /**
@@ -24,8 +31,10 @@ export function FeeBreakdown({
   urgentFee = 0,
   helperCount = 1,
   className,
+  showProUpsell = false,
 }: FeeBreakdownProps) {
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
 
   const helpers = helperCount > 0 ? helperCount : 1;
   const perHelper = budget / helpers;
@@ -81,6 +90,21 @@ export function FeeBreakdown({
             ${budget.toFixed(0)} budget − {commissionPercent}% fee
             {urgentFee > 0 ? ` + $${urgentFee.toFixed(0)} urgent` : ""}
           </p>
+          {/* Pro upsell — only for free-tier helpers to surface the fee savings */}
+          {showProUpsell && (
+            <p className="font-serif italic text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+              <span style={{ color: "hsl(var(--burnt-sienna))" }}>Helper Pro</span> reduces your fee to 10%
+              {" "}·{" "}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); navigate("/subscription"); }}
+                className="underline underline-offset-2"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                Learn more
+              </button>
+            </p>
+          )}
         </div>
         <ChevronDown
           className={`shrink-0 w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`}

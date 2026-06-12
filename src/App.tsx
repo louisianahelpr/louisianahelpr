@@ -86,7 +86,7 @@ const BusinessContracts = lazy(() => import("./pages/business/BusinessContracts"
 const BusinessExports = lazy(() => import("./pages/business/BusinessExports"));
 const BusinessOnboarding = lazy(() => import("./pages/business/BusinessOnboarding"));
 const BusinessReports = lazy(() => import("./pages/business/BusinessReports"));
-
+const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 
 // Lazy load less-critical global components
 
@@ -176,6 +176,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/schedule" element={<Navigate to="/profile?tab=schedule" replace />} />
       <Route path="/availability" element={<Navigate to="/profile?tab=availability" replace />} />
       <Route path="/saved-helpers" element={<Navigate to="/profile?tab=saved_helpers" replace />} />
+      <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SubscriptionPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />

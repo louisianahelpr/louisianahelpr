@@ -174,9 +174,29 @@ export function useDashboardData() {
       // — so a typical browsing helper saw only jobs they posted themselves
       // or were directly offered. Effectively empty, more confusing than the
       // honest ErrorState.)
+      // Early access: Pro/Elite helpers see jobs immediately; free-tier helpers
+      // are excluded from jobs posted in the last 10 minutes. This creates a
+      // 10-minute head start for paid subscribers.
+      //
+      // profile is read from the outer useDashboardData scope (always
+      // current-user's profile). Default to free-tier when profile is
+      // still loading — safer than accidentally granting early access.
+      const currentSubTier = profile?.subscription_tier ?? null;
+      const currentSubExpiresAt = profile?.subscription_expires_at ?? null;
+      const currentSubActive = currentSubExpiresAt
+        ? new Date(currentSubExpiresAt) > new Date()
+        : false;
+      const isEarlyAccessUser =
+        currentSubActive &&
+        (currentSubTier === "pro" || currentSubTier === "elite");
+      // For free-tier: only show jobs posted more than 10 minutes ago
+      // (created_at older than 10 min ago). For Pro/Elite: no cutoff.
+      const freeTierCutoff = new Date(Date.now() - 10 * 60_000).toISOString();
+
       let rawJobsRes: any[];
       try {
-        rawJobsRes = unwrap(await withTimeout(supabase
+        // Build query — early-access filter applied conditionally.
+        const baseQuery = supabase
           .from("open_jobs_browse")
           .select(
             // NOTE: open_jobs_browse view does NOT expose latitude/longitude
@@ -186,7 +206,15 @@ export function useDashboardData() {
             // nearby-radius filter falls back to the location string match.
             "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location",
           )
-          .neq("payment_status", "abandoned")
+          .neq("payment_status", "abandoned");
+
+        // Free-tier helpers cannot see jobs < 10 min old.
+        // Pro/Elite skip this filter so they see all open jobs immediately.
+        const filteredQuery = isEarlyAccessUser
+          ? baseQuery
+          : baseQuery.lte("created_at", freeTierCutoff);
+
+        rawJobsRes = unwrap(await withTimeout(filteredQuery
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .range(offset, offset + PAGE_SIZE), JOBS_QUERY_TIMEOUT_MS, "Loading tasks timed out")) as any[];

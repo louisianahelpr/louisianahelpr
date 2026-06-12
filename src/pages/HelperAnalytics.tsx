@@ -31,7 +31,7 @@ async function fetchAnalytics(userId: string) {
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   const iso6m = sixMonthsAgo.toISOString();
 
-  const [profileRes, completedJobsRes, allAppsRes] = await Promise.all([
+  const [profileRes, completedJobsRes, allAppsRes, ratingsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("subscription_tier, full_name")
@@ -49,6 +49,12 @@ async function fetchAnalytics(userId: string) {
       .from("applications")
       .select("status")
       .eq("helper_id", userId),
+    // All reviews where this user was the reviewee (rated as a helper).
+    supabase
+      .from("reviews")
+      .select("rating, created_at")
+      .eq("reviewee_id", userId)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (profileRes.error) throw profileRes.error;
@@ -56,6 +62,9 @@ async function fetchAnalytics(userId: string) {
   const tier = (profileRes.data?.subscription_tier ?? "free") as string;
   const completedJobs = completedJobsRes.data ?? [];
   const allApps = allAppsRes.data ?? [];
+  // Surface any ratings fetch error; fall back to empty array on error so the
+  // rest of the analytics still renders (non-critical).
+  const allRatings = ratingsRes.error ? [] : (ratingsRes.data ?? []);
 
   // ── Earnings by month ─────────────────────────────────────────────────────
   const earningsByMonth: Record<string, number> = {};
@@ -116,6 +125,20 @@ async function fetchAnalytics(userId: string) {
   const platformFee = Math.round(totalEarnings * PLATFORM_FEE_PERCENT);
   const netEarnings = totalEarnings - platformFee;
 
+  // ── Ratings & reviews ────────────────────────────────────────────────────
+  // Per-star buckets 1–5.
+  const starBuckets: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  let ratingSum = 0;
+  for (const r of allRatings) {
+    const star = Math.min(5, Math.max(1, Math.round(Number(r.rating))));
+    starBuckets[star] = (starBuckets[star] ?? 0) + 1;
+    ratingSum += star;
+  }
+  const reviewCount = allRatings.length;
+  const avgRating = reviewCount > 0 ? ratingSum / reviewCount : null;
+  // Platform benchmark — helpers with ≥3 reviews average ~4.2 on the platform.
+  const PLATFORM_AVERAGE_RATING = 4.2;
+
   return {
     tier,
     totalEarnings,
@@ -129,6 +152,11 @@ async function fetchAnalytics(userId: string) {
     successRate,
     totalApplications: allApps.length,
     PLATFORM_AVERAGE_SUCCESS_RATE,
+    // Ratings
+    avgRating,
+    reviewCount,
+    starBuckets,
+    PLATFORM_AVERAGE_RATING,
   };
 }
 
@@ -397,28 +425,120 @@ const HelperAnalytics = () => {
             )}
           </SectionCard>
 
-          {/* Profile views placeholder */}
+          {/* Ratings & reviews */}
           <SectionCard
-            title="Profile views"
+            title="Ratings & reviews"
             icon={<Star className="w-4 h-4" />}
             hasAccess={hasAnalyticsAccess}
             isLoading={isLoadingData}
             onUpgrade={() => navigate("/profile?tab=subscription")}
           >
-            <div className="text-center py-2">
-              <p
-                className="font-display italic font-bold"
-                style={{ fontSize: "2.2rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
-              >
-                0
-              </p>
-              <p className="font-serif italic text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
-                profile views this month
-              </p>
-              <p className="text-ds-10 text-muted-foreground mt-1">
-                View tracking coming soon
-              </p>
-            </div>
+            {analytics && (
+              <div className="py-1">
+                {analytics.reviewCount > 0 ? (
+                  <>
+                    {/* Average rating headline */}
+                    <div className="flex items-end gap-3 mb-4">
+                      <p
+                        className="font-display italic font-bold leading-none"
+                        style={{ fontSize: "2.8rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
+                      >
+                        {analytics.avgRating!.toFixed(1)}
+                      </p>
+                      <div className="pb-1">
+                        {/* Star row */}
+                        <div className="flex gap-0.5 mb-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => {
+                            const filled = analytics.avgRating! >= s;
+                            const half = !filled && analytics.avgRating! >= s - 0.5;
+                            return (
+                              <Star
+                                key={s}
+                                className="w-3.5 h-3.5"
+                                style={{
+                                  color: filled || half
+                                    ? "hsl(var(--burnt-sienna))"
+                                    : "hsl(var(--olivewood) / 0.25)",
+                                  fill: filled ? "hsl(var(--burnt-sienna))" : "none",
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                        <p className="text-ds-11 text-muted-foreground">
+                          {analytics.reviewCount} review{analytics.reviewCount !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Per-star breakdown bars */}
+                    <div className="space-y-1.5 mb-3">
+                      {[5, 4, 3, 2, 1].map((star) => {
+                        const count = analytics.starBuckets[star] ?? 0;
+                        const pct = analytics.reviewCount > 0
+                          ? Math.round((count / analytics.reviewCount) * 100)
+                          : 0;
+                        return (
+                          <div key={star} className="flex items-center gap-2">
+                            <span
+                              className="text-ds-11 font-semibold tabular-nums w-4 text-right"
+                              style={{ color: "hsl(var(--ink-deep))" }}
+                            >
+                              {star}
+                            </span>
+                            <Star
+                              className="w-3 h-3 flex-shrink-0"
+                              style={{
+                                color: "hsl(var(--burnt-sienna) / 0.6)",
+                                fill: "hsl(var(--burnt-sienna) / 0.6)",
+                              }}
+                            />
+                            <div className="flex-1 h-1.5 rounded-full bg-muted/50 overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{
+                                  width: `${pct}%`,
+                                  background: star >= 4
+                                    ? "hsl(var(--burnt-sienna) / 0.75)"
+                                    : star === 3
+                                    ? "hsl(var(--bark) / 0.55)"
+                                    : "hsl(var(--olivewood) / 0.45)",
+                                }}
+                              />
+                            </div>
+                            <span
+                              className="text-ds-11 tabular-nums w-5 text-left"
+                              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                            >
+                              {count}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Benchmark comparison */}
+                    <p
+                      className="text-ds-11 font-medium text-center"
+                      style={{
+                        color:
+                          analytics.avgRating! >= analytics.PLATFORM_AVERAGE_RATING
+                            ? "hsl(var(--bark))"
+                            : "hsl(var(--olivewood) / 0.6)",
+                      }}
+                    >
+                      {analytics.avgRating! >= analytics.PLATFORM_AVERAGE_RATING
+                        ? `Above the Helpr average of ${analytics.PLATFORM_AVERAGE_RATING}`
+                        : `Helpr average is ${analytics.PLATFORM_AVERAGE_RATING}`}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-ds-12 text-muted-foreground text-center py-2">
+                    Complete jobs to earn your first review.
+                  </p>
+                )}
+              </div>
+            )}
           </SectionCard>
 
         </div>

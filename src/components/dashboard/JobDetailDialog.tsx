@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  MapPin, Calendar, Clock, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, Rocket, Zap, ChevronRight, Check,
+  MapPin, Calendar, Clock, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, Rocket, Zap, ChevronRight, Check, ShieldCheck,
 } from "lucide-react";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
@@ -67,6 +68,33 @@ const JobDetailDialog = ({
   // sample-size floor.
   const [posterCancelRate, setPosterCancelRate] = useState<number | null>(null);
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
+
+  // Viewer's credential tier — used to gate the Apply button when the job
+  // requires a minimum tier. Fetched once per session (staleTime 60s) and
+  // falls back to 0 gracefully when the RPC doesn't exist yet (PGRST202).
+  const { data: viewerTier = 0 } = useQuery({
+    queryKey: ["viewerCredentialTier"],
+    staleTime: 60_000,
+    queryFn: async (): Promise<number> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+      try {
+        const { data, error } = await supabase.rpc("get_user_credential_tier", {
+          p_user_id: user.id,
+        });
+        // PGRST202 = function not found (migration not yet applied to prod) —
+        // treat as tier 0 so open jobs remain accessible.
+        if (error) {
+          if ((error as { code?: string }).code === "PGRST202") return 0;
+          report(error, { tags: { source: "JobDetailDialog.viewerTier" } });
+          return 0;
+        }
+        return typeof data === "number" ? data : 0;
+      } catch {
+        return 0;
+      }
+    },
+  });
 
   // Reset transient state when the dialog switches to a new job.
   useEffect(() => {
@@ -761,46 +789,90 @@ const JobDetailDialog = ({
             {/* Message glides forward on hover — like sending */}
             <MessageSquare className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
           </Button>
-          <Button
-            size="lg"
-            onClick={() => { onApply(job.id); onClose(); }}
-            className="btn-liquid-fill flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 group relative overflow-hidden"
-            style={{
-              // Two-stop bark gradient under the glass surface — subtle
-              // top-light to bottom-deep wash so the button doesn't read flat.
-              background:
-                "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.86) 100%)",
-              border: "0.5px solid hsl(var(--bark))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), " +
-                "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.18), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.12), " +
-                "0 8px 22px -6px hsl(var(--bark) / 0.45)",
-            }}
-          >
-            <span
-              className="relative z-10 inline-flex items-center justify-center gap-2 min-w-0"
+          {/* Apply gate — when the job requires a credential tier and the
+              viewer's tier is below that threshold, replace the Apply button
+              with a locked state that routes them to /profile to get verified.
+              Falls back transparently when get_user_credential_tier isn't
+              deployed yet (viewerTier defaults to 0 on PGRST202). */}
+          {(job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0) ? (
+            <div
+              className="flex-1 rounded-ds-md p-3 text-center"
               style={{
-                color: "white",
-                textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)",
+                background: "hsl(var(--bark) / 0.08)",
+                border: "0.5px solid hsl(var(--bark) / 0.2)",
               }}
             >
-              <span className="truncate">Apply</span>
-              <span
-                className="font-display italic font-bold tabular-nums shrink-0"
-                style={{ fontSize: "0.95rem", letterSpacing: "-0.01em" }}
-              >
-                · earn ${payout.toFixed(0)}
-              </span>
-              <ChevronRight
-                className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
-                strokeWidth={2.5}
+              <ShieldCheck
+                className="w-5 h-5 mx-auto mb-1"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+                strokeWidth={2}
               />
-            </span>
-          </Button>
+              <p
+                className="font-display italic font-semibold text-ds-14"
+                style={{ color: "hsl(var(--ink-deep))" }}
+              >
+                {(job.credential_tier ?? 0) === 1
+                  ? "ID verification required"
+                  : (job.credential_tier ?? 0) === 2
+                    ? "Licensed pros only"
+                    : "Licensed & insured required"}
+              </p>
+              <p
+                className="font-serif italic text-ds-12 mt-0.5"
+                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              >
+                Get verified to apply for this job
+              </p>
+              <button
+                className="mt-2 text-ds-12 font-sans font-semibold underline underline-offset-2 active:opacity-70 transition-opacity"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+                onClick={() => { navigate("/profile"); onClose(); }}
+              >
+                Get verified →
+              </button>
+            </div>
+          ) : (
+            <Button
+              size="lg"
+              onClick={() => { onApply(job.id); onClose(); }}
+              className="btn-liquid-fill flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 group relative overflow-hidden"
+              style={{
+                // Two-stop bark gradient under the glass surface — subtle
+                // top-light to bottom-deep wash so the button doesn't read flat.
+                background:
+                  "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.86) 100%)",
+                border: "0.5px solid hsl(var(--bark))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                letterSpacing: "0.01em",
+                boxShadow:
+                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), " +
+                  "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.18), " +
+                  "0 1px 2px hsl(var(--olivewood) / 0.12), " +
+                  "0 8px 22px -6px hsl(var(--bark) / 0.45)",
+              }}
+            >
+              <span
+                className="relative z-10 inline-flex items-center justify-center gap-2 min-w-0"
+                style={{
+                  color: "white",
+                  textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)",
+                }}
+              >
+                <span className="truncate">Apply</span>
+                <span
+                  className="font-display italic font-bold tabular-nums shrink-0"
+                  style={{ fontSize: "0.95rem", letterSpacing: "-0.01em" }}
+                >
+                  · earn ${payout.toFixed(0)}
+                </span>
+                <ChevronRight
+                  className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
+                  strokeWidth={2.5}
+                />
+              </span>
+            </Button>
+          )}
         </div>
 
         <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} openInGridNonce={gridOpenNonce} />

@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
 
+type JsPDFWithAutoTable = import("jspdf").jsPDF & { lastAutoTable?: { finalY: number } };
+
 type Cadence = "monthly" | "weekly" | "off";
 
 const fmtMonth = (d: Date) => d.toLocaleString("en-US", { month: "long", year: "numeric" });
@@ -26,6 +28,7 @@ const BusinessReports = () => {
   const [newEmail, setNewEmail] = useState("");
   const [cadence, setCadence] = useState<Cadence>("monthly");
   const [saving, setSaving] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   const businessId = business?.business_id;
 
@@ -106,6 +109,138 @@ const BusinessReports = () => {
   const previewMonth = new Date();
   previewMonth.setMonth(previewMonth.getMonth() - 1);
 
+  const handlePreviewPdf = async () => {
+    if (!businessId) return;
+    setPdfBusy(true);
+    try {
+      const { data: memberRows, error: memberErr } = await (supabase.from as any)("business_members")
+        .select("user_id")
+        .eq("business_id", businessId);
+      if (memberErr) throw memberErr;
+      const memberIds: string[] = (memberRows ?? []).map((r: any) => r.user_id);
+
+      const now = new Date();
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString();
+      const { data: jobRows, error: jobErr } = await supabase
+        .from("jobs")
+        .select("id, title, status, budget, category, helper_id, created_at")
+        .in("customer_id", memberIds)
+        .gte("created_at", lastMonthStart)
+        .lte("created_at", lastMonthEnd)
+        .order("created_at", { ascending: false });
+      if (jobErr) throw jobErr;
+
+      const jobs = jobRows ?? [];
+      const totalSpend = jobs
+        .filter((j: any) => j.status === "completed")
+        .reduce((sum: number, j: any) => sum + Number(j.budget ?? 0), 0);
+      const jobsCompleted = jobs.filter((j: any) => j.status === "completed").length;
+      const uniqueHelpers = new Set(jobs.map((j: any) => j.helper_id).filter(Boolean)).size;
+
+      const categoryCount: Record<string, number> = {};
+      for (const j of jobs) {
+        if (j.category) categoryCount[j.category] = (categoryCount[j.category] ?? 0) + 1;
+      }
+      const topCategories = Object.entries(categoryCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      const monthLabel = previewMonth.toLocaleString("en-US", { month: "long", year: "numeric" });
+      const monthSlug = previewMonth.toLocaleString("en-US", { month: "short", year: "numeric" })
+        .replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ]);
+      const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" }) as JsPDFWithAutoTable;
+
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor("#8B4513");
+      doc.text("Helpr Business", 40, 52);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor("#333333");
+      doc.text(business!.business_name, 40, 72);
+      doc.text(monthLabel, 40, 88);
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor("#8B4513");
+      doc.text("Summary", 40, 116);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor("#333333");
+      doc.setFontSize(10);
+      doc.text(`Total Spend: $${totalSpend.toFixed(2)}`, 40, 132);
+      doc.text(`Jobs Completed: ${jobsCompleted}`, 200, 132);
+      doc.text(`Unique Helpers: ${uniqueHelpers}`, 360, 132);
+
+      let nextY = 152;
+
+      if (topCategories.length > 0) {
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor("#8B4513");
+        doc.text("Top Categories", 40, nextY);
+        nextY += 8;
+        autoTable(doc, {
+          startY: nextY,
+          head: [["Category", "Jobs"]],
+          body: topCategories.map(([cat, count]) => [cat.replace(/_/g, " "), count]),
+          styles: { fontSize: 9, cellPadding: 4 },
+          headStyles: { fillColor: [139, 69, 19], textColor: [255, 255, 255], fontStyle: "bold" },
+          margin: { left: 40, right: 40 },
+        });
+        nextY = (doc as JsPDFWithAutoTable).lastAutoTable?.finalY ?? nextY + 60;
+        nextY += 16;
+      }
+
+      const jobTableRows = jobs.slice(0, 50).map((j: any) => [
+        new Date(j.created_at).toLocaleDateString("en-US"),
+        (j.title ?? "").length > 32 ? (j.title as string).slice(0, 30) + "…" : (j.title ?? ""),
+        j.status ?? "",
+        `$${Number(j.budget ?? 0).toFixed(2)}`,
+      ]);
+
+      if (jobTableRows.length > 0) {
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor("#8B4513");
+        doc.text("Jobs", 40, nextY);
+        nextY += 8;
+        autoTable(doc, {
+          startY: nextY,
+          head: [["Date", "Title", "Status", "Budget"]],
+          body: jobTableRows,
+          styles: { fontSize: 9, cellPadding: 4 },
+          headStyles: { fillColor: [139, 69, 19], textColor: [255, 255, 255], fontStyle: "bold" },
+          columnStyles: { 3: { halign: "right" } },
+          margin: { left: 40, right: 40 },
+        });
+        nextY = (doc as JsPDFWithAutoTable).lastAutoTable?.finalY ?? nextY + 60;
+      }
+
+      doc.setFontSize(8);
+      doc.setTextColor("#888888");
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `Generated ${new Date().toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })}`,
+        40,
+        nextY + 20,
+      );
+
+      doc.save(`helpr-business-${monthSlug}.pdf`);
+      hapticSuccess();
+    } catch (_err: any) {
+      hapticError();
+      toast.error("Couldn't load report data");
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   return (
     <BusinessShell
       eyebrow="Reports"
@@ -118,12 +253,13 @@ const BusinessReports = () => {
         </h2>
         <div className="rounded-ds-md border border-dashed border-border bg-background p-6 text-center">
           <FileText className="w-10 h-10 mx-auto mb-2 text-muted-foreground" />
-          <p className="font-semibold text-ds-13">Helpr Business · {fmtMonth(previewMonth)}</p>
+          <p className="font-semibold text-ds-13">Helpr Business · {business.business_name} · {fmtMonth(previewMonth)}</p>
           <p className="text-ds-11 text-muted-foreground mt-1">
             Total spend · jobs completed · helpers used · top categories
           </p>
-          <Button variant="outline" size="sm" className="mt-3" disabled>
-            Preview PDF (coming soon)
+          <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={handlePreviewPdf} disabled={pdfBusy}>
+            {pdfBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+            {pdfBusy ? "Generating…" : "Preview PDF"}
           </Button>
         </div>
       </Card>

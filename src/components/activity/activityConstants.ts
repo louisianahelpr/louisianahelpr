@@ -30,19 +30,17 @@ export const categories = Object.entries(categoryLabels).map(([value, label]) =>
  * Custom HSL arbitrary values are used instead of Tailwind's named
  * shades because the named -600/-700 steps are too saturated to feel
  * muted. Each hue is mapped to the category it evokes:
- *   cleaning    → dusty teal       (fresh / sanitised)
- *   yard_work   → muted green      (grass / outdoors)
- *   moving      → warm amber       (cardboard / boxes)
- *   errands     → soft olive-lime  (quick / on-the-go)
- *   handyman    → clay sienna      (tools)
- *   painting    → magenta rose     (colour / creative — pushed off assembly's
- *                                   brick-red so the two warm reds stay distinct)
- *   delivery    → slate blue       (transit / motion)
- *   pet_care    → muted mauve      (soft / friendly)
- *   assembly    → brick red        (precise / build)
- *   storm_prep  → steely blue-grey (storm sky feel — Louisiana hurricane country)
- *   events      → warm gold/amber  (festive — Mardi Gras, crawfish boils, LSU games)
- *   other       → warm stone       (neutral default)
+ *   cleaning  → dusty teal     (fresh / sanitised)
+ *   yard_work → muted green    (grass / outdoors)
+ *   moving    → warm amber      (cardboard / boxes)
+ *   errands   → soft olive-lime (quick / on-the-go)
+ *   handyman  → clay sienna     (tools)
+ *   painting  → magenta rose    (colour / creative — pushed off assembly's
+ *                                brick-red so the two warm reds stay distinct)
+ *   delivery  → slate blue      (transit / motion)
+ *   pet_care  → muted mauve     (soft / friendly)
+ *   assembly  → brick red       (precise / build)
+ *   other     → warm stone      (neutral default)
  */
 export const categoryColors: Record<string, { badge: string; title: string; dot: string }> = {
   cleaning:   { badge: "bg-[hsl(180_30%_94%)] text-[hsl(182_26%_33%)] border-[hsl(180_22%_80%)]",  title: "text-[hsl(182_26%_33%)]", dot: "bg-[hsl(182_28%_44%)]" },
@@ -92,6 +90,9 @@ export type EnrichedApplication = Application & {
     /** Active subscription tier — drives the gold halo on Pro/Elite
         applicants so posters spot subscribed helpers at a glance. */
     subscription_tier?: string | null;
+    /** Intro video URL — shows a play icon on the applicant card when set. */
+    intro_video_url?: string | null;
+    intro_video_duration_seconds?: number | null;
   } | null;
   reviewCount?: number;
   avgRating?: number;

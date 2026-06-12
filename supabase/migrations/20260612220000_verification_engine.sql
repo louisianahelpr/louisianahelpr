@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS verification_exceptions (
 ALTER TABLE verification_exceptions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Admins manage exceptions" ON verification_exceptions
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+    auth.role() = 'service_role'
   );
 -- Users can see their own
 CREATE POLICY "Users see own exceptions" ON verification_exceptions

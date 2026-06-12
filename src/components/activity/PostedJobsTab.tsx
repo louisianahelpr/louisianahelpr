@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft, Check, SearchX, Sparkles, Star, Users, Wrench } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, Play, SearchX, Sparkles, Star, Users, Wrench, X } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { scoreApplicant, type ApplicantData } from "@/lib/applicantScoring";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -177,6 +177,8 @@ export const PostedJobsTab = ({
   // "rated"       = avgRating desc, then reviewCount desc
   // "soonest"     = created_at asc (first to apply)
   const [applicantSort, setApplicantSort] = useState<"recommended" | "rated" | "soonest">("recommended");
+  // Video preview modal — stores the URL of the video currently playing.
+  const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
   // Bulk-dismiss for cancelled posts — long-press a Cancelled card to
   // enter selection mode, then bulk-hide them from view. The hide is
@@ -659,6 +661,25 @@ export const PostedJobsTab = ({
                                     Pro
                                   </span>
                                 )}
+                                {/* Intro video play icon — only shows when the
+                                    helper has uploaded a 60s intro video. */}
+                                {app.profiles?.intro_video_url && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setPlayingVideoUrl(app.profiles!.intro_video_url!);
+                                    }}
+                                    aria-label="Play intro video"
+                                    className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 active:opacity-70 transition-opacity shrink-0"
+                                    style={{
+                                      background: "hsl(var(--burnt-sienna) / 0.08)",
+                                    }}
+                                  >
+                                    <Play className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
+                                    <span className="text-[8px] font-semibold" style={{ color: "hsl(var(--burnt-sienna))" }}>Intro</span>
+                                  </button>
+                                )}
                                 {/* Inline rating — compact ★ 4.9 (23) */}
                                 {(app.reviewCount ?? 0) > 0 && (
                                   <span className="flex items-center gap-0.5 shrink-0">
@@ -775,6 +796,32 @@ export const PostedJobsTab = ({
               )}
             </div>
           </div>
+        </div>
+      )}
+      {/* Video modal — shown when poster taps a helper's intro video pill */}
+      {playingVideoUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.88)" }}
+          onClick={() => setPlayingVideoUrl(null)}
+        >
+          <button
+            type="button"
+            aria-label="Close video"
+            onClick={() => setPlayingVideoUrl(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(255,255,255,0.15)" }}
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+          <video
+            src={playingVideoUrl}
+            controls
+            autoPlay
+            playsInline
+            className="w-full max-w-sm rounded-ds-md max-h-[70dvh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>

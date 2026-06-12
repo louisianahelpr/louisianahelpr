@@ -17,8 +17,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/rules",
   "/data-rights",
 
-  "/verify",      // /verify/:helperId — public helper verification card
-  "/local-guide", // local pricing guide — public marketing page
   "/jobs", // public marketing /jobs (uses Navbar + long page)
   "/support",
 
@@ -60,6 +58,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/job-history",  // JobHistory (PageHeader + min-h-screen)
   "/business",     // BusinessTeam (PageHeader + min-h-screen)
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
+  "/analytics",    // HelperAnalytics (PageHeader + min-h-screen document-scroll)
   "/community",        // Community feed (PageHeader + min-h-screen document-scroll)
   "/pay-it-forward",  // Pay It Forward credit marketplace — long-form document-scroll
   "/subscription", // Subscription tiers — long-form min-h-screen document-scroll

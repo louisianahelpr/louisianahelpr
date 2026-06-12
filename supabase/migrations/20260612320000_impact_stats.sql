@@ -21,7 +21,7 @@ AS $$
     COUNT(*) FILTER (WHERE status = 'completed'),
     COALESCE(SUM(budget) FILTER (WHERE status = 'completed'), 0),
     COUNT(DISTINCT helper_id) FILTER (WHERE helper_id IS NOT NULL AND status = 'completed'),
-    COUNT(DISTINCT city) FILTER (WHERE status = 'completed' AND city IS NOT NULL),
+    COUNT(DISTINCT location) FILTER (WHERE status = 'completed' AND location IS NOT NULL),
     COUNT(DISTINCT customer_id),
     ROUND(AVG(
       EXTRACT(EPOCH FROM (

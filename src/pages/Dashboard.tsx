@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect, useRef, lazy, Suspense, useMemo, type SetStateAction } from "react";
+import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -35,6 +36,7 @@ const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 const JitVerifySheet = lazy(() => import("@/components/dashboard/JitVerifySheet").then(m => ({ default: m.JitVerifySheet })));
+const JobMapView = lazy(() => import("@/components/dashboard/JobMapView").then(m => ({ default: m.JobMapView })));
 import SectionBoundary from "@/components/SectionBoundary";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -143,10 +145,29 @@ const Dashboard = () => {
   // resetting to "list" on next mount matches user expectation that
   // the default landing surface is the curated feed.
   const [view, setView] = usePersistedBrowseView("list");
+
+  // Feed density — comfortable (full cards) or compact (48px rows).
+  // Persisted to localStorage so the user's preference survives sessions.
+  const [density, setDensityState] = useState<FeedDensity>(() => {
+    try {
+      const stored = window.localStorage.getItem("job-feed-density");
+      return stored === "compact" || stored === "comfortable" ? stored : "comfortable";
+    } catch { return "comfortable"; }
+  });
+  const setDensity = useCallback((next: FeedDensity) => {
+    setDensityState(next);
+    try { window.localStorage.setItem("job-feed-density", next); } catch { /* ignore */ }
+  }, []);
+
+  // Desktop split-screen hover sync — hovering a list card scales up the
+  // corresponding map pin. null = no card hovered.
+  const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
+
   const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
+  const [stakeAmount, setStakeAmount] = useState<number | null>(null);
   // JIT verify gate — shown on first-ever Apply tap (has_applied_before=false).
   // pendingJobIdForVerify holds the job they tapped Apply on so we can
   // proceed once they dismiss the sheet.
@@ -176,6 +197,29 @@ const Dashboard = () => {
     },
     enabled: !!user?.id,
     staleTime: 60 * 1000,
+  });
+
+  // Pay It Forward — count of available credits in the user's parish.
+  // Shown as a teaser banner above the community teaser when > 0.
+  // PGRST202-safe: table may not be on prod yet between merge + db push.
+  const userParish = profile?.parish ?? null;
+  const { data: pifCount = 0 } = useQuery({
+    queryKey: ["pif-count", userParish],
+    queryFn: async () => {
+      if (!userParish) return 0;
+      try {
+        const { count, error } = await supabase
+          .from("pif_credits" as never)
+          .select("id", { count: "exact", head: true })
+          .eq("status", "available")
+          .eq("parish", userParish);
+        if (error && (error as any).code === "PGRST202") return 0;
+        if (error) return 0;
+        return count ?? 0;
+      } catch { return 0; }
+    },
+    enabled: !!userParish,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Profile-completion is no longer nudged on the home feed — the full
@@ -416,6 +460,7 @@ const Dashboard = () => {
     helperId: string;
     message: string;
     files: File[];
+    stakeAmt: number | null;
     /** When the poster enabled instant-book, confirm the booking immediately
         after the application INSERT — no poster review required. Reuses the
         same jobs UPDATE path as handleHelperResponse (helper_confirmed_at).
@@ -427,7 +472,7 @@ const Dashboard = () => {
     userId: string;
   };
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
-    mutationFn: async ({ jobId, helperId, message, files, isInstantBook }) => {
+    mutationFn: async ({ jobId, helperId, message, files, stakeAmt, isInstantBook }) => {
       // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
       // attachment uploads — don't waste storage bandwidth on a blocked
       // attempt. The helper falls back to "allowed" if the RPC isn't
@@ -451,11 +496,12 @@ const Dashboard = () => {
         }
         attachmentUrls.push(path);
       }
-      const { error } = await supabase.from("applications").insert({
+      const { error } = await (supabase.from("applications") as any).insert({
         job_id: jobId,
         helper_id: helperId,
         message: message.trim() || null,
         attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
+        ...(stakeAmt && stakeAmt > 0 ? { stake_amount: stakeAmt, stake_status: "staked" } : {}),
       });
       if (error) throw error as Error & { code?: string };
       // Insert succeeded — bump the rate-limit counter. Best-effort: a
@@ -578,14 +624,16 @@ const Dashboard = () => {
     setConfirmApplyJobId(null);
     setApplyMessage("");
     setApplyFiles([]);
+    const stakeAmt = stakeAmount;
+    setStakeAmount(null);
     // setApplyLoading flips off on settled (handled below) — we still
     // set it true here so a fast double-tap can't enqueue twice.
     setApplyLoading(true);
     applyMutation.mutate(
-      { jobId, helperId: user.id, message, files, isInstantBook },
+      { jobId, helperId: user.id, message, files, stakeAmt, isInstantBook },
       { onSettled: () => setApplyLoading(false) },
     );
-  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, applyMutation]);
+  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, stakeAmount, applyMutation]);
 
   // JIT verify handlers. Both paths (Verify + Later) flip has_applied_before
   // so the nudge never shows again. "Later" also records 'prompted' status
@@ -1037,6 +1085,8 @@ const Dashboard = () => {
               helperAvailability={helperAvailability}
               view={view}
               setView={setView}
+              density={density}
+              setDensity={setDensity}
               onClearAllFilters={() => {
                 // After clearing filters, snap the feed back to the top
                 // so the user lands on the fresh unfiltered head of the
@@ -1053,42 +1103,91 @@ const Dashboard = () => {
                 page-level ErrorBoundary above still catches anything
                 that escapes this. */}
             <SectionBoundary label="the job feed">
-            <BrowseTasksFeed
-              view={view}
-              filters={filters}
-              user={user}
-              allJobs={allJobs}
-              loadError={loadError}
-              refresh={refresh}
-              recommendedJobs={recommendedJobs}
-              // Reserve the "Picked for you" slot with skeletons while a feed
-              // fetch is in flight and no picks exist yet — recommendations are
-              // derived from loaded pages, so they can arrive a beat after the
-              // feed itself (refresh / next-page), and the empty→filled swap
-              // would otherwise shove the list down (CLS).
-              recommendedLoading={refreshing || isFetchingNextPage}
-              dismissedJobIds={dismissedJobIds}
-              effectiveFee={effectiveFee}
-              handleApplyRequest={handleApplyRequest}
-              handleDismissRequest={handleDismissRequest}
-              handleToggleSave={handleToggleSave}
-              handleLongPressCard={handleLongPressCard}
-              confirmDismissJobId={confirmDismissJobId}
-              expandedCardId={expandedCardId}
-              setExpandedCardId={setExpandedCardId}
-              savedJobIds={savedJobIds}
-              setReportJobId={setReportJobId}
-              setDetailJob={openDetailJob}
-              containerRef={containerRef}
-              pullDistance={pullDistance}
-              refreshing={refreshing}
-              isPulling={isPulling}
-              loadMoreRef={loadMoreRef}
-              hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              fetchNextPage={fetchNextPage}
-            />
+              {/* Split-screen layout on lg+ viewports: job list (420px
+                  fixed left) + Leaflet map (right). Completely hidden on
+                  mobile — no layout changes touch the Capacitor native
+                  app which is always <1024px. */}
+              <div className="flex flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 lg:w-[420px] lg:flex-none lg:border-r lg:border-[hsl(var(--olivewood)/0.1)] min-w-0 overflow-hidden flex flex-col">
+                  <BrowseTasksFeed
+                    view={view}
+                    density={density}
+                    filters={filters}
+                    user={user}
+                    allJobs={allJobs}
+                    loadError={loadError}
+                    refresh={refresh}
+                    recommendedJobs={recommendedJobs}
+                    // Reserve the "Picked for you" slot with skeletons while a feed
+                    // fetch is in flight and no picks exist yet — recommendations are
+                    // derived from loaded pages, so they can arrive a beat after the
+                    // feed itself (refresh / next-page), and the empty→filled swap
+                    // would otherwise shove the list down (CLS).
+                    recommendedLoading={refreshing || isFetchingNextPage}
+                    dismissedJobIds={dismissedJobIds}
+                    effectiveFee={effectiveFee}
+                    handleApplyRequest={handleApplyRequest}
+                    handleDismissRequest={handleDismissRequest}
+                    handleToggleSave={handleToggleSave}
+                    handleLongPressCard={handleLongPressCard}
+                    confirmDismissJobId={confirmDismissJobId}
+                    expandedCardId={expandedCardId}
+                    setExpandedCardId={setExpandedCardId}
+                    savedJobIds={savedJobIds}
+                    setReportJobId={setReportJobId}
+                    setDetailJob={openDetailJob}
+                    containerRef={containerRef}
+                    pullDistance={pullDistance}
+                    refreshing={refreshing}
+                    isPulling={isPulling}
+                    loadMoreRef={loadMoreRef}
+                    hasNextPage={hasNextPage}
+                    isFetchingNextPage={isFetchingNextPage}
+                    fetchNextPage={fetchNextPage}
+                    hoveredJobId={hoveredJobId}
+                    setHoveredJobId={setHoveredJobId}
+                  />
+                </div>
+                {/* Map panel — desktop only. Lazy-loaded so the Leaflet
+                    bundle isn't paid for by mobile users. */}
+                <div className="hidden lg:flex lg:flex-1 lg:relative min-h-0">
+                  <Suspense fallback={<div className="flex-1 bg-muted/20 animate-pulse" />}>
+                    <JobMapView
+                      jobs={filters.filteredJobs}
+                      hoveredJobId={hoveredJobId}
+                      onJobClick={openDetailJob}
+                    />
+                  </Suspense>
+                </div>
+              </div>
             </SectionBoundary>
+
+            {/* Pay It Forward teaser — only shown when credits exist in the user's parish */}
+            {pifCount > 0 && (
+              <div
+                className="mx-4 mb-3 rounded-ds-md p-3"
+                style={{
+                  background: "hsl(155 50% 35% / 0.08)",
+                  border: "0.5px solid hsl(155 50% 35% / 0.2)",
+                }}
+              >
+                <p
+                  className="font-display italic font-semibold text-ds-14"
+                  style={{ color: "hsl(155 50% 30%)" }}
+                >
+                  {pifCount} neighbor{pifCount > 1 ? "s" : ""} paid it forward
+                </p>
+                <p
+                  className="font-serif italic text-ds-12 mt-0.5"
+                  style={{ color: "hsl(155 40% 40%)" }}
+                >
+                  Free job credits available in your parish ·{" "}
+                  <Link to="/pay-it-forward" className="underline">
+                    See them
+                  </Link>
+                </p>
+              </div>
+            )}
 
             {/* Community teaser — surfaces the feed from the Dashboard so
                 users discover it without a new nav tab. Shows up at the
@@ -1193,6 +1292,8 @@ const Dashboard = () => {
             applyFiles={applyFiles}
             setApplyFiles={setApplyFiles}
             applyLoading={applyLoading}
+            stakeAmount={stakeAmount}
+            setStakeAmount={setStakeAmount}
             handleApplyConfirm={handleApplyConfirm}
           />
         </Suspense>

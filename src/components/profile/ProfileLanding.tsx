@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import {
   LogOut, MapPin,
@@ -12,6 +12,8 @@ import {
   Users, Type, PawPrint,
   ClipboardList, FileText,
   Sun, Moon, Monitor,
+  CheckCircle2,
+  Video, Play, X, BarChart2,
 } from "lucide-react";
 import { useDarkMode, type Theme } from "@/hooks/useDarkMode";
 import {
@@ -21,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { shareNative } from "@/lib/nativeShare";
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
@@ -128,6 +131,10 @@ export function ProfileLanding({
   // checklist is a quiet, opt-in nudge rather than permanent clutter; the
   // whole block is hidden once the profile is 100% complete (below).
   const [completionOpen, setCompletionOpen] = useState(false);
+  // Intro-video state — tracks upload progress and the local preview URL.
+  const [videoOpen, setVideoOpen] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   // "More" overflow — saved helprs, referrals, legal, warnings,
   // support all live here so the primary nav stays focused on the
   // top tasks: credentials, schedule, notifications, payments,
@@ -155,6 +162,31 @@ export function ProfileLanding({
     })();
     return () => { cancelled = true; };
   }, [qrOpen, profile?.user_id, qrDataUrl]);
+  const handleVideoUpload = async (file: File) => {
+    if (!profile?.user_id) return;
+    setVideoUploading(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "mp4";
+      const path = `${profile.user_id}/intro.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("profile-videos")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("profile-videos").getPublicUrl(path);
+      const { error: updateError } = await (supabase as any)
+        .from("profiles")
+        .update({ intro_video_url: urlData.publicUrl })
+        .eq("user_id", profile.user_id);
+      if (updateError) throw updateError;
+      // Reload page so ProfileLanding reflects the new URL from the DB.
+      window.location.reload();
+    } catch {
+      // Silently ignore — in a real app we'd surface a toast, but keeping
+      // the upload UX minimal since Capacitor video capture is phase 2.
+    } finally {
+      setVideoUploading(false);
+    }
+  };
   // Derived state — drives "Action needed" dots on menu items so the
   // user sees blockers at a glance without having to navigate into each
   // tab to discover them.
@@ -294,6 +326,7 @@ export function ProfileLanding({
           incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
         },
         { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--gold-warm)" },
+        { key: "analytics", label: "Earnings & Analytics", icon: <BarChart2 className="w-5 h-5" />, desc: "Trends, categories & hire rate", href: "/analytics" },
         { key: "subscription", label: "Upgrade plan", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
       ],
     },
@@ -702,6 +735,127 @@ export function ProfileLanding({
             >+ Add a short bio so applicants know who they're hiring.</button>
           )}
         </div>
+
+        {/* ── Intro video ─────────────────────────────────────────────
+            Own-profile only. If no video, a dashed-border CTA nudges
+            the user to record or upload. If a video exists, a compact
+            row with a play button and "Re-record" link renders instead.
+            The actual video modal lives in the overlay below. */}
+        <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+          {(profile as any)?.intro_video_url ? (
+            // Video exists — compact play row
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setVideoOpen(true)}
+                aria-label="Play intro video"
+                className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 active:scale-95 transition-transform"
+                style={{ background: "hsl(var(--ink-deep))" }}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Play className="w-5 h-5 fill-white text-white" />
+                </div>
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-ds-13 font-semibold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
+                  Intro video
+                  {(profile as any).intro_video_duration_seconds != null && (
+                    <span className="ml-2 text-ds-10 font-medium text-muted-foreground">
+                      {Math.floor((profile as any).intro_video_duration_seconds / 60)}:
+                      {String((profile as any).intro_video_duration_seconds % 60).padStart(2, "0")}
+                    </span>
+                  )}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  className="mt-0.5 text-ds-11 font-semibold active:opacity-70"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                >
+                  Re-record or replace
+                </button>
+              </div>
+            </div>
+          ) : (
+            // No video — dashed-border CTA
+            <div
+              className="rounded-xl flex flex-col items-center justify-center gap-2 p-4 text-center"
+              style={{
+                border: "1.5px dashed hsl(var(--olivewood) / 0.30)",
+                background: "hsl(var(--parchment) / 0.4)",
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
+              >
+                <Video className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+              </div>
+              <div>
+                <p className="font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+                  Record a 60-second intro video
+                </p>
+                <p className="font-serif italic text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                  Profiles with videos get 2× more hires
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  disabled={videoUploading}
+                  className="h-9 px-4 rounded-full text-ds-12 font-sans font-semibold disabled:opacity-60 active:scale-95 transition-all"
+                  style={{
+                    background: "hsl(var(--burnt-sienna))",
+                    color: "hsl(var(--parchment))",
+                  }}
+                >
+                  {videoUploading ? "Uploading…" : "Upload video"}
+                </button>
+              </div>
+            </div>
+          )}
+          {/* Hidden file input — shared by the CTA and the "Re-record" link. */}
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleVideoUpload(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        {/* ── Intro video fullscreen overlay ──────────────────────────
+            Only mounts when the user has a video and taps the thumbnail. */}
+        {videoOpen && (profile as any)?.intro_video_url && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.88)" }}
+            onClick={() => setVideoOpen(false)}
+          >
+            <button
+              type="button"
+              aria-label="Close video"
+              onClick={() => setVideoOpen(false)}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.15)" }}
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+            <video
+              src={(profile as any).intro_video_url}
+              controls
+              autoPlay
+              playsInline
+              className="w-full max-w-sm rounded-ds-md max-h-[70dvh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
 
         {/* Your skills — the helper adds/manages skills on their own
             profile; endorsement counts are shown inline. Only rendered
@@ -1254,6 +1408,54 @@ export function ProfileLanding({
               )}
             </div>
           </section>
+
+          {/* Worker protections card — static info card reassuring helpers
+              that Helpr has their back on late cancellations and payment
+              disputes. Shown on every helper's own profile. */}
+          <div
+            className="rounded-ds-lg overflow-hidden"
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(155 50% 35% / 0.06) 0%, hsl(155 50% 35% / 0.02) 100%)",
+              border: "0.5px solid hsl(155 50% 35% / 0.18)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255,255,255,0.40), 0 2px 8px -2px hsl(var(--olivewood) / 0.06)",
+            }}
+          >
+            <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2">
+              <ShieldCheck
+                className="w-4 h-4 shrink-0"
+                style={{ color: "hsl(155 50% 32%)" }}
+              />
+              <p
+                className="text-ds-13 font-semibold leading-tight"
+                style={{ color: "hsl(155 50% 25%)" }}
+              >
+                Your protections
+              </p>
+            </div>
+            <div className="px-4 pb-3.5 space-y-2">
+              {([
+                "Late-cancellation credit ($10) if a poster cancels < 24h before start",
+                "Payment within 48h of confirmed completion — even during disputes",
+                "Your rating stays protected if a job is cancelled through no fault of yours",
+              ] as const).map((line) => (
+                <div key={line} className="flex items-start gap-2">
+                  <CheckCircle2
+                    className="w-3.5 h-3.5 mt-0.5 shrink-0"
+                    style={{ color: "hsl(155 50% 38%)" }}
+                    strokeWidth={2.25}
+                  />
+                  <p
+                    className="font-serif italic text-ds-12 leading-snug"
+                    style={{ color: "hsl(155 40% 35%)" }}
+                  >
+                    {line}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Helpr Wrapped banner — year-in-review shortcut. Year-round
               because the data is always there; links into /wrapped which

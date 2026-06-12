@@ -26,6 +26,7 @@ import {
   deriveEscrowStepFromJob,
 } from "@/components/payment/EscrowProgressBar";
 import { DisputeLink } from "@/components/jobs/DisputeLink";
+import { HelperRevisionCard } from "@/components/activity/HelperRevisionCard";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
@@ -506,15 +507,17 @@ function AppliedJobCardInner({
 
               {/* Job confirmation for helper during active job */}
               <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
-              {/* Revision notice */}
+              {/* Revision notice — HelperRevisionCard shows the formal
+                  job_revisions row (or falls back to jobs.revision_note).
+                  The "I'll fix it" / "Discuss" path lives there. */}
               {status === "revision_requested" && (
                 <div className="space-y-2">
-                  {job.revision_note && (
-                    <div className="p-2.5 rounded-ds-sm bg-yellow-500/10 border border-yellow-500/20">
-                      <p className="text-ds-11 font-semibold text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
-                      <p className="text-ds-11 text-muted-foreground mt-1">{job.revision_note}</p>
-                    </div>
-                  )}
+                  <HelperRevisionCard
+                    jobId={app.job_id}
+                    posterId={job.customer_id ?? null}
+                    legacyRevisionNote={job.revision_note ?? null}
+                    onAccepted={() => { /* optimistically keep showing the card — parent refetches */ }}
+                  />
                   {job.revision_deadline && !job.revision_completed_at && (
                     <DeadlineCountdown
                       deadline={job.revision_deadline}

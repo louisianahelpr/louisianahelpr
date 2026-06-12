@@ -1196,6 +1196,7 @@ export type Database = {
           bid_deadline: string | null
           bid_ceiling: number | null
           bids_sealed: boolean
+          has_active_dispute: boolean
         }
         Insert: {
           boost_auto_extended?: boolean
@@ -1288,6 +1289,7 @@ export type Database = {
           bid_deadline?: string | null
           bid_ceiling?: number | null
           bids_sealed?: boolean
+          has_active_dispute?: boolean
         }
         Update: {
           boost_auto_extended?: boolean
@@ -1380,6 +1382,7 @@ export type Database = {
           bid_deadline?: string | null
           bid_ceiling?: number | null
           bids_sealed?: boolean
+          has_active_dispute?: boolean
         }
         Relationships: [
           {
@@ -1418,6 +1421,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      job_disputes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          job_id: string
+          opened_by: string
+          photos: string[] | null
+          reason: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          job_id: string
+          opened_by: string
+          photos?: string[] | null
+          reason: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          job_id?: string
+          opened_by?: string
+          photos?: string[] | null
+          reason?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      job_revisions: {
+        Row: {
+          created_at: string
+          description: string
+          helper_response: string | null
+          id: string
+          job_id: string
+          photos: string[] | null
+          requested_by: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          helper_response?: string | null
+          id?: string
+          job_id: string
+          photos?: string[] | null
+          requested_by: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          helper_response?: string | null
+          id?: string
+          job_id?: string
+          photos?: string[] | null
+          requested_by?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: []
       }
       legal_acceptances: {
         Row: {
@@ -2720,6 +2801,42 @@ export type Database = {
           created_at?: string
           id?: string
           reason?: string | null
+        }
+        Relationships: []
+      }
+      user_strikes: {
+        Row: {
+          created_at: string
+          dispute_id: string | null
+          expires_at: string | null
+          id: string
+          issued_by: string | null
+          job_id: string | null
+          reason: string
+          severity: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dispute_id?: string | null
+          expires_at?: string | null
+          id?: string
+          issued_by?: string | null
+          job_id?: string | null
+          reason: string
+          severity?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dispute_id?: string | null
+          expires_at?: string | null
+          id?: string
+          issued_by?: string | null
+          job_id?: string | null
+          reason?: string
+          severity?: number
+          user_id?: string
         }
         Relationships: []
       }

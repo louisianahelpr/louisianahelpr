@@ -4,6 +4,7 @@ import { TrustRow } from "@/components/TrustRow";
 import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { successToast } from "@/lib/toast";
 import { hapticError } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
   Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Wrench,
-  RotateCw, Check, ChevronDown, ChevronUp, Ban,
+  RotateCw, Check, ChevronDown, ChevronUp, Ban, Zap,
 } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -126,6 +127,52 @@ function PostedJobCardInner({
 }: PostedJobCardProps) {
   const navigate = useNavigate();
   const [completionSheetOpen, setCompletionSheetOpen] = useState(false);
+  // Broadcast boost state — tracks whether a notification blast has been
+  // sent for this job in the current session so the button disables after
+  // one tap (until the page refreshes). Separate from the paid "Boost"
+  // (create-boost-payment) which controls feed ranking.
+  const [broadcastBoosted, setBroadcastBoosted] = useState(false);
+  const [broadcastBoosting, setBroadcastBoosting] = useState(false);
+
+  /**
+   * handleBroadcastBoost — invoke boost-job edge function to send a
+   * targeted push notification to nearby helpers. PGRST202 (function not
+   * yet deployed) is handled silently. Other errors show a toast.
+   */
+  const handleBroadcastBoost = async () => {
+    if (broadcastBoosting || broadcastBoosted) return;
+    setBroadcastBoosting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("boost-job", {
+        body: { jobId: job.id },
+      });
+      // PGRST202 = function not yet deployed — silently hide the button.
+      if (error) {
+        const msg = (error as any)?.message ?? "";
+        if (msg.includes("PGRST202") || msg.includes("not found") || msg.includes("404")) {
+          // Edge function not deployed yet — silently suppress
+          setBroadcastBoosted(true);
+          return;
+        }
+        throw error;
+      }
+      if ((data as any)?.error) {
+        throw new Error((data as any).error);
+      }
+      const notified: number = (data as any)?.notified ?? 0;
+      setBroadcastBoosted(true);
+      successToast(
+        notified > 0
+          ? `Job boosted! ${notified} nearby helpr${notified !== 1 ? "s" : ""} were notified.`
+          : "Job boosted! Nearby helprs were notified.",
+      );
+    } catch (err: any) {
+      hapticError();
+      toast.error(err?.message ?? "Couldn't send boost notification. Try again.");
+    } finally {
+      setBroadcastBoosting(false);
+    }
+  };
   const meta = completedJobMeta[job.id];
   const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
   const isExpanded = expandedJobId === job.id;
@@ -613,6 +660,47 @@ function PostedJobCardInner({
                               </span>{" "}
                               A Boost lifts this task to the top of the feed
                               so more helprs see it.
+                            </p>
+                          </div>
+                        )}
+                        {/* Broadcast-boost button — only shown when the job
+                            is stale (24h+ open, 0 applicants). Sends a targeted
+                            push notification to nearby approved helpers. One
+                            send per session (button disables after tap). */}
+                        {isStale && !broadcastBoosted && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full rounded-ds-md glass-press border-0 btn-press"
+                            style={{
+                              background: "hsl(var(--gold-warm) / 0.12)",
+                              color: "hsl(36 80% 28%)",
+                              border: "0.5px solid hsl(var(--gold-warm) / 0.38)",
+                            }}
+                            disabled={broadcastBoosting}
+                            onClick={handleBroadcastBoost}
+                          >
+                            <Zap className="w-3.5 h-3.5 mr-1" />
+                            {broadcastBoosting ? "Notifying helprs…" : "Notify nearby helprs"}
+                          </Button>
+                        )}
+                        {isStale && broadcastBoosted && (
+                          <div
+                            className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+                            style={{
+                              background: "hsl(var(--gold-warm) / 0.10)",
+                              border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+                            }}
+                          >
+                            <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} />
+                            <p
+                              className="font-serif italic leading-snug"
+                              style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                            >
+                              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                                Helprs notified!
+                              </span>{" "}
+                              Nearby helprs received a push notification.
                             </p>
                           </div>
                         )}

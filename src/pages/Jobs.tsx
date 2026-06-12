@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { ArrowRight, Search, Lock } from "lucide-react";
+import { ArrowRight, Search, Lock, Briefcase } from "lucide-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -264,9 +264,9 @@ const Jobs = () => {
             <div className="max-w-md mx-auto">
               <EmptyState
                 variant="inline"
-                icon={Search}
-                title="No tasks found yet"
-                body="Try adjusting your filters or check back soon — new tasks are posted across Louisiana every day."
+                icon={(search || selectedCategory) ? Search : Briefcase}
+                title={(search || selectedCategory) ? "No tasks found" : "No open tasks right now"}
+                body="New tasks are posted across Louisiana every day."
                 action={
                   (search || selectedCategory) ? (
                     <Button
@@ -277,7 +277,16 @@ const Jobs = () => {
                     >
                       Clear filters
                     </Button>
-                  ) : undefined
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="squircle rounded-full"
+                    >
+                      <Link to="/signup">Sign up to get notified</Link>
+                    </Button>
+                  )
                 }
               />
             </div>

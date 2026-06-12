@@ -511,6 +511,51 @@ const NotificationPanel = () => {
                             >
                               {n.message}
                             </p>
+                            {/* Inline quick-action pills — only for actionable
+                                types so chat/review/payment rows stay clean. */}
+                            {(() => {
+                              const actions: { label: string; href: string }[] = [];
+                              if (n.type === "expired") {
+                                actions.push({ label: "Repost", href: "/post-job" });
+                              } else if (
+                                n.type === "warning" &&
+                                (n.title.toLowerCase().includes("cancelled") ||
+                                  n.message.toLowerCase().includes("auto-cancel"))
+                              ) {
+                                actions.push({ label: "Repost", href: "/post-job" });
+                              } else if (
+                                n.type === "job_update" &&
+                                n.message.toLowerCase().includes("cancelled") &&
+                                n.link
+                              ) {
+                                actions.push({ label: "View", href: n.link });
+                              }
+                              if (actions.length === 0) return null;
+                              return (
+                                <div className="flex gap-1.5 mt-1.5">
+                                  {actions.map((a) => (
+                                    <button
+                                      key={a.label}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        markAsRead(n.id);
+                                        setOpen(false);
+                                        navigate(a.href);
+                                      }}
+                                      className="h-6 px-2.5 text-ds-11 font-sans font-semibold rounded-full border transition-all active:scale-[0.94]"
+                                      style={{
+                                        borderColor: "hsl(var(--bark) / 0.35)",
+                                        color: "hsl(var(--bark))",
+                                        background: "hsl(var(--parchment) / 0.6)",
+                                      }}
+                                    >
+                                      {a.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                             <p
                               className="font-serif italic mt-1"
                               style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.55)" }}

@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  MapPin, Calendar, DollarSign, Clock, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, ChevronDown, Rocket, Zap, ChevronRight, Check,
+  MapPin, Calendar, Clock, Flag, Users, Repeat, Timer, Bookmark, MessageSquare, Rocket, Zap, ChevronRight, Check,
 } from "lucide-react";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
@@ -20,6 +20,7 @@ import { PhotoLightbox } from "./PhotoLightbox";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { report } from "@/lib/errorLogger";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
+import { FeeBreakdown } from "@/components/FeeBreakdown";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -44,7 +45,6 @@ const JobDetailDialog = ({
   job, effectiveFee, allJobs: _allJobs, isSaved, onToggleSave, userLat, userLng, onClose, onApply, onReport, onSelect: _onSelect,
 }: JobDetailDialogProps) => {
   const navigate = useNavigate();
-  const [payoutExpanded, setPayoutExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   // Nonce bump tells PhotoLightbox to open in grid mode when the user
@@ -75,7 +75,6 @@ const JobDetailDialog = ({
     setViewerAppPosition(null);
     setPosterCancelRate(null);
     setDescExpanded(false);
-    setPayoutExpanded(false);
   }, [job?.id]);
 
   // Fetch how many helprs have already applied AND — if the viewer is
@@ -605,96 +604,12 @@ const JobDetailDialog = ({
 
         {/* Payout — featured pill, tap anywhere to expand the breakdown. */}
         <div className="relative">
-        <button
-          type="button"
-          onClick={() => setPayoutExpanded((v) => !v)}
-          aria-expanded={payoutExpanded}
-          className="w-full text-left glass-press rounded-ds-md p-3 transition-shadow hover:shadow-lg relative overflow-hidden"
-          style={{
-            background:
-              "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-              "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.74) 100%)",
-            backdropFilter: "blur(20px) saturate(170%)",
-            WebkitBackdropFilter: "blur(20px) saturate(170%)",
-            border: "0.5px solid hsl(var(--bark) / 0.22)",
-            // Stack: bright top rim (highlight catch), inset bottom seat,
-            // gold-warm hairline glow, soft amber drop. Reads as "this is
-            // a physical surface, not a flat panel."
-            boxShadow:
-              "inset 0 1.5px 0 0 hsla(0, 0%, 100%, 0.95), " +
-              "inset 0 1px 2px 0 rgba(255, 255, 255, 0.6), " +
-              "inset 0 -1px 2px 0 hsl(var(--bark) / 0.12), " +
-              "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-              "0 8px 18px -5px hsl(var(--bark) / 0.26)",
-          }}
-        >
-          <div className="flex items-baseline justify-between gap-3">
-            <div>
-              <p
-                className="text-[0.6rem] font-serif italic uppercase tracking-[0.18em] flex items-center gap-1"
-                style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
-              >
-                <DollarSign className="w-3 h-3" /> You earn
-              </p>
-              <p
-                className="font-display font-bold tabular-nums leading-none mt-1"
-                style={{
-                  fontSize: "1.5rem",
-                  color: "hsl(var(--bark))",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                ${payout.toFixed(2)}
-              </p>
-              {/* Always-visible micro-breakdown so helpers see the math
-                  without needing to tap-expand. Full breakdown still
-                  available below on expand. */}
-              <p className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                ${job.budget.toFixed(0)} budget − {commissionPercent}% fee
-                {(job.urgent_fee ?? 0) > 0 ? ` + $${Number(job.urgent_fee).toFixed(0)} urgent` : ""}
-              </p>
-            </div>
-            <ChevronDown
-              className={`shrink-0 w-4 h-4 transition-transform ${payoutExpanded ? "rotate-180" : ""}`}
-              style={{ color: "hsl(var(--olivewood) / 0.6)" }}
-            />
-          </div>
-          {payoutExpanded && (
-            <div
-              className="mt-2 pt-2 space-y-0.5 text-ds-11 font-serif italic"
-              style={{ color: "hsl(var(--olivewood) / 0.85)", borderTop: "0.5px solid hsl(var(--bark) / 0.18)" }}
-            >
-              <div className="flex justify-between">
-                <span>Budget</span>
-                <span className="tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${job.budget.toFixed(2)}</span>
-              </div>
-              {helpers > 1 && (
-                <div className="flex justify-between">
-                  <span>÷ {helpers} helprs</span>
-                  <span className="tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${perHelper.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span>− {commissionPercent}% platform fee</span>
-                <span className="tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${commission.toFixed(2)}</span>
-              </div>
-              {(job.urgent_fee ?? 0) > 0 && (
-                <div className="flex justify-between">
-                  <span>+ urgent bonus</span>
-                  <span className="tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>+${Number(job.urgent_fee).toFixed(2)}</span>
-                </div>
-              )}
-              <div
-                className="flex justify-between pt-1 mt-1 font-display not-italic font-bold"
-                style={{ color: "hsl(var(--ink-deep))", borderTop: "0.5px dashed hsl(var(--bark) / 0.18)" }}
-              >
-                <span>Take-home</span>
-                <span className="tabular-nums">${payout.toFixed(2)}</span>
-              </div>
-            </div>
-          )}
-        </button>
+          <FeeBreakdown
+            budget={job.budget}
+            commissionPercent={commissionPercent}
+            urgentFee={job.urgent_fee ?? 0}
+            helperCount={helpers}
+          />
         </div>
 
         <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} />

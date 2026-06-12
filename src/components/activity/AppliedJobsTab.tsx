@@ -6,7 +6,7 @@ import { hapticError, hapticLight } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
+import { Briefcase } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { VirtualList } from "@/components/VirtualList";
@@ -183,15 +183,23 @@ export const AppliedJobsTab = ({
         }}
       >
         <EmptyState
-          icon={Send}
+          icon={Briefcase}
           illustration={<EmptyStateIllustration variant="jobs" />}
           eyebrow="No applications"
           title="Nothing in this view yet."
-          body="Browse open tasks near you and apply — they'll collect here as you go."
+          body="New tasks are posted across Louisiana every day."
           action={
-            <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md btn-press">
-              <Send className="w-4 h-4 mr-1.5" /> Browse tasks
-            </Button>
+            <>
+              <Button onClick={() => navigate("/jobs")} className="rounded-ds-md btn-press">
+                <Briefcase className="w-4 h-4 mr-1.5" /> Browse open jobs
+              </Button>
+              <p
+                className="font-serif italic text-ds-13 mt-2"
+                style={{ color: "hsl(var(--olivewood) / 0.62)" }}
+              >
+                Browse open tasks near you and apply — they&apos;ll collect here as you go.
+              </p>
+            </>
           }
         />
       </div>

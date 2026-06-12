@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, ChevronDown, MessageSquare, Users, Timer, RotateCcw } from "lucide-react";
+import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, ChevronDown, MessageSquare, Users, Timer, RotateCcw, Play, X } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -56,6 +56,7 @@ const UserProfile = () => {
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showBlock, setShowBlock] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
   // Viewer opts in to the "did N jobs nearby" social proof (#31).
   // Gated so we don't fire the geolocation prompt just to render a badge.
   // The hook caches across pages, so once requested it's near-instant on
@@ -95,7 +96,7 @@ const UserProfile = () => {
         prof = unwrap(
           await supabase
             .from("profiles")
-            .select("user_id, full_name, avatar_url, bio, location, skills, hourly_rate, subscription_tier, portfolio_urls, created_at")
+            .select("user_id, full_name, avatar_url, bio, location, skills, hourly_rate, subscription_tier, portfolio_urls, created_at, intro_video_url, intro_video_thumbnail_url, intro_video_duration_seconds")
             .eq("user_id", userId!)
             .maybeSingle(),
         );
@@ -740,7 +741,53 @@ const UserProfile = () => {
                   <ShieldCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
                 </div>
               )}
+              {/* Intro video play button — overlays the bottom-left of
+                  the avatar so it doesn't collide with the ID-verified
+                  badge at bottom-right. Only renders when the helper has
+                  uploaded an intro video. */}
+              {(profile as any).intro_video_url && (
+                <button
+                  type="button"
+                  onClick={() => setVideoOpen(true)}
+                  aria-label="Play intro video"
+                  className="absolute -bottom-1 -left-1 w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+                  style={{
+                    background: "hsl(var(--burnt-sienna))",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                    border: "2px solid hsl(var(--parchment))",
+                  }}
+                >
+                  <Play className="w-3.5 h-3.5 fill-white text-white" />
+                </button>
+              )}
             </div>
+
+            {/* Intro video fullscreen modal */}
+            {videoOpen && (profile as any).intro_video_url && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center"
+                style={{ background: "rgba(0,0,0,0.88)" }}
+                onClick={() => setVideoOpen(false)}
+              >
+                <button
+                  type="button"
+                  aria-label="Close video"
+                  onClick={() => setVideoOpen(false)}
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(255,255,255,0.15)" }}
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+                <video
+                  src={(profile as any).intro_video_url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full max-w-sm rounded-ds-md max-h-[70dvh] object-contain"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
             <div>
               <h1 className="text-page-title leading-tight">
                 {displayName}

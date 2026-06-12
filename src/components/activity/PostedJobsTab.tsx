@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
@@ -177,7 +177,9 @@ export const PostedJobsTab = ({
   // "recommended" = multi-factor score desc (default)
   // "rated"       = avgRating desc, then reviewCount desc
   // "soonest"     = created_at asc (first to apply)
-  const [applicantSort, setApplicantSort] = useState<"recommended" | "rated" | "soonest">("recommended");
+  // "bid_asc"     = proposed_price asc (cheapest first; accept_bids jobs only)
+  // "bid_desc"    = proposed_price desc (highest first; accept_bids jobs only)
+  const [applicantSort, setApplicantSort] = useState<"recommended" | "rated" | "soonest" | "bid_asc" | "bid_desc">("recommended");
   // Video preview modal — stores the URL of the video currently playing.
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
@@ -371,9 +373,23 @@ export const PostedJobsTab = ({
         if (ratingDiff !== 0) return ratingDiff;
         return (b.app.reviewCount ?? 0) - (a.app.reviewCount ?? 0);
       });
-    } else {
+    } else if (applicantSort === "soonest") {
       // "soonest" = first to apply (ascending created_at)
       sorted.sort((a, b) => a.app.created_at.localeCompare(b.app.created_at));
+    } else if (applicantSort === "bid_asc") {
+      // Cheapest bid first; apps without a bid go to the end
+      sorted.sort((a, b) => {
+        const pa = (a.app as any).proposed_price ?? Infinity;
+        const pb = (b.app as any).proposed_price ?? Infinity;
+        return pa - pb;
+      });
+    } else if (applicantSort === "bid_desc") {
+      // Highest bid first; apps without a bid go to the end
+      sorted.sort((a, b) => {
+        const pa = (a.app as any).proposed_price ?? -Infinity;
+        const pb = (b.app as any).proposed_price ?? -Infinity;
+        return pb - pa;
+      });
     }
 
     return { sortedApplications: sorted, scoreMap: map };
@@ -389,6 +405,17 @@ export const PostedJobsTab = ({
     });
     return topId;
   }, [applications, scoreMap]);
+
+  // When switching to a bid-mode job, default the sort to bid_asc so the
+  // cheapest applicant surfaces first. Non-bid jobs fall back to "recommended".
+  useEffect(() => {
+    const expandedJob = jobs.find((j) => j.id === expandedJobId);
+    if ((expandedJob as any)?.pricing_mode === "accept_bids") {
+      setApplicantSort("bid_asc");
+    } else {
+      setApplicantSort("recommended");
+    }
+  }, [expandedJobId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Aggregate stats for the at-a-glance summary strip — computed once
   // from the full (unfiltered) jobs array so the numbers reflect the
@@ -697,7 +724,7 @@ export const PostedJobsTab = ({
               ) : (
                 <div className="space-y-1.5">
                   {/* Sort control — horizontal pill row */}
-                  <div className="flex items-center gap-1.5 mb-4" role="group" aria-label="Sort applicants by">
+                  <div className="flex items-center gap-1.5 mb-4 flex-wrap" role="group" aria-label="Sort applicants by">
                     {(["recommended", "rated", "soonest"] as const).map((opt) => {
                       const label = opt === "recommended" ? "Recommended" : opt === "rated" ? "Highest rated" : "Soonest available";
                       const active = applicantSort === opt;
@@ -722,6 +749,36 @@ export const PostedJobsTab = ({
                         </button>
                       );
                     })}
+                    {/* Bid price sort — only shown for accept_bids jobs with at least one bid */}
+                    {(selectedJob as any).pricing_mode === "accept_bids" &&
+                      sortedApplications.some((sa) => (sa.app as any).proposed_price != null) && (
+                        <>
+                          {(["bid_asc", "bid_desc"] as const).map((opt) => {
+                            const label = opt === "bid_asc" ? "Lowest bid" : "Highest bid";
+                            const active = applicantSort === opt;
+                            return (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setApplicantSort(opt)}
+                                aria-pressed={active}
+                                className="px-3 py-1.5 rounded-full text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
+                                style={{
+                                  background: active ? "hsl(var(--heritage-gold) / 0.15)" : "hsl(var(--parchment) / 0.5)",
+                                  color: active ? "hsl(var(--heritage-gold))" : "hsl(var(--olivewood) / 0.7)",
+                                  border: active
+                                    ? "1px solid hsl(var(--heritage-gold) / 0.4)"
+                                    : "1px solid hsl(var(--olivewood) / 0.15)",
+                                  backdropFilter: "blur(12px)",
+                                  WebkitBackdropFilter: "blur(12px)",
+                                }}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </>
+                    )}
                   </div>
 
                   {/* Applicant cards */}

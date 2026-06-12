@@ -8,12 +8,10 @@ import BackButton from "@/components/BackButton";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { resolveVariant, VARIANTS, type VariantKey } from "@/components/business/variants";
-import ROICalculator from "@/components/business/ROICalculator";
 import TrustStrip from "@/components/business/TrustStrip";
 import TrustedByBanner from "@/components/business/TrustedByBanner";
 import ComplianceSection from "@/components/business/ComplianceSection";
 import CaseStudyCarousel from "@/components/business/CaseStudyCarousel";
-import DemoVideoSection from "@/components/business/DemoVideoSection";
 import PricingTiers from "@/components/business/PricingTiers";
 
 /**
@@ -270,14 +268,11 @@ const ForBusiness = () => {
           </div>
         </div>
 
-        {/* Demo video — under the hero, full-width. */}
-        <DemoVideoSection />
-
         {/* Trust strip — quick scannable claims. */}
         <TrustStrip />
 
-        {/* ROI calculator — interactive widget. */}
-        <ROICalculator />
+        {/* Demo video + ROI calculator pulled until the real video is
+            recorded and the ROI baseline assumptions are validated. */}
 
         {/* Case studies — variant-aware highlight + 2 baseline cards. */}
         <CaseStudyCarousel highlight={variant.caseStudy} />

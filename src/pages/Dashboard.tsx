@@ -55,6 +55,7 @@ import { getActiveTriggers, type TriggerContext } from "@/lib/lifeEventTriggers"
 import { LifeEventCard } from "@/components/dashboard/LifeEventCard";
 import { AutopilotReminderCard } from "@/components/dashboard/AutopilotReminderCard";
 import { JobsForYou } from "@/components/dashboard/JobsForYou";
+import { useJobRef } from "@/hooks/useJobRef";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -91,6 +92,9 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   usePageTitle("Dashboard — Helpr");
   const [searchParams] = useSearchParams();
+  // Capture ?ref= attribution from deep-links (push notifications, share
+  // links, etc.) so analytics can attribute which surface drove the open.
+  useJobRef();
 
   const {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,

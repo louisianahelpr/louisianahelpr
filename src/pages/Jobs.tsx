@@ -21,6 +21,7 @@ import { categoryLabels } from "@/components/activity/activityConstants";
 import { queryKeys } from "@/lib/queryKeys";
 import JobCard from "@/components/dashboard/JobCard";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { useJobRef } from "@/hooks/useJobRef";
 
 const DEBUG_AUTH = import.meta.env.DEV;
 
@@ -101,6 +102,9 @@ const noop = () => {};
 
 const Jobs = () => {
   usePageTitle("Browse Jobs — Helpr");
+  // Capture ?ref= attribution from share/external links (e.g. ?ref=share
+  // from the Share Sheet) so we can attribute traffic source for job views.
+  useJobRef();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const navigate = useNavigate();

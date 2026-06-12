@@ -90,7 +90,7 @@ describe("ShareJobButton", () => {
     expect(capacitorShareMock).toHaveBeenCalledWith({
       title: "Move couch upstairs — Need help in Louisiana",
       text: "Move couch upstairs · $80 · Louisiana\n\nApply on Helpr:",
-      url: "https://www.louisianahelpr.com/jobs/abc-123",
+      url: "https://www.louisianahelpr.com/jobs/abc-123?ref=share",
       dialogTitle: "Share this job",
     });
     // Native handoff — neither clipboard toast nor error toast.
@@ -112,7 +112,7 @@ describe("ShareJobButton", () => {
     expect(navigatorShare).toHaveBeenCalledWith({
       title: "Move couch upstairs — Need help in Louisiana",
       text: "Move couch upstairs · $80 · Louisiana\n\nApply on Helpr:",
-      url: "https://www.louisianahelpr.com/jobs/abc-123",
+      url: "https://www.louisianahelpr.com/jobs/abc-123?ref=share",
     });
     expect(capacitorShareMock).not.toHaveBeenCalled();
   });
@@ -131,7 +131,7 @@ describe("ShareJobButton", () => {
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(
-        "Move couch upstairs · $80 · Louisiana\n\nApply on Helpr:\nhttps://www.louisianahelpr.com/jobs/abc-123"
+        "Move couch upstairs · $80 · Louisiana\n\nApply on Helpr:\nhttps://www.louisianahelpr.com/jobs/abc-123?ref=share"
       );
     });
     expect(toastSuccessMock).toHaveBeenCalledWith("Link copied. Paste it anywhere.");

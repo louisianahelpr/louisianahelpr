@@ -21,7 +21,7 @@ import { useLongPress } from "@/hooks/useLongPress";
 import { hapticMedium } from "@/lib/haptics";
 import type { TrackingData } from "@/components/JobTracking";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -222,6 +222,36 @@ export const PostedJobsTab = ({
     return map;
   }, [applications, neighborCountQueries]);
 
+  // Batch-fetch view counts for all posted jobs so each PostedJobCard
+  // can show "Seen by X helprs" without N+1 queries. Falls back to {}
+  // on PGRST202 (function not yet deployed to production).
+  const jobIds = useMemo(() => jobs.map((j) => j.id), [jobs]);
+  const { data: viewCountsData } = useQuery({
+    queryKey: ["job-view-counts", jobIds],
+    queryFn: async (): Promise<Record<string, number>> => {
+      if (jobIds.length === 0) return {};
+      const { data, error } = await (supabase.rpc as any)("get_job_view_counts", {
+        p_job_ids: jobIds,
+      });
+      if (error) {
+        // PGRST202 = function not yet deployed to production — degrade gracefully
+        if ((error as { code?: string }).code === "PGRST202") return {};
+        // Other errors: swallow so the feed still renders
+        return {};
+      }
+      const result: Record<string, number> = {};
+      if (Array.isArray(data)) {
+        for (const row of data as Array<{ job_id: string; view_count: number }>) {
+          result[row.job_id] = Number(row.view_count);
+        }
+      }
+      return result;
+    },
+    staleTime: 60_000, // 1 min — view counts are informational, not real-time
+    enabled: jobIds.length > 0,
+  });
+  const viewCounts: Record<string, number> = viewCountsData ?? {};
+
   // Build scored + sorted applicant list for the comparison panel.
   // Scoring is purely client-side — no extra queries needed.
   // The score map is keyed by helper_id so the "Recommended" badge
@@ -312,6 +342,7 @@ export const PostedJobsTab = ({
         helperNames={helperNames}
         completedJobMeta={completedJobMeta}
         startRequestedJobIds={startRequestedJobIds}
+        viewCount={viewCounts[job.id]}
         // `latestTracking[job.id]` may legitimately be `null` ("we
         // looked, no row exists") — the card forwards that down so
         // <JobTracking> skips its own initial fetch. If the key is

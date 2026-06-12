@@ -128,6 +128,24 @@ const JobDetailDialog = ({
     setDescExpanded(false);
   }, [job?.id]);
 
+  // Record a view when a helper opens this job's detail dialog.
+  // Fire-and-forget — we don't block the UI on this. The RPC is
+  // idempotent (ON CONFLICT DO NOTHING) so repeated opens are safe.
+  // Skip recording if the viewer is the poster (customer_id matches).
+  useEffect(() => {
+    if (!job?.id) return;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        // Don't record the poster viewing their own job
+        if (!user || user.id === job.customer_id) return;
+        await (supabase.rpc as any)("record_job_view", { p_job_id: job.id });
+      } catch {
+        // Non-critical — PGRST202 (not yet deployed) or network error
+      }
+    })();
+  }, [job?.id, job?.customer_id]);
+
   // Fetch how many helprs have already applied AND — if the viewer is
   // already in that queue — what position (1-indexed by created_at)
   // they hold. The position is what powers the "you're #3 of 7" banner

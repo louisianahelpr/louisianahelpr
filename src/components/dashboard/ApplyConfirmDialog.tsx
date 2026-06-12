@@ -83,6 +83,9 @@ interface ApplyConfirmDialogProps {
   /** Optional reliability stake amount ($5, $10, $25, or null). */
   stakeAmount: number | null;
   setStakeAmount: (value: number | null) => void;
+  /** Proposed bid price (only relevant when job pricing_mode='accept_bids'). */
+  bidPrice: string;
+  setBidPrice: (value: string) => void;
   /** Submits the application. */
   handleApplyConfirm: () => void;
 }
@@ -108,10 +111,13 @@ export function ApplyConfirmDialog({
   applyLoading,
   stakeAmount,
   setStakeAmount,
+  bidPrice,
+  setBidPrice,
   handleApplyConfirm,
 }: ApplyConfirmDialogProps) {
   const { online } = useOnlineStatus();
   const charsLeft = MAX_PITCH_LENGTH - applyMessage.length;
+  const isBidMode = (confirmApplyJob as any)?.pricing_mode === "accept_bids";
   const trimmedLen = applyMessage.trim().length;
   const underMin = trimmedLen > 0 && trimmedLen < SOFT_MIN_PITCH_LENGTH;
   const jobId = confirmApplyJob?.id ?? null;
@@ -278,6 +284,45 @@ export function ApplyConfirmDialog({
               </p>
             )}
           </AlertDialogDescription>
+          {/* Bid price — only shown when the job uses "Accept bids" pricing */}
+          {isBidMode && (
+            <div className="space-y-1 mt-3">
+              <label
+                htmlFor="bid-price"
+                className="font-serif italic uppercase block"
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Your bid price
+              </label>
+              <div className="relative">
+                <span
+                  className="absolute left-3 top-1/2 -translate-y-1/2 font-sans"
+                  style={{ fontSize: "0.84rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                >
+                  $
+                </span>
+                <input
+                  id="bid-price"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="0"
+                  value={bidPrice}
+                  onChange={(e) => setBidPrice(e.target.value)}
+                  className="w-full rounded-ds-md border border-input bg-background pl-7 pr-3 py-2 text-ds-13 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              {confirmApplyJob && (confirmApplyJob.budget ?? 0) > 0 && (
+                <p
+                  className="font-serif italic"
+                  style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                >
+                  Poster's budget: ${confirmApplyJob.budget}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="space-y-1.5 mt-3">
             <label
               htmlFor="apply-message"

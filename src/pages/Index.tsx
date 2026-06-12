@@ -23,9 +23,15 @@ const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 // past 3s. Below-the-fold sections stay lazy so they don't compete for
 // bandwidth with the hero image during initial paint.
 import HeroSection from "@/components/landing/HeroSection";
-const HowItWorksSection = lazy(() => import("@/components/landing/HowItWorksSection"));
-const CommunityVoice = lazy(() => import("@/components/landing/CommunityVoice"));
-const BusinessCTASection = lazy(() => import("@/components/landing/BusinessCTASection"));
+// HowItWorks / CommunityVoice / BusinessCTA are eager-loaded. They're pure
+// presentational sections (lucide icons + router + Button, no Supabase), so
+// they add negligible JS to the entry chunk — but lazy-loading them caused
+// visible layout shift (the Suspense height reservations never matched the
+// real rendered height, so the page lurched as each chunk streamed in).
+// Rendering them synchronously reserves their true height up front → no CLS.
+import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import CommunityVoice from "@/components/landing/CommunityVoice";
+import BusinessCTASection from "@/components/landing/BusinessCTASection";
 // PayoutTicker is below the fold (it lives between the hero and the
 // city strip) so it's safe to lazy-load — keeps the supabase chunk
 // out of the LCP path. The ticker hides itself on empty / errored
@@ -210,16 +216,9 @@ const Index = () => {
         </p>
       </div>
 
-      <Suspense fallback={<div className="h-64" />}>
-        <HowItWorksSection />
-      </Suspense>
-      <Suspense fallback={<div className="h-96" />}>
-        <CommunityVoice />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <BusinessCTASection />
-      </Suspense>
+      <HowItWorksSection />
+      <CommunityVoice />
+      <BusinessCTASection />
 
       {/* 120px breathing room before the footer so the FAQ accordion
           doesn't crash into the footer surface. */}

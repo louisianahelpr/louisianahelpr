@@ -3,12 +3,9 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
 /**
- * Pricing tiers — 3 cards, "Team" highlighted as Most popular.
- *
- * Tiers are deliberately conversion-page copy, not the seat-plan grid in
- * the sticky CTA card. The sticky card carries the actual seat plans
- * already wired to checkout; this section is a marketing summary that
- * also includes an Enterprise option for procurement-stage buyers.
+ * Pricing tiers — the same four seat plans as the sticky CTA card, kept in
+ * lockstep so the page never shows two conflicting price tables. Prices and
+ * seat counts mirror the seat-plan grid that's wired to checkout.
  */
 const TIERS = [
   {
@@ -28,15 +25,31 @@ const TIERS = [
     featured: false,
   },
   {
+    name: "Crew",
+    price: "$10",
+    cadence: "/mo",
+    headline: "For small crews",
+    sub: "For growing teams posting regularly.",
+    features: [
+      "5 team seats included",
+      "Job templates",
+      "Standard Stripe escrow",
+      "Email support",
+    ],
+    cta: "Choose Crew",
+    href: "/signup?type=business&plan=crew",
+    featured: false,
+  },
+  {
     name: "Team",
-    price: "$79",
+    price: "$20",
     cadence: "/mo",
     headline: "Most popular",
-    sub: "For 5–20 user teams that post weekly.",
+    sub: "For teams that post weekly.",
     features: [
-      "Up to 20 team seats",
+      "10 team seats included",
       "Priority support response",
-      "Job templates &amp; recurring schedules",
+      "Recurring schedules &amp; templates",
       "Per-property billing splits",
     ],
     cta: "Choose Team",
@@ -45,18 +58,18 @@ const TIERS = [
   },
   {
     name: "Enterprise",
-    price: "Contact",
-    cadence: "us",
-    headline: "50+ seats",
-    sub: "For multi-location operators.",
+    price: "$40",
+    cadence: "/mo",
+    headline: "For multi-location operators",
+    sub: "Scale across properties and crews.",
     features: [
-      "Unlimited team seats",
+      "15 team seats included",
       "SSO (SAML / Google Workspace)",
       "Dedicated success manager",
       "Custom invoicing &amp; net-30 terms",
     ],
-    cta: "Email sales",
-    href: "mailto:sales@louisianahelpr.com?subject=Enterprise%20plan%20inquiry",
+    cta: "Choose Enterprise",
+    href: "/signup?type=business&plan=enterprise",
     featured: false,
   },
 ] as const;
@@ -87,7 +100,7 @@ export function PricingTiers() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {TIERS.map((tier) => (
           <div
             key={tier.name}

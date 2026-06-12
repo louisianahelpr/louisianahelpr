@@ -22,7 +22,7 @@ const faqs = [
   },
   {
     q: "How much does Helpr cost?",
-    a: "Posting a job is free. We take a small platform fee from the helper's payout — the price you agree on at posting is the price you pay. No surprise charges, no monthly subscription.",
+    a: "Posting a job is free. At checkout, posters pay a 10% service fee on top of the budget, and helprs receive 90% of the agreed price — a flat 10% platform fee on each side. No surprise charges, no monthly subscription.",
   },
   {
     q: "How fast will someone respond?",

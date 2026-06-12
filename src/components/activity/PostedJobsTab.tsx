@@ -192,42 +192,6 @@ export const PostedJobsTab = ({
   const [localNegotiation, setLocalNegotiation] = useState<Record<string, { status: string; price: number | null }>>({});
   const [counterSending, setCounterSending] = useState(false);
 
-  // Private poster notes — stored in localStorage, never sent to the server.
-  // keyed by application id so notes survive across sessions and job switches.
-  const [applicantNotes, setApplicantNotes] = useState<Record<string, string>>({});
-  // appId of the note currently open for editing (null = none open)
-  const [noteEditing, setNoteEditing] = useState<string | null>(null);
-  // Draft text for the note currently being edited
-  const [noteDraft, setNoteDraft] = useState("");
-
-  // Load saved notes from localStorage whenever the applications list changes.
-  useEffect(() => {
-    const notes: Record<string, string> = {};
-    for (const { app } of sortedApplications) {
-      const saved = localStorage.getItem(`helpr_applicant_note_${app.id}`);
-      if (saved) notes[app.id] = saved;
-    }
-    setApplicantNotes(notes);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedApplications.length]);
-
-  const saveNote = useCallback((appId: string) => {
-    const trimmed = noteDraft.trim();
-    if (trimmed) {
-      localStorage.setItem(`helpr_applicant_note_${appId}`, trimmed);
-    } else {
-      localStorage.removeItem(`helpr_applicant_note_${appId}`);
-    }
-    setApplicantNotes((prev) => {
-      const next = { ...prev };
-      if (trimmed) next[appId] = trimmed;
-      else delete next[appId];
-      return next;
-    });
-    setNoteEditing(null);
-    setNoteDraft("");
-  }, [noteDraft]);
-
   const handleCounter = useCallback(async (appId: string, counterPrice: number) => {
     setCounterSending(true);
     try {
@@ -414,6 +378,40 @@ export const PostedJobsTab = ({
 
     return { sortedApplications: sorted, scoreMap: map };
   }, [applications, applicantSort]);
+
+  // Private poster notes — stored in localStorage, never sent to the server.
+  // Must be declared after sortedApplications (useMemo above) because the
+  // useEffect dependency array evaluates sortedApplications.length at render.
+  const [applicantNotes, setApplicantNotes] = useState<Record<string, string>>({});
+  const [noteEditing, setNoteEditing] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+
+  useEffect(() => {
+    const notes: Record<string, string> = {};
+    for (const { app } of sortedApplications) {
+      const saved = localStorage.getItem(`helpr_applicant_note_${app.id}`);
+      if (saved) notes[app.id] = saved;
+    }
+    setApplicantNotes(notes);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedApplications.length]);
+
+  const saveNote = useCallback((appId: string) => {
+    const trimmed = noteDraft.trim();
+    if (trimmed) {
+      localStorage.setItem(`helpr_applicant_note_${appId}`, trimmed);
+    } else {
+      localStorage.removeItem(`helpr_applicant_note_${appId}`);
+    }
+    setApplicantNotes((prev) => {
+      const next = { ...prev };
+      if (trimmed) next[appId] = trimmed;
+      else delete next[appId];
+      return next;
+    });
+    setNoteEditing(null);
+    setNoteDraft("");
+  }, [noteDraft]);
 
   // The top recommended applicant — used to render the badge.
   const topHelperIdByScore = useMemo(() => {

@@ -60,6 +60,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/job-history", // JobHistory (PageHeader + min-h-screen)
   "/business",    // BusinessTeam (PageHeader + min-h-screen)
   "/admin",       // Admin dashboard (min-h-screen document-scroll + sidebar)
+  "/community",   // Community feed (PageHeader + min-h-screen document-scroll)
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

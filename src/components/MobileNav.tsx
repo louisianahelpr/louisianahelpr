@@ -364,7 +364,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [navigate, user, unreadCount]);
 
-  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending", "/saved-helpers"];
+  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending", "/saved-helpers", "/community"];
   // /admin is a distinct console shell (its own full-height layout, header,
   // back button, and logout) — the consumer Posts/Jobs/Messages/Profile bar
   // doesn't belong there, so it's a no-nav page, not an auth tab route.

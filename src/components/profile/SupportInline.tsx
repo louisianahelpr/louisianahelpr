@@ -220,7 +220,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
     <div className="space-y-4">
       <ProfileTabHeader
         eyebrow="Concierge"
-        title={selected ? selected.label : "Help &amp; support"}
+        title={selected ? selected.label : "Help & support"}
         meta={selected ? selected.description : "Pick a category to get started."}
         onBack={selected ? () => setCategory(null) : onBack}
       />

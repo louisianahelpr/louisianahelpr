@@ -80,13 +80,21 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
               {job.posterName}
             </p>
             <span className="flex items-center gap-0.5 text-ds-11 shrink-0">
-              <Star className={`w-3.5 h-3.5 ${(job.posterReviewCount ?? 0) > 0 ? "fill-accent text-accent" : "text-muted-foreground/50"}`} />
-              <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                {(job.posterReviewCount ?? 0) > 0 ? job.posterAvgRating?.toFixed(1) : "0.0"}
-              </span>
-              <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
-                ({job.posterReviewCount ?? 0})
-              </span>
+              {(job.posterReviewCount ?? 0) > 0 ? (
+                <>
+                  <Star className="w-3.5 h-3.5 fill-accent text-accent" />
+                  <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                    {job.posterAvgRating?.toFixed(1)}
+                  </span>
+                  <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                    ({job.posterReviewCount})
+                  </span>
+                </>
+              ) : (
+                <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                  New
+                </span>
+              )}
             </span>
           </div>
           <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>

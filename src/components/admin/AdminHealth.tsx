@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Activity, RefreshCw, Mail, ShieldAlert, Database, Bug, MapPin, Zap, Bell, Send, Loader2 } from "lucide-react";
+import { Activity, RefreshCw, Mail, ShieldAlert, Database, Bug, MapPin, Zap, Bell, Send, Loader2, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
 import { report } from "@/lib/errorLogger";
 import { toast } from "@/hooks/use-toast";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { cn } from "@/lib/utils";
 
 type ParishStat = { parish: string; openJobs: number; activeHelpers: number; ratio: number | null };
 
@@ -22,10 +23,92 @@ type HealthData = {
   jobsAwaitingApps: number;
 };
 
+// ── Fill-rate metrics ─────────────────────────────────────────────────────
+type FillRateRow = {
+  total_jobs: number | null;
+  filled_jobs: number | null;
+  fill_rate_pct: number | null;
+  median_minutes_to_first_app: number | null;
+  parish: string | null;
+  parish_fill_rate_pct: number | null;
+};
+
+type FillRateSummary = {
+  total_jobs: number;
+  filled_jobs: number;
+  fill_rate_pct: number | null;
+  median_minutes_to_first_app: number | null;
+  parishes: { parish: string; total_jobs: number; filled_jobs: number; fill_rate_pct: number | null }[];
+  available: boolean;
+};
+
+type FillSortKey = "fill_rate_pct" | "total_jobs";
+
+const FILL_DAYS_OPTIONS = [7, 30, 90] as const;
+type FillDays = typeof FILL_DAYS_OPTIONS[number];
+
 const AdminHealth = () => {
   const qc = useQueryClient();
   const queryKey = ["admin-health"];
   const [sendingTestPush, setSendingTestPush] = useState(false);
+  const [fillDays, setFillDays] = useState<FillDays>(30);
+  const [fillSort, setFillSort] = useState<FillSortKey>("fill_rate_pct");
+  const [fillSortAsc, setFillSortAsc] = useState(true);
+
+  // Fill-rate stats — separate query keyed by p_days so changing the
+  // period refetches without invalidating the rest of AdminHealth.
+  const fillQueryKey = ["admin-fill-rate", fillDays];
+  const { data: fillData, isFetching: fillFetching } = useInstantQuery<FillRateSummary>({
+    key: fillQueryKey,
+    fallback: {
+      total_jobs: 0, filled_jobs: 0, fill_rate_pct: null,
+      median_minutes_to_first_app: null, parishes: [], available: true,
+    },
+    fetcher: async () => {
+      const { data, error } = await supabase.rpc("get_fill_rate_stats", { p_days: fillDays });
+      // PGRST202 = function not deployed yet — hide the section gracefully.
+      if (error) {
+        if ((error as { code?: string }).code === "PGRST202") {
+          return {
+            total_jobs: 0, filled_jobs: 0, fill_rate_pct: null,
+            median_minutes_to_first_app: null, parishes: [], available: false,
+          };
+        }
+        throw error;
+      }
+      const rows = (data ?? []) as FillRateRow[];
+      // First row (parish IS NULL) is the overall summary.
+      const overall = rows.find((r) => r.parish === null);
+      const parishRows = rows.filter((r) => r.parish !== null);
+      return {
+        total_jobs: overall?.total_jobs ?? 0,
+        filled_jobs: overall?.filled_jobs ?? 0,
+        fill_rate_pct: overall?.fill_rate_pct ?? null,
+        median_minutes_to_first_app: overall?.median_minutes_to_first_app ?? null,
+        parishes: parishRows.map((r) => ({
+          parish: r.parish!,
+          total_jobs: r.total_jobs ?? 0,
+          filled_jobs: r.filled_jobs ?? 0,
+          fill_rate_pct: r.parish_fill_rate_pct ?? null,
+        })),
+        available: true,
+      };
+    },
+  });
+
+  const sortedParishes = useMemo(() => {
+    if (!fillData?.parishes) return [];
+    return [...fillData.parishes].sort((a, b) => {
+      const av = fillSort === "fill_rate_pct" ? (a.fill_rate_pct ?? -1) : a.total_jobs;
+      const bv = fillSort === "fill_rate_pct" ? (b.fill_rate_pct ?? -1) : b.total_jobs;
+      return fillSortAsc ? av - bv : bv - av;
+    });
+  }, [fillData?.parishes, fillSort, fillSortAsc]);
+
+  const handleFillSort = (key: FillSortKey) => {
+    if (fillSort === key) setFillSortAsc((p) => !p);
+    else { setFillSort(key); setFillSortAsc(key === "fill_rate_pct"); }
+  };
 
   // Send a test push to the admin's own user_id. Verifies the entire
   // pipeline (push_tokens lookup → APNs/FCM auth → device delivery)
@@ -436,6 +519,110 @@ const AdminHealth = () => {
           </div>
         )}
       </div>
+
+      {/* Fill-rate metrics — hidden when RPC not yet deployed (PGRST202) */}
+      {fillData?.available && (
+        <div className="rounded-ds-md liquid-glass p-5 space-y-4">
+          {/* Header + period toggle */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="font-semibold text-foreground text-ds-13 flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4" /> Marketplace Health
+            </h3>
+            <div className="flex items-center gap-1 rounded-ds-sm bg-background/50 border border-border/40 p-0.5">
+              {FILL_DAYS_OPTIONS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setFillDays(d)}
+                  className={cn(
+                    "px-2.5 py-1 text-ds-11 font-medium rounded-[4px] transition-colors",
+                    fillDays === d
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {d}d
+                </button>
+              ))}
+              {fillFetching && <span className="ml-1 text-ds-10 text-muted-foreground animate-pulse">…</span>}
+            </div>
+          </div>
+
+          {/* 3 stat cards */}
+          <div className="grid grid-cols-3 gap-2 text-ds-13">
+            <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3 space-y-0.5">
+              <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Fill Rate</div>
+              <div className="text-ds-24 font-semibold tabular-nums">
+                {fillData.fill_rate_pct !== null ? `${fillData.fill_rate_pct}%` : "—"}
+              </div>
+              <div className="text-ds-10 text-muted-foreground">jobs with ≥1 app</div>
+            </div>
+            <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3 space-y-0.5">
+              <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Median Response</div>
+              <div className="text-ds-24 font-semibold tabular-nums">
+                {formatDelay(fillData.median_minutes_to_first_app)}
+              </div>
+              <div className="text-ds-10 text-muted-foreground">time to first app</div>
+            </div>
+            <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3 space-y-0.5">
+              <div className="text-ds-10 uppercase tracking-wider text-muted-foreground">Jobs Tracked</div>
+              <div className="text-ds-24 font-semibold tabular-nums">{fillData.total_jobs}</div>
+              <div className="text-ds-10 text-muted-foreground">{fillData.filled_jobs} filled</div>
+            </div>
+          </div>
+
+          {/* Per-parish table */}
+          {sortedParishes.length > 0 && (
+            <div className="space-y-1.5">
+              {/* Sortable header */}
+              <div className="grid grid-cols-12 gap-2 px-2">
+                <div className="col-span-5 text-ds-10 uppercase tracking-wider text-muted-foreground">Parish</div>
+                <button
+                  type="button"
+                  onClick={() => handleFillSort("total_jobs")}
+                  className="col-span-3 text-right text-ds-10 uppercase tracking-wider text-muted-foreground flex items-center justify-end gap-0.5 hover:text-foreground transition-colors"
+                >
+                  Jobs
+                  {fillSort === "total_jobs"
+                    ? (fillSortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)
+                    : null}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFillSort("fill_rate_pct")}
+                  className="col-span-4 text-right text-ds-10 uppercase tracking-wider text-muted-foreground flex items-center justify-end gap-0.5 hover:text-foreground transition-colors"
+                >
+                  Fill %
+                  {fillSort === "fill_rate_pct"
+                    ? (fillSortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)
+                    : null}
+                </button>
+              </div>
+
+              {sortedParishes.map((p) => {
+                const pct = p.fill_rate_pct;
+                const pctCls = pct === null ? "text-muted-foreground"
+                  : pct >= 70 ? "text-green-600 font-semibold"
+                  : pct >= 40 ? "text-amber-600 font-semibold"
+                  : "text-destructive font-semibold";
+                return (
+                  <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-ds-sm liquid-glass p-2 text-ds-13">
+                    <div className="col-span-5 truncate text-foreground">{p.parish}</div>
+                    <div className="col-span-3 text-right tabular-nums">{p.total_jobs}</div>
+                    <div className={cn("col-span-4 text-right tabular-nums", pctCls)}>
+                      {pct !== null ? `${pct}%` : "—"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {sortedParishes.length === 0 && fillData.total_jobs === 0 && (
+            <p className="text-ds-11 text-muted-foreground">No job data for this period yet.</p>
+          )}
+        </div>
+      )}
 
       {/* Push notifications */}
       <div className="rounded-ds-md liquid-glass p-5 space-y-4">

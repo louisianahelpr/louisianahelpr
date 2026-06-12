@@ -16,6 +16,21 @@ import { pickImagesNative } from "@/lib/nativeCamera";
 import { report } from "@/lib/errorLogger";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 
+// Only render image URLs whose scheme we control. Local previews are
+// `blob:` (createObjectURL) and stored review photos are `https:` Supabase
+// public URLs — anything else (e.g. a `javascript:`/`data:` value smuggled
+// into a stored photo_urls row) is dropped rather than handed to the DOM.
+const safeImageSrc = (url: string): string | undefined => {
+  try {
+    const scheme = new URL(url, window.location.origin).protocol;
+    return scheme === "blob:" || scheme === "https:" || scheme === "http:"
+      ? url
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 interface ReviewFormProps {
   open: boolean;
   onClose: () => void;
@@ -351,7 +366,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                   style={{ border: "0.5px solid hsl(var(--olivewood) / 0.18)" }}
                 >
                   <img
-                    src={url}
+                    src={safeImageSrc(url)}
                     alt={`Review photo ${i + 1}`}
                     className="w-full h-full object-cover"
                     decoding="async"
@@ -659,7 +674,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
                     <img
                       loading="lazy"
                       decoding="async"
-                      src={url}
+                      src={safeImageSrc(url)}
                       alt={`Review photo ${pi + 1}`}
                       className="w-full h-full object-cover"
                     />

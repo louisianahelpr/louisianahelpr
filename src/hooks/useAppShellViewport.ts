@@ -73,6 +73,8 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/parish",     // /parish/:slug — individual parish community pages
   "/wrapped",    // Helpr Wrapped year-in-review
   "/impact",     // Public impact transparency page — long-form, document-scroll
+  "/time-credits", // Time banking — earn credits, redeem discounts (document-scroll)
+  "/benefits",    // Benefits marketplace — partner perks (document-scroll)
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

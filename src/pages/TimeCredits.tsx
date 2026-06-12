@@ -1,0 +1,255 @@
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Clock, Coins, ChevronRight, Gift } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import PageHeader from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+
+// Credit presets (minutes → $10/hr discount)
+const PRESET_MINUTES = [60, 120, 180];
+
+export default function TimeCredits() {
+  const { user } = useCurrentUser();
+  const navigate = useNavigate();
+
+  // Balance via RPC — PGRST202-safe (returns 0 if function not yet deployed)
+  const { data: balanceMinutes = 0 } = useQuery({
+    queryKey: ["time-credit-balance", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      if (!user) return 0;
+      const { data, error } = await (supabase as any).rpc(
+        "get_time_credit_balance",
+        { p_user_id: user.id },
+      );
+      // PGRST202 = function not found (migration not deployed yet)
+      if (error && (error.code === "PGRST202" || error.code === "42883")) {
+        return 0;
+      }
+      if (error) throw error;
+      return (data as number) ?? 0;
+    },
+  });
+
+  // Transaction history — PGRST202-safe
+  const { data: history = [] } = useQuery({
+    queryKey: ["time-credit-history", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await (supabase as any)
+        .from("time_credits")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      // 42P01 = table not found, PGRST202 = function not found
+      if (
+        error &&
+        (error.code === "42P01" ||
+          error.code === "PGRST202" ||
+          error.message?.includes("does not exist"))
+      ) {
+        return [];
+      }
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+  });
+
+  const balanceHours = Math.floor(balanceMinutes / 60);
+  const balanceMins = balanceMinutes % 60;
+  const dollarValue = ((balanceMinutes / 60) * 10).toFixed(2);
+
+  return (
+    <div className="min-h-screen pb-safe-nav" style={{ background: "hsl(var(--parchment))" }}>
+      <PageHeader title="Time Credits" />
+
+      <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
+        {/* Balance card */}
+        <div
+          className="rounded-2xl p-6 text-white shadow-lg"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(var(--bark)) 0%, hsl(var(--gold-warm)) 100%)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3 opacity-90">
+            <Clock className="w-5 h-5" />
+            <span className="font-medium text-sm uppercase tracking-wide">
+              Your Balance
+            </span>
+          </div>
+          <div className="text-4xl font-bold mb-1">
+            {balanceHours}h{balanceMins > 0 ? ` ${balanceMins}m` : ""}
+          </div>
+          <div className="text-lg opacity-80">≈ ${dollarValue} in discounts</div>
+          <p className="text-sm opacity-70 mt-2">
+            Every completed job earns you 1 hour of credit.
+          </p>
+        </div>
+
+        {/* How it works */}
+        <div
+          className="rounded-2xl p-5 space-y-3"
+          style={{ background: "hsl(var(--cream))" }}
+        >
+          <h2
+            className="font-semibold text-base"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            How it works
+          </h2>
+          <ul className="space-y-2 text-sm" style={{ color: "hsl(var(--olivewood))" }}>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5">✅</span>
+              <span>Complete any job as a helper to earn 60 minutes (1 credit).</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5">💸</span>
+              <span>
+                Redeem credits as a $10/hr discount when you post your own job.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5">♻️</span>
+              <span>Credits never expire — keep helping, keep saving.</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Redeem section */}
+        {balanceMinutes >= 60 && (
+          <div
+            className="rounded-2xl p-5 space-y-3"
+            style={{ background: "hsl(var(--cream))" }}
+          >
+            <h2
+              className="font-semibold text-base"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Apply credits to a new job
+            </h2>
+            <p className="text-sm" style={{ color: "hsl(var(--olivewood))" }}>
+              Choose how many credits to apply at checkout:
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {PRESET_MINUTES.filter((m) => m <= balanceMinutes).map((mins) => (
+                <Button
+                  key={mins}
+                  variant="outline"
+                  className="flex-1"
+                  style={{
+                    borderColor: "hsl(var(--bark) / 0.4)",
+                    color: "hsl(var(--bark))",
+                  }}
+                  onClick={() => navigate(`/post-job?credits=${mins}`)}
+                >
+                  <Coins className="w-4 h-4 mr-1" />
+                  {mins / 60}h off (−${((mins / 60) * 10).toFixed(0)})
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* CTA: post a job */}
+        <Button
+          className="w-full"
+          style={{
+            background: "hsl(var(--bark))",
+            color: "hsl(var(--parchment))",
+          }}
+          onClick={() => navigate("/post-job")}
+        >
+          Post a job
+          <ChevronRight className="w-4 h-4 ml-1" />
+        </Button>
+
+        {/* Transaction history */}
+        {history.length > 0 && (
+          <div className="space-y-2 pb-6">
+            <h2
+              className="font-semibold text-base"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              History
+            </h2>
+            {history.map((tx: any) => {
+              const isEarn = tx.amount_minutes > 0;
+              const hrs = Math.abs(Math.floor(tx.amount_minutes / 60));
+              const mins = Math.abs(tx.amount_minutes % 60);
+              return (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between rounded-xl px-4 py-3"
+                  style={{ background: "hsl(var(--cream))" }}
+                >
+                  <div>
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      {tx.description ?? (isEarn ? "Job completed" : "Credit redeemed")}
+                    </p>
+                    <p
+                      className="text-xs"
+                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    >
+                      {format(new Date(tx.created_at), "MMM d, yyyy")}
+                    </p>
+                  </div>
+                  <span
+                    className="font-semibold text-sm"
+                    style={{
+                      color: isEarn
+                        ? "hsl(155 50% 35%)"
+                        : "hsl(var(--burnt-sienna))",
+                    }}
+                  >
+                    {isEarn ? "+" : "−"}
+                    {hrs}h{mins > 0 ? `${mins}m` : ""}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* CTA to benefits */}
+        <div
+          className="rounded-2xl p-5 flex items-center justify-between cursor-pointer active:opacity-80"
+          style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}
+          onClick={() => navigate("/benefits")}
+        >
+          <div className="flex items-center gap-3">
+            <Gift
+              className="w-6 h-6"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            />
+            <div>
+              <p
+                className="font-semibold text-sm"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                Benefits & Perks
+              </p>
+              <p
+                className="text-xs"
+                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              >
+                Health coverage, financial tools & discounts
+              </p>
+            </div>
+          </div>
+          <ChevronRight
+            className="w-5 h-5"
+            style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

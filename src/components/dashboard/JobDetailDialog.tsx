@@ -455,6 +455,27 @@ const JobDetailDialog = ({
           </div>
         )}
 
+        {/* Scope video — shows before description so helpers immediately
+            see what's needed. Hidden when no video attached. */}
+        {(job as any).scope_video_url && (
+          <div className="rounded-ds-md overflow-hidden mb-3">
+            <video
+              src={(job as any).scope_video_url}
+              controls
+              playsInline
+              preload="none"
+              className="w-full max-h-48 object-cover"
+              style={{ background: "hsl(var(--bark) / 0.05)" }}
+            />
+            <p
+              className="font-serif italic text-ds-11 mt-1 text-center"
+              style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+            >
+              Scope video — see exactly what's needed
+            </p>
+          </div>
+        )}
+
         {/* Description — own glass plate. When there's no photo, this
             is where Boosted (top-right) and Urgent (top-left) stamps
             live. "Read more" expands the full text inline when long. */}

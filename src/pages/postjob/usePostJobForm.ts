@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type ChangeEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -643,6 +643,29 @@ export function usePostJobForm() {
     setUploading(false);
   };
 
+  /**
+   * Uploads the scope video (if selected) to the job-photos bucket and
+   * patches the job row's scope_video_url column. No-op if no video.
+   * PGRST202-safe: if the column doesn't exist yet the update silently fails.
+   */
+  const uploadAndAttachScopeVideo = async (jobId: string) => {
+    if (!scopeVideoFile) return;
+    const ext = scopeVideoFile.name.split(".").pop() ?? "mp4";
+    const path = `${jobId}/scope-video.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("job-photos")
+      .upload(path, scopeVideoFile, { upsert: true });
+    if (upErr) return; // non-fatal — video is a nice-to-have
+    const { data } = supabase.storage.from("job-photos").getPublicUrl(path);
+    if (!data?.publicUrl) return;
+    await (supabase as any)
+      .from("jobs")
+      .update({ scope_video_url: data.publicUrl })
+      .eq("id", jobId)
+      .then(() => {})
+      .catch(() => {});
+  };
+
   const handleSubmit = async () => {
     if (!requireOnline()) return;
     const user = await runPreSubmitChecks();
@@ -775,6 +798,7 @@ export function usePostJobForm() {
     }
 
     await uploadAndAttachPhotos(jobData.id);
+    await uploadAndAttachScopeVideo(jobData.id);
 
     hapticSuccess();
     void maybeFireFirstPostConfetti();

@@ -317,6 +317,22 @@ export function ProfileLanding({
           tint: "155 50% 30%",
           href: "/pay-it-forward",
         },
+        {
+          key: "time-credits",
+          label: "Time Credits",
+          icon: <Crown className="w-5 h-5" />,
+          desc: "Earn credits by helping, spend them on your own jobs",
+          tint: "var(--gold-warm)",
+          href: "/time-credits",
+        },
+        {
+          key: "benefits",
+          label: "Benefits & Perks",
+          icon: <Star className="w-5 h-5" />,
+          desc: "Health coverage, financial tools & supply discounts",
+          tint: "var(--burnt-sienna)",
+          href: "/benefits",
+        },
       ],
     },
     {

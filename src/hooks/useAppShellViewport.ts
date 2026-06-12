@@ -73,6 +73,10 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/parish",     // /parish/:slug — individual parish community pages
   "/wrapped",    // Helpr Wrapped year-in-review
   "/impact",     // Public impact transparency page — long-form, document-scroll
+
+  // Public vertical landing pages (PageHeader + min-h-screen document-scroll)
+  "/discharge",       // Healthcare Discharge Concierge
+  "/insurance-claim", // Insurance Claim Concierge
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

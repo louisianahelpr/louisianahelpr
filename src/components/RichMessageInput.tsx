@@ -671,7 +671,7 @@ export const RichMessageInput = ({
                 We detected <strong className="text-foreground">{pendingViolation?.toLowerCase()}</strong> in your message.
               </span>
               <span className="block text-ds-11">
-                Payments and conversations outside Helpr aren't protected by our dispute policy, escrow, or insurance.
+                Payments and conversations outside Helpr aren't protected by our dispute policy or escrow.
                 Sending anyway will hide the message from the recipient and add a fraud flag to your account.
                 Two flags within 24 hours triggers an automatic 7-day suspension.
               </span>

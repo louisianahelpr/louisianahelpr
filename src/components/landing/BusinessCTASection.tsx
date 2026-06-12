@@ -37,7 +37,7 @@ const BusinessCTASection = () => (
             </h2>
             <p className="text-ds-13 sm:text-ds-15 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
               Helpr handles your recurring tasks — cleanings, hauling, repairs, and
-              turnovers — on demand, with vetted local help.
+              turnovers — on demand, with ID-verified local help.
             </p>
           </div>
           <Button

@@ -1,10 +1,5 @@
-import { ShieldCheck, FileCheck2, Mail } from "lucide-react";
+import { ShieldCheck, Lock, FileText } from "lucide-react";
 
-/**
- * Compliance disclosure block — surfaces background-check tier, insurance
- * limit, and Certificate of Insurance request path. Procurement teams
- * routinely ask for these three before a vendor can be approved.
- */
 export function ComplianceSection() {
   return (
     <section
@@ -43,29 +38,12 @@ export function ComplianceSection() {
           style={{ background: "hsl(var(--bark) / 0.04)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
         >
           <p className="text-ds-13 font-semibold mb-2" style={{ color: "hsl(var(--ink-deep))" }}>
-            Background-check tier
+            Identity verification
           </p>
           <p className="text-ds-11 text-muted-foreground leading-relaxed">
-            <span className="font-semibold text-foreground">Tier 2:</span>{" "}
-            county + federal criminal, SSN trace, and sex-offender registry
-            run by our verification partner before activation.
-          </p>
-        </div>
-
-        <div
-          className="rounded-ds-md p-4"
-          style={{ background: "hsl(var(--bark) / 0.04)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
-        >
-          <p className="text-ds-13 font-semibold mb-2" style={{ color: "hsl(var(--ink-deep))" }}>
-            Insurance coverage
-          </p>
-          <p className="text-ds-11 text-muted-foreground leading-relaxed">
-            Up to{" "}
-            <span className="font-semibold text-foreground">
-              $1,000,000 per task
-            </span>{" "}
-            in general liability through our underwriter. Covers
-            property damage and bodily injury on the jobsite.
+            Every helpr submits a{" "}
+            <span className="font-semibold text-foreground">government-issued ID</span>{" "}
+            through Stripe and is reviewed by our team before being activated on the platform.
           </p>
         </div>
 
@@ -74,21 +52,29 @@ export function ComplianceSection() {
           style={{ background: "hsl(var(--bark) / 0.04)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
         >
           <p className="text-ds-13 font-semibold mb-2 flex items-center gap-1.5" style={{ color: "hsl(var(--ink-deep))" }}>
-            <FileCheck2 className="w-4 h-4" strokeWidth={1.75} />
-            Need a COI?
+            <Lock className="w-4 h-4" strokeWidth={1.75} />
+            Escrow-secured payments
           </p>
           <p className="text-ds-11 text-muted-foreground leading-relaxed">
-            We issue Certificates of Insurance for property managers,
-            landlords, and procurement on request.
+            Payments are held in{" "}
+            <span className="font-semibold text-foreground">Stripe escrow</span>{" "}
+            until your team confirms the work is complete. No pay-before-you-see issues.
           </p>
-          <a
-            href="mailto:request@louisianahelpr.com?subject=Certificate%20of%20Insurance%20Request"
-            className="inline-flex items-center gap-1.5 text-ds-11 font-semibold mt-2 hover:underline"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            <Mail className="w-3.5 h-3.5" strokeWidth={2} />
-            request@louisianahelpr.com
-          </a>
+        </div>
+
+        <div
+          className="rounded-ds-md p-4"
+          style={{ background: "hsl(var(--bark) / 0.04)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
+        >
+          <p className="text-ds-13 font-semibold mb-2 flex items-center gap-1.5" style={{ color: "hsl(var(--ink-deep))" }}>
+            <FileText className="w-4 h-4" strokeWidth={1.75} />
+            W-9 / 1099 handling
+          </p>
+          <p className="text-ds-11 text-muted-foreground leading-relaxed">
+            We collect contractor W-9s and handle{" "}
+            <span className="font-semibold text-foreground">1099-K reporting</span>{" "}
+            through Stripe, so your AP team doesn't have to chase paperwork.
+          </p>
         </div>
       </div>
     </section>

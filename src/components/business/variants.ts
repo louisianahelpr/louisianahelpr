@@ -120,7 +120,7 @@ export const VARIANTS: Record<VariantKey, VariantConfig> = {
     subhead:
       "Schedule turnovers, lawn care, light repairs, and inspections across your whole portfolio from one dashboard.",
     features: [
-      { icon: ShieldCheck, text: "Background-checked turnover crews" },
+      { icon: ShieldCheck, text: "ID-verified turnover crews" },
       { icon: Users, text: "Assign jobs by unit or whole portfolio" },
       { icon: CreditCard, text: "One owner card — bill back per property" },
       { icon: Sparkles, text: "Recurring lawn care, pool, pest scheduling" },

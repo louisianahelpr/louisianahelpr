@@ -53,6 +53,7 @@ import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateL
 import { getActiveTriggers, type TriggerContext } from "@/lib/lifeEventTriggers";
 import { LifeEventCard } from "@/components/dashboard/LifeEventCard";
 import { AutopilotReminderCard } from "@/components/dashboard/AutopilotReminderCard";
+import { JobsForYou } from "@/components/dashboard/JobsForYou";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -1180,6 +1181,19 @@ const Dashboard = () => {
         </>
       }
     >
+            {/* Personalized "For you" recommendations — shown only to
+                approved helpers so pending/denied users don't see it.
+                Hides itself when the query returns 0 results or errors. */}
+            {approvalStatus === "approved" && (
+              <SectionBoundary label="jobs for you">
+                <JobsForYou
+                  userId={user?.id}
+                  profile={profile}
+                  effectiveFee={effectiveFee}
+                />
+              </SectionBoundary>
+            )}
+
             <BrowseTasksToolbar
               filters={filters}
               user={user}

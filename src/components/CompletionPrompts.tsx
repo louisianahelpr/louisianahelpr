@@ -1,5 +1,8 @@
 import { useState, useEffect, lazy, Suspense } from "react";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,10 +27,37 @@ type CompletionPromptsProps = {
   revieweeName: string;
   userId: string;
   onDone: () => void;
+  /** True when the current viewer is the helper (not the poster). */
+  isHelper?: boolean;
+  /** Category of the completed job — drives the "more work" suggestions. */
+  jobCategory?: Database["public"]["Enums"]["job_category"] | null;
 };
 
-export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, userId, onDone }: CompletionPromptsProps) => {
+export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, userId, onDone, isHelper = false, jobCategory }: CompletionPromptsProps) => {
   const [step, setStep] = useState<"review" | "tip" | "share" | "nps" | null>("review");
+
+  // "More work nearby" — only useful when the viewer is the helper.
+  // Fetches up to 3 open jobs in the same category once the share step opens.
+  const { data: nearbyJobs } = useQuery({
+    queryKey: ["more-work-nearby", jobId, jobCategory],
+    queryFn: async () => {
+      if (!jobCategory) return [];
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("id, title, budget, category")
+        .eq("status", "open")
+        .eq("category", jobCategory)
+        .neq("id", jobId)
+        .limit(3);
+      if (error) {
+        report(error, { tags: { source: "CompletionPrompts.nearbyJobs" } });
+        return [];
+      }
+      return data ?? [];
+    },
+    staleTime: 60_000,
+    enabled: isHelper && step === "share" && !!jobCategory,
+  });
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState("");
@@ -285,6 +315,32 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
               </div>
             ) : (
               <p className="text-ds-11 text-muted-foreground italic">Loading your invite link…</p>
+            )}
+
+            {/* More work nearby — only shown to helpers once the share step
+                loads. Gives them 1-2 open jobs in the same category so they
+                can jump straight from completion to the next opportunity. */}
+            {isHelper && nearbyJobs && nearbyJobs.length > 0 && (
+              <div className="pt-3 border-t border-border/40">
+                <p className="text-ds-12 font-medium text-foreground mb-2">
+                  More {jobCategory} work nearby
+                </p>
+                <div className="space-y-1.5">
+                  {nearbyJobs.slice(0, 2).map((j) => (
+                    <div key={j.id} className="flex items-center justify-between gap-2 text-ds-12">
+                      <span className="truncate text-muted-foreground">{j.title}</span>
+                      <Link
+                        to="/jobs"
+                        onClick={onDone}
+                        className="shrink-0 font-semibold"
+                        style={{ color: "hsl(var(--sage))" }}
+                      >
+                        ${j.budget} →
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
           <DialogFooter>

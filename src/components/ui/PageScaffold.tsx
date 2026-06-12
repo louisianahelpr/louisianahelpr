@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import AppShell from "@/components/AppShell";
 
 /**
@@ -102,6 +102,7 @@ export function PageScaffold({
   className,
   titleCardClassName,
 }: PageScaffoldProps) {
+  const reducedMotion = useReducedMotion();
   const titleCardClass = titleCardClassName
     ? `${TITLE_CARD_CLASS} ${titleCardClassName}`
     : TITLE_CARD_CLASS;
@@ -129,11 +130,20 @@ export function PageScaffold({
   // exact same opacity/translate/timing as the `ds-page-in` keyframe used
   // by the non-scaffold pages (PostJob etc.), so every screen enters the
   // same way instead of some pages staggering and others snapping.
-  const PAGE_IN = {
-    initial: { opacity: 0, y: 8 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
-  };
+  // When the user has Reduce Motion on, skip the translate and shorten the
+  // duration to a near-instant opacity crossfade so the page still "appears"
+  // without the y-movement.
+  const PAGE_IN = reducedMotion
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        transition: { duration: 0.12 },
+      }
+    : {
+        initial: { opacity: 0, y: 8 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
+      };
 
   const titleEl = !titleCard ? null : animate ? (
     <motion.div

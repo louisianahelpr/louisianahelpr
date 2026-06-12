@@ -164,12 +164,12 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[90vh] px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-16">
+    <section className="relative min-h-[90vh] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-16">
       {/* Status light — proof-of-life pill anchored to the top-right of the
           entire hero section. Pulsing glow halo (status-pill-glow) reads
           as a "live" heartbeat for the whole platform. */}
       <span
-        className="status-pill-glow absolute top-20 sm:top-24 lg:top-28 right-5 sm:right-8 lg:right-12 inline-flex items-center gap-2 px-3.5 py-2 rounded-full font-mono font-medium z-10"
+        className="status-pill-glow absolute top-14 sm:top-16 lg:top-20 right-5 sm:right-8 lg:right-12 inline-flex items-center gap-2 px-3.5 py-2 rounded-full font-mono font-medium z-10"
         style={{
           backgroundColor: "rgba(255, 255, 255, 0.5)",
           color: "hsl(var(--ink-deep))",
@@ -320,7 +320,7 @@ const HeroSection = () => {
               `min-w-0` for the same reason as the LEFT column — the inner
               `PhoneCluster` has fixed-width phone children whose min-content
               would otherwise stretch this grid track past the container. */}
-          <div className="md:col-span-5 md:mt-16 lg:mt-20 min-w-0">
+          <div className="md:col-span-5 md:mt-4 min-w-0">
             <PhoneCluster />
             {/* App Store badges — `flex-wrap` lets each pill drop onto its
                 own row on the tightest viewports (320 px iPhone-SE-1 and

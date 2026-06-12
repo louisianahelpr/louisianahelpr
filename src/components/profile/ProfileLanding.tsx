@@ -9,6 +9,7 @@ import {
   ShieldCheck, Trash2,
   BadgeCheck, Camera, Check,
   TrendingUp, MoreHorizontal, QrCode, Share2,
+  Users, Type, PawPrint,
 } from "lucide-react";
 import {
   Dialog,
@@ -81,6 +82,10 @@ interface ProfileLandingProps {
   onRetryStats?: () => void;
   /** Retries just the review-preview sub-section. */
   onRetryReviews?: () => void;
+  /** Whether senior mode is currently enabled for this profile. */
+  seniorMode?: boolean;
+  /** Called when the user toggles senior mode on/off. */
+  onToggleSeniorMode?: (enabled: boolean) => void;
 }
 
 export function ProfileLanding({
@@ -104,6 +109,8 @@ export function ProfileLanding({
   reviewsError = false,
   onRetryStats,
   onRetryReviews,
+  seniorMode = false,
+  onToggleSeniorMode,
 }: ProfileLandingProps) {
   // Recent work + reviews collapse into one disclosure so the hero
   // stays compact — they can make the card very tall on an
@@ -247,6 +254,22 @@ export function ProfileLanding({
           desc: "Email, password & login",
           tint: "var(--sage)",
           incompleteLabel: !phoneVerified ? "Verify phone" : undefined,
+        },
+        {
+          key: "family",
+          label: "Family & care",
+          icon: <Users className="w-5 h-5" />,
+          desc: "Manage jobs for a family member",
+          tint: "var(--stormy-sky)",
+          href: "/family",
+        },
+        {
+          key: "pets",
+          label: "My Pets",
+          icon: <PawPrint className="w-5 h-5" />,
+          desc: "Pet profiles, vet notes & evacuation",
+          tint: "var(--sage)",
+          href: "/pets",
         },
       ],
     },
@@ -1074,6 +1097,62 @@ export function ProfileLanding({
               )}
             </div>
           </section>
+
+          {/* Senior mode toggle — enlarges text and tap targets for
+              users who prefer larger UI elements. Lives above the
+              destructive footer actions so it's easy to find but
+              clearly distinct from navigation rows. */}
+          {onToggleSeniorMode && (
+            <section>
+              <div className="rounded-ds-lg liquid-glass overflow-hidden">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={seniorMode}
+                  onClick={() => onToggleSeniorMode(!seniorMode)}
+                  className="glass-press w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="shrink-0">
+                      <div
+                        className="w-10 h-10 rounded-ds-md flex items-center justify-center"
+                        style={{
+                          background: "hsl(var(--stormy-sky) / 0.12)",
+                          color: "hsl(var(--stormy-sky))",
+                        }}
+                      >
+                        <Type className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-ds-13 font-semibold text-foreground leading-tight">
+                        Senior mode
+                      </p>
+                      <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">
+                        Larger text and bigger tap targets
+                      </p>
+                    </div>
+                  </div>
+                  {/* Toggle pill */}
+                  <div
+                    className="shrink-0 w-11 h-6 rounded-full relative transition-colors duration-200"
+                    style={{
+                      background: seniorMode
+                        ? "hsl(var(--stormy-sky))"
+                        : "hsl(var(--sand) / 0.8)",
+                    }}
+                  >
+                    <div
+                      className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200"
+                      style={{
+                        transform: seniorMode ? "translateX(22px)" : "translateX(2px)",
+                      }}
+                    />
+                  </div>
+                </button>
+              </div>
+            </section>
+          )}
 
           {/* Account actions — two stacked pills of the same shape so the
               footer reads as a finished pair. Sign out is a soft muted

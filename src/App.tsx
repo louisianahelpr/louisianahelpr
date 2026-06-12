@@ -26,6 +26,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { useSoftUpdatePrompt } from "@/hooks/useSoftUpdatePrompt";
 const ForceUpdate = lazy(() => import("@/components/ForceUpdate"));
@@ -87,8 +88,13 @@ const BusinessExports = lazy(() => import("./pages/business/BusinessExports"));
 const BusinessOnboarding = lazy(() => import("./pages/business/BusinessOnboarding"));
 const BusinessReports = lazy(() => import("./pages/business/BusinessReports"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
+const PetProfiles = lazy(() => import("./pages/PetProfiles"));
+const EvacuationMode = lazy(() => import("./pages/EvacuationMode"));
 
 // Lazy load less-critical global components
+
+const FamilyDashboard = lazy(() => import("./pages/FamilyDashboard"));
+const FamilyAcceptPage = lazy(() => import("./pages/FamilyAcceptPage"));
 
 const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 
@@ -177,6 +183,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/availability" element={<Navigate to="/profile?tab=availability" replace />} />
       <Route path="/saved-helpers" element={<Navigate to="/profile?tab=saved_helpers" replace />} />
       <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SubscriptionPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -185,6 +193,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/business/exports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessExports /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessOnboarding /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/reports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessReports /></ProtectedRoute>)}</RouteErrorBoundary>} />
+
+      <Route path="/pets" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PetProfiles /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/evacuation" element={<RouteErrorBoundary>{routeEl(<PageTransition><EvacuationMode /></PageTransition>)}</RouteErrorBoundary>} />
 
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
       {/* Legacy paths surfaced by 404s in error_logs (external links, old
@@ -246,6 +257,15 @@ const SessionManager = () => {
   useCppVariantRouter();
   useAppShellViewport();
   useStatusBarStyle();
+
+  // Apply senior-mode CSS class on <html> whenever the loaded profile
+  // has senior_mode enabled (e.g. after sign-in or a page refresh).
+  const { profile } = useCurrentUser();
+  useEffect(() => {
+    const enabled = !!(profile as unknown as { senior_mode?: boolean })?.senior_mode;
+    document.documentElement.classList.toggle("senior-mode", enabled);
+  }, [profile]);
+
   return null;
 };
 

@@ -62,6 +62,9 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
   "/community",    // Community feed (PageHeader + min-h-screen document-scroll)
   "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
+  "/pets",        // Pet profiles (PageHeader + min-h-screen document-scroll)
+  "/evacuation",  // Disaster evacuation mode (PageHeader + min-h-screen document-scroll)
+  "/family",      // Family & care dashboard + accept-invite (min-h-screen document-scroll)
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

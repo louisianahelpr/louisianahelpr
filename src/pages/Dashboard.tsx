@@ -325,6 +325,7 @@ const Dashboard = () => {
     return getActiveTriggers(ctx)[0] ?? null;
   }, [user?.id, allJobs, profile?.created_at, profile?.location, profile?.parish, lifeEventDismissedAt]);
 
+
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");
@@ -1005,6 +1006,7 @@ const Dashboard = () => {
               onDismiss={() => setLifeEventDismissedAt(Date.now())}
             />
           )}
+
 
           {/* Hurricane season banner — June–Nov only, dismissible for the day. */}
           {showStormBanner && (

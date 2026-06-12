@@ -45,6 +45,7 @@ export const categories = Object.entries(categoryLabels).map(([value, label]) =>
  *   other       → warm stone       (neutral default)
  */
 export const categoryColors: Record<string, { badge: string; title: string; dot: string }> = {
+<<<<<<< HEAD
   cleaning:   { badge: "bg-[hsl(180_30%_94%)] text-[hsl(182_26%_33%)] border-[hsl(180_22%_80%)]",  title: "text-[hsl(182_26%_33%)]", dot: "bg-[hsl(182_28%_44%)]" },
   yard_work:  { badge: "bg-[hsl(140_28%_94%)] text-[hsl(142_28%_31%)] border-[hsl(140_22%_78%)]",  title: "text-[hsl(142_28%_31%)]", dot: "bg-[hsl(142_30%_40%)]" },
   moving:     { badge: "bg-[hsl(38_46%_93%)] text-[hsl(32_42%_37%)] border-[hsl(36_38%_78%)]",     title: "text-[hsl(32_42%_37%)]",  dot: "bg-[hsl(34_44%_47%)]" },
@@ -54,7 +55,8 @@ export const categoryColors: Record<string, { badge: string; title: string; dot:
   delivery:   { badge: "bg-[hsl(214_34%_94%)] text-[hsl(214_28%_42%)] border-[hsl(214_26%_82%)]",  title: "text-[hsl(214_28%_42%)]", dot: "bg-[hsl(214_30%_51%)]" },
   pet_care:   { badge: "bg-[hsl(278_26%_94%)] text-[hsl(278_22%_48%)] border-[hsl(278_22%_84%)]",  title: "text-[hsl(278_22%_48%)]", dot: "bg-[hsl(278_24%_57%)]" },
   assembly:   { badge: "bg-[hsl(6_44%_94%)] text-[hsl(6_40%_46%)] border-[hsl(6_36%_84%)]",        title: "text-[hsl(6_40%_46%)]",   dot: "bg-[hsl(6_42%_53%)]" },
-  storm_prep: { badge: "bg-[hsl(220_30%_94%)] text-[hsl(218_28%_38%)] border-[hsl(220_24%_80%)]",  title: "text-[hsl(218_28%_38%)]", dot: "bg-[hsl(220_28%_48%)]" },
+  // storm_prep → steel blue (storm / weather — distinct from delivery's slate)
+  storm_prep: { badge: "bg-[hsl(210_30%_92%)] text-[hsl(210_28%_38%)] border-[hsl(210_24%_78%)]", title: "text-[hsl(210_28%_38%)]", dot: "bg-[hsl(210_30%_47%)]" },
   events:     { badge: "bg-[hsl(45_48%_93%)] text-[hsl(42_44%_36%)] border-[hsl(44_40%_78%)]",     title: "text-[hsl(42_44%_36%)]",  dot: "bg-[hsl(43_46%_46%)]" },
   other:      { badge: "bg-[hsl(40_14%_92%)] text-[hsl(40_9%_42%)] border-[hsl(40_12%_80%)]",      title: "text-[hsl(40_9%_42%)]",   dot: "bg-[hsl(40_10%_55%)]" },
 };

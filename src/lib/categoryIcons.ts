@@ -39,6 +39,7 @@ import {
   Package,
   PawPrint,
   Hammer,
+  CloudLightning,
   MoreHorizontal,
   Briefcase,
   CloudLightning,

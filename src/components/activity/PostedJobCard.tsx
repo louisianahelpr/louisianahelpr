@@ -1,6 +1,7 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrustRow } from "@/components/TrustRow";
+import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -123,6 +124,7 @@ function PostedJobCardInner({
   onActionComplete,
 }: PostedJobCardProps) {
   const navigate = useNavigate();
+  const [completionSheetOpen, setCompletionSheetOpen] = useState(false);
   const meta = completedJobMeta[job.id];
   const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
   const isExpanded = expandedJobId === job.id;
@@ -710,31 +712,51 @@ function PostedJobCardInner({
                           variant="warning"
                         />
                       )}
-                      {/* Approve & Complete (primary) — only after helper marks done */}
+                      {/* Approve & Complete (primary) — only after helper marks done.
+                          Opens the two-path CompletionChoiceSheet so the poster
+                          can either confirm ("looks great") or request a revision
+                          before escrow releases. */}
                       {job.helper_completed_at && (
-                        <Button
-                          size="sm"
-                          className="w-full rounded-ds-md"
-                          onClick={() => onComplete(job.id)}
-                          disabled={completingJobId === job.id || !!job.poster_completed_at}
-                          style={
-                            !job.poster_completed_at
-                              ? {
-                                  background: "hsl(var(--bark))",
-                                  backgroundImage: "none",
-                                  border: "1px solid hsl(var(--bark))",
-                                  color: "hsl(var(--parchment))",
-                                  fontFamily: "Montserrat, system-ui, sans-serif",
-                                  fontWeight: 600,
-                                  letterSpacing: "0.01em",
-                                  boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
-                                }
-                              : undefined
-                          }
-                        >
-                          <CheckCircle2 className="w-4 h-4 mr-1" />
-                          {completingJobId === job.id ? "…" : job.poster_completed_at ? "Approved" : "Approve & release payment"}
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            className="w-full rounded-ds-md"
+                            onClick={() => {
+                              if (!job.poster_completed_at) {
+                                setCompletionSheetOpen(true);
+                              }
+                            }}
+                            disabled={completingJobId === job.id || !!job.poster_completed_at}
+                            style={
+                              !job.poster_completed_at
+                                ? {
+                                    background: "hsl(var(--bark))",
+                                    backgroundImage: "none",
+                                    border: "1px solid hsl(var(--bark))",
+                                    color: "hsl(var(--parchment))",
+                                    fontFamily: "Montserrat, system-ui, sans-serif",
+                                    fontWeight: 600,
+                                    letterSpacing: "0.01em",
+                                    boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                                  }
+                                : undefined
+                            }
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            {completingJobId === job.id ? "…" : job.poster_completed_at ? "Approved" : "Approve & release payment"}
+                          </Button>
+                          <CompletionChoiceSheet
+                            open={completionSheetOpen}
+                            jobId={job.id}
+                            jobTitle={job.title}
+                            helperId={job.helper_id}
+                            helperName={job.helper_id ? (helperNames[job.helper_id] || "Helpr") : "Helpr"}
+                            userId={userId}
+                            onClose={() => setCompletionSheetOpen(false)}
+                            onConfirm={() => onComplete(job.id)}
+                            onRevisionSubmitted={onActionComplete}
+                          />
+                        </>
                       )}
                       {/* Message — primary action while work is in progress */}
                       <Button

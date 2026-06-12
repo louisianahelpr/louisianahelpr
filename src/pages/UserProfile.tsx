@@ -382,6 +382,32 @@ const UserProfile = () => {
     },
   });
 
+  // "No disputes on record" trust signal — check whether any dispute
+  // has been opened by this user via the new job_disputes table.
+  // Wrapped in a separate query so a PGRST202 (table not yet deployed)
+  // just hides the badge rather than blocking the whole profile load.
+  const { data: disputeCheckData } = useQuery({
+    queryKey: ["user_dispute_count", userId],
+    enabled: !!userId && !!data?.profile,
+    staleTime: 2 * 60_000,
+    queryFn: async () => {
+      try {
+        const { count, error } = await supabase
+          .from("job_disputes")
+          .select("id", { count: "exact", head: true })
+          .eq("opened_by", userId!);
+        // PGRST202 = table not deployed yet — hide badge silently.
+        if (error) return null;
+        return { count: count ?? 0 };
+      } catch {
+        return null;
+      }
+    },
+  });
+  // Derive the clean-record flag: null = query not done or failed
+  // (hide the badge), 0 = no disputes opened by this user (show signal).
+  const hasCleanRecord = disputeCheckData?.count === 0;
+
   const profile = (data?.profile ?? null) as Profile | null;
   const reviews = (data?.reviews ?? []) as Array<{ rating: number; punctuality: number | null; quality: number | null; communication: number | null; feedback: string | null; created_at: string; reviewerName: string; jobTitle: string; jobCategory: string | null }>;
   const stats = data?.stats ?? { completedJobs: 0, avgRating: 0, reviewCount: 0 };
@@ -892,6 +918,22 @@ const UserProfile = () => {
                   </span>
                   <span>cancel rate</span>
                   <span style={{ color: "hsl(var(--olivewood) / 0.45)" }}>· {cancellationRate.cancelled}/{cancellationRate.total} jobs</span>
+                </div>
+              )}
+              {/* "No disputes on record" trust signal — shown only when
+                  the dispute count query confirms 0 disputes. Hidden
+                  while the query is loading (to avoid flash of "clean"
+                  for accounts with disputes), and hidden entirely on
+                  own profile (already seeing yours). PGRST202 = table
+                  not deployed → query returns null → badge stays hidden. */}
+              {!isOwnProfile && hasCleanRecord && (
+                <div className="flex items-center justify-center mt-1.5">
+                  <span
+                    className="font-serif italic"
+                    style={{ fontSize: "0.78rem", color: "hsl(155 50% 35%)" }}
+                  >
+                    ✓ No disputes on record
+                  </span>
                 </div>
               )}
               {profile.phone && (

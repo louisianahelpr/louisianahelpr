@@ -109,10 +109,11 @@ export function RecommendedJobCardSkeleton() {
             <Skeleton className="h-2.5 w-8 rounded" style={{ background: "hsl(var(--olivewood) / 0.09)" }} />
           </div>
         </div>
-        {/* Price tile — slightly taller (with "You earn" caption + urgent
-            bonus line under the figure on real recommended cards). */}
+        {/* Price chip — compact, matching the real card's px-2.5 py-1.5
+            amount tile. Kept small on purpose: a larger box read like a
+            photo thumbnail, which the feed cards don't have. */}
         <div className="shrink-0">
-          <Skeleton className="h-14 w-16 rounded-ds-md" style={{ background: "hsl(var(--bark) / 0.12)" }} />
+          <Skeleton className="h-11 w-[52px] rounded-ds-md" style={{ background: "hsl(var(--bark) / 0.12)" }} />
         </div>
       </div>
     </div>
@@ -157,7 +158,7 @@ export function NearbyJobCardSkeleton() {
           </div>
         </div>
         <div className="shrink-0">
-          <Skeleton className="h-12 w-16 rounded-ds-md" style={{ background: "hsl(var(--bark) / 0.10)" }} />
+          <Skeleton className="h-11 w-[52px] rounded-ds-md" style={{ background: "hsl(var(--bark) / 0.10)" }} />
         </div>
       </div>
     </div>
@@ -195,7 +196,7 @@ export function RecentJobCardSkeleton() {
           </div>
         </div>
         <div className="shrink-0">
-          <Skeleton className="h-11 w-14 rounded-ds-md" style={{ background: "hsl(var(--bark) / 0.10)" }} />
+          <Skeleton className="h-10 w-[50px] rounded-ds-md" style={{ background: "hsl(var(--bark) / 0.10)" }} />
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -6,37 +6,16 @@ import { hapticError, hapticLight } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, SearchX } from "lucide-react";
+import { Send } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { VirtualList } from "@/components/VirtualList";
 import { type Application, type AppliedApp, type Job } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
-import { ListFilterBar, type StatusChip } from "./ListFilterBar";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
 import { bucketAppliedApp } from "@/pages/activity/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
 import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdrawAnalytics";
-
-/** Status chips for the helper's applications list — collapses the raw
- *  application/job status pair into the four states a helper thinks in. */
-const APPLIED_STATUS_CHIPS: StatusChip[] = [
-  { value: "applied", label: "Applied" },
-  { value: "active", label: "Active" },
-  { value: "completed", label: "Completed" },
-  { value: "closed", label: "Closed" },
-];
-
-/** Bucket an application into one of the chip values above. */
-function appliedBucket(app: AppliedApp): string {
-  if (app.status === "pending") return "applied";
-  if (app.status === "rejected") return "closed";
-  const jobStatus = app.job?.status;
-  if (jobStatus === "cancelled") return "closed";
-  if (jobStatus === "completed") return "completed";
-  if (app.status === "accepted") return "active";
-  return "applied";
-}
 
 interface AppliedJobsTabProps {
   apps: AppliedApp[];
@@ -61,8 +40,9 @@ interface AppliedJobsTabProps {
   onRefresh: () => void;
   /** When true, render items grouped into collapsible Active /
    *  Completed / Closed sections instead of a flat virtualized list.
-   *  Driven by the page-level "All" status filter; hides the in-tab
-   *  ListFilterBar in that mode. */
+   *  Driven by the page-level "All" status filter. The page's outer
+   *  header (ActivityHeader) is the sole source of truth for filter +
+   *  search in both modes. */
   groupByStatus?: boolean;
 }
 
@@ -74,9 +54,6 @@ export const AppliedJobsTab = ({
   groupByStatus = false,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
-  // Client-side search + status filter over the already-loaded list.
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [disputeResponse, setDisputeResponse] = useState("");
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
@@ -150,20 +127,6 @@ export const AppliedJobsTab = ({
     else toast.success("Attachment removed");
   }, []);
 
-  const filteredApps = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return apps.filter((app) => {
-      if (statusFilter !== "all" && appliedBucket(app) !== statusFilter) return false;
-      if (!q) return true;
-      const job = app.job;
-      return (
-        (job?.title ?? "").toLowerCase().includes(q) ||
-        (job?.category ?? "").toLowerCase().includes(q) ||
-        (job?.location ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [apps, searchQuery, statusFilter]);
-
   // One source of truth for the per-row render so both the flat
   // VirtualList view and the grouped Sectioned view paint identical
   // cards.
@@ -235,9 +198,11 @@ export const AppliedJobsTab = ({
     );
   }
 
-  // Grouped view — driven by the page's "All" status filter. Uses
-  // "Closed" as the third-section label since helper-side rejections
-  // and cancelled jobs collapse into the same bucket.
+  // The page header (ActivityHeader) owns the only search + status
+  // filter — both modes render the already-filtered list. "All" routes
+  // through the grouped Sectioned view ("Closed" labels the third
+  // section since helper-side rejections and cancelled jobs collapse
+  // into one bucket); a specific status renders a flat list.
   const listView = groupByStatus ? (
     <ActivitySectionedView
       tab="applied"
@@ -248,34 +213,14 @@ export const AppliedJobsTab = ({
       labels={{ cancelled: "Closed" }}
     />
   ) : (
-    <>
-      <ListFilterBar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        chips={APPLIED_STATUS_CHIPS}
-        searchPlaceholder="Search your applications…"
-      />
-
-      {filteredApps.length === 0 ? (
-        <EmptyState
-          variant="inline"
-          icon={SearchX}
-          title="No matches in this view"
-          body="Nothing here fits that search or filter yet — try a different word or clear the filter to see everything."
-        />
-      ) : (
-      <VirtualList
-        items={filteredApps}
-        getKey={(app) => app.id}
-        estimateSize={260}
-        overscan={4}
-        itemClassName="pb-3"
-        renderItem={renderAppliedCard}
-      />
-      )}
-    </>
+    <VirtualList
+      items={apps}
+      getKey={(app) => app.id}
+      estimateSize={260}
+      overscan={4}
+      itemClassName="pb-3"
+      renderItem={renderAppliedCard}
+    />
   );
 
   return (

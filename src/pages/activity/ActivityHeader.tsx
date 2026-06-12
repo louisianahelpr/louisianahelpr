@@ -97,81 +97,65 @@ export function ActivityHeader({
                     )}
                   </button>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-60 p-2">
-                  <p
-                    className="font-serif italic uppercase px-2 pt-1 pb-2"
+                <PopoverContent
+                  align="end"
+                  sideOffset={8}
+                  collisionPadding={{ bottom: 96, top: 12, left: 12, right: 12 }}
+                  className="w-[min(92vw,340px)] rounded-2xl squircle border border-border/40 ring-1 ring-border/20 shadow-2xl bg-background dark:bg-card p-0 overflow-hidden"
+                >
+                  <div
+                    className="max-h-[min(60vh,calc(100dvh-9rem))] overflow-y-auto overscroll-contain p-3"
                     style={{
-                      fontSize: "0.62rem",
-                      color: "hsl(var(--burnt-sienna) / 0.78)",
-                      letterSpacing: "0.18em",
+                      WebkitMaskImage:
+                        "linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%)",
+                      maskImage:
+                        "linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%)",
                     }}
                   >
-                    Filter by status
-                  </p>
-                  <div className="grid grid-cols-1 gap-0.5">
-                    {activeStatusFilters.map((f) => {
-                      const count = activeCounts[f.key] || 0;
-                      const isActive = statusFilter === f.key;
-                      // Status-color dot — matches the chip-color logic
-                      // each filter ships with so the dropdown reads as
-                      // a legend, not just a flat list.
-                      const dotColor =
-                        f.key === "in_progress"
-                          ? "hsl(var(--burnt-sienna))"
-                          : f.key === "completed"
-                            ? "hsl(var(--bark))"
-                            : f.key === "cancelled"
-                              ? "hsl(var(--destructive))"
-                              : f.key === "accepted"
-                                ? "hsl(var(--bark))"
-                                : f.key === "direct_offer"
-                                  ? "hsl(var(--gold-warm))"
-                                  : "hsl(var(--olivewood) / 0.5)";
-                      return (
-                        <button
-                          key={f.key}
-                          onClick={() => { hapticLight(); setStatusFilter(f.key); setFilterOpen(false); }}
-                          className="flex items-center justify-between w-full px-2.5 py-2 rounded-ds-md text-ds-13 transition active:scale-[0.99]"
-                          style={
-                            isActive
-                              ? {
-                                  background: "hsl(var(--bark))",
-                                  color: "hsl(var(--parchment))",
-                                  fontWeight: 600,
-                                  boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
-                                }
-                              : {
-                                  color: "hsl(var(--ink-deep))",
-                                  fontWeight: 500,
-                                }
-                          }
-                        >
-                          <span className="inline-flex items-center gap-2 min-w-0">
-                            <span
-                              className="shrink-0 w-1.5 h-1.5 rounded-full"
-                              style={{
-                                background: isActive ? "hsl(var(--parchment) / 0.85)" : dotColor,
-                              }}
-                            />
+                    <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+                      Filter by status
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {activeStatusFilters.map((f) => {
+                        const count = activeCounts[f.key] || 0;
+                        const isActive = statusFilter === f.key;
+                        return (
+                          <button
+                            key={f.key}
+                            onClick={() => { hapticLight(); setStatusFilter(f.key); setFilterOpen(false); }}
+                            className="inline-flex items-center justify-center gap-1.5 w-full px-2 h-9 rounded-ds-md squircle border text-ds-11 font-semibold tracking-tight transition-all btn-press active:scale-[0.98]"
+                            style={
+                              isActive
+                                ? {
+                                    background: "hsl(var(--bark))",
+                                    color: "hsl(var(--parchment))",
+                                    borderColor: "hsl(var(--bark))",
+                                    boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                                  }
+                                : {
+                                    background: "hsl(var(--background))",
+                                    color: "hsl(var(--ink-deep))",
+                                    borderColor: "hsl(var(--border) / 0.6)",
+                                  }
+                            }
+                          >
                             <span className="truncate">{f.label}</span>
-                          </span>
-                          {count > 0 && (
-                            // Count pill — rounded-ds-pill aligns with the
-                            // StatusBadge + HelperBadge radius system.
-                            <span
-                              className="text-ds-10 tabular-nums font-semibold shrink-0 ml-2 px-2 py-[2px] rounded-ds-pill leading-none min-h-[18px] inline-flex items-center"
-                              style={
-                                isActive
-                                  ? { background: "hsl(var(--parchment) / 0.18)", color: "hsl(var(--parchment))" }
-                                  : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.85)" }
-                              }
-                            >
-                              {count}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
+                            {count > 0 && (
+                              <span
+                                className="text-ds-10 tabular-nums font-semibold shrink-0 px-1.5 py-[1px] rounded-ds-pill leading-none inline-flex items-center"
+                                style={
+                                  isActive
+                                    ? { background: "hsl(var(--parchment) / 0.18)", color: "hsl(var(--parchment))" }
+                                    : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.85)" }
+                                }
+                              >
+                                {count}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </PopoverContent>
               </Popover>

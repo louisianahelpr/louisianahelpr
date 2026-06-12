@@ -27,6 +27,7 @@ import ImpersonationBanner from "@/components/ImpersonationBanner";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDarkMode } from "@/hooks/useDarkMode";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { useSoftUpdatePrompt } from "@/hooks/useSoftUpdatePrompt";
 const ForceUpdate = lazy(() => import("@/components/ForceUpdate"));
@@ -286,6 +287,7 @@ const SessionManager = () => {
   useSoftUpdatePrompt();
   useAppLifecycle();
   useDynamicTypeSync();
+  useDarkMode(); // initializes data-theme from localStorage / system preference
   useCppVariantRouter();
   useAppShellViewport();
   useStatusBarStyle();

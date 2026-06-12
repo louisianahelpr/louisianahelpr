@@ -146,6 +146,163 @@
     0 1px 2px rgba(20, 20, 18, 0.04),
     0 12px 24px -6px rgba(20, 20, 18, 0.08),
     0 32px 64px -16px rgba(20, 20, 18, 0.12);
+
+  /* Glass surface tokens — structural components reference these so dark
+     mode can swap them in one place without touching every inline style. */
+  --glass-bg:        hsla(0, 0%, 100%, 0.55);
+  --glass-bg-soft:   hsla(0, 0%, 100%, 0.42);
+  --glass-bg-strong: hsla(0, 0%, 100%, 0.75);
+  --glass-bg-crisp:  hsl(40 30% 99% / 0.97);
+  --glass-bg-title:  hsl(40 30% 99% / 0.85);
+  --glass-border:    hsl(var(--bark) / 0.18);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   DARK MODE TOKEN OVERRIDES
+   Applied via `data-theme="dark"` on <html> (set by useDarkMode hook).
+   Every colour token from :root is re-declared here with a dark
+   equivalent. The shadow & typography tokens are intentionally NOT
+   redeclared — they look fine on dark backgrounds without changes.
+   ───────────────────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  /* Core brand palette — dark equivalents */
+  --parchment:    20 15% 9%;    /* very dark warm near-black page canvas */
+  --ivory-sand:   20 12% 13%;   /* dark warm card surface, lighter than page */
+  --sand:         30 10% 24%;   /* muted border / quiet surface */
+  --olive:        78 15% 42%;   /* secondary green — lightened for dark bg */
+  --sage:         78 12% 60%;   /* primary accent — noticeably lighter */
+  --bark:         72 22% 52%;   /* deep olive lightened for legibility */
+  --olivewood:    36 15% 80%;   /* primary text — near-white warm */
+  --burnt-sienna: 19 65% 52%;   /* warm accent — slightly brighter on dark */
+  --stormy-sky:   198 14% 60%;  /* muted-foreground — lightened for dark bg */
+  --gold-warm:    38 55% 56%;   /* antique gold — slightly brighter */
+
+  /* shadcn-style aliases — remapped to the dark brand values */
+  --background:           var(--parchment);
+  --foreground:           var(--olivewood);
+  --card:                 var(--ivory-sand);
+  --card-foreground:      var(--olivewood);
+  --popover:              20 12% 15%;
+  --popover-foreground:   var(--olivewood);
+  --muted:                var(--sand);
+  --muted-foreground:     var(--stormy-sky);
+  --secondary:            var(--sand);
+  --secondary-foreground: var(--olivewood);
+  --border:               30 10% 28%;
+  --input:                var(--ivory-sand);
+  --accent:               var(--burnt-sienna);
+  --accent-foreground:    0 0% 100%;
+  --primary:              var(--bark);
+  --primary-foreground:   var(--parchment);
+  --ring:                 var(--bark);
+  --success:              110 12% 50%;
+  --success-foreground:   0 0% 100%;
+  --warning:              33 26% 60%;
+  --warning-foreground:   0 0% 100%;
+  --error:                0 18% 55%;
+  --error-foreground:     0 0% 100%;
+  --info:                 78 12% 55%;
+  --info-foreground:      0 0% 100%;
+  --destructive:          0 18% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --sidebar-background:   var(--parchment);
+  --sidebar-foreground:   var(--olivewood);
+  --sidebar-primary:      var(--sage);
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent:       var(--sand);
+  --sidebar-accent-foreground: var(--olivewood);
+  --sidebar-border:       30 10% 28%;
+  --sidebar-ring:         var(--sage);
+
+  /* Legacy alias tokens */
+  --ink-deep:       36 15% 85%;          /* headline text — near-white warm */
+  --oak-deep:       var(--olivewood);
+  --oak-foreground: var(--parchment);
+  --heritage-gold:  var(--burnt-sienna);
+  --jasper-green:   var(--bark);
+  --jasper-deep:    var(--olivewood);
+  --copper:         var(--bark);
+
+  /* Dark card elevation — invert the shadow tint to be lighter not darker */
+  --card-shadow:
+    0 1px 2px hsl(0 0% 0% / 0.25),
+    0 10px 22px -8px hsl(0 0% 0% / 0.35),
+    0 26px 50px -18px hsl(0 0% 0% / 0.28);
+  --card-hover-shadow:
+    0 2px 5px hsl(0 0% 0% / 0.30),
+    0 16px 32px -8px hsl(0 0% 0% / 0.40),
+    0 34px 64px -18px hsl(0 0% 0% / 0.35);
+
+  /* Glass surface tokens for dark mode */
+  --glass-bg:        hsla(0, 0%, 8%, 0.65);
+  --glass-bg-soft:   hsla(0, 0%, 7%, 0.55);
+  --glass-bg-strong: hsla(0, 0%, 12%, 0.80);
+  --glass-bg-crisp:  hsl(20 12% 13% / 0.97);
+  --glass-bg-title:  hsl(20 12% 13% / 0.85);
+  --glass-border:    hsl(var(--bark) / 0.25);
+}
+
+/* Dark mode page gradients */
+[data-theme="dark"] .bg-premium-page,
+[data-theme="dark"] .page-warmth {
+  background-color: hsl(var(--parchment));
+  background-image:
+    linear-gradient(
+      160deg,
+      hsl(20 15% 8%) 0%,
+      hsl(25 12% 11%) 40%,
+      hsl(200 15% 10%) 100%
+    );
+}
+
+/* Dark mode glass utilities */
+[data-theme="dark"] .glass {
+  background: rgba(10, 10, 8, 0.75);
+}
+
+[data-theme="dark"] .glass-header {
+  border-bottom-color: hsla(0, 0%, 100%, 0.06);
+  background-color: hsl(20 15% 9% / 0.82);
+}
+
+[data-theme="dark"] .glass-nav {
+  background-color: hsl(var(--parchment) / 0.82);
+}
+
+[data-theme="dark"] .glass-nav.is-scrolled {
+  background: hsl(20 14% 11%);
+}
+
+[data-theme="dark"] .glass-modal {
+  border-color: hsla(0, 0%, 100%, 0.08);
+  background-color: hsl(20 12% 13% / 0.92);
+}
+
+[data-theme="dark"] .glass-island {
+  background-color: hsl(var(--parchment) / 0.88);
+}
+
+[data-theme="dark"] .liquid-glass {
+  background-color: var(--glass-bg-soft);
+  border-color: var(--glass-border);
+}
+
+[data-theme="dark"] .skeleton-glass {
+  background-color: hsla(0, 0%, 8%, 0.55);
+  border-color: hsla(0, 0%, 100%, 0.07);
+}
+
+[data-theme="dark"] .section-linen {
+  background-color: hsla(0, 0%, 8%, 0.45);
+  border-color: hsla(0, 0%, 100%, 0.06);
+}
+
+[data-theme="dark"] :where(.bg-card) {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border) / 0.7);
+  box-shadow:
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.06),
+    var(--card-shadow);
 }
 
 /* iOS Safe Area Support

@@ -397,11 +397,11 @@ const JobDetailDialog = ({
                 <span
                   className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold"
                   style={{
-                    backgroundColor: "hsla(0, 0%, 100%, 0.85)",
+                    backgroundColor: "var(--glass-bg-strong)",
                     backdropFilter: "blur(12px) saturate(150%)",
                     WebkitBackdropFilter: "blur(12px) saturate(150%)",
                     color: "hsl(var(--ink-deep))",
-                    border: "0.5px solid hsla(0, 0%, 100%, 0.6)",
+                    border: "0.5px solid var(--glass-border)",
                     boxShadow: "0 1px 4px hsl(var(--bark) / 0.18)",
                   }}
                 >
@@ -423,11 +423,11 @@ const JobDetailDialog = ({
                 aria-label="View all photos in a grid"
                 className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold uppercase tracking-[0.05em] transition-transform active:scale-95 hover:scale-105"
                 style={{
-                  backgroundColor: "hsla(0, 0%, 100%, 0.85)",
+                  backgroundColor: "var(--glass-bg-strong)",
                   backdropFilter: "blur(12px) saturate(150%)",
                   WebkitBackdropFilter: "blur(12px) saturate(150%)",
                   color: "hsl(var(--ink-deep))",
-                  border: "0.5px solid hsla(0, 0%, 100%, 0.6)",
+                  border: "0.5px solid var(--glass-border)",
                   boxShadow: "0 1px 4px hsl(var(--bark) / 0.18)",
                 }}
               >
@@ -514,10 +514,10 @@ const JobDetailDialog = ({
           <div
             className="rounded-ds-md px-3.5 py-2.5"
             style={{
-              backgroundColor: "hsla(0, 0%, 100%, 0.45)",
+              backgroundColor: "var(--glass-bg-soft)",
               backdropFilter: "blur(18px) saturate(160%)",
               WebkitBackdropFilter: "blur(18px) saturate(160%)",
-              border: "0.5px solid hsla(0, 0%, 100%, 0.5)",
+              border: "0.5px solid var(--glass-border)",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
                 "0 1px 2px hsl(var(--olivewood) / 0.05)",
@@ -630,12 +630,12 @@ const JobDetailDialog = ({
                   {...wrapperProps}
                   className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
                   style={{
-                    backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "hsla(0, 0%, 100%, 0.45)",
+                    backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "var(--glass-bg-soft)",
                     backdropFilter: "blur(18px) saturate(160%)",
                     WebkitBackdropFilter: "blur(18px) saturate(160%)",
                     border: urgent
                       ? "0.5px solid hsl(var(--accent) / 0.45)"
-                      : "0.5px solid hsla(0, 0%, 100%, 0.5)",
+                      : "0.5px solid var(--glass-border)",
                     boxShadow:
                       "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
                       (urgent
@@ -749,10 +749,10 @@ const JobDetailDialog = ({
             className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={() => { onReport(job.id); onClose(); }}
             style={{
-              backgroundColor: "hsla(0, 0%, 100%, 0.32)",
+              backgroundColor: "var(--glass-bg-soft)",
               backdropFilter: "blur(20px) saturate(150%)",
               WebkitBackdropFilter: "blur(20px) saturate(150%)",
-              border: "0.5px solid hsla(0, 0%, 100%, 0.4)",
+              border: "0.5px solid var(--glass-border)",
               color: "hsl(var(--olivewood) / 0.6)",
               boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04), 0 0 0 0 hsl(var(--burnt-sienna) / 0.0)",
               transition: "all 0.2s ease, box-shadow 0.3s ease",
@@ -778,10 +778,10 @@ const JobDetailDialog = ({
               className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
               onClick={() => onToggleSave(job.id, !isSaved)}
               style={{
-                backgroundColor: isSaved ? "hsl(var(--primary) / 0.12)" : "hsla(0, 0%, 100%, 0.32)",
+                backgroundColor: isSaved ? "hsl(var(--primary) / 0.12)" : "var(--glass-bg-soft)",
                 backdropFilter: "blur(20px) saturate(150%)",
                 WebkitBackdropFilter: "blur(20px) saturate(150%)",
-                border: isSaved ? "0.5px solid hsl(var(--primary) / 0.4)" : "0.5px solid hsla(0, 0%, 100%, 0.4)",
+                border: isSaved ? "0.5px solid hsl(var(--primary) / 0.4)" : "0.5px solid var(--glass-border)",
                 color: isSaved ? "hsl(var(--primary))" : "hsl(var(--olivewood) / 0.6)",
                 boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04)",
                 transition: "all 0.2s ease, box-shadow 0.3s ease",
@@ -818,10 +818,10 @@ const JobDetailDialog = ({
             className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={handleAskQuestion}
             style={{
-              backgroundColor: "hsla(0, 0%, 100%, 0.32)",
+              backgroundColor: "var(--glass-bg-soft)",
               backdropFilter: "blur(20px) saturate(150%)",
               WebkitBackdropFilter: "blur(20px) saturate(150%)",
-              border: "0.5px solid hsla(0, 0%, 100%, 0.4)",
+              border: "0.5px solid var(--glass-border)",
               color: "hsl(var(--olivewood) / 0.6)",
               boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04)",
               transition: "all 0.2s ease, box-shadow 0.3s ease",

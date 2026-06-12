@@ -11,7 +11,9 @@ import {
   TrendingUp, MoreHorizontal, QrCode, Share2, Home,
   Users, Type, PawPrint,
   ClipboardList, FileText,
+  Sun, Moon, Monitor,
 } from "lucide-react";
+import { useDarkMode, type Theme } from "@/hooks/useDarkMode";
 import {
   Dialog,
   DialogContent,
@@ -116,6 +118,8 @@ export function ProfileLanding({
   seniorMode = false,
   onToggleSeniorMode,
 }: ProfileLandingProps) {
+  const { theme, setTheme } = useDarkMode();
+
   // Recent work + reviews collapse into one disclosure so the hero
   // stays compact — they can make the card very tall on an
   // established profile.
@@ -1110,6 +1114,65 @@ export function ProfileLanding({
               </section>
             );
           })}
+
+          {/* Appearance — Light / System / Dark toggle */}
+          <section>
+            <div className="flex items-center gap-2 px-1 mb-1.5">
+              <h2
+                className="font-serif italic uppercase text-ds-9"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Appearance
+              </h2>
+            </div>
+            <div
+              className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 flex flex-col gap-2"
+            >
+              <p className="text-ds-12 font-semibold text-foreground leading-tight">
+                Color mode
+              </p>
+              <div
+                className="flex rounded-ds-md overflow-hidden"
+                style={{ border: "0.5px solid hsl(var(--bark) / 0.2)" }}
+                role="group"
+                aria-label="Color mode"
+              >
+                {(
+                  [
+                    { value: "light" as Theme, Icon: Sun, label: "Light" },
+                    { value: "system" as Theme, Icon: Monitor, label: "Auto" },
+                    { value: "dark" as Theme, Icon: Moon, label: "Dark" },
+                  ] as const
+                ).map(({ value, Icon, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={theme === value}
+                    onClick={() => setTheme(value)}
+                    className="flex-1 py-2.5 flex flex-col items-center gap-0.5 transition-colors"
+                    style={{
+                      background:
+                        theme === value
+                          ? "hsl(var(--bark) / 0.12)"
+                          : "transparent",
+                      color:
+                        theme === value
+                          ? "hsl(var(--bark))"
+                          : "hsl(var(--olivewood) / 0.55)",
+                    }}
+                  >
+                    <Icon className="w-4 h-4" strokeWidth={2} />
+                    <span
+                      className="text-ds-10 font-sans font-semibold uppercase"
+                      style={{ letterSpacing: "0.06em" }}
+                    >
+                      {label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
 
           {/* "More" overflow — saved helprs, referrals, warnings,
               support, legal. Collapsed by default so the primary nav

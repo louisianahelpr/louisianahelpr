@@ -63,7 +63,7 @@ const TITLE_CARD_STYLE: CSSProperties = {
   // than the two stacking into one flat slab. Same hue — only the opacity
   // steps — so they stay obviously the same material. Very faint copper /
   // verdigris corner glows keep the card from reading as a flat block.
-  backgroundColor: "hsl(40 30% 99% / 0.85)",
+  backgroundColor: "var(--glass-bg-title)",
   backgroundImage:
     "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.05) 0%, transparent 55%), " +
     "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 80% / 0.12) 0%, transparent 60%)",
@@ -122,7 +122,7 @@ export function PageScaffold({
     // (0.85) above. `.liquid-glass`'s 42%-white wash reads as muted beige
     // over the warm page gradient, so the panel blended into the canvas; a
     // bright near-opaque panel pops off the page as the content surface.
-    backgroundColor: "hsl(40 30% 99% / 0.97)",
+    backgroundColor: "var(--glass-bg-crisp)",
     boxShadow: PANEL_SHADOW[panelElevation],
   };
 

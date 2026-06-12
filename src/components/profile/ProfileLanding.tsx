@@ -25,6 +25,10 @@ interface MenuItem {
   icon: React.ReactNode;
   desc: string;
   href?: string;
+  /** HSL token expression (e.g. "var(--bark)") used to tint the row's
+      icon tile — gives each surface its own warm accent instead of one
+      flat grey. */
+  tint?: string;
   /** Render a small "Action needed" red dot when true. */
   needsAction?: boolean;
   /** Short, warm completeness nudge (e.g. "Add a photo"). Optional —
@@ -202,15 +206,17 @@ export function ProfileLanding({
           label: "Licensed & Insured",
           icon: <ShieldCheck className="w-5 h-5" />,
           desc: "Add your license and insurance",
+          tint: "var(--bark)",
           incompleteLabel: credentialsIncomplete ? "Verify credentials" : undefined,
         },
-        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & weekly hours" },
-        { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get" },
+        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & weekly hours", tint: "var(--burnt-sienna)" },
+        { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: "var(--gold-warm)" },
         {
           key: "security",
           label: "Account Security",
           icon: <Shield className="w-5 h-5" />,
           desc: "Email, password & login",
+          tint: "var(--sage)",
           incompleteLabel: !phoneVerified ? "Verify phone" : undefined,
         },
       ],
@@ -223,11 +229,12 @@ export function ProfileLanding({
           label: "Payout & Payments",
           icon: <CreditCard className="w-5 h-5" />,
           desc: "Bank account & payment methods",
+          tint: "var(--bark)",
           needsAction: stripeNeedsAction,
           incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
         },
-        { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports" },
-        { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc },
+        { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--gold-warm)" },
+        { key: "subscription", label: "Subscription", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)" },
       ],
     },
   ];
@@ -243,11 +250,11 @@ export function ProfileLanding({
   // Warnings auto-bumps to the top of the overflow when there's
   // anything on file so it remains a visible alert.
   const moreItems: MenuItem[] = [
-    { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer" },
-    { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits" },
-    { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history" },
-    { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us" },
-    { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines" },
+    { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: "var(--burnt-sienna)" },
+    { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--gold-warm)" },
+    { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: "var(--destructive)" },
+    { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: "var(--bark)" },
+    { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines", tint: "var(--sage)" },
   ];
 
   return (
@@ -278,7 +285,7 @@ export function ProfileLanding({
           aria-label="Edit profile"
           // h-10 hits the iOS/Android 40pt minimum tap target; nudged
           // down half a step so it doesn't crowd the status bar inset.
-          className="absolute top-3.5 right-3 h-10 pl-2.5 pr-3 rounded-full bg-secondary/60 hover:bg-secondary active:scale-95 inline-flex items-center gap-1 text-foreground/75 hover:text-foreground transition-all"
+          className="absolute top-3.5 right-3 h-10 pl-2.5 pr-3 rounded-full bg-[hsl(var(--bark)/0.10)] hover:bg-[hsl(var(--bark)/0.16)] active:scale-95 inline-flex items-center gap-1 text-[hsl(var(--bark))] transition-all"
         >
           <Edit className="w-3.5 h-3.5" />
           <span className="text-ds-11 font-sans font-semibold">Edit</span>
@@ -871,7 +878,13 @@ export function ProfileLanding({
                             header) is the readable signal, and three
                             stacked reds was visual noise. */}
                         <div className="shrink-0">
-                          <div className="w-10 h-10 rounded-ds-md glass-field text-[hsl(var(--olivewood)/0.72)] flex items-center justify-center transition-all group-hover/row:text-[hsl(var(--bark))] group-hover/row:shadow-sm">
+                          <div
+                            className="w-10 h-10 rounded-ds-md flex items-center justify-center transition-all group-hover/row:shadow-sm"
+                            style={{
+                              color: `hsl(${item.tint ?? "var(--olivewood)"})`,
+                              background: `hsl(${item.tint ?? "var(--olivewood)"} / 0.12)`,
+                            }}
+                          >
                             {item.icon}
                           </div>
                         </div>
@@ -970,7 +983,13 @@ export function ProfileLanding({
                       />
                       <div className="flex items-center gap-3.5 min-w-0">
                         <div className="shrink-0">
-                          <div className="w-10 h-10 rounded-ds-md glass-field text-[hsl(var(--olivewood)/0.72)] flex items-center justify-center transition-all group-hover/row:text-[hsl(var(--bark))] group-hover/row:shadow-sm">
+                          <div
+                            className="w-10 h-10 rounded-ds-md flex items-center justify-center transition-all group-hover/row:shadow-sm"
+                            style={{
+                              color: `hsl(${item.tint ?? "var(--olivewood)"})`,
+                              background: `hsl(${item.tint ?? "var(--olivewood)"} / 0.12)`,
+                            }}
+                          >
                             {item.icon}
                           </div>
                         </div>

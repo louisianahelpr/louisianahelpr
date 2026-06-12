@@ -325,6 +325,7 @@ const Dashboard = () => {
     return getActiveTriggers(ctx)[0] ?? null;
   }, [user?.id, allJobs, profile?.created_at, profile?.location, profile?.parish, lifeEventDismissedAt]);
 
+
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");

@@ -703,6 +703,18 @@ export const PostedJobsTab = ({
                                   {visibleSignals.join(" · ")}
                                 </p>
                               )}
+                              {/* Proposed bid price — only shown on accept_bids jobs */}
+                              {(app as any).proposed_price != null && (
+                                <span
+                                  className="inline-flex items-center gap-1 mt-0.5 text-ds-12 font-sans font-semibold px-2 py-0.5 rounded-full"
+                                  style={{
+                                    background: "hsl(var(--sage) / 0.15)",
+                                    color: "hsl(var(--sage))",
+                                  }}
+                                >
+                                  Bid: ${(app as any).proposed_price}
+                                </span>
+                              )}
                               {/* Neighborhood trust signal — shown standalone
                                   when > 0 neighbors hired this helper near
                                   the job address (from get_neighbor_hire_count RPC).

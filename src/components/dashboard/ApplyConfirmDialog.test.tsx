@@ -33,6 +33,8 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     handleApplyConfirm: vi.fn(),
     stakeAmount: null,
     setStakeAmount: vi.fn(),
+    bidPrice: "",
+    setBidPrice: vi.fn(),
     ...overrides,
   };
 }

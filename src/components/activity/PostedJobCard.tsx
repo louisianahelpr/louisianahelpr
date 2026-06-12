@@ -547,12 +547,25 @@ function PostedJobCardInner({
                                 }}
                               >
                                 <div className="min-w-0 flex-1">
-                                  <p
-                                    className="font-display italic font-bold truncate"
-                                    style={{ fontSize: "0.82rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
-                                  >
-                                    {name}
-                                  </p>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p
+                                      className="font-display italic font-bold truncate"
+                                      style={{ fontSize: "0.82rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                                    >
+                                      {name}
+                                    </p>
+                                    {(app as any).proposed_price != null && (
+                                      <span
+                                        className="text-ds-11 font-semibold px-2 py-0.5 rounded-full shrink-0"
+                                        style={{
+                                          background: "hsl(var(--sage) / 0.15)",
+                                          color: "hsl(var(--sage))",
+                                        }}
+                                      >
+                                        Bid: ${(app as any).proposed_price}
+                                      </span>
+                                    )}
+                                  </div>
                                   <TrustRow
                                     completedJobs={
                                       typeof (app as { completedJobs?: number }).completedJobs === "number"

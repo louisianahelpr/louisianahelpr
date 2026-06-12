@@ -193,6 +193,8 @@ const Dashboard = () => {
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
   const [stakeAmount, setStakeAmount] = useState<number | null>(null);
+  // Proposed bid price — only populated for accept_bids jobs.
+  const [bidPrice, setBidPrice] = useState("");
   // JIT verify gate — shown on first-ever Apply tap (has_applied_before=false).
   // pendingJobIdForVerify holds the job they tapped Apply on so we can
   // proceed once they dismiss the sheet.
@@ -562,13 +564,15 @@ const Dashboard = () => {
         same jobs UPDATE path as handleHelperResponse (helper_confirmed_at).
         Treated as false when the column isn't on prod yet (pre-push). */
     isInstantBook?: boolean;
+    /** Proposed bid price for accept_bids jobs (null for other pricing modes). */
+    proposedPrice?: number | null;
   };
   type ApplySnapshot = {
     previousContext: unknown;
     userId: string;
   };
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
-    mutationFn: async ({ jobId, helperId, message, files, stakeAmt, isInstantBook }) => {
+    mutationFn: async ({ jobId, helperId, message, files, stakeAmt, isInstantBook, proposedPrice }) => {
       // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
       // attachment uploads — don't waste storage bandwidth on a blocked
       // attempt. The helper falls back to "allowed" if the RPC isn't
@@ -592,14 +596,44 @@ const Dashboard = () => {
         }
         attachmentUrls.push(path);
       }
-      const { error } = await (supabase.from("applications") as any).insert({
-        job_id: jobId,
-        helper_id: helperId,
-        message: message.trim() || null,
-        attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
-        ...(stakeAmt && stakeAmt > 0 ? { stake_amount: stakeAmt, stake_status: "staked" } : {}),
+      // Try the apply_to_job RPC first (supports proposed_price for bid-mode jobs).
+      // Fall back to a direct INSERT if PGRST202 (function not yet deployed to prod).
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("apply_to_job", {
+        p_job_id: jobId,
+        p_message: message.trim() || null,
+        p_proposed_price: proposedPrice ?? null,
       });
-      if (error) throw error as Error & { code?: string };
+      if (rpcError) {
+        const errCode = (rpcError as { code?: string }).code;
+        if (errCode !== "PGRST202") {
+          // Real error (duplicate, job closed, price-required, etc.) — surface it.
+          throw rpcError as Error & { code?: string };
+        }
+        // PGRST202: apply_to_job not deployed yet — fall back to direct INSERT
+        // (no proposed_price column yet; no harm, it's not on prod either).
+        const { error } = await (supabase.from("applications") as any).insert({
+          job_id: jobId,
+          helper_id: helperId,
+          message: message.trim() || null,
+          attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
+          ...(stakeAmt && stakeAmt > 0 ? { stake_amount: stakeAmt, stake_status: "staked" } : {}),
+        });
+        if (error) throw error as Error & { code?: string };
+      } else {
+        void rpcData; // UUID returned but not currently used.
+        // Patch attachment_urls onto the new row if needed (RPC doesn't handle attachments).
+        if (attachmentUrls.length > 0) {
+          await (supabase.from("applications") as any)
+            .update({ attachment_urls: attachmentUrls, ...(stakeAmt && stakeAmt > 0 ? { stake_amount: stakeAmt, stake_status: "staked" } : {}) })
+            .eq("job_id", jobId)
+            .eq("helper_id", helperId);
+        } else if (stakeAmt && stakeAmt > 0) {
+          await (supabase.from("applications") as any)
+            .update({ stake_amount: stakeAmt, stake_status: "staked" })
+            .eq("job_id", jobId)
+            .eq("helper_id", helperId);
+        }
+      }
       // Insert succeeded — bump the rate-limit counter. Best-effort: a
       // failed record call shouldn't surface to the user since the apply
       // already landed. PGRST202 is silently no-op'd inside the helper.
@@ -714,22 +748,26 @@ const Dashboard = () => {
     // `any` because EnrichedJob predates this column; the DB default is
     // false so a missing key is treated the same way.
     const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
+    // Capture proposed price for bid-mode jobs (accept_bids pricing_mode).
+    const isBidJob = (confirmApplyJob as any)?.pricing_mode === "accept_bids";
+    const proposedPrice = isBidJob && bidPrice ? parseFloat(bidPrice) : null;
     // Close the dialog + reset its state synchronously so the next paint
     // already has the optimistic feed. The mutation continues in the
     // background; React Query's onError rolls things back on failure.
     setConfirmApplyJobId(null);
     setApplyMessage("");
     setApplyFiles([]);
+    setBidPrice("");
     const stakeAmt = stakeAmount;
     setStakeAmount(null);
     // setApplyLoading flips off on settled (handled below) — we still
     // set it true here so a fast double-tap can't enqueue twice.
     setApplyLoading(true);
     applyMutation.mutate(
-      { jobId, helperId: user.id, message, files, stakeAmt, isInstantBook },
+      { jobId, helperId: user.id, message, files, stakeAmt, isInstantBook, proposedPrice },
       { onSettled: () => setApplyLoading(false) },
     );
-  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, stakeAmount, applyMutation]);
+  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, stakeAmount, bidPrice, setBidPrice, applyMutation]);
 
   // JIT verify handlers. Both paths (Verify + Later) flip has_applied_before
   // so the nudge never shows again. "Later" also records 'prompted' status
@@ -1430,6 +1468,8 @@ const Dashboard = () => {
             applyLoading={applyLoading}
             stakeAmount={stakeAmount}
             setStakeAmount={setStakeAmount}
+            bidPrice={bidPrice}
+            setBidPrice={setBidPrice}
             handleApplyConfirm={handleApplyConfirm}
           />
         </Suspense>

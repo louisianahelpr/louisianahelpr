@@ -833,6 +833,60 @@ export type Database = {
         }
         Relationships: []
       }
+      helper_credentials: {
+        Row: {
+          id: string
+          user_id: string
+          credential_type: string
+          status: string
+          license_number: string | null
+          license_state: string | null
+          trade_category: string | null
+          issuing_authority: string | null
+          document_url: string | null
+          expiration_date: string | null
+          verified_at: string | null
+          rejection_reason: string | null
+          vendor_check_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          credential_type: string
+          status?: string
+          license_number?: string | null
+          license_state?: string | null
+          trade_category?: string | null
+          issuing_authority?: string | null
+          document_url?: string | null
+          expiration_date?: string | null
+          verified_at?: string | null
+          rejection_reason?: string | null
+          vendor_check_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          credential_type?: string
+          status?: string
+          license_number?: string | null
+          license_state?: string | null
+          trade_category?: string | null
+          issuing_authority?: string | null
+          document_url?: string | null
+          expiration_date?: string | null
+          verified_at?: string | null
+          rejection_reason?: string | null
+          vendor_check_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       instant_payouts: {
         Row: {
           created_at: string
@@ -1007,6 +1061,7 @@ export type Database = {
           budget: number
           business_id: string | null
           cancellation_fee: number | null
+          credential_tier: number
           cancellation_fee_status: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -1101,6 +1156,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["job_category"]
           commission_tax_amount?: number | null
           created_at?: string
+          credential_tier?: number
           customer_fee_amount?: number | null
           customer_id: string
           date_needed: string
@@ -1188,6 +1244,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["job_category"]
           commission_tax_amount?: number | null
           created_at?: string
+          credential_tier?: number
           customer_fee_amount?: number | null
           customer_id?: string
           date_needed?: string
@@ -3109,6 +3166,10 @@ export type Database = {
       // These RPCs exist in the database but were missing from the last
       // generated types. Re-running `npm run db:types` folds them in
       // properly and this block can then be deleted.
+      get_user_credential_tier: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       accept_application: {
         Args: {
           p_application_id: string

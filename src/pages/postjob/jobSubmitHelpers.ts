@@ -55,6 +55,10 @@ export interface BuildJobInsertPayloadInput {
       Only included in the INSERT when true so a pre-push prod still accepts
       the payload (treats missing as the DB default of false). */
   isInstantBook?: boolean;
+  /** Minimum credential tier to apply. 0 = open (DB default).
+   *  Only included in the INSERT when > 0 so a pre-push prod still accepts
+   *  the payload (migration 20260612150000). */
+  credentialTier?: number;
 }
 
 /**
@@ -84,6 +88,7 @@ export function computeExpiresAt(dateNeeded: string, startTime: string): string 
 export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobInsertPayload {
   const requiresW9 = input.requiresW9 ?? false;
   const isInstantBook = input.isInstantBook ?? false;
+  const credentialTier = input.credentialTier ?? 0;
   const {
     userId,
     businessId,
@@ -163,6 +168,10 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // have the column yet) still succeeds with code 42703/PGRST204 falling
     // through the retry path in usePostJobForm → buildPayload({withExtras:false}).
     ...(isInstantBook ? ({ instant_book: true } as Record<string, unknown>) : {}),
+    // credential_tier column ships in migration 20260612150000. Only include
+    // when > 0 so a pre-push prod INSERT still succeeds (DB default of 0
+    // is applied automatically on the column). Retry path strips withExtras.
+    ...(credentialTier > 0 ? ({ credential_tier: credentialTier } as Record<string, unknown>) : {}),
     // jobs.department + jobs.status — both ship in migration
     // 20260609170000. Cast through `any` because the generated Supabase
     // types haven't picked them up yet, and don't include the keys at

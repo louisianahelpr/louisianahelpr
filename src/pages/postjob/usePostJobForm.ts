@@ -80,6 +80,10 @@ export function usePostJobForm() {
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
   const [isInstantBook, setIsInstantBook] = useState(false);
+  // Credential tier requirement for the job:
+  // 0 = open (anyone), 1 = ID-verified, 2 = licensed, 3 = licensed + insured.
+  // Only relevant for trade categories; other categories always use 0.
+  const [credentialTier, setCredentialTier] = useState(0);
   const [isUrgent, setIsUrgent] = useState(false);
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
@@ -605,6 +609,7 @@ export function usePostJobForm() {
         salesTaxRate,
         offerToHelperId,
         isInstantBook: opts.withExtras ? isInstantBook : false,
+        credentialTier: opts.withExtras ? credentialTier : 0,
         department: opts.withExtras ? department : null,
         initialStatus: opts.withExtras && requiresApproval ? "pending_approval" : undefined,
         requiresW9: opts.withExtras && business ? requiresW9 : false,
@@ -989,6 +994,10 @@ export function usePostJobForm() {
         path (helper_confirmed_at set immediately). */
     isInstantBook,
     setIsInstantBook,
+    /** Credential tier required to apply (0–3). Only set for trade categories;
+        others always use 0. */
+    credentialTier,
+    setCredentialTier,
     isUrgent,
     setIsUrgent,
     urgentFee,

@@ -12,6 +12,10 @@ import {
   Sparkles,
   Mic,
   GripVertical,
+  ShieldCheck,
+  Award,
+  BadgeCheck,
+  Users2,
 } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { categoryColors } from "@/components/activity/activityConstants";
@@ -35,6 +39,23 @@ export const categories = [
 
 const TITLE_MAX = 100;
 const DESCRIPTION_MAX = 1000;
+
+// Categories where credential-tier requirements make sense (trade work).
+// All others default to tier 0 (open) with the selector hidden.
+const CREDENTIAL_TIER_CATEGORIES = new Set([
+  "handyman",
+  "painting",
+  "moving",
+  "assembly",
+]);
+
+// The four tier options rendered in the "Who can apply?" segmented control.
+const CREDENTIAL_TIERS = [
+  { value: 0, label: "Open", sub: "Anyone can apply", Icon: Users2 },
+  { value: 1, label: "ID-Verified", sub: "ID-verified helpers", Icon: ShieldCheck },
+  { value: 2, label: "Licensed", sub: "Licensed pros only", Icon: Award },
+  { value: 3, label: "Licensed + Insured", sub: "Licensed & insured", Icon: BadgeCheck },
+] as const;
 
 // Category-specific title placeholders — once the poster picks a
 // category the example title matches what they're actually posting,
@@ -101,6 +122,10 @@ interface DetailsSectionProps {
   /** Persist a drag-reordered photo list. Indices map to imageFiles. */
   onReorderImages?: (nextOrder: number[]) => void;
   detailsComplete: boolean;
+  /** 0 = open, 1 = ID-verified, 2 = licensed, 3 = licensed + insured.
+   *  Only shown for CREDENTIAL_TIER_CATEGORIES; all others stay at 0. */
+  credentialTier: number;
+  setCredentialTier: (tier: number) => void;
 }
 
 export function DetailsSection({
@@ -118,7 +143,16 @@ export function DetailsSection({
   uploadProgressByIndex,
   onReorderImages,
   detailsComplete,
+  credentialTier,
+  setCredentialTier,
 }: DetailsSectionProps) {
+  // Automatically reset to tier 0 when switching to a non-trade category
+  // so the picker never shows a stale tier on a category where it's hidden.
+  useEffect(() => {
+    if (!CREDENTIAL_TIER_CATEGORIES.has(category) && credentialTier !== 0) {
+      setCredentialTier(0);
+    }
+  }, [category, credentialTier, setCredentialTier]);
   // Smart category detection — when the poster pauses typing the title
   // for ~800ms we check a keyword→category map. The match becomes the
   // new category and a tiny pill appears so the user can revert in one
@@ -436,6 +470,103 @@ export function DetailsSection({
           {descriptionHints[category] ?? descriptionHints.other}
         </p>
       </div>
+
+      {/* "Who can apply?" credential-tier selector — only shown for
+          trade categories where licensing/insurance makes sense.
+          For all others the tier stays at 0 (open) and this block
+          is hidden to keep the form clean. */}
+      {CREDENTIAL_TIER_CATEGORIES.has(category) && (
+        <div className="space-y-2.5">
+          <div className="space-y-0.5">
+            <Label>Who can apply?</Label>
+            <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              Require credentials for licensed trade work.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {CREDENTIAL_TIERS.map(({ value, label, sub, Icon }) => {
+              const active = credentialTier === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCredentialTier(value)}
+                  aria-pressed={active}
+                  aria-label={label}
+                  className="flex items-center gap-2.5 p-2.5 rounded-ds-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  style={
+                    active
+                      ? {
+                          background: "hsl(var(--parchment) / 0.7)",
+                          border: "0.5px solid hsl(var(--bark) / 0.35)",
+                          boxShadow:
+                            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                            "0 0 0 2px hsl(var(--bark) / 0.18), " +
+                            "0 6px 16px -4px hsl(var(--bark) / 0.22)",
+                        }
+                      : {
+                          background: "hsl(var(--parchment) / 0.7)",
+                          border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+                          boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+                        }
+                  }
+                >
+                  <span
+                    className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                      background: active
+                        ? "hsl(var(--bark) / 0.15)"
+                        : "hsl(var(--olivewood) / 0.10)",
+                    }}
+                  >
+                    <Icon
+                      className="w-3.5 h-3.5"
+                      style={{
+                        color: active
+                          ? "hsl(var(--bark))"
+                          : "hsl(var(--olivewood) / 0.6)",
+                      }}
+                      strokeWidth={2.25}
+                      aria-hidden
+                    />
+                  </span>
+                  <span className="flex flex-col min-w-0">
+                    <span
+                      className="font-sans font-semibold leading-tight truncate"
+                      style={{
+                        fontSize: "0.78rem",
+                        color: active
+                          ? "hsl(var(--ink-deep))"
+                          : "hsl(var(--olivewood) / 0.85)",
+                      }}
+                    >
+                      {label}
+                    </span>
+                    <span
+                      className="font-serif italic leading-tight truncate"
+                      style={{
+                        fontSize: "0.67rem",
+                        color: active
+                          ? "hsl(var(--olivewood) / 0.75)"
+                          : "hsl(var(--olivewood) / 0.55)",
+                      }}
+                    >
+                      {sub}
+                    </span>
+                  </span>
+                  {active && (
+                    <Check
+                      className="w-3.5 h-3.5 ml-auto shrink-0"
+                      style={{ color: "hsl(var(--bark))" }}
+                      strokeWidth={3}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Image Upload — brand-aligned thumbnail grid. Active photo tiles
           get a sienna delete pill (always visible on touch, since there

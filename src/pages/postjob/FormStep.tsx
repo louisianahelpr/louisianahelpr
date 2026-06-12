@@ -223,6 +223,8 @@ export function FormStep({ form }: FormStepProps) {
             onReorderImages={form.reorderImages}
             uploadProgressByIndex={form.uploadProgressByIndex}
             detailsComplete={form.detailsComplete}
+            credentialTier={form.credentialTier}
+            setCredentialTier={form.setCredentialTier}
           />
         </div>
 

@@ -21,6 +21,8 @@ import { useLongPress } from "@/hooks/useLongPress";
 import { hapticMedium } from "@/lib/haptics";
 import type { TrackingData } from "@/components/JobTracking";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
+import { useQueries } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * BulkDismissibleWrapper — when selectionMode is off, presses are
@@ -182,12 +184,48 @@ export const PostedJobsTab = ({
   // intact.
   const bulkDismiss = useBulkDismiss("posted");
 
+  // Neighbor hire counts — one RPC call per applicant, keyed by helper_id.
+  // Runs only when the selected job has coordinates (many jobs have
+  // approximate coords from geocoding at post time). Falls back to 0
+  // on PGRST202 (function not yet deployed) or any other error so the
+  // panel is never blocked by the trust-graph migration.
+  const neighborCountQueries = useQueries({
+    queries: applications.map((app) => ({
+      queryKey: ["neighbor-count", app.helper_id, selectedJob?.latitude, selectedJob?.longitude],
+      queryFn: async (): Promise<number> => {
+        if (!selectedJob?.latitude || !selectedJob?.longitude) return 0;
+        try {
+          const { data, error } = await supabase.rpc("get_neighbor_hire_count", {
+            p_helper_id: app.helper_id,
+            p_lat: selectedJob.latitude,
+            p_lng: selectedJob.longitude,
+          });
+          if (error) return 0;
+          return (data as number) ?? 0;
+        } catch {
+          return 0; // PGRST202 or network error — degrade gracefully
+        }
+      },
+      staleTime: 300_000, // 5 min — neighborhood data is slow-moving
+      enabled: !!selectedJob?.latitude && !!selectedJob?.longitude,
+    })),
+  });
+
+  // Map helper_id → neighbor count for O(1) lookup in scoring + rendering.
+  const neighborCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    applications.forEach((app, i) => {
+      map.set(app.helper_id, neighborCountQueries[i]?.data ?? 0);
+    });
+    return map;
+  }, [applications, neighborCountQueries]);
+
   // Build scored + sorted applicant list for the comparison panel.
   // Scoring is purely client-side — no extra queries needed.
   // The score map is keyed by helper_id so the "Recommended" badge
   // can identify the top pick in O(1).
   const { sortedApplications, scoreMap } = useMemo(() => {
-    type ScoredApp = { app: EnrichedApplication; score: number; signals: string[] };
+    type ScoredApp = { app: EnrichedApplication; score: number; signals: string[]; neighborCount: number };
     if (applications.length === 0) return { sortedApplications: [] as ScoredApp[], scoreMap: new Map<string, number>() };
 
     const map = new Map<string, number>();
@@ -199,6 +237,7 @@ export const PostedJobsTab = ({
       // subscription_tier ("elite"=3, "pro"=2, "basic"=1, else 0) is
       // the closest proxy for credentialTier available without a migration.
       const credentialTier = tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
+      const neighborCount = neighborCountMap.get(app.helper_id) ?? 0;
       const data: ApplicantData = {
         userId: app.helper_id,
         avgRating: app.avgRating ?? null,
@@ -209,11 +248,11 @@ export const PostedJobsTab = ({
         credentialTier,
         distanceKm: null,        // not available in this context
         responseTimeMinutes: null,
-        neighborCount: 0,        // trust graph not yet built
+        neighborCount,           // live from get_neighbor_hire_count RPC
       };
       const result = scoreApplicant(data);
       map.set(app.helper_id, result.score);
-      return { app, score: result.score, signals: result.signals };
+      return { app, score: result.score, signals: result.signals, neighborCount };
     });
 
     const sorted = [...scored];
@@ -511,7 +550,7 @@ export const PostedJobsTab = ({
                   </div>
 
                   {/* Applicant cards */}
-                  {sortedApplications.map(({ app, signals }) => {
+                  {sortedApplications.map(({ app, signals, neighborCount }) => {
                     const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
                     const isElite = helperTier === "elite";
                     const isPro = helperTier === "pro";
@@ -524,7 +563,8 @@ export const PostedJobsTab = ({
                     const helperInitials = helperName
                       .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
                     const isTopPick = applicantSort === "recommended" && app.helper_id === topHelperIdByScore && applications.length > 1;
-                    // Show up to 3 trust signals as inline text
+                    // Show up to 3 trust signals as inline text (scoring signals
+                    // already include the neighbor signal when neighborCount > 0)
                     const visibleSignals = signals.slice(0, 3);
 
                     return (
@@ -640,6 +680,24 @@ export const PostedJobsTab = ({
                                 >
                                   {visibleSignals.join(" · ")}
                                 </p>
+                              )}
+                              {/* Neighborhood trust signal — shown standalone
+                                  when > 0 neighbors hired this helper near
+                                  the job address (from get_neighbor_hire_count RPC).
+                                  Uses bark color so it reads as a warm local signal
+                                  distinct from the neutral olivewood signals above. */}
+                              {neighborCount > 0 && (
+                                <span
+                                  className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
+                                  style={{ color: "hsl(var(--bark))" }}
+                                >
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                    style={{ background: "hsl(var(--bark))" }}
+                                    aria-hidden="true"
+                                  />
+                                  {neighborCount} neighbor{neighborCount > 1 ? "s" : ""} hired them
+                                </span>
                               )}
                             </div>
 

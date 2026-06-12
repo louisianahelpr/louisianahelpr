@@ -69,6 +69,25 @@ const JobDetailDialog = ({
   const [posterCancelRate, setPosterCancelRate] = useState<number | null>(null);
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
 
+  // Viewer's subscription tier — drives the Helper Pro fee upsell in
+  // FeeBreakdown. Cached per-session (staleTime 60s). Falls back to "free"
+  // so the upsell shows unless a paid tier is positively confirmed.
+  const { data: viewerSubscriptionTier = "free" } = useQuery({
+    queryKey: ["viewerSubscriptionTier"],
+    staleTime: 60_000,
+    queryFn: async (): Promise<string> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return "free";
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("subscription_tier")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error || !data) return "free";
+      return (data as { subscription_tier: string | null }).subscription_tier ?? "free";
+    },
+  });
+
   // Viewer's credential tier — used to gate the Apply button when the job
   // requires a minimum tier. Fetched once per session (staleTime 60s) and
   // falls back to 0 gracefully when the RPC doesn't exist yet (PGRST202).
@@ -637,6 +656,7 @@ const JobDetailDialog = ({
             commissionPercent={commissionPercent}
             urgentFee={job.urgent_fee ?? 0}
             helperCount={helpers}
+            showProUpsell={!viewerSubscriptionTier || viewerSubscriptionTier === "free"}
           />
         </div>
 

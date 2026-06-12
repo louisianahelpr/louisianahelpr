@@ -3603,6 +3603,15 @@ export type Database = {
           created_at: string
         }[]
       }
+      get_neighbor_hire_count: {
+        Args: {
+          p_helper_id: string
+          p_lat: number
+          p_lng: number
+          p_radius_km?: number
+        }
+        Returns: number
+      }
       // ─────────────────────────────────────────────────────────────────
       are_users_blocked: {
         Args: { _user_a: string; _user_b: string }

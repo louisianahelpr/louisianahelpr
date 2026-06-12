@@ -1,0 +1,127 @@
+/**
+ * subscriptionTiers.ts — canonical perk definitions for Free / Helper Pro /
+ * Helpr Elite / Business subscription tiers.
+ *
+ * The tier IDs ("free", "pro", "elite", "business") align with the
+ * subscription_tier column on profiles. The existing DB uses "pro", "elite",
+ * "basic" — "business" is new; "free" is the default/null case.
+ */
+
+export type SubscriptionTier = "free" | "pro" | "elite" | "business";
+
+export interface TierPerks {
+  name: string;
+  price: number | null;         // monthly USD, null = free
+  annualPrice: number | null;   // billed annually (2 months free), null = free
+  platformFeePercent: number;   // % taken from helper payout (free = 12%, pro = 10%, elite = 8%)
+  priorityPlacement: boolean;   // application floated higher in poster's recommended list
+  instantBook: boolean;         // can be booked without applying on instant-book jobs
+  featuredBadge: boolean;       // gold/crown badge on profile and applicant cards
+  earlyAccess: boolean;         // sees new jobs 10 min before non-subscribers
+  advancedAnalytics: boolean;   // earnings trends, category breakdown, best hours
+  multiTech: boolean;           // business: manage a team of technicians under one account
+  verifiedBusiness: boolean;    // business: verified entity badge surfaced to posters
+  dedicatedSupport: boolean;    // priority support response SLA
+  tagline: string;
+  ctaLabel: string;
+}
+
+export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
+  free: {
+    name: "Free",
+    price: null,
+    annualPrice: null,
+    platformFeePercent: 12,
+    priorityPlacement: false,
+    instantBook: false,
+    featuredBadge: false,
+    earlyAccess: false,
+    advancedAnalytics: false,
+    multiTech: false,
+    verifiedBusiness: false,
+    dedicatedSupport: false,
+    tagline: "Get started, no commitment",
+    ctaLabel: "Current plan",
+  },
+  pro: {
+    name: "Helper Pro",
+    price: 9.99,
+    annualPrice: 7.99,
+    platformFeePercent: 10,
+    priorityPlacement: true,
+    instantBook: true,
+    featuredBadge: false,
+    earlyAccess: false,
+    advancedAnalytics: true,
+    multiTech: false,
+    verifiedBusiness: false,
+    dedicatedSupport: false,
+    tagline: "For helpers serious about earning",
+    ctaLabel: "Upgrade to Pro",
+  },
+  elite: {
+    name: "Helpr Elite",
+    price: 24.99,
+    annualPrice: 19.99,
+    platformFeePercent: 8,
+    priorityPlacement: true,
+    instantBook: true,
+    featuredBadge: true,
+    earlyAccess: true,
+    advancedAnalytics: true,
+    multiTech: false,
+    verifiedBusiness: false,
+    dedicatedSupport: true,
+    tagline: "Top helpers. Maximum visibility.",
+    ctaLabel: "Go Elite",
+  },
+  business: {
+    name: "Business",
+    price: 49.99,
+    annualPrice: 39.99,
+    platformFeePercent: 10,
+    priorityPlacement: true,
+    instantBook: true,
+    featuredBadge: true,
+    earlyAccess: true,
+    advancedAnalytics: true,
+    multiTech: true,
+    verifiedBusiness: true,
+    dedicatedSupport: true,
+    tagline: "For companies, contractors, and crews",
+    ctaLabel: "Upgrade to Business",
+  },
+};
+
+/**
+ * Returns a human-friendly "pays for itself" string for paid tiers,
+ * e.g. "Pays for itself after just 2 jobs/month".
+ *
+ * @param tier         - The target paid tier
+ * @param avgJobValue  - Average job budget in dollars
+ * @param jobsPerMonth - Typical jobs completed per month
+ */
+export function getPaysSelfBack(
+  tier: SubscriptionTier,
+  avgJobValue: number,
+  jobsPerMonth: number,
+): string {
+  const perks = TIER_PERKS[tier];
+  if (!perks.price) return "";
+  const freeFeeRate = TIER_PERKS.free.platformFeePercent / 100;
+  const tierFeeRate = perks.platformFeePercent / 100;
+  const feesSavedPerJob = (freeFeeRate - tierFeeRate) * avgJobValue;
+  if (feesSavedPerJob <= 0) return "";
+  const jobsNeeded = Math.ceil(perks.price / feesSavedPerJob);
+  const feesSaved = feesSavedPerJob * jobsPerMonth;
+  if (feesSaved >= perks.price) {
+    return `Pays for itself after just ${jobsNeeded} job${jobsNeeded === 1 ? "" : "s"}/month`;
+  }
+  return `Save $${feesSaved.toFixed(0)}/month on fees at ${jobsPerMonth} jobs`;
+}
+
+/** Map a raw subscription_tier string (may be null) to the canonical type. */
+export function toSubscriptionTier(raw: string | null | undefined): SubscriptionTier {
+  if (raw === "pro" || raw === "elite" || raw === "business") return raw;
+  return "free";
+}

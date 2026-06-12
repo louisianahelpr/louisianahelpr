@@ -55,12 +55,13 @@ const DOCUMENT_SCROLL_ROUTES = [
   // OFF this list — their AppShell already provides an internal scroll
   // container, and double-locking would let html overscroll bleed into
   // AppShell's scroll surface (iOS double-rubber-band).
-  "/user",        // /user/:userId — UserProfile (PageHeader + min-h-screen)
-  "/post-job",    // PostJob (PageHeader + min-h-screen)
-  "/job-history", // JobHistory (PageHeader + min-h-screen)
-  "/business",    // BusinessTeam (PageHeader + min-h-screen)
-  "/admin",       // Admin dashboard (min-h-screen document-scroll + sidebar)
-  "/community",   // Community feed (PageHeader + min-h-screen document-scroll)
+  "/user",         // /user/:userId — UserProfile (PageHeader + min-h-screen)
+  "/post-job",     // PostJob (PageHeader + min-h-screen)
+  "/job-history",  // JobHistory (PageHeader + min-h-screen)
+  "/business",     // BusinessTeam (PageHeader + min-h-screen)
+  "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
+  "/community",    // Community feed (PageHeader + min-h-screen document-scroll)
+  "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

@@ -42,7 +42,7 @@ const Footer = () => (
     <div className="container mx-auto max-w-6xl py-7 md:py-9">
       <div className="grid gap-8 md:gap-10 md:grid-cols-12">
         {/* Brand */}
-        <div className="md:col-span-5 space-y-3">
+        <div className="md:col-span-4 space-y-3">
           <Link
             to="/"
             className="inline-flex items-baseline gap-2 text-ds-24 font-serif font-extrabold tracking-[-0.025em]"
@@ -128,8 +128,30 @@ const Footer = () => (
           </ul>
         </div>
 
+        {/* Resources */}
+        <div className="md:col-span-2">
+          <h3
+            className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
+            style={{ color: "hsl(var(--heritage-gold))" }}
+          >
+            Resources
+          </h3>
+          <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
+            <li>
+              <Link to="/local-guide" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Pricing Guide
+              </Link>
+            </li>
+            <li>
+              <Link to="/jobs" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Browse Jobs
+              </Link>
+            </li>
+          </ul>
+        </div>
+
         {/* Connect */}
-        <div className="md:col-span-3">
+        <div className="md:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}

@@ -17,6 +17,8 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/rules",
   "/data-rights",
 
+  "/verify",      // /verify/:helperId — public helper verification card
+  "/local-guide", // local pricing guide — public marketing page
   "/jobs", // public marketing /jobs (uses Navbar + long page)
   "/support",
 

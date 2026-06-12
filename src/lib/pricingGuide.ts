@@ -11,3 +11,14 @@ export const categoryPricing: Record<string, { min: number; max: number; label: 
   assembly: { min: 30, max: 120, label: "Assembly" },
   other: { min: 20, max: 100, label: "Other" },
 };
+
+/**
+ * Returns the market midpoint for a category, rounded to the nearest $5.
+ * Used by Smart Price mode to auto-fill the budget.
+ */
+export function getSmartPrice(category: string): number | null {
+  const pricing = categoryPricing[category];
+  if (!pricing) return null;
+  // midpoint, rounded to nearest $5
+  return Math.round(((pricing.min + pricing.max) / 2) / 5) * 5;
+}

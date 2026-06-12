@@ -26,6 +26,8 @@ import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { validateResult } from "@/lib/validateResult";
 import { jobRowSchema } from "@/lib/schemas";
 import type { Database } from "@/integrations/supabase/types";
+import type { PricingMode } from "@/components/postjob/BudgetSection";
+import { getSmartPrice } from "@/lib/pricingGuide";
 
 type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -83,7 +85,15 @@ export function usePostJobForm() {
   // Credential tier requirement for the job:
   // 0 = open (anyone), 1 = ID-verified, 2 = licensed, 3 = licensed + insured.
   // Only relevant for trade categories; other categories always use 0.
-  const [credentialTier, setCredentialTier] = useState(0);
+  const [credentialTier, setCredentialTierRaw] = useState(0);
+  const setCredentialTier = (tier: number) => {
+    setCredentialTierRaw(tier);
+    // High-credential jobs (licensed / licensed+insured) default to accept_bids
+    // so the poster sees competitive quotes rather than guessing a rate.
+    if (tier >= 2) {
+      setPricingModeState("accept_bids");
+    }
+  };
   const [isUrgent, setIsUrgent] = useState(false);
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
@@ -95,12 +105,29 @@ export function usePostJobForm() {
   // Persisted to jobs.department by the consolidated migration
   // 20260609170000_business_team_roles.sql.
   const [department, setDepartment] = useState("");
+  // Pricing mode — 'set_price' (default), 'accept_bids', 'smart_price'.
+  // Default to 'accept_bids' for credentialTier >= 2 (licensed/insured jobs).
+  const [pricingMode, setPricingModeState] = useState<PricingMode>("set_price");
+  // Accept-bids sub-fields
+  const [bidCeiling, setBidCeiling] = useState("");
+  const [bidDeadline, setBidDeadline] = useState("");
+  const [bidsSealed, setBidsSealed] = useState(false);
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
   // Helper-side commission (deducted from the helpr's payout). Surfaced
   // in the budget-step "We keep X% — helpr sees $Y net" preview chip.
   const [helperFee, setHelperFee] = useState<number | null>(null);
   const salesTaxRate = 10;
+
+  // Wraps the raw state setter to handle smart-price auto-fill and the
+  // accept_bids → set_price default-tier logic.
+  const setPricingMode = (next: PricingMode) => {
+    setPricingModeState(next);
+    if (next === "smart_price") {
+      const sp = getSmartPrice(category);
+      if (sp != null) setBudget(sp.toFixed(2));
+    }
+  };
   // True once the user has restored the saved draft via loadDraft. The inline
   // "Pick up draft" pill hides after this so an accidental re-tap can't replace
   // the in-progress form with the (autosave-refreshed) snapshot.
@@ -455,8 +482,11 @@ export function usePostJobForm() {
     if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); scrollToField("flexible"); return; }
     if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); scrollToField("hours"); return; }
     // special_requirements is optional — no validation needed
-    if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); scrollToField("budget"); return; }
-    if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000."); scrollToField("budget"); return; }
+    // In accept_bids mode, budget is optional — helpers set their own price.
+    if (pricingMode !== "accept_bids") {
+      if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); scrollToField("budget"); return; }
+      if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000."); scrollToField("budget"); return; }
+    }
     if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent bonus must be at least $5"); scrollToField("custom-urgent-fee"); return; }
     setConfirmed(false);
     setStep("checkout");
@@ -613,6 +643,10 @@ export function usePostJobForm() {
         department: opts.withExtras ? department : null,
         initialStatus: opts.withExtras && requiresApproval ? "pending_approval" : undefined,
         requiresW9: opts.withExtras && business ? requiresW9 : false,
+        pricingMode: opts.withExtras ? pricingMode : "set_price",
+        bidCeiling: opts.withExtras ? (bidCeiling ? parseFloat(bidCeiling) : null) : null,
+        bidDeadline: opts.withExtras ? (bidDeadline ? bidDeadline : null) : null,
+        bidsSealed: opts.withExtras ? bidsSealed : false,
       });
 
     let { data: jobData, error } = await supabase
@@ -791,7 +825,11 @@ export function usePostJobForm() {
   // once title, description, and category are set.
   const detailsComplete = !!(title.trim() && description.trim() && category);
   const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && estimatedHours && parseFloat(estimatedHours) >= 0.5);
-  const budgetComplete = !!(budget && parseFloat(budget) >= 5);
+  // In accept_bids mode the budget is optional — helpers set their own price.
+  const budgetComplete =
+    pricingMode === "accept_bids"
+      ? true
+      : !!(budget && parseFloat(budget) >= 5);
 
   // Smart Pricing Guidance — live budget range from real completed jobs
   // in this category (+ parish), with a graceful fallback to the static
@@ -998,6 +1036,15 @@ export function usePostJobForm() {
         others always use 0. */
     credentialTier,
     setCredentialTier,
+    // Pricing mode fields
+    pricingMode,
+    setPricingMode,
+    bidCeiling,
+    setBidCeiling,
+    bidDeadline,
+    setBidDeadline,
+    bidsSealed,
+    setBidsSealed,
     isUrgent,
     setIsUrgent,
     urgentFee,

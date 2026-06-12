@@ -89,6 +89,21 @@ const Footer = () => (
           </h3>
           <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
+              <Link to="/how-it-works" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                How It Works
+              </Link>
+            </li>
+            <li>
+              <Link to="/become-a-partner" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Become a Partner
+              </Link>
+            </li>
+            <li>
+              <Link to="/enterprise" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Enterprise
+              </Link>
+            </li>
+            <li>
               <Link to="/for-business" className="hover:text-[hsl(var(--olivewood))] transition-colors">
                 Business
               </Link>
@@ -138,6 +153,11 @@ const Footer = () => (
           </h3>
           <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
+              <Link to="/help" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Help Center
+              </Link>
+            </li>
+            <li>
               <Link to="/local-guide" className="hover:text-[hsl(var(--olivewood))] transition-colors">
                 Pricing Guide
               </Link>
@@ -154,7 +174,12 @@ const Footer = () => (
             </li>
             <li>
               <Link to="/impact" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Our impact
+                Our Impact
+              </Link>
+            </li>
+            <li>
+              <Link to="/community" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+                Community
               </Link>
             </li>
           </ul>

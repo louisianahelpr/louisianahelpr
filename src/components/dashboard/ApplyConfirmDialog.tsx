@@ -64,6 +64,60 @@ function buildStarterSentences(job: EnrichedJob | null): string[] {
   ];
 }
 
+/**
+ * Returns up to 2 context-aware tips for the helpr based on the job's
+ * attributes. Empty array when no tips apply — the UI hides the tips block.
+ */
+function getApplyTips(job: {
+  is_urgent?: boolean | null;
+  budget?: number | null;
+  pricing_mode?: string;
+  date_needed?: string | null;
+  category?: string | null;
+}): string[] {
+  const tips: string[] = [];
+
+  // Urgent jobs — availability is the key signal
+  if (job.is_urgent) {
+    tips.push("Urgent job — mention your earliest available start time in your message");
+  }
+
+  // High-budget jobs — experience matters more
+  if (job.budget != null && job.budget >= 150) {
+    tips.push("Higher-budget jobs go to helprs who mention relevant experience");
+  }
+
+  // Bid-mode — price explanation helps
+  if (job.pricing_mode === "accept_bids") {
+    tips.push("For bid jobs, briefly explain what your price includes");
+  }
+
+  // Upcoming date — scheduling matters
+  if (job.date_needed) {
+    const date = new Date(job.date_needed);
+    const daysAway = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (daysAway >= 0 && daysAway <= 3) {
+      tips.push("Job is in the next 3 days — confirm you're available at the date/time");
+    }
+  }
+
+  // Category-specific tips
+  const catTips: Record<string, string> = {
+    handyman:  "List the specific tools you have for this type of work",
+    cleaning:  "Mention if you bring your own supplies or need the poster's",
+    moving:    "Confirm if you have a truck or will need access to one",
+    pet_care:  "Mention any pet care certifications or relevant experience",
+    yard_work: "Specify what equipment you'll use",
+    painting:  "Mention your prep process — posters care about prep as much as painting",
+  };
+  if (job.category && catTips[job.category]) {
+    tips.push(catTips[job.category]);
+  }
+
+  // Never return more than 2 tips — keep it scannable
+  return tips.slice(0, 2);
+}
+
 interface ApplyConfirmDialogProps {
   /** Whether the dialog is open — true once a feed job has been picked. */
   open: boolean;
@@ -410,6 +464,34 @@ export function ApplyConfirmDialog({
               </span>
             </div>
           </div>
+          {/* Smart apply tips — context-aware nudges based on job attributes */}
+          {(() => {
+            const tips = getApplyTips({
+              is_urgent: confirmApplyJob?.is_urgent,
+              budget: confirmApplyJob?.budget,
+              pricing_mode: (confirmApplyJob as any)?.pricing_mode,
+              date_needed: confirmApplyJob?.date_needed,
+              category: confirmApplyJob?.category,
+            });
+            if (tips.length === 0) return null;
+            return (
+              <div
+                className="rounded-ds-md px-3 py-2.5 space-y-1 mt-3"
+                style={{ background: "hsl(var(--sage) / 0.07)", border: "1px solid hsl(var(--sage) / 0.18)" }}
+              >
+                <p className="text-ds-11 font-semibold uppercase tracking-[0.1em]" style={{ color: "hsl(var(--sage))" }}>
+                  Tips
+                </p>
+                {tips.map((tip, i) => (
+                  <p key={i} className="text-ds-12 flex items-start gap-1.5" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
+                    <span style={{ color: "hsl(var(--sage))", marginTop: "2px" }}>›</span>
+                    {tip}
+                  </p>
+                ))}
+              </div>
+            );
+          })()}
+
           {/* Reliability stake */}
           <div
             className="mt-3.5 rounded-ds-md p-3"

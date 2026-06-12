@@ -52,6 +52,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
 import { getActiveTriggers, type TriggerContext } from "@/lib/lifeEventTriggers";
 import { LifeEventCard } from "@/components/dashboard/LifeEventCard";
+import { AutopilotReminderCard } from "@/components/dashboard/AutopilotReminderCard";
 
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
@@ -377,6 +378,45 @@ const Dashboard = () => {
   useEffect(() => {
     if (savedJobsData) setSavedJobIds(new Set(savedJobsData));
   }, [savedJobsData]);
+
+  // Home-autopilot: maintenance reminders due in the next 7 days.
+  // Degrades gracefully via PGRST202 handling (table not yet deployed).
+  const { data: dueReminders = [] } = useQuery({
+    queryKey: ["due-reminders", user?.id],
+    queryFn: async () => {
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const nextWeek = new Date(Date.now() + 7 * 86400_000).toISOString().split("T")[0];
+        const { data, error } = await supabase
+          .from("home_maintenance_reminders")
+          .select("*")
+          .eq("user_id", user!.id)
+          .eq("is_active", true)
+          .lte("next_reminder_date", nextWeek)
+          .gte("next_reminder_date", today);
+        // PGRST202 = table not deployed yet — hide section silently.
+        if (error && (error as any).code === "PGRST202") return [];
+        if (error) return [];
+        return (data ?? []) as Array<{
+          id: string;
+          category: string;
+          last_completed_date: string | null;
+          next_reminder_date: string | null;
+          reminder_interval_days: number;
+        }>;
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+    staleTime: 300_000,
+  });
+  // Most overdue = earliest next_reminder_date
+  const topReminder = dueReminders.length > 0
+    ? [...dueReminders].sort((a, b) =>
+        (a.next_reminder_date ?? "").localeCompare(b.next_reminder_date ?? ""),
+      )[0]
+    : null;
 
   // Save / un-save a job. Optimistic: the heart flips the instant the
   // user taps, both in local state and in the cached `savedJobs` query,
@@ -1007,6 +1047,23 @@ const Dashboard = () => {
             />
           )}
 
+          {/* Home-autopilot reminder — surfaces the most-overdue maintenance
+              task when one is due within the next 7 days. Table degrades
+              gracefully before the migration is pushed (returns empty). */}
+          {topReminder && (
+            <AutopilotReminderCard
+              reminder={topReminder}
+              onDismiss={() => {
+                // Mark locally dismissed by removing from the list until next load
+                supabase
+                  .from("home_maintenance_reminders")
+                  .update({ is_active: false })
+                  .eq("id", topReminder.id)
+                  .then(() => {});
+              }}
+              onPostJob={(category) => navigate(`/post-job?category=${category}`)}
+            />
+          )}
 
           {/* Hurricane season banner — June–Nov only, dismissible for the day. */}
           {showStormBanner && (

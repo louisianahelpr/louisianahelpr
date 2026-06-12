@@ -24,6 +24,7 @@ import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
+import { CareerMilestones } from "@/components/profile/CareerMilestones";
 
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -1369,6 +1370,26 @@ const UserProfile = () => {
               canEndorse={!isOwnProfile && mutualJobsCount > 0}
             />
           )}
+
+          {/* Career milestones — earned badges based on job count, rating,
+              and credential tier. Shows next-milestone progress on own profile.
+              credential_tier: 2 = verified license (license_status=verified). */}
+          {(() => {
+            const credentialTier = (data as any)?.credentialTier ??
+              (profile as any)?.license_status === "verified" ? 2 : 0;
+            const milestoneStats = {
+              completedJobs: stats.completedJobs,
+              avgRating: stats.avgRating,
+              repeatHirePercent: 0, // not yet tracked client-side
+              credentialTier,
+            };
+            return (
+              <CareerMilestones
+                stats={milestoneStats}
+                showProgress={isOwnProfile}
+              />
+            );
+          })()}
 
           {/* Recent reviews — public trust-signal wall (#86). Always
               visible on other-user profiles so prospective posters see

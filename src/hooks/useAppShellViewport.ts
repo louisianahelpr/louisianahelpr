@@ -79,6 +79,10 @@ const DOCUMENT_SCROLL_ROUTES = [
   // Public vertical landing pages (PageHeader + min-h-screen document-scroll)
   "/discharge",       // Healthcare Discharge Concierge
   "/insurance-claim", // Insurance Claim Concierge
+
+  // Growth / business-development pages — public, long-form, document-scroll
+  "/become-a-partner", // Partner intake form for service businesses
+  "/enterprise",       // B2B / enterprise integration page
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

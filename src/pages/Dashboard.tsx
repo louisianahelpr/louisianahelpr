@@ -267,6 +267,21 @@ const Dashboard = () => {
   const subExpiresAt = profile?.subscription_expires_at ?? null;
   const subActive = subExpiresAt ? new Date(subExpiresAt) > new Date() : false;
   const isPaidSubscriber = !!profile && subActive && subTier !== "free";
+  const { data: hasPets = false } = useQuery({
+    queryKey: ["pet_profiles_count", user?.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("pet_profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user!.id);
+      if (error) return false;
+      return (count ?? 0) > 0;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+
   const { data: lastApplicationAt } = useQuery({
     queryKey: queryKeys.dashboard.lastApplication(user?.id),
     queryFn: async () => {
@@ -343,7 +358,7 @@ const Dashboard = () => {
         return Math.floor((Date.now() - new Date(latest).getTime()) / 86_400_000);
       })(),
       profileHasCity: !!(profile?.location || profile?.parish),
-      hasPets: false, // TODO: wire pet_profiles count when available
+      hasPets,
     };
     // lifeEventDismissedAt in deps re-runs this after a dismiss clears localStorage.
     void lifeEventDismissedAt;

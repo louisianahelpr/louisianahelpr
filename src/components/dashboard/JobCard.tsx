@@ -65,6 +65,13 @@ interface JobCardProps {
    * did before (tap → /signup).
    */
   onLongPress?: (jobId: string) => void;
+  /**
+   * Marks this card as one of the top relevance-matched picks. When true a
+   * small, unobtrusive "Recommended" pill renders near the category label.
+   * Only the first couple of recommended cards set this — the rest of the
+   * feed leaves it false and shows no pill.
+   */
+  recommended?: boolean;
 }
 
 // Category colors apply ONLY to the category badge pill at the top of
@@ -72,7 +79,7 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, onLongPress }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, onLongPress, recommended = false }: JobCardProps) => {
   const isGuest = variant === "guest";
 
   // Double-tap-to-save (Instagram-style). A single tap still opens the
@@ -306,6 +313,27 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           )}
         </span>
         <div className="w-full px-3.5 pt-6 pb-2.5">
+        {/* Recommended pill — a subtle relevance cue for the top picks.
+            Sits above the title row (clear of the price chip on the right
+            and the save button at the foot). pointer-events-none so it
+            never intercepts the card tap / save gestures. */}
+        {recommended && (
+          <span
+            className="inline-flex items-center gap-1 mb-1.5 px-1.5 py-0.5 rounded-full pointer-events-none"
+            style={{
+              fontSize: "10px",
+              background: "hsl(var(--burnt-sienna) / 0.10)",
+              color: "hsl(var(--burnt-sienna))",
+            }}
+          >
+            <Star
+              className="w-2.5 h-2.5 shrink-0"
+              strokeWidth={2}
+              style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }}
+            />
+            <span className="font-sans font-semibold leading-none">Recommended</span>
+          </span>
+        )}
         {/* Title leads the top row and wraps to at most two lines (never
             cut off mid-word); the price tile sits opposite it. */}
         <div className="flex items-center justify-between gap-3">
@@ -423,7 +451,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         <div className="mt-2 flex items-center gap-x-2 gap-y-0.5 flex-wrap text-[10.5px] text-muted-foreground leading-tight">
             <span className="flex items-center gap-1 min-w-0">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
-              <span className="truncate max-w-[110px] font-serif italic">{cityState}</span>
+              <span className="truncate max-w-[110px] font-sans">{cityState}</span>
             </span>
             {distanceLabel && (
               <span
@@ -452,14 +480,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             {!job.date_needed && !job.start_time ? (
               <span className="flex items-center gap-1">
                 <Calendar className="w-2.5 h-2.5 shrink-0" />
-                <span className="font-serif italic">Flexible</span>
+                <span className="font-sans">Flexible</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-x-2">
                 {job.date_needed && (
                   <span className="flex items-center gap-1">
                     <Calendar className="w-2.5 h-2.5 shrink-0" />
-                    <span className="font-serif italic whitespace-nowrap">
+                    <span className="font-sans whitespace-nowrap">
                       {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                     </span>
                   </span>
@@ -468,7 +496,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 {job.start_time && (
                   <span className="flex items-center gap-1">
                     <Clock className="w-2.5 h-2.5 shrink-0" />
-                    <span className="font-serif italic whitespace-nowrap">{formatTime12(job.start_time)}</span>
+                    <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
                   </span>
                 )}
               </span>
@@ -478,7 +506,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 <span className="opacity-30">·</span>
                 <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
                   <Timer className="w-2.5 h-2.5 shrink-0" />
-                  <span className="font-serif italic">{expiryText}</span>
+                  <span className="font-sans">{expiryText}</span>
                 </span>
               </>
             )}
@@ -503,7 +531,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   style={{ color: "hsl(var(--primary))" }}
                 >
                   <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
-                  <span className="font-serif italic font-medium">
+                  <span className="font-sans font-medium">
                     needs {job.helpers_needed ?? 2} helprs
                   </span>
                 </span>
@@ -517,7 +545,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 <span className="opacity-30 hidden [@media(min-width:360px)]:inline">·</span>
                 <span className="hidden [@media(min-width:360px)]:flex items-center gap-1">
                   <Repeat className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
-                  <span className="font-serif italic">
+                  <span className="font-sans">
                     {job.recurrence_interval || "Recurring"}
                   </span>
                 </span>

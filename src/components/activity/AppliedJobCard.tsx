@@ -479,7 +479,7 @@ function AppliedJobCardInner({
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                  <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     Counter offer declined — the poster may revise or hire someone else.
                   </p>
                 </div>
@@ -504,7 +504,7 @@ function AppliedJobCardInner({
               {(app as any).poster_viewed_at ? (
                 <span
                   className="flex items-center gap-0.5 text-ds-10 font-medium"
-                  style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   title={`Poster viewed on ${new Date((app as any).poster_viewed_at).toLocaleDateString()}`}
                 >
                   <Eye className="w-3 h-3" aria-hidden="true" /> Seen
@@ -576,7 +576,7 @@ function AppliedJobCardInner({
                   type="button"
                   aria-label="Add to calendar"
                   className="inline-flex items-center gap-1 text-ds-11 font-medium mt-1"
-                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   onClick={() =>
                     downloadIcs({
                       id: job.id,
@@ -639,7 +639,7 @@ function AppliedJobCardInner({
                   type="button"
                   aria-label="Add to calendar"
                   className="inline-flex items-center gap-1 text-ds-11 font-medium mt-1"
-                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   onClick={() =>
                     downloadIcs({
                       id: job.id,
@@ -876,7 +876,7 @@ function AppliedJobCardInner({
                   {job.disputed_at && (
                     <p
                       className="font-serif italic mt-1"
-                      style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}
+                      style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Filed {formatDistanceToNow(new Date(job.disputed_at), { addSuffix: true })}
                     </p>

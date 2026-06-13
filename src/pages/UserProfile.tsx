@@ -1093,7 +1093,7 @@ const UserProfile = () => {
                 }
                 if (viewerLoc.status === "loading") {
                   return (
-                    <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+                    <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       <MapPin className="w-3 h-3" />
                       <span className="italic">Checking nearby…</span>
                     </div>
@@ -1101,7 +1101,7 @@ const UserProfile = () => {
                 }
                 if (viewerLoc.status === "error") {
                   return (
-                    <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+                    <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       <MapPin className="w-3 h-3" />
                       <span className="italic">Location unavailable</span>
                     </div>

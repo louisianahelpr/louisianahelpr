@@ -276,7 +276,7 @@ const BusinessReports = () => {
             onChange={(e) => setNewEmail(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addRecipient(); } }}
           />
-          <Button onClick={addRecipient} variant="outline"><Plus className="w-4 h-4" /></Button>
+          <Button onClick={addRecipient} variant="outline" aria-label="Add recipient"><Plus className="w-4 h-4" /></Button>
         </div>
         {recipients.length === 0 ? (
           <p className="text-ds-12 text-muted-foreground">No recipients yet.</p>

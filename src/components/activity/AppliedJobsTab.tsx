@@ -204,7 +204,7 @@ export const AppliedJobsTab = ({
               </Button>
               <p
                 className="font-serif italic text-ds-13 mt-2"
-                style={{ color: "hsl(var(--olivewood) / 0.62)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Browse open tasks near you and apply — they&apos;ll collect here as you go.
               </p>

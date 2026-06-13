@@ -141,7 +141,7 @@ export function EmptyState({
         )}
         <p
           className="font-serif italic text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words"
-          style={{ color: "hsl(var(--olivewood) / 0.62)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {body}
         </p>

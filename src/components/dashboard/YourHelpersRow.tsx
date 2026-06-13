@@ -22,6 +22,7 @@ interface SavedHelperLite {
   helper_id: string;
   full_name: string | null;
   avatar_url: string | null;
+  available_until?: string | null;
 }
 
 const initialsOf = (name: string) =>
@@ -65,6 +66,8 @@ export function YourHelpersRow() {
       <div className="flex gap-3.5 overflow-x-auto no-scrollbar -mx-4 px-4">
         {helpers.map((h) => {
           const name = formatName(h.full_name, "Helpr");
+          const isAvailable =
+            !!h.available_until && new Date(h.available_until) > new Date();
           return (
             <button
               key={h.helper_id}
@@ -73,33 +76,53 @@ export function YourHelpersRow() {
               className="shrink-0 w-[3.75rem] flex flex-col items-center gap-1 active:scale-95 transition-transform"
               aria-label={`Offer a job to ${name}`}
             >
-              <span
-                className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center"
-                style={{
-                  background: "hsl(var(--bark) / 0.12)",
-                  boxShadow: "0 0 0 1px hsl(var(--olivewood) / 0.18)",
-                }}
-              >
-                {h.avatar_url ? (
-                  <OptimizedImage
-                    // 56px circle (w-14 h-14) — request a 56px thumbnail and
-                    // let the Vercel edge serve AVIF/WebP.
-                    src={h.avatar_url}
-                    width={56}
-                    height={56}
-                    alt=""
-                    // Above-the-fold on the Dashboard: this strip is among
-                    // the first content the user sees, so request eager +
-                    // high-priority fetches to improve LCP.
-                    priority
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
+              {/* Wrap avatar in a relative container so the availability dot
+                  can be positioned absolute bottom-right without affecting
+                  the button's flex layout. */}
+              <span className="relative">
+                <span
+                  className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center"
+                  style={{
+                    background: "hsl(var(--bark) / 0.12)",
+                    boxShadow: "0 0 0 1px hsl(var(--olivewood) / 0.18)",
+                  }}
+                >
+                  {h.avatar_url ? (
+                    <OptimizedImage
+                      // 56px circle (w-14 h-14) — request a 56px thumbnail and
+                      // let the Vercel edge serve AVIF/WebP.
+                      src={h.avatar_url}
+                      width={56}
+                      height={56}
+                      alt=""
+                      // Above-the-fold on the Dashboard: this strip is among
+                      // the first content the user sees, so request eager +
+                      // high-priority fetches to improve LCP.
+                      priority
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="font-display italic font-bold text-[0.85rem]"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      {initialsOf(name)}
+                    </span>
+                  )}
+                </span>
+                {isAvailable && (
+                  /* Green pulse dot — shown when available_until is set and in
+                     the future. border-card gives a white gap ring that separates
+                     the dot from the avatar so it reads on any background. */
                   <span
-                    className="font-display italic font-bold text-[0.85rem]"
-                    style={{ color: "hsl(var(--bark))" }}
+                    className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-card"
+                    style={{ background: "hsl(var(--sage))" }}
+                    title="Available now"
                   >
-                    {initialsOf(name)}
+                    <span
+                      className="absolute inset-0 rounded-full animate-ping opacity-75"
+                      style={{ background: "hsl(var(--sage))" }}
+                    />
                   </span>
                 )}
               </span>

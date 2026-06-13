@@ -26,6 +26,7 @@ import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import { CareerMilestones } from "@/components/profile/CareerMilestones";
+import { ProfileCompletionCard } from "@/components/profile/ProfileCompletionCard";
 
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -1220,6 +1221,18 @@ const UserProfile = () => {
               </div>
             </div>
           </div>
+
+          {/* Profile completion nudge — only shown to the owner, hidden at 100% */}
+          {isOwnProfile && userId && (
+            <ProfileCompletionCard
+              avatarUrl={profile.avatar_url}
+              bio={profile.bio}
+              skills={profile.skills}
+              completedJobs={stats.completedJobs}
+              reviewCount={stats.reviewCount}
+              userId={userId}
+            />
+          )}
 
           {/* Stats */}
           {(() => {

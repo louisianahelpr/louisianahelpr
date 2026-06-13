@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrustRow } from "@/components/TrustRow";
 import { SaveHelperButton } from "@/components/SaveHelperButton";
@@ -6,14 +6,14 @@ import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceShe
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { successToast } from "@/lib/toast";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
   Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Wrench,
-  RotateCw, Check, ChevronDown, ChevronUp, Ban, Zap, Eye,
+  RotateCw, Check, ChevronDown, ChevronUp, Ban, Zap, Eye, Send, X,
 } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -148,6 +148,72 @@ function PostedJobCardInner({
   // (create-boost-payment) which controls feed ranking.
   const [broadcastBoosted, setBroadcastBoosted] = useState(false);
   const [broadcastBoosting, setBroadcastBoosting] = useState(false);
+
+  // "Message all applicants" compose state — inline below the applicant list.
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastText, setBroadcastText] = useState("");
+  const [broadcastSending, setBroadcastSending] = useState(false);
+  const broadcastRef = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * handleBroadcastMessage — inserts one message row per pending applicant
+   * into the `messages` table, targeting their per-applicant conversation
+   * thread with the poster (keyed by job_id + participant pair). Each
+   * insert uses the poster's userId as sender_id and the applicant's
+   * helper_id as receiver_id, matching the schema used by the ChatView.
+   * Errors are surfaced individually; a partial failure still shows the
+   * success count so the poster knows which sends went through.
+   */
+  const handleBroadcastMessage = async () => {
+    if (!broadcastText.trim() || broadcastSending) return;
+    const pendingApplicants = (inlineApplicants[job.id] ?? []).filter(
+      (a) => a.status === "pending",
+    );
+    if (pendingApplicants.length === 0) return;
+
+    setBroadcastSending(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    await Promise.all(
+      pendingApplicants.map(async (app) => {
+        const { error } = await supabase.from("messages").insert({
+          job_id: job.id,
+          sender_id: userId,
+          receiver_id: app.helper_id,
+          content: broadcastText.trim(),
+        });
+        if (error) {
+          failCount++;
+          report(error, { tags: { source: "PostedJobCard.broadcastMessage", jobId: job.id } });
+        } else {
+          successCount++;
+          // Notify the helper so they see the message in their inbox.
+          void createNotification({
+            user_id: app.helper_id,
+            title: "New message from poster",
+            message: broadcastText.trim().slice(0, 120),
+            type: "info",
+            link: `/messages`,
+          });
+        }
+      }),
+    );
+
+    setBroadcastSending(false);
+
+    if (successCount > 0) {
+      hapticSuccess();
+      successToast(
+        `Message sent to ${successCount} helpr${successCount !== 1 ? "s" : ""}${failCount > 0 ? ` (${failCount} failed)` : ""}`,
+      );
+      setBroadcastOpen(false);
+      setBroadcastText("");
+    } else {
+      hapticError();
+      toast.error("Couldn't send the message — please try again.");
+    }
+  };
 
   /**
    * handleBroadcastBoost — invoke boost-job edge function to send a
@@ -578,6 +644,7 @@ function PostedJobCardInner({
                     // Render the inline applicant list with TrustRow
                     // showing each applicant's completed jobs and rating.
                     if (apps !== undefined && apps.length > 0) {
+                      const pendingCount = apps.filter((a) => a.status === "pending").length;
                       return (
                         <div className="space-y-2 py-1">
                           {apps.map((app) => {
@@ -632,6 +699,84 @@ function PostedJobCardInner({
                               </div>
                             );
                           })}
+
+                          {/* "Message all" — only when 2+ pending applicants */}
+                          {pendingCount >= 2 && (
+                            <div className="pt-1">
+                              {!broadcastOpen ? (
+                                <button
+                                  type="button"
+                                  className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-ds-md text-ds-12 font-semibold transition-colors"
+                                  style={{
+                                    background: "hsl(210 55% 47% / 0.10)",
+                                    color: "hsl(210 62% 30%)",
+                                    border: "0.5px solid hsl(210 55% 47% / 0.28)",
+                                  }}
+                                  onClick={() => {
+                                    setBroadcastOpen(true);
+                                    // Focus the textarea on next tick after render.
+                                    setTimeout(() => broadcastRef.current?.focus(), 50);
+                                  }}
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                  Message all {pendingCount} applicants
+                                </button>
+                              ) : (
+                                /* Inline compose area */
+                                <div
+                                  className="rounded-ds-md p-3 space-y-2"
+                                  style={{
+                                    background: "hsl(210 55% 47% / 0.06)",
+                                    border: "0.5px solid hsl(210 55% 47% / 0.24)",
+                                  }}
+                                >
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <p
+                                      className="text-ds-11 font-semibold"
+                                      style={{ color: "hsl(210 62% 30%)" }}
+                                    >
+                                      Message all {pendingCount} applicants
+                                    </p>
+                                    <button
+                                      type="button"
+                                      aria-label="Close"
+                                      className="p-1 rounded-full hover:bg-muted/60 transition-colors"
+                                      onClick={() => {
+                                        setBroadcastOpen(false);
+                                        setBroadcastText("");
+                                      }}
+                                    >
+                                      <X className="w-3.5 h-3.5 text-muted-foreground" />
+                                    </button>
+                                  </div>
+                                  <textarea
+                                    ref={broadcastRef}
+                                    className="w-full resize-none rounded-ds-sm px-3 py-2 text-ds-12 text-foreground placeholder:text-muted-foreground/60 bg-background border border-border/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                    rows={3}
+                                    placeholder={`e.g. "I'm running 15 min late — please bring your own gloves"`}
+                                    value={broadcastText}
+                                    onChange={(e) => setBroadcastText(e.target.value)}
+                                    maxLength={500}
+                                    disabled={broadcastSending}
+                                  />
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-ds-10 text-muted-foreground">
+                                      {broadcastText.length}/500
+                                    </span>
+                                    <Button
+                                      size="sm"
+                                      disabled={!broadcastText.trim() || broadcastSending}
+                                      onClick={handleBroadcastMessage}
+                                      className="h-8 px-3 rounded-ds-md text-ds-12"
+                                    >
+                                      <Send className="w-3.5 h-3.5 mr-1" />
+                                      {broadcastSending ? "Sending…" : `Send to all`}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     }

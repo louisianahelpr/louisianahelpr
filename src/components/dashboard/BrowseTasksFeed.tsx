@@ -3,7 +3,7 @@ import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Star, Search, Plus, Bell } from "lucide-react";
+import { Search, Plus, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "@/lib/accessibility";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -68,7 +68,7 @@ interface BrowseTasksFeedProps {
   refresh: () => void;
   recommendedJobs: EnrichedJob[];
   /** True while the feed's first page is still being fetched/refetched, so
-   *  the "Picked for you" slot reserves space with skeletons instead of
+   *  the recommended slot reserves space with skeletons instead of
    *  collapsing then popping in (CLS) once recommendations resolve. */
   recommendedLoading: boolean;
   dismissedJobIds: Set<string>;
@@ -102,8 +102,9 @@ interface BrowseTasksFeedProps {
 
 /**
  * BrowseTasksFeed — the Dashboard feed body: the Map view, and the
- * pull-to-refresh job list (error / empty states, the "Picked for you"
- * + "Everything else" sections, and the infinite-scroll sentinel).
+ * pull-to-refresh job list (error / empty states, the relevance-sorted
+ * feed with recommended picks marked by a pill, and the infinite-scroll
+ * sentinel).
  *
  * Extracted verbatim from Dashboard.tsx (a step in splitting that
  * file) — the JSX is unchanged and every value it reads is now a prop.
@@ -349,75 +350,29 @@ export function BrowseTasksFeed({
         return (
           <>
             {showRecommendedSkeleton && density === "comfortable" && (
-              <>
-                <div
-                  className="px-4 pt-3 pb-1.5 flex items-center justify-between"
-                  style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.06)" }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Star
-                      className="w-3.5 h-3.5"
-                      style={{ color: "hsl(var(--burnt-sienna))" }}
-                      strokeWidth={2}
-                      fill="hsl(var(--burnt-sienna) / 0.2)"
-                    />
-                    <span
-                      className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
-                      style={{ color: "hsl(var(--burnt-sienna))" }}
-                    >
-                      Picked for you
-                    </span>
-                  </div>
-                </div>
-                <div
-                  className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5"
-                  aria-hidden
-                >
-                  {/* Recommended-section variant — matches the real
-                      "Picked for you" card geometry (sienna rail, longer
-                      title row, taller price tile). A generic feed
-                      skeleton here mis-sizes the section and the swap
-                      bumps the list down when matches arrive. */}
-                  {[0, 1].map((i) => (
-                    <RecommendedJobCardSkeleton key={`rec-skel-${i}`} />
-                  ))}
-                </div>
-              </>
+              <div
+                className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5"
+                aria-hidden
+              >
+                {/* Recommended-section variant — matches the real recommended
+                    card geometry (sienna rail, longer title row, taller price
+                    tile). A generic feed skeleton here mis-sizes the slot and
+                    the swap bumps the list down when matches arrive. */}
+                {[0, 1].map((i) => (
+                  <RecommendedJobCardSkeleton key={`rec-skel-${i}`} />
+                ))}
+              </div>
             )}
             {recommendedVisible.length > 0 && (
               <>
-                <div
-                  className="px-4 pt-3 pb-1.5 flex items-center justify-between"
-                  style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.06)" }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Star
-                      className="w-3.5 h-3.5"
-                      style={{ color: "hsl(var(--burnt-sienna))" }}
-                      strokeWidth={2}
-                      fill="hsl(var(--burnt-sienna) / 0.2)"
-                    />
-                    <span
-                      className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
-                      style={{ color: "hsl(var(--burnt-sienna))" }}
-                    >
-                      Picked for you
-                    </span>
-                  </div>
-                  <span
-                    className="text-[0.7rem] font-sans"
-                    style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-                  >
-                    {recommendedVisible.length}
-                  </span>
-                </div>
                 {density === "compact" ? (
                   <ul>
-                    {recommendedVisible.map((job) => (
+                    {recommendedVisible.map((job, i) => (
                       <CompactJobCard
                         key={job.id}
                         job={job}
                         effectiveFee={effectiveFee}
+                        recommended={i < 2}
                         onSelect={(j) => setDetailJob(j)}
                         isHighlighted={hoveredJobId === job.id}
                         onMouseEnter={() => setHoveredJobId?.(job.id)}
@@ -446,26 +401,10 @@ export function BrowseTasksFeed({
                           onMouseEnter={() => setHoveredJobId?.(job.id)}
                           onMouseLeave={() => setHoveredJobId?.(null)}
                         >
-                          <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
+                          <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} recommended={i < 2} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
                         </motion.div>
                       ))}
                     </AnimatePresence>
-                  </div>
-                )}
-                {visibleJobs.length > 0 && (
-                  <div
-                    className="px-4 pt-3 pb-1.5"
-                    style={{
-                      borderTop: "1px solid hsl(var(--olivewood) / 0.06)",
-                      borderBottom: "1px solid hsl(var(--olivewood) / 0.06)",
-                    }}
-                  >
-                    <span
-                      className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
-                      style={{ color: "hsl(var(--burnt-sienna))" }}
-                    >
-                      Everything else
-                    </span>
                   </div>
                 )}
               </>

@@ -1,4 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
+import { Star } from "lucide-react";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { getCity } from "@/lib/locationUtils";
 import { computeNet, formatAmount } from "@/components/dashboard/JobPrice";
@@ -14,6 +15,8 @@ interface CompactJobCardProps {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   isHighlighted?: boolean;
+  /** Marks this as a top recommended pick — renders a subtle pill. */
+  recommended?: boolean;
 }
 
 /**
@@ -31,11 +34,14 @@ export function CompactJobCard({
   onMouseEnter,
   onMouseLeave,
   isHighlighted = false,
+  recommended = false,
 }: CompactJobCardProps) {
   const colors = categoryColors[job.category] ?? categoryColors.other;
   const city = getCity(job.location);
+  // addSuffix: true → "5 minutes ago" instead of a bare "5 minutes", so the
+  // relative time reads unambiguously as how long ago the job was posted.
   const timeAgo = job.created_at
-    ? formatDistanceToNow(new Date(job.created_at), { addSuffix: false })
+    ? formatDistanceToNow(new Date(job.created_at), { addSuffix: true })
     : null;
   // Net "you earn" when a fee tier is known; gross budget otherwise. Uses
   // the shared JobPrice math so this row agrees with the comfortable card.
@@ -65,6 +71,27 @@ export function CompactJobCard({
           aria-hidden
         />
 
+        {/* Recommended pill — a subtle relevance cue for the top picks.
+            Sits between the category dot and the title; pointer-events stay
+            with the row button so the whole row remains tappable. */}
+        {recommended && (
+          <span
+            className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full"
+            style={{
+              fontSize: "10px",
+              background: "hsl(var(--burnt-sienna) / 0.10)",
+              color: "hsl(var(--burnt-sienna))",
+            }}
+          >
+            <Star
+              className="w-2.5 h-2.5 shrink-0"
+              strokeWidth={2}
+              style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }}
+            />
+            <span className="font-sans font-semibold leading-none">Recommended</span>
+          </span>
+        )}
+
         {/* Title + city — flex-1 with truncation */}
         <span className="flex-1 min-w-0 flex items-baseline gap-1.5 overflow-hidden">
           <span
@@ -75,7 +102,7 @@ export function CompactJobCard({
           </span>
           {city && (
             <span
-              className="shrink-0 font-serif italic text-ds-11 leading-none"
+              className="shrink-0 font-sans text-ds-11 leading-none"
               style={{ color: "hsl(var(--olivewood) / 0.6)" }}
             >
               {city}

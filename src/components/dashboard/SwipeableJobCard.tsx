@@ -24,6 +24,8 @@ interface SwipeableJobCardProps {
   userLng?: number | null;
   /** Long-press handler — forwarded to JobCard for the quick-action sheet. */
   onLongPress?: (jobId: string) => void;
+  /** Marks this as a top recommended pick — forwarded to JobCard's pill. */
+  recommended?: boolean;
 }
 
 const SWIPE_THRESHOLD = -100;
@@ -46,6 +48,7 @@ const SwipeableJobCard = ({
   userLat = null,
   userLng = null,
   onLongPress,
+  recommended = false,
 }: SwipeableJobCardProps) => {
   const x = useMotionValue(0);
   const backgroundOpacity = useTransform(x, [-150, -50, 0], [1, 0.6, 0]);
@@ -176,6 +179,7 @@ const SwipeableJobCard = ({
             userLat={userLat}
             userLng={userLng}
             onLongPress={onLongPress}
+            recommended={recommended}
           />
         </div>
       </motion.div>

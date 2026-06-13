@@ -11,6 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Mail, Lock, Monitor, Smartphone, Tablet, LogOut } from "lucide-react";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects";
@@ -114,17 +115,18 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     gcTime: 5 * 60_000,
   });
 
+  // Global sign-out confirmation. Routed through BrandConfirmDialog
+  // rather than window.confirm() — native dialogs are off-brand and
+  // unreliable inside the Capacitor iOS WebView (the same reason the
+  // change-email dialog below replaced prompt()).
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+
   const handleSignOutAllOther = async () => {
     // Supabase doesn't expose a per-session revoke without an admin
     // service-role bearer (the `auth.admin.signOut` API). The closest
     // safe-to-ship action from the client is a global sign-out, which
     // revokes every refresh token for the user (incl. this device).
-    // We surface it with explicit confirmation copy so the user isn't
-    // surprised when *this* tab signs out too.
-    const ok = window.confirm(
-      "Sign out every device, including this one? You'll need to sign back in here.",
-    );
-    if (!ok) return;
+    setSignOutDialogOpen(false);
     const { error } = await supabase.auth.signOut({ scope: "global" });
     if (error) {
       toast.error(error.message);
@@ -275,6 +277,21 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Global sign-out confirmation — branded replacement for the
+          native confirm(). Sienna tone + warning copy because it signs
+          out THIS device too. */}
+      <BrandConfirmDialog
+        open={signOutDialogOpen}
+        onOpenChange={setSignOutDialogOpen}
+        title="Sign out everywhere?"
+        description="This signs out every device, including this one. You'll need to sign back in here."
+        primaryLabel="Sign out everywhere"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={handleSignOutAllOther}
+        secondaryLabel="Cancel"
+      />
 
       <div className="rounded-2xl liquid-glass p-5 space-y-3">
         <div className="flex items-center gap-2.5">
@@ -453,7 +470,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleSignOutAllOther}
+            onClick={() => setSignOutDialogOpen(true)}
             className="w-full"
             style={{
               borderColor: "hsl(var(--burnt-sienna) / 0.32)",

@@ -127,11 +127,17 @@ export function CompletionChoiceSheet({
         revision_requested_at: now,
         revision_count: (await (async () => {
           // Increment revision_count defensively
-          const { data } = await supabase
+          const { data, error } = await supabase
             .from("jobs")
             .select("revision_count")
             .eq("id", jobId)
             .single();
+          if (error) {
+            // Surface the swallowed read failure, but keep the `?? 0`
+            // fallback so a failed read doesn't silently reset the
+            // counter to 1 on the update below.
+            report(error, { tags: { source: "CompletionChoiceSheet.revisionCount" } });
+          }
           return (data?.revision_count ?? 0) + 1;
         })()),
       }).eq("id", jobId);

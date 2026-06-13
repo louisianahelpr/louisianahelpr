@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Mail, Send, Users, AlertTriangle } from "lucide-react";
@@ -28,26 +29,38 @@ const AdminMarketing = () => {
   const [testEmail, setTestEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [lastResult, setLastResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  // Gates the irreversible "send to full segment" action behind a
+  // branded confirm dialog (native confirm() is off-brand in the
+  // Capacitor iOS WebView). The test send stays unguarded.
+  const [confirmSendOpen, setConfirmSendOpen] = useState(false);
 
-  const send = async (asTest: boolean) => {
+  // Shared validation for both test and full sends. Returns false (with
+  // a toast) when the form isn't ready.
+  const validate = (asTest: boolean): boolean => {
     if (!subject.trim() || !html.trim()) {
       toast.error("Subject and body are required");
-      return;
+      return false;
     }
     if (asTest && !testEmail.trim()) {
       toast.error("Enter a test email");
-      return;
+      return false;
     }
     if (segment === "by_parish" && !parish) {
       toast.error("Pick a parish");
-      return;
+      return false;
     }
-    if (!asTest) {
-      const ok = window.confirm(
-        `Send this campaign to all matching ${segment === "all" ? "users" : segment}? This cannot be undone.`
-      );
-      if (!ok) return;
-    }
+    return true;
+  };
+
+  // Tap handler for "Send campaign" — validates then opens the confirm
+  // dialog. The actual send runs in send(false) after confirmation.
+  const requestSend = () => {
+    if (!validate(false)) return;
+    setConfirmSendOpen(true);
+  };
+
+  const send = async (asTest: boolean) => {
+    if (!validate(asTest)) return;
     setSending(true);
     setLastResult(null);
     try {
@@ -186,7 +199,7 @@ const AdminMarketing = () => {
             className="w-full"
             size="lg"
             disabled={sending}
-            onClick={() => send(false)}
+            onClick={requestSend}
           >
             {sending ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</>
@@ -194,6 +207,19 @@ const AdminMarketing = () => {
               <><Send className="w-4 h-4 mr-2" /> Send campaign</>
             )}
           </Button>
+
+          <BrandConfirmDialog
+            open={confirmSendOpen}
+            onOpenChange={setConfirmSendOpen}
+            title="Send to the full segment?"
+            description={`This sends the campaign to all matching ${segment === "all" ? "users" : segment}. It can't be undone.`}
+            callout={{ text: "Did you send a test first? This goes straight to real inboxes." }}
+            primaryLabel="Send campaign"
+            primaryTone="sienna"
+            primaryHaptic="warning"
+            onPrimary={() => { setConfirmSendOpen(false); void send(false); }}
+            secondaryLabel="Cancel"
+          />
 
           {lastResult && (
             <div className="rounded-ds-sm border bg-muted/40 p-4 text-ds-13">

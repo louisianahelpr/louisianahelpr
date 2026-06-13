@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { Check, X, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -38,6 +40,10 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
   const queryClient = useQueryClient();
   const [acting, setActing] = useState<string | null>(null);
   const [rpcMissing, setRpcMissing] = useState(false);
+  // Reject flow: target the job being rejected + the optional reason
+  // typed into the brand dialog (empty is allowed — reason is optional).
+  const [rejectTarget, setRejectTarget] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["business-pending-approvals", businessId],
@@ -93,12 +99,14 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
     queryClient.invalidateQueries({ queryKey: ["business-pending-approvals", businessId] });
   };
 
-  const reject = async (jobId: string) => {
-    const reason = window.prompt("Reason (optional, shown to the poster):") ?? null;
+  const reject = async (jobId: string, reason: string) => {
+    // Preserve the optional semantics: an empty box sends null, just
+    // like the old window.prompt cancel/blank path.
+    const trimmed = reason.trim();
     setActing(jobId);
     const { error } = await supabase.rpc("reject_pending_job" as any, {
       p_job_id: jobId,
-      p_reason: reason,
+      p_reason: trimmed.length > 0 ? trimmed : null,
     } as any);
     setActing(null);
     if (error) {
@@ -162,6 +170,7 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
   }
 
   return (
+    <>
     <div className="space-y-3">
       {data.map((j) => (
         <Card key={j.id} className="p-4">
@@ -188,7 +197,7 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => reject(j.id)}
+              onClick={() => { setRejectReason(""); setRejectTarget(j.id); }}
               disabled={acting === j.id}
             >
               {acting === j.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (<><X className="w-3.5 h-3.5 mr-1" /> Reject</>)}
@@ -204,6 +213,36 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
         </Card>
       ))}
     </div>
+
+      <BrandConfirmDialog
+        open={!!rejectTarget}
+        onOpenChange={(open) => { if (!open) setRejectTarget(null); }}
+        title="Reject this post?"
+        description="The poster is notified it won't go live. You can add a short reason — it's optional and shown to them."
+        primaryLabel="Reject post"
+        primaryTone="sienna"
+        primaryHaptic="error"
+        primaryDisabled={!!acting}
+        onPrimary={(e) => {
+          e.preventDefault();
+          if (!rejectTarget) return;
+          const jobId = rejectTarget;
+          const reason = rejectReason;
+          setRejectTarget(null);
+          void reject(jobId, reason);
+        }}
+        secondaryLabel="Cancel"
+      >
+        <div className="space-y-1.5">
+          <Textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Reason (optional, shown to the poster)…"
+            rows={3}
+          />
+        </div>
+      </BrandConfirmDialog>
+    </>
   );
 }
 

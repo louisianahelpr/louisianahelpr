@@ -4,7 +4,7 @@ import { Sparkles, ChevronDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useJobsForYou } from "@/hooks/useJobsForYou";
 import { categoryColors } from "@/components/activity/activityConstants";
-import { getCityState } from "@/lib/locationUtils";
+import { getCity } from "@/lib/locationUtils";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -38,7 +38,7 @@ function RecommendedCard({
   onSelect: (job: EnrichedJob) => void;
 }) {
   const colors = categoryColors[job.category] ?? categoryColors["other"];
-  const city = getCityState(job.location);
+  const city = getCity(job.location);
   const timeAgo = job.created_at
     ? formatDistanceToNow(new Date(job.created_at), { addSuffix: false })
     : null;

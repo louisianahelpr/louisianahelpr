@@ -10,7 +10,7 @@ import { categoryLabels, categoryColors } from "@/components/activity/activityCo
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { formatTime12 } from "@/components/TimePickerSelect";
-import { getCityState } from "@/lib/locationUtils";
+import { getCity } from "@/lib/locationUtils";
 import { haversineMiles } from "@/lib/geo";
 import { getParishCentroid, getCentroidFromLocation } from "@/lib/parishCentroids";
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
@@ -161,7 +161,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // After 30 min the badge drops away and all helpers can see the job.
   const isNew = Date.now() - new Date(job.created_at).getTime() < 30 * 60_000;
 
-  const cityState = getCityState(job.location);
+  const cityState = getCity(job.location);
 
   // Distance pill — uses the viewer's cached session location (lifted in
   // from Dashboard via useUserLocation, which caches at the module level

@@ -12,7 +12,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { divIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { EnrichedJob } from "@/components/dashboard/types";
-import { getCityState } from "@/lib/locationUtils";
+import { getCity } from "@/lib/locationUtils";
 
 // ---------------------------------------------------------------------------
 // Category → raw HSL hex for SVG inline styles (categoryColors uses
@@ -153,9 +153,9 @@ export function JobMapView({ jobs, hoveredJobId, onJobClick }: JobMapViewProps) 
                 <p className="font-sans font-semibold text-[0.82rem] leading-tight text-gray-900 line-clamp-2">
                   {job.title}
                 </p>
-                {getCityState(job.location) && (
+                {getCity(job.location) && (
                   <p className="font-serif italic text-[0.72rem] text-gray-500 mt-0.5">
-                    {getCityState(job.location)}
+                    {getCity(job.location)}
                   </p>
                 )}
                 <p className="font-sans font-bold text-[0.82rem] mt-1" style={{ color: categoryColor(job.category) }}>

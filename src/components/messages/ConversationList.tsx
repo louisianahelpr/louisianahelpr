@@ -316,9 +316,22 @@ export function ConversationList({
                 );
               })()}
               {!showAllConvos && orderedConversations.length > CONVO_LIMIT && (
-                <button onClick={() => setShowAllConvos(true)} className="w-full text-center py-3 text-ds-13 text-primary font-medium hover:underline">
-                  Show all {orderedConversations.length} conversations
-                </button>
+                <div className="flex justify-center py-3">
+                  <button
+                    onClick={() => setShowAllConvos(true)}
+                    className="btn-press inline-flex items-center justify-center rounded-full px-4 py-1.5 text-ds-13 font-medium transition-colors"
+                    style={{
+                      background: "hsl(var(--parchment) / 0.8)",
+                      color: "hsl(var(--bark))",
+                      border: "1px solid hsl(var(--bark) / 0.22)",
+                      boxShadow:
+                        "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
+                        "0 1px 2px hsl(var(--bark) / 0.10)",
+                    }}
+                  >
+                    Show all {orderedConversations.length} conversations
+                  </button>
+                </div>
               )}
             </div>
           )}

@@ -49,6 +49,27 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     return searchParams.get("filter") ?? defaultFilter;
   });
 
+  // Deep-link highlight — the notification for "poster viewed your
+  // application" links to /my-jobs?highlight=<applicationId>. We read
+  // it once on mount, hand it to AppliedJobsTab so the matching card
+  // can scroll into view + pulse, then strip it from the URL (replace,
+  // not push) so Back doesn't re-trigger the animation.
+  const [highlightAppId] = useState<string | null>(() =>
+    defaultTab === "applied" ? (searchParams.get("highlight") ?? null) : null,
+  );
+
+  // Remove ?highlight= from the URL after the first paint. We do this
+  // in a microtask so the param is still present when the tab mounts
+  // and reads it; by the time the Effect fires the card scroll has
+  // already been requested.
+  useEffect(() => {
+    if (!highlightAppId) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("highlight");
+    setSearchParams(next, { replace: true });
+    // Run once on mount — highlightAppId is stable (useState initial value).
+  }, []);
+
   // Push filter/search changes back into the URL so navigating away and
   // back (or browser back/forward) restores the view. Skip the write
   // when the value is already the URL default to avoid noisy history
@@ -344,6 +365,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             <AppliedJobsTab
               groupByStatus={statusFilter === "all"}
               apps={filteredAppliedApps}
+              highlightAppId={highlightAppId}
               expandedJobId={actions.expandedJobId}
               setExpandedJobId={actions.setExpandedJobId}
               helperReviewedJobIds={helperReviewedJobIds}

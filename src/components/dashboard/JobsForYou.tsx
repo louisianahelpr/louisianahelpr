@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ChevronDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useJobsForYou } from "@/hooks/useJobsForYou";
 import { categoryColors } from "@/components/activity/activityConstants";
@@ -101,6 +101,15 @@ function RecommendedCard({
 export function JobsForYou({ userId, profile, effectiveFee }: JobsForYouProps) {
   const { data: jobs, isLoading, isError } = useJobsForYou(userId, profile);
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem("helpr:foryou_collapsed") === "1"; } catch { return false; }
+  });
+  const toggleCollapsed = () =>
+    setCollapsed((c) => {
+      const next = !c;
+      try { localStorage.setItem("helpr:foryou_collapsed", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
 
   // Surface nothing on error (PGRST202 or any other failure).
   if (isError) return null;
@@ -131,16 +140,18 @@ export function JobsForYou({ userId, profile, effectiveFee }: JobsForYouProps) {
         aria-label="Jobs for you"
         className="px-4 pt-2 pb-1"
       >
-        <SectionHeader />
-        <ul className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="list">
-          {jobs.map((job) => (
-            <RecommendedCard
-              key={job.id}
-              job={job}
-              onSelect={setDetailJob}
-            />
-          ))}
-        </ul>
+        <SectionHeader collapsed={collapsed} onToggle={toggleCollapsed} />
+        {!collapsed && (
+          <ul className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="list">
+            {jobs.map((job) => (
+              <RecommendedCard
+                key={job.id}
+                job={job}
+                onSelect={setDetailJob}
+              />
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* Job detail dialog — lazy loaded, only mounted on tap */}
@@ -159,27 +170,51 @@ export function JobsForYou({ userId, profile, effectiveFee }: JobsForYouProps) {
   );
 }
 
-function SectionHeader() {
-  return (
-    <div className="flex items-center justify-between mb-2">
-      <div className="flex items-center gap-1.5">
-        <Sparkles
-          className="w-3.5 h-3.5 shrink-0"
-          style={{ color: "hsl(var(--burnt-sienna))" }}
+function SectionHeader({ collapsed, onToggle }: { collapsed?: boolean; onToggle?: () => void } = {}) {
+  const titleInner = (
+    <>
+      <Sparkles
+        className="w-3.5 h-3.5 shrink-0"
+        style={{ color: "hsl(var(--burnt-sienna))" }}
+        strokeWidth={2.25}
+        aria-hidden
+      />
+      <span
+        className="font-display italic font-bold leading-none"
+        style={{
+          fontSize: "0.82rem",
+          color: "hsl(var(--ink-deep))",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        For you
+      </span>
+      {onToggle && (
+        <ChevronDown
+          className={`w-3.5 h-3.5 shrink-0 transition-transform ${collapsed ? "-rotate-90" : ""}`}
+          style={{ color: "hsl(var(--olivewood) / 0.6)" }}
           strokeWidth={2.25}
           aria-hidden
         />
-        <span
-          className="font-display italic font-bold leading-none"
-          style={{
-            fontSize: "0.82rem",
-            color: "hsl(var(--ink-deep))",
-            letterSpacing: "-0.01em",
-          }}
+      )}
+    </>
+  );
+
+  return (
+    <div className="flex items-center justify-between mb-2">
+      {onToggle ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex items-center gap-1.5 min-h-[28px] active:opacity-70 transition-opacity"
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Expand For you" : "Collapse For you"}
         >
-          For you
-        </span>
-      </div>
+          {titleInner}
+        </button>
+      ) : (
+        <div className="flex items-center gap-1.5">{titleInner}</div>
+      )}
       <Link
         to="/jobs"
         className="font-sans font-medium text-ds-11 active:opacity-70 transition-opacity"

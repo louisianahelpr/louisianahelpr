@@ -1,7 +1,7 @@
 import { startTransition, useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useMotionValue, useTransform, animate, type PanInfo } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { Clock, LayoutList, MapPin, Search, SlidersHorizontal, X, List, Map as MapIcon } from "lucide-react";
+import { Clock, MapPin, Search, SlidersHorizontal, X, List, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedSearches } from "@/components/SavedSearches";
 import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
@@ -41,9 +41,6 @@ interface BrowseTasksToolbarProps {
   /** List vs Map view selection. */
   view: "list" | "map";
   setView: (next: "list" | "map") => void;
-  /** Card density: comfortable (default full cards) or compact (single-line rows). */
-  density: FeedDensity;
-  setDensity: (next: FeedDensity) => void;
   /** Called when the user clears all filters via the "Clear all" chip —
    *  Dashboard uses this to scroll the feed back to the top so the user
    *  doesn't end up mid-list in a freshly unfiltered feed. */
@@ -119,8 +116,6 @@ export function BrowseTasksToolbar({
   helperAvailability,
   view,
   setView,
-  density,
-  setDensity,
   onClearAllFilters,
 }: BrowseTasksToolbarProps) {
   // Recent searches dropdown — shown only when the search input is
@@ -282,62 +277,6 @@ export function BrowseTasksToolbar({
               {/* Clear-all lives with the filter/chip rows below, not here —
                   crowding it into the icon cluster forced the title to wrap
                   and pushed the filter button off-screen on narrow phones. */}
-
-              {/* Density toggle — comfortable (full cards) vs compact (rows).
-                  Only shown in list view — map view isn't affected by density.
-                  Two tiny icons side-by-side in a single pill so the toggle
-                  reads as a segmented control at a glance. */}
-              {view === "list" && (
-                <div
-                  className="flex rounded-ds-sm overflow-hidden"
-                  style={{ border: "0.5px solid hsl(var(--bark) / 0.2)" }}
-                  role="group"
-                  aria-label="Feed density"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setDensity("comfortable")}
-                    className="p-1.5 transition-colors"
-                    style={{
-                      background: density === "comfortable"
-                        ? "hsl(var(--bark) / 0.1)"
-                        : "transparent",
-                    }}
-                    aria-label="Comfortable view"
-                    aria-pressed={density === "comfortable"}
-                  >
-                    <LayoutList
-                      className="w-4 h-4"
-                      style={{
-                        color: density === "comfortable"
-                          ? "hsl(var(--bark))"
-                          : "hsl(var(--olivewood) / 0.5)",
-                      }}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDensity("compact")}
-                    className="p-1.5 transition-colors"
-                    style={{
-                      background: density === "compact"
-                        ? "hsl(var(--bark) / 0.1)"
-                        : "transparent",
-                    }}
-                    aria-label="Compact view"
-                    aria-pressed={density === "compact"}
-                  >
-                    <List
-                      className="w-4 h-4"
-                      style={{
-                        color: density === "compact"
-                          ? "hsl(var(--bark))"
-                          : "hsl(var(--olivewood) / 0.5)",
-                      }}
-                    />
-                  </button>
-                </div>
-              )}
 
               {/* List ⇄ Map toggle — single icon button living in the
                   toolbar cluster beside saved-search / search / filter.

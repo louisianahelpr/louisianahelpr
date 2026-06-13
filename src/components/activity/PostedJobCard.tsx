@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
   Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Wrench,
-  RotateCw, Check, ChevronDown, ChevronUp, Ban, Zap, Eye, Send, X,
+  RotateCw, Check, ChevronDown, ChevronUp, Ban, Zap, Eye, Send, X, ChevronRight,
 } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -664,37 +664,69 @@ function PostedJobCardInner({
                                   border: "0.5px solid hsl(var(--olivewood) / 0.14)",
                                 }}
                               >
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <p
-                                      className="font-display italic font-bold truncate"
-                                      style={{ fontSize: "0.82rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
-                                    >
-                                      {name}
-                                    </p>
-                                    {(app as any).proposed_price != null && (
-                                      <span
-                                        className="text-ds-11 font-semibold px-2 py-0.5 rounded-full shrink-0"
-                                        style={{
-                                          background: "hsl(var(--sage) / 0.15)",
-                                          color: "hsl(var(--sage))",
-                                        }}
-                                      >
-                                        Bid: ${(app as any).proposed_price}
-                                      </span>
+                                {/* Left: avatar + name + trust — tappable to
+                                    open the helper's full profile page. The
+                                    whole left column is the tap target; action
+                                    buttons (Save, etc.) stay on the right so
+                                    there's no accidental nav when tapping them. */}
+                                <button
+                                  type="button"
+                                  className="min-w-0 flex-1 flex items-center gap-2 text-left active:opacity-70 transition-opacity"
+                                  onClick={() => navigate(`/user/${app.helper_id}`)}
+                                  aria-label={`View ${name}'s profile`}
+                                >
+                                  {/* Avatar circle */}
+                                  <div
+                                    className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-ds-11 font-bold overflow-hidden"
+                                    style={{ background: "hsl(var(--primary) / 0.12)", color: "hsl(var(--primary))" }}
+                                  >
+                                    {app.profiles?.avatar_url ? (
+                                      <img
+                                        src={app.profiles.avatar_url}
+                                        alt={name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      name[0].toUpperCase()
                                     )}
                                   </div>
-                                  <TrustRow
-                                    completedJobs={
-                                      typeof (app as { completedJobs?: number }).completedJobs === "number"
-                                        ? (app as { completedJobs?: number }).completedJobs
-                                        : undefined
-                                    }
-                                    avgRating={app.avgRating ?? undefined}
-                                    reviewCount={app.reviewCount ?? undefined}
-                                    className="mt-0.5"
-                                  />
-                                </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      <p
+                                        className="font-display italic font-bold truncate"
+                                        style={{ fontSize: "0.82rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                                      >
+                                        {name}
+                                      </p>
+                                      {/* Subtle arrow signals the row is tappable */}
+                                      <ChevronRight
+                                        className="w-3 h-3 shrink-0"
+                                        style={{ color: "hsl(var(--olivewood) / 0.45)" }}
+                                      />
+                                      {(app as any).proposed_price != null && (
+                                        <span
+                                          className="text-ds-11 font-semibold px-2 py-0.5 rounded-full shrink-0"
+                                          style={{
+                                            background: "hsl(var(--sage) / 0.15)",
+                                            color: "hsl(var(--sage))",
+                                          }}
+                                        >
+                                          Bid: ${(app as any).proposed_price}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <TrustRow
+                                      completedJobs={
+                                        typeof (app as { completedJobs?: number }).completedJobs === "number"
+                                          ? (app as { completedJobs?: number }).completedJobs
+                                          : undefined
+                                      }
+                                      avgRating={app.avgRating ?? undefined}
+                                      reviewCount={app.reviewCount ?? undefined}
+                                      className="mt-0.5"
+                                    />
+                                  </div>
+                                </button>
                                 {app.status === "pending" && userId && (
                                   <SaveHelperButton
                                     helperId={app.helper_id}

@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { Calendar, Clock, MapPin, Timer } from "lucide-react";
 import { differenceInHours, formatDistanceToNow } from "date-fns";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { getCityState } from "@/lib/locationUtils";
+import { getCity } from "@/lib/locationUtils";
 
 interface JobCardMetaRowProps {
   dateNeeded: string;
@@ -66,7 +66,7 @@ export function JobCardMetaRow({
         className="flex items-center gap-1 hover:text-primary transition-colors"
       >
         <MapPin className="w-3 h-3 shrink-0" />
-        <span className="truncate max-w-[140px]">{getCityState(location)}</span>
+        <span className="truncate max-w-[140px]">{getCity(location)}</span>
       </a>
       {estimatedHours ? (
         <span className="flex items-center gap-1">

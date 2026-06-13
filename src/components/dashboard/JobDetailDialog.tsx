@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
-import { getCityState } from "@/lib/locationUtils";
+import { getCity } from "@/lib/locationUtils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { haversineMiles } from "@/lib/geo";
@@ -605,7 +605,7 @@ const JobDetailDialog = ({
               : null;
             const closesUrgent = hoursLeft != null && hoursLeft >= 0 && hoursLeft < 24;
             const tiles = [
-              { Icon: MapPin, label: "Where", value: getCityState(job.location).replace(/,\s*LA\s*$/i, ""), sub: distLabel, href: mapsUrl, urgent: false },
+              { Icon: MapPin, label: "Where", value: getCity(job.location).replace(/,\s*LA\s*$/i, ""), sub: distLabel, href: mapsUrl, urgent: false },
               {
                 Icon: Calendar,
                 label: "Date",
@@ -825,7 +825,7 @@ const JobDetailDialog = ({
           {viewerUserId !== job.customer_id && (
             <ShareJobButton
               variant="icon"
-              job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCityState(job.location).replace(/,\s*LA\s*$/i, "") }}
+              job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
               ariaLabel="Share this job"
             />
           )}

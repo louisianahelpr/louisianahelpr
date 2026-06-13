@@ -64,17 +64,41 @@ export function useActivityBadgeCounts(userId: string | undefined): ActivityBadg
     }
 
     const loadCounts = () => {
-      // Pending applicants on jobs I posted. Embedded `!inner` join scopes
-      // the count to my jobs server-side; head:true returns the count only.
+      // Pending applicants on jobs I posted that I haven't seen yet
+      // (poster_viewed_at IS NULL). Embedded `!inner` join scopes the count
+      // to my jobs server-side; head:true returns the count only.
+      //
+      // Fallback: if the column doesn't exist yet (error code 42703 — column
+      // undefined, migration not deployed to production), fall back to
+      // counting all pending applications so the badge stays informative.
       supabase
         .from("applications")
         .select("id, jobs!inner(customer_id)", { count: "exact", head: true })
         .eq("status", "pending")
+        .is("poster_viewed_at", null)
         .eq("jobs.customer_id", userId)
         .then(({ count, error }) => {
           // Never zero the badge on a failed/offline read — the cache is the
           // floor, matching the Messages badge's behaviour.
-          if (error) return;
+          if (error) {
+            // 42703 = undefined_column: the migration adding poster_viewed_at
+            // hasn't been deployed yet. Fall back to the old query so the
+            // badge still works on production.
+            if (error.code === "42703") {
+              supabase
+                .from("applications")
+                .select("id, jobs!inner(customer_id)", { count: "exact", head: true })
+                .eq("status", "pending")
+                .eq("jobs.customer_id", userId)
+                .then(({ count: fallbackCount, error: fallbackError }) => {
+                  if (fallbackError) return;
+                  const next = fallbackCount || 0;
+                  setPostsCount(next);
+                  writeCached(POSTS_CACHE_KEY, next);
+                });
+            }
+            return;
+          }
           const next = count || 0;
           setPostsCount(next);
           writeCached(POSTS_CACHE_KEY, next);

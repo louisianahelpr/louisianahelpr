@@ -76,6 +76,9 @@ const AdminPayoutBatches = () => {
   const [tab, setTab] = useState<"ready" | "hold">("ready");
   const [holds, setHolds] = useState<Record<string, { reason: string; addedAt: string; addedBy?: string }>>(() => loadHolds());
   const [holdReasonDraft, setHoldReasonDraft] = useState<{ helperId: string; reason: string } | null>(null);
+  // Deny flow: required reason, seeded with the default the old
+  // window.prompt offered so a one-tap deny still records a sensible note.
+  const [denyDraft, setDenyDraft] = useState<{ helperId: string; reason: string } | null>(null);
 
   const updateHolds = (next: Record<string, { reason: string; addedAt: string; addedBy?: string }>) => {
     setHolds(next);
@@ -422,10 +425,7 @@ const AdminPayoutBatches = () => {
                         size="sm"
                         variant="outline"
                         className="text-destructive border-destructive/40 hover:bg-destructive/10 gap-1"
-                        onClick={() => {
-                          const reason = window.prompt("Reason for denying this payout?", "Compliance review failed");
-                          if (reason) void denyHold(batch.helper_id, reason);
-                        }}
+                        onClick={() => setDenyDraft({ helperId: batch.helper_id, reason: "Compliance review failed" })}
                       >
                         Deny
                       </Button>
@@ -496,6 +496,44 @@ const AdminPayoutBatches = () => {
               disabled={!holdReasonDraft?.reason.trim()}
             >
               Hold for review
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!denyDraft} onOpenChange={(o) => { if (!o) setDenyDraft(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" /> Deny this payout
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-ds-11 text-muted-foreground">
+              Records the denial decision to admin_audit_log and tags the
+              hold as denied. No Stripe transfer is fired or reversed.
+            </p>
+            <Textarea
+              placeholder="Reason for denying this payout."
+              value={denyDraft?.reason ?? ""}
+              onChange={(e) => denyDraft && setDenyDraft({ ...denyDraft, reason: e.target.value })}
+              rows={3}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDenyDraft(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!denyDraft) return;
+                const reason = denyDraft.reason.trim();
+                if (!reason) return;
+                void denyHold(denyDraft.helperId, reason);
+                setDenyDraft(null);
+              }}
+              disabled={!denyDraft?.reason.trim()}
+            >
+              Deny payout
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -257,6 +257,13 @@ const UserProfile = () => {
           ? new Date(lastActiveRes.data[0].last_active_at)
           : null;
 
+      // Fire-and-forget — don't await; PGRST202 is silently swallowed inside
+      // record_profile_view (returns false on any error). Self-view guard is
+      // enforced in the SQL function; double-guard here to avoid the RPC call.
+      if (userId !== currentUserId) {
+        void (supabase.rpc as any)("record_profile_view", { p_viewed_user_id: userId }).catch(() => {/* silent */});
+      }
+
       const postedJobs = postedRes.data || [];
       const workedJobs = workedRes.data || [];
       const allJobs = [...postedJobs, ...workedJobs];

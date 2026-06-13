@@ -12,6 +12,7 @@ import { DirectOfferBanner } from "./DirectOfferBanner";
 import { DraftSavedIndicator } from "./DraftSavedIndicator";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { SectionProgress, type PostJobSectionId } from "./SectionProgress";
+import { formatPrice } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 
 interface FormStepProps {
@@ -425,7 +426,7 @@ export function FormStep({ form }: FormStepProps) {
                   className="font-display italic font-bold tabular-nums shrink-0"
                   style={{ fontSize: "1rem", letterSpacing: "-0.01em" }}
                 >
-                  · ${form.budgetNum.toFixed(2)}
+                  · ${formatPrice(form.budgetNum)}
                 </span>
               )}
             </span>

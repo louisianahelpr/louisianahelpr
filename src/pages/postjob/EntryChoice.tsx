@@ -6,6 +6,7 @@ import { useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryColors } from "@/components/activity/activityConstants";
+import { formatPrice } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 
 interface EntryChoiceProps {
@@ -201,7 +202,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                           className="block font-serif italic mt-0.5 text-ds-11 tabular-nums"
                           style={{ color: "hsl(var(--olivewood) / 0.75)" }}
                         >
-                          {shortRelativeDate(job.created_at)} · ${job.budget.toFixed(0)}
+                          {shortRelativeDate(job.created_at)} · ${formatPrice(job.budget)}
                         </span>
                       </span>
                       <ChevronRight

@@ -192,7 +192,7 @@ export function BrowseTasksToolbar({
         <>
           <MapPin className="w-3 h-3" />
           {filters.locationFilter.startsWith("nearby:")
-            ? `≤ ${filters.locationFilter.slice(7)} mi`
+            ? `Within ${filters.locationFilter.slice(7)} mi`
             : filters.locationFilter}
         </>
       ),

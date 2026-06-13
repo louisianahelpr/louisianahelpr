@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
   X, MapPin, Clock, ChevronDown, ArrowUpRight,
-  ArrowUpDown, LayoutGrid, CalendarRange, Rocket,
+  ArrowUpDown, LayoutGrid, CalendarRange, Rocket, DollarSign,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -76,6 +76,16 @@ const expiresOptions = [
   { value: "24h", label: "24 hours" },
   { value: "3d", label: "3 days" },
   { value: "7d", label: "7 days" },
+];
+
+// Max-budget presets. `maxBudget` is a plain dollar string ("" = no cap),
+// matching how it's stored in useDashboardFilters and read by the feed.
+const budgetOptions = [
+  { value: "", label: "Any" },
+  { value: "25", label: "$25" },
+  { value: "50", label: "$50" },
+  { value: "100", label: "$100" },
+  { value: "250", label: "$250" },
 ];
 
 // ---------------- Reusable filter content blocks ----------------
@@ -182,6 +192,28 @@ const ExpiresContent = ({
         {opt.label}
       </button>
     ))}
+  </div>
+);
+
+const BudgetContent = ({
+  maxBudget, setMaxBudget, onSelect,
+}: { maxBudget: string; setMaxBudget: (v: string) => void; onSelect?: () => void }) => (
+  // 5-up preset row mirroring the Nearby/Expires content blocks. Tapping
+  // the active chip again clears the cap (back to "Any").
+  <div className="grid grid-cols-5 gap-1.5">
+    {budgetOptions.map((opt) => {
+      const active = maxBudget === opt.value;
+      return (
+        <button
+          key={opt.value || "any"}
+          type="button"
+          onClick={() => { hapticLight(); setMaxBudget(active ? "" : opt.value); onSelect?.(); }}
+          className={`${chipBase} w-full justify-center px-1.5 ${active ? chipActive : chipIdle}`}
+        >
+          {opt.label}
+        </button>
+      );
+    })}
   </div>
 );
 
@@ -303,6 +335,7 @@ const JobFilters = ({
   const categoryLabel = selectedCategory ? categoryLabels[selectedCategory] : "Category";
   const nearbyMi = locationFilter.startsWith("nearby:") ? locationFilter.slice(7) : null;
   const placeBudgetLabel = nearbyMi ? `${nearbyMi} mi` : "Nearby";
+  const budgetLabel = maxBudget ? `≤ $${maxBudget}` : "Max budget";
 
   const whenLabel = expiresWithin
     ? (expiresOptions.find((o) => o.value === expiresWithin)?.label ?? "When")
@@ -348,6 +381,15 @@ const JobFilters = ({
               message={userLocMessage}
               onSelect={close}
             />
+          )}
+        </MobileDropdown>
+
+        <MobileDropdown icon={DollarSign} label={budgetLabel} active={!!maxBudget}>
+          {(close) => (
+            <>
+              <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Max budget</p>
+              <BudgetContent maxBudget={maxBudget} setMaxBudget={setMaxBudget} onSelect={close} />
+            </>
           )}
         </MobileDropdown>
 

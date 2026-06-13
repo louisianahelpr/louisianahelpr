@@ -26,6 +26,9 @@ interface ReviewsTabProps {
   avgRating: number | null;
   reviewCount: number;
   onBack: () => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
 }
 
 const MiniStars = ({ value, size = "sm" }: { value: number; size?: "sm" | "xs" }) => {
@@ -54,7 +57,7 @@ const sortOptions: { value: SortKey; label: string; icon: typeof Star }[] = [
   { value: "lowest", label: "Lowest first", icon: ArrowUpAZ },
 ];
 
-export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }: ReviewsTabProps) {
+export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, onLoadMore, hasMore, loadingMore }: ReviewsTabProps) {
   const [sortBy, setSortBy] = useState<SortKey>("newest");
   const catAvg = (key: keyof Review) => {
     const vals = reviews.map((r) => Number(r[key])).filter((n) => Number.isFinite(n) && n > 0);
@@ -347,6 +350,19 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack }:
               </div>
             </div>
           ))}
+          {hasMore && (
+            <button
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              className="w-full py-3 text-ds-13 font-medium rounded-xl border disabled:opacity-50 mt-2"
+              style={{
+                borderColor: "hsl(var(--olivewood) / 0.2)",
+                color: "hsl(var(--olivewood))",
+              }}
+            >
+              {loadingMore ? "Loading…" : "Load more reviews"}
+            </button>
+          )}
         </div>
       )}
     </div>

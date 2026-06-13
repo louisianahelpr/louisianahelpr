@@ -66,10 +66,10 @@ export function ActivityHeader({
             <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
-                onClick={() => setSearchOpen(!searchOpen)}
+                onClick={() => { hapticLight(); setSearchOpen(!searchOpen); }}
                 aria-label="Search tasks"
                 aria-expanded={searchOpen}
-                className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition ${
+                className={`h-11 w-11 rounded-ds-md flex items-center justify-center btn-press transition ${
                   searchOpen || searchQuery
                     ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -85,7 +85,8 @@ export function ActivityHeader({
                   <button
                     type="button"
                     aria-label="Filter by status"
-                    className={`h-9 w-9 rounded-ds-md btn-press flex items-center justify-center relative transition ${
+                    onClick={() => hapticLight()}
+                    className={`h-11 w-11 rounded-ds-md btn-press flex items-center justify-center relative transition ${
                       filterOpen || statusFilter !== (tab === "applied" ? "pending" : "open")
                         ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"

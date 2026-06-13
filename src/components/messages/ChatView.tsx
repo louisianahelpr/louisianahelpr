@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronsDown, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw, X, Lock, BellOff, Bell } from "lucide-react";
+import { ArrowLeft, ChevronsDown, Flag, AlertTriangle, MessageSquare, Trash2, MoreVertical, Loader2, Ban, RotateCw, X, Lock, BellOff, Bell, MapPin } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,7 +61,8 @@ const renderMessageContent = (content: string, onImageClick: (url: string) => vo
         rel="noopener noreferrer"
         className="flex items-center gap-1.5 underline hover:no-underline"
       >
-        📍 View location on map
+        <MapPin className="w-3.5 h-3.5 shrink-0" />
+        View location on map
       </a>
     );
   }
@@ -551,7 +552,7 @@ export function ChatView({
                 look there first; the Flag button saves one tap for users
                 who need it urgently and scan the header icons. */}
             <button
-              className="p-2 rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
               aria-label="Report user"
               onClick={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}
             >
@@ -560,7 +561,7 @@ export function ChatView({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="p-2 rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
+                  className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
                   aria-label="Conversation options"
                 >
                   <MoreVertical className="w-5 h-5" />
@@ -618,7 +619,19 @@ export function ChatView({
           <div aria-live="polite" aria-relevant="additions" className="space-y-3">
             {hasMoreMessages && (
               <div className="text-center py-2">
-                <button onClick={loadOlderMessages} disabled={loadingMore} className="text-ds-11 text-primary font-medium hover:underline disabled:opacity-50 flex items-center gap-1.5 mx-auto">
+                <button
+                  onClick={loadOlderMessages}
+                  disabled={loadingMore}
+                  className="btn-press inline-flex items-center gap-1.5 mx-auto rounded-full px-4 py-1.5 text-ds-11 font-medium transition-colors disabled:opacity-50"
+                  style={{
+                    background: "hsl(var(--parchment) / 0.8)",
+                    color: "hsl(var(--bark))",
+                    border: "1px solid hsl(var(--bark) / 0.22)",
+                    boxShadow:
+                      "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
+                      "0 1px 2px hsl(var(--bark) / 0.10)",
+                  }}
+                >
                   {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
                   {loadingMore ? "Loading…" : "Load earlier messages"}
                 </button>
@@ -924,7 +937,7 @@ export function ChatView({
                   "I'm interested!",
                   "What time works?",
                   "I'm on my way",
-                  "Job is done ✓",
+                  "Job is done",
                 ];
                 const generalChips = [
                   "Sounds good!",

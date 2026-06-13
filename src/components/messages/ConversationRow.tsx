@@ -334,7 +334,7 @@ const ConversationRowBase = ({
             </div>
           </div>
           <span
-            className="text-[0.7rem] shrink-0 self-start whitespace-nowrap"
+            className="text-[0.7rem] shrink-0 self-center whitespace-nowrap"
             style={{ color: "hsl(var(--olivewood) / 0.6)" }}
           >
             {when}

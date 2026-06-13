@@ -690,7 +690,7 @@ export function ChatView({
                 </div>
               </div>
             )}
-            {timeline.map((item) => {
+            {!chatLoadError && timeline.map((item) => {
               if (item.type === "date") {
                 // Section divider — quietly anchors the thread to the
                 // calendar so scrolling back through long history reads

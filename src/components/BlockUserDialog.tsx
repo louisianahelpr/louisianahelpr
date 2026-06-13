@@ -206,13 +206,15 @@ export function BlockUserDialog({
             style={
               onReportAndBlock
                 ? {
-                    // Secondary tone when paired with the combo action
-                    // above — keeps "Block and report" as the primary CTA
-                    // (the safer of the two for the user).
-                    background: "hsl(var(--burnt-sienna) / 0.08)",
+                    // Secondary — but clearly ENABLED, not greyed. "Block and
+                    // report" stays the primary filled CTA; this reads as a
+                    // solid-tinted secondary (a real choice, since the reason
+                    // is optional), not a disabled control.
+                    background: "hsl(var(--burnt-sienna) / 0.16)",
                     backgroundImage: "none",
-                    border: "1px solid hsl(var(--burnt-sienna) / 0.45)",
+                    border: "1px solid hsl(var(--burnt-sienna) / 0.65)",
                     color: "hsl(var(--burnt-sienna))",
+                    boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.4), 0 1px 2px hsl(var(--burnt-sienna) / 0.12)",
                     fontFamily: "Montserrat, system-ui, sans-serif",
                     fontWeight: 600,
                     letterSpacing: "0.01em",

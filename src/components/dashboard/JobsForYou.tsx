@@ -33,15 +33,22 @@ function SkeletonCard() {
 function RecommendedCard({
   job,
   onSelect,
+  effectiveFee,
 }: {
   job: EnrichedJob;
   onSelect: (job: EnrichedJob) => void;
+  effectiveFee: number;
 }) {
   const colors = categoryColors[job.category] ?? categoryColors["other"];
   const city = getCity(job.location);
   const timeAgo = job.created_at
     ? formatDistanceToNow(new Date(job.created_at), { addSuffix: false })
     : null;
+  // Net "you earn" — must match the Browse Tasks card so the same job never
+  // shows two different prices on one screen (gross budget vs net take-home).
+  const netEarn = Math.round(
+    (job.budget ?? 0) - (job.budget ?? 0) * (effectiveFee / 100) + (job.urgent_fee ?? 0),
+  );
 
   return (
     <li className="shrink-0 w-56">
@@ -53,7 +60,7 @@ function RecommendedCard({
           background: "hsl(var(--parchment) / 0.40)",
           border: "0.5px solid hsl(var(--olivewood) / 0.13)",
         }}
-        aria-label={`${job.title}, $${job.budget}${city ? `, ${city}` : ""}`}
+        aria-label={`${job.title}, you earn $${netEarn}${city ? `, ${city}` : ""}`}
       >
         {/* Category dot */}
         <span
@@ -78,12 +85,12 @@ function RecommendedCard({
           </span>
         </span>
 
-        {/* Budget */}
+        {/* Net take-home — matches the "You earn" value on the Browse card. */}
         <span
           className="shrink-0 font-sans font-semibold tabular-nums"
           style={{ fontSize: "0.78rem", color: "hsl(var(--bark))" }}
         >
-          ${job.budget}
+          ${netEarn}
         </span>
       </button>
     </li>
@@ -148,6 +155,7 @@ export function JobsForYou({ userId, profile, effectiveFee }: JobsForYouProps) {
                 key={job.id}
                 job={job}
                 onSelect={setDetailJob}
+                effectiveFee={effectiveFee}
               />
             ))}
           </ul>

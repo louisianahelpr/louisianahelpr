@@ -255,7 +255,7 @@ export function SignupStep1({
       <label
         key={nudgeKey}
         htmlFor="policies"
-        className={`flex items-start gap-3 px-1.5 py-1 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !acceptedPolicies ? "animate-attention-nudge" : ""}`}
+        className={`flex items-start gap-3 px-1.5 py-2 min-h-[44px] rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !acceptedPolicies ? "animate-attention-nudge" : ""}`}
         style={{
           // Transparent default border keeps the layout stable when the
           // burnt-sienna nudge border appears (no jump on the shake).

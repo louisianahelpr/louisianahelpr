@@ -874,6 +874,12 @@ export function ChatView({
                 </p>
               </div>
             </div>
+          ) : chatLoadError ? (
+            /* Thread failed to load — suppress the whole composer dock
+               (quick replies + rich input + voice recorder). Sending into a
+               conversation that never loaded would post into an unknown
+               state; the error card above is the only action: Retry. */
+            null
           ) : (
             <>
               {/* First-message chips — three ice-breaker suggestions shown

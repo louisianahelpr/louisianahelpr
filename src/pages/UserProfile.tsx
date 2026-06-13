@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { formatName } from "@/lib/utils";
@@ -148,7 +148,7 @@ const UserProfile = () => {
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
-        supabase.from("reviews").select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, response_text, response_at").eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).order("created_at", { ascending: false }),
+        supabase.from("reviews").select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, response_text, response_at", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!),
@@ -268,11 +268,14 @@ const UserProfile = () => {
       const workedJobs = workedRes.data || [];
       const allJobs = [...postedJobs, ...workedJobs];
       const completedCount = new Set(allJobs.filter(j => j.status === "completed").map(j => j.id)).size;
-      const ratings = reviewsRes.data?.map((r: any) => r.rating) || [];
+      // Use posterReviewsRes (no-limit) for accurate avgRating + reviewCount.
+      // reviewsRes has a .limit(20) now — its .data can't reliably compute
+      // the average across all reviews.
+      const allRatings = (posterReviewsRes?.data?.map((r: any) => r.rating) ?? []).filter(Number.isFinite) as number[];
       const stats = {
         completedJobs: completedCount,
-        avgRating: ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0,
-        reviewCount: ratings.length,
+        avgRating: allRatings.length > 0 ? allRatings.reduce((a: number, b: number) => a + b, 0) / allRatings.length : 0,
+        reviewCount: reviewsRes.count ?? allRatings.length,
       };
 
       // Cancellation-rate metric (#30) — separate posted-side vs worked-side
@@ -403,6 +406,9 @@ const UserProfile = () => {
         profile: prof as Profile,
         reviews,
         stats,
+        // Total count from the count-query on the limited reviews fetch.
+        // Used on the render side to know whether there are more pages.
+        reviewsTotalCount: reviewsRes.count ?? 0,
         postedJobs,
         workedJobs,
         responseMetrics,
@@ -519,6 +525,68 @@ const UserProfile = () => {
   }, [data?.reviews]);
   const reviews = (localReviews ?? reviewsFromQuery) as typeof reviewsFromQuery;
   const stats = data?.stats ?? { completedJobs: 0, avgRating: 0, reviewCount: 0 };
+
+  // Pagination state for "load more reviews".
+  const reviewsTotalCount = data?.reviewsTotalCount ?? stats.reviewCount;
+  const [loadingMoreReviews, setLoadingMoreReviews] = useState(false);
+  const reviewsHasMore = reviews.length < reviewsTotalCount;
+
+  // Fetches the next page of reviews and appends them to localReviews.
+  // Uses offset-based pagination against the same query as the queryFn.
+  const loadMoreReviews = useCallback(async () => {
+    if (!userId || loadingMoreReviews) return;
+    setLoadingMoreReviews(true);
+    try {
+      const from = reviews.length;
+      const to = from + 19;
+      const { data: moreRows, error } = await supabase
+        .from("reviews")
+        .select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, response_text, response_at")
+        .eq("reviewee_id", userId)
+        .lte("feedback_visible_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (error) {
+        // PGRST202 or any other error — silently skip, don't append.
+        report(error, { severity: "warning", tags: { area: "user_profile.load_more_reviews" }, context: { viewed_user_id: userId } });
+        return;
+      }
+
+      if (!moreRows || moreRows.length === 0) return;
+
+      // Enrich with reviewer names + job titles (same pattern as queryFn).
+      const reviewerIds = [...new Set(moreRows.map((r: any) => r.reviewer_id))] as string[];
+      const jobIds = [...new Set(moreRows.map((r: any) => r.job_id))] as string[];
+      const [profilesRes2, jobsRes] = await Promise.all([
+        supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
+        supabase.from("jobs").select("id, title, category").in("id", jobIds),
+      ]);
+      const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
+      const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, { title: j.title, category: j.category as string | null }]) || []);
+      const enriched = moreRows.map((r: any) => {
+        const j = jobMap.get(r.job_id);
+        return {
+          id: r.id,
+          rating: r.rating,
+          punctuality: r.punctuality ?? null,
+          quality: r.quality ?? null,
+          communication: r.communication ?? null,
+          feedback: r.feedback,
+          created_at: r.created_at,
+          reviewerName: nameMap.get(r.reviewer_id) || "User",
+          jobTitle: j?.title || "Job",
+          jobCategory: j?.category ?? null,
+          response_text: r.response_text ?? null,
+          response_at: r.response_at ?? null,
+        };
+      });
+
+      setLocalReviews((prev) => [...(prev ?? reviewsFromQuery), ...enriched]);
+    } finally {
+      setLoadingMoreReviews(false);
+    }
+  }, [reviews.length, userId, loadingMoreReviews, reviewsFromQuery]);
   const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
   const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
@@ -1744,6 +1812,23 @@ const UserProfile = () => {
                         <ChevronDown className="w-4 h-4" />
                         Show {Math.min(PAGE_SIZE, filteredReviews.length - visible.length)} more
                         <span className="text-muted-foreground">({visible.length} of {filteredReviews.length})</span>
+                      </button>
+                    )}
+                    {/* Load more from server — only shown when the local
+                        filter is not active (filtered view shows what's
+                        already loaded; fetching more could confuse the count)
+                        and when there are server-side pages remaining. */}
+                    {!hasActiveFilter && reviewsHasMore && (
+                      <button
+                        onClick={loadMoreReviews}
+                        disabled={loadingMoreReviews}
+                        className="w-full py-3 text-ds-13 font-medium rounded-xl border disabled:opacity-50 mt-2"
+                        style={{
+                          borderColor: "hsl(var(--olivewood) / 0.2)",
+                          color: "hsl(var(--olivewood))",
+                        }}
+                      >
+                        {loadingMoreReviews ? "Loading…" : "Load more reviews"}
                       </button>
                     )}
                   </>

@@ -14,6 +14,7 @@ import BackButton from "@/components/BackButton";
 import { PolicyRowItem, PolicySection, PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { TosChangeBanner } from "@/components/legal/TosChangeBanner";
 
 type TabKey = "terms" | "community" | "privacy";
 const VALID_TABS: TabKey[] = ["terms", "community", "privacy"];
@@ -1218,6 +1219,7 @@ const Legal = () => {
           </>
         ) : (
           <>
+            <TosChangeBanner />
             {tagline}
             {whatsNewBanner}
             {panels}

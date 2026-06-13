@@ -276,7 +276,7 @@ export function usePostJobForm() {
         setSpecialRequirements(data.special_requirements || "");
         setIsRecurring(data.is_recurring || false);
         setRecurrenceInterval(data.recurrence_interval || "weekly");
-        toast.info("Job details pre-filled from previous booking!");
+        toast.info("Details pre-filled — just pick a new date to re-post.");
       });
       return;
     }

@@ -394,15 +394,18 @@ function PostedJobCardInner({
                       );
                     })()}
                   </div>
-                  {/* Relist / Post again CTA — all cancelled jobs */}
+                  {/* Re-post CTA — all cancelled / expired jobs.
+                      Navigates to /post-job?rebook=<id> which pre-fills
+                      every field except the date (date must be in the
+                      future; old date is intentionally skipped). */}
                   <Button
                     size="sm"
                     variant="bark"
                     className="w-full rounded-ds-md mt-2"
-                    onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/post-job?rebook=${job.id}`); }}
                   >
                     <RotateCcw className="w-4 h-4 mr-1.5" />
-                    {job.cancellation_reason?.toLowerCase().includes('expired') ? 'Relist this task' : 'Post again'}
+                    Re-post this task
                   </Button>
                 </div>
               )}
@@ -524,16 +527,19 @@ function PostedJobCardInner({
               ) : null;
             })()}
 
-            {/* Post again CTA — completed jobs */}
-            {job.status === "completed" && (
+            {/* Re-post CTA — completed jobs that are fully archived (tipped & reviewed).
+                The actions section (below) already shows "Hire again"/"Re-post" for
+                jobs still awaiting tip/review, so this surfaces only when the card
+                collapses into its archived state and that section is hidden. */}
+            {job.status === "completed" && isFullyCompleted && !isExpanded && (
               <div className="px-4 pb-3 pt-1">
                 <Button
                   size="sm"
                   variant="outline"
                   className="w-full rounded-ds-md"
-                  onClick={(e) => { e.stopPropagation(); navigate(`/post-job?rebook=${job.id}`); }}
+                  onClick={(e) => { e.stopPropagation(); navigate(job.helper_id ? `/post-job?rebook=${job.id}&offerTo=${job.helper_id}` : `/post-job?rebook=${job.id}`); }}
                 >
-                  <RotateCcw className="w-4 h-4 mr-1.5" /> Post again
+                  <RotateCcw className="w-4 h-4 mr-1.5" /> Re-post
                 </Button>
               </div>
             )}
@@ -1183,7 +1189,7 @@ function PostedJobCardInner({
                           </Button>
                         ) : (
                           <Button size="sm" variant="outline" className="w-full liquid-glass glass-press" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
-                            <RotateCcw className="w-4 h-4 mr-1" /> Rebook this task
+                            <RotateCcw className="w-4 h-4 mr-1" /> Re-post this task
                           </Button>
                         )}
                         {!job.poster_completed_at && (

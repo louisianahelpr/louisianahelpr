@@ -16,6 +16,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { splitName } from "@/lib/splitName";
 import { requireOnline } from "@/lib/requireOnline";
+import { buildEarningsSparklineSeries } from "@/lib/earningsSparklineSeries";
 import {
   useProfileStats,
   useProfileReviews,
@@ -124,7 +125,13 @@ const ProfilePage = () => {
   // Reviews are needed on both the landing tab (2-review hero preview) and
   // the reviews tab — gating on either shares one cached fetch.
   const reviewsQuery = useProfileReviews(userId, tab === "landing" || tab === "reviews");
-  const earningsQuery = useProfileEarnings(userId, tab === "earnings" || tab === "payment");
+  // Also enabled on the landing tab so the header earnings-sparkline
+  // teaser has its (cheap jobs+tips) data without a second query. The
+  // result is cached, so opening the Earnings tab next is instant.
+  const earningsQuery = useProfileEarnings(
+    userId,
+    tab === "earnings" || tab === "payment" || tab === "landing",
+  );
   // Schedule data drives the merged Schedule + Availability tab — gate
   // on either sub-view so the calendar grid is hot the moment the user
   // flips the internal toggle from Hours → Calendar.
@@ -418,6 +425,11 @@ const ProfilePage = () => {
     return sum + (j.budget - fee + (j.urgent_fee ?? 0));
   }, 0);
 
+  // Last-6-weeks take-home series for the header sparkline teaser. Returns
+  // null when there isn't enough signal to draw a meaningful line, in
+  // which case ProfileLanding hides the teaser entirely.
+  const earningsSparkline = buildEarningsSparklineSeries(earningsJobs);
+
   return (
     <>
     <AppShell
@@ -463,6 +475,8 @@ const ProfilePage = () => {
               reviewsError={reviewsQuery.isError}
               onRetryStats={() => { statsQuery.refetch(); }}
               onRetryReviews={() => { reviewsQuery.refetch(); }}
+              earningsSparkline={earningsSparkline}
+              totalEarnings={totalEarnings}
               seniorMode={seniorMode}
               onToggleSeniorMode={handleToggleSeniorMode}
             />

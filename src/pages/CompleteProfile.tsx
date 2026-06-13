@@ -159,7 +159,11 @@ const CompleteProfile = () => {
       { label: "Date of birth (18+)", done: Boolean(dateOfBirth) && ageOk },
       { label: "Phone number", done: phoneDigits.length === 10 },
       { label: "City", done: location.trim().length > 0 },
-      { label: "Government-issued ID", done: Boolean(idFile || profile?.id_document_url) },
+      // Government-issued ID is intentionally NOT in the required checklist:
+      // new signup (SignupStep2) no longer collects it, and identity
+      // verification is deferred to first-post / IDV. The upload field below
+      // stays available so a user CAN attach it early, but it never blocks
+      // profile completion.
       { label: "Accept platform rules, terms & privacy", done: acceptedPolicies },
     ];
   }, [
@@ -172,8 +176,6 @@ const CompleteProfile = () => {
     ageOk,
     phone,
     location,
-    idFile,
-    profile?.id_document_url,
     acceptedPolicies,
   ]);
 
@@ -227,7 +229,9 @@ const CompleteProfile = () => {
     if (!location.trim()) return fail("City is required");
     if (!bio.trim() || bio.trim().length < 20) return fail("Tell us a little about yourself — at least 20 characters.");
     if (!avatarFile && !profile?.avatar_url) return fail("Profile picture is required");
-    if (!idFile && !profile?.id_document_url) return fail("Government-issued ID is required");
+    // Government-issued ID is no longer required here — it's optional at
+    // profile completion and deferred to first-post / IDV (matches the
+    // signup gate, which stopped collecting it).
     if (!acceptedPolicies) return fail("Please accept the platform rules, terms, and privacy policy");
 
     setSubmitting(true);
@@ -610,7 +614,10 @@ const CompleteProfile = () => {
               {/* htmlFor pairs the visible heading with the file input the
                   wrapping <label> opens, so screen readers announce
                   "Government-issued ID, file" instead of an unlabeled input. */}
-              <Label htmlFor="id-doc">Government-issued ID <span className="text-destructive">*</span></Label>
+              <Label htmlFor="id-doc">
+                Government-issued ID{" "}
+                <span className="font-normal text-muted-foreground">(optional — add now or later)</span>
+              </Label>
               <label
                 htmlFor="id-doc"
                 className="flex items-center gap-3 rounded-ds-md border border-dashed border-border p-3 cursor-pointer hover:bg-muted/40"

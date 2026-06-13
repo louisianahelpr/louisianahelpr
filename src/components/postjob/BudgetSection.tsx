@@ -6,6 +6,7 @@ import { DollarSign, Zap, Lightbulb, TrendingUp, Receipt, Gavel, Sparkles } from
 import type { CategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryPricing, getSmartPrice } from "@/lib/pricingGuide";
+import { formatPrice } from "@/lib/format";
 
 export type PricingMode = "set_price" | "accept_bids" | "smart_price";
 
@@ -107,6 +108,12 @@ export function BudgetSection({
     budgetNum > 0 &&
     lowballFloor != null &&
     budgetNum < lowballFloor;
+
+  // Urgent bonus has a hard $5 floor. Surface it inline (same pattern as
+  // the lowball warning) the moment a user types a sub-$5 amount, so the
+  // rule isn't a silent submit-time rejection.
+  const urgentFeeNum = parseFloat(urgentFee) || 0;
+  const showUrgentMinWarning = isUrgent && urgentFee.trim() !== "" && urgentFeeNum < 5;
 
   return (
     <SectionCard
@@ -297,7 +304,7 @@ export function BudgetSection({
                       : "bg-transparent text-foreground border-border hover:border-primary/50 hover:bg-primary/5"
                   }`}
                 >
-                  ${amt}
+                  ${formatPrice(amt)}
                 </button>
               );
             })}
@@ -472,6 +479,13 @@ export function BudgetSection({
                   className="w-32"
                   aria-label="Custom urgent fee amount in dollars"
                 />
+              </div>
+            )}
+            {showUrgentMinWarning && (
+              <div className="flex items-center gap-2 rounded-ds-md px-3 py-2 bg-amber-500/10 border border-amber-500/30">
+                <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  Urgent bonus must be at least $5
+                </p>
               </div>
             )}
           </div>

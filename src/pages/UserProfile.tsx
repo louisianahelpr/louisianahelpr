@@ -45,6 +45,19 @@ import { useUserLocation } from "@/hooks/useUserLocation";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
+// Compact "Jun 13" date — matches the app's short-date style. The year is
+// appended only when the date falls outside the current year, so recent
+// activity stays terse while older entries still disambiguate.
+function formatShortDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const opts: Intl.DateTimeFormatOptions =
+    d.getFullYear() === new Date().getFullYear()
+      ? { month: "short", day: "numeric" }
+      : { month: "short", day: "numeric", year: "numeric" };
+  return d.toLocaleDateString("en-US", opts);
+}
+
 const UserProfile = () => {
   usePageTitle("User Profile — Helpr");
   const { userId } = useParams<{ userId: string }>();
@@ -1707,7 +1720,7 @@ const UserProfile = () => {
                             </div>
                             <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
                           </div>
-                          <span className="text-muted-foreground text-ds-11">{new Date(r.created_at).toLocaleDateString()}</span>
+                          <span className="text-muted-foreground text-ds-11">{formatShortDate(r.created_at)}</span>
                         </div>
                         {(r.punctuality || r.quality || r.communication) && (
                           <div className="grid grid-cols-3 gap-2">
@@ -1864,7 +1877,7 @@ const UserProfile = () => {
                 <div key={job.id} className="rounded-ds-md liquid-glass p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-ds-13 font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-muted-foreground text-ds-11">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace(/_/g, " ")}</p>
+                    <p className="text-muted-foreground text-ds-11">{formatShortDate(job.created_at)} · {job.category.replace(/_/g, " ")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-ds-13 font-bold text-primary">${job.budget}</span>
@@ -1887,7 +1900,7 @@ const UserProfile = () => {
                 <div key={job.id} className="rounded-ds-md liquid-glass p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-ds-13 font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-muted-foreground text-ds-11">{new Date(job.created_at).toLocaleDateString()} · {job.category.replace(/_/g, " ")}</p>
+                    <p className="text-muted-foreground text-ds-11">{formatShortDate(job.created_at)} · {job.category.replace(/_/g, " ")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-ds-13 font-bold text-primary">${job.budget}</span>
@@ -1933,7 +1946,7 @@ const UserProfile = () => {
             <div className="pt-2 flex justify-center">
               <button
                 onClick={() => setShowReport(true)}
-                className="inline-flex items-center gap-1.5 text-ds-11 text-muted-foreground underline-offset-4 hover:underline hover:text-foreground transition-colors min-h-[40px] px-3"
+                className="inline-flex items-center gap-1.5 text-ds-11 text-muted-foreground underline-offset-4 hover:underline hover:text-foreground transition-colors min-h-[44px] px-3"
                 aria-label="Report this profile"
               >
                 <Flag className="w-3 h-3" />

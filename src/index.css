@@ -1621,6 +1621,50 @@ button,
   .ambient-sparkle { display: none; }
 }
 
+/* Highlight pulse — draws the user's eye to a deep-linked application
+   card after landing from a notification (/my-jobs?highlight=<appId>).
+   A warm ring expands out and fades over ~1.8 s; the background flash
+   fades out over 2 s so the card settles back to glass. Skipped
+   entirely under prefers-reduced-motion (scroll still happens). */
+@keyframes highlight-ring-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 hsl(var(--burnt-sienna) / 0.55),
+      0 0 0 0 hsl(var(--gold-warm) / 0.30);
+  }
+  40% {
+    box-shadow:
+      0 0 0 6px hsl(var(--burnt-sienna) / 0.18),
+      0 0 0 12px hsl(var(--gold-warm) / 0.08);
+  }
+  100% {
+    box-shadow:
+      0 0 0 10px hsl(var(--burnt-sienna) / 0),
+      0 0 0 20px hsl(var(--gold-warm) / 0);
+  }
+}
+@keyframes highlight-bg-fade {
+  0%   { background-color: hsl(var(--burnt-sienna) / 0.06); }
+  100% { background-color: transparent; }
+}
+.highlight-pulse {
+  animation:
+    highlight-ring-pulse 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    highlight-bg-fade 2s ease-out forwards;
+  outline: 1.5px solid hsl(var(--burnt-sienna) / 0.35);
+  outline-offset: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .highlight-pulse {
+    animation: none;
+    /* Still show the ring statically so the user can see which card
+       the notification referred to — just no motion. */
+    outline: 2px solid hsl(var(--burnt-sienna) / 0.5);
+    outline-offset: 2px;
+    background-color: hsl(var(--burnt-sienna) / 0.06);
+  }
+}
+
 /* Status-tier gold treatments — used by Pro / Elite subscription
    badges and by earned prestige (Top Rated, Elite Helpr). Matches the
    wrought-iron logo's gold finials. Burnt-Sienna text for contrast on

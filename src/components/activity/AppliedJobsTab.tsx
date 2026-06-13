@@ -19,6 +19,10 @@ import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdra
 
 interface AppliedJobsTabProps {
   apps: AppliedApp[];
+  /** Application id from the ?highlight= deep-link. The matching card
+   *  scrolls into view and shows a brief pulse ring on mount. Consumed
+   *  once — the parent strips the param from the URL after mount. */
+  highlightAppId?: string | null;
   expandedJobId: string | null;
   setExpandedJobId: (id: string | null) => void;
   helperReviewedJobIds: Set<string>;
@@ -47,7 +51,7 @@ interface AppliedJobsTabProps {
 }
 
 export const AppliedJobsTab = ({
-  apps, expandedJobId, setExpandedJobId,
+  apps, highlightAppId, expandedJobId, setExpandedJobId,
   helperReviewedJobIds, latestTracking, userId, onHelperResponse,
   onComplete, completingJobId,
   onResolveRevision, onHelperReview, onDispute, onViewDispute, onRefresh,
@@ -133,6 +137,7 @@ export const AppliedJobsTab = ({
   const renderAppliedCard = (app: AppliedApp) => (
     <AppliedJobCard
       app={app}
+      highlight={!!highlightAppId && highlightAppId === app.id}
       expandedJobId={expandedJobId}
       setExpandedJobId={setExpandedJobId}
       helperReviewedJobIds={helperReviewedJobIds}

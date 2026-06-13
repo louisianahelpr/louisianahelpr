@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -37,6 +37,11 @@ import { SendReportCard } from "./PetReportCard";
 interface AppliedJobCardProps {
   /** The application + its embedded job — one row of the applied feed. */
   app: AppliedApp;
+  /** When true, scroll this card into view on mount and apply a brief
+   *  pulse ring so the helper knows which application the notification
+   *  was about (/my-jobs?highlight=<appId> deep-link). Respects
+   *  prefers-reduced-motion — animation skipped but scroll still fires. */
+  highlight?: boolean;
   expandedJobId: string | null;
   setExpandedJobId: (id: string | null) => void;
   helperReviewedJobIds: Set<string>;
@@ -94,6 +99,7 @@ interface AppliedJobCardProps {
  */
 function AppliedJobCardInner({
   app,
+  highlight = false,
   expandedJobId,
   setExpandedJobId,
   helperReviewedJobIds,
@@ -126,7 +132,30 @@ function AppliedJobCardInner({
   handleRemoveAttachment,
 }: AppliedJobCardProps) {
   const navigate = useNavigate();
+  const cardRef = useRef<HTMLDivElement>(null);
   const [showReportCard, setShowReportCard] = useState(false);
+
+  // Deep-link highlight — scroll into view + apply pulse ring once on mount
+  // when this card is the target of a ?highlight= notification link.
+  // The CSS class drives the animation; prefers-reduced-motion is handled
+  // entirely in the stylesheet (scroll still fires regardless).
+  useEffect(() => {
+    if (!highlight) return;
+    const el = cardRef.current;
+    if (!el) return;
+    // Small delay so the list has finished laying out before we scroll.
+    const raf = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("highlight-pulse");
+      // Remove the class after the animation ends so a future re-render
+      // doesn't re-apply it and so the outline doesn't persist.
+      const onEnd = () => el.classList.remove("highlight-pulse");
+      el.addEventListener("animationend", onEnd, { once: true });
+    });
+    return () => cancelAnimationFrame(raf);
+    // Run once on mount — `highlight` is stable (set from initial URL param).
+  }, []);
+
   // Counter-offer response — local state so the pending card reflects the
   // helper's accept/decline immediately without waiting for a data refetch.
   const [counterResponding, setCounterResponding] = useState(false);
@@ -188,6 +217,7 @@ function AppliedJobCardInner({
 
   return (
     <>
+        <div ref={cardRef}>
         <JobCardShell
           expandable={!isMinimalCard}
           expanded={isExpanded}
@@ -1023,6 +1053,7 @@ function AppliedJobCardInner({
             </div>
           )}
         </JobCardShell>
+        </div>
 
       {/* Pet report card sheet — mounted outside JobCardShell to avoid
           z-index clipping inside the card's overflow:hidden container */}

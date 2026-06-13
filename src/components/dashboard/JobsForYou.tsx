@@ -138,7 +138,7 @@ export function JobsForYou({ userId, profile, effectiveFee }: JobsForYouProps) {
     <>
       <section
         aria-label="Jobs for you"
-        className="px-4 pt-2 pb-1"
+        className={collapsed ? "px-4 py-1.5" : "px-4 pt-2 pb-1"}
       >
         <SectionHeader collapsed={collapsed} onToggle={toggleCollapsed} />
         {!collapsed && (

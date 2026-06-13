@@ -4,11 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { aggregateRatings } from "@/lib/reviewStats";
-import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { queryKeys } from "@/lib/queryKeys";
+import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
 // initial paint stays cheap as the marketplace grows; later pages are fetched
@@ -143,7 +144,12 @@ export function useDashboardData() {
     // refetchOnWindowFocus (queryClient.ts default) keeps it fresh after the
     // user returns from a long context switch.
     staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    // Reach the 24h persisted-cache window so the ctx (fee / availability /
+    // applied set / blocks) survives a cold start alongside the feed.
+    gcTime: PERSIST_MAX_AGE_MS,
+    // Hold the prior ctx during a background refetch rather than briefly
+    // returning undefined (which would make the feed query re-disable).
+    placeholderData: keepPreviousData,
   });
 
   // Paginated open-jobs feed. Each page = 25 raw rows + per-page enrichment.
@@ -302,6 +308,11 @@ export function useDashboardData() {
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
     enabled: !!user && !userLoading && !!ctx,
+    // Spotty rural/coastal signal: a background refetch (window-focus,
+    // pull-to-refresh) keeps the LAST successful feed on screen with a quiet
+    // updating state instead of collapsing to skeletons mid-scroll. Only the
+    // very first ever load shows the loader. See queryClient.ts / queryPersister.ts.
+    placeholderData: keepPreviousData,
     // Fail fast on a timeout — the ErrorState already offers a manual retry,
     // so don't make the user wait through 2 silent auto-retries (~36s). Other
     // transient errors keep the default retry behavior.
@@ -315,7 +326,11 @@ export function useDashboardData() {
     // backgrounds the swap if the marketplace moved while they were away.
     // Hand-off pattern mirrors useProfileTabData.ts (PR #426).
     staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    // gcTime must reach the persisted-cache window (24h) or TanStack evicts
+    // the feed from memory before the disk persister can keep it alive across
+    // a cold start — defeating the instant-render-on-return goal. See
+    // PERSIST_MAX_AGE_MS in src/lib/queryPersister.ts.
+    gcTime: PERSIST_MAX_AGE_MS,
     // No refetchInterval: on an infinite query it refetches EVERY loaded
     // page (~16 queries each) on a timer. The feed stays fresh via
     // refetchOnWindowFocus (frequent on mobile) and the dashboard's

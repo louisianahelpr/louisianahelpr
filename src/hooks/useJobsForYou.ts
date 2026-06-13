@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
+import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -31,6 +32,11 @@ export function useJobsForYou(
     queryKey: ["jobs-for-you", userId],
     enabled: !!userId && !!profile,
     staleTime: 5 * 60_000,
+    // Keep the prior recommendations visible while a refetch runs on bad
+    // signal, and let the row survive in the 24h persisted cache so it
+    // re-renders instantly on cold start. See src/lib/queryPersister.ts.
+    gcTime: PERSIST_MAX_AGE_MS,
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<EnrichedJob[]> => {
       if (!userId || !profile) return [];
 

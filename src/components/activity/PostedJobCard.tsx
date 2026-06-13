@@ -299,7 +299,7 @@ function PostedJobCardInner({
                   <span className="flex items-center gap-1 text-primary font-medium"><Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}</span>
                  )}
                  {viewCount != null && viewCount > 0 && (
-                   <span className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                   <span className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                      <Eye className="w-3 h-3 shrink-0" />
                      {viewCount} {viewCount === 1 ? "view" : "views"}
                    </span>

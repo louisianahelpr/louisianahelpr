@@ -345,7 +345,7 @@ const ConversationRowBase = ({
                     style={{
                       color: lastActiveLabel.isLive
                         ? "hsl(155 35% 30%)"
-                        : "hsl(var(--olivewood) / 0.55)",
+                        : "hsl(var(--olivewood) / 0.8)",
                       letterSpacing: "0.02em",
                     }}
                   >
@@ -376,7 +376,7 @@ const ConversationRowBase = ({
                 {sentByMe && (
                   <span
                     className="italic mr-1"
-                    style={{ color: "hsl(var(--olivewood) / 0.55)", fontWeight: 400 }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)", fontWeight: 400 }}
                   >
                     You:
                   </span>
@@ -387,7 +387,7 @@ const ConversationRowBase = ({
           </div>
           <span
             className="text-[0.7rem] shrink-0 self-center whitespace-nowrap"
-            style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {when}
           </span>

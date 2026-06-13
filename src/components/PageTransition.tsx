@@ -55,9 +55,10 @@ const PageTransition = ({ children }: PageTransitionProps) => {
   // POP = back navigation. PUSH/REPLACE = forward.
   const isBack = navigationType === "POP";
 
-  // 24px feels native on a phone — enough to read as motion, small enough
-  // to stay snappy. Incoming-from-right on push, incoming-from-left on pop.
-  const offsetX = reducedMotion ? 0 : isBack ? -24 : 24;
+  // Small horizontal offset reads as a gentle slide without a jarring jump
+  // on tab switches (a larger offset made bottom-nav taps feel like the page
+  // lurched sideways). Incoming-from-right on push, incoming-from-left on pop.
+  const offsetX = reducedMotion ? 0 : isBack ? -10 : 10;
 
   // Tracks the live finger position so the page can follow the drag.
   const x = useMotionValue(0);
@@ -106,7 +107,7 @@ const PageTransition = ({ children }: PageTransitionProps) => {
       initial={{ opacity: 0, x: offsetX }}
       animate={{ opacity: 1, x: 0 }}
       transition={{
-        duration: 0.28,
+        duration: 0.22,
         // Matches the design system's `ds-out` easing curve.
         ease: [0.22, 1, 0.36, 1],
       }}

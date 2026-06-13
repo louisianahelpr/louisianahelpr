@@ -96,6 +96,10 @@ export const AppliedJobsTab = ({
     }
     const { appId, jobTitle, jobId } = withdrawTarget;
     setWithdrawingAppId(appId);
+    // Signal the destructive intent with an error haptic at the moment
+    // of confirmed withdrawal — matches the task spec and gives tactile
+    // confirmation that the irreversible action is being taken.
+    hapticError();
     const { error } = await supabase.from("applications").delete().eq("id", appId).eq("helper_id", userId);
     if (error) {
       toast.error("Couldn't withdraw that one — give it another try?");
@@ -262,12 +266,11 @@ export const AppliedJobsTab = ({
           <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />
           <SheetHeader className="text-center">
             <SheetTitle className="font-display text-ds-24 font-bold tracking-tight">
-              Withdraw Application?
+              Withdraw application?
             </SheetTitle>
             <SheetDescription className="text-ds-11 text-muted-foreground leading-relaxed">
-              You'll be removed from consideration for{" "}
+              You won&apos;t be able to re-apply to{" "}
               <span className="font-medium text-foreground">"{withdrawTarget?.jobTitle}"</span>.
-              You can re-apply later if the position is still open.
             </SheetDescription>
           </SheetHeader>
 
@@ -331,7 +334,7 @@ export const AppliedJobsTab = ({
               }
               onClick={confirmWithdraw}
             >
-              {withdrawingAppId ? "Withdrawing…" : "Confirm Withdrawal"}
+              {withdrawingAppId ? "Withdrawing…" : "Withdraw"}
             </Button>
             <Button
               size="lg"
@@ -344,7 +347,7 @@ export const AppliedJobsTab = ({
                 setWithdrawDetail("");
               }}
             >
-              Keep My Application
+              Keep application
             </Button>
           </div>
         </SheetContent>

@@ -31,6 +31,8 @@ import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import { ProfileStatsTrend } from "@/components/profile/ProfileStatsTrend";
 import { SkillsManager } from "@/components/profile/SkillsManager";
+import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
+import { hapticLight } from "@/lib/haptics";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -94,6 +96,13 @@ interface ProfileLandingProps {
   seniorMode?: boolean;
   /** Called when the user toggles senior mode on/off. */
   onToggleSeniorMode?: (enabled: boolean) => void;
+  /**
+   * Last-6-weeks take-home earnings, oldest → newest, for the header
+   * sparkline teaser. `null` (not enough signal) hides the teaser.
+   */
+  earningsSparkline?: number[] | null;
+  /** Total lifetime take-home, shown beside the sparkline. */
+  totalEarnings?: number;
 }
 
 export function ProfileLanding({
@@ -120,6 +129,8 @@ export function ProfileLanding({
   onRetryReviews,
   seniorMode = false,
   onToggleSeniorMode,
+  earningsSparkline = null,
+  totalEarnings = 0,
 }: ProfileLandingProps) {
   const { theme, setTheme } = useDarkMode();
 
@@ -251,6 +262,24 @@ export function ProfileLanding({
     core: coreComplete,
   });
   const completionPct = completion.pct;
+
+  // Map each completion-checklist item to the exact place that fixes it,
+  // so an incomplete row is one tap from the right edit surface (not a
+  // generic "open Edit Profile"). Keyed by the labels emitted from
+  // getProfileCompletion. `tab` routes through onSelectTab; `href`
+  // navigates. A short cue tells the user what they'll land on. Unknown
+  // labels fall back to the Edit-Profile form.
+  const completionTargets: Record<string, { tab?: string; href?: string; cue: string }> = {
+    "ZIP code": { tab: "profile", cue: "Add ZIP" },
+    "ID verified": { tab: "credentials", cue: "Verify ID" },
+    "Work photos": { tab: "profile", cue: "Add photos" },
+  };
+  const handleCompletionItemTap = (label: string) => {
+    hapticLight();
+    const target = completionTargets[label];
+    if (target?.href) onNavigate(target.href);
+    else onSelectTab(target?.tab ?? "profile");
+  };
 
   // Completeness gaps surfaced per-row so the user knows *what's*
   // missing without having to open each tab. Derived from existing
@@ -706,6 +735,41 @@ export function ProfileLanding({
           )}
         </div>
 
+        {/* Earnings sparkline teaser — a tiny last-6-weeks take-home
+            trend that taps through to the full Earnings screen. Only
+            renders when there's enough signal to draw a meaningful line
+            (the parent passes null otherwise), so it never shows an empty
+            or flat chart. */}
+        {earningsSparkline && earningsSparkline.length >= 2 && (
+          <button
+            type="button"
+            onClick={() => { hapticLight(); onSelectTab("earnings"); }}
+            aria-label="View your earnings"
+            className="mt-3.5 pt-3.5 w-full min-h-[44px] flex items-center justify-between gap-3 text-left active:opacity-70 transition-opacity"
+            style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
+          >
+            <div className="min-w-0">
+              <p
+                className="font-serif italic uppercase text-ds-9"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Earnings · last 6 weeks
+              </p>
+              <p className="text-ds-15 font-bold leading-tight mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
+                ${Math.round(totalEarnings).toLocaleString()}
+                <span className="ml-1.5 text-ds-10 font-medium text-muted-foreground">total</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <EarningsSparkline
+                values={earningsSparkline}
+                label="Your earnings over the last 6 weeks"
+              />
+              <ChevronRightIcon className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.4)" }} />
+            </div>
+          </button>
+        )}
+
         {/* Activity-trend disclosure — small area chart, collapsed by
             default so we don't push the rest of the page down. Self-
             fetches its data when opened so the parent stays slim. The
@@ -1093,40 +1157,57 @@ export function ProfileLanding({
 
           {completionOpen && (
             <div className="px-4 pb-4 pt-1 space-y-1.5">
-              {completion.items.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => onSelectTab("profile")}
-                  disabled={item.done}
-                  className="w-full flex items-center gap-2.5 rounded-ds-md px-2.5 py-2 text-left enabled:active:bg-secondary/40 transition-colors disabled:cursor-default"
-                >
-                  <span
-                    className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
-                      item.done ? "" : "border border-dashed"
-                    }`}
-                    style={
-                      item.done
-                        ? { background: "hsl(var(--bark))" }
-                        : { borderColor: "hsl(var(--olivewood) / 0.35)" }
-                    }
+              {completion.items.map((item) => {
+                const cue = completionTargets[item.label]?.cue;
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => handleCompletionItemTap(item.label)}
+                    disabled={item.done}
+                    // min-h-[44px] guarantees the iOS/Android tap target even
+                    // though the visual row is compact; a completed row is
+                    // disabled (no-op + default cursor).
+                    aria-label={item.done ? `${item.label} — done` : `${item.label} — tap to finish`}
+                    className="w-full min-h-[44px] flex items-center gap-2.5 rounded-ds-md px-2.5 py-2 text-left enabled:active:bg-secondary/40 transition-colors disabled:cursor-default"
                   >
-                    {item.done && (
-                      <Check className="w-3 h-3" style={{ color: "hsl(var(--parchment))" }} strokeWidth={3} />
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                        item.done ? "" : "border border-dashed"
+                      }`}
+                      style={
+                        item.done
+                          ? { background: "hsl(var(--bark))" }
+                          : { borderColor: "hsl(var(--olivewood) / 0.35)" }
+                      }
+                    >
+                      {item.done && (
+                        <Check className="w-3 h-3" style={{ color: "hsl(var(--parchment))" }} strokeWidth={3} />
+                      )}
+                    </span>
+                    <span
+                      className={`flex-1 text-ds-13 ${
+                        item.done ? "text-muted-foreground line-through" : "text-foreground font-medium"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                    {!item.done && (
+                      <span className="inline-flex items-center gap-1 shrink-0">
+                        {cue && (
+                          <span
+                            className="text-ds-11 font-semibold"
+                            style={{ color: "hsl(var(--burnt-sienna))" }}
+                          >
+                            {cue}
+                          </span>
+                        )}
+                        <ChevronRightIcon className="w-3.5 h-3.5 text-muted-foreground/60" strokeWidth={2.25} />
+                      </span>
                     )}
-                  </span>
-                  <span
-                    className={`flex-1 text-ds-13 ${
-                      item.done ? "text-muted-foreground line-through" : "text-foreground font-medium"
-                    }`}
-                  >
-                    {item.label}
-                  </span>
-                  {!item.done && (
-                    <ChevronRightIcon className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" strokeWidth={2.25} />
-                  )}
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

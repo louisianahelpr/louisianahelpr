@@ -600,11 +600,10 @@ const PhoneCluster = () => {
       // "element overflows viewport" rule. The rotation transforms are
       // purely decorative — clipping a sub-pixel of the side phones'
       // shadow doesn't change the visual.
-      className="relative mx-auto md:mx-0 md:ml-auto overflow-hidden"
+      className="relative mx-auto md:mx-0 md:ml-auto h-[320px] md:h-[460px] md:overflow-hidden"
       style={{
         width: "100%",
         maxWidth: "460px",
-        height: "460px",
         perspective: "1200px",
         ["--tilt-x" as string]: "0deg",
         ["--tilt-y" as string]: "0deg",
@@ -612,24 +611,27 @@ const PhoneCluster = () => {
       }}
     >
       {/* Phone A — left, behind. Welcome screen. Drifts up slightly more
-          than the center phone on scroll (parallax depth). */}
-      <div
-        className="absolute z-10"
-        style={{
-          left: "0%",
-          top: "12%",
-          transform:
-            "translateY(calc(var(--scroll-t) * -28px)) rotateX(var(--tilt-x)) rotateY(calc(var(--tilt-y) + var(--scroll-t) * -1.5deg))",
-          transformStyle: "preserve-3d",
-          filter: "blur(0.6px)",
-          transition: "transform 0.3s ease-out",
-          willChange: "transform",
-        }}
-      >
-        <div className="phone-float-a">
-          <PhoneFrame width={150} rotate={-3}>
-            <WelcomeScreen scale={0.78} />
-          </PhoneFrame>
+          than the center phone on scroll (parallax depth). Hidden on mobile
+          (<md) to prevent clipping at narrow viewports. */}
+      <div className="hidden md:block">
+        <div
+          className="absolute z-10"
+          style={{
+            left: "0%",
+            top: "12%",
+            transform:
+              "translateY(calc(var(--scroll-t) * -28px)) rotateX(var(--tilt-x)) rotateY(calc(var(--tilt-y) + var(--scroll-t) * -1.5deg))",
+            transformStyle: "preserve-3d",
+            filter: "blur(0.6px)",
+            transition: "transform 0.3s ease-out",
+            willChange: "transform",
+          }}
+        >
+          <div className="phone-float-a">
+            <PhoneFrame width={150} rotate={-3}>
+              <WelcomeScreen scale={0.78} />
+            </PhoneFrame>
+          </div>
         </div>
       </div>
 
@@ -655,24 +657,27 @@ const PhoneCluster = () => {
       </div>
 
       {/* Phone C — right, behind. Drifts up + tilts the opposite way
-          from Phone A so the cluster reads as fanning open on scroll. */}
-      <div
-        className="absolute z-10"
-        style={{
-          right: "2%",
-          top: "12%",
-          transform:
-            "translateY(calc(var(--scroll-t) * -28px)) rotateX(var(--tilt-x)) rotateY(calc(var(--tilt-y) + var(--scroll-t) * 1.5deg))",
-          transformStyle: "preserve-3d",
-          filter: "blur(0.6px)",
-          transition: "transform 0.3s ease-out",
-          willChange: "transform",
-        }}
-      >
-        <div className="phone-float-c">
-          <PhoneFrame width={150} rotate={13}>
-            <HowItWorksScreen scale={0.78} />
-          </PhoneFrame>
+          from Phone A so the cluster reads as fanning open on scroll.
+          Hidden on mobile (<md) to prevent clipping at narrow viewports. */}
+      <div className="hidden md:block">
+        <div
+          className="absolute z-10"
+          style={{
+            right: "2%",
+            top: "12%",
+            transform:
+              "translateY(calc(var(--scroll-t) * -28px)) rotateX(var(--tilt-x)) rotateY(calc(var(--tilt-y) + var(--scroll-t) * 1.5deg))",
+            transformStyle: "preserve-3d",
+            filter: "blur(0.6px)",
+            transition: "transform 0.3s ease-out",
+            willChange: "transform",
+          }}
+        >
+          <div className="phone-float-c">
+            <PhoneFrame width={150} rotate={13}>
+              <HowItWorksScreen scale={0.78} />
+            </PhoneFrame>
+          </div>
         </div>
       </div>
     </div>

@@ -371,6 +371,26 @@ export function ChatView({
     });
   };
 
+  // iMessage-style read receipt: only the CURRENT USER's most recent
+  // *settled* outbound message carries a "Read"/"Delivered" indicator —
+  // not every bubble. Derived from the messages already in state (no new
+  // query). We walk from the end and take the first non-system,
+  // fully-sent message we sent.
+  const lastOwnMessageId: string | null = (() => {
+    if (!userId) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (
+        m.sender_id === userId &&
+        !m.is_system &&
+        m.sendStatus === undefined
+      ) {
+        return m.id;
+      }
+    }
+    return null;
+  })();
+
   const timeline: TimelineItem[] = (() => {
     const items: TimelineItem[] = messages.map((m) => ({
       type: "message",
@@ -800,6 +820,7 @@ export function ChatView({
                   key={item.key}
                   m={m}
                   mine={m.sender_id === userId}
+                  showReadReceipt={m.id === lastOwnMessageId}
                   activeConvo={activeConvo}
                   retryMessage={retryMessage}
                   setLightboxPhoto={setLightboxPhoto}
@@ -1062,6 +1083,7 @@ export function ChatView({
 function MessageBubble({
   m,
   mine,
+  showReadReceipt,
   activeConvo,
   retryMessage,
   setLightboxPhoto,
@@ -1071,6 +1093,10 @@ function MessageBubble({
 }: {
   m: Message;
   mine: boolean;
+  /** True only for the current user's most recent settled outbound
+   *  message — gates the "Read"/"Delivered" indicator so it appears once
+   *  at the bottom (iMessage-style) rather than on every bubble. */
+  showReadReceipt: boolean;
   activeConvo: Conversation;
   retryMessage: (clientId: string) => void;
   setLightboxPhoto: (url: string | null) => void;
@@ -1160,12 +1186,14 @@ function MessageBubble({
             <span>
               {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
             </span>
-            <ReadReceipt
-              read={m.read}
-              sentByMe={mine}
-              recipientName={activeConvo?.otherUserName}
-              recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}
-            />
+            {showReadReceipt && (
+              <ReadReceipt
+                read={m.read}
+                sentByMe={mine}
+                recipientName={activeConvo?.otherUserName}
+                recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}
+              />
+            )}
             {!mine && (
               <button
                 onClick={() => onReport(m.id)}

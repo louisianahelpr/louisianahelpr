@@ -211,6 +211,11 @@ export function useActivityActions({
     try {
       const enriched = await fetchApplicants(jobId);
       setInlineApplicants(prev => ({ ...prev, [jobId]: enriched }));
+      // Fire-and-forget — mark pending applications as viewed by the poster.
+      // PGRST202-safe: if the migration isn't deployed yet, this silently does nothing.
+      if (enriched.length > 0) {
+        (supabase.rpc as any)("mark_applications_viewed", { p_job_id: jobId }).then(() => {});
+      }
     } catch {
       setApplicantErrors(prev => ({ ...prev, [jobId]: true }));
       hapticError();

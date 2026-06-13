@@ -10,7 +10,7 @@ import {
   CheckCircle2, Star, MessageSquare, Users, AlertTriangle,
   RefreshCw, ThumbsUp, ThumbsDown, Send, XCircle,
   Paperclip, FileText, Trash2, Pencil, Check, X, ChevronRight,
-  ChevronUp, ChevronDown, ClipboardList,
+  ChevronUp, ChevronDown, ClipboardList, Eye,
 } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { formatDistanceToNow } from "date-fns";
@@ -463,10 +463,24 @@ function AppliedJobCardInner({
               with primary actions. */}
           {!isMinimalCard && isPending && (
             <div
-              className="px-4 py-2.5 flex items-center justify-end"
+              className="px-4 py-2.5 flex items-center justify-between"
               style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* "Seen" trust chip — visible when the poster has opened
+                  the applicant list and viewed this application. Subtle
+                  olivewood colour so it reads as informational, not urgent. */}
+              {(app as any).poster_viewed_at ? (
+                <span
+                  className="flex items-center gap-0.5 text-ds-10 font-medium"
+                  style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                  title={`Poster viewed on ${new Date((app as any).poster_viewed_at).toLocaleDateString()}`}
+                >
+                  <Eye className="w-3 h-3" aria-hidden="true" /> Seen
+                </span>
+              ) : (
+                <span />
+              )}
               <button
                 type="button"
                 disabled={withdrawingAppId === app.id}

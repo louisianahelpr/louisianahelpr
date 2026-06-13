@@ -995,6 +995,14 @@ function PostedJobCardInner({
                         <Button size="sm" variant="destructive" className="flex-1" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
                         <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
                       </div>
+                      {/* Share link — lets the poster spread the word even
+                          after a helper has been accepted. Opens the OS
+                          Share Sheet on native; copies the URL on web. */}
+                      <ShareJobButton
+                        job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
+                        className="w-full glass-press border-0"
+                        style={{ background: "hsl(210 55% 47% / 0.10)", color: "hsl(210 62% 30%)", border: "0.5px solid hsl(210 55% 47% / 0.28)" }}
+                      />
                     </div>
                   )}
                   {(job.status === "in_progress" || job.status === "revision_requested") && (
@@ -1114,6 +1122,15 @@ function PostedJobCardInner({
                       >
                         <MessageSquare className="w-4 h-4 mr-1" /> Message Helper
                       </Button>
+                      {/* Share link — available while work is in progress so
+                          the poster can still spread the word or share proof
+                          of work with others. Opens the OS Share Sheet on
+                          native; copies the URL on web. */}
+                      <ShareJobButton
+                        job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
+                        className="w-full glass-press border-0"
+                        style={{ background: "hsl(210 55% 47% / 0.10)", color: "hsl(210 62% 30%)", border: "0.5px solid hsl(210 55% 47% / 0.28)" }}
+                      />
                       {/* Request Revision — only after helper marks complete (Stage 2) */}
                       {job.status === "in_progress" && !job.poster_completed_at && job.helper_completed_at && (
                         <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-destructive text-ds-11" onClick={() => onRevision(job.id)}>

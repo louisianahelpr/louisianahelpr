@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense, useMemo, type SetStateAction } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense, type SetStateAction } from "react";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { motion } from "framer-motion";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import AppShell from "@/components/AppShell";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, Star, X, Search } from "lucide-react";
+import { Clock, XCircle, Search } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
@@ -51,9 +51,6 @@ import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { queryKeys } from "@/lib/queryKeys";
 import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
-import { getActiveTriggers, type TriggerContext } from "@/lib/lifeEventTriggers";
-import { LifeEventCard } from "@/components/dashboard/LifeEventCard";
-import { AutopilotReminderCard } from "@/components/dashboard/AutopilotReminderCard";
 import { JobsForYou } from "@/components/dashboard/JobsForYou";
 import { useJobRef } from "@/hooks/useJobRef";
 
@@ -267,94 +264,6 @@ const Dashboard = () => {
   // Only paid, non-expired subscribers should trigger the lookup — that
   // gate becomes the query's `enabled` flag so free/expired users never
   // pay for the `applications` fetch.
-  const subTier = (profile?.subscription_tier ?? "free") as string;
-  const subExpiresAt = profile?.subscription_expires_at ?? null;
-  const subActive = subExpiresAt ? new Date(subExpiresAt) > new Date() : false;
-  const isPaidSubscriber = !!profile && subActive && subTier !== "free";
-  const { data: hasPets = false } = useQuery({
-    queryKey: ["pet_profiles_count", user?.id],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("pet_profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", user!.id);
-      if (error) return false;
-      return (count ?? 0) > 0;
-    },
-    enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000,
-  });
-
-
-  const { data: lastApplicationAt } = useQuery({
-    queryKey: queryKeys.dashboard.lastApplication(user?.id),
-    queryFn: async () => {
-      const data = unwrap(await supabase
-        .from("applications")
-        .select("created_at")
-        .eq("helper_id", user!.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle());
-      return data?.created_at ?? null;
-    },
-    enabled: !!user?.id && isPaidSubscriber,
-    staleTime: 60 * 1000,
-  });
-  const inactiveNudgeEligible = (() => {
-    if (!isPaidSubscriber || lastApplicationAt === undefined) return false;
-    const last = lastApplicationAt ? new Date(lastApplicationAt).getTime() : 0;
-    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-    return !last || Date.now() - last > sevenDaysMs;
-  })();
-  // Dismissed per-session — once the user closes the banner it stays
-  // hidden even though the query data still says they're eligible.
-  const [inactiveNudgeDismissed, setInactiveNudgeDismissed] = useState(false);
-  const inactiveNudge = inactiveNudgeEligible && !inactiveNudgeDismissed;
-
-  // Early-access upsell banner — shown once (dismissible, localStorage key
-  // "early-access-banner-dismissed") to free-tier helpers so they know
-  // Pro/Elite subscribers see new jobs 10 minutes sooner. Tapping "Learn more"
-  // navigates to /subscription.
-  const isFreeTierHelper = !isPaidSubscriber;
-  const [earlyAccessBannerDismissed, setEarlyAccessBannerDismissed] = useState(() => {
-    try {
-      return safeStorage.getItem("early-access-banner-dismissed") === "1";
-    } catch { return false; }
-  });
-  const showEarlyAccessBanner = isFreeTierHelper && !earlyAccessBannerDismissed;
-
-  // Life-event trigger — personalized contextual prompt above the storm banner.
-  // Re-computed from stable profile + jobs data; dismissed via localStorage.
-  // Re-keyed on dismiss so the card animates out via AnimatePresence.
-  const [lifeEventDismissedAt, setLifeEventDismissedAt] = useState(0);
-  const activeTrigger = useMemo(() => {
-    const ctx: TriggerContext = {
-      recentJobCategories: (allJobs as any[])
-        .filter((j) => (j as any).customer_id === user?.id)
-        .slice(0, 10)
-        .map((j) => (j as any).category ?? ""),
-      hasPostedBefore: (allJobs as any[]).some((j) => (j as any).customer_id === user?.id),
-      accountAgeDays: profile?.created_at
-        ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86_400_000)
-        : 0,
-      completedJobsAsHelper: (profile as any)?.completed_jobs ?? 0,
-      lastJobPostedDaysAgo: (() => {
-        const myJobs = (allJobs as any[]).filter((j) => (j as any).customer_id === user?.id);
-        if (!myJobs.length) return null;
-        const latest = myJobs[0]?.created_at;
-        if (!latest) return null;
-        return Math.floor((Date.now() - new Date(latest).getTime()) / 86_400_000);
-      })(),
-      profileHasCity: !!(profile?.location || profile?.parish),
-      hasPets,
-    };
-    // lifeEventDismissedAt in deps re-runs this after a dismiss clears localStorage.
-    void lifeEventDismissedAt;
-    return getActiveTriggers(ctx)[0] ?? null;
-  }, [user?.id, allJobs, profile?.created_at, profile?.location, profile?.parish, lifeEventDismissedAt]);
-
-
   const [dismissedJobIds, setDismissedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = safeStorage.getItem("helpr_dismissed_jobs");
@@ -407,54 +316,6 @@ const Dashboard = () => {
     if (savedJobsData) setSavedJobIds(new Set(savedJobsData));
   }, [savedJobsData]);
 
-  // Home-autopilot: maintenance reminders due in the next 7 days.
-  // Degrades gracefully via PGRST202 handling (table not yet deployed).
-  const { data: dueReminders = [] } = useQuery({
-    queryKey: ["due-reminders", user?.id],
-    queryFn: async () => {
-      try {
-        const today = new Date().toISOString().split("T")[0];
-        const nextWeek = new Date(Date.now() + 7 * 86400_000).toISOString().split("T")[0];
-        const { data, error } = await supabase
-          .from("home_maintenance_reminders")
-          .select("*")
-          .eq("user_id", user!.id)
-          .eq("is_active", true)
-          .lte("next_reminder_date", nextWeek)
-          .gte("next_reminder_date", today);
-        // PGRST202 = table not deployed yet — hide section silently.
-        if (error && (error as any).code === "PGRST202") return [];
-        if (error) return [];
-        return (data ?? []) as Array<{
-          id: string;
-          category: string;
-          last_completed_date: string | null;
-          next_reminder_date: string | null;
-          reminder_interval_days: number;
-        }>;
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!user?.id,
-    staleTime: 300_000,
-  });
-  // Most overdue = earliest next_reminder_date
-  const topReminder = dueReminders.length > 0
-    ? [...dueReminders].sort((a, b) =>
-        (a.next_reminder_date ?? "").localeCompare(b.next_reminder_date ?? ""),
-      )[0]
-    : null;
-
-  // One promo/nudge slot. These cards previously stacked, burying the job
-  // feed below the fold. Pick a single highest-priority banner so jobs stay
-  // above the fold. Personalized/time-sensitive first, generic upsell last.
-  const primaryBanner: "lifeEvent" | "autopilot" | "inactive" | "earlyAccess" | null =
-    activeTrigger ? "lifeEvent"
-    : topReminder ? "autopilot"
-    : inactiveNudge ? "inactive"
-    : showEarlyAccessBanner ? "earlyAccess"
-    : null;
 
   // Upcoming booked job — nearest accepted or in-progress job where the
   // current user is the helper. Surfaced as a reminder card on the dashboard
@@ -1176,109 +1037,9 @@ const Dashboard = () => {
               screen (ProfileLanding's completion meter) so the job feed
               is no longer pushed below the fold. */}
 
-          {/* Life-event trigger — personalized prompt, shown above storm banner
-              (more contextual). Max 1 at a time. Dismisses via localStorage. */}
-          {primaryBanner === "lifeEvent" && activeTrigger && (
-            <LifeEventCard
-              trigger={activeTrigger}
-              onDismiss={() => setLifeEventDismissedAt(Date.now())}
-            />
-          )}
-
-          {/* Home-autopilot reminder — surfaces the most-overdue maintenance
-              task when one is due within the next 7 days. Table degrades
-              gracefully before the migration is pushed (returns empty). */}
-          {primaryBanner === "autopilot" && topReminder && (
-            <AutopilotReminderCard
-              reminder={topReminder}
-              onDismiss={() => {
-                // Mark locally dismissed by removing from the list until next load
-                supabase
-                  .from("home_maintenance_reminders")
-                  .update({ is_active: false })
-                  .eq("id", topReminder.id)
-                  .then(() => {});
-              }}
-              onPostJob={(category) => navigate(`/post-job?category=${category}`)}
-            />
-          )}
-
-
-          {/* Inactive subscriber nudge — gentle reminder for paid helpers
-              who haven't applied in 7+ days. Dismissible per-session. */}
-          {primaryBanner === "inactive" && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
-              style={{
-                background:
-                  "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 55%)",
-                border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
-              }}
-            >
-              <Star className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} fill="currentColor" />
-              <div className="flex-1 min-w-0">
-                <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
-                  Your subscription pays for itself when you apply.
-                </p>
-                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
-                  Plenty of work nearby — see what's open below.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setInactiveNudgeDismissed(true)}
-                aria-label="Dismiss"
-                className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
-                style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-          )}
-
-          {/* Early-access upsell — free-tier helpers see this once.
-              Explains that Pro/Elite subscribers get a 10-minute head
-              start on new jobs. Dismissible to localStorage. */}
-          {primaryBanner === "earlyAccess" && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="shrink-0 mx-4 mb-1 rounded-ds-md px-3 py-2.5 flex items-center gap-2.5"
-              style={{
-                background: "hsl(var(--bark) / 0.07)",
-                border: "0.5px solid hsl(var(--bark) / 0.20)",
-              }}
-            >
-              <Clock className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={2} />
-              <p className="flex-1 font-serif italic text-ds-12 leading-snug min-w-0" style={{ color: "hsl(var(--ink-deep) / 0.80)" }}>
-                Pro helpers see new jobs 10 min sooner{" "}
-                <button
-                  type="button"
-                  onClick={() => navigate("/subscription")}
-                  className="font-sans font-semibold not-italic underline underline-offset-2 active:opacity-70"
-                  style={{ color: "hsl(var(--bark))" }}
-                >
-                  Learn more →
-                </button>
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setEarlyAccessBannerDismissed(true);
-                  try { safeStorage.setItem("early-access-banner-dismissed", "1"); } catch { /* ignore */ }
-                }}
-                aria-label="Dismiss early access banner"
-                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04]"
-                style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </motion.div>
-          )}
+          {/* Promo/nudge banner slot intentionally empty — the home screen
+              shows the greeting, the saved-helpers row, "For you", and the
+              job feed with no marketing/upsell cards in between. */}
         </>
       }
     >

@@ -64,7 +64,7 @@ function RecommendedCard({
         {/* Title + city */}
         <span className="flex-1 min-w-0 flex flex-col justify-center overflow-hidden gap-0.5">
           <span
-            className="truncate font-sans font-medium leading-tight"
+            className="line-clamp-2 font-sans font-medium leading-tight"
             style={{ fontSize: "0.78rem", color: "hsl(var(--ink-deep))" }}
           >
             {job.title}

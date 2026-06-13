@@ -461,6 +461,20 @@ const Dashboard = () => {
       )[0]
     : null;
 
+  // One promo/nudge slot. These cards previously stacked (e.g. a hurricane
+  // life-event trigger directly above the seasonal storm banner = the same
+  // message twice, plus the early-access upsell), burying the job feed below
+  // the fold. Pick a single highest-priority banner so jobs stay above the
+  // fold and the hurricane message never doubles. Personalized/time-sensitive
+  // first, generic upsell last.
+  const primaryBanner: "lifeEvent" | "autopilot" | "storm" | "inactive" | "earlyAccess" | null =
+    activeTrigger ? "lifeEvent"
+    : topReminder ? "autopilot"
+    : showStormBanner ? "storm"
+    : inactiveNudge ? "inactive"
+    : showEarlyAccessBanner ? "earlyAccess"
+    : null;
+
   // Upcoming booked job — nearest accepted or in-progress job where the
   // current user is the helper. Surfaced as a reminder card on the dashboard
   // so helpers don't forget their active commitments.
@@ -1183,7 +1197,7 @@ const Dashboard = () => {
 
           {/* Life-event trigger — personalized prompt, shown above storm banner
               (more contextual). Max 1 at a time. Dismisses via localStorage. */}
-          {activeTrigger && (
+          {primaryBanner === "lifeEvent" && activeTrigger && (
             <LifeEventCard
               trigger={activeTrigger}
               onDismiss={() => setLifeEventDismissedAt(Date.now())}
@@ -1193,7 +1207,7 @@ const Dashboard = () => {
           {/* Home-autopilot reminder — surfaces the most-overdue maintenance
               task when one is due within the next 7 days. Table degrades
               gracefully before the migration is pushed (returns empty). */}
-          {topReminder && (
+          {primaryBanner === "autopilot" && topReminder && (
             <AutopilotReminderCard
               reminder={topReminder}
               onDismiss={() => {
@@ -1209,7 +1223,7 @@ const Dashboard = () => {
           )}
 
           {/* Hurricane season banner — June–Nov only, dismissible for the day. */}
-          {showStormBanner && (
+          {primaryBanner === "storm" && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1247,7 +1261,7 @@ const Dashboard = () => {
 
           {/* Inactive subscriber nudge — gentle reminder for paid helpers
               who haven't applied in 7+ days. Dismissible per-session. */}
-          {inactiveNudge && (
+          {primaryBanner === "inactive" && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1283,7 +1297,7 @@ const Dashboard = () => {
           {/* Early-access upsell — free-tier helpers see this once.
               Explains that Pro/Elite subscribers get a 10-minute head
               start on new jobs. Dismissible to localStorage. */}
-          {showEarlyAccessBanner && (
+          {primaryBanner === "earlyAccess" && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}

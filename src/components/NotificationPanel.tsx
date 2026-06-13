@@ -11,6 +11,7 @@ import { isPushSupported, registerServiceWorker, showLocalNotification, getPushP
 import { useRequestPushPermission } from "@/lib/nativePush";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
+import { hapticLight } from "@/lib/haptics";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -238,8 +239,21 @@ const NotificationPanel = () => {
   const markAllRead = async () => {
     const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
     if (unreadIds.length === 0) return;
-    await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
+    // Optimistically clear unread state so the UI responds immediately.
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .in("id", unreadIds);
+    if (error) {
+      // Roll back the optimistic update and let the user retry.
+      setNotifications((prev) =>
+        prev.map((n) => (unreadIds.includes(n.id) ? { ...n, read: false } : n)),
+      );
+      toast.error("Couldn't mark all as read — please try again.");
+      return;
+    }
+    hapticLight();
   };
 
   const handleClick = (n: Notification) => {

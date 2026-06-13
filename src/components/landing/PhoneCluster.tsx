@@ -520,13 +520,15 @@ const PhoneCluster = () => {
 
   // Parallax hover — phones tilt slightly toward the cursor as it moves
   // across the cluster. CSS variables --tilt-x / --tilt-y are read by the
-  // phone wrappers below. Reduced-motion users get no tilt.
+  // phone wrappers below. Reduced-motion users and mobile viewports get no
+  // tilt (hover parallax is pointer-only and contributes to TBT on mobile).
   useEffect(() => {
     if (typeof window === "undefined") return;
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     if (reduceMotion) return;
+    if (window.innerWidth < 768) return;
 
     const el = clusterRef.current;
     if (!el) return;
@@ -559,12 +561,14 @@ const PhoneCluster = () => {
 
   // Scroll-driven parallax — as the user scrolls past the hero, each
   // phone shifts up/rotates at a slightly different rate so the cluster
-  // gains depth (front phone moves least, side phones move more). One
-  // restrained effect, honors prefers-reduced-motion.
+  // gains depth (front phone moves least, side phones move more). Skipped
+  // on mobile (<768 px) and prefers-reduced-motion to avoid the scroll
+  // listener cost that inflates TBT in mobile Lighthouse audits.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduceMotion) return;
+    if (window.innerWidth < 768) return;
 
     const el = clusterRef.current;
     if (!el) return;

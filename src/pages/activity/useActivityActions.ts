@@ -12,6 +12,7 @@ import { fetchProfile } from "@/hooks/useProfile";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
+import { fireSuccessMoment } from "@/lib/successMoment";
 import { queryKeys } from "@/lib/queryKeys";
 import type { ActivityData } from "@/hooks/useActivityData";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
@@ -355,6 +356,11 @@ export function useActivityActions({
       }
     }
     await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: "/my-jobs?filter=offered" });
+    // Success moment — the poster just hired an applicant. hapticSuccess is
+    // a result haptic (fires even under Reduce Motion); the overlay itself
+    // self-respects reduced motion (static check, no draw-in).
+    hapticSuccess();
+    fireSuccessMoment({ label: "Applicant hired" });
     toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);
     setDeadlineDialogApp(null);
     setSelectedJob(null);
@@ -589,6 +595,11 @@ export function useActivityActions({
       if (data?.error) throw new Error(data.error);
       if (data?.bothDone) {
         hapticSuccess();
+        // Premium checkmark beat on every completion (self-respects reduced
+        // motion). The brand confetti below is the *extra* novelty for the
+        // first 3 completions only — the two layers don't conflict (centered
+        // check vs. raining particles), so this isn't a double-fire.
+        fireSuccessMoment({ label: "Job completed" });
         toast.success("Job completed! Payment released.");
         // Brand-tinted confetti for the first 3 completed jobs — fades to
         // silent after to avoid noise on regulars.

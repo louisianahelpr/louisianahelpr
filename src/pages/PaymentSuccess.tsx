@@ -5,7 +5,6 @@ import { Share } from "@capacitor/share";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-  CheckCircle,
   ShieldCheck,
   Megaphone,
   Handshake,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
+import { InlineSuccessCheck } from "@/components/feedback/SuccessMoment";
 import AuthShell from "@/components/auth/AuthShell";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -131,11 +131,11 @@ const PaymentSuccess = () => {
   return (
     <AuthShell hideBack eyebrow="Payment authorized" maxWidth="md">
       <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
-          style={{ background: "hsl(var(--bark) / 0.1)" }}
-        >
-          <CheckCircle className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+        {/* Success moment — the job is posted + paid. The badge draws its
+            checkmark in with a soft glow (static when reduced motion is on).
+            hapticSuccess already fires in the effect above. */}
+        <div className="flex justify-center">
+          <InlineSuccessCheck size={88} />
         </div>
 
         <div className="space-y-2">

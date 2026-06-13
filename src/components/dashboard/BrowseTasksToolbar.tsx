@@ -247,7 +247,7 @@ export function BrowseTasksToolbar({
           >
             {filters.hasFilters
               ? `Filtered · ${filters.activeFilterCount} active`
-              : "For you, today"}
+              : "Fresh today"}
           </span>
           <h2
             className="font-display italic font-bold leading-tight mt-1"

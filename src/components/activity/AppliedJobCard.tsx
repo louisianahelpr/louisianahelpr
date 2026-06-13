@@ -10,8 +10,9 @@ import {
   CheckCircle2, Star, MessageSquare, Users, AlertTriangle,
   RefreshCw, ThumbsUp, ThumbsDown, Send, XCircle,
   Paperclip, FileText, Trash2, Pencil, Check, X, ChevronRight,
-  ChevronUp, ChevronDown, ClipboardList, Eye,
+  ChevronUp, ChevronDown, ClipboardList, Eye, CalendarPlus,
 } from "lucide-react";
+import { downloadIcs } from "@/lib/icalExport";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { formatDistanceToNow } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -540,6 +541,28 @@ function AppliedJobCardInner({
               )}
               {/* Job countdown */}
               <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+              {job.date_needed && (
+                <button
+                  type="button"
+                  aria-label="Add to calendar"
+                  className="inline-flex items-center gap-1 text-ds-11 font-medium mt-1"
+                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                  onClick={() =>
+                    downloadIcs({
+                      id: job.id,
+                      title: job.title,
+                      location: job.location ?? null,
+                      description: job.description ?? null,
+                      dateNeeded: job.date_needed!,
+                      startTime: job.start_time ?? null,
+                      estimatedHours: typeof job.estimated_hours === "number" ? job.estimated_hours : null,
+                    })
+                  }
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" />
+                  Add to Calendar
+                </button>
+              )}
               {job.response_deadline && (
                 <DeadlineCountdown
                   deadline={job.response_deadline}
@@ -581,6 +604,28 @@ function AppliedJobCardInner({
             <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
               {/* Job countdown */}
               <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+              {job.date_needed && (
+                <button
+                  type="button"
+                  aria-label="Add to calendar"
+                  className="inline-flex items-center gap-1 text-ds-11 font-medium mt-1"
+                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                  onClick={() =>
+                    downloadIcs({
+                      id: job.id,
+                      title: job.title,
+                      location: job.location ?? null,
+                      description: job.description ?? null,
+                      dateNeeded: job.date_needed!,
+                      startTime: job.start_time ?? null,
+                      estimatedHours: typeof job.estimated_hours === "number" ? job.estimated_hours : null,
+                    })
+                  }
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" />
+                  Add to Calendar
+                </button>
+              )}
               {/* Tracking — only active on the day of the job */}
               <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} />
               {/* Job confirmation for helper */}

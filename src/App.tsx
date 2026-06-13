@@ -41,6 +41,11 @@ const Toaster = lazy(() =>
 const Sonner = lazy(() =>
   import("@/components/ui/sonner").then((m) => ({ default: m.Toaster }))
 );
+// Global host for the imperative SuccessMoment overlay (job posted /
+// applicant hired / job completed). Lazy + deferred for the same
+// critical-path reason as the toasters above — framer-motion isn't on
+// the landing-page hot path.
+const SuccessMomentHost = lazy(() => import("@/components/feedback/SuccessMomentHost"));
 const MobileNav = lazy(() => import("./components/MobileNav"));
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
@@ -381,6 +386,7 @@ const DeferredToasters = () => {
     <Suspense fallback={null}>
       <Toaster />
       <Sonner />
+      <SuccessMomentHost />
     </Suspense>
   );
 };

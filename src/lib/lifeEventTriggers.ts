@@ -69,18 +69,6 @@ export const LIFE_EVENT_TRIGGERS: LifeEventTrigger[] = [
     priority: 60,
   },
   {
-    id: "helper_first_job",
-    headline: "Ready to earn?",
-    subtext: "Browse open jobs in your area and make your first application.",
-    ctaLabel: "Browse jobs →",
-    ctaPath: "/jobs",
-    icon: "Briefcase",
-    condition: (ctx) =>
-      ctx.completedJobsAsHelper === 0 && ctx.accountAgeDays > 3,
-    dismissKey: "trigger-helper-first-dismissed",
-    priority: 55,
-  },
-  {
     id: "pet_owner_care",
     headline: "Your pets deserve great care",
     subtext: "Find a dog walker or pet sitter in your neighborhood.",

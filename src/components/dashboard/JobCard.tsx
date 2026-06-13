@@ -1,6 +1,6 @@
 import { memo, useCallback, useRef, useState, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock, Heart, CheckCheck,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock, Heart, CheckCheck, Bookmark,
 } from "lucide-react";
 import { hapticLight, hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -16,6 +16,7 @@ import { getParishCentroid, getCentroidFromLocation } from "@/lib/parishCentroid
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { prefetchJobDialog } from "./prefetchJobDialog";
+import { JobPrice } from "./JobPrice";
 import type { EnrichedJob } from "./types";
 
 interface JobCardProps {
@@ -138,21 +139,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // Show the gross posted budget (vs the helper's net take-home) whenever
   // the full guest variant is active OR the lighter guestPricing flag is set.
   const showBudget = isGuest || guestPricing;
-  // Per-helpr take-home: gross share minus the platform's commission, plus
-  // the customer-paid urgent bonus. Matches JobDetailDialog math 1:1.
-  // (The 10% sales tax on the platform commission is paid by the platform,
-  // not the helpr — historically deducted here, which made the card and
-  // dialog disagree by ~$1.)
+  // Per-helpr split count for the shared JobPrice element. The net-take-home
+  // math itself now lives in JobPrice (the single money component), so the
+  // card and detail view can never disagree.
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  const perHelperBudget = job.budget / helpersCount;
-  const commission = perHelperBudget * (effectiveFee / 100);
-  const netEarnings = perHelperBudget - commission + (job.urgent_fee ?? 0);
-  // Guests have no fee tier yet — show the gross posted budget rather
-  // than a helpr-specific net-pay figure. Drop a whole-dollar amount's
-  // trailing ".00" so round prices ($126) read cleaner than the cents-laden
-  // ones that genuinely need them ($85.50) — cents shown only when non-zero.
-  const amountCents = Math.round((showBudget ? job.budget : netEarnings) * 100);
-  const earnings = amountCents % 100 === 0 ? String(amountCents / 100) : (amountCents / 100).toFixed(2);
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
   // Freshness signal: a job posted within the last 30 minutes gets a "New"
@@ -414,63 +404,17 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               })()}
             </div>
           )}
-          {/* Price chip — quiet flat warm-parchment tint with a single
-              hairline border (no emboss), so the job title leads the card
-              and the price sits as a calm secondary figure. */}
-          <div
-            className="flex flex-col items-center px-2.5 py-1.5 rounded-ds-md"
-            style={{
-              background: "hsl(var(--bark) / 0.10)",
-              border: "0.5px solid hsl(var(--bark) / 0.28)",
-            }}
-          >
-            <span
-              className="font-display leading-none tabular-nums"
-              style={{
-                fontWeight: 800,
-                fontSize: "1.05rem",
-                color: "hsl(var(--bark))",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              {/* Literal `$` glyph (not the lucide icon) pulled tight to the
-                  digits so the amount reads as one confident figure — the
-                  icon left a visible "$ 85.50" gap. Sized close to the digits
-                  (0.82em) and near-baseline so the sign and number read as one
-                  matched price tag rather than a tiny raised superscript. */}
-              <span
-                style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}
-              >
-                $
-              </span>
-              {earnings}
-            </span>
-            {!showBudget && (job.urgent_fee ?? 0) > 0 && (
-              <span
-                className="font-sans font-semibold mt-0.5 text-[10px] tracking-[0.04em]"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-              >
-                incl. ${Number(job.urgent_fee).toFixed(0)} urgent bonus
-              </span>
-            )}
-            {/* "You earn" disambiguates the helpr's net take-home from the
-                gross posted budget, so it stays. The guest/poster "Budget"
-                caption was dropped — the figure is self-evidently the posted
-                budget there, and repeating the word down every card was noise
-                that also made the price tile tower over one-line titles. */}
-            {!showBudget && (
-              <span
-                className="text-[9px] uppercase mt-0.5 font-sans"
-                style={{
-                  color: "hsl(45 8% 64%)",
-                  letterSpacing: "0.1em",
-                  fontWeight: 600,
-                }}
-              >
-                You earn
-              </span>
-            )}
-          </div>
+          {/* Price chip — the single shared JobPrice element (collapsed
+              "You earn $72", tap to reveal "Budget $80 − 10% fee"), so the
+              same job never shows two different numbers across surfaces. */}
+          <JobPrice
+            budget={job.budget}
+            effectiveFee={effectiveFee}
+            urgentFee={job.urgent_fee ?? 0}
+            helpersNeeded={helpersCount}
+            showBudget={showBudget}
+            variant="chip"
+          />
           </div>
         </div>
 
@@ -581,6 +525,32 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             )}
           </div>
         </div>
+
+      {/* Save / bookmark — surfaced ON the card (the double-tap-to-save
+          gesture is undiscoverable, so a visible affordance backs it up).
+          Only when a toggle handler is wired and not in the guest variant.
+          ≥44px tap target; hapticLight on toggle. stopPropagation so the
+          tap saves instead of opening the detail view. */}
+      {!isGuest && _onToggleSave && (
+        <button
+          type="button"
+          aria-label={_isSaved ? "Unsave job" : "Save job"}
+          aria-pressed={_isSaved}
+          onClick={(e) => {
+            e.stopPropagation();
+            hapticLight();
+            _onToggleSave(job.id, !_isSaved);
+          }}
+          className="absolute bottom-1.5 right-1.5 z-20 inline-flex items-center justify-center w-11 h-11 rounded-full transition-transform active:scale-90"
+          style={{ color: _isSaved ? "hsl(var(--primary))" : "hsl(var(--olivewood) / 0.45)" }}
+        >
+          <Bookmark
+            className="w-4 h-4"
+            strokeWidth={2}
+            style={_isSaved ? { fill: "hsl(var(--primary))" } : undefined}
+          />
+        </button>
+      )}
 
       {/* Guest CTA — a persistent (never hover-gated) "Sign up to apply"
           affordance pinned to the card foot. Phones have no hover state,

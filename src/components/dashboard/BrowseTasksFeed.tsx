@@ -417,6 +417,7 @@ export function BrowseTasksFeed({
                       <CompactJobCard
                         key={job.id}
                         job={job}
+                        effectiveFee={effectiveFee}
                         onSelect={(j) => setDetailJob(j)}
                         isHighlighted={hoveredJobId === job.id}
                         onMouseEnter={() => setHoveredJobId?.(job.id)}
@@ -482,6 +483,7 @@ export function BrowseTasksFeed({
                   <CompactJobCard
                     key={job.id}
                     job={job}
+                    effectiveFee={effectiveFee}
                     onSelect={(j) => setDetailJob(j)}
                     isHighlighted={hoveredJobId === job.id}
                     onMouseEnter={() => setHoveredJobId?.(job.id)}

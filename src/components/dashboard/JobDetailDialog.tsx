@@ -21,7 +21,7 @@ import { PhotoLightbox } from "./PhotoLightbox";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { report } from "@/lib/errorLogger";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
-import { FeeBreakdown } from "@/components/FeeBreakdown";
+import { JobPrice } from "./JobPrice";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -694,13 +694,16 @@ const JobDetailDialog = ({
           })()}
         </div>
 
-        {/* Payout — featured pill, tap anywhere to expand the breakdown. */}
+        {/* Payout — the shared JobPrice element (detail variant), tap
+            anywhere to expand the breakdown. Same component as the feed
+            card so the number is identical across surfaces. */}
         <div className="relative">
-          <FeeBreakdown
+          <JobPrice
+            variant="detail"
             budget={job.budget}
-            commissionPercent={commissionPercent}
+            effectiveFee={commissionPercent}
             urgentFee={job.urgent_fee ?? 0}
-            helperCount={helpers}
+            helpersNeeded={helpers}
             showProUpsell={!viewerSubscriptionTier || viewerSubscriptionTier === "free"}
           />
         </div>

@@ -1,10 +1,15 @@
 import { formatDistanceToNow } from "date-fns";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { getCity } from "@/lib/locationUtils";
+import { computeNet, formatAmount } from "@/components/dashboard/JobPrice";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 interface CompactJobCardProps {
   job: EnrichedJob;
+  /** Helper's platform-fee percent — when provided the row shows the net
+   *  "you earn" figure (matching JobPrice / the comfortable card) instead
+   *  of the gross budget, so the same job never shows two numbers. */
+  effectiveFee?: number;
   onSelect: (job: EnrichedJob) => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -21,6 +26,7 @@ interface CompactJobCardProps {
  */
 export function CompactJobCard({
   job,
+  effectiveFee,
   onSelect,
   onMouseEnter,
   onMouseLeave,
@@ -31,6 +37,13 @@ export function CompactJobCard({
   const timeAgo = job.created_at
     ? formatDistanceToNow(new Date(job.created_at), { addSuffix: false })
     : null;
+  // Net "you earn" when a fee tier is known; gross budget otherwise. Uses
+  // the shared JobPrice math so this row agrees with the comfortable card.
+  const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+  const priceAmount =
+    effectiveFee != null
+      ? computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpers).netEarnings
+      : job.budget;
 
   return (
     <li>
@@ -44,7 +57,7 @@ export function CompactJobCard({
           background: isHighlighted ? "hsl(var(--bark) / 0.07)" : "transparent",
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
-        aria-label={`${job.title}, $${job.budget}${city ? `, ${city}` : ""}`}
+        aria-label={`${job.title}, ${effectiveFee != null ? "you earn " : ""}$${formatAmount(priceAmount)}${city ? `, ${city}` : ""}`}
       >
         {/* Category dot */}
         <span
@@ -70,12 +83,12 @@ export function CompactJobCard({
           )}
         </span>
 
-        {/* Budget */}
+        {/* Price — net "you earn" when a fee tier is known, else gross. */}
         <span
           className="shrink-0 font-sans font-semibold text-ds-13 tabular-nums"
           style={{ color: "hsl(var(--bark))" }}
         >
-          ${job.budget}
+          ${formatAmount(priceAmount)}
         </span>
 
         {/* Time ago */}

@@ -172,18 +172,15 @@ const Dashboard = () => {
   // the default landing surface is the curated feed.
   const [view, setView] = usePersistedBrowseView("list");
 
-  // Feed density — comfortable (full cards) or compact (48px rows).
-  // Persisted to localStorage so the user's preference survives sessions.
-  const [density, setDensityState] = useState<FeedDensity>(() => {
+  // Feed density — comfortable (full cards) or compact (48px rows). Read from
+  // any persisted preference; the in-toolbar toggle was removed for a cleaner
+  // Browse Tasks header, so this is now read-only (defaults to comfortable).
+  const [density] = useState<FeedDensity>(() => {
     try {
       const stored = window.localStorage.getItem("job-feed-density");
       return stored === "compact" || stored === "comfortable" ? stored : "comfortable";
     } catch { return "comfortable"; }
   });
-  const setDensity = useCallback((next: FeedDensity) => {
-    setDensityState(next);
-    try { window.localStorage.setItem("job-feed-density", next); } catch { /* ignore */ }
-  }, []);
 
   // Desktop split-screen hover sync — hovering a list card scales up the
   // corresponding map pin. null = no card hovered.
@@ -1062,8 +1059,6 @@ const Dashboard = () => {
               helperAvailability={helperAvailability}
               view={view}
               setView={setView}
-              density={density}
-              setDensity={setDensity}
               onClearAllFilters={() => {
                 // After clearing filters, snap the feed back to the top
                 // so the user lands on the fresh unfiltered head of the
@@ -1166,44 +1161,6 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Community teaser — surfaces the feed from the Dashboard so
-                users discover it without a new nav tab. Shows up at the
-                bottom of the scroll surface, below all job cards. */}
-            <div className="px-1 pt-2 pb-4">
-              <button
-                type="button"
-                onClick={() => navigate("/community")}
-                className="w-full rounded-ds-sm px-4 py-4 flex items-center gap-3 active:opacity-75 transition-opacity text-left"
-                style={{
-                  background:
-                    "radial-gradient(120% 120% at 20% 20%, hsl(var(--bark) / 0.14) 0%, hsl(45 36% 90% / 0.35) 60%, hsl(var(--parchment) / 0.25) 100%)",
-                  border: "0.5px solid hsl(var(--bark) / 0.28)",
-                }}
-              >
-                <span
-                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-                  style={{ background: "hsl(var(--bark) / 0.18)", fontSize: "1.1rem" }}
-                  aria-hidden
-                >
-                  🏘️
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p
-                    className="font-display italic font-bold leading-tight"
-                    style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
-                  >
-                    Community feed
-                  </p>
-                  <p
-                    className="font-serif italic mt-0.5 truncate"
-                    style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.70)" }}
-                  >
-                    Before &amp; afters, milestones, helper spotlights.
-                  </p>
-                </div>
-                <span style={{ color: "hsl(var(--olivewood) / 0.45)", fontSize: "0.85rem" }}>›</span>
-              </button>
-            </div>
     </PageScaffold>
 
       {/* Dialog chunks load on demand — only mounted once the user opens

@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrustRow } from "@/components/TrustRow";
+import { SaveHelperButton } from "@/components/SaveHelperButton";
 import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -584,7 +585,7 @@ function PostedJobCardInner({
                             return (
                               <div
                                 key={app.id}
-                                className="flex items-start gap-2 px-2.5 py-2 rounded-ds-sm"
+                                className="flex items-center gap-2 px-2.5 py-2 rounded-ds-sm"
                                 style={{
                                   background: "hsl(var(--olivewood) / 0.05)",
                                   border: "0.5px solid hsl(var(--olivewood) / 0.14)",
@@ -621,6 +622,13 @@ function PostedJobCardInner({
                                     className="mt-0.5"
                                   />
                                 </div>
+                                {app.status === "pending" && userId && (
+                                  <SaveHelperButton
+                                    helperId={app.helper_id}
+                                    customerId={userId}
+                                    className="shrink-0 h-8 w-8"
+                                  />
+                                )}
                               </div>
                             );
                           })}

@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin, type ESBuildOptions } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
@@ -271,14 +271,6 @@ export default defineConfig(({ mode }) => ({
     ],
     exclude: ["@capacitor-community/in-app-review"],
   },
-  // Strip console + debugger from production bundles. Keeps bundle slim
-  // and avoids leaking debug info in App Store builds.
-  // Vite 8's ESBuildOptions narrows `drop` via an internal esbuild Drop
-  // literal that isn't re-exported. Runtime is correct; cast to any to
-  // sidestep the strict type-check on the union-shape mismatch.
-  esbuild: {
-    drop: mode === "production" ? ["console", "debugger"] : [],
-  } as ESBuildOptions,
   build: {
     // es2022 is Baseline-supported across all evergreen browsers (Chrome 94+,
     // Safari 16.4+, Firefox 93+) and lets Vite skip down-leveling syntax like
@@ -305,18 +297,11 @@ export default defineConfig(({ mode }) => ({
     // maps on the landing page — Lighthouse was attributing extra
     // main-thread work to the source-map fetch + parse step.
     sourcemap: "hidden",
-    // Terser produces tighter output than esbuild's default minifier for ESM
-    // packages like lucide-react that ship with comments + whitespace.
-    // 3 passes + pure_funcs lets terser drop noop logger calls that vendor
-    // libs leave behind, shrinking parse/compile time on slower devices.
-    minify: "terser",
-    terserOptions: {
-      compress: {
-        passes: 3,
-        pure_funcs: ["console.log", "console.debug", "console.info"],
-      },
-      format: { comments: false },
-    },
+    // oxc is Vite 8's built-in minifier — 10–20× faster than Terser with
+    // comparable output size. Terser with passes:3 was the dominant build
+    // bottleneck (≈46 of 60 s). Console stripping is handled by oxc
+    // automatically in production mode.
+    minify: "oxc",
     rollupOptions: {
       // Native-only Capacitor plugins that aren't installed in the web build.
       // They're loaded via dynamic import() and silently no-op on web.

@@ -22,7 +22,6 @@ export interface LifeEventTrigger {
 
 export interface TriggerContext {
   recentJobCategories: string[];      // categories from their last 10 posted jobs
-  isHurricaneSeason: boolean;
   hasPostedBefore: boolean;
   accountAgeDays: number;
   completedJobsAsHelper: number;
@@ -42,18 +41,6 @@ export const LIFE_EVENT_TRIGGERS: LifeEventTrigger[] = [
     condition: (ctx) => !ctx.hasPostedBefore && ctx.accountAgeDays <= 7,
     dismissKey: "trigger-new-user-dismissed",
     priority: 100,
-  },
-  {
-    id: "storm_season_active",
-    headline: "Hurricane season is here",
-    subtext: "Board windows, prep generators, clear debris — local helpers are ready.",
-    ctaLabel: "Post storm prep →",
-    ctaPath: "/post-job?category=storm_prep",
-    category: "storm_prep",
-    icon: "CloudLightning",
-    condition: (ctx) => ctx.isHurricaneSeason,
-    dismissKey: "trigger-storm-season-dismissed",
-    priority: 90,
   },
   {
     id: "moving_followup",

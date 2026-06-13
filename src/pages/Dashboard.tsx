@@ -51,7 +51,6 @@ import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { queryKeys } from "@/lib/queryKeys";
 import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
-import { JobsForYou } from "@/components/dashboard/JobsForYou";
 import { useJobRef } from "@/hooks/useJobRef";
 
 // Quick Apply handler for notification deep links
@@ -1040,18 +1039,12 @@ const Dashboard = () => {
         </>
       }
     >
-            {/* Personalized "For you" recommendations — shown only to
-                approved helpers so pending/denied users don't see it.
-                Hides itself when the query returns 0 results or errors. */}
-            {approvalStatus === "approved" && (
-              <SectionBoundary label="jobs for you">
-                <JobsForYou
-                  userId={user?.id}
-                  profile={profile}
-                  effectiveFee={effectiveFee}
-                />
-              </SectionBoundary>
-            )}
+            {/* The standalone "For you" carousel was removed: it duplicated
+                the job feed (same jobs as Browse at low inventory) and ate a
+                whole horizontal band. Personalization now lives in the single
+                Browse feed as ORDER — the "Picked for you" group surfaces
+                relevance-ranked jobs at the top, then "Everything else". One
+                clean, personalized, vertical list; no duplication. */}
 
             <BrowseTasksToolbar
               filters={filters}

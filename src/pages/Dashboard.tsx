@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import AppShell from "@/components/AppShell";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, Star, X, Search, CloudLightning } from "lucide-react";
+import { Clock, XCircle, Star, X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
@@ -312,20 +312,6 @@ const Dashboard = () => {
   const [inactiveNudgeDismissed, setInactiveNudgeDismissed] = useState(false);
   const inactiveNudge = inactiveNudgeEligible && !inactiveNudgeDismissed;
 
-  // Hurricane season banner — active June–November (months 5–10, 0-indexed).
-  // Dismissal persists for the calendar day via localStorage; resets each
-  // new day so repeat visitors see it again without a full daily annoyance.
-  const isHurricaneSeason = useMemo(() => {
-    const month = new Date().getMonth(); // 0-indexed
-    return month >= 5 && month <= 10;   // June (5) through November (10)
-  }, []);
-  const [stormBannerDismissed, setStormBannerDismissed] = useState(() => {
-    try {
-      return safeStorage.getItem("storm-banner-dismissed") === new Date().toDateString();
-    } catch { return false; }
-  });
-  const showStormBanner = isHurricaneSeason && !stormBannerDismissed;
-
   // Early-access upsell banner — shown once (dismissible, localStorage key
   // "early-access-banner-dismissed") to free-tier helpers so they know
   // Pro/Elite subscribers see new jobs 10 minutes sooner. Tapping "Learn more"
@@ -348,7 +334,6 @@ const Dashboard = () => {
         .filter((j) => (j as any).customer_id === user?.id)
         .slice(0, 10)
         .map((j) => (j as any).category ?? ""),
-      isHurricaneSeason: [5, 6, 7, 8, 9, 10].includes(new Date().getMonth()),
       hasPostedBefore: (allJobs as any[]).some((j) => (j as any).customer_id === user?.id),
       accountAgeDays: profile?.created_at
         ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86_400_000)
@@ -461,16 +446,12 @@ const Dashboard = () => {
       )[0]
     : null;
 
-  // One promo/nudge slot. These cards previously stacked (e.g. a hurricane
-  // life-event trigger directly above the seasonal storm banner = the same
-  // message twice, plus the early-access upsell), burying the job feed below
-  // the fold. Pick a single highest-priority banner so jobs stay above the
-  // fold and the hurricane message never doubles. Personalized/time-sensitive
-  // first, generic upsell last.
-  const primaryBanner: "lifeEvent" | "autopilot" | "storm" | "inactive" | "earlyAccess" | null =
+  // One promo/nudge slot. These cards previously stacked, burying the job
+  // feed below the fold. Pick a single highest-priority banner so jobs stay
+  // above the fold. Personalized/time-sensitive first, generic upsell last.
+  const primaryBanner: "lifeEvent" | "autopilot" | "inactive" | "earlyAccess" | null =
     activeTrigger ? "lifeEvent"
     : topReminder ? "autopilot"
-    : showStormBanner ? "storm"
     : inactiveNudge ? "inactive"
     : showEarlyAccessBanner ? "earlyAccess"
     : null;
@@ -1222,42 +1203,6 @@ const Dashboard = () => {
             />
           )}
 
-          {/* Hurricane season banner — June–Nov only, dismissible for the day. */}
-          {primaryBanner === "storm" && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="shrink-0 mx-4 mb-1 rounded-ds-md p-3 flex items-center gap-2.5"
-              style={{
-                background: "hsl(210 25% 15% / 0.85)",
-                border: "0.5px solid hsl(210 25% 40% / 0.4)",
-                backdropFilter: "blur(12px)",
-              }}
-            >
-              <CloudLightning className="shrink-0 w-5 h-5" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={2} />
-              <div className="flex-1 min-w-0">
-                <p className="font-display italic font-semibold text-ds-13 leading-tight" style={{ color: "hsl(210 30% 90%)" }}>
-                  Hurricane season is active
-                </p>
-                <p className="font-serif italic text-ds-11 leading-tight mt-0.5" style={{ color: "hsl(210 20% 70%)" }}>
-                  Post storm prep work · helpers are ready
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setStormBannerDismissed(true);
-                  try { safeStorage.setItem("storm-banner-dismissed", new Date().toDateString()); } catch { /* ignore */ }
-                }}
-                aria-label="Dismiss hurricane season banner"
-                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-white/[0.08]"
-                style={{ color: "hsl(210 20% 60%)" }}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-          )}
 
           {/* Inactive subscriber nudge — gentle reminder for paid helpers
               who haven't applied in 7+ days. Dismissible per-session. */}

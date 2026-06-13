@@ -5,6 +5,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { unwrap } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -438,6 +439,10 @@ const PetProfiles = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingPet, setEditingPet] = useState<PetProfile | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Pet pending removal — gates the destructive delete behind a branded
+  // confirm dialog instead of a native confirm() (off-brand in the
+  // Capacitor iOS WebView).
+  const [petToDelete, setPetToDelete] = useState<PetProfile | null>(null);
 
   const { data: pets, isLoading, isError, refetch } = useQuery({
     queryKey: ["pet_profiles", userId],
@@ -672,11 +677,7 @@ const PetProfiles = () => {
                       variant="outline"
                       className="text-destructive border-destructive/30 hover:bg-destructive/5"
                       disabled={deleteMutation.isPending}
-                      onClick={() => {
-                        if (confirm(`Remove ${pet.name}? This can't be undone.`)) {
-                          deleteMutation.mutate(pet.id);
-                        }
-                      }}
+                      onClick={() => setPetToDelete(pet)}
                     >
                       Remove
                     </Button>
@@ -735,6 +736,21 @@ const PetProfiles = () => {
           onSaved={handleSaved}
         />
       )}
+
+      <BrandConfirmDialog
+        open={petToDelete !== null}
+        onOpenChange={(open) => { if (!open) setPetToDelete(null); }}
+        title={petToDelete ? `Remove ${petToDelete.name}?` : "Remove pet?"}
+        description="This can't be undone."
+        primaryLabel="Remove"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => {
+          if (petToDelete) deleteMutation.mutate(petToDelete.id);
+          setPetToDelete(null);
+        }}
+        secondaryLabel="Keep"
+      />
     </div>
   );
 };

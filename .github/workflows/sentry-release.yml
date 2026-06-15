@@ -80,7 +80,7 @@ jobs:
         run: npm run build
 
       - name: Create Sentry release and upload source maps
-        uses: getsentry/action-release@v1.7.0
+        uses: getsentry/action-release@v3.7.0
         with:
           # Use the commit SHA as the release name so it's unique per build
           # and matches what Sentry sees from the running client at runtime.

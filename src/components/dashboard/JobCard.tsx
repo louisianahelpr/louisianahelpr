@@ -1,6 +1,6 @@
 import { memo, useCallback, useRef, useState, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock, Heart, CheckCheck, Bookmark,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock, Heart, CheckCheck, Bookmark, ShieldCheck,
 } from "lucide-react";
 import { hapticLight, hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -516,6 +516,38 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 <span className="flex items-center gap-0.5">
                   <Star className="w-2.5 h-2.5 fill-accent text-accent shrink-0" />
                   <span className="font-medium text-foreground">{ratingDisplay}</span>
+                </span>
+              </>
+            )}
+            {/* Poster ID-verified — a quiet sage trust cue. Populated by
+                useDashboardData from get_safe_profiles; absent (and so hidden)
+                until migration 20260616120000 is pushed to prod. */}
+            {job.posterIdVerified && (
+              <>
+                <span className="opacity-30">·</span>
+                <span
+                  className="flex items-center gap-0.5 font-sans font-semibold"
+                  style={{ color: "hsl(var(--sage))" }}
+                  aria-label="Poster's ID is verified"
+                >
+                  <ShieldCheck className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
+                  Verified
+                </span>
+              </>
+            )}
+            {/* "N applied" social proof. Only shown when at least one helpr has
+                applied (a "0 applied" reads as a negative signal). The count
+                rides in on the open_jobs_browse view via a best-effort query,
+                so it stays hidden until that migration is live. */}
+            {(job.applicant_count ?? 0) > 0 && (
+              <>
+                <span className="opacity-30">·</span>
+                <span
+                  className="flex items-center gap-1"
+                  aria-label={`${job.applicant_count} ${job.applicant_count === 1 ? "helpr has" : "helprs have"} applied`}
+                >
+                  <Users className="w-2.5 h-2.5 shrink-0" />
+                  <span className="font-sans">{job.applicant_count} applied</span>
                 </span>
               </>
             )}

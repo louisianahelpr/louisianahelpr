@@ -247,7 +247,7 @@ export function useDashboardData() {
 
       // Phase 2: enrich page with poster names + review stats + subscription tier (for Search Priority).
       const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
-      const [profilesRes, reviewsRes, posterTiersRes] = await withTimeout(Promise.all([
+      const [profilesRes, reviewsRes, posterTiersRes, countsRes] = await withTimeout(Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
         supabase
           .from("reviews")
@@ -258,6 +258,19 @@ export function useDashboardData() {
           .from("profiles")
           .select("user_id, subscription_tier, subscription_expires_at")
           .in("user_id", posterIds),
+        // Applicant counts — lives in the open_jobs_browse view (added in
+        // migration 20260616120000) but pulled here as a SEPARATE,
+        // best-effort query rather than in the main feed select above. The
+        // main select is unwrap()'d, so a missing column (before the
+        // migration is manually pushed) would throw and brick the whole
+        // feed. Here we read `.data` directly (no unwrap), so a pre-deploy
+        // PGRST/42703 "column does not exist" simply resolves to no data and
+        // the "N applied" chip stays hidden. Fold this back into the main
+        // select to save a round-trip once the migration is live on prod.
+        supabase
+          .from("open_jobs_browse")
+          .select("id, applicant_count")
+          .in("id", rawJobs.map((j) => j.id)),
       ]), JOBS_QUERY_TIMEOUT_MS, "Loading tasks timed out");
 
       const nameMap = new Map(
@@ -265,6 +278,23 @@ export function useDashboardData() {
       );
       const avatarMap = new Map<string, string | null>(
         profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
+      );
+      // Poster ID-verified flag — get_safe_profiles gained is_id_verified in
+      // migration 20260616120000. Until that migration is pushed the RPC
+      // returns rows without the field, so read it via an optional cast and
+      // default to false → the "Verified" badge simply stays hidden.
+      const verifiedMap = new Map<string, boolean>(
+        profilesRes.data?.map((p) => [
+          p.user_id,
+          (p as { is_id_verified?: boolean }).is_id_verified ?? false,
+        ]) || [],
+      );
+      // Applicant counts keyed by job id — see the best-effort query above.
+      // `.data` is null pre-deploy, yielding an empty map (no count shown).
+      const applicantCountMap = new Map<string, number>(
+        (countsRes.data as Array<{ id: string; applicant_count: number | null }> | null)?.map(
+          (r) => [r.id, r.applicant_count ?? 0],
+        ) || [],
       );
 
       // Build poster tier map — only count tier if subscription hasn't expired
@@ -293,6 +323,8 @@ export function useDashboardData() {
             posterCompletedJobs: 0,
             posterSubscriptionTier: posterTierMap.get(j.customer_id) ?? null,
             isBoosted,
+            applicant_count: applicantCountMap.get(j.id) ?? 0,
+            posterIdVerified: verifiedMap.get(j.customer_id) ?? false,
           };
         });
 

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { X, Cake } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -37,95 +39,118 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
     safeStorage.setItem("birthday_popup_dismissed", Date.now().toString());
   };
 
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          onClick={dismiss}
-        >
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="relative rounded-2xl liquid-glass shadow-2xl px-7 py-8 max-w-sm w-full text-center"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundImage:
-                "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.12) 0%, transparent 55%), " +
-                "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.14) 0%, transparent 60%)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-                "0 24px 48px -12px hsl(var(--olivewood) / 0.22)",
-            }}
-          >
-            <button
-              onClick={dismiss}
-              className="absolute top-3 right-3 transition-colors active:opacity-70"
-              style={{ color: "hsl(var(--olivewood) / 0.6)" }}
-              aria-label="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
+  // Radix Dialog onOpenChange — fires on Escape, outside click, and any
+  // other dismissal path. Wire it to the same dismiss() handler so all
+  // close paths persist the "shown once today" stamp.
+  const handleOpenChange = (open: boolean) => {
+    if (!open) dismiss();
+  };
 
-            <div
-              className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4"
-              style={{
-                background: "hsl(var(--gold-warm) / 0.18)",
-                color: "hsl(var(--gold-warm))",
-                border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
-                boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 8px 22px -6px hsl(var(--gold-warm) / 0.30)",
-              }}
-            >
-              <Cake className="w-7 h-7" strokeWidth={1.75} />
-            </div>
-            <span
-              className="font-serif italic uppercase block"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-            >
-              From the Helpr family
-            </span>
-            <h2
-              className="font-display italic font-bold leading-tight mt-1"
-              style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-            >
-              Happy birthday, {firstName}.
-            </h2>
-            <p
-              className="font-serif italic leading-relaxed mt-2 max-w-[280px] mx-auto"
-              style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.78)" }}
-            >
-              Wishing you a great one. Thanks for being part of the Louisiana Helpr community.
-            </p>
-            <button
-              type="button"
-              onClick={dismiss}
-              className="mt-5 inline-flex items-center gap-1.5 px-5 h-10 rounded-full active:scale-[0.97] transition-transform"
-              style={{
-                background: "hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-                border: "1px solid hsl(70 22% 24%)",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                letterSpacing: "0.01em",
-                fontSize: "0.78rem",
-                boxShadow:
-                  "inset 0 1px 0 0 rgba(255,255,255,0.12), " +
-                  "0 1px 2px hsl(var(--bark) / 0.18), " +
-                  "0 8px 18px -6px hsl(var(--bark) / 0.45)",
-              }}
-            >
-              Thank you
-            </button>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+  return (
+    <Dialog open={show} onOpenChange={handleOpenChange}>
+      <AnimatePresence>
+        {show && (
+          <DialogPortal forceMount>
+            {/* Shared overlay primitive — backdrop blur, focus trap, and
+                escape-to-close come from Radix so this modal behaves
+                exactly like every other dialog in the app. We keep
+                framer-motion for the spring-scale celebration entrance
+                on the inner card. */}
+            <DialogOverlay asChild forceMount>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+            </DialogOverlay>
+            {/* Bare primitive (not DialogContent) so we don't inherit the
+                shared glass-modal padding + built-in close X, both of
+                which would clash with the bespoke celebratory layout. */}
+            <DialogPrimitive.Content asChild forceMount>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl liquid-glass shadow-2xl px-7 py-8 max-w-sm w-[calc(100%-2rem)] text-center focus:outline-none"
+                style={{
+                  backgroundImage:
+                    "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.12) 0%, transparent 55%), " +
+                    "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.14) 0%, transparent 60%)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45), " +
+                    "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+                    "0 24px 48px -12px hsl(var(--olivewood) / 0.22)",
+                }}
+              >
+                <button
+                  onClick={dismiss}
+                  className="absolute top-3 right-3 transition-colors active:opacity-70"
+                  style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                <div
+                  className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4"
+                  style={{
+                    background: "hsl(var(--gold-warm) / 0.18)",
+                    color: "hsl(var(--gold-warm))",
+                    border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
+                    boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 8px 22px -6px hsl(var(--gold-warm) / 0.30)",
+                  }}
+                >
+                  <Cake className="w-7 h-7" strokeWidth={1.75} />
+                </div>
+                <span
+                  className="font-serif italic uppercase block"
+                  style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                >
+                  From the Helpr family
+                </span>
+                <DialogPrimitive.Title asChild>
+                  <h2
+                    className="font-display italic font-bold leading-tight mt-1"
+                    style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+                  >
+                    Happy birthday, {firstName}.
+                  </h2>
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Description asChild>
+                  <p
+                    className="font-serif italic leading-relaxed mt-2 max-w-[280px] mx-auto"
+                    style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  >
+                    Wishing you a great one. Thanks for being part of the Louisiana Helpr community.
+                  </p>
+                </DialogPrimitive.Description>
+                <button
+                  type="button"
+                  onClick={dismiss}
+                  className="mt-5 inline-flex items-center gap-1.5 px-5 h-10 rounded-full active:scale-[0.97] transition-transform"
+                  style={{
+                    background: "hsl(var(--bark))",
+                    color: "hsl(var(--parchment))",
+                    border: "1px solid hsl(70 22% 24%)",
+                    fontFamily: "Montserrat, system-ui, sans-serif",
+                    fontWeight: 600,
+                    letterSpacing: "0.01em",
+                    fontSize: "0.78rem",
+                    boxShadow:
+                      "inset 0 1px 0 0 rgba(255,255,255,0.12), " +
+                      "0 1px 2px hsl(var(--bark) / 0.18), " +
+                      "0 8px 18px -6px hsl(var(--bark) / 0.45)",
+                  }}
+                >
+                  Thank you
+                </button>
+              </motion.div>
+            </DialogPrimitive.Content>
+          </DialogPortal>
+        )}
+      </AnimatePresence>
+    </Dialog>
   );
 };
 

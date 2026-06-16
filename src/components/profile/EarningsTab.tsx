@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Zap, Settings, FileText, FileSpreadsheet, ExternalLink, Info, Printer, FileCheck2, X } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
@@ -680,9 +681,24 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               </Select>
             </div>
             {stripeData.payouts.length === 0 ? (
-              <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-                No payouts recorded for {exportYear}.
-              </p>
+              // Inline empty state — keeps the visual weight of the
+              // surrounding section while setting expectations about
+              // *when* payouts will appear, instead of dead-ending on a
+              // bare "No payouts recorded" line.
+              <div className="text-center py-6 space-y-1.5">
+                <p
+                  className="font-display italic font-bold leading-tight"
+                  style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+                >
+                  No payouts in {exportYear}.
+                </p>
+                <p
+                  className="font-serif italic"
+                  style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                >
+                  Payouts land within 2 business days of a completed job.
+                </p>
+              </div>
             ) : (
               <div className="space-y-2">
                 {stripeData.payouts.map((p) => (
@@ -777,7 +793,34 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
       {/* ─── EARNING HISTORY ─── */}
       {loading ? (
-        <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>Loading…</p>
+        // Content-shaped skeleton: section eyebrow + heading, plus three
+        // job-row placeholders matching the eventual `.rounded-ds-md
+        // liquid-glass p-3.5` row geometry below (title row, status chip,
+        // meta line, right-aligned amount). Keeps the page from collapsing
+        // to a single line of "Loading…" text mid-fetch.
+        <div>
+          <Skeleton className="h-2.5 w-14 mb-1" />
+          <Skeleton className="h-6 w-40 mb-3" />
+          <div className="space-y-2.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-ds-md liquid-glass p-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-3/5" />
+                      <Skeleton className="h-4 w-14 rounded-full" />
+                    </div>
+                    <Skeleton className="h-3 w-2/5" />
+                  </div>
+                  <div className="text-right shrink-0 space-y-1.5">
+                    <Skeleton className="h-4 w-16 ml-auto" />
+                    <Skeleton className="h-2.5 w-12 ml-auto" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       ) : (
         <div>
           <p className="font-serif italic uppercase mb-1" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>

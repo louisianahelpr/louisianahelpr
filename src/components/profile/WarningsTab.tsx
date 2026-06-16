@@ -1,6 +1,7 @@
 import { AlertTriangle, Shield, CheckCircle2 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Violation = {
   id: string;
@@ -32,7 +33,33 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
       />
 
       {loading ? (
-        <p className="text-ds-11 text-muted-foreground">Loading…</p>
+        // Content-shaped skeleton: hero card (status overview) + a few
+        // history rows so the page has visual anchor weight while the
+        // violation fetch resolves. Matches the eventual layout below
+        // (hero w/ rounded-2xl + history list w/ rounded-ds-md rows).
+        <>
+          <div className="rounded-2xl liquid-glass border-2 border-[hsl(var(--olivewood)/0.10)] p-6 text-center space-y-3">
+            <Skeleton className="w-14 h-14 rounded-full mx-auto" />
+            <Skeleton className="h-3 w-20 mx-auto" />
+            <Skeleton className="h-7 w-44 mx-auto" />
+            <Skeleton className="h-3.5 w-64 mx-auto" />
+          </div>
+          <div className="space-y-2 pt-2">
+            <Skeleton className="h-3 w-16" />
+            {[0, 1].map((i) => (
+              <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                  </div>
+                  <Skeleton className="h-3 w-20" />
+                </div>
+                <Skeleton className="h-3.5 w-3/4" />
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
         <>
           {/* Status overview */}

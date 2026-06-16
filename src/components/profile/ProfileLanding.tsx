@@ -841,42 +841,41 @@ export function ProfileLanding({
               </div>
             </div>
           ) : (
-            // No video — dashed-border CTA
+            // No video — compact single-row dashed CTA. Headline + button
+            // sit side-by-side; the "2× more hires" subtitle is dropped to
+            // halve the card height (it was the largest profile-screen
+            // element on first paint).
             <div
-              className="rounded-xl flex flex-col items-center justify-center gap-2 p-4 text-center"
+              className="rounded-xl flex items-center gap-3 p-3"
               style={{
                 border: "1.5px dashed hsl(var(--olivewood) / 0.30)",
                 background: "hsl(var(--parchment) / 0.4)",
               }}
             >
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center"
+                className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center"
                 style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
               >
-                <Video className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+                <Video className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
               </div>
-              <div>
-                <p className="font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-                  Record a 60-second intro video
-                </p>
-                <p className="font-serif italic text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
-                  Profiles with videos get 2× more hires
-                </p>
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                <button
-                  type="button"
-                  onClick={() => videoInputRef.current?.click()}
-                  disabled={videoUploading}
-                  className="h-9 px-4 rounded-full text-ds-12 font-sans font-semibold disabled:opacity-60 active:scale-95 transition-all"
-                  style={{
-                    background: "hsl(var(--burnt-sienna))",
-                    color: "hsl(var(--parchment))",
-                  }}
-                >
-                  {videoUploading ? "Uploading…" : "Upload video"}
-                </button>
-              </div>
+              <p
+                className="flex-1 min-w-0 font-semibold text-ds-13 leading-tight"
+                style={{ color: "hsl(var(--ink-deep))" }}
+              >
+                Record a 60-second intro video
+              </p>
+              <button
+                type="button"
+                onClick={() => videoInputRef.current?.click()}
+                disabled={videoUploading}
+                className="shrink-0 h-9 px-3.5 rounded-full text-ds-12 font-sans font-semibold disabled:opacity-60 active:scale-95 transition-all"
+                style={{
+                  background: "hsl(var(--burnt-sienna))",
+                  color: "hsl(var(--parchment))",
+                }}
+              >
+                {videoUploading ? "Uploading…" : "Upload"}
+              </button>
             </div>
           )}
           {/* Hidden file input — shared by the CTA and the "Re-record" link. */}

@@ -25,12 +25,12 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import BackButton from "@/components/BackButton";
 import {
   Building2,
   UserPlus,
   Trash2,
   Loader2,
-  ArrowLeft,
   Crown,
   Mail,
   Sparkles,
@@ -419,12 +419,9 @@ const BusinessTeam = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <div className="container mx-auto px-5 py-6 max-w-3xl">
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-ds-11 text-muted-foreground hover:text-foreground transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
+        <div className="mb-6">
+          <BackButton />
+        </div>
 
         <div className="flex items-start gap-4 mb-6">
           <div className="w-12 h-12 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">

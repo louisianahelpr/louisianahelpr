@@ -8,8 +8,9 @@ import {
   AlertTriangle, CheckCircle2, DollarSign, ShieldAlert, Megaphone,
   BellRing, Headphones, Gift, Crown, TrendingUp, TrendingDown, Activity,
   X, Banknote, MapPin, Award, ChevronRight, ShieldCheck,
-  Shield, LogOut, ArrowLeft, Mail, Building2, Landmark, ClipboardList,
+  Shield, LogOut, Mail, Building2, Landmark, ClipboardList,
 } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { lazy, Suspense } from "react";
@@ -518,15 +519,7 @@ const Admin = () => {
           >
             {view !== "home" && (
               <div className="mb-5 sm:mb-6 flex items-start gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleViewChange("home")}
-                  className="h-10 w-10 rounded-ds-md -ml-2 hover:bg-secondary/60 shrink-0 mt-0.5"
-                  aria-label="Back to admin dashboard"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
+                <BackButton onClick={() => handleViewChange("home")} />
                 <div className="flex flex-col leading-none min-w-0">
                   <span
                     className="font-serif italic uppercase text-[0.62rem]"

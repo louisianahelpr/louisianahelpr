@@ -306,8 +306,8 @@ export function BrowseTasksFeed({
                   <Button
                     variant="ghost"
                     onClick={() => filters.setLocationFilter("")}
-                    className="rounded-ds-md font-sans font-semibold"
-                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                    className="rounded-ds-md font-sans font-medium"
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Browse all parishes
                   </Button>
@@ -318,18 +318,26 @@ export function BrowseTasksFeed({
                 </Button>
               )
             ) : (
+              // Single primary action lives in the floating "+" FAB — these
+              // empty-state affordances stay quiet text-link tier so the
+              // dock-level CTA isn't visually duplicated.
               <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
-                <BarkPillButton onClick={() => navigate("/post-job")}>
-                  <Plus className="w-4 h-4 mr-1" strokeWidth={2.5} />
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/post-job")}
+                  className="rounded-ds-md font-sans font-medium"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  <Plus className="w-4 h-4 mr-1" strokeWidth={2.25} />
                   Post your first task
-                </BarkPillButton>
+                </Button>
                 <Button
                   variant="ghost"
                   onClick={() =>
                     navigate(user ? "/profile?tab=notifications" : "/signup")
                   }
-                  className="rounded-ds-md font-sans font-semibold"
-                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                  className="rounded-ds-md font-sans font-medium"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   <Bell className="w-4 h-4 mr-1" strokeWidth={2.25} />
                   Notify me when one lands

@@ -24,6 +24,7 @@ import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import ScrollToTop from "@/components/ScrollToTop";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
+import { useAppLifecycle } from "@/lib/appLifecycle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
@@ -301,6 +302,13 @@ const SessionManager = () => {
   useCppVariantRouter();
   useAppShellViewport();
   useStatusBarStyle();
+  // Bridge Capacitor appStateChange → TanStack focusManager and
+  // @capacitor/network → onlineManager. Without this, refetchOnWindowFocus
+  // is dead inside WKWebView (browser focus events don't fire reliably on
+  // iOS) so the dashboard / messages / balances show stale data after the
+  // user returns from a context-switch, and offline → online doesn't
+  // auto-refetch. No-op on web.
+  useAppLifecycle();
 
   // Apply senior-mode CSS class on <html> whenever the loaded profile
   // has senior_mode enabled (e.g. after sign-in or a page refresh).

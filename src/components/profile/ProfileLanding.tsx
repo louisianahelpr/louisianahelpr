@@ -33,6 +33,8 @@ import { ProfileStatsTrend } from "@/components/profile/ProfileStatsTrend";
 import { SkillsManager } from "@/components/profile/SkillsManager";
 import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
 import { hapticLight } from "@/lib/haptics";
+import { toast } from "sonner";
+import { report } from "@/lib/errorLogger";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -173,8 +175,20 @@ export function ProfileLanding({
     })();
     return () => { cancelled = true; };
   }, [qrOpen, profile?.user_id, qrDataUrl]);
+  // Hard size ceiling — Supabase Storage upload rejects files over its
+  // per-bucket limit, and an iPhone 4K HEVC 60-second clip easily exceeds
+  // 100 MB. Reject upfront with a clear toast instead of letting the
+  // request silently 5xx after a long upload. Real client-side
+  // compression is phase 2; this is the cheap guard rail.
+  const VIDEO_UPLOAD_MAX_BYTES = 30 * 1024 * 1024; // 30 MB
   const handleVideoUpload = async (file: File) => {
     if (!profile?.user_id) return;
+    if (file.size > VIDEO_UPLOAD_MAX_BYTES) {
+      toast.error(
+        `Video is ${Math.round(file.size / 1024 / 1024)} MB. Trim under 30 MB (≈30 seconds of 1080p, or 60 seconds of 720p) and try again.`,
+      );
+      return;
+    }
     setVideoUploading(true);
     try {
       const ext = file.name.split(".").pop() ?? "mp4";
@@ -191,9 +205,9 @@ export function ProfileLanding({
       if (updateError) throw updateError;
       // Reload page so ProfileLanding reflects the new URL from the DB.
       window.location.reload();
-    } catch {
-      // Silently ignore — in a real app we'd surface a toast, but keeping
-      // the upload UX minimal since Capacitor video capture is phase 2.
+    } catch (err) {
+      toast.error("Couldn't upload that video. Please try again.");
+      report(err, { tags: { source: "ProfileLanding.handleVideoUpload" } });
     } finally {
       setVideoUploading(false);
     }

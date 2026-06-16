@@ -89,7 +89,7 @@ const config: CapacitorConfig = {
       // never hangs even if init fails.
       launchShowDuration: 0,
       launchAutoHide: false,
-      backgroundColor: '#F0E7D6', // Warm cream — matches the app-icon canvas (scripts/build-app-icon.mjs)
+      backgroundColor: '#F4F8F5', // Matches StatusBar.backgroundColor below so cold-start doesn't flash cream→sage as the splash hands off to the WebView
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,

@@ -17,23 +17,37 @@ import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import { divIcon, point as leafletPoint } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Helper pin — a moving vehicle indicator (olive circle with white center)
+// Resolve a brand token to its computed hex so the inline SVG markup
+// (built as a string for Leaflet's divIcon) tracks light/dark theme
+// changes via the CSS custom properties. Falls back to the prior literal
+// hex if the var resolution fails (e.g. SSR), so the pins still render.
+function resolveToken(varName: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue(varName)
+    .trim();
+  return v ? `hsl(${v})` : fallback;
+}
+
+// Helper pin — a moving vehicle indicator (olive circle with parchment center)
 function helperIcon() {
+  const olive = resolveToken("--olivewood", "hsl(83,18%,36%)");
+  const parchment = resolveToken("--parchment", "#FAF8F5");
   const html = `
     <div style="
       width:32px;height:32px;border-radius:9999px;
       display:flex;align-items:center;justify-content:center;
-      background:hsl(83,18%,36%);
-      border:2.5px solid #FAF8F5;
+      background:${olive};
+      border:2.5px solid ${parchment};
       box-shadow:0 3px 10px -2px rgba(46,46,40,0.45);
     ">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
         xmlns="http://www.w3.org/2000/svg">
         <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v5h-2"
-          stroke="#FAF8F5" stroke-width="2" stroke-linecap="round"
+          stroke="${parchment}" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round"/>
-        <circle cx="7.5" cy="17.5" r="2.5" stroke="#FAF8F5" stroke-width="2"/>
-        <circle cx="17.5" cy="17.5" r="2.5" stroke="#FAF8F5" stroke-width="2"/>
+        <circle cx="7.5" cy="17.5" r="2.5" stroke="${parchment}" stroke-width="2"/>
+        <circle cx="17.5" cy="17.5" r="2.5" stroke="${parchment}" stroke-width="2"/>
       </svg>
     </div>
   `;
@@ -47,11 +61,13 @@ function helperIcon() {
 
 // Destination pin — classic drop-pin in burnt-sienna
 function destinationIcon() {
+  const sienna = resolveToken("--burnt-sienna", "#A0613B");
+  const parchment = resolveToken("--parchment", "#FAF8F5");
   const html = `
     <svg width="24" height="32" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
       <path d="M14 0C6.27 0 0 6.27 0 14c0 9.5 14 22 14 22s14-12.5 14-22C28 6.27 21.73 0 14 0z"
-        fill="#A0613B" />
-      <circle cx="14" cy="14" r="5" fill="#FAF8F5" />
+        fill="${sienna}" />
+      <circle cx="14" cy="14" r="5" fill="${parchment}" />
     </svg>
   `;
   return divIcon({

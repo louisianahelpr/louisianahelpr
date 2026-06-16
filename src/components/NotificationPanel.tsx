@@ -15,6 +15,7 @@ import { hapticLight } from "@/lib/haptics";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { report } from "@/lib/errorLogger";
 
 type Notification = {
   id: string;
@@ -121,6 +122,10 @@ const NotificationPanel = () => {
       .limit(50);
     if (error) {
       console.error("[NotificationPanel] failed to load notifications:", error);
+      // Surface to the error logger alongside the local console + toast
+      // so the failure shows up in error_logs / Sentry instead of being
+      // swallowed into a silent retry loop.
+      report(error, { tags: { source: "NotificationPanel.load" } });
       // Only mark the panel as errored when we have no existing rows to
       // show. A background refresh failure with prior data on screen
       // stays silent so a transient hiccup doesn't blow away a list the

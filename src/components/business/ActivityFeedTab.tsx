@@ -6,13 +6,14 @@
 // (PGRST202), we render an empty informational state.
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { Briefcase, CheckCircle2, AlertCircle, Activity as ActivityIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
+import { Briefcase, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface ActivityEvent {
@@ -51,6 +52,9 @@ export function ActivityFeedTab({ businessId }: ActivityFeedTabProps) {
     },
     enabled: !!businessId,
     staleTime: 30_000,
+    // Hold prior page during cursor / refetch transitions so the
+    // timeline doesn't collapse to a skeleton mid-scroll.
+    placeholderData: keepPreviousData,
   });
 
   const events = [...pages.flat(), ...(data?.events ?? [])];
@@ -63,9 +67,20 @@ export function ActivityFeedTab({ businessId }: ActivityFeedTabProps) {
   };
 
   if (isLoading) {
+    // Content-shaped skeleton: timeline rows mirroring the eventual
+    // Card layout (icon + actor/verb/job sentence + relative timestamp).
+    // Replaces a bare centered spinner.
     return (
-      <div className="flex items-center justify-center py-8">
-        <HelprSpinner size={28} />
+      <div className="space-y-2">
+        {[0, 1, 2, 3].map((i) => (
+          <Card key={i} className="p-3 flex items-start gap-3">
+            <Skeleton className="h-4 w-4 mt-0.5 rounded-sm" />
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <Skeleton className="h-3.5 w-4/5" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          </Card>
+        ))}
       </div>
     );
   }
@@ -86,11 +101,13 @@ export function ActivityFeedTab({ businessId }: ActivityFeedTabProps) {
 
   if (events.length === 0) {
     return (
-      <Card className="p-5">
-        <ActivityIcon className="w-5 h-5 mb-2" style={{ color: "hsl(var(--olivewood))" }} />
-        <p className="font-medium">No activity yet</p>
-        <p className="text-ds-11 text-muted-foreground mt-1">
-          Once your team starts posting and completing jobs, the timeline will populate.
+      <Card className="p-8 text-center">
+        <EmptyStateIllustration variant="notifications" />
+        <p className="font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+          No activity yet.
+        </p>
+        <p className="text-ds-13 text-muted-foreground mt-1.5 max-w-sm mx-auto">
+          Once your team starts posting and completing jobs, the timeline will populate here.
         </p>
       </Card>
     );

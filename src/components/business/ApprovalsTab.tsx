@@ -7,15 +7,17 @@
 // degrades to "rolling out" before the manual db push.
 
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { Check, X, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
-import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { Check, X, Loader2, AlertCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
+import { report } from "@/lib/errorLogger";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -62,6 +64,14 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
         // yet); 42703 = column missing. Either way, treat as empty.
         const code = (error as { code?: string }).code;
         if (code === "22P02" || code === "42703" || code === "PGRST204") return [];
+        // Surface unexpected failures to the error logger before
+        // re-throwing into React Query — without this the error path
+        // would flip the query to its error state but never get
+        // recorded for follow-up triage.
+        report(error, {
+          tags: { source: "ApprovalsTab.fetchPending" },
+          context: { businessId, code: code ?? null },
+        });
         throw error;
       }
       const list = ((rows as unknown) as PendingJob[] | null) ?? [];
@@ -77,6 +87,10 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
       return list.map((j) => ({ ...j, customer_name: map.get(j.customer_id) ?? null }));
     },
     enabled: !!businessId,
+    // Hold prior approvals during a background refetch (after
+    // approving/rejecting we invalidate) so the list doesn't collapse
+    // to a skeleton mid-review.
+    placeholderData: keepPreviousData,
   });
 
   const approve = async (jobId: string) => {
@@ -136,9 +150,28 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
   }
 
   if (isLoading) {
+    // Content-shaped skeleton: a couple of pending-job rows matching
+    // the eventual Card layout (title + meta line + badge + amount,
+    // with two action buttons). Replaces a bare centered spinner.
     return (
-      <div className="flex items-center justify-center py-8">
-        <HelprSpinner size={28} />
+      <div className="space-y-3">
+        {[0, 1].map((i) => (
+          <Card key={i} className="p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-3/5" />
+                <Skeleton className="h-3 w-2/5" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-3.5 w-full" />
+              </div>
+              <Skeleton className="h-6 w-14 shrink-0" />
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-24 rounded-md" />
+            </div>
+          </Card>
+        ))}
       </div>
     );
   }
@@ -159,11 +192,13 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Card className="p-5">
-        <ShieldCheck className="w-5 h-5 mb-2" style={{ color: "hsl(var(--olivewood))" }} />
-        <p className="font-medium">Nothing pending</p>
-        <p className="text-ds-11 text-muted-foreground mt-1">
-          When a teammate posts a job above your approval threshold, it'll show up here.
+      <Card className="p-8 text-center">
+        <EmptyStateIllustration variant="posts" />
+        <p className="font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+          Nothing pending.
+        </p>
+        <p className="text-ds-13 text-muted-foreground mt-1.5 max-w-sm mx-auto">
+          When a teammate posts a job above your approval threshold, it'll show up here for review.
         </p>
       </Card>
     );

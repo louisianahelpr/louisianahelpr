@@ -3,6 +3,7 @@ import { Star, Info, ArrowDownAZ, ArrowUpAZ, CalendarClock } from "lucide-react"
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Popover,
   PopoverContent,
@@ -201,7 +202,44 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
       )}
 
       {loading ? (
-        <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>Loading reviews…</p>
+        // Content-shaped skeleton: hero summary card (matches the real
+        // populated hero geometry: big rating number + star row + count
+        // line) plus two review-row placeholders so the page doesn't
+        // collapse to a single line of text mid-fetch.
+        <div className="space-y-3">
+          <div className="rounded-2xl liquid-glass px-5 py-4 flex items-center gap-4">
+            <div className="shrink-0 text-center space-y-2">
+              <Skeleton className="h-9 w-12" />
+              <Skeleton className="h-2.5 w-12 mx-auto" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex items-center gap-0.5">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-4 w-4 rounded-sm" />
+                ))}
+              </div>
+              <Skeleton className="h-3.5 w-3/5" />
+            </div>
+          </div>
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-0.5">
+                    {[0, 1, 2, 3, 4].map((s) => (
+                      <Skeleton key={s} className="h-3.5 w-3.5 rounded-sm" />
+                    ))}
+                  </div>
+                  <Skeleton className="h-3 w-8" />
+                </div>
+                <Skeleton className="h-3 w-20" />
+              </div>
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-5/6" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          ))}
+        </div>
       ) : reviews.length === 0 ? (
         <EmptyState
           variant="inline"

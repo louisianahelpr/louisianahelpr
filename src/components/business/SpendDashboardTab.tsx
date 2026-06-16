@@ -8,7 +8,7 @@
 // chart.
 
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import {
@@ -22,7 +22,8 @@ import {
   Legend,
 } from "recharts";
 import { DollarSign, Wallet, Lock, Hourglass, AlertCircle } from "lucide-react";
-import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 
 interface SpendRow {
   user_id: string;
@@ -68,6 +69,10 @@ export function SpendDashboardTab({
     },
     enabled: !!businessId,
     staleTime: 30_000,
+    // Hold prior rows during a background refetch (e.g. when businessId
+    // changes or the user pulls to refresh) so the dashboard doesn't
+    // collapse to a skeleton mid-view.
+    placeholderData: keepPreviousData,
   });
 
   const rows = data?.rows ?? [];
@@ -89,9 +94,23 @@ export function SpendDashboardTab({
     : null;
 
   if (isLoading) {
+    // Content-shaped skeleton: 4 stat cards (matching the SpendStat
+    // grid) + a bar-chart placeholder so the dashboard layout is in
+    // place before the RPC resolves. Replaces a bare centered spinner.
     return (
-      <div className="flex items-center justify-center py-8">
-        <HelprSpinner size={28} />
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Card key={i} className="p-3 space-y-2">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-6 w-16" />
+            </Card>
+          ))}
+        </div>
+        <Card className="p-4 space-y-3">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-[200px] w-full" />
+        </Card>
       </div>
     );
   }
@@ -189,9 +208,13 @@ export function SpendDashboardTab({
           </div>
         </Card>
       ) : (
-        <Card className="p-5">
-          <p className="text-ds-13 text-muted-foreground">
-            No spend yet this month. Once your team starts posting, this dashboard will populate.
+        <Card className="p-8 text-center">
+          <EmptyStateIllustration variant="posts" />
+          <p className="font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+            No spend yet this month.
+          </p>
+          <p className="text-ds-13 text-muted-foreground mt-1.5 max-w-sm mx-auto">
+            Once your team starts posting jobs, the spend breakdown will populate here.
           </p>
         </Card>
       )}

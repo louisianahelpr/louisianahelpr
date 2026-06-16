@@ -416,15 +416,17 @@ export function BrowseTasksToolbar({
         </div>
       </div>
 
-      {/* One-tap category picker row. Reads/writes the same
-          `selectedCategory` filter as the sheet and recap chips, so the
-          three stay in sync. Lives directly under the toolbar header so
-          a helper can narrow the board by category without opening the
-          filter sheet. */}
-      <CategoryChipRow
-        selectedCategory={filters.selectedCategory}
-        setSelectedCategory={filters.setSelectedCategory}
-      />
+      {/* One-tap category picker row. Hidden in the default state —
+          appears only once the user has picked a category via the filter
+          sheet, then expands to the full picker so they can switch or
+          clear with a single tap. Keeps the unfiltered Browse board
+          uncluttered while preserving the in-context switch affordance. */}
+      {filters.selectedCategory && (
+        <CategoryChipRow
+          selectedCategory={filters.selectedCategory}
+          setSelectedCategory={filters.setSelectedCategory}
+        />
+      )}
 
       {/* Active-filter recap chip row — only when 3+ filters are
           simultaneously active. With fewer, the input controls below

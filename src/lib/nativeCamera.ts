@@ -30,7 +30,11 @@ async function photoToFile(
  */
 export async function pickImagesNative(limit: number): Promise<File[]> {
   const { Camera } = await import("@capacitor/camera");
-  const result = await Camera.pickImages({ quality: 80, limit });
+  // Cap longest-edge at 1600px — a 12MP iPhone HEIC at quality 80 is still
+  // 3-5MB raw, which saturates LTE on a multi-pick. 1600px is more than
+  // enough for the job-photo + profile-photo + intro-photo surfaces; the
+  // plugin preserves aspect ratio so portrait selfies stay portrait.
+  const result = await Camera.pickImages({ quality: 80, limit, width: 1600, height: 1600 });
   const files: File[] = [];
   for (const photo of result.photos) {
     const file = await photoToFile(photo.webPath, photo.format);
@@ -47,6 +51,9 @@ export async function takePhotoNative(): Promise<File | null> {
   const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
   const photo = await Camera.getPhoto({
     quality: 80,
+    // See pickImagesNative — same 1600px longest-edge cap.
+    width: 1600,
+    height: 1600,
     resultType: CameraResultType.Uri,
     source: CameraSource.Camera,
   });

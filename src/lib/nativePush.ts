@@ -27,6 +27,7 @@ import {
   requestPushPermission as requestWebPushPermission,
 } from "@/lib/pushNotifications";
 import { normalizeDeepLinkUrl } from "@/lib/deepLinkRoute";
+import { claimDeepLinkLaunch } from "@/lib/nativeLaunchMutex";
 import { captureJobRef } from "@/lib/jobLinkRef";
 
 let listenersAttached = false;
@@ -241,7 +242,13 @@ export function useNativePushSetup() {
             track(AhaEvent.AppOpenedFromDeepLink, { host, path: rawPath });
 
             const internal = normalizeDeepLinkUrl(rawUrl);
-            if (internal) navigate(internal);
+            if (internal) {
+              // Mark first so NativeLaunchRouter (which may resolve a
+              // moment later in a parallel useEffect) doesn't override
+              // the deep link with the default post-auth route.
+              claimDeepLinkLaunch();
+              navigate(internal);
+            }
           } catch (err) {
             report(err, { tags: { source: "appUrlOpen" }, context: { url: rawUrl } });
           }

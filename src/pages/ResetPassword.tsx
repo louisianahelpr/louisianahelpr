@@ -201,7 +201,7 @@ const ResetPassword = () => {
             className="font-semibold hover:underline inline-flex items-center gap-1"
             style={{ color: "hsl(var(--bark))" }}
           >
-            <ArrowLeft className="w-3 h-3" /> Back to sign in
+            <ArrowLeft className="w-4 h-4" /> Back to sign in
           </Link>
         </p>
       </div>

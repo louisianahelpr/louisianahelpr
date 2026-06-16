@@ -205,7 +205,7 @@ const SignupPending = () => {
                 className="block text-center text-ds-11 font-sans hover:underline pt-1 inline-flex items-center justify-center gap-1"
                 style={{ color: "hsl(var(--olivewood) / 0.7)" }}
               >
-                <ArrowLeft className="w-3 h-3" aria-hidden /> Wrong address? Start over
+                <ArrowLeft className="w-4 h-4" aria-hidden /> Wrong address? Start over
               </Link>
             </div>
           )}

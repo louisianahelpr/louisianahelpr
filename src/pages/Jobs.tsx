@@ -182,7 +182,7 @@ const Jobs = () => {
   }, [filtered]);
 
   return (
-    <div className="min-h-screen bg-premium-page">
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
       <Navbar />
 
       {/* pt-20 sits flush under the fixed Navbar (h-14 + safe-area).

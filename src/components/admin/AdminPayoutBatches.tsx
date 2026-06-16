@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { DollarSign, Send, Clock, CheckCircle2, AlertTriangle, ListChecks, Pause, Play } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,6 +17,7 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -120,7 +124,10 @@ const AdminPayoutBatches = () => {
   const [paying, setPaying] = useState<string | null>(null);
   const [confirmBatch, setConfirmBatch] = useState<PayoutBatch | null>(null);
 
-  const { data: batches, isInitialLoading, isFetching } = useInstantQuery<PayoutBatch[]>({
+  // unwrap() throws into React Query so a failed RPC flips isError on and
+  // surfaces a recoverable retry instead of silently degrading to "all
+  // settled". CLAUDE.md: "Never drop the Supabase `error`".
+  const { data: batches, isInitialLoading, isFetching, isError, refetch } = useInstantQuery<PayoutBatch[]>({
     key: queryKey,
     fallback: [],
     enabled: !!adminId,
@@ -130,15 +137,11 @@ const AdminPayoutBatches = () => {
     // never lands in IDB in the first place.
     meta: { persist: false },
     fetcher: async () => {
-      const { data, error } = await supabase.rpc("get_payout_batches");
-      if (error) {
-        toast.error(error.message);
-        return [];
-      }
-      return (data || []).map((r: any) => ({
+      const data = unwrap(await supabase.rpc("get_payout_batches"));
+      return ((data ?? []) as any[]).map((r: any) => ({
         ...r,
         helper_name: formatName(r.helper_name, "Unknown"),
-      }));
+      })) as PayoutBatch[];
     },
   });
 
@@ -153,22 +156,24 @@ const AdminPayoutBatches = () => {
     // Admin-wide transfer ledger — opt out of disk persistence.
     meta: { persist: false },
     queryFn: async () => {
-      const { data, error } = await supabase.from("payout_transfers")
-        .select(
-          "id, helper_id, amount_cents, platform_fee_cents, status, created_at, failure_reason, stripe_transfer_id, initiated_by, jobs(title)"
-        )
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) {
-        toast.error(`Ledger: ${error.message}`);
-        return [];
-      }
+      // unwrap() lets a failed ledger fetch surface as the query's error
+      // state — previously this silently rendered an empty ledger.
+      const data = unwrap(
+        await supabase.from("payout_transfers")
+          .select(
+            "id, helper_id, amount_cents, platform_fee_cents, status, created_at, failure_reason, stripe_transfer_id, initiated_by, jobs(title)"
+          )
+          .order("created_at", { ascending: false })
+          .limit(50),
+      );
       const rows = (data ?? []) as Omit<PayoutLedgerRow, "profiles">[];
       const helperIds = [...new Set(rows.map((r) => r.helper_id))];
-      const { data: profileRows } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", helperIds);
+      const profileRows = unwrap(
+        await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", helperIds),
+      );
       const nameMap = new Map((profileRows ?? []).map((p) => [p.user_id, p.full_name]));
       return rows.map((r) => ({
         ...r,
@@ -197,6 +202,7 @@ const AdminPayoutBatches = () => {
       });
       qc.invalidateQueries({ queryKey });
     } catch (err: any) {
+      report(err, { tags: { source: "AdminPayoutBatches.triggerPayout" } });
       toast.error(err.message || "Failed to trigger payout");
     } finally {
       setPaying(null);
@@ -246,6 +252,7 @@ const AdminPayoutBatches = () => {
         okCount += 1;
       } catch (err: any) {
         failCount += 1;
+        report(err, { tags: { source: "AdminPayoutBatches.triggerBulkPayout" } });
         toast.error(`${batch.helper_name}: ${err?.message || "Failed"}`);
       }
     }
@@ -333,7 +340,26 @@ const AdminPayoutBatches = () => {
       )}
 
       {isInitialLoading ? (
-        <p className="text-ds-11 text-muted-foreground">Loading payout batches…</p>
+        // Skeleton rows give the page a stable shape while the RPC resolves
+        // instead of dropping to a lone "Loading…" line.
+        <div className="space-y-2" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-2/5" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+              <Skeleton className="h-6 w-24" />
+            </div>
+          ))}
+        </div>
+      ) : isError ? (
+        <ErrorState
+          variant="inline"
+          title="We couldn't load payout batches."
+          body="Tap Try again. No transfers were fired — the queue is server-side."
+          onRetry={() => refetch()}
+        />
       ) : visibleBatches.length === 0 ? (
         <div className="rounded-ds-md liquid-glass p-8 text-center">
           <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />

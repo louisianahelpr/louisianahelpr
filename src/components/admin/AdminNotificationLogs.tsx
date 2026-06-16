@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/ErrorState";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -75,7 +77,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
   // recipient emails never land in IDB.
   const queryKey = queryKeys.admin.notificationLogs(adminId, { category, status, channel, page });
 
-  const { data: rows, isFetching, refetch } = useInstantQuery<LogRow[]>({
+  const { data: rows, isFetching, isInitialLoading, isError, refetch } = useInstantQuery<LogRow[]>({
     key: queryKey,
     fallback: [],
     enabled: !!adminId,
@@ -91,9 +93,9 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
       if (status !== "all") q = q.eq("status", status);
       if (channel !== "all") q = q.eq("channel", channel);
 
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data as LogRow[]) ?? [];
+      // unwrap() surfaces a failed select as isError so the page shows a
+      // recoverable retry instead of silently rendering an empty table.
+      return (unwrap(await q) as LogRow[]) ?? [];
     },
   });
 
@@ -138,6 +140,18 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
           <AlertCircle className="w-4 h-4" />
           {failureCount} failed deliver{failureCount === 1 ? "y" : "ies"} on this page
         </div>
+      )}
+
+      {isError && (
+        // Page-level fetch failure — the filter form stays usable above so
+        // an admin can adjust filters and retry, but the table itself is
+        // replaced by a recoverable retry surface.
+        <ErrorState
+          variant="inline"
+          title="We couldn't load notification logs."
+          body="Tap Try again. Delivery records are safe — this is just a fetch hiccup."
+          onRetry={() => refetch()}
+        />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
@@ -198,7 +212,11 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
             <tbody>
               {filtered.length === 0 && (
                 <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                  {isFetching ? "Loading…" : "No notification logs match your filters."}
+                  {isInitialLoading
+                    ? "Loading notification logs…"
+                    : isError
+                      ? "Couldn't load logs — try the retry button above."
+                      : "No notification logs match your filters."}
                 </td></tr>
               )}
               {filtered.map((row) => (
@@ -247,7 +265,11 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         <div className="md:hidden">
           {filtered.length === 0 ? (
             <p className="px-4 py-12 text-center text-muted-foreground text-ds-13">
-              {isFetching ? "Loading…" : "No notification logs match your filters."}
+              {isInitialLoading
+                ? "Loading notification logs…"
+                : isError
+                  ? "Couldn't load logs — try the retry button above."
+                  : "No notification logs match your filters."}
             </p>
           ) : (
             <div className="divide-y divide-border">

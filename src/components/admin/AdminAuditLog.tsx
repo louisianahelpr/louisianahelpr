@@ -3,9 +3,12 @@ import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Download } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 interface AuditEntry {
   id: string;
@@ -19,7 +22,7 @@ interface AuditEntry {
 }
 
 const AdminAuditLog = () => {
-  const { data: entries, isInitialLoading } = useInstantQuery<AuditEntry[]>({
+  const { data: entries, isInitialLoading, isError, refetch } = useInstantQuery<AuditEntry[]>({
     key: ["admin-audit-log"],
     fallback: [],
     fetcher: async () => {
@@ -120,11 +123,35 @@ const AdminAuditLog = () => {
       </div>
 
       {isInitialLoading ? (
-        <p className="text-ds-11 text-muted-foreground">Loading audit log…</p>
-      ) : entries.length === 0 ? (
-        <div className="rounded-ds-md liquid-glass p-8 text-center">
-          <p className="text-ds-11 text-muted-foreground">No audit entries yet</p>
+        // Shape-matched skeletons so the audit log surface holds its
+        // height while the 200-row select resolves.
+        <div className="space-y-1.5" aria-hidden="true">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="rounded-ds-sm liquid-glass p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-3.5 w-24" />
+                <Skeleton className="h-4 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-3 w-1/4" />
+            </div>
+          ))}
         </div>
+      ) : isError ? (
+        <ErrorState
+          variant="inline"
+          title="We couldn't load the audit log."
+          body="Tap Try again. Every admin action is still recorded — this is just a fetch hiccup."
+          onRetry={() => refetch()}
+        />
+      ) : entries.length === 0 ? (
+        <EmptyState
+          variant="inline"
+          icon={FileText}
+          eyebrow="Quiet so far"
+          title="No audit entries yet."
+          body="Admin actions land here the moment anyone approves a user, resolves a dispute, or updates settings."
+        />
       ) : (
         <div className="space-y-1.5">
           {entries.map(entry => {

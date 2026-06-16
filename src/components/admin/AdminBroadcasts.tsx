@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, X } from "lucide-react";
+import { Megaphone, Plus, Trash2, Loader2, X } from "lucide-react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 interface Broadcast {
   id: string;
@@ -22,9 +28,10 @@ interface Broadcast {
   push_fanned_out_at: string | null;
 }
 
+const BROADCASTS_KEY = ["admin", "broadcasts"] as const;
+
 const AdminBroadcasts = () => {
-  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   // Re-rendered every second so the countdown stays live without us
   // owning the canonical timer. Source of truth is pending_push_fan_out_at.
@@ -39,22 +46,28 @@ const AdminBroadcasts = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const load = async () => {
-    const { data, error } = await supabase
-      .from("broadcast_messages")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (error) {
-      console.error("[AdminBroadcasts] load:", error);
-      toast.error("Failed to load broadcasts");
-    } else if (data) {
-      setBroadcasts(data as Broadcast[]);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
+  // unwrap() in queryFn surfaces failures into isError so the UI shows a
+  // recoverable <ErrorState/> rather than silently swallowing into an
+  // empty list (per CLAUDE.md "Never drop the Supabase `error`" rule).
+  const {
+    data: broadcasts = [],
+    isLoading,
+    isError,
+    refetch,
+    // 15s refetch keeps push_fanned_out_at fresh after the cron sweep —
+    // the prior implementation used a manual setInterval.
+  } = useQuery<Broadcast[]>({
+    queryKey: BROADCASTS_KEY,
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from("broadcast_messages")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ) as Broadcast[],
+    refetchInterval: 15_000,
+  });
 
   // Single in-window broadcast: the most recent row whose push hasn't
   // fanned out yet. Server-side state — survives tab close, refresh,
@@ -71,13 +84,6 @@ const AdminBroadcasts = () => {
     return () => clearInterval(t);
   }, [pending]);
 
-  // Refresh the list every 15s so push_fanned_out_at flips to "Sent"
-  // shortly after the cron sweep runs.
-  useEffect(() => {
-    const t = setInterval(load, 15000);
-    return () => clearInterval(t);
-  }, []);
-
   const secondsLeft = pending
     ? Math.max(0, Math.ceil((new Date(pending.pending_push_fan_out_at!).getTime() - Date.now()) / 1000))
     : 0;
@@ -91,11 +97,12 @@ const AdminBroadcasts = () => {
       .update({ pending_push_fan_out_at: null, expires_at: new Date().toISOString() })
       .eq("id", pending.id);
     if (error) {
+      report(error, { tags: { source: "AdminBroadcasts.cancelPending" } });
       toast.error(`Couldn't cancel: ${error.message}`);
       return;
     }
     toast.success("Broadcast cancelled — no push will go out.");
-    load();
+    qc.invalidateQueries({ queryKey: BROADCASTS_KEY });
   };
 
   const create = async () => {
@@ -130,6 +137,7 @@ const AdminBroadcasts = () => {
     if (error) {
       // Rate-limit error from the BEFORE INSERT trigger has a clear
       // human message; surface it directly.
+      report(error, { tags: { source: "AdminBroadcasts.create" } });
       toast.error(error.message);
       return;
     }
@@ -140,7 +148,7 @@ const AdminBroadcasts = () => {
     setType("info");
     setDuration("24");
     setShowForm(false);
-    load();
+    qc.invalidateQueries({ queryKey: BROADCASTS_KEY });
   };
 
   const remove = async (id: string) => {
@@ -148,10 +156,13 @@ const AdminBroadcasts = () => {
     const { error } = await supabase.from("broadcast_messages").delete().eq("id", id);
     setDeleting(false);
     if (error) {
+      report(error, { tags: { source: "AdminBroadcasts.remove" } });
       toast.error("Failed to remove broadcast");
       return;
     }
-    setBroadcasts(prev => prev.filter(b => b.id !== id));
+    qc.setQueryData<Broadcast[]>(BROADCASTS_KEY, (prev) =>
+      (prev ?? []).filter((b) => b.id !== id),
+    );
     setConfirmDeleteId(null);
     toast.success("Broadcast removed");
   };
@@ -249,10 +260,36 @@ const AdminBroadcasts = () => {
         </div>
       )}
 
-      {loading ? (
-        <div className="text-center py-8 text-muted-foreground text-ds-11">Loading...</div>
+      {isLoading ? (
+        // Shape-matched skeleton — two broadcast rows so the loaded list
+        // doesn't jump in over a lone "Loading…" line.
+        <div className="space-y-2" aria-hidden="true">
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-ds-md liquid-glass px-4 py-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-14 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          ))}
+        </div>
+      ) : isError ? (
+        <ErrorState
+          variant="inline"
+          title="We couldn't load broadcasts."
+          body="Tap Try again. Your draft broadcasts are safe — this is just a fetch hiccup."
+          onRetry={() => refetch()}
+        />
       ) : broadcasts.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground text-ds-11">No broadcasts yet</div>
+        <EmptyState
+          variant="inline"
+          icon={Megaphone}
+          eyebrow="No broadcasts yet"
+          title="Nothing scheduled."
+          body="Tap New Broadcast above to push an in-app banner to every signed-in user."
+        />
       ) : (
         <div className="space-y-2">
           {broadcasts.map(b => (

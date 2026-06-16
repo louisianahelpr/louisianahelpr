@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2, Users, XCircle } from "lucide-react";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 interface PartnerApplication {
   id: string;
@@ -26,20 +31,19 @@ const AdminPartnerApplications = () => {
   const queryKey = ["admin-partner-applications"];
   const [busy, setBusy] = useState<string | null>(null);
 
-  const { data: rows, isInitialLoading, refetch } = useInstantQuery<PartnerApplication[]>({
+  // unwrap() throws into React Query so a failed select flips isError on
+  // (and surfaces a recoverable retry) instead of silently degrading to
+  // "no applications". See CLAUDE.md "Never drop the Supabase `error`".
+  const { data: rows, isInitialLoading, isError, refetch } = useInstantQuery<PartnerApplication[]>({
     key: queryKey,
     fallback: [],
-    fetcher: async () => {
-      const { data, error } = await (supabase as any)
-        .from("partner_applications")
-        .select("id, business_name, contact_name, contact_email, service_category, team_size, status, created_at")
-        .order("created_at", { ascending: false });
-      if (error) {
-        toast.error(error.message);
-        return [];
-      }
-      return (data as PartnerApplication[]) || [];
-    },
+    fetcher: async () =>
+      (unwrap(
+        await (supabase as any)
+          .from("partner_applications")
+          .select("id, business_name, contact_name, contact_email, service_category, team_size, status, created_at")
+          .order("created_at", { ascending: false }),
+      ) ?? []) as PartnerApplication[],
   });
 
   const updateStatus = async (id: string, status: "approved" | "rejected") => {
@@ -50,20 +54,13 @@ const AdminPartnerApplications = () => {
       .eq("id", id);
     setBusy(null);
     if (error) {
+      report(error, { tags: { source: "AdminPartnerApplications.updateStatus", status } });
       toast.error(error.message);
       return;
     }
     toast.success(status === "approved" ? "Application approved" : "Application rejected");
     refetch();
   };
-
-  if (isInitialLoading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -81,10 +78,34 @@ const AdminPartnerApplications = () => {
         </div>
       </div>
 
-      {rows.length === 0 ? (
-        <div className="rounded-2xl liquid-glass p-10 text-center text-ds-11 text-muted-foreground">
-          No partner applications yet.
+      {isInitialLoading ? (
+        <div className="space-y-3" aria-hidden="true">
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-2xl liquid-glass p-4 flex items-start gap-3">
+              <Skeleton className="w-10 h-10 rounded-ds-md" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3.5 w-2/5" />
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+            </div>
+          ))}
         </div>
+      ) : isError ? (
+        <ErrorState
+          variant="inline"
+          title="We couldn't load partner applications."
+          body="Tap Try again. Submissions are safe — they're queued server-side."
+          onRetry={() => refetch()}
+        />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          variant="inline"
+          icon={Users}
+          eyebrow="No applications"
+          title="No partner applications yet."
+          body="Incoming partnership requests will land here for review."
+        />
       ) : (
         <div className="space-y-3">
           {rows.map((r) => {

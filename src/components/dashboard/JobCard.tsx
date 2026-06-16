@@ -361,18 +361,17 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             </h3>
           </div>
 
-          {/* Right column: price tile with Boosted / Urgent badges
-              overlapping its top edge. */}
-          <div className="relative shrink-0 flex flex-col items-end">
-          {/* Badge cluster — Boosted, Urgent, and Instant Book sit at the
-              top-right corner of the price tile. Stacked horizontally with
-              Urgent inner-most so it reads first when both apply. */}
+          {/* Right column: status badges stack ABOVE the price tile (in
+              normal flow, right-aligned). They used to be absolutely
+              positioned over the tile's top edge, which let a wide
+              "+$25 Urgent" badge overlap the price digits — now they can
+              never collide. */}
+          <div className="shrink-0 flex flex-col items-end">
+          {/* Badge cluster — Open bids / Instant / Boosted / Urgent.
+              Right-aligned, wraps on narrow cards, sits cleanly above the
+              price tile. */}
           {(job.isBoosted || job.is_urgent || (job as { instant_book?: boolean }).instant_book || (job as { pricing_mode?: string }).pricing_mode === "accept_bids") && (
-            // Sits just inside the card's rounded edge so the cluster
-            // isn't clipped by the root `overflow-hidden` (which is kept
-            // so the colored category rail stays inside the rounded
-            // corners). Previously `-top-2 -right-2` got chopped.
-            <div className="absolute -top-1 -right-1 z-10 flex items-center gap-1">
+            <div className="mb-1 flex flex-wrap items-center justify-end gap-1">
               {(job as { pricing_mode?: string }).pricing_mode === "accept_bids" && (
                 <span
                   className="text-ds-10 font-sans font-semibold uppercase px-1.5 py-0.5 rounded-ds-sm"
@@ -609,8 +608,18 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             hapticLight();
             _onToggleSave(job.id, !_isSaved);
           }}
-          className="absolute bottom-1.5 right-1.5 z-20 inline-flex items-center justify-center w-11 h-11 rounded-full transition-transform active:scale-90"
-          style={{ color: _isSaved ? "hsl(var(--primary))" : "hsl(var(--olivewood) / 0.45)" }}
+          className="absolute bottom-2 right-2 z-20 inline-flex items-center justify-center w-9 h-9 rounded-full transition-transform active:scale-90"
+          style={{
+            // Frosted-circle background so the bookmark reads as a
+            // deliberate floating control, not an orphaned naked icon
+            // dangling under the price tile.
+            color: _isSaved ? "hsl(var(--primary))" : "hsl(var(--olivewood) / 0.6)",
+            background: _isSaved ? "hsl(var(--primary) / 0.10)" : "hsla(0, 0%, 100%, 0.72)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.12)",
+          }}
         >
           <Bookmark
             className="w-4 h-4"

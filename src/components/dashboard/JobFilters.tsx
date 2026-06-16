@@ -89,8 +89,17 @@ const budgetOptions = [
 ];
 
 // ---------------- Reusable filter content blocks ----------------
+//
+// These content blocks are also consumed by the shared <FilterSheet>
+// (src/components/dashboard/FilterSheet.tsx), which stacks them as
+// vertical sections inside a bottom sheet. They're exported so the two
+// presentations (this inline pill row + the bottom sheet) render the
+// exact same controls and stay visually identical.
 
-const SortContent = ({
+export const SORT_OPTIONS = sortOptions;
+export const chipStyles = { chipBase, chipActive, chipIdle };
+
+export const SortContent = ({
   sortBy, setSortBy, onSelect,
 }: { sortBy: string; setSortBy: (v: string) => void; onSelect?: () => void }) => (
   <div className="grid grid-cols-2 gap-1.5">
@@ -106,7 +115,7 @@ const SortContent = ({
   </div>
 );
 
-const CategoryContent = ({
+export const CategoryContent = ({
   selectedCategory, setSelectedCategory, onSelect,
 }: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void; onSelect?: () => void }) => (
   // Single-line horizontal scroll — fits all 10 categories without
@@ -138,7 +147,7 @@ const CategoryContent = ({
 
 const radiusOptions = [5, 10, 25, 50];
 
-const NearbyContent = ({
+export const NearbyContent = ({
   locationFilter, setLocationFilter, status, message, onSelect,
 }: {
   locationFilter: string;
@@ -179,7 +188,7 @@ const NearbyContent = ({
   );
 };
 
-const ExpiresContent = ({
+export const ExpiresContent = ({
   expiresWithin, setExpiresWithin, onSelect,
 }: { expiresWithin: string; setExpiresWithin: (v: string) => void; onSelect?: () => void }) => (
   <div className="grid grid-cols-4 gap-1.5">
@@ -195,7 +204,7 @@ const ExpiresContent = ({
   </div>
 );
 
-const BudgetContent = ({
+export const BudgetContent = ({
   maxBudget, setMaxBudget, onSelect,
 }: { maxBudget: string; setMaxBudget: (v: string) => void; onSelect?: () => void }) => (
   // 5-up preset row mirroring the Nearby/Expires content blocks. Tapping
@@ -217,7 +226,7 @@ const BudgetContent = ({
   </div>
 );
 
-const AvailabilityContent = ({
+export const AvailabilityContent = ({
   matchAvailability, setMatchAvailability, hasAvailability,
 }: {
   matchAvailability: boolean; setMatchAvailability: (v: boolean) => void; hasAvailability: boolean;

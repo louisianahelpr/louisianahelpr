@@ -1,6 +1,6 @@
 import { memo, useCallback, useRef, useState, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock, Heart, CheckCheck, Bookmark, ShieldCheck,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock, Heart, CheckCheck, ShieldCheck,
 } from "lucide-react";
 import { hapticLight, hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -308,18 +308,79 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             <span className="inline-flex items-center gap-1 ml-0.5" aria-label="New listing">
               <span
                 aria-hidden
-                className="w-1 h-1 rounded-full"
-                style={{ background: "hsl(var(--burnt-sienna))" }}
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{
+                  background: "hsl(var(--burnt-sienna))",
+                  boxShadow: "0 0 0 2px hsl(var(--burnt-sienna) / 0.22), 0 0 6px hsl(var(--burnt-sienna) / 0.55)",
+                }}
               />
               <span
                 className="font-sans font-bold uppercase not-italic"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.06em", fontSize: "8px" }}
+                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.07em", fontSize: "8.5px" }}
               >
                 New
               </span>
             </span>
           )}
         </span>
+        {/* Status corner — mirrors the category tab on the opposite
+            (top-right) corner. Shows the single highest-priority signal as
+            a clean accent instead of a cluster stacked over the price. */}
+        {(() => {
+          const corner =
+            "absolute top-0 right-0 z-20 inline-flex items-center gap-1 pl-2.5 pr-3 py-1 rounded-bl-lg border-b border-l text-[9px] font-bold uppercase leading-none shadow-sm";
+          if (job.isBoosted)
+            return (
+              <span
+                className={`boosted-pulse ${corner}`}
+                aria-label="Boosted"
+                style={{
+                  color: "color-mix(in srgb, hsl(var(--gold-warm)) 60%, #000 40%)",
+                  background: "hsl(var(--gold-warm) / 0.16)",
+                  borderColor: "hsl(var(--gold-warm) / 0.5)",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                <Rocket className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} style={{ color: "hsl(var(--gold-warm))", fill: "hsl(var(--gold-warm) / 0.35)" }} />
+                Boosted
+              </span>
+            );
+          if (job.is_urgent) {
+            const bonus = Number(job.urgent_fee ?? 0);
+            return (
+              <span
+                className={`urgent-pulse ${corner} bg-accent/15 text-accent`}
+                aria-label={bonus > 0 ? `Urgent — $${bonus.toFixed(0)} bonus` : "Urgent"}
+                style={{ borderColor: "hsl(var(--accent) / 0.5)", letterSpacing: "0.05em" }}
+              >
+                <Zap className="w-2.5 h-2.5 shrink-0 fill-accent text-accent" />
+                {bonus > 0 ? `+$${bonus.toFixed(0)} Urgent` : "Urgent"}
+              </span>
+            );
+          }
+          if ((job as { instant_book?: boolean }).instant_book)
+            return (
+              <span
+                className={corner}
+                aria-label="Instant book"
+                style={{ color: "hsl(var(--sage))", background: "hsl(var(--sage) / 0.15)", borderColor: "hsl(var(--sage) / 0.45)", letterSpacing: "0.05em" }}
+              >
+                <CheckCheck className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
+                Instant
+              </span>
+            );
+          if ((job as { pricing_mode?: string }).pricing_mode === "accept_bids")
+            return (
+              <span
+                className={corner}
+                aria-label="Open bids"
+                style={{ color: "hsl(var(--bark))", background: "hsl(var(--bark) / 0.1)", borderColor: "hsl(var(--bark) / 0.3)", letterSpacing: "0.05em" }}
+              >
+                Open bids
+              </span>
+            );
+          return null;
+        })()}
         <div className="w-full px-3.5 pt-6 pb-2.5">
         {/* Recommended pill — a subtle relevance cue for the top picks.
             Sits above the title row (clear of the price chip on the right
@@ -361,84 +422,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             </h3>
           </div>
 
-          {/* Right column: status badges stack ABOVE the price tile (in
-              normal flow, right-aligned). They used to be absolutely
-              positioned over the tile's top edge, which let a wide
-              "+$25 Urgent" badge overlap the price digits — now they can
-              never collide. */}
-          <div className="shrink-0 flex flex-col items-end">
-          {/* Badge cluster — Open bids / Instant / Boosted / Urgent.
-              Right-aligned, wraps on narrow cards, sits cleanly above the
-              price tile. */}
-          {(job.isBoosted || job.is_urgent || (job as { instant_book?: boolean }).instant_book || (job as { pricing_mode?: string }).pricing_mode === "accept_bids") && (
-            <div className="mb-1 flex flex-wrap items-center justify-end gap-1">
-              {(job as { pricing_mode?: string }).pricing_mode === "accept_bids" && (
-                <span
-                  className="text-ds-10 font-sans font-semibold uppercase px-1.5 py-0.5 rounded-ds-sm"
-                  style={{ background: "hsl(var(--bark) / 0.1)", color: "hsl(var(--bark))", letterSpacing: "0.06em", border: "0.5px solid hsl(var(--bark) / 0.3)" }}
-                >
-                  Open bids
-                </span>
-              )}
-              {(job as { instant_book?: boolean }).instant_book && (
-                <span
-                  aria-label="Instant book — apply and get confirmed immediately"
-                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider"
-                  style={{
-                    background: "hsl(var(--sage) / 0.15)",
-                    color: "hsl(var(--sage))",
-                    border: "0.5px solid hsl(var(--sage) / 0.45)",
-                  }}
-                >
-                  <CheckCheck className="w-2.5 h-2.5" strokeWidth={2.25} />
-                  Instant
-                </span>
-              )}
-              {job.isBoosted && (
-                <span
-                  aria-label="Boosted"
-                  className="boosted-shimmer boosted-pulse inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider"
-                  style={{
-                    color: "color-mix(in srgb, hsl(var(--gold-warm)) 58%, #000 42%)",
-                    border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
-                    boxShadow:
-                      "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                      "inset 0 -1px 1px 0 hsl(var(--gold-warm) / 0.20), " +
-                      "0 1px 2px hsl(var(--gold-warm) / 0.20), " +
-                      "0 4px 10px -3px hsl(var(--gold-warm) / 0.34)",
-                  }}
-                >
-                  <Rocket className="w-2.5 h-2.5" strokeWidth={2.25}
-                    style={{ color: "hsl(var(--gold-warm))", fill: "hsl(var(--gold-warm) / 0.35)" }} />
-                  Boosted
-                </span>
-              )}
-              {job.is_urgent && (() => {
-                // Urgent badge doubles as a liquidity signal — when the
-                // poster attached an urgent_fee, the badge spells the
-                // bonus out ("+$15 URGENT") so the helpr sees the extra
-                // pay, not just an alarm cue. Falls back to plain
-                // "URGENT" when no bonus was set.
-                const bonus = Number(job.urgent_fee ?? 0);
-                // At most one looping animation per card: Boosted (a paid
-                // promotion) is the higher-priority signal, so when a job
-                // is both Boosted and Urgent the Urgent badge stays static
-                // — it's still fully present, just not a second animation
-                // competing for the eye.
-                const urgentAnimates = !job.isBoosted;
-                return (
-                  <span
-                    aria-label={bonus > 0 ? `Urgent — $${bonus.toFixed(0)} bonus` : "Urgent"}
-                    className={`${urgentAnimates ? "urgent-pulse " : ""}inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/15 text-accent text-[8px] font-bold uppercase tracking-wider`}
-                    style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
-                  >
-                    <Zap className="w-2.5 h-2.5 text-accent fill-accent" />
-                    {bonus > 0 ? `+$${bonus.toFixed(0)} Urgent` : "Urgent"}
-                  </span>
-                );
-              })()}
-            </div>
-          )}
+          {/* Right column — just the price tile. Status signals (Urgent /
+              Boosted / Instant / Open bids) now live in the top-right
+              corner badge that mirrors the category tab, so nothing stacks
+              over the price: no gap, no collision. */}
+          <div className="shrink-0 flex flex-col items-end justify-center">
           {/* Price chip — the single shared JobPrice element (collapsed
               "You earn $72", tap to reveal "Budget $80 − 10% fee"), so the
               same job never shows two different numbers across surfaces. */}
@@ -571,7 +559,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 >
                   <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
                   <span className="font-sans font-medium">
-                    needs {job.helpers_needed ?? 2} helprs
+                    {job.helpers_needed ?? 2} helprs
                   </span>
                 </span>
               </>
@@ -593,41 +581,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           </div>
         </div>
 
-      {/* Save / bookmark — surfaced ON the card (the double-tap-to-save
-          gesture is undiscoverable, so a visible affordance backs it up).
-          Only when a toggle handler is wired and not in the guest variant.
-          ≥44px tap target; hapticLight on toggle. stopPropagation so the
-          tap saves instead of opening the detail view. */}
-      {!isGuest && _onToggleSave && (
-        <button
-          type="button"
-          aria-label={_isSaved ? "Unsave job" : "Save job"}
-          aria-pressed={_isSaved}
-          onClick={(e) => {
-            e.stopPropagation();
-            hapticLight();
-            _onToggleSave(job.id, !_isSaved);
-          }}
-          className="absolute bottom-2 right-2 z-20 inline-flex items-center justify-center w-9 h-9 rounded-full transition-transform active:scale-90"
-          style={{
-            // Frosted-circle background so the bookmark reads as a
-            // deliberate floating control, not an orphaned naked icon
-            // dangling under the price tile.
-            color: _isSaved ? "hsl(var(--primary))" : "hsl(var(--olivewood) / 0.6)",
-            background: _isSaved ? "hsl(var(--primary) / 0.10)" : "hsla(0, 0%, 100%, 0.72)",
-            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.12)",
-          }}
-        >
-          <Bookmark
-            className="w-4 h-4"
-            strokeWidth={2}
-            style={_isSaved ? { fill: "hsl(var(--primary))" } : undefined}
-          />
-        </button>
-      )}
+      {/* Save lives in the job-detail view (open the card to save), so the
+          feed card stays clean — no floating bookmark colliding with the
+          price tile. Double-tap-to-save still works on the card body. */}
 
       {/* Guest CTA — a persistent (never hover-gated) "Sign up to apply"
           affordance pinned to the card foot. Phones have no hover state,

@@ -63,7 +63,7 @@ export function FirstMessageChips({ viewerRole, onPick, className }: FirstMessag
           type="button"
           onClick={() => handlePick(text)}
           className={cn(
-            "inline-flex items-center min-h-[40px] rounded-full px-3.5 py-2 text-sm transition-colors",
+            "inline-flex items-center min-h-[40px] rounded-ds-md px-3.5 py-2 text-sm transition-colors",
             "bg-[hsl(var(--parchment))] text-[hsl(var(--ink-deep))]",
             "border border-[hsl(var(--olivewood))]",
             "hover:bg-[hsl(var(--ivory-sand))]",

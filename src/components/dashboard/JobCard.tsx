@@ -8,7 +8,8 @@ import { formatDistanceToNow, differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { formatJobDate } from "@/lib/dateUtils";
+import { formatPrice } from "@/lib/format";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCity } from "@/lib/locationUtils";
 import { haversineMiles } from "@/lib/geo";
@@ -244,7 +245,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           ...longPress,
           role: "button" as const,
           tabIndex: 0,
-          "aria-label": `View ${job.title} — $${job.budget}`,
+          "aria-label": `View ${job.title} — $${formatPrice(job.budget)}`,
           onKeyDown: (e: KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -258,7 +259,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           onClick: handleTap,
           role: "button" as const,
           tabIndex: 0,
-          "aria-label": `View ${job.title} — $${job.budget}`,
+          "aria-label": `View ${job.title} — $${formatPrice(job.budget)}`,
           onKeyDown: (e: KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -350,9 +351,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               the headline. */}
           <div className="flex items-start gap-1.5 flex-1 min-w-0">
             <h3
-              className="font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
+              className="text-headline-card font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
               style={{
-                fontSize: "1.05rem",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.02em",
               }}
@@ -496,7 +496,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   <span className="flex items-center gap-1">
                     <Calendar className="w-2.5 h-2.5 shrink-0" />
                     <span className="font-sans whitespace-nowrap">
-                      {parseLocalDate(job.date_needed).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                      {formatJobDate(job.date_needed)}
                     </span>
                   </span>
                 )}

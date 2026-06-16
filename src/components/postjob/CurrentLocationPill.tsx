@@ -125,7 +125,7 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
       type="button"
       onClick={handleTap}
       disabled={loading}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-sans font-semibold active:scale-95 transition-all"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ds-md font-sans font-semibold active:scale-95 transition-all"
       style={{
         fontSize: "0.75rem",
         color: "hsl(var(--bark))",

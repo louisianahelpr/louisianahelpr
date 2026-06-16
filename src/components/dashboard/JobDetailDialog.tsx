@@ -11,7 +11,7 @@ import { categoryLabels, categoryColors } from "@/components/activity/activityCo
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { getCity } from "@/lib/locationUtils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 import { haversineMiles } from "@/lib/geo";
 import { getParishCentroid } from "@/lib/parishCentroids";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
@@ -609,7 +609,7 @@ const JobDetailDialog = ({
               {
                 Icon: Calendar,
                 label: "Date",
-                value: dateValid ? dateNeeded.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—",
+                value: dateValid ? formatJobDate(job.date_needed) : "—",
                 sub: job.start_time || null,
                 href: calendarUrl,
                 urgent: false,
@@ -618,7 +618,7 @@ const JobDetailDialog = ({
                 Icon: Clock,
                 label: "Estimated",
                 value: job.estimated_hours != null
-                  ? `${job.estimated_hours}${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`
+                  ? `${job.estimated_hours} ${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`
                   : "—",
                 sub: null,
                 href: null,

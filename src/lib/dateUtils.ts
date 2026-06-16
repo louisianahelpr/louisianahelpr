@@ -18,6 +18,20 @@ export function parseLocalDate(dateStr: string): Date {
 }
 
 /**
+ * Render a job's `date_needed` ("YYYY-MM-DD") the canonical way every job
+ * surface should: weekday-inclusive ("Mon, Jun 22"). Card and detail views
+ * previously disagreed (card showed the weekday, detail dropped it); route
+ * all job-date rendering through this so the same job reads identically.
+ */
+export function formatJobDate(dateStr: string): string {
+  return parseLocalDate(dateStr).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
  * Today's date as a local "YYYY-MM-DD" string.
  *
  * Use this anywhere you compare against a DATE column or set a date

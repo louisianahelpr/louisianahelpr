@@ -1812,7 +1812,7 @@ const UserProfile = () => {
                               <button
                                 type="button"
                                 onClick={() => handleSaveResponse(r.id)}
-                                className="btn-press px-4 py-1.5 rounded-full text-ds-12 font-semibold text-white"
+                                className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold text-white"
                                 style={{ backgroundColor: "hsl(var(--burnt-sienna))" }}
                               >
                                 Save
@@ -1820,7 +1820,7 @@ const UserProfile = () => {
                               <button
                                 type="button"
                                 onClick={() => setRespondingToReview(null)}
-                                className="btn-press px-4 py-1.5 rounded-full text-ds-12 font-semibold"
+                                className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold"
                                 style={{ color: "hsl(var(--olivewood)/0.70)" }}
                               >
                                 Cancel

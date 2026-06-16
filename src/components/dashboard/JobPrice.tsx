@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import { ChevronDown, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
+import { formatPrice } from "@/lib/format";
 
 export interface JobPriceProps {
   /** Gross posted budget (the customer's total). */
@@ -61,13 +62,6 @@ export function computeNet(
   return { helpers, perHelperBudget, commission, netEarnings };
 }
 
-/** Drop a trailing ".00" so round prices ($126) read cleaner than the
- *  cents-laden ones that genuinely need them ($85.50). */
-export function formatAmount(amount: number): string {
-  const cents = Math.round(amount * 100);
-  return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
-}
-
 export function JobPrice({
   budget,
   effectiveFee,
@@ -91,7 +85,7 @@ export function JobPrice({
   );
 
   const amount = showBudget ? budget : netEarnings;
-  const earnings = formatAmount(amount);
+  const earnings = formatPrice(amount);
   const transition = reducedMotion ? "none" : undefined;
 
   // ──────────────────────────────────────────────────────────────────────

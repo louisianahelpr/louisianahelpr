@@ -11,6 +11,7 @@ import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
 import { formatName } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
+import { formatCategory } from "@/lib/format";
 
 // Map URL slug → canonical parish name stored in the `parish` column of jobs
 const SLUG_TO_PARISH: Record<string, string> = {
@@ -268,7 +269,7 @@ const ParishPage = () => {
                         <Clock className="w-3 h-3 shrink-0" />
                         {timeAgo(job.created_at)}
                         <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-                        <span className="capitalize">{job.category.replace(/_/g, " ")}</span>
+                        <span>{formatCategory(job.category)}</span>
                       </p>
                     </div>
                     <div className="shrink-0 text-right">

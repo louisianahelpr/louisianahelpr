@@ -642,7 +642,7 @@ export function ChatView({
                 <button
                   onClick={loadOlderMessages}
                   disabled={loadingMore}
-                  className="btn-press inline-flex items-center gap-1.5 mx-auto rounded-full px-4 py-1.5 text-ds-11 font-medium transition-colors disabled:opacity-50"
+                  className="btn-press inline-flex items-center gap-1.5 mx-auto rounded-ds-md px-4 py-1.5 text-ds-11 font-medium transition-colors disabled:opacity-50"
                   style={{
                     background: "hsl(var(--parchment) / 0.8)",
                     color: "hsl(var(--bark))",
@@ -686,7 +686,7 @@ export function ChatView({
                     not yours.
                   </p>
                 </div>
-                <Button variant="outline" size="sm" className="rounded-full" onClick={onRetryLoad}>
+                <Button variant="outline" size="sm" className="rounded-ds-md" onClick={onRetryLoad}>
                   <RotateCw className="w-3.5 h-3.5 mr-1.5" />
                   Retry
                 </Button>

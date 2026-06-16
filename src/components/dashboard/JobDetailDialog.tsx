@@ -11,7 +11,7 @@ import { categoryLabels, categoryColors } from "@/components/activity/activityCo
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { getCity } from "@/lib/locationUtils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 import { haversineMiles } from "@/lib/geo";
 import { getParishCentroid } from "@/lib/parishCentroids";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
@@ -609,7 +609,7 @@ const JobDetailDialog = ({
               {
                 Icon: Calendar,
                 label: "Date",
-                value: dateValid ? dateNeeded.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—",
+                value: dateValid ? formatJobDate(job.date_needed) : "—",
                 sub: job.start_time || null,
                 href: calendarUrl,
                 urgent: false,
@@ -618,7 +618,7 @@ const JobDetailDialog = ({
                 Icon: Clock,
                 label: "Estimated",
                 value: job.estimated_hours != null
-                  ? `${job.estimated_hours}${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`
+                  ? `${job.estimated_hours} ${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`
                   : "—",
                 sub: null,
                 href: null,
@@ -832,15 +832,16 @@ const JobDetailDialog = ({
               ariaLabel="Share this job"
             />
           )}
-          {/* Message the poster — gated. A helper can only reach the poster
-              once they've been directly offered the job or hired onto it
-              (or if the viewer IS the poster). Without this gate, every
-              browsing helper could DM the poster, flooding them. The
-              backend poster-first rule already blocks the send; hiding the
-              affordance keeps the UI honest about it. */}
+          {/* Message the poster — gated to people with a real reason to
+              reach them: the poster themselves, a helper who's been offered
+              or hired onto the job, OR a helper who has already applied
+              (they may have a genuine question — "is the gate code needed?").
+              A helper just browsing can't DM cold, so posters aren't flooded.
+              The backend poster-first rule still governs the actual send. */}
           {(viewerUserId === job.customer_id ||
             viewerUserId === (job as { offered_to_helper_id?: string | null }).offered_to_helper_id ||
-            viewerUserId === (job as { helper_id?: string | null }).helper_id) && (
+            viewerUserId === (job as { helper_id?: string | null }).helper_id ||
+            viewerAppPosition != null) && (
           <Button
             variant="ghost"
             size="icon"

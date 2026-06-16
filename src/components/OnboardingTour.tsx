@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { X, ArrowRight, ArrowLeft, CheckCircle2, Briefcase, User, MessageCircle, Search, Sparkles, Play } from "lucide-react";
@@ -260,20 +262,16 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
     setVisible(true);
   };
 
-  // Escape closes the dialog by snoozing (Later) rather than skipping
-  // permanently — Escape feels like "not now," not "never again." Users
-  // who want permanent skip have the explicit Skip button.
-  useEffect(() => {
-    if (!visible || state.completed) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleLater();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // handleLater is stable enough — including it would cause a churn
-    // every render. Linter disabled deliberately.
-     
-  }, [visible, state.completed]);
+  // Radix Dialog onOpenChange — fires on Escape, backdrop click, and
+  // any other dismissal pathway. Escape and outside-click should both
+  // snooze (Later) rather than skip permanently — Escape feels like
+  // "not now," not "never again." Users who want permanent skip have
+  // the explicit Skip button. Programmatic close paths (Skip, final
+  // Get started, manual Resume) call setVisible directly so this
+  // handler only runs for user-initiated dismissals.
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) handleLater();
+  };
 
   // Render path 1: the resume pill (only on /dashboard, only when
   // snoozed). Painted as a small fixed-bottom card above the nav so it
@@ -315,34 +313,30 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
     );
   }
 
-  if (!visible || state.completed) return null;
+  if (state.completed) return null;
 
   return (
-    <>
-      {/* Backdrop — clicking dismisses softly (Later), not permanently.
-          Keyboard users get the same behavior from Escape (see above).
-          aria-hidden so screen readers don't announce it as an
-          interactive element. */}
-      <div
-        className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
-        onClick={handleLater}
-        aria-hidden="true"
-      />
-
-      {/* Tour card — proper dialog semantics so screen readers announce
-          it as a modal and focus is trapped inside via the dialog role.
-          The centering translate lives on this OUTER wrapper and the
-          `animate-in zoom-in-95` lives on the INNER card. Keeping them on
-          the same element lets the animation's `from` keyframe transform
-          clobber `-translate-x-1/2 -translate-y-1/2`, which rendered the
-          card off-center / clipped off the right edge at 375px. */}
-      <div
-        className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="onboarding-tour-title"
-      >
-        <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
+    <Dialog open={visible} onOpenChange={handleDialogOpenChange}>
+      <DialogPortal>
+        {/* Shared overlay primitive — backdrop blur + escape-to-close +
+            outside-click route through Radix's onOpenChange (which we
+            wire to handleLater). Matches every other modal in the app. */}
+        <DialogOverlay />
+        {/* Tour card — Radix Content gives proper dialog semantics,
+            focus trap, and announces modal state to screen readers.
+            We render our own inner card so the bespoke progress-bar
+            header + multi-step layout stays intact; that's why we use
+            the bare primitive (not DialogContent, which ships its own
+            close X and padding). The centering translate lives on
+            Content and the `animate-in zoom-in-95` lives on the inner
+            card — keeping them separate lets the animation's `from`
+            keyframe transform clobber centering, which previously
+            rendered the card off-center on 375px screens. */}
+        <DialogPrimitive.Content
+          aria-labelledby="onboarding-tour-title"
+          className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md focus:outline-none"
+        >
+          <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
           {/* Progress bar */}
           <div className="px-5 pt-4 pb-1">
             <div className="flex items-center justify-between mb-2">
@@ -388,23 +382,31 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
               {currentStep.icon}
             </div>
             <div className="space-y-2">
-              <h3
-                id="onboarding-tour-title"
-                className="font-display italic font-bold leading-tight"
-                style={{
-                  fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {currentStep.title}
-              </h3>
-              <p
-                className="font-serif italic text-[0.92rem] leading-relaxed max-w-[360px] mx-auto"
-                style={{ color: "hsl(var(--olivewood) / 0.78)" }}
-              >
-                {currentStep.description}
-              </p>
+              {/* `asChild` so Radix's accessibility wiring (aria-labelledby
+                  on Content, screen-reader title announcement) lands on
+                  our existing visual heading instead of injecting an
+                  extra wrapper. Same for the description below. */}
+              <DialogPrimitive.Title asChild>
+                <h3
+                  id="onboarding-tour-title"
+                  className="font-display italic font-bold leading-tight"
+                  style={{
+                    fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {currentStep.title}
+                </h3>
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description asChild>
+                <p
+                  className="font-serif italic text-[0.92rem] leading-relaxed max-w-[360px] mx-auto"
+                  style={{ color: "hsl(var(--olivewood) / 0.78)" }}
+                >
+                  {currentStep.description}
+                </p>
+              </DialogPrimitive.Description>
             </div>
 
             {/* Step indicators — clickable so a user can jump back to a
@@ -506,9 +508,10 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
               </Button>
             </div>
           </div>
-        </div>
-      </div>
-    </>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    </Dialog>
   );
 };
 

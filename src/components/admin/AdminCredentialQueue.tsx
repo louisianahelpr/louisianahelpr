@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ShieldCheck, FileText, ExternalLink, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import {
@@ -16,6 +19,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 interface PendingRow {
   user_id: string;
@@ -38,17 +43,13 @@ const AdminCredentialQueue = () => {
   const [rejectTarget, setRejectTarget] = useState<{ userId: string; credential: "license" | "insurance" } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const { data: rows, isInitialLoading } = useInstantQuery<PendingRow[]>({
+  // unwrap() throws into React Query so a failed RPC flips isError on
+  // instead of degrading silently to "queue is empty". See CLAUDE.md
+  // "Never drop the Supabase `error`" rule.
+  const { data: rows, isInitialLoading, isError, refetch } = useInstantQuery<PendingRow[]>({
     key: queryKey,
     fallback: [],
-    fetcher: async () => {
-      const { data, error } = await supabase.rpc("get_pending_credentials");
-      if (error) {
-        toast.error(error.message);
-        return [];
-      }
-      return (data as PendingRow[]) || [];
-    },
+    fetcher: async () => (unwrap(await supabase.rpc("get_pending_credentials")) ?? []) as PendingRow[],
   });
 
   const decide = async (
@@ -66,20 +67,13 @@ const AdminCredentialQueue = () => {
     });
     setBusy(null);
     if (error) {
+      report(error, { tags: { source: "AdminCredentialQueue.decide", decision, credential } });
       toast.error(error.message);
       return;
     }
     toast.success(decision === "verified" ? "Approved" : "Rejected");
     qc.invalidateQueries({ queryKey });
   };
-
-  if (isInitialLoading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -95,10 +89,38 @@ const AdminCredentialQueue = () => {
         </div>
       </div>
 
-      {rows.length === 0 ? (
-        <div className="rounded-2xl liquid-glass p-10 text-center text-ds-11 text-muted-foreground">
-          No pending credentials.
+      {isInitialLoading ? (
+        // Shape-matched skeletons keep the surface from collapsing under a
+        // bare spinner while the RPC resolves.
+        <div className="space-y-3" aria-hidden="true">
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-2xl liquid-glass p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-10 h-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3.5 w-2/5" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+              <Skeleton className="h-24 w-full rounded-ds-md" />
+            </div>
+          ))}
         </div>
+      ) : isError ? (
+        <ErrorState
+          variant="inline"
+          title="We couldn't load the credential queue."
+          body="Tap Try again. Submissions are safe — they're queued server-side."
+          onRetry={() => refetch()}
+        />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          variant="inline"
+          icon={ShieldCheck}
+          eyebrow="All clear"
+          title="No pending credentials."
+          body="License and insurance uploads land here as helpers submit them."
+        />
       ) : (
         <div className="space-y-3">
           {rows.map((r) => (

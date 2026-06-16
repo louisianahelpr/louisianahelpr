@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Bell, BellOff, Bookmark, Loader2, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Bell, BellOff, Bookmark, Loader2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -39,7 +41,15 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
   const [open, setOpen] = useState(false);
   const [searches, setSearches] = useState<SavedSearch[]>([]);
   const [loading, setLoading] = useState(false);
+  // Distinguishes "fetch failed" from "fetched, but empty" so the
+  // dialog surfaces a retry surface instead of the misleading
+  // "No saved searches yet." empty state on a real outage.
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Per-row in-flight markers so a double-tap on the bell or trash icon
+  // can't fire two writes — the row's button stays disabled mid-flight.
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -57,18 +67,27 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("saved_searches")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-    if (error) {
+    setLoadError(false);
+    try {
+      // unwrap() surfaces a failed fetch as an exception so we can
+      // distinguish "fetch failed → show retry" from "fetch returned 0
+      // rows → show empty state" instead of conflating both as "empty".
+      const data = unwrap(
+        await supabase
+          .from("saved_searches")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false }),
+      );
+      setSearches((data ?? []) as SavedSearch[]);
+    } catch (err) {
+      report(err, { tags: { source: "SavedSearches.load" } });
+      setLoadError(true);
       hapticError();
       toast.error("We couldn't load your saved searches — please try again.");
-    } else {
-      setSearches(data || []);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSave = async () => {
@@ -99,6 +118,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
     });
     setSaving(false);
     if (error) {
+      report(error, { tags: { source: "SavedSearches.handleSave" } });
       hapticError();
       toast.error("We couldn't save your search — please try again.");
       return;
@@ -110,12 +130,18 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
   };
 
   const toggleNotify = async (s: SavedSearch) => {
+    // Disable a fast double-tap so a second write can't race ahead of
+    // the first — the row marker drives the button's disabled state.
+    if (togglingId === s.id) return;
+    setTogglingId(s.id);
     hapticLight();
     const { error } = await supabase
       .from("saved_searches")
       .update({ notify_enabled: !s.notify_enabled })
       .eq("id", s.id);
+    setTogglingId(null);
     if (error) {
+      report(error, { tags: { source: "SavedSearches.toggleNotify" } });
       hapticError();
       toast.error("We couldn't update that alert — please try again.");
       return;
@@ -126,9 +152,13 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
   };
 
   const remove = async (id: string) => {
+    if (removingId === id) return;
+    setRemovingId(id);
     hapticMedium();
     const { error } = await supabase.from("saved_searches").delete().eq("id", id);
+    setRemovingId(null);
     if (error) {
+      report(error, { tags: { source: "SavedSearches.remove" } });
       hapticError();
       toast.error("We couldn't delete that search — please try again.");
       return;
@@ -244,6 +274,42 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 </div>
               ))}
             </div>
+          ) : loadError ? (
+            // Failed fetch reads as recoverable instead of the misleading
+            // "No saved searches yet." empty state.
+            <div className="flex flex-col items-center text-center px-6 py-6 gap-2">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{
+                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                  border: "1px solid hsl(var(--olivewood) / 0.10)",
+                }}
+              >
+                <AlertTriangle className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={1.75} aria-hidden="true" />
+              </div>
+              <p
+                className="font-display italic font-bold text-[0.95rem]"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
+                We couldn't load your saved searches.
+              </p>
+              <p
+                className="font-serif italic text-[0.78rem] leading-snug max-w-[280px]"
+                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              >
+                Tap retry — your saved searches are safe, this is just a fetch hiccup.
+              </p>
+              <Button
+                variant="bark"
+                size="sm"
+                onClick={() => load()}
+                disabled={loading}
+                className="mt-1 gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Try again
+              </Button>
+            </div>
           ) : searches.length === 0 ? (
             <div className="flex flex-col items-center text-center px-6 py-6 gap-2">
               <div
@@ -309,11 +375,15 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 <button
                   type="button"
                   onClick={() => toggleNotify(s)}
-                  className="h-8 w-8 inline-flex items-center justify-center rounded-ds-sm hover:bg-muted shrink-0 active:scale-[0.95] transition"
+                  disabled={togglingId === s.id}
+                  className="h-8 w-8 inline-flex items-center justify-center rounded-ds-sm hover:bg-muted shrink-0 active:scale-[0.95] transition disabled:opacity-50 disabled:cursor-wait"
                   aria-label={s.notify_enabled ? "Mute notifications" : "Enable notifications"}
+                  aria-busy={togglingId === s.id}
                   title={s.notify_enabled ? "Notifications on" : "Notifications off"}
                 >
-                  {s.notify_enabled ? (
+                  {togglingId === s.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-hidden="true" />
+                  ) : s.notify_enabled ? (
                     <Bell className="w-4 h-4 text-primary" aria-hidden="true" />
                   ) : (
                     <BellOff className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
@@ -322,10 +392,16 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 <button
                   type="button"
                   onClick={() => remove(s.id)}
-                  className="h-8 w-8 inline-flex items-center justify-center rounded-ds-sm hover:bg-destructive/10 shrink-0 active:scale-[0.95] transition"
+                  disabled={removingId === s.id}
+                  className="h-8 w-8 inline-flex items-center justify-center rounded-ds-sm hover:bg-destructive/10 shrink-0 active:scale-[0.95] transition disabled:opacity-50 disabled:cursor-wait"
                   aria-label="Delete saved search"
+                  aria-busy={removingId === s.id}
                 >
-                  <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                  {removingId === s.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-hidden="true" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                  )}
                 </button>
               </div>
             ))

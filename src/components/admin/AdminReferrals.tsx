@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Gift, Users, DollarSign, Banknote, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 interface ReferralCode {
   id: string;
@@ -46,7 +50,10 @@ const AdminReferrals = () => {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"overview" | "codes" | "referrals" | "credits">("overview");
 
-  const { data, isInitialLoading } = useInstantQuery<ReferralData>({
+  // unwrap() throws into React Query so any failed fetch flips isError on
+  // and surfaces a recoverable retry instead of degrading to four empty
+  // tabs. CLAUDE.md: "Never drop the Supabase `error`".
+  const { data, isInitialLoading, isError, refetch } = useInstantQuery<ReferralData>({
     key: ["admin-referrals"],
     fallback: { codes: [], referrals: [], credits: [] },
     fetcher: async () => {
@@ -56,12 +63,9 @@ const AdminReferrals = () => {
         supabase.from("referral_credits").select("*").order("created_at", { ascending: false }),
       ]);
 
-      const fetchError = codesRes.error || referralsRes.error || creditsRes.error;
-      if (fetchError) throw fetchError;
-
-      const allCodes = codesRes.data || [];
-      const allReferrals = referralsRes.data || [];
-      const allCredits = creditsRes.data || [];
+      const allCodes = unwrap(codesRes) || [];
+      const allReferrals = unwrap(referralsRes) || [];
+      const allCredits = unwrap(creditsRes) || [];
 
       const userIds = new Set<string>();
       allCodes.forEach(c => userIds.add(c.user_id));
@@ -72,11 +76,12 @@ const AdminReferrals = () => {
       const nameMap: Record<string, string> = {};
 
       if (idsArray.length > 0) {
-        const { data: profiles, error: profilesErr } = await supabase
-          .from("profiles")
-          .select("user_id, full_name, email")
-          .in("user_id", idsArray);
-        if (profilesErr) throw profilesErr;
+        const profiles = unwrap(
+          await supabase
+            .from("profiles")
+            .select("user_id, full_name, email")
+            .in("user_id", idsArray),
+        );
         (profiles || []).forEach(p => {
           nameMap[p.user_id] = p.full_name || p.email || p.user_id.slice(0, 8);
         });
@@ -121,7 +126,36 @@ const AdminReferrals = () => {
   );
 
   if (isInitialLoading) {
-    return <div className="text-center py-12 text-ds-11 text-muted-foreground">Loading referral data…</div>;
+    return (
+      // Shape-matched skeleton — stat grid + two row placeholders so the
+      // loaded list slots in without a jarring jump from a bare text line.
+      <div className="space-y-6" aria-hidden="true">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2">
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-7 w-2/3" />
+            </div>
+          ))}
+        </div>
+        <div className="space-y-2">
+          {[0, 1, 2].map(i => (
+            <Skeleton key={i} className="h-16 w-full rounded-ds-md" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <ErrorState
+        variant="inline"
+        title="We couldn't load referral data."
+        body="Tap Try again. Codes, referrals, and credit ledgers are safe — this is just a fetch hiccup."
+        onRetry={() => refetch()}
+      />
+    );
   }
 
   const tabs = [
@@ -238,7 +272,13 @@ const AdminReferrals = () => {
               </div>
             ))}
             {credits.length === 0 && (
-              <p className="text-ds-11 text-muted-foreground text-center py-4">No credits awarded yet</p>
+              <EmptyState
+                variant="inline"
+                icon={DollarSign}
+                eyebrow="No credits yet"
+                title="No credits awarded yet."
+                body="Referral bonuses post here as soon as a referred user finishes their first job."
+              />
             )}
           </div>
         </div>
@@ -266,7 +306,17 @@ const AdminReferrals = () => {
             </div>
           ))}
           {filteredCodes.length === 0 && (
-            <p className="text-ds-11 text-muted-foreground text-center py-8">No referral codes found</p>
+            <EmptyState
+              variant="inline"
+              icon={Gift}
+              eyebrow={search ? "No matches" : "No codes yet"}
+              title={search ? "Nothing matches that search." : "No referral codes yet."}
+              body={
+                search
+                  ? "Try a different name or code — the rest of the list is intact."
+                  : "Each user gets a code on signup. They appear here as soon as anyone signs up."
+              }
+            />
           )}
         </div>
       )}
@@ -296,7 +346,17 @@ const AdminReferrals = () => {
             </div>
           ))}
           {filteredReferrals.length === 0 && (
-            <p className="text-ds-11 text-muted-foreground text-center py-8">No referrals found</p>
+            <EmptyState
+              variant="inline"
+              icon={Users}
+              eyebrow={search ? "No matches" : "No referrals yet"}
+              title={search ? "Nothing matches that search." : "No referrals yet."}
+              body={
+                search
+                  ? "Try a different name — the rest of the list is intact."
+                  : "Referrals show up here the moment someone signs up with a referral code."
+              }
+            />
           )}
         </div>
       )}
@@ -321,7 +381,17 @@ const AdminReferrals = () => {
             </div>
           ))}
           {filteredCredits.length === 0 && (
-            <p className="text-ds-11 text-muted-foreground text-center py-8">No credits found</p>
+            <EmptyState
+              variant="inline"
+              icon={Banknote}
+              eyebrow={search ? "No matches" : "No credits yet"}
+              title={search ? "Nothing matches that search." : "No credits issued yet."}
+              body={
+                search
+                  ? "Try a different name or reason — the rest of the ledger is intact."
+                  : "Credits land here as referred users complete jobs."
+              }
+            />
           )}
         </div>
       )}

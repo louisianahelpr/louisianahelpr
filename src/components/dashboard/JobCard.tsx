@@ -137,6 +137,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     threshold: 500,
     onLongPress: () => {
       if (onLongPress) {
+        // A single tap immediately before the hold may have queued a
+        // 280ms open-detail timer (the double-tap window). Cancel it so
+        // the detail view doesn't pop open underneath the quick-action
+        // sheet on a rapid tap-then-hold.
+        if (tapTimerRef.current) {
+          clearTimeout(tapTimerRef.current);
+          tapTimerRef.current = null;
+        }
         hapticMedium();
         onLongPress(job.id);
       }

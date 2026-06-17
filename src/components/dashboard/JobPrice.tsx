@@ -110,11 +110,16 @@ export function JobPrice({
         }}
         aria-expanded={showBudget ? undefined : expanded}
         aria-controls={showBudget ? undefined : panelId}
-        className={`flex flex-col items-center justify-center px-2.5 py-1.5 rounded-ds-md text-center ${className ?? ""}`}
+        className={`inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center ${className ?? ""}`}
         style={{
           background: "hsl(var(--bark) / 0.10)",
           border: "0.5px solid hsl(var(--bark) / 0.28)",
           cursor: showBudget ? "default" : "pointer",
+          // Override the global 44px min-height/width that every <button>
+          // gets (it's a tap-target rule) so the price chip hugs the
+          // amount tightly — the whole card is the real tap target.
+          minHeight: 0,
+          minWidth: 0,
         }}
       >
         <span

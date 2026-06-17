@@ -543,9 +543,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   className="flex items-center gap-1"
                   style={{ color: "hsl(var(--primary))" }}
                 >
-                  <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
+                  <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} aria-label="helprs needed" />
                   <span className="font-sans font-medium">
-                    {job.helpers_needed ?? 2} helprs
+                    {job.helpers_needed ?? 2}
                   </span>
                 </span>
               </>

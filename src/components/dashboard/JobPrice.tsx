@@ -110,7 +110,7 @@ export function JobPrice({
         }}
         aria-expanded={showBudget ? undefined : expanded}
         aria-controls={showBudget ? undefined : panelId}
-        className={`flex flex-col items-center px-2.5 py-1.5 rounded-ds-md text-center ${className ?? ""}`}
+        className={`flex flex-col items-center justify-center px-2.5 py-1.5 rounded-ds-md text-center ${className ?? ""}`}
         style={{
           background: "hsl(var(--bark) / 0.10)",
           border: "0.5px solid hsl(var(--bark) / 0.28)",

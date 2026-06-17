@@ -561,18 +561,19 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             )}
           </div>
         </div>
-        {/* Price tile — right column, vertically centered across the whole
-            card (title + meta) so there's no dead space under it. */}
-        <div className="shrink-0 flex flex-col items-end justify-center">
-          <JobPrice
-            budget={job.budget}
-            effectiveFee={effectiveFee}
-            urgentFee={job.urgent_fee ?? 0}
-            helpersNeeded={helpersCount}
-            showBudget={showBudget}
-            variant="chip"
-          />
-        </div>
+        {/* Price tile — direct child of the card row, vertically centered
+            at its natural (tight) height. The previous flex-col wrapper
+            stretched the chip tall, pinning the amount to the top with a
+            big empty gap below it. */}
+        <JobPrice
+          budget={job.budget}
+          effectiveFee={effectiveFee}
+          urgentFee={job.urgent_fee ?? 0}
+          helpersNeeded={helpersCount}
+          showBudget={showBudget}
+          variant="chip"
+          className="shrink-0 self-center"
+        />
         </div>
 
       {/* Save lives in the job-detail view (open the card to save), so the

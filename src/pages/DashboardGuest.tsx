@@ -525,7 +525,6 @@ const DashboardGuest = () => {
                         onSelect={requireSignup}
                         onToggleSave={requireSignup}
                         index={idx}
-                        guestPricing
                       />
                     ))}
                   </div>

@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Paperclip, Trash2, WifiOff, Sparkles, Shield, BookmarkCheck } from "lucide-react";
+import { FileText, Paperclip, Trash2, WifiOff, Sparkles, Shield, BookmarkCheck, ChevronDown, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticLight } from "@/lib/haptics";
@@ -181,6 +181,15 @@ export function ApplyConfirmDialog({
   const draftKey = pitchDraftKey(jobId);
   const starterSentences = useMemo(() => buildStarterSentences(confirmApplyJob), [confirmApplyJob]);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  // Both the reliability-stake and attachments sections are explicitly
+  // optional, and together they made the modal very tall on small phones.
+  // Collapse them behind one "Add more options" disclosure so the default
+  // modal stays short (earnings → bid → pitch → Apply). We auto-expand when
+  // a stake or file is already set so a restored/in-progress application
+  // never hides state the helpr already chose.
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const hasOptionalState = stakeAmount != null || applyFiles.length > 0;
+  const optionsExpanded = showMoreOptions || hasOptionalState;
 
   // Restore a saved draft for THIS job when the dialog (re)opens with an
   // empty field — per-job scoping so switching jobs doesn't bleed text
@@ -217,7 +226,7 @@ export function ApplyConfirmDialog({
       setApplyMessage(template);
     }
     // Fire once per open; applyMessage intentionally omitted so we don't loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [open]);
 
   // Auto-save the in-progress pitch on every change, so the back button or
@@ -385,7 +394,7 @@ export function ApplyConfirmDialog({
                   placeholder="0"
                   value={bidPrice}
                   onChange={(e) => setBidPrice(e.target.value)}
-                  className="w-full rounded-ds-md border border-input bg-background pl-7 pr-3 py-2 text-ds-13 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full min-h-[44px] rounded-ds-md border border-input bg-background pl-7 pr-3 py-2 text-ds-13 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
               {confirmApplyJob && (confirmApplyJob.budget ?? 0) > 0 && (
@@ -489,7 +498,7 @@ export function ApplyConfirmDialog({
                   ? `Tip: ${SOFT_MIN_PITCH_LENGTH}+ characters feels personal`
                   : underMin
                   ? `${SOFT_MIN_PITCH_LENGTH - trimmedLen} more to feel personal`
-                  : "Looks good"}
+                  : "Nice — that reads personal"}
               </span>
               <span
                 className="tabular-nums"
@@ -504,12 +513,12 @@ export function ApplyConfirmDialog({
             </div>
             {/* Save as default template — lets helprs reuse a good pitch
                 across applications without retyping it every time. */}
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer min-h-[44px] -my-1">
               <input
                 type="checkbox"
                 checked={saveAsTemplate}
                 onChange={(e) => setSaveAsTemplate(e.target.checked)}
-                className="rounded"
+                className="rounded w-[18px] h-[18px] shrink-0"
               />
               <span className="text-ds-12 text-muted-foreground">Save as my default pitch</span>
             </label>
@@ -542,6 +551,49 @@ export function ApplyConfirmDialog({
             );
           })()}
 
+          {/* Optional extras disclosure — keeps the default modal short by
+              hiding the (optional) reliability-stake and attachments sections
+              behind one tasteful toggle. Hidden once expanded or when either
+              optional value is already set. */}
+          {!optionsExpanded && (
+            <button
+              type="button"
+              onClick={() => { hapticLight(); setShowMoreOptions(true); }}
+              className="mt-3.5 w-full min-h-[44px] flex items-center justify-center gap-1.5 rounded-ds-md font-serif italic text-ds-12 active:scale-[0.99] transition-transform"
+              style={{
+                background: "hsl(var(--bark) / 0.05)",
+                border: "0.5px dashed hsl(var(--bark) / 0.25)",
+                color: "hsl(var(--bark))",
+              }}
+              aria-expanded={false}
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />
+              <span>Add more options</span>
+              <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+                reliability stake · attachments
+              </span>
+            </button>
+          )}
+
+          {optionsExpanded && (
+            <>
+              {showMoreOptions && !hasOptionalState && (
+                <button
+                  type="button"
+                  onClick={() => { hapticLight(); setShowMoreOptions(false); }}
+                  className="mt-3.5 w-full min-h-[44px] flex items-center justify-center gap-1.5 rounded-ds-md font-serif italic text-ds-12 active:scale-[0.99] transition-transform"
+                  style={{
+                    background: "hsl(var(--bark) / 0.05)",
+                    border: "0.5px dashed hsl(var(--bark) / 0.25)",
+                    color: "hsl(var(--bark))",
+                  }}
+                  aria-expanded
+                >
+                  <ChevronDown className="w-3.5 h-3.5 rotate-180" strokeWidth={2.25} aria-hidden />
+                  <span>Hide extra options</span>
+                </button>
+              )}
+
           {/* Reliability stake */}
           <div
             className="mt-3.5 rounded-ds-md p-3"
@@ -568,7 +620,7 @@ export function ApplyConfirmDialog({
                   key={amt}
                   type="button"
                   onClick={() => setStakeAmount(amt === 0 ? null : amt)}
-                  className="flex-1 py-1.5 rounded-ds-sm text-ds-12 font-sans font-semibold"
+                  className="flex-1 min-h-[44px] rounded-ds-sm text-ds-12 font-sans font-semibold"
                   style={{
                     background: stakeAmount === (amt === 0 ? null : amt) ? "hsl(var(--bark) / 0.15)" : "transparent",
                     border: `1px solid hsl(var(--bark) / ${stakeAmount === (amt === 0 ? null : amt) ? "0.4" : "0.15"})`,
@@ -637,6 +689,8 @@ export function ApplyConfirmDialog({
               )}
             </div>
           </div>
+            </>
+          )}
         </AlertDialogHeader>
         {!online && (
           <p

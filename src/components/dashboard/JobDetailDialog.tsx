@@ -21,7 +21,7 @@ import { PhotoLightbox } from "./PhotoLightbox";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { report } from "@/lib/errorLogger";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
-import { JobPrice } from "./JobPrice";
+import { JobPrice, formatAmount } from "./JobPrice";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -945,7 +945,7 @@ const JobDetailDialog = ({
                   className="font-display italic font-bold tabular-nums shrink-0"
                   style={{ fontSize: "0.95rem", letterSpacing: "-0.01em" }}
                 >
-                  · earn ${payout.toFixed(0)}
+                  · earn ${formatAmount(payout)}
                 </span>
                 <ChevronRight
                   className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"

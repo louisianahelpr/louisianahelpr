@@ -152,6 +152,16 @@ interface BrowseMapProps {
 // Louisiana center fallback (state geographic mean, near Marksville).
 const LA_CENTER: [number, number] = [31.0, -92.0];
 const LA_DEFAULT_ZOOM = 7;
+// Hard pan limit around Louisiana (+ a little margin). Without it the map
+// drags infinitely into empty ocean/world, which reads as "the whole screen
+// is scrolling left and right". `maxBoundsViscosity: 1` makes the edge solid
+// so a drag can't fling the state off-screen; minZoom keeps it from zooming
+// out to the whole globe.
+const LA_BOUNDS: [[number, number], [number, number]] = [
+  [28.5, -94.6], // SW (Gulf coast / TX line)
+  [33.3, -88.4], // NE (AR/MS line)
+];
+const LA_MIN_ZOOM = 6;
 
 // Density-aware tint for the heatmap layer. Lower count → cooler
 // olivewood; higher count → warm burnt-sienna. Caps at 8+ jobs per
@@ -519,6 +529,9 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
       <MapContainer
         center={LA_CENTER}
         zoom={LA_DEFAULT_ZOOM}
+        minZoom={LA_MIN_ZOOM}
+        maxBounds={LA_BOUNDS}
+        maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={false}
       >

@@ -322,41 +322,41 @@ const DashboardGuest = () => {
                 >
                   {view === "list" ? <MapIcon className="w-4 h-4" /> : <List className="w-4 h-4" />}
                 </button>
-                {view === "list" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => { setSearchOpen(!searchOpen); if (filtersOpen) setFiltersOpen(false); }}
-                      aria-label="Search jobs"
-                      aria-expanded={searchOpen}
-                      className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition ${
-                        searchOpen || search
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                      }`}
-                    >
-                      <Search className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
-                      aria-label={activeFilterCount ? `Filters (${activeFilterCount} active)` : "Filters"}
-                      aria-expanded={filtersOpen}
-                      className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition relative ${
-                        filtersOpen || activeFilterCount > 0
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                      }`}
-                    >
-                      <SlidersHorizontal className="w-4 h-4" />
-                      {activeFilterCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
-                          {activeFilterCount}
-                        </span>
-                      )}
-                    </button>
-                  </>
-                )}
+                {/* Search + filter stay visible in BOTH list and map view so
+                    the toolbar reads consistently. These controls act on the
+                    list, so tapping one while in map view drops back to the
+                    list with the panel open rather than vanishing. */}
+                <button
+                  type="button"
+                  onClick={() => { if (view === "map") setView("list"); setSearchOpen(!searchOpen); if (filtersOpen) setFiltersOpen(false); }}
+                  aria-label="Search jobs"
+                  aria-expanded={searchOpen}
+                  className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition ${
+                    searchOpen || search
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  }`}
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (view === "map") setView("list"); setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
+                  aria-label={activeFilterCount ? `Filters (${activeFilterCount} active)` : "Filters"}
+                  aria-expanded={filtersOpen}
+                  className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition relative ${
+                    filtersOpen || activeFilterCount > 0
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  }`}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
 

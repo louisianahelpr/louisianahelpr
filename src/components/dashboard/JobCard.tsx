@@ -381,11 +381,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             );
           return null;
         })()}
-        <div className="w-full px-3.5 pt-6 pb-2.5 flex items-center gap-3">
-        {/* Left column — recommended pill, title, meta. The price tile is a
-            sibling on the right (below), vertically centered across this
-            whole block so there's no dead space under it. */}
-        <div className="flex-1 min-w-0">
+        <div className="w-full px-3.5 pt-6 pb-2.5">
         {/* Recommended pill — a subtle relevance cue for the top picks.
             pointer-events-none so it never intercepts the card tap / save
             gestures. */}
@@ -406,12 +402,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             <span className="font-sans font-semibold leading-none">Recommended</span>
           </span>
         )}
-        {/* Title — wraps to at most two lines (never cut mid-word). The
-            price tile is a sibling in the right column (below), not in this
-            row, so the title spans full width and the price can center. */}
-        <div className="flex items-start gap-1.5 min-w-0">
+        {/* Title + price share the top row — price chip sits top-right next
+            to the title. The location/date/time meta then spans the full
+            card width below, so it never gets squeezed into a side column. */}
+        <div className="flex items-start justify-between gap-3">
           <h3
-            className="font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
+            className="flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
             style={{
               fontSize: "1.05rem",
               color: "hsl(var(--ink-deep))",
@@ -420,6 +416,15 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           >
             {job.title}
           </h3>
+          <JobPrice
+            budget={job.budget}
+            effectiveFee={effectiveFee}
+            urgentFee={job.urgent_fee ?? 0}
+            helpersNeeded={helpersCount}
+            showBudget={showBudget}
+            variant="chip"
+            className="shrink-0"
+          />
         </div>
 
         {/* Meta row — category lives in the badge above, so this leads
@@ -560,20 +565,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </>
             )}
           </div>
-        </div>
-        {/* Price tile — direct child of the card row, vertically centered
-            at its natural (tight) height. The previous flex-col wrapper
-            stretched the chip tall, pinning the amount to the top with a
-            big empty gap below it. */}
-        <JobPrice
-          budget={job.budget}
-          effectiveFee={effectiveFee}
-          urgentFee={job.urgent_fee ?? 0}
-          helpersNeeded={helpersCount}
-          showBudget={showBudget}
-          variant="chip"
-          className="shrink-0 self-center"
-        />
         </div>
 
       {/* Save lives in the job-detail view (open the card to save), so the

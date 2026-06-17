@@ -165,7 +165,26 @@ export function ChatView({
 }: ChatViewProps) {
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
-  const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Community-rules banner dismissal — persisted to localStorage so once
+  // the user has read & dismissed it, it stays gone across thread switches
+  // and app relaunches instead of re-showing on every mount. Mirrors the
+  // lazy-init + persist-on-change pattern in usePersistedBrowseView.
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem("helpr.chatRulesBannerDismissed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (typeof window === "undefined" || !bannerDismissed) return;
+    try {
+      window.localStorage.setItem("helpr.chatRulesBannerDismissed", "1");
+    } catch {
+      // Quota / private mode — silently ignore; in-memory state still works.
+    }
+  }, [bannerDismissed]);
   // Open the snooze picker for the active thread.
   const [muteSheetOpen, setMuteSheetOpen] = useState(false);
   // Single-photo lightbox for tapped chat images — keeps the photo inside
@@ -931,86 +950,39 @@ export function ChatView({
                 />
               )}
 
-              {/* Quick-reply suggestion chips — context-aware phrases that
-                  pre-fill the composer (no auto-send). Shown when the
-                  conversation is "fresh": either empty or the last message
-                  came from the other participant. Hidden as soon as the
-                  user starts typing (draft has content) or when the user
-                  themselves sent the last message (no reply needed).
-                  Job-context threads get job-relevant phrases; general
-                  chat falls back to universal replies. */}
-              {(() => {
-                // Find the last real (non-system) message to decide
-                // whose turn it is to reply.
-                const realMessages = messages.filter((m) => !m.is_system);
-                const lastReal = realMessages[realMessages.length - 1];
-                // Suppress chips when the user typed last (they already
-                // spoke), when they're currently composing, or when the
-                // load errored out. Empty thread (no lastReal) = show.
-                const userSentLast =
-                  realMessages.length > 0 && lastReal?.sender_id === userId;
-                const showChips =
-                  !chatLoadError && !draft.trim() && !userSentLast;
-                if (!showChips) return null;
+              {/* Quick replies — the single quick-reply system for a thread
+                  that already has messages. `FirstMessageChips` (above) owns
+                  the empty-thread starter prompts; once there's a real
+                  message, `QuickReplies` takes over. Most chips populate the
+                  composer; the status-aware smart-reply chips ("On my way",
+                  "Running 5 min late", "Done", from #15) fire on tap so an
+                  active-job logistics update is one tap, not three.
+                  `jobStatus` drives which smart-reply set (if any) is
+                  prepended.
 
-                const hasJobContext = !!activeConvo.jobId;
-                const jobChips = [
-                  "I'm interested!",
-                  "What time works?",
-                  "I'm on my way",
-                  "Job is done",
-                ];
-                const generalChips = [
-                  "Sounds good!",
-                  "On my way",
-                  "Give me a moment",
-                ];
-                const chips = hasJobContext ? jobChips : generalChips;
+                  Suppressed when the user typed the last real message (they
+                  already spoke) or is currently composing (draft has content)
+                  — no reply nudge is needed in those moments. */}
+              {(() => {
+                const realMessages = messages.filter((m) => !m.is_system);
+                // Empty thread → FirstMessageChips handles it; don't stack
+                // QuickReplies on top of the starter prompts.
+                if (realMessages.length === 0) return null;
+                const lastReal = realMessages[realMessages.length - 1];
+                const userSentLast = lastReal?.sender_id === userId;
+                if (draft.trim() || userSentLast) return null;
 
                 return (
-                  <div
-                    className="flex gap-2 overflow-x-auto pb-1 pr-5 pt-1 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]"
-                    role="group"
-                    aria-label="Suggested replies"
-                  >
-                    {chips.map((text) => (
-                      <button
-                        key={text}
-                        type="button"
-                        className="shrink-0 inline-flex items-center min-h-[32px] rounded-full px-3.5 py-1.5 text-ds-12 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
-                        style={{
-                          background: "hsl(var(--parchment) / 0.8)",
-                          color: "hsl(var(--bark))",
-                          border: "1px solid hsl(var(--bark) / 0.22)",
-                          boxShadow:
-                            "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
-                            "0 1px 2px hsl(var(--bark) / 0.10)",
-                        }}
-                        onClick={() => {
-                          setDraft(text);
-                        }}
-                      >
-                        {text}
-                      </button>
-                    ))}
+                  <div className="pt-1">
+                    <QuickReplies
+                      onSelect={(msg) => setDraft(msg)}
+                      onSend={(msg) => { void sendMessage(msg); }}
+                      audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
+                      jobStatus={activeConvo.jobStatus}
+                    />
                   </div>
                 );
               })()}
-
-              {/* Quick replies — most chips populate the composer; the
-                  status-aware smart-reply chips ("On my way", "Running
-                  5 min late", "Done", from #15) fire on tap so an
-                  active-job logistics update is one tap, not three.
-                  `jobStatus` drives which smart-reply set (if any) is
-                  prepended. */}
-              <div className="pt-1">
-                <QuickReplies
-                  onSelect={(msg) => setDraft(msg)}
-                  onSend={(msg) => { void sendMessage(msg); }}
-                  audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
-                  jobStatus={activeConvo.jobStatus}
-                />
-              </div>
 
               {/* Rich message input */}
               <div

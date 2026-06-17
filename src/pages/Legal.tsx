@@ -43,10 +43,10 @@ const PAGE_CANONICALS: Record<TabKey, string> = {
   privacy: "https://www.louisianahelpr.com/legal?tab=privacy",
 };
 
-// Per-tab revision date shown in the header chip. Each policy revises on
-// its own schedule, so the chip reflects the active tab's date rather than
-// implying all three changed together — bump only the tab you actually
-// edited.
+// Per-tab revision date shown in each tab's PolicyFooter. Each policy
+// revises on its own schedule, so the footer reflects the active tab's date
+// rather than implying all three changed together — bump only the tab you
+// actually edited.
 const LAST_UPDATED: Record<TabKey, string> = {
   terms: "Jun 2026",
   community: "Jun 2026",
@@ -136,6 +136,33 @@ const TldrCard = ({ items }: { items: string[] }) => {
   </div>
   );
 };
+
+// Footer card closing every policy tab: a support link paired with the tab's
+// revision date (relocated here from the old header chip), so each policy ends
+// with a single quiet "ask + when this changed" line instead of bare text.
+const PolicyFooter = ({ updated }: { updated: string }) => (
+  <div
+    data-print-hide
+    className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+    style={{
+      background: "hsl(var(--bark) / 0.05)",
+      border: "1px solid hsl(var(--bark) / 0.16)",
+    }}
+  >
+    <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
+      Questions?{" "}
+      <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+        Contact support
+      </Link>
+    </p>
+    <span
+      className="shrink-0 text-ds-11 font-sans tabular-nums"
+      style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+    >
+      Updated {updated}
+    </span>
+  </div>
+);
 
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
 const TermsContent = () => (
@@ -322,12 +349,7 @@ const TermsContent = () => (
     </PolicySection>
 
     <HideOnSearch>
-      <p
-        className="text-center pt-2 pb-4 text-ds-11 font-sans"
-        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-      >
-        Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
-      </p>
+      <PolicyFooter updated={LAST_UPDATED.terms} />
     </HideOnSearch>
   </div>
 );
@@ -640,12 +662,7 @@ const CommunityContent = () => (
     </PolicySection>
 
     <HideOnSearch>
-      <p
-        className="text-center pt-2 pb-4 text-ds-11 font-sans"
-        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-      >
-        Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
-      </p>
+      <PolicyFooter updated={LAST_UPDATED.community} />
     </HideOnSearch>
   </div>
 );
@@ -856,12 +873,7 @@ const PrivacyContent = () => (
     </PolicySection>
 
     <HideOnSearch>
-      <p
-        className="text-center pt-2 pb-4 text-ds-11 font-sans"
-        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-      >
-        Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
-      </p>
+      <PolicyFooter updated={LAST_UPDATED.privacy} />
     </HideOnSearch>
   </div>
 );
@@ -954,19 +966,7 @@ const Legal = () => {
         >
           Compliance &amp; disclosures
         </span>
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <h1 className="text-page-title leading-tight">Legal</h1>
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.66rem] font-sans font-semibold tabular-nums uppercase tracking-wider"
-            style={{
-              background: "hsl(var(--bark) / 0.10)",
-              color: "hsl(var(--bark))",
-              border: "1px solid hsl(var(--bark) / 0.22)",
-            }}
-          >
-            Updated · {LAST_UPDATED[tab]}
-          </span>
-        </div>
+        <h1 className="text-page-title leading-tight mt-1">Legal</h1>
       </div>
     </div>
   );
@@ -1000,12 +1000,17 @@ const Legal = () => {
                 transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                 className="absolute inset-0 rounded-xl"
                 style={{
+                  // Match the app's primary bark CTA (button.tsx `bark`
+                  // variant) so the selected tab reads as a primary button:
+                  // same 3-stop gradient + border + ELEV_FILLED depth.
                   background:
-                    "linear-gradient(180deg, hsl(var(--bark) / 0.94) 0%, hsl(var(--bark)) 100%)",
+                    "linear-gradient(180deg, hsl(74 19% 41%) 0%, hsl(var(--bark)) 50%, hsl(66 23% 23%) 100%)",
+                  border: "1px solid hsl(66 24% 20%)",
                   boxShadow:
-                    "inset 0 1px 0 hsl(var(--parchment) / 0.28), " +
-                    "0 2px 6px -1px hsl(var(--bark) / 0.45), " +
-                    "0 1px 2px hsl(var(--olivewood) / 0.28)",
+                    "inset 0 1px 0 hsl(var(--parchment) / 0.22), " +
+                    "0 1px 1px hsl(var(--ink-deep) / 0.10), " +
+                    "0 2px 6px hsl(var(--ink-deep) / 0.12), " +
+                    "0 4px 12px -2px hsl(var(--ink-deep) / 0.08)",
                 }}
               />
             )}
@@ -1073,13 +1078,13 @@ const Legal = () => {
 
   const panels = (
     <>
-      <TabsContent value="terms" className="mt-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+      <TabsContent value="terms" className="mt-0" style={{ paddingBottom: "1rem" }}>
         <TermsContent />
       </TabsContent>
-      <TabsContent value="community" className="mt-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+      <TabsContent value="community" className="mt-0" style={{ paddingBottom: "1rem" }}>
         <CommunityContent />
       </TabsContent>
-      <TabsContent value="privacy" className="mt-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+      <TabsContent value="privacy" className="mt-0" style={{ paddingBottom: "1rem" }}>
         <PrivacyContent />
       </TabsContent>
     </>

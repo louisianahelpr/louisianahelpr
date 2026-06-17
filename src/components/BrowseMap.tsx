@@ -58,17 +58,21 @@ function writeStoredLayer(layer: MapLayer): void {
 // Fix Leaflet's default-icon-not-found problem when bundlers can't
 // resolve the asset paths. We use a small inline div-icon instead so
 // pins render reliably across web + Capacitor iOS.
+// Muted, earthy per-category pin colors. Every tone is desaturated to sit
+// calmly on the warm parchment map (no loud saturated pins), yet each
+// category gets its OWN hue so they stay distinguishable — the old map
+// reused 4 colors across 10 categories, so half of them looked identical.
 const categoryColors: Record<string, string> = {
-  cleaning: "#5E6544",
-  yard_work: "#8C947D",
-  moving: "#A0613B",
-  errands: "#C39A60",
-  handyman: "#5E6544",
-  painting: "#A0613B",
-  delivery: "#8C947D",
-  pet_care: "#C39A60",
-  assembly: "#5E6544",
-  other: "#7A7E68",
+  cleaning: "#6F8A78", // sage green
+  yard_work: "#7E8A4E", // moss / olive
+  moving: "#B27A48", // clay / terracotta
+  errands: "#C7A75E", // warm gold
+  handyman: "#8C6A52", // taupe brown
+  painting: "#A86E6A", // dusty rose-clay
+  delivery: "#6E8597", // muted slate blue
+  pet_care: "#C99E78", // soft camel
+  assembly: "#8A7B57", // khaki
+  other: "#8A8576", // warm gray
 };
 
 // Branded cluster bubble. react-leaflet-cluster's built-in cluster styling

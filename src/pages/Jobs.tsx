@@ -239,7 +239,7 @@ const Jobs = () => {
                     <button
                       key={label ?? "all"}
                       onClick={() => setSelectedCategory(isActive ? null : key)}
-                      className={`inline-flex items-center min-h-[36px] px-3.5 py-2 rounded-full text-ds-11 font-semibold whitespace-nowrap shrink-0 transition-all duration-200 btn-press squircle border ${
+                      className={`inline-flex items-center min-h-[36px] px-3.5 py-2 rounded-ds-md text-ds-11 font-semibold whitespace-nowrap shrink-0 transition-all duration-200 btn-press squircle border ${
                         isActive
                           ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
                           : "bg-white/60 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"

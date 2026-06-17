@@ -995,30 +995,43 @@ const Dashboard = () => {
               accepted or in-progress job. Keeps commitments front-of-mind
               without forcing a trip to Activity > My Jobs. */}
           {upcomingJob && (
-            <div className="mx-4 mb-3 rounded-ds-lg bg-[hsl(var(--bark))] text-white p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium opacity-70 uppercase tracking-wide mb-0.5">
-                    {upcomingJob.status === "in_progress" ? "Job in progress" : "Upcoming job"}
-                  </p>
-                  <p className="font-semibold text-sm truncate">{upcomingJob.title}</p>
-                  {upcomingJob.date_needed && (
-                    <p className="text-xs opacity-80 mt-0.5">
-                      {new Date(upcomingJob.date_needed).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                      {upcomingJob.start_time ? ` at ${upcomingJob.start_time}` : ""}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-white border border-white/30 hover:bg-white/10 shrink-0 text-xs px-3 h-8"
-                  onClick={() => navigate("/activity?tab=myjobs")}
+            // De-filled + compact: a tinted/bordered card, not a full-bark
+            // primary fill (the FAB is the screen's only primary). The whole
+            // row taps through to My Jobs, so it needs no separate filled
+            // button. ~half the previous height.
+            <button
+              type="button"
+              onClick={() => navigate("/activity?tab=myjobs")}
+              className="mx-4 mb-3 w-[calc(100%-2rem)] rounded-2xl p-3 text-left flex items-center justify-between gap-3 transition-transform active:scale-[0.99]"
+              style={{
+                background: "hsl(var(--bark) / 0.06)",
+                border: "1px solid hsl(var(--bark) / 0.18)",
+              }}
+            >
+              <div className="flex-1 min-w-0">
+                <p
+                  className="font-serif italic uppercase tracking-[0.14em] text-ds-9 mb-0.5"
+                  style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
                 >
-                  View
-                </Button>
+                  {upcomingJob.status === "in_progress" ? "Job in progress" : "Upcoming job"}
+                </p>
+                <p className="font-semibold text-ds-13 truncate" style={{ color: "hsl(var(--ink-deep))" }}>
+                  {upcomingJob.title}
+                </p>
+                {upcomingJob.date_needed && (
+                  <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    {new Date(upcomingJob.date_needed).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                    {upcomingJob.start_time ? ` at ${upcomingJob.start_time}` : ""}
+                  </p>
+                )}
               </div>
-            </div>
+              <span
+                className="shrink-0 text-ds-12 font-sans font-semibold"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                View ›
+              </span>
+            </button>
           )}
 
           {/* Quick-rebook strip — the customer's saved helprs, one tap

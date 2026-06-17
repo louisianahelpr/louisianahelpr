@@ -618,7 +618,7 @@ const JobDetailDialog = ({
                 Icon: Clock,
                 label: "Estimated",
                 value: job.estimated_hours != null
-                  ? `${job.estimated_hours}${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`
+                  ? `${job.estimated_hours} ${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`
                   : "—",
                 sub: null,
                 href: null,
@@ -767,7 +767,7 @@ const JobDetailDialog = ({
             variant="ghost"
             size="icon"
             aria-label="Report this job"
-            className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="group glass-press rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={() => { onReport(job.id); onClose(); }}
             style={{
               backgroundColor: "var(--glass-bg-soft)",
@@ -796,7 +796,7 @@ const JobDetailDialog = ({
               size="icon"
               aria-label={isSaved ? "Unsave job" : "Save job"}
               aria-pressed={isSaved}
-              className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+              className="group glass-press rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
               onClick={() => onToggleSave(job.id, !isSaved)}
               style={{
                 backgroundColor: isSaved ? "hsl(var(--primary) / 0.12)" : "var(--glass-bg-soft)",
@@ -832,11 +832,21 @@ const JobDetailDialog = ({
               ariaLabel="Share this job"
             />
           )}
+          {/* Message the poster — gated to people with a real reason to
+              reach them: the poster themselves, a helper who's been offered
+              or hired onto the job, OR a helper who has already applied
+              (they may have a genuine question — "is the gate code needed?").
+              A helper just browsing can't DM cold, so posters aren't flooded.
+              The backend poster-first rule still governs the actual send. */}
+          {(viewerUserId === job.customer_id ||
+            viewerUserId === (job as { offered_to_helper_id?: string | null }).offered_to_helper_id ||
+            viewerUserId === (job as { helper_id?: string | null }).helper_id ||
+            viewerAppPosition != null) && (
           <Button
             variant="ghost"
             size="icon"
             aria-label="Ask a question"
-            className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            className="group glass-press rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
             onClick={handleAskQuestion}
             style={{
               backgroundColor: "var(--glass-bg-soft)",
@@ -859,6 +869,7 @@ const JobDetailDialog = ({
             {/* Message glides forward on hover — like sending */}
             <MessageSquare className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
           </Button>
+          )}
           {/* Apply gate — when the job requires a credential tier and the
               viewer's tier is below that threshold, replace the Apply button
               with a locked state that routes them to /profile to get verified.

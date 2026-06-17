@@ -326,7 +326,7 @@ const Signup = () => {
 
   return (
     <AuthShell hideHeader>
-      <div className="text-center mb-3 space-y-1.5">
+      <div className="text-center mb-8 space-y-2">
         <div className="flex justify-center mb-2">
           <HelprMark to={null} size="md" emblemOnly />
         </div>
@@ -354,7 +354,7 @@ const Signup = () => {
       <div className="pb-8">
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
-          <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
+          <div className="liquid-glass px-6 sm:px-8 py-8 space-y-6">
             {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}
             {/* TEMP: FORCE_STEP_JUMPER forces this on for sim testing — set it to false before commit */}
             {(import.meta.env.DEV || FORCE_STEP_JUMPER) && (

@@ -190,7 +190,7 @@ const Login = () => {
 
   return (
     <AuthShell hideHeader>
-      <div className="text-center mb-4 space-y-1.5">
+      <div className="text-center mb-8 space-y-2">
         <div className="flex justify-center mb-3">
           <HelprMark to={null} size="md" emblemOnly />
         </div>
@@ -216,7 +216,7 @@ const Login = () => {
         </p>
       </div>
 
-      <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
+      <div className="liquid-glass px-6 sm:px-8 py-8 space-y-6">
         {lastMethod && (
           // Quiet hint that helps returning users pick the right button
           // without revealing anything sensitive — just nudges them toward

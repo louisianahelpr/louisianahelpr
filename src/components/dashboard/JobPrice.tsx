@@ -133,25 +133,10 @@ export function JobPrice({
           </span>
           {earnings}
         </span>
-        {!showBudget && urgentFee > 0 && (
-          <span
-            className="font-sans font-semibold mt-0.5 text-[10px] tracking-[0.04em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            incl. ${urgentFee.toFixed(0)} urgent bonus
-          </span>
-        )}
-        {/* "You earn" disambiguates the helpr's net take-home from the gross
-            posted budget. The guest/poster figure is self-evidently the
-            posted budget, so it carries no caption. */}
-        {!showBudget && (
-          <span
-            className="text-[9px] uppercase mt-0.5 font-sans"
-            style={{ color: "hsl(45 8% 64%)", letterSpacing: "0.1em", fontWeight: 600 }}
-          >
-            You earn
-          </span>
-        )}
+        {/* No caption under the amount — the feed chip is a single clean
+            net figure. The "You earn" framing, the fee math, and the urgent
+            bonus all live in the corner badge + the job-detail breakdown,
+            so they're one tap away rather than crowding the card. */}
         {/* Tap-to-reveal breakdown — "Budget $80 − 10% fee". Kept compact;
             collapses by default so the chip stays the size of the title row. */}
         {!showBudget && expanded && (

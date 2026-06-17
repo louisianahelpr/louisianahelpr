@@ -87,8 +87,6 @@ interface CheckoutStepProps {
   sendToPreferred?: boolean;
   /** Callback when the checkbox changes. */
   onSendToPreferredChange?: (checked: boolean) => void;
-  /** Time credits applied (in minutes). Displayed as a discount line. */
-  timeCreditsMinutes?: number;
 }
 
 export function CheckoutStep({
@@ -134,7 +132,6 @@ export function CheckoutStep({
   preferredHelper,
   sendToPreferred,
   onSendToPreferredChange,
-  timeCreditsMinutes,
 }: CheckoutStepProps) {
   // Compute helper's net payout: budget minus the helper-side commission.
   // Shown in the "Review & Post" summary so posters understand both sides
@@ -417,16 +414,6 @@ export function CheckoutStep({
             <div className="flex justify-between text-ds-13">
               <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent bonus (goes to helpr)</span>
               <span className="font-medium text-foreground">${urgentFeeNum.toFixed(2)}</span>
-            </div>
-          )}
-          {timeCreditsMinutes != null && timeCreditsMinutes > 0 && (
-            <div className="flex justify-between text-ds-13">
-              <span className="flex items-center gap-1" style={{ color: "hsl(155 50% 30%)" }}>
-                Time credit ({Math.floor(timeCreditsMinutes / 60)}h{timeCreditsMinutes % 60 > 0 ? ` ${timeCreditsMinutes % 60}m` : ""} applied)
-              </span>
-              <span className="font-medium" style={{ color: "hsl(155 50% 30%)" }}>
-                −${((timeCreditsMinutes / 60) * 10).toFixed(2)}
-              </span>
             </div>
           )}
           <div className="flex justify-between text-ds-13">

@@ -60,11 +60,6 @@ export function usePostJobForm() {
   // start-fresh / draft / template choice first, which declutters the page.
   const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
-  // Time credits applied from /time-credits page via ?credits=<minutes>.
-  // Displayed as a discount line at checkout; actual Stripe deduction is
-  // a future integration — for now this is a UI intent display only.
-  const creditsParam = parseInt(searchParams.get("credits") || "0", 10);
-  const [timeCreditsApplied] = useState<number>(isNaN(creditsParam) || creditsParam <= 0 ? 0 : creditsParam);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");
@@ -1178,8 +1173,6 @@ export function usePostJobForm() {
     preferredHelperId: (profile as unknown as { preferred_helper_id?: string | null })?.preferred_helper_id ?? null,
     // ai builder
     applyAiJob,
-    // time credits applied from ?credits= param
-    timeCreditsApplied,
     // derived values
     budgetNum,
     urgentFeeNum,

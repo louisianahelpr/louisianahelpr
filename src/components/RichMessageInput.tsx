@@ -386,7 +386,7 @@ export const RichMessageInput = ({
             type="button"
             aria-label="Discard voice note"
             onClick={handleVoiceNoteDiscard}
-            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+            className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
             style={{ background: "hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood))" }}
           >
             <X className="w-4 h-4" />
@@ -397,7 +397,7 @@ export const RichMessageInput = ({
               type="button"
               aria-label="Stop recording"
               onClick={() => { hapticLight(); recorder.stop(); }}
-              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+              className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
               style={{ background: "hsl(var(--burnt-sienna))", color: "white" }}
             >
               <Square className="w-3.5 h-3.5 fill-current" />
@@ -408,7 +408,7 @@ export const RichMessageInput = ({
               aria-label="Send voice note"
               onClick={() => void handleVoiceNoteRecord()}
               disabled={uploading}
-              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+              className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
               style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
             >
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
@@ -421,7 +421,7 @@ export const RichMessageInput = ({
         <Button
           variant="ghost"
           size="icon"
-          className="shrink-0 h-9 w-9 rounded-full liquid-glass glass-press"
+          className="shrink-0 h-11 w-11 rounded-full liquid-glass glass-press"
           onClick={() => { hapticLight(); setAttachSheetOpen(true); }}
           disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
           aria-label="Attach photo or PDF"
@@ -432,7 +432,7 @@ export const RichMessageInput = ({
         <Button
           variant="ghost"
           size="icon"
-          className="shrink-0 h-9 w-9 rounded-full liquid-glass glass-press"
+          className="shrink-0 h-11 w-11 rounded-full liquid-glass glass-press"
           onClick={handleShareLocation}
           disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
           aria-label="Share location"
@@ -465,7 +465,7 @@ export const RichMessageInput = ({
             type="button"
             variant="ghost"
             size="icon"
-            className="shrink-0 h-9 w-9 relative rounded-full liquid-glass glass-press"
+            className="shrink-0 h-11 w-11 relative rounded-full liquid-glass glass-press"
             onClick={toggleVoice}
             disabled={disabled || uploading}
             aria-label={voice.isListening ? "Stop dictating" : "Dictate a message"}
@@ -500,7 +500,7 @@ export const RichMessageInput = ({
             type="button"
             variant="ghost"
             size="icon"
-            className="shrink-0 h-9 w-9 relative rounded-full liquid-glass glass-press"
+            className="shrink-0 h-11 w-11 relative rounded-full liquid-glass glass-press"
             onClick={() => void handleVoiceNoteRecord()}
             disabled={disabled || uploading || !!stagedFile}
             aria-label="Record voice note"

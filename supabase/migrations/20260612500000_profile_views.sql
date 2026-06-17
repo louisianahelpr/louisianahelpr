@@ -7,9 +7,11 @@ CREATE TABLE IF NOT EXISTS public.profile_views (
   id         bigserial PRIMARY KEY,
   viewed_user_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   viewer_user_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  viewed_at       timestamptz NOT NULL DEFAULT now(),
+  -- timestamp (no tz) keeps date_trunc IMMUTABLE, which Postgres requires for
+  -- generated columns. Supabase runs UTC so local ≡ UTC throughout.
+  viewed_at       timestamp NOT NULL DEFAULT LOCALTIMESTAMP,
   -- Bucket into 1-hour windows so ON CONFLICT handles dedup
-  hour_bucket     timestamptz NOT NULL GENERATED ALWAYS AS (
+  hour_bucket     timestamp NOT NULL GENERATED ALWAYS AS (
     date_trunc('hour', viewed_at)
   ) STORED
 );

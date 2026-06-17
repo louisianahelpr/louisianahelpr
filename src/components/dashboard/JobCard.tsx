@@ -402,10 +402,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             <span className="font-sans font-semibold leading-none">Recommended</span>
           </span>
         )}
-        {/* Title + price share the top row — price chip sits top-right next
-            to the title. The location/date/time meta then spans the full
-            card width below, so it never gets squeezed into a side column. */}
-        <div className="flex items-start justify-between gap-3">
+        {/* Title + price share the top row — price chip is vertically
+            centered against the title so on a two-line title it sits in the
+            middle, not pinned to the first line. The location/date/time meta
+            spans the full card width below. */}
+        <div className="flex items-center justify-between gap-3">
           <h3
             className="flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
             style={{

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock, Building2, UserCircle2 } from "lucide-react";
+import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock, Building2 } from "lucide-react";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { suggestEmailCorrection, passwordStrength } from "./signupHelpers";
 
@@ -116,7 +116,7 @@ export function SignupStep1({
           card; personal path shows a neutral callout so neither path feels
           unfinished. Either way the everyday entry point is the quiet footer
           link below, not an up-front toggle. */}
-      {isBusinessSignup ? (
+      {isBusinessSignup && (
         <div
           className="flex items-start gap-3 px-4 py-3 rounded-2xl"
           style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
@@ -131,21 +131,6 @@ export function SignupStep1({
               <Link to="/signup" replace className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
                 Personal instead?
               </Link>
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div
-          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
-          style={{ background: "hsl(var(--olivewood) / 0.05)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
-        >
-          <UserCircle2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
-          <div className="space-y-0.5">
-            <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-              Personal account
-            </p>
-            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Post jobs or earn as a neighbor — every account can do both.
             </p>
           </div>
         </div>

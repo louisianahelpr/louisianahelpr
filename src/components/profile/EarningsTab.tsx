@@ -323,7 +323,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="p-2 rounded-ds-sm hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-ds-sm hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Earnings settings"
             >
               <Settings className="w-5 h-5" />
@@ -529,7 +529,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-1 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                 aria-label="Refresh"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />

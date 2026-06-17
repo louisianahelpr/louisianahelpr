@@ -291,38 +291,60 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             continuing the rail, rounded pill nose on the right. The poster
             avatar moved to the job-detail view (JobPosterCard) so the feed
             card stays uncluttered. */}
-        <span
-          className={`absolute top-0 left-0 z-20 inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-[10px] font-semibold leading-none shadow-sm ${catStyle.badge}`}
-        >
-          <CategoryIcon
-            category={job.category}
-            aria-hidden
-            className="w-2.5 h-2.5 shrink-0"
-            strokeWidth={2.25}
-          />
-          <span className="font-serif italic">{categoryLabels[job.category] || job.category}</span>
-          {/* Freshness lives in the category tab — a quiet burnt-sienna dot
-              + "New" — so it reads as metadata at the corner and never
-              competes with the job title for the eye. */}
-          {isNew && (
-            <span className="inline-flex items-center gap-1 ml-0.5" aria-label="New listing">
-              <span
-                aria-hidden
-                className="w-1.5 h-1.5 rounded-full animate-pulse"
-                style={{
-                  background: "hsl(var(--burnt-sienna))",
-                  boxShadow: "0 0 0 2px hsl(var(--burnt-sienna) / 0.22), 0 0 6px hsl(var(--burnt-sienna) / 0.55)",
-                }}
-              />
-              <span
-                className="font-sans font-bold uppercase not-italic"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.07em", fontSize: "8.5px" }}
-              >
-                New
+        <div className="absolute top-0 left-0 z-20 flex items-stretch gap-1">
+          <span
+            className={`inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-[10px] font-semibold leading-none shadow-sm ${catStyle.badge}`}
+          >
+            <CategoryIcon
+              category={job.category}
+              aria-hidden
+              className="w-2.5 h-2.5 shrink-0"
+              strokeWidth={2.25}
+            />
+            <span className="font-serif italic">{categoryLabels[job.category] || job.category}</span>
+            {/* Freshness lives in the category tab — a quiet burnt-sienna dot
+                + "New" — so it reads as metadata at the corner and never
+                competes with the job title for the eye. */}
+            {isNew && (
+              <span className="inline-flex items-center gap-1 ml-0.5" aria-label="New listing">
+                <span
+                  aria-hidden
+                  className="w-1.5 h-1.5 rounded-full animate-pulse"
+                  style={{
+                    background: "hsl(var(--burnt-sienna))",
+                    boxShadow: "0 0 0 2px hsl(var(--burnt-sienna) / 0.22), 0 0 6px hsl(var(--burnt-sienna) / 0.55)",
+                  }}
+                />
+                <span
+                  className="font-sans font-bold uppercase not-italic"
+                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.07em", fontSize: "8.5px" }}
+                >
+                  New
+                </span>
               </span>
+            )}
+          </span>
+          {/* Recommended — sits to the RIGHT of the category tab in the same
+              tab style (a relevance chip hanging from the top edge), instead of
+              an extra row above the title that pushed the title down. */}
+          {recommended && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-b-lg border-b border-r text-[10px] font-semibold leading-none shadow-sm pointer-events-none"
+              style={{
+                background: "hsl(var(--burnt-sienna) / 0.12)",
+                color: "hsl(var(--burnt-sienna))",
+                borderColor: "hsl(var(--burnt-sienna) / 0.20)",
+              }}
+            >
+              <Star
+                className="w-2.5 h-2.5 shrink-0"
+                strokeWidth={2}
+                style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }}
+              />
+              <span className="font-sans font-semibold leading-none">Recommended</span>
             </span>
           )}
-        </span>
+        </div>
         {/* Status corner — mirrors the category tab on the opposite
             (top-right) corner. Shows the single highest-priority signal as
             a clean accent instead of a cluster stacked over the price. */}

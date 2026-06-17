@@ -91,7 +91,12 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
             // `app-shell-scroll` marks the real scroll container so
             // MobileNav's scroll-shadow logic targets it (rather than
             // <main>, which is never itself a scroll surface).
-            scrollable ? "overflow-y-auto no-scrollbar app-shell-scroll" : "overflow-hidden",
+            // `overflow-x-hidden` is load-bearing: `overflow-y-auto` alone
+            // computes `overflow-x` to `auto`, so any edge-bleeding panel
+            // (e.g. the Browse map) lets the WHOLE page drag left/right.
+            // Pinning x to hidden clips that; inner horizontal scrollers
+            // (chip rows) keep their own nested `overflow-x-auto`.
+            scrollable ? "overflow-y-auto overflow-x-hidden no-scrollbar app-shell-scroll" : "overflow-hidden",
             contentClassName,
           )}
           style={{

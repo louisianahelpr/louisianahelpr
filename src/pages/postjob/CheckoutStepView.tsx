@@ -112,7 +112,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         preferredHelper={preferredHelper}
         sendToPreferred={form.sendToPreferred}
         onSendToPreferredChange={form.setSendToPreferred}
-        timeCreditsMinutes={form.timeCreditsApplied > 0 ? form.timeCreditsApplied : undefined}
       />
     </div>
   );

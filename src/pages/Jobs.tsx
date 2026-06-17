@@ -326,7 +326,7 @@ const Jobs = () => {
                         <JobCard
                           job={toEnrichedJob(job)}
                           variant="guest"
-                          effectiveFee={0}
+                          effectiveFee={10}
                           onApply={noop}
                           onReport={noop}
                           onSelect={noop}

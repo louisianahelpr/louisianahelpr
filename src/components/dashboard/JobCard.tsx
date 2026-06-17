@@ -33,11 +33,11 @@ interface JobCardProps {
   isSaved?: boolean;
   onToggleSave?: (jobId: string, saved: boolean) => void;
   /**
-   * Guest/read-only variant for the public Browse page. Hides helper-only
-   * affordances — the per-helpr "You earn" net-pay math (a guest has no
-   * fee tier yet) — and shows the gross budget with a persistent
-   * "Sign up to apply" CTA instead. The signed-in Dashboard leaves this
-   * unset, so its behaviour is unchanged.
+   * Guest/read-only variant for the public Browse page. Makes the card body
+   * inert and pins a persistent "Sign up to apply" CTA footer instead of a
+   * silent whole-card tap. Pricing still shows the helper-side net "You earn"
+   * take-home (driven by `effectiveFee`) — guests want to see what they'd
+   * pocket. The signed-in Dashboard leaves this unset (behaviour unchanged).
    */
   variant?: "default" | "guest";
   /**
@@ -153,7 +153,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   });
   // Show the gross posted budget (vs the helper's net take-home) whenever
   // the full guest variant is active OR the lighter guestPricing flag is set.
-  const showBudget = isGuest || guestPricing;
+  // Net "You earn" take-home is the default for guests too (they're shown an
+  // assumed fee tier via effectiveFee). Only the explicit `guestPricing` flag
+  // forces the gross "Budget" figure — `variant="guest"` no longer does, so a
+  // guest card can show take-home AND the "Sign up to apply" CTA together.
+  const showBudget = guestPricing;
   // Per-helpr split count for the shared JobPrice element. The net-take-home
   // math itself now lives in JobPrice (the single money component), so the
   // card and detail view can never disagree.

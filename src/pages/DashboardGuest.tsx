@@ -529,6 +529,7 @@ const DashboardGuest = () => {
                       <JobCard
                         key={job.id}
                         job={job}
+                        variant="guest"
                         effectiveFee={10}
                         currentUserId={undefined}
                         showApply

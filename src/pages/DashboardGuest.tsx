@@ -20,7 +20,8 @@ const PayoutTicker = lazy(() => import("@/components/landing/PayoutTicker"));
 const BrowseMap = lazy(() =>
   import("@/components/BrowseMap").then((m) => ({ default: m.BrowseMap })),
 );
-import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
+import { categoryLabels } from "@/components/dashboard/JobFilters";
+import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { queryKeys } from "@/lib/queryKeys";
@@ -390,40 +391,28 @@ const DashboardGuest = () => {
               </div>
             )}
 
-            {/* Expandable filters panel — full JobFilters component so
-                guests see the same Category + Budget + Location + Sort +
-                Expires-Within + Boosted controls as the authenticated
-                /dashboard. matchAvailability is hidden via hasAvailability=false
-                since guests have no helper-availability config. */}
-            {filtersOpen && view === "list" && (
-              <div
-                className="shrink-0 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-200"
-                data-allow-scroll="true"
-                style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)", maxHeight: "50vh" }}
-              >
-                <JobFilters
-                  searchQuery={search}
-                  setSearchQuery={setSearch}
-                  selectedCategory={selectedCategory}
-                  setSelectedCategory={setSelectedCategory}
-                  maxBudget={maxBudget}
-                  setMaxBudget={setMaxBudget}
-                  locationFilter={locationFilter}
-                  setLocationFilter={setLocationFilter}
-                  sortBy={sortBy}
-                  setSortBy={setSortBy}
-                  filtersOpen={true}
-                  setFiltersOpen={setFiltersOpen}
-                  expiresWithin={expiresWithin}
-                  setExpiresWithin={setExpiresWithin}
-                  matchAvailability={false}
-                  setMatchAvailability={() => {}}
-                  hasAvailability={false}
-                  boostedOnly={boostedOnly}
-                  setBoostedOnly={setBoostedOnly}
-                />
-              </div>
-            )}
+            {/* Unified filter bottom sheet — same presentation guests see
+                across the app. Renders the same Sort + Category + Location +
+                Budget + When + Boosted sections as the authenticated
+                /dashboard; the availability row is hidden (guests have no
+                helper-availability config). */}
+            <FilterSheet
+              open={filtersOpen && view === "list"}
+              onOpenChange={setFiltersOpen}
+              activeFilterCount={activeFilterCount}
+              onClearAll={clearAllFilters}
+              sections={buildJobFilterSections({
+                selectedCategory, setSelectedCategory,
+                maxBudget, setMaxBudget,
+                locationFilter, setLocationFilter,
+                sortBy, setSortBy,
+                expiresWithin, setExpiresWithin,
+                matchAvailability: false, setMatchAvailability: () => {},
+                hasAvailability: false,
+                boostedOnly, setBoostedOnly,
+                showAvailability: false,
+              })}
+            />
 
             {/* Active filter chip — shown only when a category is selected and
                 the filters panel is closed. Matches the authenticated Dashboard. */}

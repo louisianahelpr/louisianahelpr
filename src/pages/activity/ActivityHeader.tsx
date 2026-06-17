@@ -1,5 +1,5 @@
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { FilterSheet } from "@/components/dashboard/FilterSheet";
 import { hapticLight } from "@/lib/haptics";
 import type { StatusFilter } from "./activityFilters";
 import type { Tab } from "@/components/activity/activityConstants";
@@ -36,6 +36,11 @@ export function ActivityHeader({
   searchQuery,
   setSearchQuery,
 }: ActivityHeaderProps) {
+  // The "non-default" status that lights up the filter button + dot.
+  // Preserved verbatim from the prior dropdown so the active indicator
+  // behaves identically after the move to the bottom sheet.
+  const defaultStatus = tab === "applied" ? "pending" : "open";
+  const isStatusFiltered = statusFilter !== defaultStatus;
   return (
     <>
       {/* Header row — title + search/filter toggle buttons. The search
@@ -77,91 +82,84 @@ export function ActivityHeader({
               >
                 <Search className="w-4 h-4" />
               </button>
-              {/* Filter button — opens a dropdown of status options
-                  (Open · Direct Offer · In Progress · etc.). Mirrors the
-                  dashboard's filter pill behavior. */}
-              <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Filter by status"
-                    onClick={() => hapticLight()}
-                    className={`h-11 w-11 rounded-ds-md btn-press flex items-center justify-center relative transition ${
-                      filterOpen || statusFilter !== (tab === "applied" ? "pending" : "open")
-                        ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                    }`}
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                    {statusFilter !== (tab === "applied" ? "pending" : "open") && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[hsl(var(--bark))] ring-2 ring-background" />
-                    )}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  sideOffset={8}
-                  collisionPadding={{ bottom: 96, top: 12, left: 12, right: 12 }}
-                  className="w-[min(92vw,340px)] rounded-2xl squircle border border-border/40 ring-1 ring-border/20 shadow-2xl bg-background dark:bg-card p-0 overflow-hidden"
-                >
-                  <div
-                    className="max-h-[min(60vh,calc(100dvh-9rem))] overflow-y-auto overscroll-contain p-3"
-                    style={{
-                      WebkitMaskImage:
-                        "linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%)",
-                      maskImage:
-                        "linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%)",
-                    }}
-                  >
-                    <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-                      Filter by status
-                    </p>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {activeStatusFilters.map((f) => {
-                        const count = activeCounts[f.key] || 0;
-                        const isActive = statusFilter === f.key;
-                        return (
-                          <button
-                            key={f.key}
-                            onClick={() => { hapticLight(); setStatusFilter(f.key); setFilterOpen(false); }}
-                            className="inline-flex items-center justify-center gap-1.5 w-full px-2 h-9 rounded-ds-md squircle border text-ds-11 font-semibold tracking-tight transition-all btn-press active:scale-[0.98]"
-                            style={
-                              isActive
-                                ? {
-                                    background: "hsl(var(--bark))",
-                                    color: "hsl(var(--parchment))",
-                                    borderColor: "hsl(var(--bark))",
-                                    boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
-                                  }
-                                : {
-                                    background: "hsl(var(--background))",
-                                    color: "hsl(var(--ink-deep))",
-                                    borderColor: "hsl(var(--border) / 0.6)",
-                                  }
-                            }
-                          >
-                            <span className="truncate">{f.label}</span>
-                            {count > 0 && (
-                              <span
-                                className="text-ds-10 tabular-nums font-semibold shrink-0 px-1.5 py-[1px] rounded-ds-pill leading-none inline-flex items-center"
-                                style={
-                                  isActive
-                                    ? { background: "hsl(var(--parchment) / 0.18)", color: "hsl(var(--parchment))" }
-                                    : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.85)" }
-                                }
-                              >
-                                {count}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              {/* Filter button — opens the shared FilterSheet (a bottom
+                  sheet) with a single "Status" section. Same presentation as
+                  the Browse / Dashboard filters, instead of a bespoke
+                  dropdown. */}
+              <button
+                type="button"
+                aria-label="Filter by status"
+                aria-expanded={filterOpen}
+                onClick={() => { hapticLight(); setFilterOpen(true); }}
+                className={`h-11 w-11 rounded-ds-md btn-press flex items-center justify-center relative transition ${
+                  filterOpen || isStatusFiltered
+                    ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                }`}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                {isStatusFiltered && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[hsl(var(--bark))] ring-2 ring-background" />
+                )}
+              </button>
             </div>
       </div>
+
+      <FilterSheet
+        open={filterOpen}
+        onOpenChange={setFilterOpen}
+        activeFilterCount={isStatusFiltered ? 1 : 0}
+        onClearAll={() => setStatusFilter(defaultStatus)}
+        sections={[
+          {
+            key: "status",
+            title: "Filter by status",
+            content: (
+              <div className="grid grid-cols-2 gap-1.5">
+                {activeStatusFilters.map((f) => {
+                  const count = activeCounts[f.key] || 0;
+                  const isActive = statusFilter === f.key;
+                  return (
+                    <button
+                      key={f.key}
+                      onClick={() => { hapticLight(); setStatusFilter(f.key); setFilterOpen(false); }}
+                      className="inline-flex items-center justify-center gap-1.5 w-full px-2 h-9 rounded-ds-md squircle border text-ds-11 font-semibold tracking-tight transition-all btn-press active:scale-[0.98]"
+                      style={
+                        isActive
+                          ? {
+                              background: "hsl(var(--bark))",
+                              color: "hsl(var(--parchment))",
+                              borderColor: "hsl(var(--bark))",
+                              boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                            }
+                          : {
+                              background: "hsl(var(--background))",
+                              color: "hsl(var(--ink-deep))",
+                              borderColor: "hsl(var(--border) / 0.6)",
+                            }
+                      }
+                    >
+                      <span className="truncate">{f.label}</span>
+                      {count > 0 && (
+                        <span
+                          className="text-ds-10 tabular-nums font-semibold shrink-0 px-1.5 py-[1px] rounded-ds-pill leading-none inline-flex items-center"
+                          style={
+                            isActive
+                              ? { background: "hsl(var(--parchment) / 0.18)", color: "hsl(var(--parchment))" }
+                              : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.85)" }
+                          }
+                        >
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {/* Expandable search bar — drops down below the header row,
           matching the Dashboard search pattern. */}

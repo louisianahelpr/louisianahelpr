@@ -3,6 +3,7 @@ import {
   motion,
   useMotionValue,
   useTransform,
+  useDragControls,
   type PanInfo,
 } from "framer-motion";
 import { useLocation, useNavigate, useNavigationType } from "react-router-dom";
@@ -67,9 +68,19 @@ const PageTransition = ({ children }: PageTransitionProps) => {
   // Whether the active drag began inside the left edge zone. A drag that
   // starts mid-screen is left alone so horizontal content keeps its gestures.
   const fromEdge = useRef(false);
+  const dragControls = useDragControls();
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    fromEdge.current = e.clientX <= EDGE_ZONE_PX;
+    const atEdge = e.clientX <= EDGE_ZONE_PX;
+    fromEdge.current = atEdge;
+    // Only ARM the page drag for a true left-edge start. Paired with
+    // `dragListener={false}` below, framer won't translate the page on any
+    // other pointerdown — so dragging mid-screen content (the Leaflet map,
+    // carousels, sliders) can never slide the whole fixed app shell sideways.
+    // Framer's automatic drag listener ignored this: it dragged the page from
+    // anywhere and only gated the *navigation* on fromEdge, which is exactly
+    // why panning the Browse map dragged the entire app left/right.
+    if (atEdge) dragControls.start(e);
   };
 
   const handleDragEnd = (_e: unknown, info: PanInfo) => {
@@ -112,10 +123,14 @@ const PageTransition = ({ children }: PageTransitionProps) => {
         ease: [0.22, 1, 0.36, 1],
       }}
       onPointerDownCapture={handlePointerDown}
-      // Only horizontal drag; `dragDirectionLock` keeps a mostly-vertical
-      // scroll from being hijacked. `elastic: 0` past 0 so it can't be
-      // dragged off the right edge (forward nav isn't a drag gesture).
+      // Only horizontal drag, and ONLY when armed from the left edge via
+      // dragControls (see handlePointerDown). `dragListener={false}` stops
+      // framer from auto-starting a drag on every pointerdown, so mid-screen
+      // content (maps, carousels) keeps its own gestures and never drags the
+      // page. `dragDirectionLock` still keeps a mostly-vertical scroll free.
       drag="x"
+      dragListener={false}
+      dragControls={dragControls}
       dragDirectionLock
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={{ left: 0, right: 0.9 }}

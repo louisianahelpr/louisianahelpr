@@ -424,7 +424,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}
-        <div className="mt-2 flex items-center gap-x-2 gap-y-0.5 flex-wrap text-[10.5px] text-muted-foreground leading-tight">
+        <div className="mt-2 flex items-center gap-x-2 flex-nowrap overflow-hidden text-[10.5px] text-muted-foreground leading-tight">
             <span className="flex items-center gap-1 min-w-0">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
               <span className="truncate max-w-[110px] font-sans">{cityState}</span>

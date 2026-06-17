@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { X, Plus, CloudLightning, Truck, RefreshCw, Briefcase, PawPrint } from "lucide-react";
 import type { LifeEventTrigger } from "@/lib/lifeEventTriggers";
+import { useReducedMotion } from "@/lib/accessibility";
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Plus: <Plus className="w-5 h-5" strokeWidth={2.25} />,
@@ -24,6 +25,7 @@ interface Props {
  */
 export const LifeEventCard = ({ trigger, onDismiss }: Props) => {
   const navigate = useNavigate();
+  const reducedMotion = useReducedMotion();
 
   const handleDismiss = () => {
     try {
@@ -41,10 +43,10 @@ export const LifeEventCard = ({ trigger, onDismiss }: Props) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-      transition={{ duration: 0.28 }}
+      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+      animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      exit={reducedMotion ? { opacity: 0 } : { opacity: 0, height: 0, marginBottom: 0 }}
+      transition={{ duration: reducedMotion ? 0.15 : 0.28 }}
       className="shrink-0 mx-4 mb-1 rounded-ds-md px-3 py-3 flex items-center gap-3"
       style={{
         background:

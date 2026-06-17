@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useReducedMotion } from "@/lib/accessibility";
 import {
   Home,
   Send,
@@ -194,6 +195,7 @@ const rightItems = [
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const reducedMotion = useReducedMotion();
   const { user, profile, isLoading } = useCurrentUser();
   const isGuest = !isLoading && !user;
   // A pending user can browse/apply, but /post-job stays gated until
@@ -530,7 +532,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 "0 6px 14px -4px hsl(var(--olivewood) / 0.24), " +
                 "0 12px 22px -8px hsl(var(--olivewood) / 0.18)",
             }}
-            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
             aria-hidden
           />
         )}
@@ -582,7 +584,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               background: "hsl(var(--burnt-sienna))",
               boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.45)",
             }}
-            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
             aria-hidden
           />
         )}

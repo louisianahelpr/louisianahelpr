@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { X, Info, AlertTriangle, Megaphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { report } from "@/lib/errorLogger";
+import { useReducedMotion } from "@/lib/accessibility";
 
 interface Broadcast {
   id: string;
@@ -20,6 +21,7 @@ const typeStyles: Record<string, { bg: string; border: string; icon: React.React
 };
 
 const BroadcastBanner = () => {
+  const reducedMotion = useReducedMotion();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -75,10 +77,10 @@ const BroadcastBanner = () => {
         return (
           <motion.div
             key={b.id}
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={{ duration: reducedMotion ? 0.15 : 0.3 }}
             className={`rounded-ds-md border ${style.border} ${style.bg} px-4 py-3 relative`}
           >
             <button

@@ -545,7 +545,6 @@ export const PostedJobsTab = ({
       if (saved) notes[app.id] = saved;
     }
     setApplicantNotes(notes);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortedApplications.length]);
 
   const saveNote = useCallback((appId: string) => {
@@ -585,7 +584,7 @@ export const PostedJobsTab = ({
     } else {
       setApplicantSort("recommended");
     }
-  }, [expandedJobId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [expandedJobId]);
 
   // Aggregate stats for the at-a-glance summary strip — computed once
   // from the full (unfiltered) jobs array so the numbers reflect the

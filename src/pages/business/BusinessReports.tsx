@@ -233,7 +233,7 @@ const BusinessReports = () => {
 
       doc.save(`helpr-business-${monthSlug}.pdf`);
       hapticSuccess();
-    } catch (_err: any) {
+    } catch {
       hapticError();
       toast.error("Couldn't load report data");
     } finally {

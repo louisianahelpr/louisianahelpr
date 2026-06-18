@@ -48,7 +48,7 @@ export function TrustRow({
 
   if (completedJobs != null && completedJobs > 0) {
     chips.push(
-      <span key="jobs">{completedJobs} jobs done</span>,
+      <span key="jobs">{completedJobs} {completedJobs === 1 ? "job" : "jobs"} done</span>,
     );
   }
 

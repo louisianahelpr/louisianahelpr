@@ -9,6 +9,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
+import { formatCategory } from "@/lib/format";
 
 const YEAR = new Date().getFullYear();
 
@@ -228,7 +229,7 @@ const HelprWrapped = () => {
     }
     if (stats.topCategory) {
       statCards.push({
-        value: stats.topCategory.replace(/_/g, " "),
+        value: formatCategory(stats.topCategory),
         label: "top category",
       });
     }

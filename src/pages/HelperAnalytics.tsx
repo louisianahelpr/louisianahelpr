@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
+import { formatCategory } from "@/lib/format";
 
 // Helpers whose subscription tier gives access to analytics.
 const ANALYTICS_TIERS = new Set(["pro", "elite", "business"]);
@@ -132,7 +133,7 @@ async function fetchAnalytics(userId: string) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([cat, count]) => ({
-      label: cat.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      label: formatCategory(cat),
       count,
       pct: completedJobs.length > 0 ? Math.round((count / completedJobs.length) * 100) : 0,
     }));

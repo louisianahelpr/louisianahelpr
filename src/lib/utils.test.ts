@@ -17,10 +17,10 @@ describe("formatName", () => {
   });
 
   it("falls back to fallback when name is null/empty/whitespace", () => {
-    expect(formatName(null)).toBe("User");
-    expect(formatName(undefined)).toBe("User");
-    expect(formatName("")).toBe("User");
-    expect(formatName("   ")).toBe("User");
+    expect(formatName(null)).toBe("A neighbor");
+    expect(formatName(undefined)).toBe("A neighbor");
+    expect(formatName("")).toBe("A neighbor");
+    expect(formatName("   ")).toBe("A neighbor");
   });
 
   it("uses the custom fallback if provided", () => {

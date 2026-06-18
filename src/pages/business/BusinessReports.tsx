@@ -12,6 +12,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { FileText, Mail, Plus, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
+import { formatCategory } from "@/lib/format";
 import { toast } from "sonner";
 
 type JsPDFWithAutoTable = import("jspdf").jsPDF & { lastAutoTable?: { finalY: number } };
@@ -188,7 +189,7 @@ const BusinessReports = () => {
         autoTable(doc, {
           startY: nextY,
           head: [["Category", "Jobs"]],
-          body: topCategories.map(([cat, count]) => [cat.replace(/_/g, " "), count]),
+          body: topCategories.map(([cat, count]) => [formatCategory(cat), count]),
           styles: { fontSize: 9, cellPadding: 4 },
           headStyles: { fillColor: [139, 69, 19], textColor: [255, 255, 255], fontStyle: "bold" },
           margin: { left: 40, right: 40 },

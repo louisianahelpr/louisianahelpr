@@ -31,3 +31,17 @@ export function formatPrice(amount: number): string {
   const cents = Math.round(amount * 100);
   return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
 }
+
+/**
+ * Humanize a snake_case category slug for display: "yard_work" → "Yard work".
+ *
+ * Single source of truth so every surface that renders a category reads the
+ * same way (sentence case — first letter capitalized, the rest lowercased),
+ * instead of the mix of CSS `capitalize`, raw lowercase, and per-word
+ * Title Case that drifted across analytics/parish/wrapped/reports views.
+ */
+export function formatCategory(category: string): string {
+  const spaced = category.replace(/_/g, " ").trim();
+  if (spaced.length === 0) return spaced;
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+}

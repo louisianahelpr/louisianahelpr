@@ -242,7 +242,7 @@ const CommunityVoice = () => {
                 textDecorationThickness: "1px",
               }}
             >
-              Post your first request
+              Post your first task
               <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
             </button>
           </p>

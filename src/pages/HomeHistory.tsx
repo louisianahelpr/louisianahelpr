@@ -150,7 +150,7 @@ const HomeHistory = () => {
               </p>
             </div>
             <BarkPillButton onClick={() => navigate("/post-job")} className="mt-1">
-              Post your first job
+              Post your first task
             </BarkPillButton>
           </div>
         )}

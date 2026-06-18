@@ -103,7 +103,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
             {(job.posterCompletedJobs ?? 0) > 0 && (
               <>
                 {" "}<span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
-                {job.posterCompletedJobs} jobs
+                {job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}
               </>
             )}
             {cancellationRate != null && (

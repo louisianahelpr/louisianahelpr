@@ -408,7 +408,7 @@ const NotificationPanel = () => {
                 <CheckCheck className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
               </div>
               <div className="space-y-1.5">
-                <span className="text-display-eyebrow">All caught up</span>
+                <span className="text-display-eyebrow">All caught up.</span>
                 <p
                   className="font-display italic font-bold leading-tight"
                   style={{

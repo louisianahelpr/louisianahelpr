@@ -11,7 +11,7 @@ import { categoryLabels, categoryColors } from "@/components/activity/activityCo
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { getCity } from "@/lib/locationUtils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 import { haversineMiles } from "@/lib/geo";
 import { getParishCentroid } from "@/lib/parishCentroids";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
@@ -22,7 +22,8 @@ import { PhotoLightbox } from "./PhotoLightbox";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { report } from "@/lib/errorLogger";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
-import { JobPrice, formatAmount } from "./JobPrice";
+import { JobPrice } from "./JobPrice";
+import { formatPrice } from "@/lib/format";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -610,7 +611,7 @@ const JobDetailDialog = ({
               {
                 Icon: Calendar,
                 label: "Date",
-                value: dateValid ? dateNeeded.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—",
+                value: dateValid ? formatJobDate(job.date_needed) : "—",
                 sub: job.start_time || null,
                 href: calendarUrl,
                 urgent: false,
@@ -925,7 +926,7 @@ const JobDetailDialog = ({
                   className="font-display italic font-bold tabular-nums shrink-0"
                   style={{ fontSize: "0.95rem", letterSpacing: "-0.01em" }}
                 >
-                  · earn ${formatAmount(payout)}
+                  · earn ${formatPrice(payout)}
                 </span>
                 <ChevronRight
                   className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"

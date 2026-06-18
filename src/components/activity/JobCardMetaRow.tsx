@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { Calendar, Clock, MapPin, Timer } from "lucide-react";
 import { differenceInHours, formatDistanceToNow } from "date-fns";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { formatJobDate } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
 
 interface JobCardMetaRowProps {
@@ -42,11 +42,7 @@ export function JobCardMetaRow({
     <div className="flex items-center gap-2.5 flex-wrap text-ds-11 text-muted-foreground">
       <span className="flex items-center gap-1">
         <Calendar className="w-3 h-3 shrink-0" />
-        {parseLocalDate(dateNeeded).toLocaleDateString(undefined, {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        })}
+        {formatJobDate(dateNeeded)}
         {!startTime
           ? ` · ${flexibleLabel}`
           : ` · ${new Date(`2000-01-01T${startTime}`).toLocaleTimeString(undefined, {

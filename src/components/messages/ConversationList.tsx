@@ -422,7 +422,7 @@ export function ConversationList({
                 <div className="flex justify-center py-3">
                   <button
                     onClick={() => setShowAllConvos(true)}
-                    className="btn-press inline-flex items-center justify-center rounded-full px-4 py-1.5 text-ds-13 font-medium transition-colors"
+                    className="btn-press inline-flex items-center justify-center rounded-ds-md px-4 py-1.5 text-ds-13 font-medium transition-colors"
                     style={{
                       background: "hsl(var(--parchment) / 0.8)",
                       color: "hsl(var(--bark))",

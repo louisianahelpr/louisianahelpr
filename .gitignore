@@ -70,3 +70,9 @@ playwright-report/
 # The harness writes a rewritten copy of an edge function here, imports it,
 # then deletes it — this catches any left behind by an interrupted run.
 src/test/edge/*.gen.ts
+
+# Remember plugin working directory — per-machine session buffer, daily
+# notes, and tempfiles (e.g. .remember/tmp/last-ndc.ts). Previously only
+# globally-ignored on the maintainer's machine; pinning it here makes the
+# ignore portable so a fresh checkout doesn't accidentally track scratch.
+.remember/

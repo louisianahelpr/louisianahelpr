@@ -9,9 +9,13 @@ export default tseslint.config(
   // without this, `eslint .` lints a duplicate of the whole codebase per
   // worktree (slow) and reports `supabase/functions` errors the top-level
   // ignore can't match through the nested path.
+  // `.remember/**` excludes the remember plugin's per-machine working dir
+  // (session buffer, daily notes, .remember/tmp/last-ndc.ts) — eslint v9
+  // flat config doesn't auto-honor .gitignore, so the dir needs an
+  // explicit ignore here or local lint fails on plugin scratch.
   // `ios/**` excludes Xcode build products (build_sim/, DerivedData/) whose
   // bundled Capacitor native-bridge.js otherwise reds `eslint .` locally.
-  { ignores: ["dist", "build", "**/build/**", "ios/**", ".claude/**", "supabase/functions/**", "playwright-fixture.ts", "playwright.config.ts"] },
+  { ignores: ["dist", "build", "**/build/**", "ios/**", ".claude/**", ".remember/**", "supabase/functions/**", "playwright-fixture.ts", "playwright.config.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

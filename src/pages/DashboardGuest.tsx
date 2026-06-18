@@ -2,7 +2,7 @@ import { useEffect, useCallback, lazy, Suspense } from "react";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Briefcase } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -281,46 +281,91 @@ const DashboardGuest = () => {
                       <Skeleton key={i} className="h-40 w-full rounded-2xl" />
                     ))}
                   </div>
-                ) : filters.filteredJobs.length === 0 ? (
-                  // Empty / error state — a liquid-glass card that fills the
-                  // panel and bleeds beneath the dock (flat bottom, no hard
-                  // edge), matching the Dashboard / Messages pattern.
+                ) : filters.filteredJobs.length === 0 ? (() => {
+                  // Geo-aware empty copy mirrors the authed BrowseTasksFeed
+                  // (#690 parity): when "Near me" is active and coords
+                  // resolved, suggest a concrete wider radius rather than a
+                  // generic "widen your parish".
+                  const nearbyActive =
+                    filters.nearbyMiles !== null && filters.locationFilter.startsWith("nearby:");
+                  const currentMiles = filters.nearbyMiles ?? 0;
+                  const nextMiles =
+                    currentMiles < 5 ? 10 : currentMiles < 10 ? 25 : currentMiles < 25 ? 50 : 100;
+                  return (
                   <div className="flex-1 min-h-full flex">
                     {isError ? (
-                    // "Nearby" was misleading — the open_jobs_browse feed
-                    // isn't location-gated, and the failures we've seen here
-                    // are server-side (see PR #357 for the authed-Dashboard
-                    // version of the same fix). Use the same honest copy.
                     <ErrorState
                       title="We couldn't load jobs."
+                      body="Pull down to refresh, or tap Try again. If it sticks, our end is having a hiccup — not yours."
                       onRetry={() => refetch()}
                     />
                     ) : (
                     <EmptyState
-                      icon={Briefcase}
-                      eyebrow="All quiet — for now"
-                      title="Nothing today, neighbor."
-                      body="Try clearing filters or check back later — new tasks land throughout the day."
+                      icon={Search}
+                      eyebrow={
+                        filters.hasFilters
+                          ? nearbyActive
+                            ? "Nothing within range"
+                            : "No matches"
+                          : "All quiet — for now"
+                      }
+                      title={
+                        filters.hasFilters
+                          ? nearbyActive
+                            ? `No tasks within ${currentMiles} mi of you.`
+                            : "No jobs match your filters."
+                          : "Nothing today, neighbor."
+                      }
+                      body={
+                        filters.hasFilters
+                          ? nearbyActive
+                            ? `Try widening to ${nextMiles} mi, or clear the radius to see all open work across your parish.`
+                            : "Try widening your parish, raising your budget, or clearing a filter."
+                          : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
+                      }
                       action={
-                        filters.hasFilters && (
-                          <button
-                            type="button"
-                            onClick={filters.clearFilters}
-                            className="text-ds-11 font-semibold text-primary hover:underline btn-press"
-                          >
-                            Clear filters
-                          </button>
-                        )
+                        filters.hasFilters ? (
+                          nearbyActive ? (
+                            <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
+                              <button
+                                type="button"
+                                onClick={() => filters.setLocationFilter(`nearby:${nextMiles}`)}
+                                className="text-ds-11 font-semibold text-primary hover:underline btn-press"
+                              >
+                                Widen to {nextMiles} mi
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => filters.setLocationFilter("")}
+                                className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
+                              >
+                                Browse all parishes
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={filters.clearFilters}
+                              className="text-ds-11 font-semibold text-primary hover:underline btn-press"
+                            >
+                              Clear filters
+                            </button>
+                          )
+                        ) : undefined
                       }
                     />
                     )}
                   </div>
-                ) : (
+                  );
+                })() : (
                   <div
                     className="space-y-2.5 animate-in fade-in-0 duration-500"
                     style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
                   >
-                    {filters.filteredJobs.map((job, idx) => (
+                    {filters.filteredJobs
+                      .slice()
+                      .sort((a, b) => Number(b.is_urgent ?? false) - Number(a.is_urgent ?? false))
+                      .map((job, idx) => (
                       <JobCard
                         key={job.id}
                         job={job}

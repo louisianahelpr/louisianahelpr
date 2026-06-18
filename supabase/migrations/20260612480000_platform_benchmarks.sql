@@ -2,6 +2,11 @@
 -- Returns the last-90-day application acceptance rate and the overall
 -- average review rating across all published reviews.
 -- STABLE + SECURITY DEFINER: returns aggregate stats only, no row-level data.
+
+-- reviews.status was never added to the base schema; add it idempotently so
+-- the SQL function body below can reference it without failing on a fresh DB.
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'published';
+
 CREATE OR REPLACE FUNCTION get_platform_benchmarks()
 RETURNS TABLE(
   avg_application_success_rate integer,

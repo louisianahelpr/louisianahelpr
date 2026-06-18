@@ -25,7 +25,7 @@ AS $$
     COUNT(DISTINCT customer_id),
     ROUND(AVG(
       EXTRACT(EPOCH FROM (
-        SELECT MIN(ja.created_at) FROM job_applications ja WHERE ja.job_id = jobs.id
+        SELECT MIN(ja.created_at) FROM applications ja WHERE ja.job_id = jobs.id
       ) - jobs.created_at) / 60
     ) FILTER (WHERE status != 'open'), 0),
     COUNT(*) FILTER (WHERE status = 'completed' AND created_at >= date_trunc('month', now())),
@@ -33,4 +33,4 @@ AS $$
   FROM jobs;
 $$;
 
-GRANT EXECUTE ON FUNCTION get_platform_impact_stats TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_platform_impact_stats() TO anon, authenticated;

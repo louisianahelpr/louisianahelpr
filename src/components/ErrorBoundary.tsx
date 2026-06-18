@@ -161,7 +161,7 @@ class ErrorBoundary extends React.Component<Props, State> {
             </h3>
             <p
               className="font-serif italic leading-relaxed max-w-sm mx-auto"
-              style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.75)" }}
+              style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.80)" }}
             >
               {chunkError
                 ? "A newer version of the app was just released. Reload to pick it up."

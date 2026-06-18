@@ -21,7 +21,7 @@ const BuildStamp = () => (
     style={{
       fontSize: "0.65rem",
       letterSpacing: "0.08em",
-      color: "hsl(var(--olivewood) / 0.4)",
+      color: "hsl(var(--olivewood) / 0.80)",
       lineHeight: 1.4,
     }}
   >

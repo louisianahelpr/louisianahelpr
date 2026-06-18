@@ -83,7 +83,7 @@ export function PermissionRationaleDialog() {
           </AlertDialogTitle>
           <AlertDialogDescription
             className="font-serif italic mt-2 text-[0.92rem] leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.78)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.80)" }}
           >
             {copy.body}
           </AlertDialogDescription>

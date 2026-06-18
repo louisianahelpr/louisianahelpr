@@ -132,6 +132,8 @@ export function FilterSheet({
 interface JobFilterSectionsArgs {
   selectedCategory: string | null;
   setSelectedCategory: (v: string | null) => void;
+  minBudget: string;
+  setMinBudget: (v: string) => void;
   maxBudget: string;
   setMaxBudget: (v: string) => void;
   locationFilter: string;
@@ -200,6 +202,7 @@ function AvailabilityRow({
 export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheetSection[] {
   const {
     selectedCategory, setSelectedCategory,
+    minBudget, setMinBudget,
     maxBudget, setMaxBudget,
     locationFilter, setLocationFilter,
     sortBy, setSortBy,
@@ -240,8 +243,15 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     },
     {
       key: "budget",
-      title: "Max budget",
-      content: <BudgetContent maxBudget={maxBudget} setMaxBudget={setMaxBudget} />,
+      title: "Budget range",
+      content: (
+        <BudgetContent
+          minBudget={minBudget}
+          maxBudget={maxBudget}
+          setMinBudget={setMinBudget}
+          setMaxBudget={setMaxBudget}
+        />
+      ),
     },
     {
       key: "when",

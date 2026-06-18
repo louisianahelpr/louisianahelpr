@@ -45,6 +45,7 @@ interface UseDashboardFiltersOptions {
 export function useDashboardFilters({ allJobs, userId, profile, helprTier, helperAvailability }: UseDashboardFiltersOptions) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [minBudget, setMinBudget] = useState("");
   const [maxBudget, setMaxBudget] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [sortBy, setSortByRaw] = useState<string>(() => readPersistedSort());
@@ -61,12 +62,13 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
   const nearbyMiles = parseNearbyFilter(locationFilter);
   const userLoc = useUserLocation(nearbyMiles !== null);
 
-  const activeFilterCount = [selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : ""].filter(Boolean).length;
+  const activeFilterCount = [selectedCategory, minBudget, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0 || !!searchQuery;
 
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedCategory(null);
+    setMinBudget("");
     setMaxBudget("");
     setLocationFilter("");
     setExpiresWithin("");
@@ -106,6 +108,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         if (!job.title.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q)) return false;
       }
       if (selectedCategory && job.category !== selectedCategory) return false;
+      if (minBudget && job.budget < parseFloat(minBudget)) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
       if (nearbyMiles !== null) {
         const jLat = job.latitude;
@@ -194,7 +197,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, profile?.parish, profile?.location, smartIndexByJobId]);
+    }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, profile?.parish, profile?.location, smartIndexByJobId]);
 
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";
@@ -206,6 +209,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
   return {
     searchQuery, setSearchQuery,
     selectedCategory, setSelectedCategory,
+    minBudget, setMinBudget,
     maxBudget, setMaxBudget,
     locationFilter, setLocationFilter,
     sortBy, setSortBy,

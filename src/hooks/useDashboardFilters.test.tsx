@@ -111,6 +111,34 @@ describe("useDashboardFilters — base filter behaviors", () => {
     expect(ids).not.toContain("pricey");
   });
 
+  it("filters by minBudget — strictly greater-than-or-equal", () => {
+    const jobs = [
+      makeJob({ id: "cheap", budget: 30 }),
+      makeJob({ id: "mid", budget: 50 }),
+      makeJob({ id: "pricey", budget: 100 }),
+    ];
+    const { result } = setup(jobs);
+    act(() => result.current.setMinBudget("50"));
+    const ids = result.current.filteredJobs.map((j) => j.id);
+    expect(ids).not.toContain("cheap");
+    expect(ids).toContain("mid");
+    expect(ids).toContain("pricey");
+  });
+
+  it("filters by a min+max budget range together", () => {
+    const jobs = [
+      makeJob({ id: "cheap", budget: 30 }),
+      makeJob({ id: "mid", budget: 75 }),
+      makeJob({ id: "pricey", budget: 200 }),
+    ];
+    const { result } = setup(jobs);
+    act(() => {
+      result.current.setMinBudget("50");
+      result.current.setMaxBudget("100");
+    });
+    expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["mid"]);
+  });
+
   it("filters by selectedCategory exact match", () => {
     const jobs = [
       makeJob({ id: "yard", category: "yard_work" }),
@@ -345,12 +373,14 @@ describe("useDashboardFilters — activeFilterCount + clearFilters", () => {
     act(() => {
       result.current.setSearchQuery("foo");
       result.current.setSelectedCategory("cleaning");
+      result.current.setMinBudget("25");
       result.current.setMaxBudget("50");
       result.current.setBoostedOnly(true);
     });
     act(() => result.current.clearFilters());
     expect(result.current.searchQuery).toBe("");
     expect(result.current.selectedCategory).toBeNull();
+    expect(result.current.minBudget).toBe("");
     expect(result.current.maxBudget).toBe("");
     expect(result.current.boostedOnly).toBe(false);
     expect(result.current.activeFilterCount).toBe(0);

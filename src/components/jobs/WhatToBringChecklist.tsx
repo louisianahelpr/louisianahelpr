@@ -129,7 +129,7 @@ export function WhatToBringChecklist({ jobId, category }: WhatToBringChecklistPr
         <span className="flex items-center gap-1.5 shrink-0">
           <span
             className="tabular-nums text-ds-10"
-            style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.80)" }}
             aria-label={`${totalTicked} of ${items.length} packed`}
           >
             {totalTicked}/{items.length}
@@ -137,13 +137,13 @@ export function WhatToBringChecklist({ jobId, category }: WhatToBringChecklistPr
           {open ? (
             <ChevronUp
               className="w-3.5 h-3.5 shrink-0"
-              style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.80)" }}
               aria-hidden="true"
             />
           ) : (
             <ChevronDown
               className="w-3.5 h-3.5 shrink-0"
-              style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.80)" }}
               aria-hidden="true"
             />
           )}
@@ -181,7 +181,7 @@ export function WhatToBringChecklist({ jobId, category }: WhatToBringChecklistPr
           })}
           <li
             className="pt-1 text-ds-10 italic"
-            style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.80)" }}
           >
             Suggestions only — your call what to actually pack.
           </li>

@@ -702,7 +702,8 @@ function PostedJobCardInner({
                                       {/* Subtle arrow signals the row is tappable */}
                                       <ChevronRight
                                         className="w-3 h-3 shrink-0"
-                                        style={{ color: "hsl(var(--olivewood) / 0.45)" }}
+                                        style={{ color: "hsl(var(--olivewood) / 0.80)" }}
+                                        aria-hidden="true"
                                       />
                                       {(app as any).proposed_price != null && (
                                         <span

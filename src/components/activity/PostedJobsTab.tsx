@@ -816,7 +816,7 @@ export const PostedJobsTab = ({
               >
                 Applicants
               </h2>
-              <p className="text-ds-11 font-serif italic truncate" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-11 font-serif italic truncate" style={{ color: "hsl(var(--olivewood) / 0.80)" }}>
                 {selectedJob.title}
               </p>
             </div>
@@ -882,7 +882,7 @@ export const PostedJobsTab = ({
                     >
                       No one has applied yet
                     </p>
-                    <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                    <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.80)" }}>
                       Your job was just posted! Sharing it reaches more helprs nearby.
                     </p>
                   </div>
@@ -906,7 +906,7 @@ export const PostedJobsTab = ({
                           className="px-3 py-1.5 rounded-full text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
                           style={{
                             background: active ? "hsl(var(--bark) / 0.10)" : "hsla(0, 0%, 100%, 0.45)",
-                            color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.6)",
+                            color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.80)",
                             border: active
                               ? "0.5px solid hsl(var(--bark) / 0.3)"
                               : "0.5px solid hsl(var(--bark) / 0.12)",
@@ -934,7 +934,7 @@ export const PostedJobsTab = ({
                                 className="px-3 py-1.5 rounded-full text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
                                 style={{
                                   background: active ? "hsl(var(--heritage-gold) / 0.15)" : "hsl(var(--parchment) / 0.5)",
-                                  color: active ? "hsl(var(--heritage-gold))" : "hsl(var(--olivewood) / 0.7)",
+                                  color: active ? "hsl(var(--heritage-gold))" : "hsl(var(--olivewood) / 0.80)",
                                   border: active
                                     ? "1px solid hsl(var(--heritage-gold) / 0.4)"
                                     : "1px solid hsl(var(--olivewood) / 0.15)",
@@ -1085,9 +1085,9 @@ export const PostedJobsTab = ({
                                       className="w-3 h-3"
                                       style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }}
                                     />
-                                    <span className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                                    <span className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.80)" }}>
                                       {(app.avgRating ?? 0).toFixed(1)}{" "}
-                                      <span style={{ color: "hsl(var(--olivewood) / 0.55)" }}>({app.reviewCount})</span>
+                                      <span style={{ color: "hsl(var(--olivewood) / 0.80)" }}>({app.reviewCount})</span>
                                     </span>
                                   </span>
                                 )}
@@ -1096,7 +1096,7 @@ export const PostedJobsTab = ({
                               {visibleSignals.length > 0 && (
                                 <p
                                   className="font-serif italic mt-0.5 leading-snug"
-                                  style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.68)" }}
+                                  style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.80)" }}
                                 >
                                   {visibleSignals.join(" · ")}
                                 </p>
@@ -1148,7 +1148,7 @@ export const PostedJobsTab = ({
                                       className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans px-2 py-0.5 rounded-full"
                                       style={{
                                         background: "hsl(var(--olivewood) / 0.08)",
-                                        color: "hsl(var(--olivewood) / 0.6)",
+                                        color: "hsl(var(--olivewood) / 0.80)",
                                       }}
                                     >
                                       Counter declined

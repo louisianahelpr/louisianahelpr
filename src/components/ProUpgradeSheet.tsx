@@ -90,7 +90,7 @@ export function ProUpgradeSheet({
           </div>
           <p
             className="font-serif italic leading-relaxed"
-            style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.78)" }}
+            style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.80)" }}
           >
             {body}
           </p>

@@ -150,7 +150,7 @@ export function ShareJobButton({
           backdropFilter: "blur(20px) saturate(150%)",
           WebkitBackdropFilter: "blur(20px) saturate(150%)",
           border: "0.5px solid hsla(0, 0%, 100%, 0.4)",
-          color: "hsl(var(--olivewood) / 0.6)",
+          color: "hsl(var(--olivewood) / 0.80)",
           boxShadow:
             "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04)",
           transition: "all 0.2s ease, box-shadow 0.3s ease",

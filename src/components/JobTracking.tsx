@@ -363,7 +363,7 @@ export function JobTracking({
                           }
                         : isActive
                           ? { background: "hsl(var(--bark) / 0.18)", color: "hsl(var(--bark))" }
-                          : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.55)" }
+                          : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.80)" }
                     }
                   >
                     <Icon className="w-4 h-4" />
@@ -375,7 +375,7 @@ export function JobTracking({
                         ? "hsl(var(--bark))"
                         : isActive
                           ? "hsl(var(--ink-deep))"
-                          : "hsl(var(--olivewood) / 0.6)",
+                          : "hsl(var(--olivewood) / 0.80)",
                     }}
                   >
                     {s.label}

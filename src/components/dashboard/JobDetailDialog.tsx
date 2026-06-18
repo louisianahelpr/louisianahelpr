@@ -17,11 +17,13 @@ import { getParishCentroid } from "@/lib/parishCentroids";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import type { EnrichedJob } from "./types";
 import { JobPosterCard } from "./JobPosterCard";
+import { IconActionButton } from "./IconActionButton";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { report } from "@/lib/errorLogger";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { JobPrice } from "./JobPrice";
+import { formatPrice } from "@/lib/format";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -717,8 +719,32 @@ const JobDetailDialog = ({
             - **Not yet applied** — the original "X applied — you'd be
               #(X+1) in line" sienna nudge. Only renders when there's
               at least one existing applicant, so fresh posts don't
-              fire the urgency tone for nothing. */}
-        {viewerAppPosition !== null && applicationCount !== null && (
+              fire the urgency tone for nothing.
+
+            While `applicationCount` is still loading (null), reserve the
+            banner's height with a quiet pulsing skeleton row so the footer
+            buttons below don't jump down when the count resolves on a slow
+            network. The skeleton matches the real banner's px-3 py-2 box so
+            the swap is zero-shift. */}
+        {applicationCount === null ? (
+          <div
+            aria-hidden
+            className="rounded-ds-md px-3 py-2 flex items-center gap-2 animate-pulse"
+            style={{
+              background: "hsl(var(--olivewood) / 0.05)",
+              border: "0.5px solid hsl(var(--olivewood) / 0.10)",
+            }}
+          >
+            <span
+              className="w-3.5 h-3.5 shrink-0 rounded-full"
+              style={{ background: "hsl(var(--olivewood) / 0.14)" }}
+            />
+            <span
+              className="h-3 rounded-full w-2/3"
+              style={{ background: "hsl(var(--olivewood) / 0.12)" }}
+            />
+          </div>
+        ) : viewerAppPosition !== null && (
           <div
             className="rounded-ds-md px-3 py-2 flex items-center gap-2"
             style={{
@@ -763,64 +789,36 @@ const JobDetailDialog = ({
             Each secondary icon button gets a hover-scale + glow ring effect
             so they feel tactile rather than static. */}
         <div className="flex gap-1.5 pt-0.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Report this job"
-            className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+          <IconActionButton
+            ariaLabel="Report this job"
             onClick={() => { onReport(job.id); onClose(); }}
-            style={{
-              backgroundColor: "var(--glass-bg-soft)",
-              backdropFilter: "blur(20px) saturate(150%)",
-              WebkitBackdropFilter: "blur(20px) saturate(150%)",
-              border: "0.5px solid var(--glass-border)",
-              color: "hsl(var(--olivewood) / 0.6)",
-              boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04), 0 0 0 0 hsl(var(--burnt-sienna) / 0.0)",
-              transition: "all 0.2s ease, box-shadow 0.3s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 4px 12px -2px hsl(var(--burnt-sienna) / 0.20), 0 0 0 3px hsl(var(--burnt-sienna) / 0.08)";
-              e.currentTarget.style.color = "hsl(var(--burnt-sienna) / 0.85)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04), 0 0 0 0 hsl(var(--burnt-sienna) / 0.0)";
-              e.currentTarget.style.color = "hsl(var(--olivewood) / 0.6)";
-            }}
-          >
-            {/* Flag waves on hover — subtle counter-clockwise tilt */}
-            <Flag className="w-4 h-4 transition-transform duration-300 group-hover:-rotate-12 group-active:rotate-0" />
-          </Button>
+            hoverGlow="inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 4px 12px -2px hsl(var(--burnt-sienna) / 0.20), 0 0 0 3px hsl(var(--burnt-sienna) / 0.08)"
+            hoverColor="hsl(var(--burnt-sienna) / 0.85)"
+            icon={
+              /* Flag waves on hover — subtle counter-clockwise tilt */
+              <Flag className="w-4 h-4 transition-transform duration-300 group-hover:-rotate-12 group-active:rotate-0" />
+            }
+          />
           {onToggleSave && (
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={isSaved ? "Unsave job" : "Save job"}
-              aria-pressed={isSaved}
-              className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+            <IconActionButton
+              ariaLabel={isSaved ? "Unsave job" : "Save job"}
+              ariaPressed={isSaved}
               onClick={() => onToggleSave(job.id, !isSaved)}
-              style={{
-                backgroundColor: isSaved ? "hsl(var(--primary) / 0.12)" : "var(--glass-bg-soft)",
-                backdropFilter: "blur(20px) saturate(150%)",
-                WebkitBackdropFilter: "blur(20px) saturate(150%)",
-                border: isSaved ? "0.5px solid hsl(var(--primary) / 0.4)" : "0.5px solid var(--glass-border)",
-                color: isSaved ? "hsl(var(--primary))" : "hsl(var(--olivewood) / 0.6)",
-                boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04)",
-                transition: "all 0.2s ease, box-shadow 0.3s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 4px 12px -2px hsl(var(--primary) / 0.22), 0 0 0 3px hsl(var(--primary) / 0.10)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04)";
-              }}
-            >
-              {/* Bookmark lifts on hover, pops on toggle */}
-              <Bookmark
-                className={`w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
-                key={String(isSaved)}
-                strokeWidth={2}
-              />
-            </Button>
+              pressed={isSaved}
+              pressedBackground="hsl(var(--primary) / 0.12)"
+              pressedBorder="0.5px solid hsl(var(--primary) / 0.4)"
+              pressedColor="hsl(var(--primary))"
+              hoverGlow="inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 4px 12px -2px hsl(var(--primary) / 0.22), 0 0 0 3px hsl(var(--primary) / 0.10)"
+              hoverColor="hsl(var(--primary))"
+              icon={
+                /* Bookmark lifts on hover, pops on toggle */
+                <Bookmark
+                  className={`w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
+                  key={String(isSaved)}
+                  strokeWidth={2}
+                />
+              }
+            />
           )}
           {/* Share — helpers forward great jobs to neighbours / friends.
               Hidden for the poster (they already own it). Matches the
@@ -832,33 +830,27 @@ const JobDetailDialog = ({
               ariaLabel="Share this job"
             />
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Ask a question"
-            className="group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+          {/* Message the poster — gated to people with a real reason to
+              reach them: the poster themselves, a helper who's been offered
+              or hired onto the job, OR a helper who has already applied
+              (they may have a genuine question — "is the gate code needed?").
+              A helper just browsing can't DM cold, so posters aren't flooded.
+              The backend poster-first rule still governs the actual send. */}
+          {(viewerUserId === job.customer_id ||
+            viewerUserId === (job as { offered_to_helper_id?: string | null }).offered_to_helper_id ||
+            viewerUserId === (job as { helper_id?: string | null }).helper_id ||
+            viewerAppPosition != null) && (
+          <IconActionButton
+            ariaLabel="Ask a question"
             onClick={handleAskQuestion}
-            style={{
-              backgroundColor: "var(--glass-bg-soft)",
-              backdropFilter: "blur(20px) saturate(150%)",
-              WebkitBackdropFilter: "blur(20px) saturate(150%)",
-              border: "0.5px solid var(--glass-border)",
-              color: "hsl(var(--olivewood) / 0.6)",
-              boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04)",
-              transition: "all 0.2s ease, box-shadow 0.3s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 4px 12px -2px hsl(var(--bark) / 0.22), 0 0 0 3px hsl(var(--bark) / 0.08)";
-              e.currentTarget.style.color = "hsl(var(--bark))";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04)";
-              e.currentTarget.style.color = "hsl(var(--olivewood) / 0.6)";
-            }}
-          >
-            {/* Message glides forward on hover — like sending */}
-            <MessageSquare className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-          </Button>
+            hoverGlow="inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 4px 12px -2px hsl(var(--bark) / 0.22), 0 0 0 3px hsl(var(--bark) / 0.08)"
+            hoverColor="hsl(var(--bark))"
+            icon={
+              /* Message glides forward on hover — like sending */
+              <MessageSquare className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            }
+          />
+          )}
           {/* Apply gate — when the job requires a credential tier and the
               viewer's tier is below that threshold, replace the Apply button
               with a locked state that routes them to /profile to get verified.
@@ -934,7 +926,7 @@ const JobDetailDialog = ({
                   className="font-display italic font-bold tabular-nums shrink-0"
                   style={{ fontSize: "0.95rem", letterSpacing: "-0.01em" }}
                 >
-                  · earn ${payout.toFixed(0)}
+                  · earn ${formatPrice(payout)}
                 </span>
                 <ChevronRight
                   className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"

@@ -323,7 +323,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="p-2 rounded-ds-sm hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-ds-sm hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Earnings settings"
             >
               <Settings className="w-5 h-5" />
@@ -480,15 +480,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <div className="rounded-2xl liquid-glass p-5 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <div className="h-3 w-20 rounded bg-muted/40 animate-pulse" />
-                <div className="h-7 w-24 rounded bg-muted/40 animate-pulse" />
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-7 w-24 rounded" />
               </div>
               <div className="space-y-2">
-                <div className="h-3 w-20 rounded bg-muted/40 animate-pulse" />
-                <div className="h-7 w-24 rounded bg-muted/40 animate-pulse" />
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-7 w-24 rounded" />
               </div>
             </div>
-            <div className="h-9 w-full rounded-md bg-muted/30 animate-pulse" />
+            <Skeleton className="h-9 w-full rounded-md" />
           </div>
         ) : !stripeData?.connected ? (
           <div className="rounded-2xl liquid-glass p-5 space-y-3">
@@ -529,7 +529,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-1 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                 aria-label="Refresh"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />

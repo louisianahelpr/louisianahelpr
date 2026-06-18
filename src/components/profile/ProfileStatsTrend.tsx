@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronDown } from "lucide-react";
 
@@ -197,7 +198,7 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
           >
             {isLoading ? (
               <div className="h-[120px] flex items-center justify-center">
-                <div className="h-3 w-32 rounded bg-muted/40 animate-pulse" />
+                <Skeleton className="h-3 w-32 rounded" />
               </div>
             ) : data.every((d) => d.jobs === 0 && d.earned === 0) ? (
               <p

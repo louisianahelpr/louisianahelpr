@@ -45,25 +45,30 @@ const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | nu
   // render the admin Shield button, and gating it meant the button was
   // permanently invisible on every other page, so admins had no way to
   // *reach* /admin in the first place.
-  const [profileRes, rolesRes] = await Promise.all([
-    withTimeout(
-      Promise.resolve(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(({ data, error }) => {
-        if (error) throw error;
-        return { data: data ?? null };
-      }),
-    ),
-    withTimeout(
-      Promise.resolve(supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle()).then(({ data, error }) => {
-        if (error) throw error;
-        return { data: data ?? null };
-      }),
-    ),
-  ]);
+  // The profile lookup is essential — if it fails, the caller SHOULD see an
+  // error (ProtectedRoute renders the retry card). It throws on error.
+  const profilePromise = withTimeout(
+    Promise.resolve(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(({ data, error }) => {
+      if (error) throw error;
+      return data ?? null;
+    }),
+  );
 
-  return {
-    profile: profileRes.data,
-    isAdmin: !!rolesRes.data,
-  };
+  // The admin-role lookup must NEVER block the profile. It was previously in
+  // the same `Promise.all`, so a `user_roles` RLS/permission/timeout failure
+  // rejected the whole fetch and blanked the ENTIRE account screen with the
+  // "We couldn't load this" card — even though the profile row was fine.
+  // Fail-open to non-admin instead: catch its own error and resolve `false`.
+  const isAdminPromise = withTimeout(
+    Promise.resolve(supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle()).then(({ data, error }) => {
+      if (error) throw error;
+      return !!data;
+    }),
+  ).catch(() => false);
+
+  const [profile, isAdmin] = await Promise.all([profilePromise, isAdminPromise]);
+
+  return { profile, isAdmin };
 };
 
 export const useCurrentUser = (): CurrentUser => {

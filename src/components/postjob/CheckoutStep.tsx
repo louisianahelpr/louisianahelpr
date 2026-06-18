@@ -5,8 +5,6 @@ import {
   ImagePlus,
   MapPin,
   Calendar,
-  Clock,
-  Briefcase,
   Repeat,
   Zap,
   CreditCard,
@@ -218,13 +216,15 @@ export function CheckoutStep({
             </div>
           </div>
 
-          {/* Location */}
+          {/* Location — full street address (the poster's own job, so
+              showing the complete address once at checkout is fine). */}
           <div className="px-4 py-3 flex items-start gap-3">
             <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
               <MapPin className="w-3 h-3" />Location
             </span>
             <p className="flex-1 text-ds-11 text-foreground text-right">
-              {city}{parish ? `, ${parish} Parish` : addrState ? `, ${addrState}` : ""}
+              {[streetAddress, city, addrState, zipCode].filter(Boolean).join(", ")}
+              {parish ? ` · ${parish} Parish` : ""}
             </p>
           </div>
 
@@ -237,6 +237,20 @@ export function CheckoutStep({
               <p className="flex-1 text-ds-11 text-foreground text-right">
                 {new Date(dateNeeded + "T00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                 {isFlexibleSchedule ? " · Flexible" : startTime ? ` · ${startTime}` : ""}
+                {estimatedHours ? ` · ${estimatedHours}h est.` : ""}
+              </p>
+            </div>
+          )}
+
+          {/* Recurring schedule */}
+          {isRecurring && (
+            <div className="px-4 py-3 flex items-start gap-3">
+              <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
+                <Repeat className="w-3 h-3" />Repeats
+              </span>
+              <p className="flex-1 text-ds-11 text-foreground text-right capitalize">
+                {recurrenceInterval}
+                {recurrenceEndDate ? ` until ${new Date(recurrenceEndDate + "T00:00").toLocaleDateString()}` : ""}
               </p>
             </div>
           )}
@@ -291,17 +305,6 @@ export function CheckoutStep({
             </div>
           )}
         </div>
-
-        {/* Edit link */}
-        <div className="px-4 py-2.5 border-t border-border">
-          <button
-            onClick={onEdit}
-            className="text-ds-11 underline-offset-2 hover:underline"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            Go back to edit
-          </button>
-        </div>
       </div>
 
       {/* Two-sided liquidity signal — a quiet confidence cue that the
@@ -330,70 +333,6 @@ export function CheckoutStep({
           </p>
         </div>
       )}
-
-      {/* Task Details Card */}
-      <div className="rounded-2xl liquid-glass overflow-hidden">
-        <div className="p-5 space-y-3">
-          <div>
-            <h2 className="font-display font-bold text-foreground text-ds-15">{title}</h2>
-            <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-ds-11 font-medium">
-              {categoryLabel}
-            </span>
-          </div>
-          <p className="text-ds-11 text-muted-foreground">{description}</p>
-
-          {/* Photos */}
-          {imagePreviews.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {imagePreviews.map((src, i) =>
-                isSafeBlobPreviewUrl(src) ? (
-                  <img loading="lazy" decoding="async" key={i} src={src} alt="" className="w-16 h-12 rounded-ds-sm object-cover border border-border" />
-                ) : (
-                  <div key={i} className="w-16 h-12 rounded-ds-sm border border-border bg-muted/40 flex items-center justify-center">
-                    <ImagePlus className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                ),
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <div className="flex items-center gap-2 text-ds-11 text-muted-foreground">
-              <MapPin className="w-4 h-4 text-primary shrink-0" />
-              <span>{`${streetAddress}, ${city}, ${addrState} ${zipCode}`}</span>
-            </div>
-            <div className="flex items-center gap-2 text-ds-11 text-muted-foreground">
-              <Calendar className="w-4 h-4 text-primary shrink-0" />
-              <span>{new Date(dateNeeded + "T00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}{isFlexibleSchedule ? " (flexible)" : ""}</span>
-            </div>
-            {startTime && (
-              <div className="flex items-center gap-2 text-ds-11 text-muted-foreground">
-                <Clock className="w-4 h-4 text-primary shrink-0" />
-                <span>{startTime}{isFlexibleSchedule ? " (flexible)" : ""}</span>
-              </div>
-            )}
-            {estimatedHours && (
-              <div className="flex items-center gap-2 text-ds-11 text-muted-foreground">
-                <Briefcase className="w-4 h-4 text-primary shrink-0" />
-                <span>{estimatedHours}h estimated</span>
-              </div>
-            )}
-          </div>
-
-           {specialRequirements && (
-            <div className="rounded-ds-sm bg-secondary/30 p-3 mt-2">
-              <p className="text-ds-11 text-muted-foreground font-medium mb-1">Special Requirements</p>
-              <p className="text-ds-13 text-foreground">{specialRequirements}</p>
-            </div>
-          )}
-          {isRecurring && (
-            <div className="rounded-ds-sm bg-primary/5 p-3 mt-2">
-              <p className="text-ds-11 text-primary font-medium mb-1 flex items-center gap-1"><Repeat className="w-3 h-3" /> Recurring Task</p>
-              <p className="text-ds-13 text-foreground capitalize">{recurrenceInterval}{recurrenceEndDate ? ` until ${new Date(recurrenceEndDate + "T00:00").toLocaleDateString()}` : ""}</p>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Payment Breakdown Card */}
       <div className="rounded-2xl liquid-glass overflow-hidden">

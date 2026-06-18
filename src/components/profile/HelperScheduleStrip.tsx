@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -158,12 +159,12 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
         data-testid="helper-schedule-strip-skeleton"
         className="rounded-2xl liquid-glass p-4 space-y-3"
       >
-        <div className="h-3 w-32 rounded bg-muted/40 animate-pulse" />
+        <Skeleton className="h-3 w-32 rounded" />
         <div className="flex gap-2 overflow-x-auto">
           {Array.from({ length: 7 }).map((_, i) => (
-            <div
+            <Skeleton
               key={i}
-              className="h-24 w-20 shrink-0 rounded-ds-md bg-muted/30 animate-pulse"
+              className="h-24 w-20 shrink-0 rounded-ds-md"
             />
           ))}
         </div>

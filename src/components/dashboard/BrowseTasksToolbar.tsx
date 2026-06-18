@@ -4,7 +4,8 @@ import type { User as SupaUser } from "@supabase/supabase-js";
 import { Clock, MapPin, Search, SlidersHorizontal, X, List, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedSearches } from "@/components/SavedSearches";
-import JobFilters, { categoryLabels } from "@/components/dashboard/JobFilters";
+import { categoryLabels } from "@/components/dashboard/JobFilters";
+import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { hapticLight } from "@/lib/haptics";
@@ -29,6 +30,16 @@ const POPULAR_SEARCHES = [
   "Delivery",
   "Pet Care",
 ] as const;
+
+// Compact label for the active budget-range chip. Either bound can be
+// unset ("" = no floor / no cap), so render whichever side is present:
+//   min only → "$50+", max only → "≤ $250", both → "$50 – $250".
+function budgetChipLabel(minBudget: string, maxBudget: string): string {
+  if (minBudget && maxBudget) return `$${minBudget} – $${maxBudget}`;
+  if (minBudget) return `$${minBudget}+`;
+  if (maxBudget) return `≤ $${maxBudget}`;
+  return "Budget";
+}
 
 // Re-export so consumers can import from a single location.
 export type { FeedDensity };
@@ -275,12 +286,12 @@ export function BrowseTasksToolbar({
       ariaLabel: `Clear location filter (${locationFilterText} selected)`,
     });
   }
-  if (filters.maxBudget) {
+  if (filters.minBudget || filters.maxBudget) {
     recapChips.push({
       key: "budget",
-      label: <>{`≤ $${filters.maxBudget}`}</>,
-      onClear: () => filters.setMaxBudget(""),
-      ariaLabel: `Clear max budget filter (up to $${filters.maxBudget})`,
+      label: <>{budgetChipLabel(filters.minBudget, filters.maxBudget)}</>,
+      onClear: () => { filters.setMinBudget(""); filters.setMaxBudget(""); },
+      ariaLabel: `Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`,
     });
   }
   if (filters.expiresWithin) {
@@ -576,35 +587,32 @@ export function BrowseTasksToolbar({
         )}
       </AnimatePresence>
 
-      {/* Expandable filters panel — capped at 50vh so it doesn't
-          push the job list off screen on small phones. The panel
-          scrolls internally if its content is taller than the cap. */}
-      <AnimatePresence>
-        {filters.filtersOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="overflow-hidden border-b border-border/30"
-          >
-            <JobFilters
-              searchQuery={filters.searchQuery} setSearchQuery={filters.setSearchQuery}
-              selectedCategory={filters.selectedCategory} setSelectedCategory={filters.setSelectedCategory}
-              maxBudget={filters.maxBudget} setMaxBudget={filters.setMaxBudget}
-              locationFilter={filters.locationFilter} setLocationFilter={filters.setLocationFilter}
-              sortBy={filters.sortBy} setSortBy={filters.setSortBy}
-              filtersOpen={true} setFiltersOpen={filters.setFiltersOpen}
-              expiresWithin={filters.expiresWithin} setExpiresWithin={filters.setExpiresWithin}
-              matchAvailability={filters.matchAvailability} setMatchAvailability={filters.setMatchAvailability}
-              hasAvailability={helperAvailability.length > 0}
-              boostedOnly={filters.boostedOnly} setBoostedOnly={filters.setBoostedOnly}
-              userLocStatus={filters.userLoc?.status}
-              userLocMessage={filters.userLoc?.status === "error" ? filters.userLoc.message : undefined}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Unified filter bottom sheet — the SlidersHorizontal button above
+          toggles `filtersOpen`, which opens this sheet with all the filter
+          controls stacked as vertical sections. Same presentation as every
+          other surface (Activity, Guest). */}
+      <FilterSheet
+        open={filters.filtersOpen}
+        onOpenChange={filters.setFiltersOpen}
+        activeFilterCount={filters.activeFilterCount}
+        onClearAll={() => {
+          filters.clearFilters();
+          onClearAllFilters?.();
+        }}
+        sections={buildJobFilterSections({
+          selectedCategory: filters.selectedCategory, setSelectedCategory: filters.setSelectedCategory,
+          minBudget: filters.minBudget, setMinBudget: filters.setMinBudget,
+          maxBudget: filters.maxBudget, setMaxBudget: filters.setMaxBudget,
+          locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
+          sortBy: filters.sortBy, setSortBy: filters.setSortBy,
+          expiresWithin: filters.expiresWithin, setExpiresWithin: filters.setExpiresWithin,
+          matchAvailability: filters.matchAvailability, setMatchAvailability: filters.setMatchAvailability,
+          hasAvailability: helperAvailability.length > 0,
+          boostedOnly: filters.boostedOnly, setBoostedOnly: filters.setBoostedOnly,
+          userLocStatus: filters.userLoc?.status,
+          userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
+        })}
+      />
 
       {/* Active filter chips — each wrapped in SwipeableFilterChip so a
           leftward drag removes the chip's filter with no confirm step.
@@ -612,7 +620,7 @@ export function BrowseTasksToolbar({
           scrolls the feed back to the top (via onClearAllFilters), so
           the user lands on a clean unfiltered top-of-feed instead of
           mid-list. */}
-      {!filters.filtersOpen && (filters.selectedCategory || filters.locationFilter || filters.maxBudget || filters.expiresWithin || filters.matchAvailability) && (
+      {!filters.filtersOpen && (filters.selectedCategory || filters.locationFilter || filters.minBudget || filters.maxBudget || filters.expiresWithin || filters.matchAvailability) && (
         <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30" aria-label="Active filters">
           {filters.selectedCategory && (
             <SwipeableFilterChip
@@ -635,13 +643,13 @@ export function BrowseTasksToolbar({
               <button onClick={() => filters.setLocationFilter("")} aria-label={`Clear location filter (${locationFilterText} selected)`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </SwipeableFilterChip>
           )}
-          {filters.maxBudget && (
+          {(filters.minBudget || filters.maxBudget) && (
             <SwipeableFilterChip
-              onClear={() => filters.setMaxBudget("")}
-              ariaLabel={`Clear max budget filter (up to $${filters.maxBudget})`}
+              onClear={() => { filters.setMinBudget(""); filters.setMaxBudget(""); }}
+              ariaLabel={`Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`}
             >
-              ≤ ${filters.maxBudget}
-              <button onClick={() => filters.setMaxBudget("")} aria-label={`Clear max budget filter (up to $${filters.maxBudget})`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              {budgetChipLabel(filters.minBudget, filters.maxBudget)}
+              <button onClick={() => { filters.setMinBudget(""); filters.setMaxBudget(""); }} aria-label={`Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </SwipeableFilterChip>
           )}
           {filters.expiresWithin && (

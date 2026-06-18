@@ -119,7 +119,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus 
           <Button
             key={m}
             size="sm"
-            className="shrink-0 text-ds-11 h-7 px-3 rounded-full"
+            className="shrink-0 text-ds-11 min-h-[44px] px-3 rounded-full"
             onClick={() => pickEnRoute(m)}
           >
             {m} min
@@ -128,7 +128,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus 
         <Button
           variant="ghost"
           size="sm"
-          className="shrink-0 text-ds-11 h-7 px-2 rounded-full"
+          className="shrink-0 text-ds-11 min-h-[44px] min-w-[44px] px-2 rounded-full"
           onClick={() => setShowEta(false)}
           aria-label="Cancel"
         >
@@ -149,7 +149,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus 
         <Button
           key={`smart-${qr.label}`}
           size="sm"
-          className="shrink-0 text-ds-11 h-7 px-2.5 gap-1 rounded-full"
+          className="shrink-0 text-ds-11 min-h-[44px] px-2.5 gap-1 rounded-full"
           style={{
             background: "hsl(var(--gold-warm) / 0.22)",
             border: "1px solid hsl(var(--gold-warm) / 0.55)",
@@ -167,7 +167,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus 
       {showEnRoute && (
         <Button
           size="sm"
-          className="shrink-0 text-ds-11 h-7 px-2.5 gap-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+          className="shrink-0 text-ds-11 min-h-[44px] px-2.5 gap-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
           onClick={() => setShowEta(true)}
         >
           <Navigation className="w-3 h-3" />
@@ -179,7 +179,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus 
           key={qr.label}
           variant="outline"
           size="sm"
-          className="shrink-0 text-ds-11 h-7 px-2.5 gap-1 rounded-full"
+          className="shrink-0 text-ds-11 min-h-[44px] px-2.5 gap-1 rounded-full"
           onClick={() => handlePick(qr)}
         >
           <qr.icon className="w-3 h-3" />

@@ -23,7 +23,7 @@ export function BarkPillButton({ className, ...props }: ComponentProps<typeof Bu
       // card. On wider screens the label fits in one row anyway, so the
       // visual is unchanged at >=375w.
       className={cn(
-        "rounded-full px-6 h-auto min-h-12 py-2.5 max-w-full whitespace-normal text-center leading-tight",
+        "rounded-ds-md px-6 h-auto min-h-12 py-2.5 max-w-full whitespace-normal text-center leading-tight",
         className,
       )}
     />

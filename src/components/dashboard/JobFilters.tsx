@@ -11,6 +11,7 @@ import {
   categoryLabels, categoryColors,
 } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
+import { Slider } from "@/components/ui/slider";
 import { hapticLight } from "@/lib/haptics";
 
 export { categoryLabels };
@@ -20,6 +21,8 @@ interface JobFiltersProps {
   setSearchQuery: (v: string) => void;
   selectedCategory: string | null;
   setSelectedCategory: (v: string | null) => void;
+  minBudget: string;
+  setMinBudget: (v: string) => void;
   maxBudget: string;
   setMaxBudget: (v: string) => void;
   locationFilter: string;
@@ -78,19 +81,43 @@ const expiresOptions = [
   { value: "7d", label: "7 days" },
 ];
 
-// Max-budget presets. `maxBudget` is a plain dollar string ("" = no cap),
-// matching how it's stored in useDashboardFilters and read by the feed.
-const budgetOptions = [
-  { value: "", label: "Any" },
-  { value: "25", label: "$25" },
-  { value: "50", label: "$50" },
-  { value: "100", label: "$100" },
-  { value: "250", label: "$250" },
-];
+// Budget range-slider bounds. `minBudget`/`maxBudget` are plain dollar
+// strings ("" = no min / no cap), matching how they're stored in
+// useDashboardFilters and read by the feed.
+//   - the bottom thumb at $0 means "no minimum" → minBudget = ""
+//   - the top thumb at BUDGET_MAX ($500) means "$500+", i.e. no cap →
+//     maxBudget = "" (so a $900 job still matches)
+const BUDGET_MIN = 0;
+const BUDGET_MAX = 500;
+const BUDGET_STEP = 10;
+
+/** Read the current "" = unset string pair into slider [min, max] coords.
+ *  Empty min → bottom of range; empty max (no cap) → top of range. */
+function budgetToRange(minBudget: string, maxBudget: string): [number, number] {
+  const lo = minBudget ? Math.max(BUDGET_MIN, Math.min(BUDGET_MAX, parseFloat(minBudget))) : BUDGET_MIN;
+  const hi = maxBudget ? Math.max(BUDGET_MIN, Math.min(BUDGET_MAX, parseFloat(maxBudget))) : BUDGET_MAX;
+  // Keep the handles ordered even if stored values somehow crossed.
+  return lo <= hi ? [lo, hi] : [hi, lo];
+}
+
+/** Human label for the live range, e.g. "$50 – $250" or "$0 – $500+". */
+function budgetRangeLabel(lo: number, hi: number): string {
+  const top = hi >= BUDGET_MAX ? `$${BUDGET_MAX}+` : `$${hi}`;
+  return `$${lo} – ${top}`;
+}
 
 // ---------------- Reusable filter content blocks ----------------
+//
+// These content blocks are also consumed by the shared <FilterSheet>
+// (src/components/dashboard/FilterSheet.tsx), which stacks them as
+// vertical sections inside a bottom sheet. They're exported so the two
+// presentations (this inline pill row + the bottom sheet) render the
+// exact same controls and stay visually identical.
 
-const SortContent = ({
+export const SORT_OPTIONS = sortOptions;
+export const chipStyles = { chipBase, chipActive, chipIdle };
+
+export const SortContent = ({
   sortBy, setSortBy, onSelect,
 }: { sortBy: string; setSortBy: (v: string) => void; onSelect?: () => void }) => (
   <div className="grid grid-cols-2 gap-1.5">
@@ -106,7 +133,7 @@ const SortContent = ({
   </div>
 );
 
-const CategoryContent = ({
+export const CategoryContent = ({
   selectedCategory, setSelectedCategory, onSelect,
 }: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void; onSelect?: () => void }) => (
   // Single-line horizontal scroll — fits all 10 categories without
@@ -138,7 +165,7 @@ const CategoryContent = ({
 
 const radiusOptions = [5, 10, 25, 50];
 
-const NearbyContent = ({
+export const NearbyContent = ({
   locationFilter, setLocationFilter, status, message, onSelect,
 }: {
   locationFilter: string;
@@ -179,7 +206,7 @@ const NearbyContent = ({
   );
 };
 
-const ExpiresContent = ({
+export const ExpiresContent = ({
   expiresWithin, setExpiresWithin, onSelect,
 }: { expiresWithin: string; setExpiresWithin: (v: string) => void; onSelect?: () => void }) => (
   <div className="grid grid-cols-4 gap-1.5">
@@ -195,29 +222,52 @@ const ExpiresContent = ({
   </div>
 );
 
-const BudgetContent = ({
-  maxBudget, setMaxBudget, onSelect,
-}: { maxBudget: string; setMaxBudget: (v: string) => void; onSelect?: () => void }) => (
-  // 5-up preset row mirroring the Nearby/Expires content blocks. Tapping
-  // the active chip again clears the cap (back to "Any").
-  <div className="grid grid-cols-5 gap-1.5">
-    {budgetOptions.map((opt) => {
-      const active = maxBudget === opt.value;
-      return (
-        <button
-          key={opt.value || "any"}
-          type="button"
-          onClick={() => { hapticLight(); setMaxBudget(active ? "" : opt.value); onSelect?.(); }}
-          className={`${chipBase} w-full justify-center px-1.5 ${active ? chipActive : chipIdle}`}
-        >
-          {opt.label}
-        </button>
-      );
-    })}
-  </div>
-);
+export const BudgetContent = ({
+  minBudget, maxBudget, setMinBudget, setMaxBudget,
+}: {
+  minBudget: string;
+  maxBudget: string;
+  setMinBudget: (v: string) => void;
+  setMaxBudget: (v: string) => void;
+}) => {
+  // Dual-handle range slider over $0–$500. Both handles map back onto the
+  // existing "" = unset string convention so nothing downstream changes:
+  //   - bottom thumb at $0   → minBudget = "" (no floor)
+  //   - top thumb at $500    → maxBudget = "" (no cap; "$500+")
+  const [lo, hi] = budgetToRange(minBudget, maxBudget);
+  const commit = (next: number[]) => {
+    const [nLo, nHi] = next;
+    setMinBudget(nLo <= BUDGET_MIN ? "" : String(nLo));
+    setMaxBudget(nHi >= BUDGET_MAX ? "" : String(nHi));
+  };
+  return (
+    <div className="px-1 pt-1 pb-0.5">
+      <div className="flex items-baseline justify-between mb-3">
+        <span className="text-ds-13 font-semibold tabular-nums text-[hsl(var(--ink-deep))]">
+          {budgetRangeLabel(lo, hi)}
+        </span>
+        <span className="text-ds-10 font-medium text-muted-foreground">
+          {hi >= BUDGET_MAX && lo <= BUDGET_MIN ? "Any budget" : "per task"}
+        </span>
+      </div>
+      <Slider
+        value={[lo, hi]}
+        min={BUDGET_MIN}
+        max={BUDGET_MAX}
+        step={BUDGET_STEP}
+        minStepsBetweenThumbs={1}
+        aria-label="Budget range"
+        onValueChange={(v) => { hapticLight(); commit(v); }}
+      />
+      <div className="flex justify-between mt-2 text-ds-10 font-medium text-muted-foreground">
+        <span>${BUDGET_MIN}</span>
+        <span>${BUDGET_MAX}+</span>
+      </div>
+    </div>
+  );
+};
 
-const AvailabilityContent = ({
+export const AvailabilityContent = ({
   matchAvailability, setMatchAvailability, hasAvailability,
 }: {
   matchAvailability: boolean; setMatchAvailability: (v: boolean) => void; hasAvailability: boolean;
@@ -309,7 +359,7 @@ const MobileDropdown = ({ icon: Icon, label, active, children }: DropdownProps) 
 
 const JobFilters = ({
   searchQuery: _searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
-  maxBudget, setMaxBudget, locationFilter, setLocationFilter,
+  minBudget, setMinBudget, maxBudget, setMaxBudget, locationFilter, setLocationFilter,
   sortBy, setSortBy, filtersOpen: _filtersOpen, setFiltersOpen: _setFiltersOpen,
   expiresWithin, setExpiresWithin,
   matchAvailability, setMatchAvailability, hasAvailability,
@@ -317,13 +367,14 @@ const JobFilters = ({
   userLocStatus, userLocMessage,
 }: JobFiltersProps) => {
   const activeFilterCount = [
-    selectedCategory, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "",
+    selectedCategory, minBudget, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "",
   ].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0;
 
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedCategory(null);
+    setMinBudget("");
     setMaxBudget("");
     setLocationFilter("");
     setExpiresWithin("");
@@ -335,7 +386,12 @@ const JobFilters = ({
   const categoryLabel = selectedCategory ? categoryLabels[selectedCategory] : "Category";
   const nearbyMi = locationFilter.startsWith("nearby:") ? locationFilter.slice(7) : null;
   const placeBudgetLabel = nearbyMi ? `${nearbyMi} mi` : "Nearby";
-  const budgetLabel = maxBudget ? `≤ $${maxBudget}` : "Max budget";
+  // Range-aware pill label: show "$X – $Y+" when either bound is set,
+  // otherwise the neutral "Budget" prompt.
+  const budgetLabel =
+    minBudget || maxBudget
+      ? budgetRangeLabel(...budgetToRange(minBudget, maxBudget))
+      : "Budget";
 
   const whenLabel = expiresWithin
     ? (expiresOptions.find((o) => o.value === expiresWithin)?.label ?? "When")
@@ -384,11 +440,16 @@ const JobFilters = ({
           )}
         </MobileDropdown>
 
-        <MobileDropdown icon={DollarSign} label={budgetLabel} active={!!maxBudget}>
-          {(close) => (
+        <MobileDropdown icon={DollarSign} label={budgetLabel} active={!!minBudget || !!maxBudget}>
+          {() => (
             <>
-              <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Max budget</p>
-              <BudgetContent maxBudget={maxBudget} setMaxBudget={setMaxBudget} onSelect={close} />
+              <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Budget range</p>
+              <BudgetContent
+                minBudget={minBudget}
+                maxBudget={maxBudget}
+                setMinBudget={setMinBudget}
+                setMaxBudget={setMaxBudget}
+              />
             </>
           )}
         </MobileDropdown>

@@ -1,5 +1,6 @@
 import { memo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TrustRow } from "@/components/TrustRow";
 import { SaveHelperButton } from "@/components/SaveHelperButton";
 import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
@@ -592,7 +593,7 @@ function PostedJobCardInner({
                       return (
                         <div className="space-y-2 py-1">
                           {[1, 2].map((i) => (
-                            <div key={i} className="h-10 rounded-ds-sm bg-muted/40 animate-pulse" />
+                            <Skeleton key={i} className="h-10 rounded-ds-sm" />
                           ))}
                         </div>
                       );

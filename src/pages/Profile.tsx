@@ -4,6 +4,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
+import { Skeleton } from "@/components/ui/skeleton";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
@@ -57,14 +58,14 @@ const ReferralSection = lazy(() => import("@/components/ReferralSection"));
 const TabFallback = () => (
   <div className="space-y-4">
     <div className="rounded-2xl liquid-glass p-5 space-y-3">
-      <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
-      <div className="h-4 w-2/3 rounded bg-muted/30 animate-pulse" />
-      <div className="h-4 w-1/2 rounded bg-muted/30 animate-pulse" />
+      <Skeleton className="h-5 w-32 rounded" />
+      <Skeleton className="h-4 w-2/3 rounded" />
+      <Skeleton className="h-4 w-1/2 rounded" />
     </div>
     <div className="rounded-2xl liquid-glass p-5 space-y-3">
-      <div className="h-4 w-1/3 rounded bg-muted/30 animate-pulse" />
-      <div className="h-4 w-3/4 rounded bg-muted/30 animate-pulse" />
-      <div className="h-4 w-1/2 rounded bg-muted/30 animate-pulse" />
+      <Skeleton className="h-4 w-1/3 rounded" />
+      <Skeleton className="h-4 w-3/4 rounded" />
+      <Skeleton className="h-4 w-1/2 rounded" />
     </div>
   </div>
 );

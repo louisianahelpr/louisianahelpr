@@ -741,7 +741,15 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       </nav>
 
       <Sheet open={gateOpen} onOpenChange={setGateOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
+        {/* Hug the content: the sheet has no fixed height, so it already sizes
+            to fit — but the shared bottom-sheet base padding (1.5rem) stacked
+            on the iOS home-indicator inset leaves a dead band below the thin
+            "Keep browsing" link. Trim the bottom padding to a single 1rem over
+            the safe-area inset so the sheet's edge sits just under that link. */}
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl pb-[calc(1rem_+_env(safe-area-inset-bottom,0px))]"
+        >
           <SheetHeader className="text-left">
             <SheetTitle>Sign up to {gateLabel}</SheetTitle>
             <SheetDescription>

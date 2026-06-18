@@ -27,9 +27,6 @@ import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDarkMode } from "@/hooks/useDarkMode";
-import { useVersionCheck } from "@/hooks/useVersionCheck";
-import { useSoftUpdatePrompt } from "@/hooks/useSoftUpdatePrompt";
-const ForceUpdate = lazy(() => import("@/components/ForceUpdate"));
 
 // Toaster, Sonner and TooltipProvider pull in sonner + @radix-ui/react-toast +
 // @radix-ui/react-tooltip + @floating-ui (~14 KB gzipped of
@@ -80,8 +77,6 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
-const VerifyHelper = lazy(() => import("./pages/VerifyHelper"));
-const LocalPricingGuide = lazy(() => import("./pages/LocalPricingGuide"));
 const DischargeConcierge = lazy(() => import("./pages/DischargeConcierge"));
 const InsuranceClaim = lazy(() => import("./pages/InsuranceClaim"));
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));

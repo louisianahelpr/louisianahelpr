@@ -315,10 +315,6 @@ const Signup = () => {
     "rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.5)]";
   const labelCls = "text-ds-13 font-sans font-medium";
 
-  // Short names for the two steps, shown under the progress dashes so the
-  // bar reads as a labeled journey rather than anonymous ticks.
-  const stepLabels = ["Account", "Profile"];
-
   // Short, single-line titles that mirror the Login screen's heading,
   // each paired with a brief subtitle (kept, per request, but trimmed).
   const stepHeading =
@@ -330,7 +326,7 @@ const Signup = () => {
 
   return (
     <AuthShell hideHeader>
-      <div className="text-center mb-3 space-y-1.5">
+      <div className="text-center mb-4 space-y-1.5">
         <div className="flex justify-center mb-2">
           <HelprMark to={null} size="md" emblemOnly />
         </div>
@@ -354,26 +350,6 @@ const Signup = () => {
         >
           {stepHeading.subtitle}
         </p>
-        {/* Step progress — fills up to the current step and names it, so a
-            new user knows what the 3 steps are and how much is left rather
-            than just seeing unlabeled dashes. */}
-        <div className="flex flex-col items-center gap-1 pt-1.5" role="img" aria-label={`Step ${step} of 2: ${stepLabels[step - 1]}`}>
-          <div className="flex items-center justify-center gap-1.5">
-            {[1, 2].map((n) => (
-              <span
-                key={n}
-                className="h-1 w-7 rounded-full transition-colors"
-                style={{ background: n <= step ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.2)" }}
-              />
-            ))}
-          </div>
-          <span
-            className="text-ds-11 font-sans tracking-wide"
-            style={{ color: "hsl(var(--olivewood) / 0.6)" }}
-          >
-            Step {step} of 2 · {stepLabels[step - 1]}
-          </span>
-        </div>
       </div>
       <div className="pb-8">
           {/* Liquid-glass card — matches the Login screen so the two auth

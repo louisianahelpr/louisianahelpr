@@ -58,17 +58,21 @@ function writeStoredLayer(layer: MapLayer): void {
 // Fix Leaflet's default-icon-not-found problem when bundlers can't
 // resolve the asset paths. We use a small inline div-icon instead so
 // pins render reliably across web + Capacitor iOS.
+// Muted, earthy per-category pin colors. Every tone is desaturated to sit
+// calmly on the warm parchment map (no loud saturated pins), yet each
+// category gets its OWN hue so they stay distinguishable — the old map
+// reused 4 colors across 10 categories, so half of them looked identical.
 const categoryColors: Record<string, string> = {
-  cleaning: "#5E6544",
-  yard_work: "#8C947D",
-  moving: "#A0613B",
-  errands: "#C39A60",
-  handyman: "#5E6544",
-  painting: "#A0613B",
-  delivery: "#8C947D",
-  pet_care: "#C39A60",
-  assembly: "#5E6544",
-  other: "#7A7E68",
+  cleaning: "#6F8A78", // sage green
+  yard_work: "#7E8A4E", // moss / olive
+  moving: "#B27A48", // clay / terracotta
+  errands: "#C7A75E", // warm gold
+  handyman: "#8C6A52", // taupe brown
+  painting: "#A86E6A", // dusty rose-clay
+  delivery: "#6E8597", // muted slate blue
+  pet_care: "#C99E78", // soft camel
+  assembly: "#8A7B57", // khaki
+  other: "#8A8576", // warm gray
 };
 
 // Branded cluster bubble. react-leaflet-cluster's built-in cluster styling
@@ -152,6 +156,16 @@ interface BrowseMapProps {
 // Louisiana center fallback (state geographic mean, near Marksville).
 const LA_CENTER: [number, number] = [31.0, -92.0];
 const LA_DEFAULT_ZOOM = 7;
+// Hard pan limit around Louisiana (+ a little margin). Without it the map
+// drags infinitely into empty ocean/world, which reads as "the whole screen
+// is scrolling left and right". `maxBoundsViscosity: 1` makes the edge solid
+// so a drag can't fling the state off-screen; minZoom keeps it from zooming
+// out to the whole globe.
+const LA_BOUNDS: [[number, number], [number, number]] = [
+  [28.5, -94.6], // SW (Gulf coast / TX line)
+  [33.3, -88.4], // NE (AR/MS line)
+];
+const LA_MIN_ZOOM = 6;
 
 // Density-aware tint for the heatmap layer. Lower count → cooler
 // olivewood; higher count → warm burnt-sienna. Caps at 8+ jobs per
@@ -259,7 +273,7 @@ function RecenterControl({ center, zoom }: { center: [number, number]; zoom: num
       onClick={() => map.flyTo(center, zoom, { duration: 0.45 })}
       aria-label="Recenter map"
       title="Recenter map"
-      className="absolute z-[400] w-10 h-10 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"
+      className="absolute z-[400] w-11 h-11 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"
       style={{
         // Sit clear of the floating dock + FAB at the bottom of the
         // screen. The parent map div bleeds beneath the dock so the
@@ -519,6 +533,9 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
       <MapContainer
         center={LA_CENTER}
         zoom={LA_DEFAULT_ZOOM}
+        minZoom={LA_MIN_ZOOM}
+        maxBounds={LA_BOUNDS}
+        maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={false}
       >

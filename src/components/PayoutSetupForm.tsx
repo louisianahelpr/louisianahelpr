@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   CheckCircle, AlertCircle, Loader2, Trash2, Building2, CreditCard, ExternalLink, RefreshCw,
 } from "lucide-react";
@@ -321,7 +322,7 @@ export function PayoutSetupForm() {
       )}
 
       {status?.connected && methodsLoading && methods.length === 0 && (
-        <div className="h-14 rounded-ds-sm bg-muted/30 animate-pulse" />
+        <Skeleton className="h-14 rounded-ds-sm" />
       )}
 
       {methods.length > 0 && (

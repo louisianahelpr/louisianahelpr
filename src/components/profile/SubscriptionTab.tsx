@@ -118,11 +118,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     void openStripePortal();
   };
 
-  // Accept-pause path — fire-and-forget Slack alert + toast confirm.
-  // We don't actually mutate the subscription here (Stripe pauses are
-  // gated behind their billing portal and would require a separate
-  // backend endpoint); the alert lets retention follow up. A success
-  // toast tells the user the action took effect from their end.
+  // Accept-pause path — fire-and-forget Slack alert that records the
+  // request. We do NOT actually mutate the subscription here (Stripe
+  // pauses are gated behind their billing portal and would require a
+  // separate backend endpoint that doesn't exist yet); the alert lets
+  // retention follow up manually. The toast is worded as a *request*,
+  // not a confirmed state change, so we never tell the user the pause
+  // took effect when nothing on the server has changed.
   const handleAcceptPause = async () => {
     setAcceptingPause(true);
     try {
@@ -131,13 +133,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         kind: "custom",
         severity: "info",
         title: "Subscription pause requested",
-        message: "User accepted the 1-month-free pause offer instead of cancelling.",
+        message: "User requested the 1-month-free pause offer instead of cancelling.",
         fields: { tier: currentTier ?? "unknown" },
       });
     } catch { /* best-effort analytics */ }
     setAcceptingPause(false);
     setPauseOfferOpen(false);
-    toast.success("Paused for 1 month — we'll reach out before it resumes.");
+    toast.success("Pause request received — we'll confirm by email.");
   };
 
   const openStripePortal = async () => {
@@ -294,7 +296,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             <button
               key={opt.key}
               onClick={() => setBillingInterval(opt.key)}
-              className={`flex-1 px-3 h-9 rounded-ds-md text-ds-13 font-semibold transition-all inline-flex items-center justify-center gap-1.5 ${
+              className={`flex-1 px-3 h-11 rounded-ds-md text-ds-13 font-semibold transition-all inline-flex items-center justify-center gap-1.5 ${
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -493,7 +495,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                           : handleSubscribe(tier.id)
                       }
                       disabled={loadingCheckout === tier.id || loadingPortal}
-                      className="inline-flex items-center justify-center gap-1 px-2.5 h-7 rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96] disabled:opacity-60"
+                      className="inline-flex items-center justify-center gap-1 px-2.5 min-h-[44px] rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96] disabled:opacity-60"
                       style={
                         isPro
                           ? {
@@ -551,7 +553,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               className="font-serif italic mt-1"
               style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
             >
-              Keep your spot — pause your {(currentTier ?? "plan")} for one month at no charge, then it resumes automatically. Cancel anytime during the pause if you've changed your mind.
+              Keep your spot — request a one-month, no-charge pause on your {(currentTier ?? "plan")}. We'll confirm by email and your plan resumes after the pause. Cancel anytime if you've changed your mind.
             </p>
           </DialogHeader>
           <div
@@ -565,7 +567,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                 What you keep:
               </span>{" "}
-              Your verification status, saved helpers, payout history, and reviews — all untouched. We'll email you a heads-up a week before the pause ends.
+              Your verification status, saved helpers, payout history, and reviews — all untouched. Once we confirm your pause by email, we'll send a heads-up a week before it ends.
             </p>
           </div>
           <DialogFooter className="!gap-2 sm:!justify-between">
@@ -601,9 +603,9 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 }}
               >
                 {acceptingPause ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Pausing</>
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Requesting</>
                 ) : (
-                  <><PauseCircle className="w-4 h-4 mr-2" /> Pause 1 month free</>
+                  <><PauseCircle className="w-4 h-4 mr-2" /> Request 1 month free</>
                 )}
               </Button>
             </div>

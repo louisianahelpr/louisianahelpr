@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, Flag, CheckCircle2, History as HistoryIcon } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { jobStatusLabel } from "@/lib/statusLabels";
 import { safeStorage } from "@/lib/safeStorage";
 import { logAdminAction } from "@/lib/adminAudit";
 
@@ -762,7 +763,7 @@ const AdminJobs = () => {
             <p className="text-ds-11 text-muted-foreground">
               Force the job into a different status. Logged to admin_audit_log and
               both parties are notified.
-              {detailJob && <> Current: <strong className="text-foreground">{detailJob.status}</strong>.</>}
+              {detailJob && <> Current: <strong className="text-foreground">{jobStatusLabel(detailJob.status)}</strong>.</>}
             </p>
             <div className="space-y-1.5">
               <p className="text-ds-11 font-semibold uppercase tracking-wide text-muted-foreground">Set status to</p>

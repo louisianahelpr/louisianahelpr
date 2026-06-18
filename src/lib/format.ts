@@ -12,6 +12,18 @@
  * (often inside JSX like `${formatPrice(n)}`) so they keep control over
  * styling around the glyph.
  */
+/**
+ * Canonical date formatter for job timestamps (created_at, completed_at, etc.).
+ * Produces "Jun 18, 2026" — short month + day + year, locale-stable.
+ * Use this instead of bare `toLocaleDateString()` so every surface matches.
+ */
+export function formatJobDate(date: string | Date | null | undefined): string {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export function formatPrice(amount: number): string {
   if (!Number.isFinite(amount)) return "0";
   // Work in integer cents to avoid binary float artifacts (e.g. 85.1 →

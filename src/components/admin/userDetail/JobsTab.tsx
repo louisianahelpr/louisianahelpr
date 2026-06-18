@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { jobStatusColorClasses } from "@/lib/statusColors";
+import { jobStatusLabel } from "@/lib/statusLabels";
+import { formatJobDate } from "@/lib/format";
 import type { Profile } from "../adminUserHelpers";
 
 interface JobsTabProps {
@@ -106,14 +108,14 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
               <div key={j.id} className="p-3 rounded-lg bg-secondary/30 border border-border">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <p className="text-ds-13 font-medium text-foreground line-clamp-1">{j.title}</p>
-                  <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${jobStatusColorClasses(j.status)}`}>{j.status}</span>
+                  <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${jobStatusColorClasses(j.status)}`}>{jobStatusLabel(j.status)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2 text-ds-11 text-muted-foreground">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className="text-ds-10 h-5">{isHelper ? "Worked" : "Posted"}</Badge>
                     {j.parish && <span>{j.parish}</span>}
                     <span>·</span>
-                    <span>{new Date(dateRef).toLocaleDateString()}</span>
+                    <span>{formatJobDate(dateRef)}</span>
                     {j.payment_status && (
                       <>
                         <span>·</span>

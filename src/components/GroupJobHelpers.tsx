@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Users, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { applicationStatusLabel } from "@/lib/statusLabels";
 
 type GroupHelper = {
   id: string;
@@ -153,10 +154,10 @@ export function GroupJobHelpers({
                   {(h.helperName || "?")[0].toUpperCase()}
                 </div>
                 <span className="text-ds-13 text-foreground">{h.helperName}</span>
-                <span className={`text-ds-11 capitalize px-1.5 py-0.5 rounded-full ${
+                <span className={`text-ds-11 px-1.5 py-0.5 rounded-full ${
                   h.status === "accepted" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground"
                 }`}>
-                  {h.status}
+                  {applicationStatusLabel(h.status)}
                 </span>
               </div>
               {isOwner && (

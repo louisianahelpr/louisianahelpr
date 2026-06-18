@@ -132,7 +132,7 @@ const AdminSupport = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge variant={ticket.status === "pending" ? "destructive" : "secondary"} className="shrink-0">
+                  <Badge variant={ticket.status === "pending" ? "destructive" : "secondary"} className="shrink-0 capitalize">
                     {ticket.status}
                   </Badge>
                 </div>

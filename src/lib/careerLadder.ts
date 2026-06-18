@@ -120,6 +120,6 @@ export function getMilestoneProgress(
   return {
     current,
     target,
-    label: `${current}/${target} jobs (${remaining} to go)`,
+    label: `${current}/${target} job${target === 1 ? "" : "s"} (${remaining} to go)`,
   };
 }

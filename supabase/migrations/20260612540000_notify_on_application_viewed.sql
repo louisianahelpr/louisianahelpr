@@ -33,7 +33,7 @@ BEGIN
   SELECT title INTO v_job_title FROM public.jobs WHERE id = NEW.job_id;
 
   INSERT INTO public.notifications (
-    user_id, title, body, type, link
+    user_id, title, message, type, link
   ) VALUES (
     NEW.helper_id,
     'Your application was seen',

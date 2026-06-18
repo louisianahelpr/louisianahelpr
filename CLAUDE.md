@@ -57,6 +57,15 @@ this list tight; project-specific trivia belongs in code comments, not here.
   migration adds a new RPC/function, the code calling it MUST ship a graceful
   fallback for the PGRST202 "function not found" error, so the feature isn't
   broken on production between merge and the manual push.
+- **Prod must never lag the repo on migrations.** Every migration file in
+  `supabase/migrations/` must have its objects present in production — zero
+  drift is the standing requirement. Because migrations don't auto-deploy,
+  apply each one to prod (surgically, via MCP `apply_migration`, never a blind
+  `db push` — see [[prod-migration-drift]]) as part of the same change that
+  merges it. To audit drift, compare repo files against prod by **object
+  existence** (`to_regclass`/`to_regprocedure`/`information_schema`), NOT by
+  `schema_migrations.version` — MCP-applied migrations are recorded under their
+  apply-time timestamp, so version strings won't match the filenames.
 - **Migrations must be replay-safe.** A from-scratch rebuild runs every
   migration in timestamp order. Guard DDL against objects that may not exist
   yet (`REVOKE`/`ALTER` on a function defined by a *later* migration →

@@ -12,6 +12,7 @@ import { AlertTriangle, Bell, BellOff, Bookmark, Loader2, Plus, RotateCcw, Trash
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { categoryLabels } from "@/components/activity/activityConstants";
 
 interface SavedSearch {
   id: string;
@@ -364,7 +365,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                     style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                   >
                     {[
-                      s.category && `Category: ${s.category}`,
+                      s.category && `Category: ${categoryLabels[s.category] ?? s.category}`,
                       s.max_budget && `Max $${s.max_budget}`,
                       s.location_keyword && `Loc: ${s.location_keyword}`,
                     ]

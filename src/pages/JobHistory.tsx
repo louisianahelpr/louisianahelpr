@@ -11,6 +11,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { StatusBadge } from "@/components/StatusBadge";
 import { jobStatusLabel } from "@/lib/statusLabels";
+import { formatJobDate } from "@/lib/format";
 import { unwrap } from "@/lib/supabaseResult";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
@@ -193,7 +194,7 @@ const JobHistory = () => {
                       )}
                     </div>
                     <p className="text-ds-11 text-muted-foreground whitespace-nowrap shrink-0">
-                      {new Date(job.created_at).toLocaleDateString()}
+                      {formatJobDate(job.created_at)}
                     </p>
                   </div>
                 </div>

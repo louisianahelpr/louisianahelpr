@@ -31,6 +31,16 @@ const POPULAR_SEARCHES = [
   "Pet Care",
 ] as const;
 
+// Compact label for the active budget-range chip. Either bound can be
+// unset ("" = no floor / no cap), so render whichever side is present:
+//   min only → "$50+", max only → "≤ $250", both → "$50 – $250".
+function budgetChipLabel(minBudget: string, maxBudget: string): string {
+  if (minBudget && maxBudget) return `$${minBudget} – $${maxBudget}`;
+  if (minBudget) return `$${minBudget}+`;
+  if (maxBudget) return `≤ $${maxBudget}`;
+  return "Budget";
+}
+
 // Re-export so consumers can import from a single location.
 export type { FeedDensity };
 
@@ -276,12 +286,12 @@ export function BrowseTasksToolbar({
       ariaLabel: `Clear location filter (${locationFilterText} selected)`,
     });
   }
-  if (filters.maxBudget) {
+  if (filters.minBudget || filters.maxBudget) {
     recapChips.push({
       key: "budget",
-      label: <>{`≤ $${filters.maxBudget}`}</>,
-      onClear: () => filters.setMaxBudget(""),
-      ariaLabel: `Clear max budget filter (up to $${filters.maxBudget})`,
+      label: <>{budgetChipLabel(filters.minBudget, filters.maxBudget)}</>,
+      onClear: () => { filters.setMinBudget(""); filters.setMaxBudget(""); },
+      ariaLabel: `Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`,
     });
   }
   if (filters.expiresWithin) {
@@ -591,6 +601,7 @@ export function BrowseTasksToolbar({
         }}
         sections={buildJobFilterSections({
           selectedCategory: filters.selectedCategory, setSelectedCategory: filters.setSelectedCategory,
+          minBudget: filters.minBudget, setMinBudget: filters.setMinBudget,
           maxBudget: filters.maxBudget, setMaxBudget: filters.setMaxBudget,
           locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
           sortBy: filters.sortBy, setSortBy: filters.setSortBy,
@@ -609,7 +620,7 @@ export function BrowseTasksToolbar({
           scrolls the feed back to the top (via onClearAllFilters), so
           the user lands on a clean unfiltered top-of-feed instead of
           mid-list. */}
-      {!filters.filtersOpen && (filters.selectedCategory || filters.locationFilter || filters.maxBudget || filters.expiresWithin || filters.matchAvailability) && (
+      {!filters.filtersOpen && (filters.selectedCategory || filters.locationFilter || filters.minBudget || filters.maxBudget || filters.expiresWithin || filters.matchAvailability) && (
         <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30" aria-label="Active filters">
           {filters.selectedCategory && (
             <SwipeableFilterChip
@@ -632,13 +643,13 @@ export function BrowseTasksToolbar({
               <button onClick={() => filters.setLocationFilter("")} aria-label={`Clear location filter (${locationFilterText} selected)`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </SwipeableFilterChip>
           )}
-          {filters.maxBudget && (
+          {(filters.minBudget || filters.maxBudget) && (
             <SwipeableFilterChip
-              onClear={() => filters.setMaxBudget("")}
-              ariaLabel={`Clear max budget filter (up to $${filters.maxBudget})`}
+              onClear={() => { filters.setMinBudget(""); filters.setMaxBudget(""); }}
+              ariaLabel={`Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`}
             >
-              ≤ ${filters.maxBudget}
-              <button onClick={() => filters.setMaxBudget("")} aria-label={`Clear max budget filter (up to $${filters.maxBudget})`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              {budgetChipLabel(filters.minBudget, filters.maxBudget)}
+              <button onClick={() => { filters.setMinBudget(""); filters.setMaxBudget(""); }} aria-label={`Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
             </SwipeableFilterChip>
           )}
           {filters.expiresWithin && (

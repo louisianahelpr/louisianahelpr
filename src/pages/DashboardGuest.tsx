@@ -62,6 +62,7 @@ const DashboardGuest = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [minBudget, setMinBudget] = useState("");
   const [maxBudget, setMaxBudget] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [sortBy, setSortBy] = useState("smart");
@@ -156,6 +157,8 @@ const DashboardGuest = () => {
     // filter falls through cleanly instead of silently never matching.
     const parsedBudget = maxBudget.trim() ? Number.parseFloat(maxBudget) : NaN;
     const maxBudgetNum = Number.isFinite(parsedBudget) ? parsedBudget : null;
+    const parsedMin = minBudget.trim() ? Number.parseFloat(minBudget) : NaN;
+    const minBudgetNum = Number.isFinite(parsedMin) ? parsedMin : null;
     const parsedExpires = expiresWithin ? Number.parseInt(expiresWithin, 10) : NaN;
     const expiresMs = Number.isFinite(parsedExpires) ? parsedExpires * 60 * 60 * 1000 : null;
     const now = Date.now();
@@ -164,6 +167,7 @@ const DashboardGuest = () => {
       if (selectedCategory && j.category !== selectedCategory) return false;
       if (q && !`${j.title} ${j.location} ${j.description}`.toLowerCase().includes(q)) return false;
       if (loc && !(j.location || "").toLowerCase().includes(loc)) return false;
+      if (minBudgetNum !== null && j.budget < minBudgetNum) return false;
       if (maxBudgetNum !== null && j.budget > maxBudgetNum) return false;
       if (boostedOnly && !j.isBoosted) return false;
       if (expiresMs && j.expires_at && new Date(j.expires_at).getTime() - now > expiresMs) return false;
@@ -200,7 +204,7 @@ const DashboardGuest = () => {
         break;
     }
     return sorted;
-  }, [jobs, search, selectedCategory, locationFilter, maxBudget, boostedOnly, expiresWithin, sortBy]);
+  }, [jobs, search, selectedCategory, locationFilter, minBudget, maxBudget, boostedOnly, expiresWithin, sortBy]);
 
   // All interactive actions route to signup. Direct redirect matches what
   // authenticated users feel (immediate response, no toast noise).
@@ -214,6 +218,7 @@ const DashboardGuest = () => {
   const activeFilterCount =
     (selectedCategory ? 1 : 0) +
     (search.trim() ? 1 : 0) +
+    (minBudget.trim() ? 1 : 0) +
     (maxBudget.trim() ? 1 : 0) +
     (locationFilter.trim() ? 1 : 0) +
     (expiresWithin ? 1 : 0) +
@@ -224,6 +229,7 @@ const DashboardGuest = () => {
   const clearAllFilters = useCallback(() => {
     setSelectedCategory(null);
     setSearch("");
+    setMinBudget("");
     setMaxBudget("");
     setLocationFilter("");
     setExpiresWithin("");
@@ -415,6 +421,7 @@ const DashboardGuest = () => {
               onClearAll={clearAllFilters}
               sections={buildJobFilterSections({
                 selectedCategory, setSelectedCategory,
+                minBudget, setMinBudget,
                 maxBudget, setMaxBudget,
                 locationFilter, setLocationFilter,
                 sortBy, setSortBy,

@@ -4,6 +4,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { X, Cake } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
+import { useReducedMotion } from "@/lib/accessibility";
 
 interface BirthdayPopupProps {
   dateOfBirth: string | null | undefined;
@@ -11,6 +12,7 @@ interface BirthdayPopupProps {
 }
 
 const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
+  const reducedMotion = useReducedMotion();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -68,10 +70,10 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 which would clash with the bespoke celebratory layout. */}
             <DialogPrimitive.Content asChild forceMount>
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                initial={reducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+                animate={reducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+                exit={reducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+                transition={reducedMotion ? { duration: 0.15 } : { type: "spring", damping: 20, stiffness: 300 }}
                 className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl liquid-glass shadow-2xl px-7 py-8 max-w-sm w-[calc(100%-2rem)] text-center focus:outline-none"
                 style={{
                   backgroundImage:

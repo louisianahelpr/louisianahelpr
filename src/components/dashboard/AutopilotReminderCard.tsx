@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { X, RefreshCw } from "lucide-react";
+import { useReducedMotion } from "@/lib/accessibility";
 
 interface Reminder {
   id: string;
@@ -38,6 +39,7 @@ function weeksAgo(date: string): string {
  * the last completed job. One card max (the most overdue).
  */
 export function AutopilotReminderCard({ reminder, onDismiss, onPostJob }: Props) {
+  const reducedMotion = useReducedMotion();
   const label = CATEGORY_LABELS[reminder.category] ?? reminder.category.replace(/_/g, " ");
   const sinceLabel = reminder.last_completed_date
     ? weeksAgo(reminder.last_completed_date)
@@ -52,10 +54,10 @@ export function AutopilotReminderCard({ reminder, onDismiss, onPostJob }: Props)
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-      transition={{ duration: 0.28 }}
+      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+      animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      exit={reducedMotion ? { opacity: 0 } : { opacity: 0, height: 0, marginBottom: 0 }}
+      transition={{ duration: reducedMotion ? 0.15 : 0.28 }}
       className="shrink-0 mx-4 mb-1 rounded-ds-md px-3 py-3 flex items-start gap-3"
       style={{
         background:

@@ -164,7 +164,7 @@ const DashboardGuest = () => {
   }, [navigate]);
 
   // Pull-to-refresh: re-runs the guestDashboardJobs query so swiping down on
-  // the Quiet today / list surface fetches fresh open_jobs_browse rows.
+  // the empty-state / list surface fetches fresh open_jobs_browse rows.
   // Mirrors the pattern used in the authenticated Dashboard at the page root.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { await refetch(); },
@@ -298,8 +298,8 @@ const DashboardGuest = () => {
                     ) : (
                     <EmptyState
                       icon={Briefcase}
-                      eyebrow="Quiet today"
-                      title="No matching jobs right now."
+                      eyebrow="All quiet — for now"
+                      title="Nothing today, neighbor."
                       body="Try clearing filters or check back later — new tasks land throughout the day."
                       action={
                         filters.hasFilters && (

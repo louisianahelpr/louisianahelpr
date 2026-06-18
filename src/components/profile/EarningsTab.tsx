@@ -480,15 +480,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <div className="rounded-2xl liquid-glass p-5 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <div className="h-3 w-20 rounded bg-muted/40 animate-pulse" />
-                <div className="h-7 w-24 rounded bg-muted/40 animate-pulse" />
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-7 w-24 rounded" />
               </div>
               <div className="space-y-2">
-                <div className="h-3 w-20 rounded bg-muted/40 animate-pulse" />
-                <div className="h-7 w-24 rounded bg-muted/40 animate-pulse" />
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-7 w-24 rounded" />
               </div>
             </div>
-            <div className="h-9 w-full rounded-md bg-muted/30 animate-pulse" />
+            <Skeleton className="h-9 w-full rounded-md" />
           </div>
         ) : !stripeData?.connected ? (
           <div className="rounded-2xl liquid-glass p-5 space-y-3">

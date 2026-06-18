@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Info, Sparkles, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Popover,
   PopoverContent,
@@ -157,9 +158,9 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
         data-testid="earnings-forecast-skeleton"
         className="rounded-2xl liquid-glass p-5 space-y-2"
       >
-        <div className="h-3 w-32 rounded bg-muted/40 animate-pulse" />
-        <div className="h-7 w-40 rounded bg-muted/40 animate-pulse" />
-        <div className="h-3 w-56 rounded bg-muted/30 animate-pulse" />
+        <Skeleton className="h-3 w-32 rounded" />
+        <Skeleton className="h-7 w-40 rounded" />
+        <Skeleton className="h-3 w-56 rounded" />
       </div>
     );
   }

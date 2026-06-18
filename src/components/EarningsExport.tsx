@@ -5,6 +5,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FileSpreadsheet, FileText, CalendarIcon, Loader2, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -20,7 +21,7 @@ const Calendar = lazy(() =>
 );
 
 const calendarFallback = (
-  <div className="h-[19rem] w-[17rem] animate-pulse rounded-2xl bg-muted/40" aria-hidden />
+  <Skeleton className="h-[19rem] w-[17rem] rounded-2xl" aria-hidden />
 );
 
 interface EarningsExportProps {

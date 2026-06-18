@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, DollarSign, Clock, ChevronLeft, ChevronRight, CalendarDays, Search, Plus } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
@@ -128,20 +129,20 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
         <div className="space-y-4">
           <div className="rounded-2xl liquid-glass p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <div className="h-8 w-8 rounded-md bg-muted/40 animate-pulse" />
-              <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
-              <div className="h-8 w-8 rounded-md bg-muted/40 animate-pulse" />
+              <Skeleton className="h-8 w-8 rounded-md" />
+              <Skeleton className="h-5 w-32 rounded" />
+              <Skeleton className="h-8 w-8 rounded-md" />
             </div>
             <div className="grid grid-cols-7 gap-1">
               {Array.from({ length: 35 }).map((_, i) => (
-                <div key={i} className="h-9 rounded bg-muted/30 animate-pulse" />
+                <Skeleton key={i} className="h-9 rounded" />
               ))}
             </div>
           </div>
           <div className="space-y-3">
-            <div className="h-5 w-32 rounded bg-muted/40 animate-pulse" />
-            <div className="h-20 rounded-ds-md bg-muted/30 animate-pulse" />
-            <div className="h-20 rounded-ds-md bg-muted/30 animate-pulse" />
+            <Skeleton className="h-5 w-32 rounded" />
+            <Skeleton className="h-20 rounded-ds-md" />
+            <Skeleton className="h-20 rounded-ds-md" />
           </div>
         </div>
       ) : (

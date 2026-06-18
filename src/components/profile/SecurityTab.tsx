@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -394,7 +395,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         {sessionsLoading ? (
           <div className="space-y-2">
             {[1, 2].map((i) => (
-              <div key={i} className="h-12 rounded-ds-md bg-muted/40 animate-pulse" />
+              <Skeleton key={i} className="h-12 rounded-ds-md" />
             ))}
           </div>
         ) : sessionGroups.length === 0 ? (

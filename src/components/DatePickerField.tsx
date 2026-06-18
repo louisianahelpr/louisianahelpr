@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/dateUtils";
 
@@ -82,7 +83,7 @@ export function DatePickerField({
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 rounded-2xl" align="start" sideOffset={8}>
         <Suspense
-          fallback={<div className="h-[19rem] w-[17rem] animate-pulse rounded-2xl bg-muted/40" aria-hidden />}
+          fallback={<Skeleton className="h-[19rem] w-[17rem] rounded-2xl" aria-hidden />}
         >
           <Calendar
             mode="single"

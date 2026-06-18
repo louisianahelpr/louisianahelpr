@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient, type Query } from "@tanstack/rea
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import AppShell from "@/components/AppShell";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -1131,7 +1132,7 @@ const Dashboard = () => {
                 {/* Map panel — desktop only. Lazy-loaded so the Leaflet
                     bundle isn't paid for by mobile users. */}
                 <div className="hidden lg:flex lg:flex-1 lg:relative min-h-0">
-                  <Suspense fallback={<div className="flex-1 bg-muted/20 animate-pulse" />}>
+                  <Suspense fallback={<Skeleton className="flex-1 rounded-none" />}>
                     <JobMapView
                       jobs={filters.filteredJobs}
                       hoveredJobId={hoveredJobId}

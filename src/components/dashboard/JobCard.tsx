@@ -1,6 +1,6 @@
 import { memo, useCallback, useRef, useState, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Lock, Heart, CheckCheck, ShieldCheck,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Heart, CheckCheck, ShieldCheck,
 } from "lucide-react";
 import { hapticLight, hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -242,7 +242,15 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // long-press (fires the quick-action sheet at threshold). Without it
   // we fall back to a plain onClick so the gesture surface stays simple.
   const interactiveProps = isGuest
-    ? {}
+    ? {
+        // Guest: the whole card routes to /signup on tap (onSelect is
+        // requireSignup on the guest dashboard; a noop under Jobs.tsx, which
+        // wraps the card in its own <Link>). Plain onClick only — no
+        // role/tabIndex — so the Jobs.tsx <Link> wrapper doesn't end up with a
+        // nested interactive element.
+        onClick: () => { hapticLight(); onSelect(job); },
+        ...prefetchHandlers,
+      }
     : onLongPress
       ? {
           ...longPress,
@@ -598,28 +606,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           feed card stays clean — no floating bookmark colliding with the
           price tile. Double-tap-to-save still works on the card body. */}
 
-      {/* Guest CTA — a persistent (never hover-gated) "Sign up to apply"
-          affordance pinned to the card foot. Phones have no hover state,
-          so the old opacity-0/group-hover overlay was permanently
-          invisible and unclickable on the native app. The whole card is
-          also a /signup link (see the wrapping <a> in Jobs.tsx). */}
-      {isGuest && (
-        <div
-          className="flex items-center justify-center gap-1.5 px-3.5 py-2 border-t"
-          style={{
-            borderColor: "hsl(var(--bark) / 0.12)",
-            background: "hsl(var(--bark) / 0.04)",
-          }}
-        >
-          <Lock className="w-3 h-3" style={{ color: "hsl(var(--primary))" }} />
-          <span
-            className="font-sans font-bold uppercase text-[10px]"
-            style={{ color: "hsl(var(--primary))", letterSpacing: "0.08em" }}
-          >
-            Sign up to apply
-          </span>
-        </div>
-      )}
+      {/* No per-card "Sign up to apply" CTA — it was repetitive on every card
+          and added banner-blindness. For guests the whole card is tappable and
+          routes to /signup (see interactiveProps), which conveys the same
+          "tap a job → sign up" intent without the noise. */}
       </div>
 
       {/* Double-tap-to-save heart pop — Instagram-style. Centered over the

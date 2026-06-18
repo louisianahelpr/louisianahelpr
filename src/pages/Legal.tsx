@@ -5,7 +5,7 @@ import {
   Shield, DollarSign, Clock, AlertTriangle, Ban, Scale, CheckCircle, XCircle,
   Receipt, Database, Eye, Lock, Trash2, Cookie, FileText, Users, Crown,
   Wallet, Building2, Siren, ListChecks, Briefcase, Handshake,
-  ShieldAlert, ShieldCheck, Search, X, Sparkles, type LucideIcon,
+  ShieldAlert, ShieldCheck, Search, X, type LucideIcon,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import AppShell from "@/components/AppShell";
@@ -14,7 +14,6 @@ import BackButton from "@/components/BackButton";
 import { PolicyRowItem, PolicySection, PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { TosChangeBanner } from "@/components/legal/TosChangeBanner";
 
 type TabKey = "terms" | "community" | "privacy";
 const VALID_TABS: TabKey[] = ["terms", "community", "privacy"];
@@ -44,58 +43,14 @@ const PAGE_CANONICALS: Record<TabKey, string> = {
   privacy: "https://www.louisianahelpr.com/legal?tab=privacy",
 };
 
-// Per-tab revision date shown in the header chip. Each policy revises on
-// its own schedule, so the chip reflects the active tab's date rather than
-// implying all three changed together — bump only the tab you actually
-// edited.
+// Per-tab revision date shown in each tab's PolicyFooter. Each policy
+// revises on its own schedule, so the footer reflects the active tab's date
+// rather than implying all three changed together — bump only the tab you
+// actually edited.
 const LAST_UPDATED: Record<TabKey, string> = {
   terms: "Jun 2026",
   community: "Jun 2026",
   privacy: "Jun 2026",
-};
-
-// Machine-readable revision date per tab (ISO YYYY-MM-DD), used to compare
-// against the user's locally-stored acknowledgment timestamp so we can show
-// a "What changed" banner if the policy moved forward since they last
-// agreed. Bump alongside LAST_UPDATED whenever a tab's wording shifts.
-const LAST_UPDATED_ISO: Record<TabKey, string> = {
-  terms: "2026-06-09",
-  community: "2026-06-09",
-  privacy: "2026-06-09",
-};
-
-// Short editorial blurb of what changed in this revision, shown inside the
-// "What changed" banner. Keep it user-readable: 1–2 sentences per tab.
-const WHATS_NEW: Record<TabKey, string> = {
-  terms: "Clarified onboarding fee timing, escrow auto-release, and Stripe Identity coverage.",
-  community: "Tightened cancellation windows, refined the revision-→-dispute flow, and updated 2026 tax thresholds.",
-  privacy: "Expanded self-service data deletion + export, and clarified what other users can see.",
-};
-
-// localStorage key for the per-tab acknowledgment timestamps. Stored as a
-// JSON map { terms: ISO, community: ISO, privacy: ISO } so we don't need
-// three independent keys. Pre-existing accounts that never acknowledged
-// (i.e. no entry) fall through to "show banner" — same as a stale ack.
-const LEGAL_ACK_KEY = "helpr.legal_acknowledged_at.v1";
-
-type LegalAckMap = Partial<Record<TabKey, string>>;
-
-const readLegalAck = (): LegalAckMap => {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(LEGAL_ACK_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return {};
-    return parsed as LegalAckMap;
-  } catch {
-    return {};
-  }
-};
-
-const writeLegalAck = (next: LegalAckMap) => {
-  if (typeof window === "undefined") return;
-  try { window.localStorage.setItem(LEGAL_ACK_KEY, JSON.stringify(next)); } catch { /* ignore quota */ }
 };
 
 // Short editorial line shown under the tab strip so each policy view
@@ -181,6 +136,33 @@ const TldrCard = ({ items }: { items: string[] }) => {
   </div>
   );
 };
+
+// Footer card closing every policy tab: a support link paired with the tab's
+// revision date (relocated here from the old header chip), so each policy ends
+// with a single quiet "ask + when this changed" line instead of bare text.
+const PolicyFooter = ({ updated }: { updated: string }) => (
+  <div
+    data-print-hide
+    className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+    style={{
+      background: "hsl(var(--bark) / 0.05)",
+      border: "1px solid hsl(var(--bark) / 0.16)",
+    }}
+  >
+    <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
+      Questions?{" "}
+      <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+        Contact support
+      </Link>
+    </p>
+    <span
+      className="shrink-0 text-ds-11 font-sans tabular-nums"
+      style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+    >
+      Updated {updated}
+    </span>
+  </div>
+);
 
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
 const TermsContent = () => (
@@ -367,12 +349,7 @@ const TermsContent = () => (
     </PolicySection>
 
     <HideOnSearch>
-      <p
-        className="text-center pt-2 pb-4 text-ds-11 font-sans"
-        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-      >
-        Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
-      </p>
+      <PolicyFooter updated={LAST_UPDATED.terms} />
     </HideOnSearch>
   </div>
 );
@@ -685,12 +662,7 @@ const CommunityContent = () => (
     </PolicySection>
 
     <HideOnSearch>
-      <p
-        className="text-center pt-2 pb-4 text-ds-11 font-sans"
-        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-      >
-        Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
-      </p>
+      <PolicyFooter updated={LAST_UPDATED.community} />
     </HideOnSearch>
   </div>
 );
@@ -901,12 +873,7 @@ const PrivacyContent = () => (
     </PolicySection>
 
     <HideOnSearch>
-      <p
-        className="text-center pt-2 pb-4 text-ds-11 font-sans"
-        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-      >
-        Questions? <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Contact support</Link>
-      </p>
+      <PolicyFooter updated={LAST_UPDATED.privacy} />
     </HideOnSearch>
   </div>
 );
@@ -935,26 +902,6 @@ const Legal = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasResults, setHasResults] = useState(true);
   const isSearching = !!query.trim();
-
-  // Per-tab acknowledgment timestamps (ISO date strings). Compared against
-  // LAST_UPDATED_ISO to decide whether to show the "What changed" banner.
-  // We rehydrate from localStorage on mount, then update in place when the
-  // user dismisses the banner.
-  const [ackMap, setAckMap] = useState<LegalAckMap>({});
-  useEffect(() => { setAckMap(readLegalAck()); }, []);
-  const userAck = ackMap[tab];
-  const tabUpdatedAt = LAST_UPDATED_ISO[tab];
-  // Show banner only if (a) we've rehydrated and have NO ack for this tab
-  // (treat as never-seen, show banner) OR (b) the user's stored ack is
-  // older than the policy's last-updated date. Don't show it while a
-  // search is active (it's editorial chrome, not a result).
-  const showWhatsNewBanner = !isSearching && (!userAck || userAck < tabUpdatedAt);
-
-  const acknowledgeTab = () => {
-    const next: LegalAckMap = { ...ackMap, [tab]: tabUpdatedAt };
-    setAckMap(next);
-    writeLegalAck(next);
-  };
 
   // Users who ask the OS to reduce motion get the pill snapped into place
   // rather than spring-sliding between tabs.
@@ -1019,19 +966,7 @@ const Legal = () => {
         >
           Compliance &amp; disclosures
         </span>
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <h1 className="text-page-title leading-tight">Legal</h1>
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.66rem] font-sans font-semibold tabular-nums uppercase tracking-wider"
-            style={{
-              background: "hsl(var(--bark) / 0.10)",
-              color: "hsl(var(--bark))",
-              border: "1px solid hsl(var(--bark) / 0.22)",
-            }}
-          >
-            Updated · {LAST_UPDATED[tab]}
-          </span>
-        </div>
+        <h1 className="text-page-title leading-tight mt-1">Legal</h1>
       </div>
     </div>
   );
@@ -1065,12 +1000,17 @@ const Legal = () => {
                 transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                 className="absolute inset-0 rounded-xl"
                 style={{
+                  // Match the app's primary bark CTA (button.tsx `bark`
+                  // variant) so the selected tab reads as a primary button:
+                  // same 3-stop gradient + border + ELEV_FILLED depth.
                   background:
-                    "linear-gradient(180deg, hsl(var(--bark) / 0.94) 0%, hsl(var(--bark)) 100%)",
+                    "linear-gradient(180deg, hsl(74 19% 41%) 0%, hsl(var(--bark)) 50%, hsl(66 23% 23%) 100%)",
+                  border: "1px solid hsl(66 24% 20%)",
                   boxShadow:
-                    "inset 0 1px 0 hsl(var(--parchment) / 0.28), " +
-                    "0 2px 6px -1px hsl(var(--bark) / 0.45), " +
-                    "0 1px 2px hsl(var(--olivewood) / 0.28)",
+                    "inset 0 1px 0 hsl(var(--parchment) / 0.22), " +
+                    "0 1px 1px hsl(var(--ink-deep) / 0.10), " +
+                    "0 2px 6px hsl(var(--ink-deep) / 0.12), " +
+                    "0 4px 12px -2px hsl(var(--ink-deep) / 0.08)",
                 }}
               />
             )}
@@ -1136,61 +1076,15 @@ const Legal = () => {
     </p>
   );
 
-  // "What changed" banner — surfaces when the active tab's policy was
-  // updated more recently than the user's stored acknowledgment (or they
-  // never acknowledged). Designed as a warm yellow editorial chip rather
-  // than a hard alert: this is informational, not blocking. Dismissing it
-  // records the current LAST_UPDATED_ISO so the banner stays hidden until
-  // the next revision moves the date forward.
-  const whatsNewBanner = showWhatsNewBanner ? (
-    <div
-      data-print-hide
-      className="rounded-2xl p-3.5 flex items-start gap-3"
-      style={{
-        background: "hsl(46 85% 92%)",
-        border: "1px solid hsl(38 60% 70%)",
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-          "0 4px 10px -4px hsl(38 50% 40% / 0.20)",
-      }}
-    >
-      <span
-        className="shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center"
-        style={{ background: "hsl(38 70% 80%)", color: "hsl(28 70% 30%)" }}
-      >
-        <Sparkles className="w-4 h-4" strokeWidth={2.25} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p
-          className="font-display font-bold leading-tight text-ds-13"
-          style={{ color: "hsl(28 60% 22%)" }}
-        >
-          What changed in this update
-        </p>
-        <p className="mt-1 font-sans text-ds-11 leading-snug" style={{ color: "hsl(28 30% 30%)" }}>
-          {WHATS_NEW[tab]}
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={acknowledgeTab}
-        aria-label="Dismiss what-changed notice"
-        className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full btn-press hover:bg-black/5"
-        style={{ color: "hsl(28 40% 28%)" }}
-      >
-        <X className="w-4 h-4" />
-      </button>
-    </div>
-  ) : null;
   const panels = (
     <>
-      <TabsContent value="terms" className="mt-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+      <TabsContent value="terms" className="mt-0" style={{ paddingBottom: "1rem" }}>
         <TermsContent />
       </TabsContent>
-      <TabsContent value="community" className="mt-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+      <TabsContent value="community" className="mt-0" style={{ paddingBottom: "1rem" }}>
         <CommunityContent />
       </TabsContent>
-      <TabsContent value="privacy" className="mt-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+      <TabsContent value="privacy" className="mt-0" style={{ paddingBottom: "1rem" }}>
         <PrivacyContent />
       </TabsContent>
     </>
@@ -1219,9 +1113,7 @@ const Legal = () => {
           </>
         ) : (
           <>
-            <TosChangeBanner />
             {tagline}
-            {whatsNewBanner}
             {panels}
           </>
         )}

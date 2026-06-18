@@ -397,6 +397,18 @@ body {
   overscroll-behavior-y: contain;
 }
 
+/* Leaflet map (BrowseMap) — lock ALL touch gestures to Leaflet itself.
+   Without `touch-action: none`, iOS WKWebView treats a drag on the map as a
+   page pan and slides the WHOLE app — header AND bottom dock — left/right
+   (the body/app-shell overflow clips can't stop a visual-viewport pan).
+   With it, the browser does no default gesture and Leaflet handles panning,
+   so a drag moves only the map. `overscroll-behavior: contain` stops any
+   residual scroll-chaining at the map's edge. */
+.leaflet-container {
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
 /* Scrollbars are never shown — app-wide. This is a native-feel mobile UI;
    scrolling still works (touch / wheel / trackpad), just with no visible
    scrollbar on any element, on any platform. */

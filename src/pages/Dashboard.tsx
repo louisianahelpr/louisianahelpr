@@ -894,11 +894,14 @@ const Dashboard = () => {
                   greeting eyebrow, Browse-Tasks header, and empty-state
                   card on quiet days). Job count only appears when > 0. */}
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-              {filters.filteredJobs.length > 0 && (
+              {/* Job count intentionally omitted here — it's already shown in
+                  the Browse Tasks header below ("N jobs"), so repeating it in
+                  the greeting eyebrow was redundant. Keep only the unique
+                  "picked for you" stat, which doesn't appear elsewhere. */}
+              {recommendedJobs.length > 0 && (
                 <>
                   {" · "}
-                  {filters.filteredJobs.length} {filters.filteredJobs.length === 1 ? "job" : "jobs"} nearby
-                  {recommendedJobs.length > 0 && ` · ${recommendedJobs.length} picked for you`}
+                  {recommendedJobs.length} picked for you
                 </>
               )}
               {/* Stale-while-revalidate signal — a tiny pulsing dot + tag
@@ -995,38 +998,37 @@ const Dashboard = () => {
               accepted or in-progress job. Keeps commitments front-of-mind
               without forcing a trip to Activity > My Jobs. */}
           {upcomingJob && (
-            // De-filled + compact: a tinted/bordered card, not a full-bark
-            // primary fill (the FAB is the screen's only primary). The whole
-            // row taps through to My Jobs, so it needs no separate filled
-            // button. ~half the previous height.
+            // De-filled + SINGLE-LINE: a thin tinted/bordered row (the FAB is
+            // the screen's only primary fill). Label + title + date all sit on
+            // one line, so this is a slim reminder strip rather than a card —
+            // it must not steal vertical space from the feed below.
             <button
               type="button"
               onClick={() => navigate("/activity?tab=myjobs")}
-              className="mx-4 mb-3 w-[calc(100%-2rem)] rounded-2xl p-3 text-left flex items-center justify-between gap-3 transition-transform active:scale-[0.99]"
+              className="mx-4 mb-3 w-[calc(100%-2rem)] rounded-2xl px-3 py-2 text-left flex items-center gap-2 transition-transform active:scale-[0.99]"
               style={{
                 background: "hsl(var(--bark) / 0.06)",
                 border: "1px solid hsl(var(--bark) / 0.18)",
               }}
             >
-              <div className="flex-1 min-w-0">
-                <p
-                  className="font-serif italic uppercase tracking-[0.14em] text-ds-9 mb-0.5"
-                  style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
-                >
-                  {upcomingJob.status === "in_progress" ? "Job in progress" : "Upcoming job"}
-                </p>
-                <p className="font-semibold text-ds-13 truncate" style={{ color: "hsl(var(--ink-deep))" }}>
-                  {upcomingJob.title}
-                </p>
-                {upcomingJob.date_needed && (
-                  <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {new Date(upcomingJob.date_needed).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                    {upcomingJob.start_time ? ` at ${upcomingJob.start_time}` : ""}
-                  </p>
-                )}
-              </div>
               <span
-                className="shrink-0 text-ds-12 font-sans font-semibold"
+                className="shrink-0 font-serif italic uppercase tracking-[0.12em] text-ds-9"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+              >
+                {upcomingJob.status === "in_progress" ? "In progress" : "Upcoming"}
+              </span>
+              <span className="flex-1 min-w-0 truncate text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
+                <span className="font-semibold">{upcomingJob.title}</span>
+                {upcomingJob.date_needed && (
+                  <span style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                    {" · "}
+                    {new Date(upcomingJob.date_needed).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                    {upcomingJob.start_time ? ` ${upcomingJob.start_time.slice(0, 5)}` : ""}
+                  </span>
+                )}
+              </span>
+              <span
+                className="shrink-0 text-ds-11 font-sans font-semibold"
                 style={{ color: "hsl(var(--bark))" }}
               >
                 View ›

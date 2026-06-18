@@ -110,11 +110,16 @@ export function JobPrice({
         }}
         aria-expanded={showBudget ? undefined : expanded}
         aria-controls={showBudget ? undefined : panelId}
-        className={`flex flex-col items-center px-2.5 py-1.5 rounded-ds-md text-center ${className ?? ""}`}
+        className={`inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center ${className ?? ""}`}
         style={{
           background: "hsl(var(--bark) / 0.10)",
           border: "0.5px solid hsl(var(--bark) / 0.28)",
           cursor: showBudget ? "default" : "pointer",
+          // Override the global 44px min-height/width that every <button>
+          // gets (it's a tap-target rule) so the price chip hugs the
+          // amount tightly — the whole card is the real tap target.
+          minHeight: 0,
+          minWidth: 0,
         }}
       >
         <span
@@ -133,25 +138,10 @@ export function JobPrice({
           </span>
           {earnings}
         </span>
-        {!showBudget && urgentFee > 0 && (
-          <span
-            className="font-sans font-semibold mt-0.5 text-[10px] tracking-[0.04em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            incl. ${urgentFee.toFixed(0)} urgent bonus
-          </span>
-        )}
-        {/* "You earn" disambiguates the helpr's net take-home from the gross
-            posted budget. The guest/poster figure is self-evidently the
-            posted budget, so it carries no caption. */}
-        {!showBudget && (
-          <span
-            className="text-[9px] uppercase mt-0.5 font-sans"
-            style={{ color: "hsl(45 8% 64%)", letterSpacing: "0.1em", fontWeight: 600 }}
-          >
-            You earn
-          </span>
-        )}
+        {/* No caption under the amount — the feed chip is a single clean
+            net figure. The "You earn" framing, the fee math, and the urgent
+            bonus all live in the corner badge + the job-detail breakdown,
+            so they're one tap away rather than crowding the card. */}
         {/* Tap-to-reveal breakdown — "Budget $80 − 10% fee". Kept compact;
             collapses by default so the chip stays the size of the title row. */}
         {!showBudget && expanded && (

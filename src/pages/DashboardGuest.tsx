@@ -64,7 +64,7 @@ const DashboardGuest = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
-  const [sortBy, setSortBy] = useState("boosted");
+  const [sortBy, setSortBy] = useState("smart");
   const [expiresWithin, setExpiresWithin] = useState("");
   const [boostedOnly, setBoostedOnly] = useState(false);
   // Guests don't have helper availability set up; the JobFilters panel
@@ -170,21 +170,33 @@ const DashboardGuest = () => {
       return true;
     });
 
-    // Sort by selected mode — matches authed Dashboard's options.
+    // Sort by selected mode. These cases MUST match the values the shared
+    // FilterSheet emits (smart / newest / highest_pay / lowest_pay /
+    // ending_soon — see JobFilters.tsx sortOptions). The old switch used
+    // budget-high/budget-low/boosted, which never matched the sheet, so
+    // "Best match", "Highest/Lowest pay", and "Ending soon" silently no-oped.
     const sorted = [...list];
     switch (sortBy) {
       case "newest":
         sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         break;
-      case "budget-high":
+      case "highest_pay":
         sorted.sort((a, b) => b.budget - a.budget);
         break;
-      case "budget-low":
+      case "lowest_pay":
         sorted.sort((a, b) => a.budget - b.budget);
         break;
-      case "boosted":
+      case "ending_soon":
+        sorted.sort((a, b) => {
+          const ax = a.expires_at ? new Date(a.expires_at).getTime() : Infinity;
+          const bx = b.expires_at ? new Date(b.expires_at).getTime() : Infinity;
+          return ax - bx;
+        });
+        break;
+      case "smart":
       default:
-        // Already in boosted-first order from the query
+        // Best match: the query already returns boosted-first + recent, so the
+        // incoming order approximates "smart" without a re-sort.
         break;
     }
     return sorted;
@@ -206,7 +218,7 @@ const DashboardGuest = () => {
     (locationFilter.trim() ? 1 : 0) +
     (expiresWithin ? 1 : 0) +
     (boostedOnly ? 1 : 0) +
-    (sortBy !== "boosted" ? 1 : 0);
+    (sortBy !== "smart" ? 1 : 0);
   const hasFilters = activeFilterCount > 0;
 
   const clearAllFilters = useCallback(() => {
@@ -216,7 +228,7 @@ const DashboardGuest = () => {
     setLocationFilter("");
     setExpiresWithin("");
     setBoostedOnly(false);
-    setSortBy("boosted");
+    setSortBy("smart");
   }, []);
 
   // Pull-to-refresh: re-runs the guestDashboardJobs query so swiping down on
@@ -322,41 +334,41 @@ const DashboardGuest = () => {
                 >
                   {view === "list" ? <MapIcon className="w-4 h-4" /> : <List className="w-4 h-4" />}
                 </button>
-                {view === "list" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => { setSearchOpen(!searchOpen); if (filtersOpen) setFiltersOpen(false); }}
-                      aria-label="Search jobs"
-                      aria-expanded={searchOpen}
-                      className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition ${
-                        searchOpen || search
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                      }`}
-                    >
-                      <Search className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
-                      aria-label={activeFilterCount ? `Filters (${activeFilterCount} active)` : "Filters"}
-                      aria-expanded={filtersOpen}
-                      className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition relative ${
-                        filtersOpen || activeFilterCount > 0
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                      }`}
-                    >
-                      <SlidersHorizontal className="w-4 h-4" />
-                      {activeFilterCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
-                          {activeFilterCount}
-                        </span>
-                      )}
-                    </button>
-                  </>
-                )}
+                {/* Search + filter stay visible in BOTH list and map view so
+                    the toolbar reads consistently. These controls act on the
+                    list, so tapping one while in map view drops back to the
+                    list with the panel open rather than vanishing. */}
+                <button
+                  type="button"
+                  onClick={() => { if (view === "map") setView("list"); setSearchOpen(!searchOpen); if (filtersOpen) setFiltersOpen(false); }}
+                  aria-label="Search jobs"
+                  aria-expanded={searchOpen}
+                  className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition ${
+                    searchOpen || search
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  }`}
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (view === "map") setView("list"); setFiltersOpen(!filtersOpen); if (searchOpen) setSearchOpen(false); }}
+                  aria-label={activeFilterCount ? `Filters (${activeFilterCount} active)` : "Filters"}
+                  aria-expanded={filtersOpen}
+                  className={`h-9 w-9 rounded-ds-md flex items-center justify-center btn-press transition relative ${
+                    filtersOpen || activeFilterCount > 0
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  }`}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -517,6 +529,7 @@ const DashboardGuest = () => {
                       <JobCard
                         key={job.id}
                         job={job}
+                        variant="guest"
                         effectiveFee={10}
                         currentUserId={undefined}
                         showApply
@@ -525,7 +538,6 @@ const DashboardGuest = () => {
                         onSelect={requireSignup}
                         onToggleSave={requireSignup}
                         index={idx}
-                        guestPricing
                       />
                     ))}
                   </div>

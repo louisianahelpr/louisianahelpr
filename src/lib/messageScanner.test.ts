@@ -1,3 +1,38 @@
+/**
+ * Characterization tests for src/lib/messageScanner.ts (F-TRUST-01).
+ *
+ * This scanner is ADVISORY UX only — it provides instant client-side warnings.
+ * The authoritative gate is the Postgres trigger function scan_message_content()
+ * (supabase/migrations/20260510033701_scan_message_remove_ambiguous.sql).
+ * Both must be kept in sync; these tests pin the client's current behaviour so
+ * future drift is caught immediately.
+ *
+ * Known intentional client-vs-server divergence (as of 2026-06-18):
+ *
+ *   CLIENT-ONLY (soft UX warning, no server fraud_flag):
+ *     "my number" / "my email" — dropped from server (too ambiguous; 2 flags in
+ *     24 h trigger a 7-day account auto-suspend, so false-positive risk outweighs
+ *     the security value at the server level).
+ *
+ *   SERVER-ONLY (triggers fraud_flag + possible auto-suspend, no client warning):
+ *     "cash only" / "in cash" — intentionally server-only.
+ *
+ *   PHONE regex difference:
+ *     Client:  /(\+?1?\s*[-.]?\s*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4})/
+ *       Supports leading +1, parenthesised area code, and common dash/dot/space
+ *       separators between groups.
+ *     Server:  [0-9]{3}[^0-9]?[0-9]{3}[^0-9]?[0-9]{4}
+ *       Simpler: 3 digits, optional single non-digit, 3 digits, optional single
+ *       non-digit, 4 digits. Matches a plain 10-digit run ("9855551234") but
+ *       only allows ONE separator character between groups (not multiple spaces).
+ *
+ *   PAYMENT APP word-boundary handling:
+ *     Client:  \b word boundaries prevent "ethics" matching "eth" or "depth"
+ *              matching "eth".
+ *     Server:  bare substring ~* match — "ethics" or "method" could false-positive
+ *              on "eth" / "etho" unless the server gains word-boundary guards.
+ */
+
 import { describe, it, expect } from "vitest";
 import { scanMessage, hasViolation } from "./messageScanner";
 
@@ -145,4 +180,99 @@ describe("hasViolation", () => {
     expect(hasViolation("Sounds good!")).toBe(false);
     expect(hasViolation("")).toBe(false);
   });
+});
+
+// ---------------------------------------------------------------------------
+// F-TRUST-01 drift characterization: client-only / server-only / boundary cases
+// These tests document the CURRENT client behaviour.  Any change that makes
+// them fail should be deliberately reviewed against scan_message_content().
+// ---------------------------------------------------------------------------
+
+describe("F-TRUST-01 — client-only phrases (no server fraud_flag)", () => {
+  it("flags 'my number' [CLIENT ONLY — intentionally absent from server to avoid false-positive auto-suspends]", () => {
+    const v = scanMessage("Here is my number for updates");
+    expect(v.some((x) => x.type === "direct_pay")).toBe(true);
+  });
+
+  it("flags 'my email' [CLIENT ONLY — intentionally absent from server]", () => {
+    const v = scanMessage("Send it to my email and I'll confirm");
+    expect(v.some((x) => x.type === "direct_pay")).toBe(true);
+  });
+});
+
+describe("F-TRUST-01 — server-only phrases (not caught client-side)", () => {
+  it("does NOT flag 'cash only' — this is a server-only gate", () => {
+    // Intentional design: the client scanner has no regex for "cash only".
+    // If this test starts FAILING it means the client added the pattern —
+    // update this test and remove the server-only note above.
+    const v = scanMessage("I only take cash only payments");
+    expect(v.some((x) => x.type === "direct_pay")).toBe(false);
+  });
+
+  it("does NOT flag 'in cash' — server-only gate", () => {
+    const v = scanMessage("Please pay me in cash");
+    expect(v.some((x) => x.type === "direct_pay")).toBe(false);
+  });
+});
+
+describe("F-TRUST-01 — btc/eth word-boundary false-positive guards (client uses \\b, server uses substring)", () => {
+  it("does NOT flag 'ethics' (contains 'eth')", () => {
+    expect(scanMessage("That raises ethics concerns").some((x) => x.type === "payment_app")).toBe(false);
+  });
+
+  it("does NOT flag 'method' (contains 'eth')", () => {
+    expect(scanMessage("What payment method is preferred?").some((x) => x.type === "payment_app")).toBe(false);
+  });
+
+  it("does NOT flag 'depth' (contains 'eth')", () => {
+    expect(scanMessage("I'll clean to a good depth")).not.toSatisfy((v: ReturnType<typeof scanMessage>) =>
+      v.some((x) => x.type === "payment_app")
+    );
+  });
+
+  it("DOES flag bare 'ETH' as a payment app token", () => {
+    expect(scanMessage("Send to my ETH wallet 0xABC").some((x) => x.type === "payment_app")).toBe(true);
+  });
+
+  it("DOES flag bare 'BTC' as a payment app token", () => {
+    expect(scanMessage("My BTC address is 1BoatSLRHtKNngkdXEeobR76b53LETtpyT").some((x) => x.type === "payment_app")).toBe(true);
+  });
+});
+
+describe("F-TRUST-01 — phone regex: client matches formats server may miss", () => {
+  it("detects phone with multiple spaces between groups (client-friendly formatting)", () => {
+    // Client regex allows multiple spaces via [\s.-]*; server only allows one non-digit
+    expect(scanMessage("My number is 985  555  1234").some((x) => x.type === "phone_number")).toBe(true);
+  });
+
+  it("detects phone with +1 country code prefix", () => {
+    expect(scanMessage("Reach me at +1 985 555 1234").some((x) => x.type === "phone_number")).toBe(true);
+  });
+
+  it("does NOT flag a 9-digit string (order number pattern)", () => {
+    expect(scanMessage("Order #12345-6789").some((x) => x.type === "phone_number")).toBe(false);
+  });
+
+  it("does NOT flag a dollar amount", () => {
+    expect(scanMessage("The job pays $75 for 2 hours").some((x) => x.type === "phone_number")).toBe(false);
+  });
+});
+
+describe("F-TRUST-01 — clean legitimate job messages produce zero violations", () => {
+  const cleanMessages = [
+    "Hi, interested in the lawn mowing job. Are you available Saturday?",
+    "I can complete the task for $50 and be done in about 2 hours.",
+    "Great work today! I'll leave a 5-star review.",
+    "The job is at 123 Main Street, Baton Rouge LA 70801.",
+    "Please confirm receipt so I can release the payment through the app.",
+    "All done! Thanks for using Louisiana Helpr.",
+    "Do you accept payment through the platform only?",
+    "I'm available Thursday at 10am or Friday afternoon.",
+  ];
+
+  for (const msg of cleanMessages) {
+    it(`clean: "${msg.slice(0, 60)}..."`, () => {
+      expect(scanMessage(msg)).toHaveLength(0);
+    });
+  }
 });

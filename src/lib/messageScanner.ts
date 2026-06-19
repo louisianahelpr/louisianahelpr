@@ -1,3 +1,4 @@
+// Advisory UX only — scan_message_content() in Postgres is the authoritative gate; keep patterns in sync.
 // Off-platform activity detection patterns
 const PHONE_REGEX = /(\+?1?\s*[-.]?\s*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4})/gi;
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;

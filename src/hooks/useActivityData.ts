@@ -110,7 +110,7 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
       // "Helpr" fallback rather than blanking the tab, but must still be
       // observable (this RPC's grant has silently vanished before).
       if (helperProfilesError) report(helperProfilesError, { severity: "warning", tags: { source: "useActivityData.helperNames" } });
-      helperProfiles?.forEach((p: any) => {
+      helperProfiles?.forEach((p) => {
         helperNames[p.user_id] = formatName(p.full_name, "Helpr");
       });
     }
@@ -154,12 +154,12 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
     const jobs = jobsRes.data;
     const jobMap = new Map(jobs?.map((j) => [j.id, j]) || []);
     const posterIds = [...new Set(jobs?.map((j) => j.customer_id) || [])];
-    declinedJobIds = new Set<string>((violationsRes.data || []).map((v: any) => v.job_id).filter(Boolean));
+    declinedJobIds = new Set<string>((violationsRes.data || []).map((v) => v.job_id).filter((id): id is string => Boolean(id)));
     let posterNameMap = new Map<string, string>();
     if (posterIds.length > 0) {
       const { data: profiles, error: posterProfilesError } = await supabase.rpc("get_safe_profiles", { user_ids: posterIds });
       if (posterProfilesError) report(posterProfilesError, { severity: "warning", tags: { source: "useActivityData.posterNames" } });
-      posterNameMap = new Map(profiles?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
+      posterNameMap = new Map(profiles?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
     }
     appliedApps = appsRes.data.map((a) => {
       const job = jobMap.get(a.job_id) || null;
@@ -168,11 +168,11 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
   }
 
   if (directOffersRes.data && directOffersRes.data.length > 0) {
-    const directPosterIds = [...new Set(directOffersRes.data.map((j: any) => j.customer_id))];
+    const directPosterIds = [...new Set(directOffersRes.data.map((j) => j.customer_id))];
     const { data: directPosterProfiles, error: directPosterError } = await supabase.rpc("get_safe_profiles", { user_ids: directPosterIds });
     if (directPosterError) report(directPosterError, { severity: "warning", tags: { source: "useActivityData.directOfferPosterNames" } });
-    const directPosterNames = new Map(directPosterProfiles?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
-    const synthetic: AppliedApp[] = directOffersRes.data.map((job: any) => ({
+    const directPosterNames = new Map(directPosterProfiles?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
+    const synthetic: AppliedApp[] = directOffersRes.data.map((job) => ({
       id: `direct-${job.id}`,
       job_id: job.id,
       helper_id: userId,

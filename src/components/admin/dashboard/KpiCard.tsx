@@ -1,0 +1,69 @@
+import { lazy, Suspense } from "react";
+import { TrendingUp, TrendingDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const KpiSparkline = lazy(() => import("@/components/admin/KpiSparkline"));
+
+export const computeTrend = (current: number, previous: number): { pct: number; up: boolean } | null => {
+  if (previous === 0 && current === 0) return null;
+  if (previous === 0) return { pct: 100, up: true };
+  const pct = Math.round(((current - previous) / previous) * 100);
+  return { pct: Math.abs(pct), up: pct >= 0 };
+};
+
+export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, sparkline, compareLabel }: {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+  trend?: { pct: number; up: boolean } | null;
+  accent: "primary" | "accent" | "destructive";
+  onClick?: () => void;
+  sparkline?: number[];
+  compareLabel?: string;
+}) => {
+  // Icon tint mirrors the metric color. Note: `accent` uses `text-accent`
+  // (burnt sienna), NOT `text-accent-foreground` (which is white and was
+  // rendering near-invisible on the light `bg-accent/10` tile).
+  const accentClasses = {
+    primary: "bg-primary/10 text-primary",
+    accent: "bg-accent/15 text-accent",
+    destructive: "bg-destructive/10 text-destructive",
+  }[accent];
+
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-ds-md liquid-glass p-3 sm:p-4 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+    >
+      <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+        <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm flex items-center justify-center", accentClasses)}>
+          <Icon className="w-4 h-4 sm:w-[1.125rem] sm:h-[1.125rem]" strokeWidth={2.25} />
+        </div>
+        {trend && (
+          <span className={cn(
+            "text-ds-10 sm:text-ds-11 font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
+            trend.up ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
+          )}>
+            {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {trend.pct}%
+          </span>
+        )}
+      </div>
+      <p className="text-ds-17 sm:text-ds-20 font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      <p className="text-ds-11 text-muted-foreground mt-0.5 leading-tight">{label}</p>
+      {trend && compareLabel && (
+        <p className={cn(
+          "text-ds-10 tabular-nums mt-0.5 leading-tight",
+          trend.up ? "text-primary/80" : "text-destructive/80",
+        )}>
+          {trend.up ? "+" : "−"}{trend.pct}% {compareLabel}
+        </p>
+      )}
+      {sparkline && sparkline.length > 0 && (
+        <Suspense fallback={<div className="h-7 mt-2" aria-hidden />}>
+          <KpiSparkline data={sparkline} tone={accent} />
+        </Suspense>
+      )}
+    </button>
+  );
+};

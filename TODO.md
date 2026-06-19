@@ -1,5 +1,38 @@
 # TODO
 
+## Pre-Release Audit punch list — 2026-06-18
+
+Full report: `docs/PRE_LAUNCH_AUDIT.md` (verdict + findings + scorecards). Section
+files under `docs/audit/`. **All 15 phases complete.** Verdict: **CONDITIONAL GO**
+— no hard blocker (prompt's 🔴 lat/lng-leak bar is NOT tripped; coords are
+coarsened/absent everywhere). Ship once the 3 must-fix Highs are closed.
+
+**Must-fix before the next build (all quick, low-risk):**
+- [ ] **F-MONEY-01** — retire the `process-scheduled-payouts` cron (double-pay hazard vs `release-payout`; the `auto-release-payment → release-payout` path already covers payouts idempotently). **Highest priority — real money.**
+- [ ] **F-DISC-01** — close the legacy street-address leak: `DROP VIEW public.open_jobs_safe` + `DROP FUNCTION public.get_ranked_open_jobs(integer,integer)` (app uses neither — only a code comment + auto-gen FK metadata reference them), or revoke anon + wrap `location` in `mask_job_location`. Add a regression test asserting no anon open-jobs surface returns a street number. (Live post path writes full street to `jobs.location` at `jobSubmitHelpers.ts:156`; latent — current data has no street numbers.)
+- [ ] **F-SEC-01** — `git rm --cached .env && git commit` (file stays on disk; already gitignore'd). Key rotation NOT required (publishable-only keys).
+
+**Other quick wins:**
+- [ ] **F-MONEY-02** — add `idempotencyKey: escrow-${jobId}` at `create-payment/index.ts:209`.
+- [ ] **F-SCR-01** — delete orphans `src/pages/LocalPricingGuide.tsx` + `src/pages/VerifyHelper.tsx`.
+- [ ] **F-SEC-08** — enable HaveIBeenPwned leaked-password protection in Supabase Auth.
+- [ ] **F-SEO-01** — regenerate `public/sitemap.xml` from the public-route table (~20 public pages missing).
+
+**Larger / deferred:**
+- [ ] **F-MONEY-03** — route `admin_release_dispute` through `release-payout` or rethrow on transfer failure (`create-payment/index.ts:537-540,801`).
+- [ ] **F-SEC-04** — `open_jobs_browse` SECURITY DEFINER view: document + narrow, or recreate `security_invoker`.
+- [ ] **F-SEC-05** — rate-limit the public `partner_applications` insert.
+- [ ] **F-DISC-02** — tighten over-broad default grants on `open_jobs_safe` (folds into F-DISC-01 DROP).
+- [ ] **F-TRUST-01** — give the dual off-platform message-scan regex (client `messageScanner.ts` + server `scan_message_content()`) a shared source of truth or an equivalence test.
+- [ ] **F-TRUST-02 / F-TRUST-03** — spelled-number evasion heuristic; soften the fixed 2-flag/24h auto-suspend (warn-first) and confirm `cash` tokens aren't over-firing.
+- [ ] **F-SEC-06 / F-SEC-07** — pin `search_path` on 18 fns; `REVOKE EXECUTE … FROM anon` on mutation RPCs.
+- [ ] **F-PERF-02 / F-SCR-02** — Leaflet → Apple MapKit consolidation spike.
+- [ ] **F-PERF-03** — lazy-split the Activity route chunk (220 kB) by tab.
+- [ ] **F-TYPE-01 / F-SCR-03** — burn down `any` (385 total), money/auth paths first.
+- [ ] **Coverage** — line-audit core-journey screens; run Playwright e2e + `npx vitest run` (not in CI).
+
+---
+
 ## Where We Left Off — 2026-05-11 (long session — CodeQL + refactors + iOS polish)
 
 ### Production state at end of session

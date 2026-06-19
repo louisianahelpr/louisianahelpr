@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import BusinessShell from "@/components/business/shell/BusinessShell";
+import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { formatJobDate } from "@/lib/format";
@@ -114,19 +114,19 @@ const BusinessApi = () => {
 
   if (bizLoading) {
     return (
-      <BusinessShell eyebrow="Developer" title="API & Webhooks">
+      <BusinessLayout eyebrow="Developer" title="API & Webhooks">
         <div className="flex items-center justify-center py-12"><HelprSpinner size={32} /></div>
-      </BusinessShell>
+      </BusinessLayout>
     );
   }
   if (!business) return <Navigate to="/dashboard" replace />;
   if (!isOwner) {
     return (
-      <BusinessShell eyebrow="Developer" title="API & Webhooks">
+      <BusinessLayout eyebrow="Developer" title="API & Webhooks">
         <Card className="p-6">
           <p className="text-ds-13 text-muted-foreground">Only the business owner can manage API keys and webhooks.</p>
         </Card>
-      </BusinessShell>
+      </BusinessLayout>
     );
   }
 
@@ -244,7 +244,7 @@ const BusinessApi = () => {
   };
 
   return (
-    <BusinessShell
+    <BusinessLayout
       eyebrow="Developer"
       title="API & Webhooks"
       meta="Read-only API keys and outbound event delivery."
@@ -422,7 +422,7 @@ const BusinessApi = () => {
         onPrimary={revokeKey}
         secondaryLabel="Keep it"
       />
-    </BusinessShell>
+    </BusinessLayout>
   );
 };
 

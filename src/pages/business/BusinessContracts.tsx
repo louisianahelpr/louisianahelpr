@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import BusinessShell from "@/components/business/shell/BusinessShell";
+import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { Card } from "@/components/ui/card";
@@ -82,9 +82,9 @@ const BusinessContracts = () => {
 
   if (isLoading) {
     return (
-      <BusinessShell eyebrow="Recurring jobs" title="Contracts">
+      <BusinessLayout eyebrow="Recurring jobs" title="Contracts">
         <div className="flex items-center justify-center py-12"><HelprSpinner size={32} /></div>
-      </BusinessShell>
+      </BusinessLayout>
     );
   }
   if (!business) return <Navigate to="/dashboard" replace />;
@@ -159,7 +159,7 @@ const BusinessContracts = () => {
   };
 
   return (
-    <BusinessShell
+    <BusinessLayout
       eyebrow="Recurring jobs"
       title="Contracts"
       meta="Schedule jobs that auto-post on a cron. Your team accepts as they come in."
@@ -285,7 +285,7 @@ const BusinessContracts = () => {
           A background cron worker materializes jobs from these schedules.
         </p>
       </Card>
-    </BusinessShell>
+    </BusinessLayout>
   );
 };
 

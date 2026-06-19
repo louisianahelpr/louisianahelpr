@@ -1,5 +1,15 @@
 import { useNavigate, useLocation, NavLink } from "react-router-dom";
-import { ArrowLeft, Users, CreditCard, KeyRound, CalendarClock, FileSpreadsheet, FileText, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  Users,
+  CreditCard,
+  CalendarClock,
+  FileSpreadsheet,
+  FileText,
+  KeyRound,
+  Sparkles,
+  Rocket,
+} from "lucide-react";
 import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import HelprMark from "@/components/HelprMark";
@@ -11,13 +21,17 @@ interface NavItem {
   icon: React.ElementType;
 }
 
+// Single source of truth for the /business/* sub-nav. Order mirrors the
+// Phase 4 IA map: Team · Billing · Contracts · Exports · Reports · API ·
+// Onboarding.
 const NAV: NavItem[] = [
   { to: "/business/team", label: "Team", icon: Users },
   { to: "/business/billing", label: "Billing", icon: CreditCard },
-  { to: "/business/api", label: "API & Webhooks", icon: KeyRound },
-  { to: "/business/contracts", label: "Recurring Jobs", icon: CalendarClock },
+  { to: "/business/contracts", label: "Contracts", icon: CalendarClock },
   { to: "/business/exports", label: "Exports", icon: FileSpreadsheet },
-  { to: "/business/reports", label: "Monthly Reports", icon: FileText },
+  { to: "/business/reports", label: "Reports", icon: FileText },
+  { to: "/business/api", label: "API", icon: KeyRound },
+  { to: "/business/onboarding", label: "Onboarding", icon: Rocket },
 ];
 
 interface Props {
@@ -31,17 +45,19 @@ interface Props {
 }
 
 /**
- * Shared shell for /business/* surfaces — left sidebar (NavLinks) +
- * a header strip with title/eyebrow. Mirrors the editorial design
- * tokens used in BusinessTeam and the Admin shell, so users
- * navigating from /business/team into the new B2B routes feel
- * continuity.
+ * BusinessLayout — the one shared chrome for every `/business/*` surface.
+ * Renders a brand header, a Back affordance, an editorial title block, and
+ * the horizontal/scrollable Business sub-nav, then the page's own content.
  *
- * NOTE: This is a `min-h-screen` document-scroll layout — every
- * /business/* route is already in DOCUMENT_SCROLL_ROUTES via the
- * `/business` prefix (see useAppShellViewport.ts).
+ * Each `/business/*` page wraps its body in this layout (children pattern),
+ * so the seven routes share one header + sub-nav and no page renders its
+ * own competing header.
+ *
+ * This is a `min-h-screen` document-scroll layout — every `/business/*`
+ * route is already in DOCUMENT_SCROLL_ROUTES via the `/business` prefix
+ * (see useAppShellViewport.ts). Do NOT introduce AppShell here.
  */
-const BusinessShell = ({ eyebrow, title, meta, children }: Props) => {
+const BusinessLayout = ({ eyebrow, title, meta, children }: Props) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { business } = useMyBusiness();
@@ -63,12 +79,12 @@ const BusinessShell = ({ eyebrow, title, meta, children }: Props) => {
       <div className="mx-auto max-w-6xl px-5 lg:px-8 py-6">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-ds-11 text-muted-foreground hover:text-foreground transition-colors mb-5"
+          className="inline-flex items-center gap-2 h-11 -ml-1 px-1 text-ds-11 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
-        <div className="flex flex-col leading-none mb-6">
+        <div className="flex flex-col leading-none mb-6 mt-1">
           <span
             className="font-serif italic uppercase text-[0.62rem]"
             style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
@@ -87,17 +103,16 @@ const BusinessShell = ({ eyebrow, title, meta, children }: Props) => {
           <nav aria-label="Business navigation" className="md:sticky md:top-20 md:self-start">
             <div className="rounded-ds-md liquid-glass p-2 flex md:flex-col gap-1 overflow-x-auto">
               {NAV.map(({ to, label, icon: Icon }) => {
-                const active =
-                  location.pathname === to ||
-                  (to === "/business/billing" && location.pathname.startsWith("/business/billing"));
+                const active = location.pathname === to;
                 return (
                   <NavLink
                     key={to}
                     to={to}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex items-center gap-2 px-3 h-10 rounded-ds-sm text-ds-13 font-medium whitespace-nowrap transition-colors",
+                      "flex items-center gap-2 px-3 h-11 rounded-ds-sm text-ds-13 font-medium whitespace-nowrap transition-colors",
                       active
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
                         : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
                     )}
                   >
@@ -116,4 +131,4 @@ const BusinessShell = ({ eyebrow, title, meta, children }: Props) => {
   );
 };
 
-export default BusinessShell;
+export default BusinessLayout;

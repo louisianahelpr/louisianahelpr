@@ -71,7 +71,12 @@ const BusinessApi = () => {
   const [webhookEvents, setWebhookEvents] = useState<string[]>(["job.created"]);
   const [savingWebhook, setSavingWebhook] = useState(false);
 
-  const { data: apiKeys = [], isLoading: keysLoading } = useQuery({
+  const {
+    data: apiKeys = [],
+    isLoading: keysLoading,
+    isError: keysError,
+    refetch: refetchKeys,
+  } = useQuery({
     queryKey: queryKeys.business.apiKeys(businessId),
     enabled: !!businessId,
     queryFn: async () => {
@@ -88,7 +93,11 @@ const BusinessApi = () => {
     },
   });
 
-  const { data: webhooks = [] } = useQuery({
+  const {
+    data: webhooks = [],
+    isError: webhooksError,
+    refetch: refetchWebhooks,
+  } = useQuery({
     queryKey: queryKeys.business.webhooks(businessId),
     enabled: !!businessId,
     queryFn: async () => {
@@ -292,6 +301,11 @@ const BusinessApi = () => {
 
         {keysLoading ? (
           <div className="py-6 flex justify-center"><HelprSpinner size={24} /></div>
+        ) : keysError ? (
+          <div className="py-2">
+            <p className="text-ds-12 text-muted-foreground mb-2">Couldn't load your API keys.</p>
+            <Button variant="outline" size="sm" onClick={() => refetchKeys()}>Try again</Button>
+          </div>
         ) : apiKeys.length === 0 ? (
           <p className="text-ds-12 text-muted-foreground py-2">No API keys yet.</p>
         ) : (
@@ -369,7 +383,12 @@ const BusinessApi = () => {
           </Button>
         </div>
 
-        {webhooks.length === 0 ? (
+        {webhooksError ? (
+          <div className="py-2">
+            <p className="text-ds-12 text-muted-foreground mb-2">Couldn't load your webhooks.</p>
+            <Button variant="outline" size="sm" onClick={() => refetchWebhooks()}>Try again</Button>
+          </div>
+        ) : webhooks.length === 0 ? (
           <p className="text-ds-12 text-muted-foreground py-2">No webhooks configured.</p>
         ) : (
           <ul className="divide-y divide-border/40">

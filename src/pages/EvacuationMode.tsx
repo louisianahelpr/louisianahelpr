@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
@@ -132,7 +133,7 @@ function RegisterPetModal({ ownerId, onClose, onRegistered }: RegisterPetModalPr
         <div>
           <label className="text-ds-13 font-semibold text-foreground block mb-2">Which pet?</label>
           {isLoading ? (
-            <div className="h-10 rounded-ds-md liquid-glass animate-pulse" />
+            <Skeleton className="h-10 rounded-ds-md" />
           ) : pets && pets.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {pets.map((p) => (
@@ -457,7 +458,7 @@ const EvacuationMode = () => {
           {loadingTransport && (
             <div className="space-y-2">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="rounded-ds-lg liquid-glass h-16 animate-pulse" />
+                <Skeleton key={n} className="rounded-ds-lg h-16" />
               ))}
             </div>
           )}

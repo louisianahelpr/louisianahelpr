@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCategory } from "@/lib/format";
 
 // Helpers whose subscription tier gives access to analytics.
@@ -242,7 +244,12 @@ const HelperAnalytics = () => {
 
   const { goal, saveGoal } = useEarningsGoal();
 
-  const { data: analyticsData, isLoading: isLoadingData } = useQuery({
+  const {
+    data: analyticsData,
+    isLoading: isLoadingData,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["helperAnalytics", user?.id],
     enabled: !!user?.id,
     staleTime: 5 * 60_000,
@@ -273,6 +280,19 @@ const HelperAnalytics = () => {
       <main className="container mx-auto px-5 py-6">
         <div className="max-w-lg mx-auto space-y-5">
 
+          {/* A failed fetch leaves `analytics` undefined, which would render
+              $0 / 0 jobs everywhere and read as a brand-new helper rather
+              than a broken load. Surface a recoverable error instead. */}
+          {isError && !isLoadingData ? (
+            <ErrorState
+              variant="inline"
+              title="Couldn't load your analytics."
+              body="Your earnings are safe — this is just the dashboard failing to load. Tap Try again."
+              onRetry={() => refetch()}
+            />
+          ) : (
+          <>
+
           {/* ── Hero summary ─────────────────────────────────────────── */}
           <div
             className="rounded-2xl liquid-glass p-5 relative overflow-hidden"
@@ -284,8 +304,8 @@ const HelperAnalytics = () => {
           >
             {isLoadingData ? (
               <div className="space-y-2">
-                <div className="h-7 w-36 bg-muted animate-pulse rounded" />
-                <div className="h-4 w-48 bg-muted animate-pulse rounded" />
+                <Skeleton className="h-7 w-36 rounded" />
+                <Skeleton className="h-4 w-48 rounded" />
               </div>
             ) : (
               <>
@@ -717,6 +737,8 @@ const HelperAnalytics = () => {
             )}
           </SectionCard>
 
+          </>
+          )}
         </div>
       </main>
     </div>
@@ -811,8 +833,8 @@ const MonthlyGoalCard = ({
       {/* Loading skeleton */}
       {isLoading ? (
         <div className="space-y-2">
-          <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
-          <div className="h-2 w-full bg-muted animate-pulse rounded-full mt-3" />
+          <Skeleton className="h-4 w-3/4 rounded" />
+          <Skeleton className="h-2 w-full rounded-full mt-3" />
         </div>
       ) : editing ? (
         /* ── Inline goal editor ─────────────────────────────────── */
@@ -1000,8 +1022,8 @@ const SectionCard = ({
 
       {isLoading ? (
         <div className="space-y-2">
-          <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
-          <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+          <Skeleton className="h-4 w-3/4 rounded" />
+          <Skeleton className="h-4 w-1/2 rounded" />
         </div>
       ) : (
         children

@@ -2,11 +2,9 @@
  * /become-a-partner — public intake page for established service businesses
  * that want to join the Helpr partner network.
  *
- * No auth required. Submits to `partner_applications` table via a direct
- * anon insert (RLS allows public INSERT; only service_role can read/update).
- *
- * PGRST202 graceful fallback: if the migration hasn't been pushed yet, the
- * form shows an error toast instead of crashing.
+ * No auth required. Submits via the `submit-partner-application` edge function
+ * (IP-rate-limited + server-validated, inserts as service_role). Direct anon
+ * insert was revoked in F-SEC-05 — the edge function is the only anon path in.
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -188,10 +186,8 @@ const BecomeAPartner = () => {
 
     setSubmitting(true);
     try {
-      // Use `as any` cast — table is new and not yet in generated types
-      const { error } = await (supabase as any)
-        .from("partner_applications")
-        .insert({
+      const { error } = await supabase.functions.invoke("submit-partner-application", {
+        body: {
           business_name: form.business_name.trim(),
           contact_name: form.contact_name.trim(),
           contact_email: form.contact_email.trim(),
@@ -203,16 +199,10 @@ const BecomeAPartner = () => {
           has_insurance: form.has_insurance,
           has_license: form.has_license,
           referral_source: form.referral_source.trim() || null,
-        });
+        },
+      });
 
-      if (error) {
-        if (error.code === "PGRST202") {
-          // Migration not deployed yet — treat gracefully
-          toast.info("Partner applications are coming online shortly. Please email us at partners@louisianahelpr.com.");
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });

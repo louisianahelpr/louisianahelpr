@@ -539,7 +539,9 @@ serve(async (req) => {
       const dpHelpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       const helperPayout = (job.budget / dpHelpersCount) - (feeAmt / dpHelpersCount) + (job.urgent_fee ?? 0);
       if (job.helper_id && helperPayout > 0) {
-        await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id);
+        // Throws on transfer/ledger failure → outer catch returns 500 and the
+        // job stays disputed (never silently flipped to released below).
+        await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id, feeAmt / dpHelpersCount, user.id);
       }
 
       await supabaseAdmin.from("jobs").update({
@@ -768,7 +770,9 @@ async function transferToHelper(
   helperId: string,
   amount: number,
   paymentIntentId: string | null,
-  jobId: string
+  jobId: string,
+  platformFeeAmount = 0,
+  initiatedByUserId: string | null = null
 ) {
   // Get helper's connected account
   const { data: helperProfile } = await supabaseAdmin
@@ -781,12 +785,25 @@ async function transferToHelper(
     throw new Error("Helpr must set up their payout account before payment can be released. Please ask the helpr to connect their payout account in their profile settings.");
   }
 
+  // DB-level idempotency: if a payout ledger row already exists for this job
+  // the money already went out — don't send a second transfer.
+  const { data: existingTransfer } = await supabaseAdmin
+    .from("payout_transfers")
+    .select("stripe_transfer_id, status")
+    .eq("job_id", jobId)
+    .in("status", ["pending", "paid"])
+    .maybeSingle();
+  if (existingTransfer) {
+    console.log(`Payout already exists for job ${jobId} (${existingTransfer.stripe_transfer_id}); skipping duplicate transfer.`);
+    return;
+  }
+
   try {
     const transferParams: any = {
       amount: Math.round(amount * 100), // Convert to cents
       currency: "usd",
       destination: helperProfile.stripe_account_id,
-      metadata: { job_id: jobId, helper_id: helperId },
+      metadata: { job_id: jobId, helper_id: helperId, initiated_by: "admin" },
     };
 
     // Link the transfer to the source charge if we have one
@@ -801,8 +818,32 @@ async function transferToHelper(
       }
     }
 
-    const transfer = await stripe.transfers.create(transferParams);
+    // Stripe-level idempotency: same dispute release = same transfer, so a
+    // retry never double-pays even if the ledger write below failed first.
+    const transfer = await stripe.transfers.create(transferParams, {
+      idempotencyKey: `dispute-release-${jobId}`,
+    });
     console.log(`Transferred $${amount.toFixed(2)} to helper ${helperId} (transfer: ${transfer.id})`);
+
+    // Ledger row mirrors release-payout so every payout path reconciles the
+    // same way (stripe-webhook flips status to 'paid' on transfer.paid).
+    const { error: ledgerErr } = await supabaseAdmin
+      .from("payout_transfers")
+      .insert({
+        job_id: jobId,
+        helper_id: helperId,
+        stripe_transfer_id: transfer.id,
+        stripe_account_id: helperProfile.stripe_account_id,
+        amount_cents: Math.round(amount * 100),
+        platform_fee_cents: Math.round(platformFeeAmount * 100),
+        status: "pending",
+        initiated_by: "admin",
+        initiated_by_user_id: initiatedByUserId,
+        metadata: { source: "admin_release_dispute" },
+      });
+    if (ledgerErr) {
+      throw new Error(`transfer ${transfer.id} sent but ledger write failed — manual reconciliation needed: ${ledgerErr.message}`);
+    }
   } catch (e) {
     console.error(`Failed to transfer to helper ${helperId}:`, e);
     // Notify admin
@@ -818,5 +859,8 @@ async function transferToHelper(
         });
       }
     }
+    // Re-throw so the caller does NOT flip the job to 'released'. Fail closed:
+    // the job stays disputed and an admin can retry once the cause is fixed.
+    throw e;
   }
 }

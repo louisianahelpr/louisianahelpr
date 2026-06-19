@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { formatShortDate } from "@/lib/format";
 
 // Credit presets (minutes → $10/hr discount)
 const PRESET_MINUTES = [60, 120, 180];
@@ -34,7 +35,11 @@ export default function TimeCredits() {
   });
 
   // Transaction history — PGRST202-safe
-  const { data: history = [] } = useQuery({
+  const {
+    data: history = [],
+    isError: historyError,
+    refetch: refetchHistory,
+  } = useQuery({
     queryKey: ["time-credit-history", user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -168,8 +173,19 @@ export default function TimeCredits() {
           <ChevronRight className="w-4 h-4 ml-1" />
         </Button>
 
+        {/* Transaction history — surface a recoverable error rather than
+            silently hiding the section when the fetch genuinely fails. */}
+        {historyError && (
+          <ErrorState
+            variant="inline"
+            title="Couldn't load your history."
+            body="Your balance is still safe. Tap Try again to reload your credit history."
+            onRetry={() => refetchHistory()}
+          />
+        )}
+
         {/* Transaction history */}
-        {history.length > 0 && (
+        {!historyError && history.length > 0 && (
           <div className="space-y-2 pb-6">
             <h2
               className="font-semibold text-base"
@@ -198,7 +214,7 @@ export default function TimeCredits() {
                       className="text-xs"
                       style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                     >
-                      {format(new Date(tx.created_at), "MMM d, yyyy")}
+                      {formatShortDate(tx.created_at)}
                     </p>
                   </div>
                   <span

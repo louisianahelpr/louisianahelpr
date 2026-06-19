@@ -530,6 +530,13 @@ export function CheckoutStep({
                   ? "Confirm details to continue"
                   : "Continue to payment"}
         </Button>
+        {/* Escrow-trust microline — sits right under the pay CTA so the
+            reassurance lands at the moment of commitment, in the poster's
+            voice. Echoes the fuller EscrowFlowExplainer above. */}
+        <p className="flex items-center justify-center gap-1.5 text-ds-11 text-muted-foreground">
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
+          Held safely until the job's done.
+        </p>
         <Button
           variant="ghost"
           className="w-full rounded-ds-md"

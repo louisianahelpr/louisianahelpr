@@ -9,6 +9,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import type { Json } from "@/integrations/supabase/types";
 
 interface AuditEntry {
   id: string;
@@ -16,7 +17,7 @@ interface AuditEntry {
   action: string;
   target_type: string | null;
   target_id: string | null;
-  details: Record<string, unknown> | null;
+  details: Json | null;
   created_at: string;
   admin_name?: string;
 }
@@ -33,14 +34,14 @@ const AdminAuditLog = () => {
 
       if (!data || data.length === 0) return [];
 
-      const adminIds = [...new Set(data.map((e: any) => e.admin_id))];
+      const adminIds = [...new Set(data.map((e) => e.admin_id))];
       const profiles = unwrap(await supabase
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", adminIds));
 
       const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
-      return data.map((e: any) => ({
+      return data.map((e) => ({
         ...e,
         admin_name: formatName(nameMap.get(e.admin_id), "System"),
       }));
@@ -75,9 +76,10 @@ const AdminAuditLog = () => {
 
   // Pull the most useful fields from details for inline display so admins
   // see the "what happened" at a glance instead of just the action label.
-  const summarizeDetails = (action: string, details: Record<string, unknown> | null): string | null => {
-    if (!details) return null;
-    const get = (k: string) => details[k];
+  const summarizeDetails = (action: string, details: Json | null): string | null => {
+    if (!details || typeof details !== "object" || Array.isArray(details)) return null;
+    const d = details as Record<string, Json | undefined>;
+    const get = (k: string) => d[k];
     if (action === "job_status_override") {
       const from = get("from_status");
       const to = get("to_status");
@@ -105,7 +107,7 @@ const AdminAuditLog = () => {
       if (reason) return `reason: ${reason}`;
     }
     // Fallback: surface the first short string field for unknown actions.
-    for (const [k, v] of Object.entries(details)) {
+    for (const [k, v] of Object.entries(d)) {
       if (typeof v === "string" && v.length < 80 && k !== "id") return `${k}: ${v}`;
     }
     return null;

@@ -410,7 +410,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     setGateOpen(true);
   };
 
-  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: any; label: string; badgeKey?: "messages" | "posts" | "jobs" }) => {
+  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" }) => {
     // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
     // that mirrors the real /dashboard), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.

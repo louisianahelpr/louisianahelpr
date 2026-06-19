@@ -11,7 +11,7 @@ import { SplashScreen } from "@capacitor/splash-screen";
 
 export const isNativePlatform =
   typeof window !== "undefined" &&
-  (window as any).Capacitor?.isNativePlatform?.() === true;
+  (window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() === true;
 
 export async function initNative() {
   if (!isNativePlatform) return;

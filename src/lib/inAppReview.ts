@@ -29,7 +29,7 @@ export async function maybeRequestInAppReview(opts?: { force?: boolean }) {
     // (Xcode/Capacitor sync). It's intentionally not in the web bundle, so
     // we resolve it dynamically and silently no-op if unavailable.
     const moduleName = "@capacitor-community/in-app-review";
-    const mod: any = await import(/* @vite-ignore */ moduleName).catch(() => null);
+    const mod: { InAppReview?: { requestReview: () => Promise<void> } } | null = await import(/* @vite-ignore */ moduleName).catch(() => null);
     if (!mod?.InAppReview) {
       // Plugin not installed in this build — silent no-op.
       return;

@@ -177,7 +177,7 @@ const NotificationPanel = () => {
             setNotifications((prev) => [n, ...prev]);
             // Play notification chime + vibrate
             try {
-              const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
               const osc = ctx.createOscillator();
               const gain = ctx.createGain();
               osc.connect(gain);

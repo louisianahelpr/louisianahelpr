@@ -20,7 +20,7 @@ import { prefersReducedMotion } from "@/lib/accessibility";
 
 const isNative =
   typeof window !== "undefined" &&
-  (window as any).Capacitor?.isNativePlatform?.() === true;
+  (window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() === true;
 
 /**
  * Single source of truth — is the Haptics plugin actually bridged and

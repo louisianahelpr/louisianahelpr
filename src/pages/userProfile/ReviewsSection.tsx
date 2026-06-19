@@ -1,0 +1,324 @@
+import { Star, ChevronDown } from "lucide-react";
+import { getCategoryIcon } from "@/lib/categoryIcons";
+import { formatShortDate } from "@/lib/format";
+import type { ProfileReview } from "./types";
+
+type RatingFilter = "all" | "5" | "4" | "low";
+
+type Props = {
+  reviews: ProfileReview[];
+  isOwnProfile: boolean;
+  profileFullName: string | null;
+  reviewCategoryFilter: string | null;
+  reviewRatingFilter: RatingFilter;
+  reviewVisibleCount: number;
+  onSetReviewCategoryFilter: (value: string | null) => void;
+  onSetReviewRatingFilter: (value: RatingFilter) => void;
+  onSetReviewVisibleCount: (updater: (n: number) => number) => void;
+  onResetVisibleCount: (value: number) => void;
+  respondingToReview: string | null;
+  responseText: string;
+  onSetResponseText: (value: string) => void;
+  onStartResponding: (reviewId: string, initial: string) => void;
+  onCancelResponding: () => void;
+  onSaveResponse: (reviewId: string) => void;
+  reviewsHasMore: boolean;
+  loadMoreReviews: () => void;
+  loadingMoreReviews: boolean;
+};
+
+export const ReviewsSection = ({
+  reviews,
+  isOwnProfile,
+  profileFullName,
+  reviewCategoryFilter,
+  reviewRatingFilter,
+  reviewVisibleCount,
+  onSetReviewCategoryFilter,
+  onSetReviewRatingFilter,
+  onSetReviewVisibleCount,
+  onResetVisibleCount,
+  respondingToReview,
+  responseText,
+  onSetResponseText,
+  onStartResponding,
+  onCancelResponding,
+  onSaveResponse,
+  reviewsHasMore,
+  loadMoreReviews,
+  loadingMoreReviews,
+}: Props) => {
+  const PAGE_SIZE = 5;
+  // Distinct categories that appear in this helper's reviews,
+  // computed once per render. Sorted alphabetically with a
+  // stable "other" bucket for nulls. Drives the filter chips.
+  const distinctCategories = Array.from(
+    new Set(reviews.map((r) => r.jobCategory).filter((c): c is string => !!c)),
+  ).sort();
+  const matchesRatingBucket = (rating: number) => {
+    if (reviewRatingFilter === "all") return true;
+    if (reviewRatingFilter === "5") return rating === 5;
+    if (reviewRatingFilter === "4") return rating === 4;
+    // "low" bucket = ≤3 — pulls all critical reviews together so
+    // a viewer can audit the negatives in one tap.
+    return rating <= 3;
+  };
+  const filteredReviews = reviews.filter((r) => {
+    if (reviewCategoryFilter && r.jobCategory !== reviewCategoryFilter) return false;
+    if (!matchesRatingBucket(r.rating)) return false;
+    return true;
+  });
+  const hasActiveFilter = reviewCategoryFilter !== null || reviewRatingFilter !== "all";
+  const visible = filteredReviews.slice(0, reviewVisibleCount);
+  const hasMore = filteredReviews.length > visible.length;
+
+  return (
+    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+      {/* Filter row — only render when there's something to filter
+          (at least one category beyond "other" OR more than one
+          distinct rating). Avoids cluttering a 1-review profile. */}
+      {reviews.length > 1 && (distinctCategories.length > 0 || new Set(reviews.map((r) => r.rating)).size > 1) && (
+        <div className="rounded-ds-md liquid-glass p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Filter</span>
+            {hasActiveFilter && (
+              <button
+                onClick={() => {
+                  onSetReviewCategoryFilter(null);
+                  onSetReviewRatingFilter("all");
+                  onResetVisibleCount(PAGE_SIZE);
+                }}
+                className="text-ds-11 underline text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {distinctCategories.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {distinctCategories.map((cat) => {
+                const Icon = getCategoryIcon(cat);
+                const active = reviewCategoryFilter === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      onSetReviewCategoryFilter(active ? null : cat);
+                      onResetVisibleCount(PAGE_SIZE);
+                    }}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors"
+                    style={{
+                      color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
+                      background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
+                      border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
+                    }}
+                  >
+                    <Icon className="w-3 h-3" />
+                    <span className="capitalize">{cat.replace(/_/g, " ")}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {/* Star-bucket chips (#3): All / 5 / 4 / ≤3. Buckets
+              hide themselves when no review matches — a profile
+              with only 5★ reviews won't surface an empty "4★" tab. */}
+          <div className="flex flex-wrap gap-1.5">
+            {([
+              { key: "all" as const, label: "All", count: reviews.length, stars: 0 },
+              { key: "5" as const, label: "", count: reviews.filter((r) => r.rating === 5).length, stars: 5 },
+              { key: "4" as const, label: "", count: reviews.filter((r) => r.rating === 4).length, stars: 4 },
+              { key: "low" as const, label: "≤3", count: reviews.filter((r) => r.rating <= 3).length, stars: 3 },
+            ]).map((bucket) => {
+              if (bucket.key !== "all" && bucket.count === 0) return null;
+              const active = reviewRatingFilter === bucket.key;
+              return (
+                <button
+                  key={bucket.key}
+                  onClick={() => {
+                    onSetReviewRatingFilter(bucket.key);
+                    onResetVisibleCount(PAGE_SIZE);
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors tabular-nums"
+                  style={{
+                    color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
+                    background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
+                    border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
+                  }}
+                >
+                  {bucket.key === "all" ? (
+                    <span>{bucket.label}</span>
+                  ) : (
+                    <>
+                      {bucket.key === "low" && <span>{bucket.label}</span>}
+                      <Star className="w-3 h-3 fill-current" />
+                      {bucket.key !== "low" && <span>{bucket.stars}</span>}
+                    </>
+                  )}
+                  <span className="opacity-70">({bucket.count})</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {filteredReviews.length > 0 ? (
+        <>
+          {visible.map((r, i) => (
+            <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
+                    ))}
+                  </div>
+                  <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
+                </div>
+                <span className="text-muted-foreground text-ds-11">{formatShortDate(r.created_at)}</span>
+              </div>
+              {(r.punctuality || r.quality || r.communication) && (
+                <div className="grid grid-cols-3 gap-2">
+                  {r.punctuality && (
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                      </div>
+                    </div>
+                  )}
+                  {r.quality && (
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                      </div>
+                    </div>
+                  )}
+                  {r.communication && (
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
+              {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
+              {/* Existing public response — visible to everyone */}
+              {r.response_text && (
+                <div className="mt-3 pt-3 border-t border-[hsl(var(--bark)/0.10)]">
+                  <p
+                    className="text-ds-11 font-semibold uppercase tracking-[0.06em] mb-1.5"
+                    style={{ color: "hsl(var(--olivewood)/0.55)" }}
+                  >
+                    Response from {profileFullName}
+                  </p>
+                  <p
+                    className="text-ds-13 font-serif italic leading-relaxed"
+                    style={{ color: "hsl(var(--olivewood)/0.80)" }}
+                  >
+                    {r.response_text}
+                  </p>
+                </div>
+              )}
+              {/* Add/Edit response — own profile only */}
+              {isOwnProfile && !r.response_text && (
+                <button
+                  type="button"
+                  className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                  onClick={() => {
+                    onStartResponding(r.id, "");
+                  }}
+                >
+                  Add response
+                </button>
+              )}
+              {isOwnProfile && r.response_text && (
+                <button
+                  type="button"
+                  className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
+                  style={{ color: "hsl(var(--olivewood)/0.55)" }}
+                  onClick={() => {
+                    onStartResponding(r.id, r.response_text ?? "");
+                  }}
+                >
+                  Edit response
+                </button>
+              )}
+              {/* Inline response editor */}
+              {isOwnProfile && respondingToReview === r.id && (
+                <div className="mt-3 space-y-2">
+                  <textarea
+                    value={responseText}
+                    onChange={(e) => onSetResponseText(e.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    placeholder="Write a brief public response…"
+                    className="w-full rounded-ds-md border border-[hsl(var(--bark)/0.20)] bg-white/60 px-3 py-2 text-ds-13 font-sans resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--bark)/0.40)]"
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onSaveResponse(r.id)}
+                      className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold text-white"
+                      style={{ backgroundColor: "hsl(var(--burnt-sienna))" }}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onCancelResponding}
+                      className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold"
+                      style={{ color: "hsl(var(--olivewood)/0.70)" }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          {hasMore && (
+            <button
+              onClick={() => onSetReviewVisibleCount((n) => n + PAGE_SIZE)}
+              className="w-full rounded-ds-md liquid-glass p-3 text-ds-13 font-medium text-foreground hover:bg-muted/30 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <ChevronDown className="w-4 h-4" />
+              Show {Math.min(PAGE_SIZE, filteredReviews.length - visible.length)} more
+              <span className="text-muted-foreground">({visible.length} of {filteredReviews.length})</span>
+            </button>
+          )}
+          {/* Load more from server — only shown when the local
+              filter is not active (filtered view shows what's
+              already loaded; fetching more could confuse the count)
+              and when there are server-side pages remaining. */}
+          {!hasActiveFilter && reviewsHasMore && (
+            <button
+              onClick={loadMoreReviews}
+              disabled={loadingMoreReviews}
+              className="w-full py-3 text-ds-13 font-medium rounded-xl border disabled:opacity-50 mt-2"
+              style={{
+                borderColor: "hsl(var(--olivewood) / 0.2)",
+                color: "hsl(var(--olivewood))",
+              }}
+            >
+              {loadingMoreReviews ? "Loading…" : "Load more reviews"}
+            </button>
+          )}
+        </>
+      ) : (
+        <div className="rounded-ds-md liquid-glass p-6 text-center">
+          <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
+          <p className="text-ds-11 text-muted-foreground">
+            {hasActiveFilter ? "No reviews match this filter" : "No reviews yet"}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};

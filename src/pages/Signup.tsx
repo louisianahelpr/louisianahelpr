@@ -350,6 +350,18 @@ const Signup = () => {
         >
           {stepHeading.subtitle}
         </p>
+        {/* Dual-role value prop — every Helpr account can both post tasks
+            and earn by doing them; surface it up front so neither path
+            feels like a separate sign-up. Shown only on the personal
+            account-credentials step (step 1). */}
+        {step === 1 && !isBusinessSignup && (
+          <p
+            className="font-serif italic text-ds-13 mx-auto max-w-[34ch]"
+            style={{ color: "hsl(var(--burnt-sienna) / 0.9)" }}
+          >
+            Post a task or earn helping — one account does both.
+          </p>
+        )}
       </div>
       <div className="pb-8">
           {/* Liquid-glass card — matches the Login screen so the two auth

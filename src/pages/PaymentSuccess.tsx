@@ -23,6 +23,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { report } from "@/lib/errorLogger";
 import { safeStorage } from "@/lib/safeStorage";
+import { formatPrice } from "@/lib/format";
 
 // Visual lifecycle preview — replaces the dense paragraph that used to
 // sit in this same slot. Keeps the same content (4 stages from job-state
@@ -47,6 +48,11 @@ const PaymentSuccess = () => {
     (typeof window !== "undefined" ? safeStorage.getItem("helpr_last_posted_job_id") : null) ||
     null;
   const [sharing, setSharing] = useState(false);
+  // The held-in-escrow amount, read once for display. This is a read-only
+  // UI lookup of the job's posted budget — it does NOT touch payment
+  // semantics. Null until loaded (or if the job can't be read), in which
+  // case the amount line is simply omitted.
+  const [escrowAmount, setEscrowAmount] = useState<number | null>(null);
 
   // Share the just-posted job. Follows the same Capacitor → Web Share →
   // clipboard tiered fallback as the existing ShareJobButton — repeated
@@ -99,6 +105,27 @@ const PaymentSuccess = () => {
     }
   };
 
+  // Read the posted budget for the just-paid job so we can show the exact
+  // amount now held in escrow. Read-only display lookup — no payment logic.
+  useEffect(() => {
+    if (!resolvedJobId) return;
+    let cancelled = false;
+    void (async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("budget")
+        .eq("id", resolvedJobId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        report(error, { tags: { source: "PaymentSuccess.escrowAmount" } });
+        return;
+      }
+      if (typeof data?.budget === "number") setEscrowAmount(data.budget);
+    })();
+    return () => { cancelled = true; };
+  }, [resolvedJobId]);
+
   useEffect(() => {
     hapticSuccess();
     const jobId = searchParams.get("job_id") || null;
@@ -143,6 +170,18 @@ const PaymentSuccess = () => {
           <h1 className="text-page-title leading-tight mt-1">
             Payment authorized.
           </h1>
+          <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            {escrowAmount != null ? (
+              <>
+                <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                  ${formatPrice(escrowAmount)}
+                </span>{" "}
+                is held safely in escrow.
+              </>
+            ) : (
+              <>Held safely in escrow.</>
+            )}
+          </p>
         </div>
 
         <div
@@ -154,7 +193,7 @@ const PaymentSuccess = () => {
         >
           <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
           <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
-            Your payment has been securely processed. The helpr will be paid once both you and the helpr confirm the job is complete.
+            We hold it until you confirm the job's done. The helpr is paid once both you and the helpr mark it complete — your money stays protected the whole time.
           </p>
         </div>
 

@@ -30,12 +30,13 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/signup",
   "/signup-pending",
   "/complete-profile",
-  // NOTE: /account-pending deliberately stays OFF this list. AccountPending
-  // renders via AppShell — its content is a single fixed-height centered
-  // card (`flex items-center justify-center`), not long-form scrolling
-  // onboarding. AppShell's internal scroll handles the rare overflow case,
-  // and html-locking it keeps the page's shell choice and this list in
-  // agreement (a mismatch lets html overscroll bleed into AppShell).
+  // /account-pending renders via AuthShell (`min-h-screen` document scroll),
+  // unified with the other three account-state screens. Its verification
+  // center (hero + progress + 4-step checklist + banner + actions) can
+  // exceed the viewport on small devices, so it must be ON this list — off
+  // it, `html.app-shell { overflow: hidden }` would clip the actions below
+  // the fold and strand the user.
+  "/account-pending",
   "/account-denied",
   "/account-banned",
   "/forgot-password",

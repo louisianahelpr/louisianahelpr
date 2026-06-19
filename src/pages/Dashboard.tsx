@@ -1,18 +1,14 @@
 import { useState, useCallback, useEffect, useRef, lazy, Suspense, type SetStateAction } from "react";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
-import { motion } from "framer-motion";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import AppShell from "@/components/AppShell";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, XCircle, Search } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
@@ -25,6 +21,10 @@ import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import DashboardGreetingCard from "@/components/dashboard/DashboardGreetingCard";
+import DashboardStatusBanners from "@/components/dashboard/DashboardStatusBanners";
+import PayItForwardTeaser from "@/components/dashboard/PayItForwardTeaser";
+import { DashboardBannedScreen, DashboardDeniedScreen } from "@/components/dashboard/DashboardBlockedScreen";
 
 // Dialogs and overlays — none are visible on first paint. Each is code-split
 // and only the dialogs the user actually opens get fetched, keeping the
@@ -814,29 +814,7 @@ const Dashboard = () => {
 
   // Block banned users
   if (!isAdmin && (banStatus === "permanently_banned" || banStatus === "temp_banned")) {
-    // `/dashboard` is a fixed-shell route; an inline `min-h-screen`
-    // would be clipped by html.app-shell's overflow:hidden. AppShell
-    // gives this short message a 100dvh container with an internal
-    // scroll surface so the text never escapes the viewport.
-    return (
-      <AppShell reserveBottomNav={false} className="bg-premium-page">
-        <div className="flex-1 flex items-center justify-center px-4">
-          <div className="max-w-md text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-              <XCircle className="w-8 h-8 text-destructive" />
-            </div>
-            <h1 className="text-page-title text-foreground text-ds-24">
-              Account {banStatus === "permanently_banned" ? "Permanently Banned" : "Temporarily Suspended"}
-            </h1>
-            <p className="text-muted-foreground">
-              {banStatus === "permanently_banned"
-                ? "Your account has been permanently banned for violating platform rules. Contact support if you believe this is an error."
-                : "Your account has been temporarily suspended. You'll regain access once the suspension period ends."}
-            </p>
-          </div>
-        </div>
-      </AppShell>
-    );
+    return <DashboardBannedScreen banStatus={banStatus} />;
   }
 
   // Progressive activation: a `pending` user is NOT walled out of the
@@ -853,25 +831,7 @@ const Dashboard = () => {
       await supabase.auth.signOut();
       navigate("/login", { replace: true });
     };
-    // `/dashboard` is a fixed-shell route — wrap in AppShell so the
-    // DashboardHeader carries the safe-area-top inset and the body
-    // never spills past html.app-shell's overflow:hidden.
-    return (
-      <AppShell header={<DashboardHeader />} reserveBottomNav={false} className="bg-premium-page">
-        <main className="container mx-auto px-5 py-12">
-          <div className="max-w-lg mx-auto text-center space-y-6">
-            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto"><XCircle className="w-8 h-8 text-destructive" /></div>
-            <h1 className="text-page-title text-foreground text-ds-24">Profile not approved</h1>
-            <p className="text-muted-foreground">Unfortunately, your profile was not approved. Please contact support.</p>
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <Button variant="outline" onClick={handleSignOut} className="rounded-ds-md">
-                Sign out
-              </Button>
-            </div>
-          </div>
-        </main>
-      </AppShell>
-    );
+    return <DashboardDeniedScreen onSignOut={handleSignOut} />;
   }
 
   const isPendingReview = !isAdmin && !!profile && approvalStatus === "pending";
@@ -893,174 +853,23 @@ const Dashboard = () => {
       }
       aboveTitle={<BroadcastBanner />}
       titleCard={
-        <>
-            {/* Condensed greeting — the greeting + date eyebrow are folded
-                into one tight two-line block (greeting line + a small
-                date·jobs eyebrow). The greeting was its own tall line that
-                pushed the feed down; the old standalone "stat of the day"
-                paragraph (a 3rd line) is dropped — the job count it echoed
-                already appears in the eyebrow below. */}
-            {/* Canonical page title — same hero size as the Messages /
-                Posts / Jobs headers (`.text-page-title`) so the greeting
-                matches those tabs exactly. */}
-            <h1 className="text-page-title">
-              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
-              <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>{firstName}</em>.
-            </h1>
-            <p
-              className="mt-1 truncate font-sans font-semibold uppercase"
-              style={{
-                fontSize: "0.62rem",
-                letterSpacing: "0.16em",
-                color: "hsl(var(--olivewood) / 0.55)",
-              }}
-            >
-              {/* Full date so the eyebrow is informative even when no jobs
-                  are nearby (avoids triple "0 jobs" redundancy across the
-                  greeting eyebrow, Browse-Tasks header, and empty-state
-                  card on quiet days). Job count only appears when > 0. */}
-              {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-              {/* Job count intentionally omitted here — it's already shown in
-                  the Browse Tasks header below ("N jobs"), so repeating it in
-                  the greeting eyebrow was redundant. Keep only the unique
-                  "picked for you" stat, which doesn't appear elsewhere. */}
-              {recommendedJobs.length > 0 && (
-                <>
-                  {" · "}
-                  {recommendedJobs.length} picked for you
-                </>
-              )}
-              {/* Stale-while-revalidate signal — a tiny pulsing dot + tag
-                  shows up only while a background refetch runs on top of
-                  cached data. Proof the feed is syncing without blanking
-                  the surface. Hidden during the first load (the skeleton
-                  already speaks for that). */}
-              {isRefreshing && (
-                <span
-                  className="ml-2 inline-flex items-center gap-1 normal-case"
-                  style={{ letterSpacing: "0.08em" }}
-                  aria-live="polite"
-                >
-                  <span
-                    aria-hidden
-                    className="w-1.5 h-1.5 rounded-full animate-pulse"
-                    style={{ background: "hsl(var(--burnt-sienna))" }}
-                  />
-                  <span style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}>
-                    Updating
-                  </span>
-                </span>
-              )}
-            </p>
-            {/* "Watching for" chip — only shown when 0 jobs nearby and
-                the user has an active saved search. Reframes the empty
-                state as intentional rather than confusing. */}
-            {filters.filteredJobs.length === 0 && topSavedSearch && (
-              // Wrapped in a min-w-0 flex container so a long saved-search
-              // name truncates instead of forcing the title card wider
-              // than its column at large Dynamic Type sizes.
-              <div className="mt-2 flex min-w-0 max-w-full">
-                <button
-                  type="button"
-                  onClick={() => navigate("/profile?tab=notifications")}
-                  className="inline-flex min-h-[36px] min-w-0 max-w-full items-center gap-1.5 px-3 py-1.5 rounded-full active:opacity-70 transition-opacity"
-                  style={{
-                    background: "hsl(var(--burnt-sienna) / 0.10)",
-                    border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
-                  }}
-                >
-                  <Search className="w-3 h-3 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
-                  <span
-                    className="text-[0.7rem] font-sans font-semibold tracking-wide truncate min-w-0"
-                    style={{ color: "hsl(var(--burnt-sienna))" }}
-                  >
-                    Watching for: {topSavedSearch.name}
-                  </span>
-                </button>
-              </div>
-            )}
-        </>
+        <DashboardGreetingCard
+          firstName={firstName}
+          recommendedCount={recommendedJobs.length}
+          isRefreshing={isRefreshing}
+          hasNoFilteredJobs={filters.filteredJobs.length === 0}
+          topSavedSearch={topSavedSearch}
+          onWatchingClick={() => navigate("/profile?tab=notifications")}
+        />
       }
       beforePanel={
         <>
-          {/* Progressive-activation banner — a pending user can browse,
-              save and apply right now; this is a non-blocking progress
-              strip, not a wall. Tapping opens the verification center
-              (/account-pending) where they can track review status. */}
-          {isPendingReview && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
-              style={{
-                background:
-                  "radial-gradient(70% 90% at 100% 0%, hsl(var(--bark) / 0.10) 0%, transparent 55%)",
-                border: "0.5px solid hsl(var(--bark) / 0.32)",
-              }}
-            >
-              <div
-                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: "hsl(var(--bark) / 0.18)", color: "hsl(var(--bark))" }}
-              >
-                <Clock className="w-4 h-4" strokeWidth={2.25} />
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate("/account-pending")}
-                className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
-              >
-                <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
-                  Verification in progress — browse and apply now.
-                </p>
-                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
-                  Review usually finishes in 24–48 hours. You'll just need it cleared before you can accept a job. Tap to track status.
-                </p>
-              </button>
-            </motion.div>
-          )}
-
-          {/* Upcoming booked-job reminder — only visible to helpers with an
-              accepted or in-progress job. Keeps commitments front-of-mind
-              without forcing a trip to Activity > My Jobs. */}
-          {upcomingJob && (
-            // De-filled + SINGLE-LINE: a thin tinted/bordered row (the FAB is
-            // the screen's only primary fill). Label + title + date all sit on
-            // one line, so this is a slim reminder strip rather than a card —
-            // it must not steal vertical space from the feed below.
-            <button
-              type="button"
-              onClick={() => navigate("/activity?tab=myjobs")}
-              className="mx-4 mb-3 w-[calc(100%-2rem)] rounded-2xl px-3 py-2 text-left flex items-center gap-2 transition-transform active:scale-[0.99]"
-              style={{
-                background: "hsl(var(--bark) / 0.06)",
-                border: "1px solid hsl(var(--bark) / 0.18)",
-              }}
-            >
-              <span
-                className="shrink-0 font-serif italic uppercase tracking-[0.12em] text-ds-9"
-                style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
-              >
-                {upcomingJob.status === "in_progress" ? "In progress" : "Upcoming"}
-              </span>
-              <span className="flex-1 min-w-0 truncate text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
-                <span className="font-semibold">{upcomingJob.title}</span>
-                {upcomingJob.date_needed && (
-                  <span style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
-                    {" · "}
-                    {new Date(upcomingJob.date_needed).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                    {upcomingJob.start_time ? ` ${upcomingJob.start_time.slice(0, 5)}` : ""}
-                  </span>
-                )}
-              </span>
-              <span
-                className="shrink-0 text-ds-11 font-sans font-semibold"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                View ›
-              </span>
-            </button>
-          )}
+          <DashboardStatusBanners
+            isPendingReview={isPendingReview}
+            upcomingJob={upcomingJob}
+            onPendingClick={() => navigate("/account-pending")}
+            onUpcomingClick={() => navigate("/activity?tab=myjobs")}
+          />
 
           {/* Quick-rebook strip — the customer's saved helprs, one tap
               from a direct offer. Self-hides when there are none.
@@ -1169,31 +978,7 @@ const Dashboard = () => {
             </SectionBoundary>
 
             {/* Pay It Forward teaser — only shown when credits exist in the user's parish */}
-            {pifCount > 0 && (
-              <div
-                className="mx-4 mb-3 rounded-ds-md p-3"
-                style={{
-                  background: "hsl(155 50% 35% / 0.08)",
-                  border: "0.5px solid hsl(155 50% 35% / 0.2)",
-                }}
-              >
-                <p
-                  className="font-display italic font-semibold text-ds-14"
-                  style={{ color: "hsl(155 50% 30%)" }}
-                >
-                  {pifCount} neighbor{pifCount > 1 ? "s" : ""} paid it forward
-                </p>
-                <p
-                  className="font-serif italic text-ds-12 mt-0.5"
-                  style={{ color: "hsl(155 40% 40%)" }}
-                >
-                  Free job credits available in your parish ·{" "}
-                  <Link to="/pay-it-forward" className="underline">
-                    See them
-                  </Link>
-                </p>
-              </div>
-            )}
+            <PayItForwardTeaser pifCount={pifCount} />
 
     </PageScaffold>
 

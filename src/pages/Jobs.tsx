@@ -112,9 +112,9 @@ const Jobs = () => {
 
   // Paginated open-jobs feed via React Query, consistent with the
   // dashboard's useInfiniteQuery feed. get_ranked_open_jobs ranks by boost
-  // (1000) + parish match (500) + urgent (100) + recency (0-50). Replaces
-  // the old chronological-only sort against the open_jobs_safe view. Anon
-  // callers still work — they just don't get the parish-match boost.
+  // (1000) + parish match (500) + urgent (100) + recency (0-50) and coarsens
+  // the address to "City, ST" via mask_job_location server-side. Anon callers
+  // work (EXECUTE granted) — they just don't get the parish-match boost.
   const {
     data: pagesData,
     isLoading: jobsLoading,

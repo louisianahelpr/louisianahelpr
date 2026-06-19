@@ -480,9 +480,9 @@ skipped, build/tsc/lint all green.
   buffering fix from commit f91885fc).
 - 🟠 **Sentry alert rules** — paste the 5 specs from
   `docs/SENTRY_ALERT_RULES.md` into helpr-4m.sentry.io. ~30 sec each.
-- 🟠 **HIBP password protection** — Studio → Auth → Policies → "Check
-  for leaked passwords." Closes the last security advisor warning.
-  Needs Supabase Pro ($25/mo) — skip if not on Pro.
+- ⚪️ **HIBP password protection** — ACCEPTED RISK (won't fix). Requires
+  Supabase Pro ($25/mo); staying on free tier. Studio → Auth → Policies →
+  "Check for leaked passwords" if that ever changes.
 - 🟠 **Submit build #14 (or latest) to App Store review** — TestFlight
   is internal-only. Cowork can do it from App Store Connect once
   you've smoke-tested the native OAuth paths on TestFlight.
@@ -582,8 +582,8 @@ enforce correctly).
   - 1 realtime.messages policy wrapped (the last initPlan warning)
 - ✅ **Security advisor: 167 → 65** — 0 ERRORs. 64 remaining WARNs are
   intentional public RPCs / RLS helpers / admin funcs with internal
-  `has_role` checks. Last actionable: HIBP password protection toggle
-  (1 dashboard click; needs Pro tier).
+  `has_role` checks. The one remaining toggle (HIBP leaked-password
+  protection) is an accepted risk — needs Pro tier, staying on free.
 - ✅ **Email send log orphan rows fixed** — process-email-queue now
   UPDATEs the pending row by message_id instead of inserting a fresh
   terminal row. One canonical entry per message.
@@ -612,9 +612,9 @@ enforce correctly).
   stripe-webhook` to activate the new transfer.failed/reversed
   handlers + payout_transfers ledger lifecycle updates.
 - 🟠 **iOS App Store build 17 publishable key audit** — needs Mac+Xcode.
-- 🟠 **HIBP password protection** — Auth → Policies → "Check for
-  leaked passwords" toggle. Closes the 1 remaining security advisor
-  warning. Needs Supabase Pro ($25/mo).
+- ⚪️ **HIBP password protection** — ACCEPTED RISK (won't fix). Needs
+  Supabase Pro ($25/mo); staying on free tier. Auth → Policies → "Check
+  for leaked passwords" if/when upgraded.
 - 🟠 **Stripe DNS records** (low-pri) — Stripe sent "unused domain
   failing DNS verification" 2026-05-05. Apex-only `*@louisianahelpr.com`
   Stripe email branding requires 2-3 CNAMEs + TXT they show in the
@@ -746,6 +746,6 @@ history during a failed `ALTER DATABASE` for vault GUCs.
 - [x] **Bucket "Public read" RLS policies** — DONE 2026-05-05.
   Dropped redundant policies on avatars (now public-flag-managed) and
   user-documents (now owner-or-admin only).
-- [ ] **HaveIBeenPwned password protection** — Auth → Policies →
-  "Prevent use of leaked passwords." Needs Supabase Pro ($25/mo).
-  Worth toggling on if/when upgraded.
+- [~] **HaveIBeenPwned password protection** — ACCEPTED RISK (won't fix).
+  Needs Supabase Pro ($25/mo); staying on free tier. Auth → Policies →
+  "Prevent use of leaked passwords" if/when upgraded.

@@ -177,7 +177,8 @@ const AdminHealth = () => {
       const suppressed = suppressedRes.count || 0;
       const emailStats = { total: sent + failed + suppressed, sent, failed, suppressed };
 
-      const { count: fc } = await supabase.from("fraud_flags").select("id", { count: "exact", head: true }).eq("resolved", false);
+      const { count: fc, error: fcErr } = await supabase.from("fraud_flags").select("id", { count: "exact", head: true }).eq("resolved", false);
+      if (fcErr) throw fcErr;
       const fraudCount = fc || 0;
 
       // Push token stats — useful at-a-glance for "is push working" debugging.

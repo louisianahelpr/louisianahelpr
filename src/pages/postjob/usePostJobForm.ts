@@ -588,7 +588,14 @@ export function usePostJobForm() {
     }
 
     // Check open job limit (server enforces too, but show friendly message)
-    const { count: openCount } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open");
+    const { count: openCount, error: openCountErr } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open");
+    if (openCountErr) {
+      report(openCountErr, { tags: { source: "usePostJobForm.openJobLimit" } });
+      toast.error("Couldn't check your open job count — please try again.");
+      setSaving(false);
+      submittingRef.current = false;
+      return null;
+    }
     if ((openCount ?? 0) >= 5) {
       toast.error("You can have a maximum of 5 open jobs at a time. Close or wait for existing jobs first.");
       setSaving(false);

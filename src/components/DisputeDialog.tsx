@@ -76,7 +76,11 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           report(uploadError, { tags: { source: "DisputeDialog.uploadEvidence" } });
           continue;
         }
-        const { data: urlData } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+        const { data: urlData, error: signedUrlError } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (signedUrlError) {
+          report(signedUrlError, { tags: { source: "DisputeDialog.createSignedUrl" } });
+          continue;
+        }
         if (urlData?.signedUrl) evidenceUrls.push(urlData.signedUrl);
       }
 

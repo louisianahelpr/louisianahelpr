@@ -98,9 +98,13 @@ export function CompletionChoiceSheet({
           report(upErr, { tags: { source: "CompletionChoiceSheet.uploadPhoto" } });
           continue;
         }
-        const { data: urlData } = await supabase.storage
+        const { data: urlData, error: signedUrlError } = await supabase.storage
           .from("proof-photos")
           .createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (signedUrlError) {
+          report(signedUrlError, { tags: { source: "CompletionChoiceSheet.createSignedUrl" } });
+          continue;
+        }
         if (urlData?.signedUrl) photoUrls.push(urlData.signedUrl);
       }
 

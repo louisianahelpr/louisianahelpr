@@ -62,7 +62,10 @@ export function JobConfirmation({
       setLocalConfirmedAt(new Date().toISOString());
       onConfirm?.();
       // Notify the other party
-      const { data: job } = await supabase.from("jobs").select("title, customer_id, helper_id").eq("id", jobId).single();
+      const { data: job, error: jobFetchErr } = await supabase.from("jobs").select("title, customer_id, helper_id").eq("id", jobId).single();
+      if (jobFetchErr) {
+        console.error("[JobConfirmation] Failed to fetch job for notification:", jobFetchErr.message);
+      }
       if (job) {
         const recipientId = isOwner ? job.helper_id : job.customer_id;
         if (recipientId) {

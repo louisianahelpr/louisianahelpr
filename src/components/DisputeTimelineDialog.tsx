@@ -137,7 +137,11 @@ export const DisputeTimelineDialog = ({
           report(uploadError, { tags: { source: "DisputeTimelineDialog.upload" } });
           continue;
         }
-        const { data: urlData } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+        const { data: urlData, error: signedUrlError } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (signedUrlError) {
+          report(signedUrlError, { tags: { source: "DisputeTimelineDialog.createSignedUrl" } });
+          continue;
+        }
         if (urlData?.signedUrl) newUrls.push(urlData.signedUrl);
       }
 

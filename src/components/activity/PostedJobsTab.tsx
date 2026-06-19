@@ -28,6 +28,34 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 
 /**
+ * Typed escape hatch for RPCs that aren't in the generated function union
+ * yet (the PGRST202 migration-lag pattern — see CLAUDE.md). Keeps each call
+ * site's args and row shape type-checked through the generics rather than
+ * scattering `supabase.rpc as any` casts. The single `as unknown as` cast
+ * is the one explicit boundary where we acknowledge the generated types
+ * lag the deployed schema.
+ */
+function callUntypedRpc<TArgs extends Record<string, unknown>, TRow = unknown>(
+  fn: string,
+  args: TArgs,
+): Promise<{ data: TRow | null; error: { code?: string } | null }> {
+  return (supabase.rpc as unknown as (
+    fn: string,
+    args: TArgs,
+  ) => Promise<{ data: TRow | null; error: { code?: string } | null }>)(fn, args);
+}
+
+/** Bid/stake columns on `applications` added by a later migration not yet
+    regenerated into the Supabase types (PGRST202 pattern). Optional because
+    they're absent on a production DB where the migration hasn't run. */
+type ApplicantBidFields = {
+  proposed_price?: number | null;
+  negotiation_status?: string | null;
+  counter_price?: number | null;
+  stake_amount?: number | null;
+};
+
+/**
  * BulkDismissibleWrapper — when selectionMode is off, presses are
  * forwarded to the underlying card as usual EXCEPT for the long-press
  * which enters selection mode. When selectionMode is on, taps toggle
@@ -210,12 +238,12 @@ export const PostedJobsTab = ({
   const handleCounter = useCallback(async (appId: string, counterPrice: number) => {
     setCounterSending(true);
     try {
-      const { error } = await (supabase.rpc as any)("counter_application_bid", {
+      const { error } = await callUntypedRpc("counter_application_bid", {
         p_application_id: appId,
         p_counter_price: counterPrice,
       });
       if (error) {
-        if ((error as any).code === "PGRST202") {
+        if (error.code === "PGRST202") {
           toast.error("Counter-offer feature not yet deployed — try again later.");
         } else {
           toast.error("Couldn't send counter-offer. Please try again.");
@@ -304,13 +332,16 @@ export const PostedJobsTab = ({
     queryKey: ["helper-completed-counts", helperIds],
     queryFn: async (): Promise<Map<string, number>> => {
       if (helperIds.length === 0) return new Map();
-      const { data, error } = await (supabase.rpc as any)("get_helper_completed_counts", {
+      const { data, error } = await callUntypedRpc<
+        { p_user_ids: string[] },
+        Array<{ user_id: string; completed_jobs: number }>
+      >("get_helper_completed_counts", {
         p_user_ids: helperIds,
       });
       if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
       const map = new Map<string, number>();
       if (Array.isArray(data)) {
-        for (const row of data as Array<{ user_id: string; completed_jobs: number }>) {
+        for (const row of data) {
           map.set(row.user_id, Number(row.completed_jobs));
         }
       }
@@ -330,13 +361,16 @@ export const PostedJobsTab = ({
     queryKey: ["helper-repeat-hire-percents", helperIds],
     queryFn: async (): Promise<Map<string, number>> => {
       if (helperIds.length === 0) return new Map();
-      const { data, error } = await (supabase.rpc as any)("get_helper_repeat_hire_percents", {
+      const { data, error } = await callUntypedRpc<
+        { p_user_ids: string[] },
+        Array<{ user_id: string; repeat_hire_percent: number }>
+      >("get_helper_repeat_hire_percents", {
         p_user_ids: helperIds,
       });
       if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
       const map = new Map<string, number>();
       if (Array.isArray(data)) {
-        for (const row of data as Array<{ user_id: string; repeat_hire_percent: number }>) {
+        for (const row of data) {
           map.set(row.user_id, Number(row.repeat_hire_percent));
         }
       }
@@ -355,13 +389,16 @@ export const PostedJobsTab = ({
     queryKey: ["helper-on-time-percents", helperIds],
     queryFn: async (): Promise<Map<string, number>> => {
       if (helperIds.length === 0) return new Map();
-      const { data, error } = await (supabase.rpc as any)("get_helper_on_time_percents", {
+      const { data, error } = await callUntypedRpc<
+        { p_user_ids: string[] },
+        Array<{ user_id: string; on_time_percent: number }>
+      >("get_helper_on_time_percents", {
         p_user_ids: helperIds,
       });
       if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
       const map = new Map<string, number>();
       if (Array.isArray(data)) {
-        for (const row of data as Array<{ user_id: string; on_time_percent: number }>) {
+        for (const row of data) {
           map.set(row.user_id, Number(row.on_time_percent));
         }
       }
@@ -381,14 +418,17 @@ export const PostedJobsTab = ({
     queryKey: ["helper-distances-from-job", selectedJob?.id, helperIds],
     queryFn: async (): Promise<Map<string, number>> => {
       if (helperIds.length === 0 || !selectedJob?.id) return new Map();
-      const { data, error } = await (supabase.rpc as any)("get_helper_distances_from_job", {
+      const { data, error } = await callUntypedRpc<
+        { p_job_id: string; p_user_ids: string[] },
+        Array<{ user_id: string; distance_km: number }>
+      >("get_helper_distances_from_job", {
         p_job_id: selectedJob.id,
         p_user_ids: helperIds,
       });
       if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
       const map = new Map<string, number>();
       if (Array.isArray(data)) {
-        for (const row of data as Array<{ user_id: string; distance_km: number }>) {
+        for (const row of data) {
           map.set(row.user_id, Number(row.distance_km));
         }
       }
@@ -407,18 +447,21 @@ export const PostedJobsTab = ({
     queryKey: ["job-view-counts", jobIds],
     queryFn: async (): Promise<Record<string, number>> => {
       if (jobIds.length === 0) return {};
-      const { data, error } = await (supabase.rpc as any)("get_job_view_counts", {
+      const { data, error } = await callUntypedRpc<
+        { p_job_ids: string[] },
+        Array<{ job_id: string; view_count: number }>
+      >("get_job_view_counts", {
         p_job_ids: jobIds,
       });
       if (error) {
         // PGRST202 = function not yet deployed to production — degrade gracefully
-        if ((error as { code?: string }).code === "PGRST202") return {};
+        if (error.code === "PGRST202") return {};
         // Other errors: swallow so the feed still renders
         return {};
       }
       const result: Record<string, number> = {};
       if (Array.isArray(data)) {
-        for (const row of data as Array<{ job_id: string; view_count: number }>) {
+        for (const row of data) {
           result[row.job_id] = Number(row.view_count);
         }
       }
@@ -449,7 +492,7 @@ export const PostedJobsTab = ({
       // Bid prices — derive from inline applicants if loaded; otherwise null
       const apps = inlineApplicants[job.id] ?? [];
       const bids = apps
-        .map((a) => (a as any).proposed_price)
+        .map((a) => (a as EnrichedApplication & ApplicantBidFields).proposed_price)
         .filter((p): p is number => typeof p === "number" && p > 0);
 
       map[job.id] = {
@@ -493,7 +536,7 @@ export const PostedJobsTab = ({
         distanceKm: distanceMap.get(app.helper_id) ?? null,
         responseTimeMinutes: null,
         neighborCount,           // live from get_neighbor_hire_count RPC
-        stakeAmount: (app as any).stake_amount ?? null,
+        stakeAmount: (app as EnrichedApplication & ApplicantBidFields).stake_amount ?? null,
       };
       const result = scoreApplicant(data);
       map.set(app.helper_id, result.score);
@@ -515,15 +558,15 @@ export const PostedJobsTab = ({
     } else if (applicantSort === "bid_asc") {
       // Cheapest bid first; apps without a bid go to the end
       sorted.sort((a, b) => {
-        const pa = (a.app as any).proposed_price ?? Infinity;
-        const pb = (b.app as any).proposed_price ?? Infinity;
+        const pa = (a.app as EnrichedApplication & ApplicantBidFields).proposed_price ?? Infinity;
+        const pb = (b.app as EnrichedApplication & ApplicantBidFields).proposed_price ?? Infinity;
         return pa - pb;
       });
     } else if (applicantSort === "bid_desc") {
       // Highest bid first; apps without a bid go to the end
       sorted.sort((a, b) => {
-        const pa = (a.app as any).proposed_price ?? -Infinity;
-        const pb = (b.app as any).proposed_price ?? -Infinity;
+        const pa = (a.app as EnrichedApplication & ApplicantBidFields).proposed_price ?? -Infinity;
+        const pb = (b.app as EnrichedApplication & ApplicantBidFields).proposed_price ?? -Infinity;
         return pb - pa;
       });
     }
@@ -579,7 +622,7 @@ export const PostedJobsTab = ({
   // cheapest applicant surfaces first. Non-bid jobs fall back to "recommended".
   useEffect(() => {
     const expandedJob = jobs.find((j) => j.id === expandedJobId);
-    if ((expandedJob as any)?.pricing_mode === "accept_bids") {
+    if (expandedJob?.pricing_mode === "accept_bids") {
       setApplicantSort("bid_asc");
     } else {
       setApplicantSort("recommended");
@@ -919,8 +962,8 @@ export const PostedJobsTab = ({
                       );
                     })}
                     {/* Bid price sort — only shown for accept_bids jobs with at least one bid */}
-                    {(selectedJob as any).pricing_mode === "accept_bids" &&
-                      sortedApplications.some((sa) => (sa.app as any).proposed_price != null) && (
+                    {selectedJob.pricing_mode === "accept_bids" &&
+                      sortedApplications.some((sa) => (sa.app as EnrichedApplication & ApplicantBidFields).proposed_price != null) && (
                         <>
                           {(["bid_asc", "bid_desc"] as const).map((opt) => {
                             const label = opt === "bid_asc" ? "Lowest bid" : "Highest bid";
@@ -952,6 +995,9 @@ export const PostedJobsTab = ({
 
                   {/* Applicant cards */}
                   {sortedApplications.map(({ app, signals, neighborCount }) => {
+                    // Bid/stake columns aren't in the generated types yet
+                    // (migration lag); read them through this narrow view.
+                    const bidApp = app as EnrichedApplication & ApplicantBidFields;
                     const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
                     const isElite = helperTier === "elite";
                     const isPro = helperTier === "pro";
@@ -1105,10 +1151,10 @@ export const PostedJobsTab = ({
                                   Only shown on accept_bids jobs. The counter
                                   form is inline (not a modal) — minimal
                                   friction for a common negotiation action. */}
-                              {(app as any).proposed_price != null && (() => {
+                              {bidApp.proposed_price != null && (() => {
                                 const localState = localNegotiation[app.id];
-                                const negotiationStatus = localState?.status ?? (app as any).negotiation_status ?? "open";
-                                const counterPrice = localState?.price ?? (app as any).counter_price;
+                                const negotiationStatus = localState?.status ?? bidApp.negotiation_status ?? "open";
+                                const counterPrice = localState?.price ?? bidApp.counter_price;
                                 const isCounterShowing = counterShowing === app.id;
 
                                 // Countered: poster already sent a price — show amber pill.
@@ -1167,7 +1213,7 @@ export const PostedJobsTab = ({
                                         color: "hsl(var(--sage))",
                                       }}
                                     >
-                                      Bid: ${(app as any).proposed_price}
+                                      Bid: ${bidApp.proposed_price}
                                     </span>
                                     {!isCounterShowing && app.status === "pending" && (
                                       <button
@@ -1251,7 +1297,7 @@ export const PostedJobsTab = ({
                                   {neighborCount} neighbor{neighborCount > 1 ? "s" : ""} hired them
                                 </span>
                               )}
-                              {(app as any).stake_amount > 0 && (
+                              {(bidApp.stake_amount ?? 0) > 0 && (
                                 <span
                                   className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
                                   style={{ color: "hsl(155 50% 35%)" }}
@@ -1261,14 +1307,14 @@ export const PostedJobsTab = ({
                                     style={{ background: "hsl(155 50% 35%)" }}
                                     aria-hidden="true"
                                   />
-                                  ${(app as any).stake_amount} staked
+                                  ${bidApp.stake_amount} staked
                                 </span>
                               )}
                               {/* "Available now" pill — shown when the helper
                                   has toggled their 4-hour availability signal
                                   and the window hasn't expired yet. */}
                               {(() => {
-                                const until = (app as any).profiles?.available_until;
+                                const until = bidApp.profiles?.available_until;
                                 const isNowAvailable = until && new Date(until) > new Date();
                                 return isNowAvailable ? (
                                   <span

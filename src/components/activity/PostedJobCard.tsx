@@ -38,6 +38,11 @@ import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { IncomingReportCard } from "./PetReportCard";
 
+/** Bid column added by a later migration not yet regenerated into the
+    Supabase types (PGRST202 migration-lag pattern — see CLAUDE.md).
+    Optional: absent on a production DB where the migration hasn't run. */
+type WithBidPrice = { proposed_price?: number | null };
+
 interface PostedJobCardProps {
   /** The job + its embedded data — one row of the posted feed. */
   job: Job;
@@ -230,7 +235,7 @@ function PostedJobCardInner({
       });
       // PGRST202 = function not yet deployed — silently hide the button.
       if (error) {
-        const msg = (error as any)?.message ?? "";
+        const msg = error instanceof Error ? error.message : "";
         if (msg.includes("PGRST202") || msg.includes("not found") || msg.includes("404")) {
           // Edge function not deployed yet — silently suppress
           setBroadcastBoosted(true);
@@ -238,19 +243,21 @@ function PostedJobCardInner({
         }
         throw error;
       }
-      if ((data as any)?.error) {
-        throw new Error((data as any).error);
+      // boost-job returns an untyped JSON body; narrow the fields we read.
+      const boostData = data as { error?: string; notified?: number } | null;
+      if (boostData?.error) {
+        throw new Error(boostData.error);
       }
-      const notified: number = (data as any)?.notified ?? 0;
+      const notified: number = boostData?.notified ?? 0;
       setBroadcastBoosted(true);
       successToast(
         notified > 0
           ? `Job boosted! ${notified} nearby helpr${notified !== 1 ? "s" : ""} were notified.`
           : "Job boosted! Nearby helprs were notified.",
       );
-    } catch (err: any) {
+    } catch (err) {
       hapticError();
-      toast.error(err?.message ?? "Couldn't send boost notification. Try again.");
+      toast.error(err instanceof Error ? err.message : "Couldn't send boost notification. Try again.");
     } finally {
       setBroadcastBoosting(false);
     }
@@ -705,7 +712,7 @@ function PostedJobCardInner({
                                         style={{ color: "hsl(var(--olivewood) / 0.80)" }}
                                         aria-hidden="true"
                                       />
-                                      {(app as any).proposed_price != null && (
+                                      {(app as WithBidPrice).proposed_price != null && (
                                         <span
                                           className="text-ds-11 font-semibold px-2 py-0.5 rounded-full shrink-0"
                                           style={{
@@ -713,7 +720,7 @@ function PostedJobCardInner({
                                             color: "hsl(var(--sage))",
                                           }}
                                         >
-                                          Bid: ${(app as any).proposed_price}
+                                          Bid: ${(app as WithBidPrice).proposed_price}
                                         </span>
                                       )}
                                     </div>

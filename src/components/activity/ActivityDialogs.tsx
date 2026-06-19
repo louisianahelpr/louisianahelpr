@@ -6,7 +6,7 @@ import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
-import type { Job, Application } from "./activityConstants";
+import type { Job, EnrichedApplication } from "./activityConstants";
 
 // Dialogs are conditionally rendered — none are visible on first paint. Each
 // is code-split and only the dialogs the user actually opens get fetched,
@@ -20,6 +20,12 @@ const ResponseDeadlineDialog = lazy(() => import("@/components/ResponseDeadlineD
 const DisputeDialog = lazy(() => import("@/components/DisputeDialog").then(m => ({ default: m.DisputeDialog })));
 const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then(m => ({ default: m.DisputeTimelineDialog })));
 const EditJobDialog = lazy(() => import("./EditJobDialog").then(m => ({ default: m.EditJobDialog })));
+
+/** The response-deadline dialog reads only the helper's display name off the
+    enriched applicant row; the full `EnrichedApplication` shape is what the
+    Activity page already holds in state, so reuse it rather than inventing a
+    narrower parallel type. */
+type DeadlineDialogApp = EnrichedApplication;
 
 interface ActivityDialogsProps {
   user: { id: string } | null;
@@ -48,10 +54,10 @@ interface ActivityDialogsProps {
   setCancelDialogJob: (job: Job | null) => void;
   // Completion prompts
   completionPromptJob: { job: Job; revieweeId: string; revieweeName: string } | null;
-  setCompletionPromptJob: (v: any) => void;
+  setCompletionPromptJob: (v: { job: Job; revieweeId: string; revieweeName: string } | null) => void;
   // Deadline
-  deadlineDialogApp: (Application & { profiles?: any }) | null;
-  setDeadlineDialogApp: (app: any) => void;
+  deadlineDialogApp: DeadlineDialogApp | null;
+  setDeadlineDialogApp: (app: DeadlineDialogApp | null) => void;
   onDeadlineConfirm: (hours: number, msg?: string) => void;
   // Dispute
   disputeJob: Job | null;
@@ -67,7 +73,7 @@ interface ActivityDialogsProps {
   setReviewTarget: (t: { id: string; name: string } | null) => void;
   // Review (helper)
   helperReviewJob: { jobId: string; posterId: string; posterName: string } | null;
-  setHelperReviewJob: (v: any) => void;
+  setHelperReviewJob: (v: { jobId: string; posterId: string; posterName: string } | null) => void;
   // Helper names lookup
   helperNames?: Record<string, string>;
   // Refresh
@@ -91,8 +97,8 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       props.setRevisionJobId(null);
       setRevisionNote("");
       props.onRevisionRequested();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to request revision");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to request revision");
     } finally {
       setRequestingRevision(false);
     }
@@ -232,11 +238,11 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
             jobTitle={props.viewDisputeJob.title}
             userId={props.user.id}
             legacy={{
-              reason: (props.viewDisputeJob as any).dispute_reason ?? null,
-              evidence_urls: (props.viewDisputeJob as any).dispute_evidence_urls ?? [],
-              disputed_at: (props.viewDisputeJob as any).disputed_at ?? null,
-              disputed_by: (props.viewDisputeJob as any).disputed_by ?? null,
-              dispute_resolved_at: (props.viewDisputeJob as any).dispute_resolved_at ?? null,
+              reason: props.viewDisputeJob.dispute_reason ?? null,
+              evidence_urls: props.viewDisputeJob.dispute_evidence_urls ?? [],
+              disputed_at: props.viewDisputeJob.disputed_at ?? null,
+              disputed_by: props.viewDisputeJob.disputed_by ?? null,
+              dispute_resolved_at: props.viewDisputeJob.dispute_resolved_at ?? null,
             }}
             open={!!props.viewDisputeJob}
             onClose={() => props.setViewDisputeJob(null)}

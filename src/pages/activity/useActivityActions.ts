@@ -74,7 +74,7 @@ export function useActivityActions({
   const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
   const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
   const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
-  const [deadlineDialogApp, setDeadlineDialogApp] = useState<(Application & { profiles?: any }) | null>(null);
+  const [deadlineDialogApp, setDeadlineDialogApp] = useState<EnrichedApplication | null>(null);
   const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
   const [disputeJob, setDisputeJob] = useState<Job | null>(null);
   // Read-only timeline + follow-up evidence for an already-disputed
@@ -147,17 +147,26 @@ export function useActivityActions({
       // Filter out applicants the current user has blocked (or who blocked them)
       const { getBlockedUserIds } = await import("@/lib/userBlocks");
       const blockedSet = user ? await getBlockedUserIds(user.id) : new Set<string>();
-      const visibleApps = apps.filter((a: any) => !blockedSet.has(a.helper_id));
+      const visibleApps = apps.filter((a) => !blockedSet.has(a.helper_id));
       if (visibleApps.length === 0) return [];
 
       const helperIds = visibleApps.map((a) => a.helper_id);
       const [profilesRes, reviewsRes, availabilityRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds).lte("feedback_visible_at", new Date().toISOString()),
-        // "Available now" field — new column; use `any` cast because the
-        // generated types don't include it yet. Errors are ignored so the
-        // panel never blocks on a not-yet-deployed migration.
-        (supabase.from("profiles") as any).select("user_id, available_until").in("user_id", helperIds),
+        // "Available now" field — `available_until` is a new column the
+        // generated types don't include yet, so the query builder is cast
+        // to a minimal shape that accepts the select string and returns the
+        // row we read. Errors are ignored so the panel never blocks on a
+        // not-yet-deployed migration.
+        (supabase.from("profiles") as unknown as {
+          select: (cols: string) => {
+            in: (col: string, vals: string[]) => Promise<{
+              data: Array<{ user_id: string; available_until: string | null }> | null;
+              error: unknown;
+            }>;
+          };
+        }).select("user_id, available_until").in("user_id", helperIds),
       ]);
       const reviewStatsMap = aggregateRatings(reviewsRes.data);
       // Map helper_id → available_until for O(1) merge below.
@@ -215,7 +224,13 @@ export function useActivityActions({
       // Fire-and-forget — mark pending applications as viewed by the poster.
       // PGRST202-safe: if the migration isn't deployed yet, this silently does nothing.
       if (enriched.length > 0) {
-        (supabase.rpc as any)("mark_applications_viewed", { p_job_id: jobId }).then(() => {});
+        // `mark_applications_viewed` isn't in the generated RPC union yet
+        // (migration lag). Cast the rpc fn so the args stay type-checked.
+        const markViewed = supabase.rpc as unknown as (
+          fn: "mark_applications_viewed",
+          args: { p_job_id: string },
+        ) => PromiseLike<unknown>;
+        Promise.resolve(markViewed("mark_applications_viewed", { p_job_id: jobId })).then(() => {});
       }
     } catch {
       setApplicantErrors(prev => ({ ...prev, [jobId]: true }));
@@ -428,12 +443,22 @@ export function useActivityActions({
       // exist yet (PGRST204) on prod between merge and `supabase db push`;
       // in that case we skip silently.
       try {
-        const { data: jobMeta } = await (supabase.from as any)("jobs")
+        // `requires_w9` is a new column not in the generated types yet, so
+        // the builder is cast to a minimal shape returning the row we read.
+        const { data: jobMeta } = await (supabase.from("jobs") as unknown as {
+          select: (cols: string) => {
+            eq: (col: string, val: string) => {
+              maybeSingle: () => Promise<{
+                data: { requires_w9?: boolean | null; business_id?: string | null } | null;
+              }>;
+            };
+          };
+        })
           .select("requires_w9, business_id")
           .eq("id", app.job_id)
           .maybeSingle();
-        if (jobMeta && (jobMeta as any).requires_w9) {
-          setW9Context({ jobId: app.job_id, businessId: (jobMeta as any).business_id ?? null });
+        if (jobMeta && jobMeta.requires_w9) {
+          setW9Context({ jobId: app.job_id, businessId: jobMeta.business_id ?? null });
           setW9DialogOpen(true);
         }
       } catch {
@@ -633,9 +658,9 @@ export function useActivityActions({
         if (isHelper && user) {
           const postedJob =
             postedJobs.find((j) => j.id === jobId) ||
-            (appliedApps.find((a) => a.job_id === jobId) as any)?.job;
+            appliedApps.find((a) => a.job_id === jobId)?.job;
           void supabase
-            .from("time_credits" as any)
+            .from("time_credits")
             .insert({
               user_id: user.id,
               amount_minutes: 60,
@@ -677,7 +702,7 @@ export function useActivityActions({
                       reminder_interval_days: interval,
                       next_reminder_date: nextDate,
                       is_active: true,
-                    } as any,
+                    },
                     { onConflict: "user_id,category" },
                   );
               }
@@ -710,7 +735,7 @@ export function useActivityActions({
                   body: `just completed their ${completedCount}${completedCount === 1 ? "st" : completedCount === 2 ? "nd" : completedCount === 3 ? "rd" : "th"} job on Helpr!`,
                   parish: helperParish,
                   is_approved: true,
-                } as any);
+                });
               }
             } catch {
               // Non-fatal — milestone post is a nice-to-have
@@ -722,9 +747,9 @@ export function useActivityActions({
         toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
         await refresh();
       }
-    } catch (err: any) {
+    } catch (err) {
       hapticError();
-      toast.error(err.message || "We couldn't mark this job complete — please try again.");
+      toast.error(err instanceof Error ? err.message : "We couldn't mark this job complete — please try again.");
     } finally {
       setCompletingJobId(null);
     }
@@ -737,7 +762,7 @@ export function useActivityActions({
       if (data?.error) throw new Error(data.error);
       toast.success("Revision resolved! Job is back in progress.");
       refresh();
-    } catch (err: any) { hapticError(); toast.error(err.message || "We couldn't resolve that revision — please try again."); }
+    } catch (err) { hapticError(); toast.error(err instanceof Error ? err.message : "We couldn't resolve that revision — please try again."); }
   };
 
   const confirmStartJob = async (jobId: string) => {
@@ -834,7 +859,7 @@ export function useActivityActions({
       }
       toast.success("No-show reported. Job reopened.");
       refresh();
-    } catch (err: any) { hapticError(); toast.error(err.message || "We couldn't report the no-show just now — please try again."); }
+    } catch (err) { hapticError(); toast.error(err instanceof Error ? err.message : "We couldn't report the no-show just now — please try again."); }
     finally { setReportingNoShow(false); setNoShowJobId(null); }
   };
 

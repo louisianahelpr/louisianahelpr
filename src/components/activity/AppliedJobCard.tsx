@@ -34,6 +34,17 @@ import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
 
+/** Negotiation/bid columns added by a later migration that hasn't been
+    regenerated into the Supabase types yet (the PGRST202 migration-lag
+    pattern — see CLAUDE.md). Optional because on a production DB where the
+    migration is not yet applied these keys are genuinely absent. */
+type NegotiationFields = {
+  negotiation_status?: string | null;
+  counter_price?: number | null;
+  proposed_price?: number | null;
+  poster_viewed_at?: string | null;
+};
+
 interface AppliedJobCardProps {
   /** The application + its embedded job — one row of the applied feed. */
   app: AppliedApp;
@@ -164,12 +175,19 @@ function AppliedJobCardInner({
   const handleRespondCounter = async (appId: string, accept: boolean) => {
     setCounterResponding(true);
     try {
-      const { error } = await (supabase.rpc as any)("respond_to_counter_offer", {
+      // `respond_to_counter_offer` isn't in the generated RPC union yet
+      // (migration lag — PGRST202-tolerant call). Cast the rpc fn rather
+      // than `as any` so the args object stays type-checked.
+      const rpc = supabase.rpc as unknown as (
+        fn: "respond_to_counter_offer",
+        args: { p_application_id: string; p_accept: boolean },
+      ) => Promise<{ error: { code?: string } | null }>;
+      const { error } = await rpc("respond_to_counter_offer", {
         p_application_id: appId,
         p_accept: accept,
       });
       if (error) {
-        if ((error as any).code === "PGRST202") {
+        if (error.code === "PGRST202") {
           toast.error("Counter-offer feature not yet deployed — try again later.");
         } else {
           hapticError();
@@ -187,6 +205,9 @@ function AppliedJobCardInner({
     }
   };
 
+  // Negotiation columns aren't in the generated types yet (migration lag);
+  // read them through this narrow view rather than `as any`.
+  const bidApp = app as AppliedApp & NegotiationFields;
   const job = app.job;
   if (!job) return null;
   const status = job.status;
@@ -408,7 +429,7 @@ function AppliedJobCardInner({
               Uses optimistic local state so the response is reflected
               immediately (no reload needed). */}
           {!isMinimalCard && isPending && (() => {
-            const effectiveStatus = localCounterStatus ?? (app as any).negotiation_status;
+            const effectiveStatus = localCounterStatus ?? bidApp.negotiation_status;
             if (effectiveStatus === "countered") {
               return (
                 <div
@@ -421,11 +442,11 @@ function AppliedJobCardInner({
                 >
                   <div className="min-w-0">
                     <p className="text-ds-12 font-semibold" style={{ color: "hsl(var(--heritage-gold))" }}>
-                      Poster countered: ${(app as any).counter_price}
+                      Poster countered: ${bidApp.counter_price}
                     </p>
-                    {(app as any).proposed_price != null && (
+                    {bidApp.proposed_price != null && (
                       <p className="text-ds-11 text-muted-foreground">
-                        Your bid: ${(app as any).proposed_price} · Accept or decline?
+                        Your bid: ${bidApp.proposed_price} · Accept or decline?
                       </p>
                     )}
                   </div>
@@ -464,7 +485,7 @@ function AppliedJobCardInner({
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--sage))" }} />
                   <p className="text-ds-12 font-semibold" style={{ color: "hsl(var(--sage))" }}>
-                    You accepted the counter offer at ${(app as any).counter_price}
+                    You accepted the counter offer at ${bidApp.counter_price}
                   </p>
                 </div>
               );
@@ -501,11 +522,11 @@ function AppliedJobCardInner({
               {/* "Seen" trust chip — visible when the poster has opened
                   the applicant list and viewed this application. Subtle
                   olivewood colour so it reads as informational, not urgent. */}
-              {(app as any).poster_viewed_at ? (
+              {bidApp.poster_viewed_at ? (
                 <span
                   className="flex items-center gap-0.5 text-ds-10 font-medium"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  title={`Poster viewed on ${new Date((app as any).poster_viewed_at).toLocaleDateString()}`}
+                  title={`Poster viewed on ${new Date(bidApp.poster_viewed_at).toLocaleDateString()}`}
                 >
                   <Eye className="w-3 h-3" aria-hidden="true" /> Seen
                 </span>

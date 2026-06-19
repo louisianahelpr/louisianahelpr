@@ -8,6 +8,15 @@
  *   import { track, AhaEvent } from "@/lib/analytics";
  *   track(AhaEvent.JobPosted, { budget_cents: 2500, parish: "Orleans" });
  */
+type AnalyticsEventRow = {
+  event: string;
+  user_id: string | null;
+  properties: Record<string, unknown>;
+  url: string | null;
+  referrer: string | null;
+  platform: string;
+};
+
 // Supabase client is dynamically imported (NOT statically) to keep the
 // ~50KB supabase-js chunk out of pages that only call track() (e.g. landing).
 // flush() is debounced 1.5s, well past any dynamic-import resolution time.
@@ -20,7 +29,7 @@ async function getSupabase() {
 // out of the initial bundle — Lighthouse "Reduce unused JavaScript"
 // flagged it at ~60KB / 55% unused. Lazy import resolves to a no-op
 // until initPostHog() runs in main.tsx.
-async function fanOutToPostHog(event: string, props: Record<string, any>) {
+async function fanOutToPostHog(event: string, props: Record<string, unknown>) {
   try {
     const { captureEvent } = await import("@/lib/posthog");
     captureEvent(event, props);
@@ -76,7 +85,7 @@ export const AhaEvent = {
 
 type EventName = typeof AhaEvent[keyof typeof AhaEvent] | (string & {});
 
-const queue: any[] = [];
+const queue: AnalyticsEventRow[] = [];
 let flushTimer: number | null = null;
 
 async function flush() {
@@ -84,7 +93,9 @@ async function flush() {
   const batch = queue.splice(0, queue.length);
   try {
     const supabase = await getSupabase();
-    await supabase.from("analytics_events").insert(batch);
+    // Cast needed: local AnalyticsEventRow.properties is Record<string,unknown>;
+    // Supabase insert expects Json. The shapes are compatible at runtime.
+    await supabase.from("analytics_events").insert(batch as any[]);
   } catch {
     // Network failed — silently drop, don't recurse.
   }
@@ -123,7 +134,7 @@ function resolveUserId(): string | null {
  * Track an event. Non-blocking — fires and forgets. Buffered for 1.5s
  * before flushing to cut request volume on the dashboard.
  */
-export function track(event: EventName, props: Record<string, any> = {}) {
+export function track(event: EventName, props: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
   queue.push({
     event,
@@ -131,7 +142,7 @@ export function track(event: EventName, props: Record<string, any> = {}) {
     properties: props,
     url: window.location.pathname,
     referrer: document.referrer || null,
-    platform: (window as any).Capacitor?.getPlatform?.() ?? "web",
+    platform: (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? "web",
   });
   schedule();
   // Fan out to PostHog (lazy-loaded). No-op until initPostHog() runs.

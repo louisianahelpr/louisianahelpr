@@ -14,7 +14,10 @@ export function initShakeToReport(onShake: () => void) {
 
   // iOS 13+ requires explicit permission for DeviceMotion. We request it
   // lazily on the first user-gesture page nav so we don't get blocked.
-  const DM = (window as any).DeviceMotionEvent;
+  type DeviceMotionEventWithPermission = typeof DeviceMotionEvent & {
+    requestPermission?: () => Promise<string>;
+  };
+  const DM = (window as { DeviceMotionEvent?: DeviceMotionEventWithPermission }).DeviceMotionEvent;
   const needsPermission = DM && typeof DM.requestPermission === "function";
 
   let lastFired = 0;
@@ -42,7 +45,7 @@ export function initShakeToReport(onShake: () => void) {
     const onFirstTap = async () => {
       window.removeEventListener("touchend", onFirstTap);
       try {
-        const res = await DM.requestPermission();
+        const res = await DM.requestPermission!();
         if (res === "granted") attach();
       } catch { /* user denied — silent */ }
     };

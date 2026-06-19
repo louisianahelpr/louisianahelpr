@@ -11,22 +11,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Star, Briefcase, Clock, CheckCircle, Phone, ClipboardList, Hammer, ShieldCheck, MoreVertical, Flag, Ban, UserX, ChevronDown, MessageSquare, Users, Timer, RotateCcw } from "lucide-react";
-import { getCategoryIcon } from "@/lib/categoryIcons";
+import { Briefcase, Clock, MoreVertical, Flag, Ban, UserX, MessageSquare } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
-import { computeBadges, HelperBadges } from "@/components/HelperBadges";
-import CredentialBadge from "@/components/CredentialBadge";
-import BusinessBadge from "@/components/BusinessBadge";
+import { computeBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
-import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import { CareerMilestones } from "@/components/profile/CareerMilestones";
 import { ProfileCompletionCard } from "@/components/profile/ProfileCompletionCard";
+import { ProfileHeaderCard } from "./userProfile/ProfileHeaderCard";
+import { ProfileStatsGrid } from "./userProfile/ProfileStatsGrid";
+import { RatingBreakdown } from "./userProfile/RatingBreakdown";
+import { PosterReputationCard } from "./userProfile/PosterReputationCard";
+import { ReviewsSection } from "./userProfile/ReviewsSection";
+import { JobsList } from "./userProfile/JobsList";
 
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -34,10 +36,6 @@ import SaveHelperButton from "@/components/SaveHelperButton";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { avatarGradientFor } from "@/lib/avatarGradient";
-import { cn } from "@/lib/utils";
-import { jobStatusColorClasses } from "@/lib/statusColors";
-import { formatShortDate } from "@/lib/format";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
@@ -824,404 +822,32 @@ const UserProfile = () => {
         <div className="max-w-lg mx-auto space-y-5">
           {/* Profile Card — brand-aligned hero. Avatar with tier ring,
               italic display name, italic serif meta and bio. */}
-          <div
-            className="rounded-2xl liquid-glass p-5 text-center space-y-3 relative overflow-hidden"
-            style={{
-              backgroundImage:
-                "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
-                "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
-            }}
-          >
-            {/* Verified Helpr ribbon — visible top-right corner badge
-                for ID-verified helpers. Promotes the trust signal from
-                a small chip to a prominent marker posters see at first
-                glance. Gold-warm so it reads as recognition, not status. */}
-            {isIdVerified && (
-              <div
-                aria-label="Verified Helpr"
-                className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
-                style={{
-                  background: "hsl(var(--gold-warm) / 0.14)",
-                  border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
-                  boxShadow:
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-                    "0 1px 2px hsl(var(--gold-warm) / 0.12), " +
-                    "0 4px 10px -3px hsl(var(--gold-warm) / 0.28)",
-                }}
-              >
-                <ShieldCheck className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.5} />
-                <span
-                  className="font-sans font-bold uppercase tracking-wider"
-                  style={{ fontSize: "0.6rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.16em" }}
-                >
-                  Verified
-                </span>
-              </div>
-            )}
-            <div className="relative inline-block">
-              {profile.avatar_url ? (
-                <img
-                  loading="lazy"
-                  decoding="async"
-                  src={profile.avatar_url}
-                  alt={`${displayName} profile picture`}
-                  className="w-24 h-24 rounded-ds-pill squircle mx-auto object-cover"
-                  style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
-                />
-              ) : (
-                <div
-                  className={cn(
-                    // Was a flat `bg-primary/10` — swap to the
-                    // deterministic warm-palette gradient hashed off the
-                    // helper's user id so each profile has a recognizable
-                    // signature when no avatar has been uploaded.
-                    "w-24 h-24 rounded-ds-pill squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold",
-                    avatarGradientFor(userId),
-                  )}
-                  style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
-                >
-                  {initials}
-                </div>
-              )}
-              {isIdVerified && (
-                <div
-                  aria-label="ID verified"
-                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
-                  style={{
-                    background: "hsl(var(--bark))",
-                    border: "2px solid hsl(var(--parchment))",
-                  }}
-                >
-                  <ShieldCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
-                </div>
-              )}
-            </div>
-            <div>
-              <h1 className="text-page-title leading-tight">
-                {displayName}
-              </h1>
-              {profile.location && (
-                <p
-                  className="font-serif italic flex items-center justify-center gap-1 mt-0.5"
-                  style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.75)" }}
-                >
-                  <MapPin className="w-3 h-3" />{profile.location}
-                </p>
-              )}
-              {/* Last-active presence chip (#28). Compact, low-weight —
-                  meant to read at-a-glance, not compete with the badges.
-                  Green dot when active within 10 minutes ("live"),
-                  olivewood for everything else. Hidden when stale (>7d). */}
-              {lastActiveLabel && (
-                <div
-                  className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full text-ds-11"
-                  style={{
-                    background: lastActiveLabel.isLive
-                      ? "hsl(140 50% 38% / 0.10)"
-                      : "hsl(var(--olivewood) / 0.08)",
-                    border: `0.5px solid ${
-                      lastActiveLabel.isLive
-                        ? "hsl(140 50% 38% / 0.35)"
-                        : "hsl(var(--olivewood) / 0.20)"
-                    }`,
-                    color: lastActiveLabel.isLive
-                      ? "hsl(140 60% 28%)"
-                      : "hsl(var(--olivewood))",
-                  }}
-                >
-                  <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{
-                      background: lastActiveLabel.isLive
-                        ? "hsl(140 60% 42%)"
-                        : "hsl(var(--olivewood) / 0.65)",
-                      boxShadow: lastActiveLabel.isLive
-                        ? "0 0 0 3px hsl(140 60% 42% / 0.18)"
-                        : "none",
-                    }}
-                    aria-hidden
-                  />
-                  <span className="font-medium">{lastActiveLabel.text}</span>
-                </div>
-              )}
-              {/* Mutual jobs pill (#1) — shown for viewers who have already
-                  worked with this user before, in either direction. A
-                  strong trust signal: prior shared history short-circuits
-                  the "who is this person?" calculus. Hidden at 0 (no
-                  history) or when viewing your own profile. */}
-              {!isOwnProfile && mutualJobsCount > 0 && (
-                <div
-                  className="inline-flex items-center gap-1.5 mt-1.5 ml-1.5 px-2 py-0.5 rounded-full text-ds-11"
-                  style={{
-                    background: "hsl(var(--bark) / 0.10)",
-                    border: "0.5px solid hsl(var(--bark) / 0.22)",
-                    color: "hsl(var(--bark))",
-                  }}
-                >
-                  <Users className="w-3 h-3" />
-                  <span className="font-medium">
-                    You've worked together{" "}
-                    <span className="font-display italic font-bold tabular-nums">{mutualJobsCount}</span>{" "}
-                    {mutualJobsCount === 1 ? "time" : "times"}
-                  </span>
-                </div>
-              )}
-              {/* Response Metrics inline */}
-              {responseMetrics.totalApplications > 0 && (
-                <div className="flex items-center justify-center gap-3 mt-2 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                  {responseMetrics.avgResponseHours !== null && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
-                        {responseMetrics.avgResponseHours < 1
-                          ? `${Math.round(responseMetrics.avgResponseHours * 60)}m`
-                          : responseMetrics.avgResponseHours < 24
-                          ? `${responseMetrics.avgResponseHours.toFixed(1)}h`
-                          : `${Math.round(responseMetrics.avgResponseHours / 24)}d`}
-                      </span>
-                      <span>avg reply</span>
-                    </span>
-                  )}
-                  {responseMetrics.acceptanceRate !== null && (
-                    <>
-                      <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-                      <span className="flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" />
-                        <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
-                          {responseMetrics.acceptanceRate.toFixed(0)}%
-                        </span>
-                        <span>accept rate</span>
-                      </span>
-                    </>
-                  )}
-                </div>
-              )}
-              {/* On-time arrival + revision frequency (#6). Derived from
-                  helper_arrived_at vs date_needed/start_time + revision_count
-                  on the last 50 completed jobs. Both require a minimum
-                  sample of 5 to surface, so they only appear once the
-                  helper has accumulated enough history to be meaningful.
-                  Skipped silently when the schema doesn't yield a usable
-                  signal (no arrived_at timestamps recorded yet). */}
-              {(onTimeArrivalRate !== null || revisionFrequency !== null) && (
-                <div className="flex items-center justify-center gap-3 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                  {onTimeArrivalRate !== null && (
-                    <span className="flex items-center gap-1">
-                      <Timer className="w-3 h-3" />
-                      <span
-                        className="font-display italic font-bold tabular-nums"
-                        style={{
-                          color:
-                            onTimeArrivalRate >= 85
-                              ? "hsl(var(--ink-deep))"
-                              : onTimeArrivalRate >= 65
-                              ? "hsl(var(--gold-warm))"
-                              : "hsl(var(--burnt-sienna))",
-                        }}
-                      >
-                        {onTimeArrivalRate.toFixed(0)}%
-                      </span>
-                      <span>on-time</span>
-                    </span>
-                  )}
-                  {onTimeArrivalRate !== null && revisionFrequency !== null && (
-                    <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-                  )}
-                  {revisionFrequency !== null && (
-                    <span className="flex items-center gap-1">
-                      <RotateCcw className="w-3 h-3" />
-                      <span
-                        className="font-display italic font-bold tabular-nums"
-                        style={{
-                          color:
-                            revisionFrequency <= 10
-                              ? "hsl(var(--ink-deep))"
-                              : revisionFrequency <= 25
-                              ? "hsl(var(--gold-warm))"
-                              : "hsl(var(--burnt-sienna))",
-                        }}
-                      >
-                        {revisionFrequency.toFixed(0)}%
-                      </span>
-                      <span>revisions</span>
-                    </span>
-                  )}
-                </div>
-              )}
-              {/* "Did N jobs nearby" social proof (#31). Two states:
-                  - opt-in pill when viewer hasn't granted geo yet AND the
-                    helper has at least one completed worked job with
-                    coords (otherwise the count would be 0).
-                  - rendered count once geolocation resolves. We always
-                    show the count even when zero — a "0 jobs near you"
-                    fact is a legitimate trust input. Hidden entirely on
-                    your own profile so you don't see your own count. */}
-              {!isOwnProfile && (() => {
-                const hasNearbyEligibleJobs = workedJobs.some(
-                  (j) => j.status === "completed" && typeof j.latitude === "number" && typeof j.longitude === "number",
-                );
-                if (!hasNearbyEligibleJobs) return null;
-                if (!showNearbyProof) {
-                  return (
-                    <div className="mt-1.5 flex justify-center">
-                      <button
-                        onClick={() => setShowNearbyProof(true)}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-11 font-medium transition-colors"
-                        style={{
-                          color: "hsl(var(--bark))",
-                          background: "hsl(var(--bark) / 0.06)",
-                          border: "0.5px solid hsl(var(--bark) / 0.18)",
-                        }}
-                      >
-                        <MapPin className="w-3 h-3" />
-                        Show jobs near you
-                      </button>
-                    </div>
-                  );
-                }
-                if (viewerLoc.status === "loading") {
-                  return (
-                    <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                      <MapPin className="w-3 h-3" />
-                      <span className="italic">Checking nearby…</span>
-                    </div>
-                  );
-                }
-                if (viewerLoc.status === "error") {
-                  return (
-                    <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                      <MapPin className="w-3 h-3" />
-                      <span className="italic">Location unavailable</span>
-                    </div>
-                  );
-                }
-                if (jobsNearbyCount === null) return null;
-                return (
-                  <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
-                    <MapPin className="w-3 h-3" />
-                    <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
-                      {jobsNearbyCount}
-                    </span>
-                    <span>{jobsNearbyCount === 1 ? "job" : "jobs"} within {NEARBY_RADIUS_MI}mi of you</span>
-                  </div>
-                );
-              })()}
-              {/* Cancellation rate (#30) — combined helper + poster jobs.
-                  Only renders once the user has >=5 lifetime jobs so a
-                  single early cancellation doesn't read as "100% cancel
-                  rate". Color shifts olive→amber→sienna at 5%/15% so the
-                  signal degrades gracefully rather than feeling punitive. */}
-              {cancellationRate.rate !== null && (
-                <div className="flex items-center justify-center gap-1 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                  <span
-                    className="font-display italic font-bold tabular-nums"
-                    style={{
-                      color:
-                        cancellationRate.rate < 5
-                          ? "hsl(var(--ink-deep))"
-                          : cancellationRate.rate < 15
-                          ? "hsl(var(--gold-warm))"
-                          : "hsl(var(--burnt-sienna))",
-                    }}
-                  >
-                    {cancellationRate.rate.toFixed(0)}%
-                  </span>
-                  <span>cancel rate</span>
-                  <span style={{ color: "hsl(var(--olivewood) / 0.45)" }}>· {cancellationRate.cancelled}/{cancellationRate.total} jobs</span>
-                </div>
-              )}
-              {/* "No disputes on record" trust signal — shown only when
-                  the dispute count query confirms 0 disputes. Hidden
-                  while the query is loading (to avoid flash of "clean"
-                  for accounts with disputes), and hidden entirely on
-                  own profile (already seeing yours). PGRST202 = table
-                  not deployed → query returns null → badge stays hidden. */}
-              {!isOwnProfile && hasCleanRecord && (
-                <div className="flex items-center justify-center mt-1.5">
-                  <span
-                    className="font-serif italic"
-                    style={{ fontSize: "0.78rem", color: "hsl(155 50% 35%)" }}
-                  >
-                    ✓ No disputes on record
-                  </span>
-                </div>
-              )}
-              {/* Pet care trust signal — only shown when there's real history */}
-              {petCareSignal && petCareSignal.distinctPets > 0 && (
-                <div className="flex items-center justify-center mt-1.5">
-                  <span
-                    className="inline-flex items-center gap-1 font-serif italic"
-                    style={{ fontSize: "0.78rem", color: "hsl(278 22% 48%)" }}
-                  >
-                    <ClipboardList className="w-3 h-3" />
-                    Cared for {petCareSignal.distinctPets} {petCareSignal.distinctPets === 1 ? "pet" : "pets"} · {petCareSignal.reportCount} {petCareSignal.reportCount === 1 ? "report" : "reports"} sent
-                  </span>
-                </div>
-              )}
-              {profile.phone && (
-                <p className="font-serif italic mt-1.5 flex items-center justify-center gap-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-                  <Phone className="w-3 h-3" />{profile.phone}
-                </p>
-              )}
-              {profile.bio && (
-                <p
-                  className="font-serif italic mt-3 leading-relaxed text-left"
-                  style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep) / 0.88)" }}
-                >
-                  {profile.bio}
-                </p>
-              )}
-              {profile.skills && (
-                <div className="flex flex-wrap gap-1.5 justify-center mt-3">
-                  {profile.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, i) => (
-                    <span
-                      key={i}
-                      className="text-[0.7rem] font-sans font-semibold px-2 py-0.5 rounded-full"
-                      style={{
-                        background: "hsl(var(--bark) / 0.10)",
-                        color: "hsl(var(--bark))",
-                        border: "0.5px solid hsl(var(--bark) / 0.20)",
-                      }}
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {badges.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-1 mt-3">
-                  <HelperBadges badges={badges} />
-                </div>
-              )}
-              <div className="pt-2 flex flex-wrap justify-center gap-1.5">
-                {/* Verification ladder (#112) — sits with credentials
-                    because both answer "should I trust this person?",
-                    separate from the performance badges above. The
-                    component self-hides at tier 0, so fresh signups
-                    don't get a placeholder pill. */}
-                <HelperTierBadge
-                  profile={tierProfile}
-                  stats={stats}
-                  size="md"
-                />
-                <CredentialBadge credentials={profile as any} size="md" />
-                {/* Verification in progress — shown only when the user has
-                    submitted a credential to a vendor but it hasn't resolved
-                    yet. Hides gracefully if helper_credentials table isn't
-                    deployed (PGRST202 returns null from the query). */}
-                {hasSubmittedCredentials && (
-                  <span
-                    className="inline-flex items-center rounded-full font-medium border bg-amber-50 text-amber-700 border-amber-300/50 text-ds-11 px-2.5 py-1 gap-1"
-                    title="Credential submitted — verification in progress"
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                    Verification in progress
-                  </span>
-                )}
-                <BusinessBadge userId={userId!} size="md" />
-              </div>
-            </div>
-          </div>
+          <ProfileHeaderCard
+            profile={profile}
+            userId={userId!}
+            displayName={displayName}
+            initials={initials}
+            isOwnProfile={isOwnProfile}
+            isIdVerified={isIdVerified}
+            lastActiveLabel={lastActiveLabel}
+            mutualJobsCount={mutualJobsCount}
+            responseMetrics={responseMetrics}
+            onTimeArrivalRate={onTimeArrivalRate}
+            revisionFrequency={revisionFrequency}
+            cancellationRate={cancellationRate}
+            hasCleanRecord={hasCleanRecord}
+            petCareSignal={petCareSignal}
+            badges={badges}
+            tierProfile={tierProfile}
+            stats={stats}
+            hasSubmittedCredentials={hasSubmittedCredentials}
+            workedJobs={workedJobs}
+            showNearbyProof={showNearbyProof}
+            onShowNearbyProof={() => setShowNearbyProof(true)}
+            viewerLoc={viewerLoc}
+            jobsNearbyCount={jobsNearbyCount}
+            nearbyRadiusMi={NEARBY_RADIUS_MI}
+          />
 
           {/* Profile completion nudge — only shown to the owner, hidden at 100% */}
           {isOwnProfile && userId && (
@@ -1236,295 +862,40 @@ const UserProfile = () => {
           )}
 
           {/* Stats */}
-          {(() => {
-            const activeSection = showReviews ? "reviews" : showPostedJobs ? "posted" : showWorkedJobs ? "worked" : null;
-            const hasSelection = activeSection !== null && !isOwnProfile;
+          <ProfileStatsGrid
+            stats={stats}
+            postedJobsCount={postedJobs.length}
+            workedJobsCount={workedJobs.length}
+            isOwnProfile={isOwnProfile}
+            showReviews={showReviews}
+            showPostedJobs={showPostedJobs}
+            showWorkedJobs={showWorkedJobs}
+            onToggleReviews={() => {
+              setShowReviews(!showReviews);
+              setShowPostedJobs(false);
+              setShowWorkedJobs(false);
+            }}
+            onTogglePosted={() => {
+              setShowPostedJobs(!showPostedJobs);
+              setShowReviews(false);
+              setShowWorkedJobs(false);
+            }}
+            onToggleWorked={() => {
+              setShowWorkedJobs(!showWorkedJobs);
+              setShowReviews(false);
+              setShowPostedJobs(false);
+            }}
+          />
 
-            const reviewBtn = (
-              <button
-                key="reviews"
-                onClick={() => {
-                  setShowReviews(!showReviews);
-                  setShowPostedJobs(false);
-                  setShowWorkedJobs(false);
-                }}
-                className={`rounded-ds-md border bg-card p-3 text-center transition-all cursor-pointer hover:border-primary/30 hover:shadow-sm ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                  <p className="text-ds-20 font-bold text-foreground">{stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "—"}</p>
-                </div>
-                <p className="text-muted-foreground text-ds-11">{stats.reviewCount} Review{stats.reviewCount !== 1 ? "s" : ""}</p>
-              </button>
-            );
+          {/* ── Rating distribution + sub-ratings (1a/1b) ── */}
+          <RatingBreakdown reviews={reviews} />
 
-            const postedBtn = (
-              <button
-                key="posted"
-                onClick={() => {
-                  if (postedJobs.length > 0) {
-                    setShowPostedJobs(!showPostedJobs);
-                    setShowReviews(false);
-                    setShowWorkedJobs(false);
-                  }
-                }}
-                className={`rounded-ds-md border bg-card p-3 text-center transition-all ${postedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <ClipboardList className="w-3.5 h-3.5 text-primary" />
-                  <p className="text-ds-20 font-bold text-foreground">{postedJobs.length}</p>
-                </div>
-                <p className="text-muted-foreground text-ds-11">Posted</p>
-              </button>
-            );
-
-            const workedBtn = (
-              <button
-                key="worked"
-                onClick={() => {
-                  if (workedJobs.length > 0) {
-                    setShowWorkedJobs(!showWorkedJobs);
-                    setShowReviews(false);
-                    setShowPostedJobs(false);
-                  }
-                }}
-                className={`rounded-ds-md border bg-card p-3 text-center transition-all ${workedJobs.length > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showWorkedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <Hammer className="w-3.5 h-3.5 text-primary" />
-                  <p className="text-ds-20 font-bold text-foreground">{workedJobs.length}</p>
-                </div>
-                <p className="text-muted-foreground text-ds-11">Completed</p>
-              </button>
-            );
-
-            if (isOwnProfile) {
-              return (
-                <div className="grid grid-cols-3 gap-2">
-                  {reviewBtn}
-                  {postedBtn}
-                  {workedBtn}
-                </div>
-              );
-            }
-
-            // For other users: show only the selected button, or all if none selected
-            if (hasSelection) {
-              return (
-                <div className="grid grid-cols-1 gap-2">
-                  {activeSection === "reviews" && reviewBtn}
-                  {activeSection === "posted" && postedBtn}
-                  {activeSection === "worked" && workedBtn}
-                </div>
-              );
-            }
-
-            return (
-              <div className="grid grid-cols-3 gap-2">
-                {reviewBtn}
-                {postedBtn}
-                {workedBtn}
-              </div>
-            );
-          })()}
-
-          {/* ── Rating distribution bar chart (1a) ────────────────────
-              Shows the 5→1 star breakdown when there are 3+ reviews.
-              Each bar is relative to the total, so a user with all 5s
-              gets a full-width bark fill at row 5 and empty tracks
-              on rows 1-4. The count label on the right gives an exact
-              sense of how representative each bucket is. */}
-          {reviews.length >= 3 && (() => {
-            const buckets = [5, 4, 3, 2, 1].map((star) => ({
-              star,
-              count: reviews.filter((r) => Math.round(r.rating) === star).length,
-            }));
-            const total = reviews.length;
-
-            // Sub-rating averages — compute from reviews that have the
-            // column filled in (null skipped, not dragged to 0). Gate on
-            // 3+ sub-rated reviews so a single detailed review doesn't
-            // look authoritative.
-            const subReviews = reviews.filter(
-              (r) => r.punctuality !== null || r.quality !== null || r.communication !== null,
-            );
-            const subAvg = (key: "punctuality" | "quality" | "communication") => {
-              const vals = subReviews
-                .map((r) => r[key])
-                .filter((v): v is number => v !== null);
-              return vals.length >= 3
-                ? { avg: vals.reduce((a, b) => a + b, 0) / vals.length, count: vals.length }
-                : null;
-            };
-            const punctualityAvg = subAvg("punctuality");
-            const qualityAvg = subAvg("quality");
-            const communicationAvg = subAvg("communication");
-            const hasSubRatings = punctualityAvg !== null || qualityAvg !== null || communicationAvg !== null;
-
-            return (
-              <div className="rounded-ds-md liquid-glass p-4 space-y-3">
-                {/* Distribution chart */}
-                <p
-                  className="text-[10px] uppercase tracking-wide font-semibold"
-                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-                >
-                  Rating breakdown
-                </p>
-                <div className="space-y-1.5">
-                  {buckets.map(({ star, count }) => (
-                    <div key={star} className="flex items-center gap-2">
-                      <span
-                        className="text-ds-11 font-semibold tabular-nums w-5 shrink-0 text-right"
-                        style={{ color: "hsl(var(--ink-deep))" }}
-                      >
-                        {star}
-                      </span>
-                      <Star
-                        className="w-2.5 h-2.5 shrink-0"
-                        style={{ color: "hsl(var(--bark))", fill: "hsl(var(--bark))" }}
-                      />
-                      {/* Track + fill */}
-                      <div
-                        className="relative flex-1 h-2 rounded-full overflow-hidden"
-                        style={{ background: "hsl(var(--bark) / 0.10)" }}
-                      >
-                        <div
-                          className="absolute inset-y-0 left-0 rounded-full transition-all"
-                          style={{
-                            width: total > 0 ? `${(count / total) * 100}%` : "0%",
-                            background: "hsl(var(--bark))",
-                          }}
-                        />
-                      </div>
-                      <span
-                        className="text-ds-11 tabular-nums w-4 shrink-0 text-right"
-                        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-                      >
-                        {count}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Sub-rating mini bars (1b) */}
-                {hasSubRatings && (
-                  <>
-                    <div className="h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
-                    <p
-                      className="text-[10px] uppercase tracking-wide font-semibold"
-                      style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-                    >
-                      Sub-ratings
-                    </p>
-                    <div className="space-y-1.5">
-                      {[
-                        { label: "Punctuality", data: punctualityAvg },
-                        { label: "Quality", data: qualityAvg },
-                        { label: "Communication", data: communicationAvg },
-                      ].map(({ label, data: d }) =>
-                        d === null ? null : (
-                          <div key={label} className="flex items-center gap-2">
-                            <span
-                              className="text-ds-11 w-24 shrink-0"
-                              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                            >
-                              {label}
-                            </span>
-                            <div
-                              className="relative flex-1 h-2 rounded-full overflow-hidden"
-                              style={{ background: "hsl(var(--bark) / 0.10)" }}
-                            >
-                              <div
-                                className="absolute inset-y-0 left-0 rounded-full"
-                                style={{
-                                  width: `${(d.avg / 5) * 100}%`,
-                                  background: "hsl(var(--bark))",
-                                }}
-                              />
-                            </div>
-                            <span
-                              className="text-ds-11 font-semibold tabular-nums w-7 shrink-0 text-right"
-                              style={{ color: "hsl(var(--ink-deep))" }}
-                            >
-                              {d.avg.toFixed(1)}
-                            </span>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* ── As a job poster (1c) ────────────────────────────────
-              Every user is both a potential poster AND a helper — this
-              section makes their poster reputation visible. Shows the
-              average rating they've received as a job poster, how many
-              jobs they've posted, and their poster cancellation rate.
-              Only renders when the user has posted at least one job
-              and received at least 3 poster reviews (same quality gate
-              as the helper-side chart). */}
-          {(() => {
-            const hasPosterActivity = postedTotalCount > 0;
-            if (!hasPosterActivity) return null;
-
-            const posterCancelRate =
-              postedTotalCount >= 5
-                ? (postedCancelledCount / postedTotalCount) * 100
-                : null;
-
-            return (
-              <div className="rounded-ds-md liquid-glass p-4 space-y-2">
-                <p
-                  className="text-[10px] uppercase tracking-wide font-semibold"
-                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-                >
-                  As a job poster
-                </p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-ds-11">
-                  <span className="flex items-center gap-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                    <ClipboardList className="w-3 h-3" />
-                    <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
-                      {postedTotalCount}
-                    </span>
-                    {" "}job{postedTotalCount !== 1 ? "s" : ""} posted
-                  </span>
-                  {posterReputation !== null && (
-                    <span className="flex items-center gap-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                      <Star className="w-3 h-3" style={{ fill: "hsl(var(--bark))", color: "hsl(var(--bark))" }} />
-                      <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
-                        {posterReputation.avgRating.toFixed(1)}
-                      </span>
-                      {" "}avg poster rating
-                      <span style={{ color: "hsl(var(--olivewood) / 0.45)" }}>
-                        ({posterReputation.reviewCount})
-                      </span>
-                    </span>
-                  )}
-                  {posterCancelRate !== null && (
-                    <span className="flex items-center gap-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                      <span
-                        className="font-display italic font-bold tabular-nums"
-                        style={{
-                          color:
-                            posterCancelRate < 5
-                              ? "hsl(var(--ink-deep))"
-                              : posterCancelRate < 15
-                              ? "hsl(var(--gold-warm))"
-                              : "hsl(var(--burnt-sienna))",
-                        }}
-                      >
-                        {posterCancelRate.toFixed(0)}%
-                      </span>
-                      {" "}cancel rate
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
+          {/* ── As a job poster (1c) ── */}
+          <PosterReputationCard
+            postedTotalCount={postedTotalCount}
+            postedCancelledCount={postedCancelledCount}
+            posterReputation={posterReputation}
+          />
 
           {/* Skill endorsements — pills showing the helper's endorsed
               skills. Past clients (mutual job count > 0) see a + button
@@ -1580,329 +951,38 @@ const UserProfile = () => {
 
           {/* Reviews expanded inline — filter by category/rating +
               progressive pagination (#27). */}
-          {showReviews && (() => {
-            const PAGE_SIZE = 5;
-            // Distinct categories that appear in this helper's reviews,
-            // computed once per render. Sorted alphabetically with a
-            // stable "other" bucket for nulls. Drives the filter chips.
-            const distinctCategories = Array.from(
-              new Set(reviews.map((r) => r.jobCategory).filter((c): c is string => !!c)),
-            ).sort();
-            const matchesRatingBucket = (rating: number) => {
-              if (reviewRatingFilter === "all") return true;
-              if (reviewRatingFilter === "5") return rating === 5;
-              if (reviewRatingFilter === "4") return rating === 4;
-              // "low" bucket = ≤3 — pulls all critical reviews together so
-              // a viewer can audit the negatives in one tap.
-              return rating <= 3;
-            };
-            const filteredReviews = reviews.filter((r) => {
-              if (reviewCategoryFilter && r.jobCategory !== reviewCategoryFilter) return false;
-              if (!matchesRatingBucket(r.rating)) return false;
-              return true;
-            });
-            const hasActiveFilter = reviewCategoryFilter !== null || reviewRatingFilter !== "all";
-            const visible = filteredReviews.slice(0, reviewVisibleCount);
-            const hasMore = filteredReviews.length > visible.length;
-
-            return (
-              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                {/* Filter row — only render when there's something to filter
-                    (at least one category beyond "other" OR more than one
-                    distinct rating). Avoids cluttering a 1-review profile. */}
-                {reviews.length > 1 && (distinctCategories.length > 0 || new Set(reviews.map((r) => r.rating)).size > 1) && (
-                  <div className="rounded-ds-md liquid-glass p-3 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Filter</span>
-                      {hasActiveFilter && (
-                        <button
-                          onClick={() => {
-                            setReviewCategoryFilter(null);
-                            setReviewRatingFilter("all");
-                            setReviewVisibleCount(PAGE_SIZE);
-                          }}
-                          className="text-ds-11 underline text-muted-foreground hover:text-foreground"
-                        >
-                          Clear
-                        </button>
-                      )}
-                    </div>
-                    {distinctCategories.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {distinctCategories.map((cat) => {
-                          const Icon = getCategoryIcon(cat);
-                          const active = reviewCategoryFilter === cat;
-                          return (
-                            <button
-                              key={cat}
-                              onClick={() => {
-                                setReviewCategoryFilter(active ? null : cat);
-                                setReviewVisibleCount(PAGE_SIZE);
-                              }}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors"
-                              style={{
-                                color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
-                                background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
-                                border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
-                              }}
-                            >
-                              <Icon className="w-3 h-3" />
-                              <span className="capitalize">{cat.replace(/_/g, " ")}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {/* Star-bucket chips (#3): All / 5 / 4 / ≤3. Buckets
-                        hide themselves when no review matches — a profile
-                        with only 5★ reviews won't surface an empty "4★" tab. */}
-                    <div className="flex flex-wrap gap-1.5">
-                      {([
-                        { key: "all" as const, label: "All", count: reviews.length, stars: 0 },
-                        { key: "5" as const, label: "", count: reviews.filter((r) => r.rating === 5).length, stars: 5 },
-                        { key: "4" as const, label: "", count: reviews.filter((r) => r.rating === 4).length, stars: 4 },
-                        { key: "low" as const, label: "≤3", count: reviews.filter((r) => r.rating <= 3).length, stars: 3 },
-                      ]).map((bucket) => {
-                        if (bucket.key !== "all" && bucket.count === 0) return null;
-                        const active = reviewRatingFilter === bucket.key;
-                        return (
-                          <button
-                            key={bucket.key}
-                            onClick={() => {
-                              setReviewRatingFilter(bucket.key);
-                              setReviewVisibleCount(PAGE_SIZE);
-                            }}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors tabular-nums"
-                            style={{
-                              color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
-                              background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
-                              border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
-                            }}
-                          >
-                            {bucket.key === "all" ? (
-                              <span>{bucket.label}</span>
-                            ) : (
-                              <>
-                                {bucket.key === "low" && <span>{bucket.label}</span>}
-                                <Star className="w-3 h-3 fill-current" />
-                                {bucket.key !== "low" && <span>{bucket.stars}</span>}
-                              </>
-                            )}
-                            <span className="opacity-70">({bucket.count})</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {filteredReviews.length > 0 ? (
-                  <>
-                    {visible.map((r, i) => (
-                      <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="flex gap-0.5">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
-                              ))}
-                            </div>
-                            <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
-                          </div>
-                          <span className="text-muted-foreground text-ds-11">{formatShortDate(r.created_at)}</span>
-                        </div>
-                        {(r.punctuality || r.quality || r.communication) && (
-                          <div className="grid grid-cols-3 gap-2">
-                            {r.punctuality && (
-                              <div className="flex flex-col items-start gap-0.5">
-                                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
-                                <div className="flex gap-0.5">
-                                  {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
-                                </div>
-                              </div>
-                            )}
-                            {r.quality && (
-                              <div className="flex flex-col items-start gap-0.5">
-                                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
-                                <div className="flex gap-0.5">
-                                  {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
-                                </div>
-                              </div>
-                            )}
-                            {r.communication && (
-                              <div className="flex flex-col items-start gap-0.5">
-                                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
-                                <div className="flex gap-0.5">
-                                  {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
-                        {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
-                        {/* Existing public response — visible to everyone */}
-                        {(r as any).response_text && (
-                          <div className="mt-3 pt-3 border-t border-[hsl(var(--bark)/0.10)]">
-                            <p
-                              className="text-ds-11 font-semibold uppercase tracking-[0.06em] mb-1.5"
-                              style={{ color: "hsl(var(--olivewood)/0.55)" }}
-                            >
-                              Response from {profile.full_name}
-                            </p>
-                            <p
-                              className="text-ds-13 font-serif italic leading-relaxed"
-                              style={{ color: "hsl(var(--olivewood)/0.80)" }}
-                            >
-                              {(r as any).response_text}
-                            </p>
-                          </div>
-                        )}
-                        {/* Add/Edit response — own profile only */}
-                        {isOwnProfile && !(r as any).response_text && (
-                          <button
-                            type="button"
-                            className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
-                            style={{ color: "hsl(var(--burnt-sienna))" }}
-                            onClick={() => {
-                              setResponseText("");
-                              setRespondingToReview(r.id);
-                            }}
-                          >
-                            Add response
-                          </button>
-                        )}
-                        {isOwnProfile && (r as any).response_text && (
-                          <button
-                            type="button"
-                            className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
-                            style={{ color: "hsl(var(--olivewood)/0.55)" }}
-                            onClick={() => {
-                              setResponseText((r as any).response_text ?? "");
-                              setRespondingToReview(r.id);
-                            }}
-                          >
-                            Edit response
-                          </button>
-                        )}
-                        {/* Inline response editor */}
-                        {isOwnProfile && respondingToReview === r.id && (
-                          <div className="mt-3 space-y-2">
-                            <textarea
-                              value={responseText}
-                              onChange={(e) => setResponseText(e.target.value)}
-                              maxLength={500}
-                              rows={3}
-                              placeholder="Write a brief public response…"
-                              className="w-full rounded-ds-md border border-[hsl(var(--bark)/0.20)] bg-white/60 px-3 py-2 text-ds-13 font-sans resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--bark)/0.40)]"
-                              style={{ color: "hsl(var(--ink-deep))" }}
-                            />
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleSaveResponse(r.id)}
-                                className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold text-white"
-                                style={{ backgroundColor: "hsl(var(--burnt-sienna))" }}
-                              >
-                                Save
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setRespondingToReview(null)}
-                                className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold"
-                                style={{ color: "hsl(var(--olivewood)/0.70)" }}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {hasMore && (
-                      <button
-                        onClick={() => setReviewVisibleCount((n) => n + PAGE_SIZE)}
-                        className="w-full rounded-ds-md liquid-glass p-3 text-ds-13 font-medium text-foreground hover:bg-muted/30 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                        Show {Math.min(PAGE_SIZE, filteredReviews.length - visible.length)} more
-                        <span className="text-muted-foreground">({visible.length} of {filteredReviews.length})</span>
-                      </button>
-                    )}
-                    {/* Load more from server — only shown when the local
-                        filter is not active (filtered view shows what's
-                        already loaded; fetching more could confuse the count)
-                        and when there are server-side pages remaining. */}
-                    {!hasActiveFilter && reviewsHasMore && (
-                      <button
-                        onClick={loadMoreReviews}
-                        disabled={loadingMoreReviews}
-                        className="w-full py-3 text-ds-13 font-medium rounded-xl border disabled:opacity-50 mt-2"
-                        style={{
-                          borderColor: "hsl(var(--olivewood) / 0.2)",
-                          color: "hsl(var(--olivewood))",
-                        }}
-                      >
-                        {loadingMoreReviews ? "Loading…" : "Load more reviews"}
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <div className="rounded-ds-md liquid-glass p-6 text-center">
-                    <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-ds-11 text-muted-foreground">
-                      {hasActiveFilter ? "No reviews match this filter" : "No reviews yet"}
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          {showReviews && (
+            <ReviewsSection
+              reviews={reviews}
+              isOwnProfile={isOwnProfile}
+              profileFullName={profile.full_name}
+              reviewCategoryFilter={reviewCategoryFilter}
+              reviewRatingFilter={reviewRatingFilter}
+              reviewVisibleCount={reviewVisibleCount}
+              onSetReviewCategoryFilter={setReviewCategoryFilter}
+              onSetReviewRatingFilter={setReviewRatingFilter}
+              onSetReviewVisibleCount={setReviewVisibleCount}
+              onResetVisibleCount={setReviewVisibleCount}
+              respondingToReview={respondingToReview}
+              responseText={responseText}
+              onSetResponseText={setResponseText}
+              onStartResponding={(reviewId, initial) => {
+                setResponseText(initial);
+                setRespondingToReview(reviewId);
+              }}
+              onCancelResponding={() => setRespondingToReview(null)}
+              onSaveResponse={handleSaveResponse}
+              reviewsHasMore={reviewsHasMore}
+              loadMoreReviews={loadMoreReviews}
+              loadingMoreReviews={loadingMoreReviews}
+            />
+          )}
 
           {/* Posted Jobs expanded inline */}
-          {showPostedJobs && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              {postedJobs.length > 0 ? postedJobs.map((job) => (
-                <div key={job.id} className="rounded-ds-md liquid-glass p-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-ds-13 font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-muted-foreground text-ds-11">{formatShortDate(job.created_at)} · {job.category.replace(/_/g, " ")}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-ds-13 font-bold text-primary">${job.budget}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${jobStatusColorClasses(job.status)}`}>{job.status.replace("_", " ")}</span>
-                  </div>
-                </div>
-              )) : (
-                <div className="rounded-ds-md liquid-glass p-6 text-center">
-                  <ClipboardList className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-ds-11 text-muted-foreground">No posted jobs yet</p>
-                </div>
-              )}
-            </div>
-          )}
+          {showPostedJobs && <JobsList jobs={postedJobs} variant="posted" />}
 
           {/* Worked Jobs expanded inline */}
-          {showWorkedJobs && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-              {workedJobs.length > 0 ? workedJobs.map((job) => (
-                <div key={job.id} className="rounded-ds-md liquid-glass p-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-ds-13 font-medium text-foreground truncate">{job.title}</p>
-                    <p className="text-muted-foreground text-ds-11">{formatShortDate(job.created_at)} · {job.category.replace(/_/g, " ")}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-ds-13 font-bold text-primary">${job.budget}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${jobStatusColorClasses(job.status)}`}>{job.status.replace("_", " ")}</span>
-                  </div>
-                </div>
-              )) : (
-                <div className="rounded-ds-md liquid-glass p-6 text-center">
-                  <Hammer className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-ds-11 text-muted-foreground">No completed jobs yet</p>
-                </div>
-              )}
-            </div>
-          )}
+          {showWorkedJobs && <JobsList jobs={workedJobs} variant="worked" />}
 
           {profile.hourly_rate && (
             <div className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">

@@ -60,7 +60,12 @@ const BusinessContracts = () => {
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const { data: templates = [], isLoading: tLoading } = useQuery({
+  const {
+    data: templates = [],
+    isLoading: tLoading,
+    isError: tError,
+    refetch: refetchTemplates,
+  } = useQuery({
     queryKey: queryKeys.business.templates(businessId),
     enabled: !!businessId,
     queryFn: async () => {
@@ -243,6 +248,15 @@ const BusinessContracts = () => {
         </div>
         {tLoading ? (
           <div className="py-6 flex justify-center"><HelprSpinner size={24} /></div>
+        ) : tError ? (
+          <div className="py-2">
+            <p className="text-ds-12 text-muted-foreground mb-2">
+              Couldn't load your schedules.
+            </p>
+            <Button variant="outline" size="sm" onClick={() => refetchTemplates()}>
+              Try again
+            </Button>
+          </div>
         ) : templates.length === 0 ? (
           <p className="text-ds-12 text-muted-foreground">No recurring jobs yet.</p>
         ) : (

@@ -7,6 +7,7 @@ import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { unwrap } from "@/lib/supabaseResult";
 import { toast } from "sonner";
@@ -497,10 +498,7 @@ const PetProfiles = () => {
         {isLoading && (
           <div className="space-y-2">
             {[1, 2].map((n) => (
-              <div
-                key={n}
-                className="rounded-ds-lg liquid-glass h-20 animate-pulse"
-              />
+              <Skeleton key={n} className="rounded-ds-lg h-20" />
             ))}
           </div>
         )}

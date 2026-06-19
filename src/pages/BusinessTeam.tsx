@@ -47,6 +47,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BusinessVerificationCard from "@/components/business/BusinessVerificationCard";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import PageHeader from "@/components/PageHeader";
 import { queryKeys } from "@/lib/queryKeys";
 import BulkInviteDialog from "@/components/business/BulkInviteDialog";
@@ -144,7 +145,12 @@ const BusinessTeam = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  const { data: members, isLoading: membersLoading } = useQuery({
+  const {
+    data: members,
+    isLoading: membersLoading,
+    isError: membersError,
+    refetch: refetchMembers,
+  } = useQuery({
     queryKey: queryKeys.business.members(business?.business_id),
     queryFn: async (): Promise<Member[]> => {
       if (!business) return [];
@@ -632,6 +638,13 @@ const BusinessTeam = () => {
                 <div className="flex justify-center my-8">
                   <HelprSpinner size={20} />
                 </div>
+              ) : membersError ? (
+                <ErrorState
+                  variant="inline"
+                  title="Couldn't load your team."
+                  body="Tap Try again to reload your team members."
+                  onRetry={() => refetchMembers()}
+                />
               ) : (
                 <>
                   {activeMembers.map((m) => (

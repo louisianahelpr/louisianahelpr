@@ -25,6 +25,7 @@ import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
   UserPlus,
@@ -499,7 +500,7 @@ export default function FamilyDashboard() {
             {relQuery.isLoading && (
               <div className="space-y-2">
                 {[0, 1].map((i) => (
-                  <div key={i} className="h-24 rounded-ds-md animate-pulse" style={{ background: "hsl(var(--sand) / 0.4)" }} />
+                  <Skeleton key={i} className="h-24 rounded-ds-md" />
                 ))}
               </div>
             )}

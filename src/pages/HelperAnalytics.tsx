@@ -7,6 +7,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCategory } from "@/lib/format";
 
 // Helpers whose subscription tier gives access to analytics.
@@ -303,8 +304,8 @@ const HelperAnalytics = () => {
           >
             {isLoadingData ? (
               <div className="space-y-2">
-                <div className="h-7 w-36 bg-muted animate-pulse rounded" />
-                <div className="h-4 w-48 bg-muted animate-pulse rounded" />
+                <Skeleton className="h-7 w-36 rounded" />
+                <Skeleton className="h-4 w-48 rounded" />
               </div>
             ) : (
               <>
@@ -832,8 +833,8 @@ const MonthlyGoalCard = ({
       {/* Loading skeleton */}
       {isLoading ? (
         <div className="space-y-2">
-          <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
-          <div className="h-2 w-full bg-muted animate-pulse rounded-full mt-3" />
+          <Skeleton className="h-4 w-3/4 rounded" />
+          <Skeleton className="h-2 w-full rounded-full mt-3" />
         </div>
       ) : editing ? (
         /* ── Inline goal editor ─────────────────────────────────── */
@@ -1021,8 +1022,8 @@ const SectionCard = ({
 
       {isLoading ? (
         <div className="space-y-2">
-          <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
-          <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+          <Skeleton className="h-4 w-3/4 rounded" />
+          <Skeleton className="h-4 w-1/2 rounded" />
         </div>
       ) : (
         children

@@ -43,6 +43,7 @@ supabase/.temp/
 .claude/*
 !.claude/hooks/
 !.claude/settings.json
+!.claude/commands/
 
 # Environment variables (never commit secrets)
 .env

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from "react";
-import { Loader2, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Badge } from "@/components/ui/badge";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
@@ -24,7 +25,7 @@ const CategoriesBarChart = lazy(() =>
 
 const ChartFallback = () => (
   <div className="flex h-full w-full items-center justify-center">
-    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    <HelprSpinner size={20} />
   </div>
 );
 

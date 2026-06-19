@@ -629,7 +629,9 @@ const BusinessTeam = () => {
                 Team ({activeMembers.length})
               </h3>
               {membersLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin mx-auto my-8 text-muted-foreground" />
+                <div className="flex justify-center my-8">
+                  <HelprSpinner size={20} />
+                </div>
               ) : (
                 <>
                   {activeMembers.map((m) => (

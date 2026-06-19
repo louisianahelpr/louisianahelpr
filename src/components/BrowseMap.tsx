@@ -18,7 +18,8 @@ import { divIcon, point as leafletPoint } from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
-import { Loader2, Crosshair, BellRing, MapPin } from "lucide-react";
+import { Crosshair, BellRing, MapPin } from "lucide-react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import "leaflet/dist/leaflet.css";
 
 // Above this many open jobs, default to Heat view so the user sees
@@ -377,7 +378,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         className="flex items-center justify-center h-full w-full rounded-t-2xl border border-b-0 border-border bg-card/40"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
       >
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <HelprSpinner size={20} />
       </div>
     );
   }
@@ -528,7 +529,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           WebkitBackdropFilter: "blur(2px)",
         }}
       >
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <HelprSpinner size={20} />
       </div>
       <MapContainer
         center={LA_CENTER}

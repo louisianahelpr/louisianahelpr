@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ShieldCheck, ShieldAlert, RefreshCw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
@@ -255,7 +256,7 @@ const AdminIDVQueue = () => {
       {/* List */}
       {isInitialLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <HelprSpinner size={24} />
         </div>
       ) : profiles.length === 0 ? (
         <div className="rounded-ds-md liquid-glass p-8 text-center">

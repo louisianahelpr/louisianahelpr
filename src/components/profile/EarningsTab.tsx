@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Zap, Settings, FileText, FileSpreadsheet, ExternalLink, Info, Printer, FileCheck2, X } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { formatJobDate } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,8 +102,7 @@ interface StripePayoutData {
 const formatCents = (cents: number, currency = "usd") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
 
-const formatDate = (unixSec: number) =>
-  new Date(unixSec * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const formatDate = (unixSec: number) => formatJobDate(new Date(unixSec * 1000));
 
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
@@ -745,7 +745,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <div className="space-y-2.5">
             {payoutLedger.map((t) => {
               const jobTitle = (t.jobs as { title?: string } | null)?.title ?? "Job";
-              const date = new Date(t.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+              const date = formatJobDate(t.created_at);
               const amount = (t.amount_cents / 100).toFixed(2);
               const fee = (t.platform_fee_cents / 100).toFixed(2);
               const tone =

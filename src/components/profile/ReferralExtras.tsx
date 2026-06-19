@@ -9,7 +9,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Loader2, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 
 interface ReferralExtrasProps {
   referralCode: string | null;
@@ -103,7 +104,7 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
             />
           ) : (
             <div className="w-[120px] h-[120px] flex items-center justify-center text-muted-foreground">
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <HelprSpinner size={20} />
             </div>
           )}
         </div>

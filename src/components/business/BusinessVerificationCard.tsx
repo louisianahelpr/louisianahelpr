@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   Upload,
 } from "lucide-react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 
 type DocType = "license" | "ein_letter" | "insurance";
@@ -110,7 +111,7 @@ export default function BusinessVerificationCard() {
   if (isInitialLoading) {
     return (
       <Card className="p-5 flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <HelprSpinner size={20} />
       </Card>
     );
   }

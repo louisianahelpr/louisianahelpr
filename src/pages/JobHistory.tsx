@@ -181,7 +181,7 @@ const JobHistory = () => {
                           <span className="opacity-40">·</span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3 shrink-0" />
-                            {new Date(job.date_needed).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                            {formatJobDate(job.date_needed)}
                           </span>
                         </div>
                         <span className="flex items-center gap-1 min-w-0">

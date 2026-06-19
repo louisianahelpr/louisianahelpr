@@ -9,9 +9,9 @@ import {
   CheckCircle2,
   ExternalLink,
   FileText,
-  Loader2,
   XCircle,
 } from "lucide-react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,7 +84,7 @@ const AdminBusinessVerificationQueue = () => {
   if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <HelprSpinner size={24} />
       </div>
     );
   }

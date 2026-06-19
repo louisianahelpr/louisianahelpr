@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import BusinessShell from "@/components/business/shell/BusinessShell";
+import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
+import { formatPrice } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -31,8 +32,9 @@ const SAMPLE_INVOICES: SampleInvoice[] = [
   { id: "3", number: "INV-2026-044", amountCents: 217_500, issuedAt: "2026-04-01", dueAt: "2026-05-01", status: "paid" },
 ];
 
-const fmtCents = (cents: number) =>
-  (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+// Money renders through the canonical `formatPrice` so it reads identically
+// to the rest of the app ($85, $85.50 — no trailing ".00").
+const fmtCents = (cents: number) => `$${formatPrice(cents / 100)}`;
 
 const StatusPill = ({ status }: { status: SampleInvoice["status"] }) => {
   const cfg = {
@@ -56,23 +58,23 @@ const BusinessBilling = () => {
 
   if (isLoading) {
     return (
-      <BusinessShell eyebrow="Your business" title="Billing">
+      <BusinessLayout eyebrow="Your business" title="Billing">
         <div className="flex items-center justify-center py-12">
           <HelprSpinner size={32} />
         </div>
-      </BusinessShell>
+      </BusinessLayout>
     );
   }
   if (!business) return <Navigate to="/dashboard" replace />;
   if (!business.is_owner) {
     return (
-      <BusinessShell eyebrow="Your business" title="Billing">
+      <BusinessLayout eyebrow="Your business" title="Billing">
         <Card className="p-6">
           <p className="text-ds-13 text-muted-foreground">
             Only the business owner can manage billing settings.
           </p>
         </Card>
-      </BusinessShell>
+      </BusinessLayout>
     );
   }
 
@@ -131,7 +133,7 @@ const BusinessBilling = () => {
   const history = SAMPLE_INVOICES.filter((i) => i.status === "paid");
 
   return (
-    <BusinessShell
+    <BusinessLayout
       eyebrow="Your business"
       title="Billing"
       meta="Invoice-based payment with net-30 terms or card-on-file."
@@ -223,7 +225,7 @@ const BusinessBilling = () => {
           ))}
         </ul>
       </Card>
-    </BusinessShell>
+    </BusinessLayout>
   );
 };
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import BusinessShell from "@/components/business/shell/BusinessShell";
+import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { Card } from "@/components/ui/card";
@@ -67,19 +67,19 @@ const BusinessReports = () => {
 
   if (isLoading) {
     return (
-      <BusinessShell eyebrow="Reports" title="Monthly Reports">
+      <BusinessLayout eyebrow="Reports" title="Monthly Reports">
         <div className="flex items-center justify-center py-12"><HelprSpinner size={32} /></div>
-      </BusinessShell>
+      </BusinessLayout>
     );
   }
   if (!business) return <Navigate to="/dashboard" replace />;
   if (!business.is_owner) {
     return (
-      <BusinessShell eyebrow="Reports" title="Monthly Reports">
+      <BusinessLayout eyebrow="Reports" title="Monthly Reports">
         <Card className="p-6">
           <p className="text-ds-13 text-muted-foreground">Only the business owner can configure report delivery.</p>
         </Card>
-      </BusinessShell>
+      </BusinessLayout>
     );
   }
 
@@ -263,7 +263,7 @@ const BusinessReports = () => {
   };
 
   return (
-    <BusinessShell
+    <BusinessLayout
       eyebrow="Reports"
       title="Monthly Reports"
       meta="Auto-emailed PDF of last month's activity."
@@ -333,7 +333,7 @@ const BusinessReports = () => {
       <Button onClick={save} disabled={saving}>
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save preferences"}
       </Button>
-    </BusinessShell>
+    </BusinessLayout>
   );
 };
 

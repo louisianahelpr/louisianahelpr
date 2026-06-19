@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import BusinessShell from "@/components/business/shell/BusinessShell";
+import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { Card } from "@/components/ui/card";
@@ -40,9 +40,9 @@ const BusinessExports = () => {
 
   if (isLoading) {
     return (
-      <BusinessShell eyebrow="Reports" title="Exports">
+      <BusinessLayout eyebrow="Reports" title="Exports">
         <div className="flex items-center justify-center py-12"><HelprSpinner size={32} /></div>
-      </BusinessShell>
+      </BusinessLayout>
     );
   }
   if (!business) return <Navigate to="/dashboard" replace />;
@@ -128,7 +128,7 @@ const BusinessExports = () => {
   };
 
   return (
-    <BusinessShell
+    <BusinessLayout
       eyebrow="Reports"
       title="Exports"
       meta="Download paid-work data as CSV or in a QuickBooks-friendly bill format."
@@ -166,7 +166,7 @@ const BusinessExports = () => {
           Only paid jobs (escrow / payout-pending / released) within the date range are included.
         </p>
       </Card>
-    </BusinessShell>
+    </BusinessLayout>
   );
 };
 

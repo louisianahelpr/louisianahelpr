@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import BackButton from "@/components/BackButton";
+import BusinessLayout from "@/components/business/BusinessLayout";
 import {
   Building2,
   UserPlus,
@@ -48,7 +48,6 @@ import BusinessVerificationCard from "@/components/business/BusinessVerification
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import PageHeader from "@/components/PageHeader";
 import { queryKeys } from "@/lib/queryKeys";
 import BulkInviteDialog from "@/components/business/BulkInviteDialog";
 import SpendDashboardTab from "@/components/business/SpendDashboardTab";
@@ -219,19 +218,16 @@ const BusinessTeam = () => {
 
   if (!business) {
     return (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">
-        <PageHeader eyebrow="Helpr Business" title="Manage team" onBack={() => navigate(-1)} />
-        <div className="mx-auto max-w-md px-5 pt-4">
-          <EmptyState
-            variant="inline"
-            icon={Building2}
-            eyebrow="No business account"
-            title="You're not part of a business"
-            body="Sign up as a business to add teammates and manage jobs together under one account."
-            action={<Button onClick={() => navigate("/for-business")}>Learn more</Button>}
-          />
-        </div>
-      </div>
+      <BusinessLayout eyebrow="Helpr Business" title="Manage team">
+        <EmptyState
+          variant="inline"
+          icon={Building2}
+          eyebrow="No business account"
+          title="You're not part of a business"
+          body="Sign up as a business to add teammates and manage jobs together under one account."
+          action={<Button onClick={() => navigate("/for-business")}>Learn more</Button>}
+        />
+      </BusinessLayout>
     );
   }
 
@@ -423,41 +419,19 @@ const BusinessTeam = () => {
   const showMFABanner = business.require_2fa;
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <div className="container mx-auto px-5 py-6 max-w-3xl">
-        <div className="mb-6">
-          <BackButton />
-        </div>
-
-        <div className="flex items-start gap-4 mb-6">
-          <div className="w-12 h-12 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Building2 className="w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <span
-              className="font-serif italic uppercase text-[0.62rem] block"
-              style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-            >
-              Your team
-            </span>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <h1 className="text-page-title leading-tight">{business.business_name}</h1>
-              <Badge variant="secondary" className="text-ds-11 gap-1">
-                <Sparkles className="w-3 h-3" /> {currentTierMeta.name} · {currentTierMeta.price}
-              </Badge>
-              <Badge variant="outline" className="text-ds-11">
-                {ROLE_LABEL[myExtendedRole]}
-              </Badge>
-            </div>
-            <p
-              className="font-serif italic mt-0.5 text-[0.78rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-            >
-              {totalSlots} of {SEAT_LIMIT} seats used{" "}
-              <span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
-              {remainingSlots} remaining
-            </p>
-          </div>
+    <BusinessLayout
+      eyebrow="Your team"
+      title={business.business_name}
+      meta={`${totalSlots} of ${SEAT_LIMIT} seats used · ${remainingSlots} remaining`}
+    >
+      <div className="mx-auto max-w-3xl">
+        <div className="flex flex-wrap items-center gap-2 mb-5">
+          <Badge variant="secondary" className="text-ds-11 gap-1">
+            <Sparkles className="w-3 h-3" /> {currentTierMeta.name} · {currentTierMeta.price}
+          </Badge>
+          <Badge variant="outline" className="text-ds-11">
+            {ROLE_LABEL[myExtendedRole]}
+          </Badge>
         </div>
 
         {showMFABanner && (
@@ -795,7 +769,6 @@ const BusinessTeam = () => {
             />
           </TabsContent>
         </Tabs>
-      </div>
 
       <BulkInviteDialog
         open={bulkOpen}
@@ -821,7 +794,8 @@ const BusinessTeam = () => {
           onConfirm={handleRemove}
         />
       )}
-    </div>
+      </div>
+    </BusinessLayout>
   );
 };
 

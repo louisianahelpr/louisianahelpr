@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BusinessShell from "@/components/business/shell/BusinessShell";
+import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { Card } from "@/components/ui/card";
@@ -186,7 +186,7 @@ const BusinessOnboarding = () => {
   };
 
   return (
-    <BusinessShell eyebrow="Onboarding" title="Get started" meta="Five quick steps. We save as you go.">
+    <BusinessLayout eyebrow="Onboarding" title="Get started" meta="Five quick steps. We save as you go.">
       <Card className="p-5 mb-5">
         <div className="flex items-center justify-between mb-3">
           <p className="text-ds-12 text-muted-foreground">Step {state.step} of {STEPS.length}</p>
@@ -228,7 +228,7 @@ const BusinessOnboarding = () => {
           <Button onClick={finish}>Take me to my team</Button>
         )}
       </div>
-    </BusinessShell>
+    </BusinessLayout>
   );
 };
 

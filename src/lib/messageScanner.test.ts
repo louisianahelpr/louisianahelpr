@@ -258,6 +258,29 @@ describe("F-TRUST-01 — phone regex: client matches formats server may miss", (
   });
 });
 
+describe("F-TRUST-02 — evasion heuristics (fullwidth digits + spelled-out numbers)", () => {
+  it("flags fullwidth-digit phone numbers (normalized to ASCII before regex)", () => {
+    // "５０４-５５５-１２３４" — fullwidth digits that the plain \d regex would miss.
+    const v = scanMessage("call me at ５０４-５５５-１２３４");
+    expect(v.some((x) => x.type === "phone_number")).toBe(true);
+  });
+
+  it("flags a spelled-out phone number (7+ consecutive number-words)", () => {
+    const v = scanMessage("my cell is five zero four five five five one two");
+    expect(v.some((x) => x.type === "phone_number")).toBe(true);
+  });
+
+  it("flags spelled-out numbers with 'oh' for zero", () => {
+    const v = scanMessage("ring me five oh four five five five one two three four");
+    expect(v.some((x) => x.type === "phone_number")).toBe(true);
+  });
+
+  it("does NOT flag casual short number-word usage", () => {
+    const v = scanMessage("I have two cats and three dogs at home");
+    expect(v.some((x) => x.type === "phone_number")).toBe(false);
+  });
+});
+
 describe("F-TRUST-01 — clean legitimate job messages produce zero violations", () => {
   const cleanMessages = [
     "Hi, interested in the lawn mowing job. Are you available Saturday?",

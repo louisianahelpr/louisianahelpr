@@ -3,7 +3,7 @@ import {
   ArrowRight,
   Building2,
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import BackButton from "@/components/BackButton";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -49,11 +49,7 @@ const ForBusiness = () => {
   };
 
   return (
-    <div className="relative min-h-screen page-warmth pb-safe-nav">
-      <div aria-hidden className="mesh-gradient-global" />
-      <Navbar />
-      <div aria-hidden style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3.5rem)" }} />
-
+    <PublicLayout showCtaBand={false}>
       <div className="relative container mx-auto px-5 py-6 lg:py-8 max-w-7xl space-y-6 lg:space-y-8">
         <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
           {/* LEFT — Pitch (3 cols) */}
@@ -283,7 +279,7 @@ const ForBusiness = () => {
         {/* Pricing tiers — marketing summary, leads back to /signup. */}
         <PricingTiers />
       </div>
-    </div>
+    </PublicLayout>
   );
 };
 

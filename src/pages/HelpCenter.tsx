@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -13,10 +13,9 @@ import {
   ChevronDown,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
-const Navbar = lazy(() => import("@/components/Navbar"));
-const Footer = lazy(() => import("@/components/Footer"));
 
 // ─── Topic cards ──────────────────────────────────────────────────────────────
 
@@ -263,15 +262,10 @@ const HelpCenter = () => {
   });
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <Suspense fallback={null}>
-        <Navbar />
-      </Suspense>
-
+    <PublicLayout>
       <PageHeader
         eyebrow="Support"
         title="Help Center"
-        showBrand
         onBack={() => navigate(-1)}
       />
 
@@ -495,11 +489,7 @@ const HelpCenter = () => {
         </section>
 
       </div>
-
-      <Suspense fallback={null}>
-        <Footer />
-      </Suspense>
-    </div>
+    </PublicLayout>
   );
 };
 

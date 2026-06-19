@@ -1,14 +1,9 @@
 import { lazy, Suspense, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
-import Footer from "@/components/Footer";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useScrollFadeUp } from "@/hooks/useScrollFadeUp";
-
-// Navbar lazy-loaded so it doesn't compete with the LCP hero image for the
-// main thread. The hero image preload + inline shell paint instantly;
-// Navbar slides in within a few hundred ms after.
-const Navbar = lazy(() => import("@/components/Navbar"));
 
 // IMPORTANT: do NOT import useCurrentUser at the top of Index. It pulls
 // @supabase/supabase-js into the Index entry chunk (~50 KiB), blocking the
@@ -168,10 +163,7 @@ const Index = () => {
 
 
   return (
-    <div className="min-h-screen page-warmth relative">
-      {/* Global mesh — fixed-position behind every section so glass surfaces
-          have refracting motion all the way down the page. Subtle. */}
-      <div aria-hidden className="mesh-gradient-global" />
+    <PublicLayout showCtaBand={false} noNavSpacer>
       {/* LocalBusiness + Organization JSON-LD is in index.html (static,
           crawlable without JS). These page-specific schemas stay here. */}
       <script
@@ -186,9 +178,6 @@ const Index = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <Suspense fallback={null}>
-        <Navbar />
-      </Suspense>
       <HeroSection />
 
       {/* Live payout ticker (#87) — single-line social-proof strip
@@ -221,9 +210,7 @@ const Index = () => {
       {/* 120px breathing room before the footer so the FAQ accordion
           doesn't crash into the footer surface. */}
       <div aria-hidden style={{ height: "120px" }} />
-
-      <Footer />
-    </div>
+    </PublicLayout>
   );
 };
 

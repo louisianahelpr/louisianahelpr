@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 // Card-matching skeleton — mirrors the actual JobCard avatar/title/price
@@ -182,15 +181,13 @@ const Jobs = () => {
   }, [filtered]);
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <Navbar />
-
+    <PublicLayout showCtaBand={false} noNavSpacer>
       {/* pt-20 sits flush under the fixed Navbar (h-14 + safe-area).
           The bottom padding clears the floating MobileNav (96px) plus
           the iOS home-indicator safe area, with a 16px gap so the
           last action isn't kissing the dock. pb-32 was barely 2px
           short on notched phones. */}
-      <main className="pt-20 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)] md:pb-safe-nav px-5">
+      <div className="pt-20 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)] md:pb-safe-nav px-5">
         <div className="container mx-auto max-w-5xl">
           {/* Header — title + live count vertically centered with a "Live" pill on the right. */}
           <div className="flex items-center justify-between gap-4 mb-6 md:mb-8 mt-2 md:mt-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
@@ -373,10 +370,8 @@ const Jobs = () => {
             </div>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </PublicLayout>
   );
 };
 

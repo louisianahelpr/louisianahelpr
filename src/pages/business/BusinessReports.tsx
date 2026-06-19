@@ -17,7 +17,20 @@ import { toast } from "sonner";
 
 type JsPDFWithAutoTable = import("jspdf").jsPDF & { lastAutoTable?: { finalY: number } };
 
+// Narrow a thrown value to a Supabase/Postgrest-shaped error so we can read
+// its `code` without resorting to `any`.
+const isPostgrestError = (e: unknown): e is { code?: string; message?: string } =>
+  typeof e === "object" && e !== null && "code" in e;
+
 type Cadence = "monthly" | "weekly" | "off";
+
+// report_recipients / report_cadence are not yet in the generated Supabase
+// types (migration regen pending), so the `businesses` table is accessed via
+// an untyped builder and the prefs row is described by this local shape.
+type ReportPrefsRow = {
+  report_recipients: string[] | null;
+  report_cadence: Cadence | null;
+};
 
 const fmtMonth = (d: Date) => d.toLocaleString("en-US", { month: "long", year: "numeric" });
 
@@ -37,6 +50,7 @@ const BusinessReports = () => {
   useEffect(() => {
     if (!businessId) return;
     (async () => {
+      // report_recipients / report_cadence not yet in generated types → untyped builder.
       const { data, error } = await (supabase.from as any)("businesses")
         .select("report_recipients, report_cadence")
         .eq("id", businessId)
@@ -45,8 +59,9 @@ const BusinessReports = () => {
         // PGRST204/missing column → migration not deployed yet. Leave defaults.
         return;
       }
-      setRecipients(((data as any)?.report_recipients ?? []) as string[]);
-      setCadence((((data as any)?.report_cadence as Cadence) ?? "monthly"));
+      const prefs = data as ReportPrefsRow | null;
+      setRecipients(prefs?.report_recipients ?? []);
+      setCadence(prefs?.report_cadence ?? "monthly");
     })();
   }, [businessId]);
 
@@ -89,18 +104,20 @@ const BusinessReports = () => {
   const save = async () => {
     setSaving(true);
     try {
+      // report_* columns not yet in generated types → untyped builder.
       const { error } = await (supabase.from as any)("businesses")
         .update({ report_recipients: recipients, report_cadence: cadence })
         .eq("id", businessId);
       if (error) throw error;
       hapticSuccess();
       toast.success("Saved");
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
-      if (err?.code === "PGRST204" || err?.code === "42703") {
+      const code = isPostgrestError(err) ? err.code : undefined;
+      if (code === "PGRST204" || code === "42703") {
         toast.error("Reports columns not yet deployed — run `supabase db push`.");
       } else {
-        toast.error(err.message || "Couldn't save preferences.");
+        toast.error(err instanceof Error ? err.message : "Couldn't save preferences.");
       }
     } finally {
       setSaving(false);
@@ -114,11 +131,14 @@ const BusinessReports = () => {
     if (!businessId) return;
     setPdfBusy(true);
     try {
-      const { data: memberRows, error: memberErr } = await (supabase.from as any)("business_members")
+      const { data: memberRows, error: memberErr } = await supabase
+        .from("business_members")
         .select("user_id")
         .eq("business_id", businessId);
       if (memberErr) throw memberErr;
-      const memberIds: string[] = (memberRows ?? []).map((r: any) => r.user_id);
+      const memberIds: string[] = (memberRows ?? [])
+        .map((r) => r.user_id)
+        .filter((id): id is string => !!id);
 
       const now = new Date();
       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
@@ -134,10 +154,10 @@ const BusinessReports = () => {
 
       const jobs = jobRows ?? [];
       const totalSpend = jobs
-        .filter((j: any) => j.status === "completed")
-        .reduce((sum: number, j: any) => sum + Number(j.budget ?? 0), 0);
-      const jobsCompleted = jobs.filter((j: any) => j.status === "completed").length;
-      const uniqueHelpers = new Set(jobs.map((j: any) => j.helper_id).filter(Boolean)).size;
+        .filter((j) => j.status === "completed")
+        .reduce((sum, j) => sum + Number(j.budget ?? 0), 0);
+      const jobsCompleted = jobs.filter((j) => j.status === "completed").length;
+      const uniqueHelpers = new Set(jobs.map((j) => j.helper_id).filter(Boolean)).size;
 
       const categoryCount: Record<string, number> = {};
       for (const j of jobs) {
@@ -198,9 +218,9 @@ const BusinessReports = () => {
         nextY += 16;
       }
 
-      const jobTableRows = jobs.slice(0, 50).map((j: any) => [
+      const jobTableRows = jobs.slice(0, 50).map((j) => [
         new Date(j.created_at).toLocaleDateString("en-US"),
-        (j.title ?? "").length > 32 ? (j.title as string).slice(0, 30) + "…" : (j.title ?? ""),
+        (j.title ?? "").length > 32 ? (j.title ?? "").slice(0, 30) + "…" : (j.title ?? ""),
         j.status ?? "",
         `$${Number(j.budget ?? 0).toFixed(2)}`,
       ]);

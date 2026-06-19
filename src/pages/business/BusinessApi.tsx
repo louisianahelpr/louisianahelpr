@@ -43,6 +43,11 @@ interface WebhookRow {
   created_at: string;
 }
 
+// Narrow a thrown value to a Supabase/Postgrest-shaped error so we can read
+// its `code` without resorting to `any`.
+const isPostgrestError = (e: unknown): e is { code?: string; message?: string } =>
+  typeof e === "object" && e !== null && "code" in e;
+
 const fmtDate = (s: string | null): string => {
   if (!s) return "Never";
   return new Date(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -72,6 +77,7 @@ const BusinessApi = () => {
     queryKey: queryKeys.business.apiKeys(businessId),
     enabled: !!businessId,
     queryFn: async () => {
+      // business_api_keys not yet in generated types → untyped builder.
       const { data, error } = await (supabase.from as any)("business_api_keys")
         .select("id, name, key_last4, last_used_at, created_at, revoked_at")
         .eq("business_id", businessId)
@@ -88,6 +94,7 @@ const BusinessApi = () => {
     queryKey: queryKeys.business.webhooks(businessId),
     enabled: !!businessId,
     queryFn: async () => {
+      // business_webhooks not yet in generated types → untyped builder.
       const { data, error } = await (supabase.from as any)("business_webhooks")
         .select("id, url, events, active, last_delivery_at, last_delivery_status, created_at")
         .eq("business_id", businessId)
@@ -120,12 +127,13 @@ const BusinessApi = () => {
     if (!newKeyName.trim() || !businessId) return;
     setCreating(true);
     try {
+      // create_business_api_key RPC not yet in generated types → untyped call.
       const { data, error } = await (supabase.rpc as any)("create_business_api_key", {
         _business_id: businessId,
         _name: newKeyName.trim(),
       });
       if (error) throw error;
-      const plain = (data as any)?.plaintext as string | undefined;
+      const plain = (data as { plaintext?: string } | null)?.plaintext;
       if (!plain) throw new Error("Server did not return the new key");
       setNewKeyPlain(plain);
       setShowPlain(true);
@@ -133,12 +141,13 @@ const BusinessApi = () => {
       hapticSuccess();
       toast.success("API key created");
       queryClient.invalidateQueries({ queryKey: queryKeys.business.apiKeys(businessId) });
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
-      if (err?.code === "PGRST202") {
+      const code = isPostgrestError(err) ? err.code : undefined;
+      if (code === "PGRST202") {
         toast.error("API key generator not yet deployed — run `supabase db push`.");
       } else {
-        toast.error(err.message || "We couldn't create that key — try again in a moment.");
+        toast.error(err instanceof Error ? err.message : "We couldn't create that key — try again in a moment.");
       }
     } finally {
       setCreating(false);
@@ -156,9 +165,9 @@ const BusinessApi = () => {
       toast.success("Key revoked");
       queryClient.invalidateQueries({ queryKey: queryKeys.business.apiKeys(businessId) });
       setRevokeTarget(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
-      toast.error(err.message || "We couldn't revoke that key — try again.");
+      toast.error(err instanceof Error ? err.message : "We couldn't revoke that key — try again.");
     }
   };
 
@@ -195,9 +204,9 @@ const BusinessApi = () => {
       hapticSuccess();
       toast.success("Webhook saved");
       queryClient.invalidateQueries({ queryKey: queryKeys.business.webhooks(businessId) });
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
-      toast.error(err.message || "We couldn't save that webhook — try again.");
+      toast.error(err instanceof Error ? err.message : "We couldn't save that webhook — try again.");
     } finally {
       setSavingWebhook(false);
     }
@@ -210,8 +219,8 @@ const BusinessApi = () => {
         .eq("id", row.id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: queryKeys.business.webhooks(businessId) });
-    } catch (err: any) {
-      toast.error(err.message || "Couldn't update webhook.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Couldn't update webhook.");
     }
   };
 
@@ -222,8 +231,8 @@ const BusinessApi = () => {
         .eq("id", id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: queryKeys.business.webhooks(businessId) });
-    } catch (err: any) {
-      toast.error(err.message || "Couldn't delete webhook.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Couldn't delete webhook.");
     }
   };
 

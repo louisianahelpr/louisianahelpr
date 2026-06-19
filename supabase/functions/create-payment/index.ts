@@ -216,6 +216,11 @@ serve(async (req) => {
         success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,
         cancel_url: `${req.headers.get("origin")}/post-job`,
         metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false" },
+      }, {
+        // Idempotency: a double-submit (double-tap, retried request) for the same
+        // job reuses the existing Checkout Session instead of creating a second
+        // escrow charge. Scoped per job; Stripe expires the key after 24h.
+        idempotencyKey: `escrow-${jobId}`,
       });
 
       // Store both fee structures on the job

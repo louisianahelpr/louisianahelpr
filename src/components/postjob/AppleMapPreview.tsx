@@ -8,6 +8,43 @@ interface AppleMapPreviewProps {
   zipCode: string;
 }
 
+// Minimal MapKit JS shapes we touch here — Apple's runtime is loosely
+// typed and the @types/mapkit-js package has drifted, so we describe
+// only the members this preview reads/constructs.
+interface MapKitCoordinate {
+  latitude: number;
+  longitude: number;
+}
+interface MapKitGeocodeResult {
+  coordinate?: MapKitCoordinate;
+}
+interface MapKitGeocodeResponse {
+  results: MapKitGeocodeResult[];
+}
+interface MapKitGeocoder {
+  lookup: (
+    place: string,
+    callback: (err: Error | null, data: MapKitGeocodeResponse) => void,
+  ) => void;
+}
+interface MapKitMapInstance {
+  region: unknown;
+  addAnnotation: (annotation: unknown) => void;
+  removeAnnotation: (annotation: unknown) => void;
+  destroy?: () => void;
+}
+/** The handful of MapKit constructors/enums this component reaches for
+ *  beyond what `MapKitGlobal` in useMapKitJs already types. */
+interface MapKitRuntime {
+  Geocoder?: new () => MapKitGeocoder;
+  Coordinate: new (lat: number, lng: number) => unknown;
+  CoordinateSpan: new (latDelta: number, lngDelta: number) => unknown;
+  CoordinateRegion: new (center: unknown, span: unknown) => unknown;
+  Map: new (el: HTMLElement, options: Record<string, unknown>) => MapKitMapInstance;
+  MarkerAnnotation?: new (coord: unknown, options: { color: string }) => unknown;
+  FeatureVisibility?: { Hidden?: unknown };
+}
+
 /**
  * Tiny inline preview of the typed address as a pinned MapKit JS map.
  *
@@ -23,8 +60,8 @@ interface AppleMapPreviewProps {
 export function AppleMapPreview({ street, city, state, zipCode }: AppleMapPreviewProps) {
   const mapKitStatus = useMapKitJs();
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const annotationRef = useRef<any>(null);
+  const mapRef = useRef<MapKitMapInstance | null>(null);
+  const annotationRef = useRef<unknown>(null);
   const [resolved, setResolved] = useState<{ lat: number; lng: number } | null>(null);
 
   // Hold off until we have at least a street + city or a zip — geocoding
@@ -40,13 +77,13 @@ export function AppleMapPreview({ street, city, state, zipCode }: AppleMapPrevie
     let cancelled = false;
     const timer = window.setTimeout(() => {
       try {
-        const mk = window.mapkit as any;
+        const mk = window.mapkit as unknown as MapKitRuntime;
         const GeocoderCtor = mk.Geocoder;
         if (!GeocoderCtor) return;
         const geocoder = new GeocoderCtor();
-        geocoder.lookup(composed, (err: any, data: any) => {
+        geocoder.lookup(composed, (err, data) => {
           if (cancelled || err || !data?.results?.length) return;
-          const place: any = data.results[0];
+          const place = data.results[0];
           const coord = place.coordinate;
           if (!coord) return;
           setResolved({ lat: coord.latitude, lng: coord.longitude });
@@ -62,7 +99,7 @@ export function AppleMapPreview({ street, city, state, zipCode }: AppleMapPrevie
   // Create / update the map once we have a coordinate.
   useEffect(() => {
     if (!resolved || mapKitStatus !== "ready" || !window.mapkit || !containerRef.current) return;
-    const mk = window.mapkit as any;
+    const mk = window.mapkit as unknown as MapKitRuntime;
     try {
       const center = new mk.Coordinate(resolved.lat, resolved.lng);
       const span = new mk.CoordinateSpan(0.01, 0.01);

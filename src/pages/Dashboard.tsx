@@ -54,6 +54,24 @@ import { queryKeys } from "@/lib/queryKeys";
 import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
 import { useJobRef } from "@/hooks/useJobRef";
 
+// A single availability slot as the dashboard filter pipeline expects it.
+// `helper_availability` selects nullable columns, so we narrow to the
+// non-null shape `useDashboardFilters` requires.
+type HelperAvailabilitySlot = {
+  day_of_week: number;
+  is_available: boolean;
+  start_time: string;
+  end_time: string;
+};
+
+// The slice of the dashboard React Query context cache we mutate in the
+// optimistic apply path. We only touch `appliedJobIds`; everything else is
+// preserved verbatim.
+type DashboardContextSlice = {
+  appliedJobIds?: Set<string>;
+  [key: string]: unknown;
+};
+
 // Quick Apply handler for notification deep links
 const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
   searchParams: URLSearchParams;
@@ -124,7 +142,7 @@ const Dashboard = () => {
   usePrefetchUserData(user?.id);
 
   const filters = useDashboardFilters({
-    allJobs, userId: user?.id, profile, helprTier, helperAvailability: helperAvailability as any,
+    allJobs, userId: user?.id, profile, helprTier, helperAvailability: helperAvailability as HelperAvailabilitySlot[],
   });
 
   // The greeting card's "stat of the day" line was removed — it added a
@@ -238,7 +256,7 @@ const Dashboard = () => {
           .select("id", { count: "exact", head: true })
           .eq("status", "available")
           .eq("parish", userParish);
-        if (error && (error as any).code === "PGRST202") return 0;
+        if (error && (error as { code?: string }).code === "PGRST202") return 0;
         if (error) return 0;
         return count ?? 0;
       } catch { return 0; }
@@ -491,7 +509,14 @@ const Dashboard = () => {
       }
       // Try the apply_to_job RPC first (supports proposed_price for bid-mode jobs).
       // Fall back to a direct INSERT if PGRST202 (function not yet deployed to prod).
-      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("apply_to_job", {
+      // apply_to_job isn't in the generated Functions map yet (migration
+      // unapplied to prod), so we call it through a narrowly-typed wrapper
+      // documenting its exact arg/return contract instead of `as any`.
+      const applyToJobRpc = supabase.rpc as unknown as (
+        fn: "apply_to_job",
+        args: { p_job_id: string; p_message: string | null; p_proposed_price: number | null },
+      ) => Promise<{ data: string | null; error: { code?: string; message?: string } | null }>;
+      const { data: rpcData, error: rpcError } = await applyToJobRpc("apply_to_job", {
         p_job_id: jobId,
         p_message: message.trim() || null,
         p_proposed_price: proposedPrice ?? null,
@@ -517,7 +542,7 @@ const Dashboard = () => {
         }
         // PGRST202: apply_to_job not deployed yet — fall back to direct INSERT
         // (no proposed_price column yet; no harm, it's not on prod either).
-        const { error } = await (supabase.from("applications") as any).insert({
+        const { error } = await supabase.from("applications").insert({
           job_id: jobId,
           helper_id: helperId,
           message: message.trim() || null,
@@ -529,12 +554,12 @@ const Dashboard = () => {
         void rpcData; // UUID returned but not currently used.
         // Patch attachment_urls onto the new row if needed (RPC doesn't handle attachments).
         if (attachmentUrls.length > 0) {
-          await (supabase.from("applications") as any)
+          await supabase.from("applications")
             .update({ attachment_urls: attachmentUrls, ...(stakeAmt && stakeAmt > 0 ? { stake_amount: stakeAmt, stake_status: "staked" } : {}) })
             .eq("job_id", jobId)
             .eq("helper_id", helperId);
         } else if (stakeAmt && stakeAmt > 0) {
-          await (supabase.from("applications") as any)
+          await supabase.from("applications")
             .update({ stake_amount: stakeAmt, stake_status: "staked" })
             .eq("job_id", jobId)
             .eq("helper_id", helperId);
@@ -568,7 +593,7 @@ const Dashboard = () => {
       const previousContext = queryClient.getQueryData(queryKeys.dashboard.context(helperId));
       // Optimistically widen appliedJobIds so the feed filter drops this
       // job from every loaded page of the infinite query immediately.
-      queryClient.setQueryData(queryKeys.dashboard.context(helperId), (prev: any) => {
+      queryClient.setQueryData<DashboardContextSlice>(queryKeys.dashboard.context(helperId), (prev) => {
         if (!prev) return prev;
         const nextApplied = new Set<string>(prev.appliedJobIds ?? []);
         nextApplied.add(jobId);
@@ -653,9 +678,9 @@ const Dashboard = () => {
     // Read the instant_book flag from the job in the feed. Cast through
     // `any` because EnrichedJob predates this column; the DB default is
     // false so a missing key is treated the same way.
-    const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
+    const isInstantBook = !!confirmApplyJob?.instant_book;
     // Capture proposed price for bid-mode jobs (accept_bids pricing_mode).
-    const isBidJob = (confirmApplyJob as any)?.pricing_mode === "accept_bids";
+    const isBidJob = confirmApplyJob?.pricing_mode === "accept_bids";
     const proposedPrice = isBidJob && bidPrice ? parseFloat(bidPrice) : null;
     // Close the dialog + reset its state synchronously so the next paint
     // already has the optimistic feed. The mutation continues in the

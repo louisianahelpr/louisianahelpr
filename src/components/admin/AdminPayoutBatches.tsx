@@ -138,7 +138,7 @@ const AdminPayoutBatches = () => {
     meta: { persist: false },
     fetcher: async () => {
       const data = unwrap(await supabase.rpc("get_payout_batches"));
-      return ((data ?? []) as any[]).map((r: any) => ({
+      return (data ?? []).map((r) => ({
         ...r,
         helper_name: formatName(r.helper_name, "Unknown"),
       })) as PayoutBatch[];
@@ -201,9 +201,9 @@ const AdminPayoutBatches = () => {
         total_payout: batch.total_payout,
       });
       qc.invalidateQueries({ queryKey });
-    } catch (err: any) {
+    } catch (err: unknown) {
       report(err, { tags: { source: "AdminPayoutBatches.triggerPayout" } });
-      toast.error(err.message || "Failed to trigger payout");
+      toast.error(err instanceof Error ? err.message : "Failed to trigger payout");
     } finally {
       setPaying(null);
     }
@@ -250,10 +250,10 @@ const AdminPayoutBatches = () => {
           bulk: true,
         });
         okCount += 1;
-      } catch (err: any) {
+      } catch (err: unknown) {
         failCount += 1;
         report(err, { tags: { source: "AdminPayoutBatches.triggerBulkPayout" } });
-        toast.error(`${batch.helper_name}: ${err?.message || "Failed"}`);
+        toast.error(`${batch.helper_name}: ${err instanceof Error ? err.message : "Failed"}`);
       }
     }
     setBulkPaying(false);

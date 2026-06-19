@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { CalendarClock, Plus, Loader2, Trash2, Power } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
@@ -30,12 +31,17 @@ interface TemplateRow {
   name: string;
   schedule_cron: string;
   schedule_label: string | null;
-  template_payload: any;
+  template_payload: Json;
   next_run_at: string | null;
   last_run_at: string | null;
   active: boolean;
   created_at: string;
 }
+
+// Narrow a thrown value to a Supabase/Postgrest-shaped error so we can read
+// its `code` without resorting to `any`.
+const isPostgrestError = (e: unknown): e is { code?: string; message?: string } =>
+  typeof e === "object" && e !== null && "code" in e;
 
 const fmtDate = (s: string | null) =>
   s ? new Date(s).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "Not scheduled";
@@ -58,6 +64,7 @@ const BusinessContracts = () => {
     queryKey: queryKeys.business.templates(businessId),
     enabled: !!businessId,
     queryFn: async () => {
+      // business_job_templates not yet in generated types → untyped builder.
       const { data, error } = await (supabase.from as any)("business_job_templates")
         .select("*")
         .eq("business_id", businessId)
@@ -108,12 +115,13 @@ const BusinessContracts = () => {
       toast.success("Recurring job created");
       setName(""); setDescription(""); setBudgetCents("12500");
       queryClient.invalidateQueries({ queryKey: queryKeys.business.templates(businessId) });
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
-      if (err?.code === "PGRST204" || err?.code === "42P01") {
+      const code = isPostgrestError(err) ? err.code : undefined;
+      if (code === "PGRST204" || code === "42P01") {
         toast.error("Templates table not yet deployed — run `supabase db push`.");
       } else {
-        toast.error(err.message || "We couldn't save that template — try again.");
+        toast.error(err instanceof Error ? err.message : "We couldn't save that template — try again.");
       }
     } finally {
       setSubmitting(false);
@@ -127,8 +135,8 @@ const BusinessContracts = () => {
         .eq("id", row.id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: queryKeys.business.templates(businessId) });
-    } catch (err: any) {
-      toast.error(err.message || "Couldn't update template.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Couldn't update template.");
     }
   };
 
@@ -140,8 +148,8 @@ const BusinessContracts = () => {
       if (error) throw error;
       hapticSuccess();
       queryClient.invalidateQueries({ queryKey: queryKeys.business.templates(businessId) });
-    } catch (err: any) {
-      toast.error(err.message || "Couldn't delete template.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Couldn't delete template.");
     }
   };
 

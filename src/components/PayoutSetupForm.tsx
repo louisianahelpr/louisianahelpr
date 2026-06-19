@@ -48,7 +48,7 @@ export function PayoutSetupForm() {
       try {
         const res = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
         return res.error ? null : (res.data || null);
-      } catch (err: any) {
+      } catch (err: unknown) {
         report(err, { tags: { source: "PayoutSetupForm.status" } });
         return null;
       }
@@ -64,7 +64,7 @@ export function PayoutSetupForm() {
       try {
         const res = await supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } });
         return res.error ? [] : (res.data?.methods || []);
-      } catch (err: any) {
+      } catch (err: unknown) {
         report(err, { tags: { source: "PayoutSetupForm.methods" } });
         return [];
       }
@@ -101,9 +101,9 @@ export function PayoutSetupForm() {
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
-      toast.error(err.message || "We couldn't start payout setup — try again in a moment.");
+      toast.error(err instanceof Error ? err.message : "We couldn't start payout setup — try again in a moment.");
       setOnboarding(false);
     }
   };
@@ -119,9 +119,9 @@ export function PayoutSetupForm() {
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
-      toast.error(err.message || "We couldn't open your Stripe dashboard — try again in a moment.");
+      toast.error(err instanceof Error ? err.message : "We couldn't open your Stripe dashboard — try again in a moment.");
     }
   };
 
@@ -140,9 +140,9 @@ export function PayoutSetupForm() {
       if (data?.error) throw new Error(data.error);
       toast.success("Payout method removed");
       loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
-      toast.error(err.message || "We couldn't remove that payout method — try again in a moment.");
+      toast.error(err instanceof Error ? err.message : "We couldn't remove that payout method — try again in a moment.");
     } finally {
       setDeleting(null);
     }
@@ -161,9 +161,9 @@ export function PayoutSetupForm() {
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
-      toast.error(err.message || "We couldn't reset your account just now — try again in a moment.");
+      toast.error(err instanceof Error ? err.message : "We couldn't reset your account just now — try again in a moment.");
       setResetting(false);
     }
   };

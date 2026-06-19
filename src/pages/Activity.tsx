@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -11,11 +11,25 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/activity/ActivityDialogs";
-import { PostedJobsTab } from "@/components/activity/PostedJobsTab";
-import { AppliedJobsTab } from "@/components/activity/AppliedJobsTab";
 import { type Tab } from "@/components/activity/activityConstants";
-import { IDVPromptDialog } from "@/components/IDVPromptDialog";
-import W9CollectionDialog from "@/components/W9CollectionDialog";
+
+// Tab content is lazy-split so the initial Activity chunk only contains the
+// shell (header, filters, skeleton fallbacks). The per-tab bundles are fetched
+// once the data is ready and the correct tab is about to be rendered.
+const PostedJobsTab = lazy(() =>
+  import("@/components/activity/PostedJobsTab").then((m) => ({ default: m.PostedJobsTab })),
+);
+const AppliedJobsTab = lazy(() =>
+  import("@/components/activity/AppliedJobsTab").then((m) => ({ default: m.AppliedJobsTab })),
+);
+
+// These dialogs are conditionally mounted (only when the user triggers an
+// action), so lazy-loading them avoids including their subtrees in the
+// initial chunk entirely.
+const IDVPromptDialog = lazy(() =>
+  import("@/components/IDVPromptDialog").then((m) => ({ default: m.IDVPromptDialog })),
+);
+const W9CollectionDialog = lazy(() => import("@/components/W9CollectionDialog"));
 import { useActivityActions } from "@/pages/activity/useActivityActions";
 import {
   POSTED_STATUS_FILTERS,
@@ -316,6 +330,11 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           ) : (
             <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
           {tab === "posted" && (
+            <Suspense fallback={
+              <div className="px-0 space-y-2.5">
+                {[1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
+              </div>
+            }>
             <SectionBoundary label="your posts">
             <PostedJobsTab
               groupByStatus={statusFilter === "all"}
@@ -358,9 +377,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onActionComplete={refresh}
             />
             </SectionBoundary>
+            </Suspense>
           )}
 
           {tab === "applied" && (
+            <Suspense fallback={
+              <div className="px-0 space-y-2.5">
+                {[1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)}
+              </div>
+            }>
             <SectionBoundary label="your jobs">
             <AppliedJobsTab
               groupByStatus={statusFilter === "all"}
@@ -381,6 +406,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onRefresh={refresh}
             />
             </SectionBoundary>
+            </Suspense>
           )}
             </div>
           )}
@@ -424,21 +450,27 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         helperNames={helperNames}
         onRefresh={refresh}
       />
-      <IDVPromptDialog
-        open={actions.idvDialogOpen}
-        onOpenChange={(o) => { actions.setIdvDialogOpen(o); if (!o) actions.setPendingAcceptApp(null); }}
-        reason={actions.pendingAcceptApp ? "Helpr requires a one-time ID + selfie check before you accept your first job. Posters won't see their full address until you're verified." : undefined}
-        status={actions.idvStatus as never}
-        failureReason={actions.idvFailureReason}
-      />
+      {actions.idvDialogOpen && (
+        <Suspense fallback={null}>
+          <IDVPromptDialog
+            open={actions.idvDialogOpen}
+            onOpenChange={(o) => { actions.setIdvDialogOpen(o); if (!o) actions.setPendingAcceptApp(null); }}
+            reason={actions.pendingAcceptApp ? "Helpr requires a one-time ID + selfie check before you accept your first job. Posters won't see their full address until you're verified." : undefined}
+            status={actions.idvStatus as never}
+            failureReason={actions.idvFailureReason}
+          />
+        </Suspense>
+      )}
       {actions.w9Context && user && (
-        <W9CollectionDialog
-          open={actions.w9DialogOpen}
-          onOpenChange={actions.setW9DialogOpen}
-          jobId={actions.w9Context.jobId}
-          helperId={user.id}
-          businessId={actions.w9Context.businessId}
-        />
+        <Suspense fallback={null}>
+          <W9CollectionDialog
+            open={actions.w9DialogOpen}
+            onOpenChange={actions.setW9DialogOpen}
+            jobId={actions.w9Context.jobId}
+            helperId={user.id}
+            businessId={actions.w9Context.businessId}
+          />
+        </Suspense>
       )}
     </>
   );

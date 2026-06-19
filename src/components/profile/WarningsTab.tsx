@@ -2,6 +2,7 @@ import { AlertTriangle, Shield, CheckCircle2 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatJobDate } from "@/lib/format";
 
 type Violation = {
   id: string;
@@ -134,7 +135,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                       </span>
                     </div>
                     <span className="font-serif italic whitespace-nowrap shrink-0" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
-                      {v.created_at ? new Date(v.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                      {v.created_at ? formatJobDate(v.created_at) : "—"}
                     </span>
                   </div>
                   {v.description && (

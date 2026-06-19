@@ -24,6 +24,24 @@ export function formatJobDate(date: string | Date | null | undefined): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/**
+ * Compact relative date — "Jun 13" within the current year, "Jun 13, 2025"
+ * for prior years. Year is appended only when the date falls outside the
+ * current year, so recent activity stays terse while older entries still
+ * disambiguate. Use for dense activity/review lists; use `formatJobDate`
+ * when the year must always show.
+ */
+export function formatShortDate(date: string | Date | null | undefined): string {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(d.getTime())) return "";
+  const opts: Intl.DateTimeFormatOptions =
+    d.getFullYear() === new Date().getFullYear()
+      ? { month: "short", day: "numeric" }
+      : { month: "short", day: "numeric", year: "numeric" };
+  return d.toLocaleDateString("en-US", opts);
+}
+
 export function formatPrice(amount: number): string {
   if (!Number.isFinite(amount)) return "0";
   // Work in integer cents to avoid binary float artifacts (e.g. 85.1 →

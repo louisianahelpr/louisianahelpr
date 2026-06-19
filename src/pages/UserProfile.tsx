@@ -37,6 +37,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { cn } from "@/lib/utils";
 import { jobStatusColorClasses } from "@/lib/statusColors";
+import { formatShortDate } from "@/lib/format";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
@@ -44,19 +45,6 @@ import { haversineMiles } from "@/lib/geo";
 import { useUserLocation } from "@/hooks/useUserLocation";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-
-// Compact "Jun 13" date — matches the app's short-date style. The year is
-// appended only when the date falls outside the current year, so recent
-// activity stays terse while older entries still disambiguate.
-function formatShortDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const opts: Intl.DateTimeFormatOptions =
-    d.getFullYear() === new Date().getFullYear()
-      ? { month: "short", day: "numeric" }
-      : { month: "short", day: "numeric", year: "numeric" };
-  return d.toLocaleDateString("en-US", opts);
-}
 
 const UserProfile = () => {
   usePageTitle("User Profile — Helpr");

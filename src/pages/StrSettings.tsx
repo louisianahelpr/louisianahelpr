@@ -13,6 +13,7 @@ import {
   Home, Plus, ChevronDown, ChevronUp, RefreshCw, Trash2,
   CheckCircle, AlertCircle, Loader2, CalendarDays,
 } from "lucide-react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import BackButton from "@/components/BackButton";
@@ -617,7 +618,7 @@ export default function StrSettings() {
         {/* Connected calendars */}
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin" style={{ color: "hsl(var(--bark) / 0.4)" }} />
+            <HelprSpinner size={24} />
           </div>
         ) : connections.length === 0 ? (
           <div className="rounded-ds-md" style={cardStyle}>

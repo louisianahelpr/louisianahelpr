@@ -8,6 +8,7 @@ import {
   BarChart3, Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { MetricCard, StatusRow, MRRRow, CohortRetentionCard, FunnelCard } from "./AdminAnalyticsCards";
 import { UsersDrillDown, SubscriptionsDrillDown, CategoriesDrillDown, PayoutsDrillDown, JobsDrillDown } from "./AdminAnalyticsDrilldowns";
 import { PIE_COLORS, TIER_COLORS } from "./adminAnalyticsConstants";
@@ -27,7 +28,7 @@ const MonthlyJobsBarChart = lazy(() =>
 
 const ChartFallback = () => (
   <div className="flex h-full w-full items-center justify-center">
-    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    <HelprSpinner size={20} />
   </div>
 );
 
@@ -104,7 +105,7 @@ const AdminAnalytics = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <HelprSpinner size={20} />
       </div>
     );
   }

@@ -557,7 +557,7 @@ const BecomeAPartner = () => {
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
-                    className="mt-0.5 w-4 h-4 rounded accent-bark shrink-0"
+                    className="mt-0.5 w-4 h-4 rounded accent-[hsl(var(--bark))] shrink-0"
                     checked={form.has_insurance}
                     onChange={(e) => set("has_insurance", e.target.checked)}
                   />
@@ -568,7 +568,7 @@ const BecomeAPartner = () => {
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
-                    className="mt-0.5 w-4 h-4 rounded accent-bark shrink-0"
+                    className="mt-0.5 w-4 h-4 rounded accent-[hsl(var(--bark))] shrink-0"
                     checked={form.has_license}
                     onChange={(e) => set("has_license", e.target.checked)}
                   />

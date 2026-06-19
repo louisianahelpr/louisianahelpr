@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { Camera, Check, ChevronDown, FileText, Loader2, ShieldCheck, X } from "lucide-react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { cn } from "@/lib/utils";
@@ -340,7 +341,7 @@ const CompleteProfile = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-premium-page">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <HelprSpinner size={24} />
       </div>
     );
   }
@@ -349,7 +350,9 @@ const CompleteProfile = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-premium-page px-5">
         <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-card p-6 text-center shadow-[var(--card-shadow)]">
-          <Loader2 className="mx-auto mb-4 h-6 w-6 animate-spin text-primary" />
+          <div className="flex justify-center mb-4">
+            <HelprSpinner size={24} />
+          </div>
           <h1 className="text-ds-20 font-display font-bold text-foreground">Checking your saved profile</h1>
           <p className="mt-2 text-ds-11 text-muted-foreground">
             Hang tight — we’re making sure your previous submission is loaded before asking for anything again.

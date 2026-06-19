@@ -8,6 +8,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
 import { getCategoryIcon } from "@/lib/categoryIcons";
+import { formatJobDate } from "@/lib/format";
 import { categoryColors, categoryLabels } from "@/components/activity/activityConstants";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
@@ -21,9 +22,7 @@ interface CompletedJobWithHelper extends Job {
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "Unknown date";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return dateStr ? formatJobDate(dateStr) : "Unknown date";
 }
 
 function groupByYear(jobs: CompletedJobWithHelper[]): { year: number; jobs: CompletedJobWithHelper[] }[] {

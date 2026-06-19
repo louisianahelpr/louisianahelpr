@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Loader2, ClipboardList } from "lucide-react";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,7 +111,7 @@ const ExceptionQueueInner = () => {
   if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <HelprSpinner size={24} />
       </div>
     );
   }

@@ -222,7 +222,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 </button>
               ))}
             </div>
-            <Textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Add a comment (optional)…" rows={2} />
+            <Textarea aria-label="Comment (optional)" value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Add a comment (optional)…" rows={2} />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setStep("tip")}>Skip</Button>

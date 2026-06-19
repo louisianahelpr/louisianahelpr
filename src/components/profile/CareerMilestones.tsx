@@ -80,7 +80,7 @@ export function CareerMilestones({ stats, showProgress = false }: CareerMileston
     >
       <p
         className="text-ds-10 font-sans font-semibold uppercase tracking-wide mb-2"
-        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         Career milestones
       </p>
@@ -115,7 +115,7 @@ export function CareerMilestones({ stats, showProgress = false }: CareerMileston
             </div>
             <span
               className="text-ds-11 tabular-nums shrink-0"
-              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {progress.label}
             </span>
@@ -137,7 +137,7 @@ export function CareerMilestones({ stats, showProgress = false }: CareerMileston
           {next.requirement.avgRating && stats.avgRating > 0 && stats.avgRating < next.requirement.avgRating && (
             <p
               className="text-ds-11 font-serif italic"
-              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Also needs {next.requirement.avgRating}+ avg rating (yours: {stats.avgRating.toFixed(1)})
             </p>

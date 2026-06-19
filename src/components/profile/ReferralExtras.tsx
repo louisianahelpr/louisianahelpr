@@ -164,7 +164,7 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
             </p>
             <p
               className="font-serif italic"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--olivewood) / 0.6)" }}
+              style={{ fontSize: "0.62rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               earned
             </p>

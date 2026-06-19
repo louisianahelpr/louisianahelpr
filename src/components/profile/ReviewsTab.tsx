@@ -102,13 +102,13 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
           <div className="shrink-0 text-center">
             <p
               className="font-display italic font-bold tabular-nums leading-none"
-              style={{ fontSize: "2.25rem", color: "hsl(var(--olivewood) / 0.4)", letterSpacing: "-0.03em" }}
+              style={{ fontSize: "2.25rem", color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "-0.03em" }}
             >
               —
             </p>
             <p
               className="font-serif italic mt-1 text-[0.68rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               out of 5
             </p>
@@ -150,7 +150,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             </p>
             <p
               className="font-serif italic mt-1 text-[0.68rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               out of 5
             </p>
@@ -276,7 +276,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Quality</span> · was the work done well?</li>
                   <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Communication</span> · were you easy to reach?</li>
                 </ul>
-                <p className="font-serif italic text-[0.7rem] mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                <p className="font-serif italic text-[0.7rem] mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Posters can leave written feedback too. Everything shows up here within minutes.
                 </p>
               </PopoverContent>

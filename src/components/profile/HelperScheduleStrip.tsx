@@ -318,7 +318,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                       className="mt-2 font-serif italic"
                       style={{
                         fontSize: "0.7rem",
-                        color: "hsl(var(--olivewood) / 0.55)",
+                        color: "hsl(var(--olivewood) / 0.8)",
                       }}
                     >
                       Open

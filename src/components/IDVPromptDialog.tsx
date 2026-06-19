@@ -198,7 +198,7 @@ export function IDVPromptDialog({
             </div>
             <p
               className="font-serif italic px-1 pt-1"
-              style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.65)" }}
+              style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Verification is handled securely by Stripe Identity. Most checks finish in under 2 minutes.
             </p>

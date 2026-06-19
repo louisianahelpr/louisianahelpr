@@ -5,8 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import AppShell from "@/components/AppShell";
-import HelprMark from "@/components/HelprMark";
+import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
@@ -196,34 +195,18 @@ const AccountPending = () => {
   const progressPct = Math.round((completed / steps.length) * 100);
   const firstName = (profile?.full_name || "").split(" ")[0];
 
-  // Helpr-branded top header. Not a `.glass-header`, so it owns its own
-  // top safe-area inset — the `bg-white` background then fills the iOS
-  // status-bar region and the row content clears the notch.
-  const header = (
-    <header
-      className="flex items-center justify-between px-5 h-14 liquid-glass border-b border-[hsl(var(--border)/0.6)]"
-      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-    >
-      <HelprMark to="/" size="md" />
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}
-        className="text-muted-foreground h-8 px-2"
-      >
-        <LogOut className="w-4 h-4 mr-1" /> Sign out
-      </Button>
-    </header>
-  );
-
   return (
-    <AppShell header={header} reserveBottomNav={true}>
-      <div className="min-h-full w-full flex items-center justify-center px-5 py-4">
+    // Unified onto AuthShell's centered-card treatment so all four
+    // account-state screens (SignupPending, AccountPending, AccountDenied,
+    // AccountBanned) read as one archetype: status + explanation + a single
+    // next step. `align="center"` balances the short card in the viewport.
+    <AuthShell hideBack eyebrow="Account status" maxWidth="md" align="center">
+      <div className="w-full">
         {loading ? (
           <SkeletonCard />
         ) : !emailVerified ? (
           // ---------- Email-not-verified variant (kept compact) ----------
-          <div className="w-full max-w-md bg-card rounded-ds-lg p-7 flex flex-col items-center text-center">
+          <div className="w-full bg-card rounded-ds-lg p-7 flex flex-col items-center text-center">
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-5">
               <MailCheck className="w-8 h-8 text-amber-500" />
             </div>
@@ -257,7 +240,7 @@ const AccountPending = () => {
           </div>
         ) : (
           // ---------- Verification Center ----------
-          <div className="w-full max-w-md flex flex-col gap-4">
+          <div className="w-full flex flex-col gap-4">
             {/* Status hero */}
             <div className="shrink-0 bg-card rounded-ds-lg p-5 sm:p-6">
               <div className="flex flex-col items-center text-center">
@@ -386,8 +369,24 @@ const AccountPending = () => {
             </div>
           </div>
         )}
+
+        {/* Sign-out — mirrors AccountDenied / AccountBanned so all four
+            account-state screens carry the same quiet escape hatch at the
+            card foot (replaces the old AppShell header's sign-out). */}
+        {!loading && (
+          <div className="text-center mt-5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}
+              className="text-muted-foreground"
+            >
+              <LogOut className="w-4 h-4 mr-1" /> Sign out
+            </Button>
+          </div>
+        )}
       </div>
-    </AppShell>
+    </AuthShell>
   );
 };
 

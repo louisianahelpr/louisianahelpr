@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ClipboardList,
@@ -15,10 +14,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
-
-const Navbar = lazy(() => import("@/components/Navbar"));
-const Footer = lazy(() => import("@/components/Footer"));
 
 // ─── Step data ─────────────────────────────────────────────────────────────────
 
@@ -158,15 +155,10 @@ const HowItWorks = () => {
   });
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <Suspense fallback={null}>
-        <Navbar />
-      </Suspense>
-
+    <PublicLayout showCtaBand={false}>
       <PageHeader
         eyebrow="Simple from start to finish"
         title="How Louisiana Helpr works"
-        showBrand
       />
 
       <div className="mx-auto max-w-2xl px-5 lg:px-8 pb-16 space-y-10">
@@ -434,11 +426,7 @@ const HowItWorks = () => {
         </section>
 
       </div>
-
-      <Suspense fallback={null}>
-        <Footer />
-      </Suspense>
-    </div>
+    </PublicLayout>
   );
 };
 

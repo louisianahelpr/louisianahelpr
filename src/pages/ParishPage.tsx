@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { MapPin, Briefcase, Users, CheckCircle, Star, ArrowRight, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -132,7 +133,7 @@ const ParishPage = () => {
   // Unknown slug → 404-like empty
   if (!parishName) {
     return (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">
+      <PublicLayout showCtaBand={false}>
         <PageHeader eyebrow="Louisiana Helpr" title="Parish not found" />
         <main className="container mx-auto px-5 py-8 max-w-2xl">
           <EmptyState
@@ -147,7 +148,7 @@ const ParishPage = () => {
             }
           />
         </main>
-      </div>
+      </PublicLayout>
     );
   }
 
@@ -158,7 +159,7 @@ const ParishPage = () => {
   const topHelpers = data?.topHelpers ?? [];
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <PublicLayout>
       <PageHeader
         eyebrow="Louisiana Helpr Community"
         title={displayParishName}
@@ -419,7 +420,7 @@ const ParishPage = () => {
         </div>
 
       </main>
-    </div>
+    </PublicLayout>
   );
 };
 

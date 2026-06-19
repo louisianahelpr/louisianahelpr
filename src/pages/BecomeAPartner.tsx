@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -216,7 +217,7 @@ const BecomeAPartner = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <PublicLayout showCtaBand={false}>
       <PageHeader
         title="Become a Helpr Partner"
         eyebrow="For service businesses"
@@ -651,7 +652,7 @@ const BecomeAPartner = () => {
           </div>
         </section>
       </div>
-    </div>
+    </PublicLayout>
   );
 };
 

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 type NeedChip =
@@ -66,11 +67,10 @@ const DischargeConcierge = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <PublicLayout>
       <PageHeader
         eyebrow="Healthcare"
         title="Discharge Concierge"
-        showBrand
       />
 
       <div className="mx-auto max-w-2xl px-5 lg:px-8 pb-12 space-y-8">
@@ -387,7 +387,7 @@ const DischargeConcierge = () => {
         </section>
 
       </div>
-    </div>
+    </PublicLayout>
   );
 };
 

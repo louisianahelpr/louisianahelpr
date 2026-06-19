@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { MapPin, ArrowRight } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const PARISHES = [
@@ -18,7 +19,7 @@ const ParishesPage = () => {
   usePageTitle("Louisiana Parishes — Helpr Community");
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <PublicLayout>
       <PageHeader
         eyebrow="Louisiana Helpr Community"
         title="Browse by Parish"
@@ -56,7 +57,7 @@ const ParishesPage = () => {
           ))}
         </div>
       </main>
-    </div>
+    </PublicLayout>
   );
 };
 

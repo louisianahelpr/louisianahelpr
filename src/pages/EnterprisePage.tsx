@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { Button } from "@/components/ui/button";
 import {
   Building2,
@@ -113,7 +114,7 @@ const EnterprisePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <PublicLayout showCtaBand={false}>
       <PageHeader
         title="Enterprise & B2B"
         eyebrow="For enterprise partners"
@@ -446,7 +447,7 @@ const EnterprisePage = () => {
           </a>
         </div>
       </div>
-    </div>
+    </PublicLayout>
   );
 };
 

@@ -30,6 +30,7 @@ import type { PricingMode } from "@/components/postjob/BudgetSection";
 import { getSmartPrice } from "@/lib/pricingGuide";
 
 type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
+type JobInsert = Database["public"]["Tables"]["jobs"]["Insert"];
 
 export type Step = "entry" | "form" | "checkout";
 
@@ -297,7 +298,7 @@ export function usePostJobForm() {
     supabase
       .rpc("get_safe_profiles", { user_ids: [offerTo] })
       .then(({ data }) => {
-        const prof: any = Array.isArray(data) ? data[0] : null;
+        const prof = Array.isArray(data) ? data[0] : null;
         if (prof) setOfferToHelperName(prof.full_name || "this helpr");
       });
   }, [searchParams]);
@@ -633,7 +634,7 @@ export function usePostJobForm() {
           const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
           await supabase
             .from("jobs")
-            .update({ scope_video_url: urlData.publicUrl } as any)
+            .update({ scope_video_url: urlData.publicUrl })
             .eq("id", jobId);
         } else {
           report(vidErr, { tags: { source: "PostJob.uploadScopeVideo" } });
@@ -660,12 +661,11 @@ export function usePostJobForm() {
     if (upErr) return; // non-fatal — video is a nice-to-have
     const { data } = supabase.storage.from("job-photos").getPublicUrl(path);
     if (!data?.publicUrl) return;
-    await (supabase as any)
+    // Non-fatal — the column may not exist on prod yet; ignore any error.
+    await supabase
       .from("jobs")
       .update({ scope_video_url: data.publicUrl })
-      .eq("id", jobId)
-      .then(() => {})
-      .catch(() => {});
+      .eq("id", jobId);
   };
 
   const handleSubmit = async () => {
@@ -733,15 +733,15 @@ export function usePostJobForm() {
 
     // Merge Job Protection opt-in into the payload when enabled.
     // protection_opted_in / protection_fee ship in migration 20260612120000;
-    // cast through `as any` so a pre-push prod (missing the columns) still
-    // gets the fallback retry via the PGRST204/42703 error path.
-    const protectionExtras = protectionOptedIn
-      ? ({ protection_opted_in: true, protection_fee: 3.0 } as Record<string, unknown>)
+    // a pre-push prod (missing the columns) still gets the fallback retry via
+    // the PGRST204/42703 error path below.
+    const protectionExtras: Partial<JobInsert> = protectionOptedIn
+      ? { protection_opted_in: true, protection_fee: 3.0 }
       : {};
 
     let { data: jobData, error } = await supabase
       .from("jobs")
-      .insert({ ...buildPayload({ withExtras: true }), ...protectionExtras } as any)
+      .insert({ ...buildPayload({ withExtras: true }), ...protectionExtras })
       .select("id")
       .single();
 
@@ -888,7 +888,7 @@ export function usePostJobForm() {
       // re-tap submit during the navigation delay on slow networks.
       setRedirecting(true);
       window.location.href = paymentUrl;
-    } catch (err: any) {
+    } catch (err) {
       report(err, { tags: { source: "PostJob.paymentInvoke" }, context: { job_id: jobData.id } });
       // Delete the job since payment setup failed
       const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);

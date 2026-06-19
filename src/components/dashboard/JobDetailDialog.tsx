@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ElementType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -141,7 +141,14 @@ const JobDetailDialog = ({
         const { data: { user } } = await supabase.auth.getUser();
         // Don't record the poster viewing their own job
         if (!user || user.id === job.customer_id) return;
-        await (supabase.rpc as any)("record_job_view", { p_job_id: job.id });
+        // record_job_view isn't in the generated Functions map (migration
+        // unapplied to prod); call it via a narrowly-typed wrapper. PGRST202
+        // is swallowed by the surrounding try/catch.
+        const recordJobViewRpc = supabase.rpc as unknown as (
+          fn: "record_job_view",
+          args: { p_job_id: string },
+        ) => Promise<{ data: unknown; error: { code?: string } | null }>;
+        await recordJobViewRpc("record_job_view", { p_job_id: job.id });
       } catch {
         // Non-critical — PGRST202 (not yet deployed) or network error
       }
@@ -477,10 +484,10 @@ const JobDetailDialog = ({
 
         {/* Scope video — shows before description so helpers immediately
             see what's needed. Hidden when no video attached. */}
-        {(job as any).scope_video_url && (
+        {job.scope_video_url && (
           <div className="rounded-ds-md overflow-hidden mb-3">
             <video
-              src={(job as any).scope_video_url}
+              src={job.scope_video_url}
               controls
               playsInline
               preload="none"
@@ -640,8 +647,11 @@ const JobDetailDialog = ({
                 : []),
             ];
             return tiles.map(({ Icon, label, value, sub, href, urgent }) => {
-              const Wrapper: any = href ? "a" : "div";
-              const wrapperProps: any = href
+              const Wrapper: ElementType = href ? "a" : "div";
+              // Only the anchor branch carries href/target/rel; an empty object
+              // for the div branch. Typed as the minimal shared shape so the
+              // spread is valid whether Wrapper resolves to <a> or <div>.
+              const wrapperProps: { href?: string; target?: string; rel?: string } = href
                 ? { href, target: "_blank", rel: "noopener noreferrer" }
                 : {};
               return (

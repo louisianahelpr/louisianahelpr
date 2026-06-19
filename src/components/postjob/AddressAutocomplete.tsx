@@ -37,9 +37,38 @@ interface AddressAutocompleteProps {
   className?: string;
 }
 
+/**
+ * Minimal MapKit JS shapes for the autocomplete + search calls. The full
+ * `@types/mapkit-js` package has historically drifted from Apple's runtime,
+ * so we model only the fields this component reads.
+ */
+interface MapKitAutocompleteResult {
+  displayLines?: string[];
+}
+interface MapKitPlace {
+  subThoroughfare?: string;
+  thoroughfare?: string;
+  locality?: string;
+  postCode?: string;
+  postalCode?: string;
+}
+interface MapKitSearch {
+  autocomplete: (
+    query: string,
+    callback: (
+      err: Error | null,
+      data: { results?: MapKitAutocompleteResult[] },
+    ) => void,
+  ) => void;
+  search: (
+    query: MapKitAutocompleteResult,
+    callback: (err: Error | null, data: { places?: MapKitPlace[] }) => void,
+  ) => void;
+}
+
 interface MapKitSuggestion {
   displayLines: string[];
-  raw: any;
+  raw: MapKitAutocompleteResult;
 }
 
 // Louisiana's bounding box (rough): south~28.9, west~-94.1, north~33.1,
@@ -60,7 +89,7 @@ export function AddressAutocomplete({
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<MapKitSuggestion[]>([]);
   const listboxId = useId();
-  const searchRef = useRef<any>(null);
+  const searchRef = useRef<MapKitSearch | null>(null);
 
   // Sync local query when parent value changes (draft restore, etc.).
   useEffect(() => {
@@ -92,18 +121,19 @@ export function AddressAutocomplete({
   // Debounced autocomplete fetch.
   useEffect(() => {
     const trimmed = query.trim();
-    if (!searchRef.current || trimmed.length < 3) {
+    const search = searchRef.current;
+    if (!search || trimmed.length < 3) {
       setSuggestions([]);
       return;
     }
     let cancelled = false;
     const timer = window.setTimeout(() => {
       try {
-        searchRef.current.autocomplete(
+        search.autocomplete(
           trimmed,
-                  (err: any, data: any) => {
+                  (err, data) => {
             if (cancelled || err || !data?.results) return;
-                      const next: MapKitSuggestion[] = data.results.slice(0, 6).map((r: any) => ({
+                      const next: MapKitSuggestion[] = data.results.slice(0, 6).map((r) => ({
               displayLines: Array.isArray(r.displayLines) ? r.displayLines : [],
               raw: r,
             }));
@@ -138,12 +168,12 @@ export function AddressAutocomplete({
     try {
       searchRef.current.search(
         s.raw,
-              (err: any, data: any) => {
+              (err, data) => {
           if (err || !data?.places?.length) {
             onPick({ street: fallbackStreet, city: "", zipCode: "" });
             return;
           }
-                  const place: any = data.places[0];
+                  const place = data.places[0];
           // MapKit fields are inconsistently shaped across versions —
           // we read them defensively. `subThoroughfare + thoroughfare`
           // is the canonical "123 Main St" decomposition; if missing

@@ -491,6 +491,10 @@ const ProfilePage = () => {
              error state is cleared automatically. */
           <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
+          {/* `key={tab}` on the boundary re-mounts this wrapper on every
+              tab switch, so `animate-ds-page-in` replays its entrance each
+              time a panel opens (S18 polish). */}
+          <div className="animate-ds-page-in">
 
           {/* PROFILE TAB */}
           {tab === "profile" && (
@@ -694,6 +698,7 @@ const ProfilePage = () => {
               </Suspense>
             </div>
           )}
+          </div>
           </SectionBoundary>
           </div>
         )}

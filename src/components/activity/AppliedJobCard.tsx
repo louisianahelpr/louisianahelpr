@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -196,10 +196,11 @@ function AppliedJobCardInner({
         return;
       }
       setLocalCounterStatus(accept ? "counter_accepted" : "counter_declined");
+      hapticSuccess();
       toast.success(accept ? "Counter accepted! The poster will be notified." : "Counter declined. The poster will be notified.");
     } catch {
       hapticError();
-      toast.error("Something went wrong.");
+      toast.error("Couldn't respond to the counter-offer — please try again.");
     } finally {
       setCounterResponding(false);
     }
@@ -954,6 +955,7 @@ function AppliedJobCardInner({
                             const { error } = await supabase.from("jobs").update({ dispute_helper_response: disputeResponse.trim(), dispute_status: "helper_responded" }).eq("id", app.job_id);
                             if (error) { hapticError(); toast.error("We couldn't submit your response — please try again."); setSubmittingResponse(false); return; }
                             if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: `The helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/my-posts?filter=disputed" });
+                            hapticSuccess();
                             toast.success("Response submitted — poster will review");
                             setSubmittingResponse(false);
                             setRespondingJobId(null);

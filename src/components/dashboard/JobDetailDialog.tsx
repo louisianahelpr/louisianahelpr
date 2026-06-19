@@ -931,7 +931,7 @@ const JobDetailDialog = ({
                   textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)",
                 }}
               >
-                <span className="truncate">Apply</span>
+                <span className="truncate">{job.instant_book ? "Book now" : "Apply"}</span>
                 <span
                   className="font-display italic font-bold tabular-nums shrink-0"
                   style={{ fontSize: "0.95rem", letterSpacing: "-0.01em" }}

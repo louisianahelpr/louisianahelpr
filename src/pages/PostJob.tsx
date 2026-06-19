@@ -8,6 +8,7 @@ import { RedirectingOverlay } from "./postjob/RedirectingOverlay";
 import { EntryChoice } from "./postjob/EntryChoice";
 import { FormStep } from "./postjob/FormStep";
 import { CheckoutStepView } from "./postjob/CheckoutStepView";
+import { PostJobFlowStepper } from "./postjob/PostJobFlowStepper";
 
 const PostJob = () => {
   usePageTitle("Post a Task — Helpr");
@@ -61,6 +62,11 @@ const PostJob = () => {
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-lg mx-auto space-y-6">
+          {/* Whole-flow progress: Entry → Details → Pay. Always visible so the
+              poster knows where they are across the three-step machine — the
+              in-form/in-checkout rails track only sub-progress within a step. */}
+          <PostJobFlowStepper step={form.step} />
+
           {/* STEP 0: ENTRY CHOICE — start fresh / load draft / use template */}
           {form.step === "entry" && <EntryChoice form={form} />}
 

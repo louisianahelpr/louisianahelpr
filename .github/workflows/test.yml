@@ -6,6 +6,13 @@ permissions:
 env:
   # Force JavaScript-based GitHub Actions onto Node 24 ahead of the platform default.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  # Publishable Vite vars for build + Vitest. These were previously sourced from a
+  # committed .env; that file is now untracked (F-SEC-01), so the build/test steps
+  # need them here. Publishable/anon keys only — safe to expose (they ship in the
+  # client bundle by design; RLS is the real boundary). No runtime secrets here.
+  VITE_SUPABASE_PROJECT_ID: "fncmgoasalhdgfwzhsqa"
+  VITE_SUPABASE_URL: "https://fncmgoasalhdgfwzhsqa.supabase.co"
+  VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP"
 
 # Dedicated quality-gate workflow.
 # Runs on every push to main and on every pull request.

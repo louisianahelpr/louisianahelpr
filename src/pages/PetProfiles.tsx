@@ -6,6 +6,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { unwrap } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -13,7 +15,7 @@ import { report } from "@/lib/errorLogger";
 import {
   Plus, ChevronDown, X,
   Stethoscope, AlertTriangle, Phone, Siren,
-  UtensilsCrossed, Fingerprint,
+  UtensilsCrossed, Fingerprint, PawPrint,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -504,30 +506,26 @@ const PetProfiles = () => {
         )}
 
         {isError && (
-          <div className="rounded-ds-lg liquid-glass px-4 py-3 flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
-            <div className="flex-1">
-              <p className="text-ds-13 font-semibold text-foreground">Couldn't load your pets</p>
-              <button
-                type="button"
-                className="text-ds-11 font-medium underline"
-                style={{ color: "hsl(var(--bark))" }}
-                onClick={() => refetch()}
-              >
-                Retry
-              </button>
-            </div>
-          </div>
+          <ErrorState
+            variant="inline"
+            title="Couldn't load your pets."
+            body="Tap Try again to reload your pet profiles."
+            onRetry={() => refetch()}
+          />
         )}
 
         {!isLoading && !isError && pets?.length === 0 && (
-          <div className="rounded-ds-lg liquid-glass px-4 py-6 text-center">
-            <div className="text-4xl mb-2">🐾</div>
-            <p className="text-ds-14 font-semibold text-foreground mb-1">No pets yet</p>
-            <p className="text-ds-12 text-muted-foreground">
-              Add your pets' profiles so helpers know their needs.
-            </p>
-          </div>
+          <EmptyState
+            variant="inline"
+            icon={PawPrint}
+            title="No pets yet"
+            body="Add your pets' profiles so helpers know their needs."
+            action={
+              <Button onClick={openAdd}>
+                <Plus className="w-4 h-4 mr-1" /> Add a pet
+              </Button>
+            }
+          />
         )}
 
         {pets?.map((pet) => {

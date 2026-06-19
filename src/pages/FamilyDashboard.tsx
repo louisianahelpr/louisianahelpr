@@ -24,6 +24,7 @@ import { report } from "@/lib/errorLogger";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ErrorState } from "@/components/ui/ErrorState";
 import {
   Users,
   UserPlus,
@@ -503,7 +504,16 @@ export default function FamilyDashboard() {
               </div>
             )}
 
-            {!relQuery.isLoading && asCaregiver.length === 0 && (
+            {!relQuery.isLoading && relQuery.isError && (
+              <ErrorState
+                variant="inline"
+                title="Couldn't load your family connections."
+                body="Tap Try again to reload who you're managing jobs for."
+                onRetry={() => relQuery.refetch()}
+              />
+            )}
+
+            {!relQuery.isLoading && !relQuery.isError && asCaregiver.length === 0 && (
               <p className="text-ds-13 font-serif italic px-1" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
                 You're not managing jobs for anyone yet.
               </p>

@@ -27,6 +27,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
+import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import { ProfileStatsTrend } from "@/components/profile/ProfileStatsTrend";
@@ -148,12 +149,6 @@ export function ProfileLanding({
   const [videoOpen, setVideoOpen] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  // "More" overflow — saved helprs, referrals, legal, warnings,
-  // support all live here so the primary nav stays focused on the
-  // top tasks: credentials, schedule, notifications, payments,
-  // earnings, security. Collapsed by default; if any row needs
-  // action (e.g. a fresh warning) we auto-expand below.
-  const [moreOpen, setMoreOpen] = useState(false);
   // QR code modal state
   const [qrOpen, setQrOpen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -312,24 +307,18 @@ export function ProfileLanding({
       : !stripeConnectStatus.payouts_enabled;
   const bioMissing = (profile?.bio?.trim().length ?? 0) < 20;
 
-  // Primary navigation — the day-to-day surfaces every helpr / poster
-  // actually touches. Everything else (saved helprs, referrals,
-  // legal, warnings, support) lives under the collapsible "More" row
-  // at the bottom so this list stays scannable.
+  // Settings hub, grouped into four scannable editorial sections per the
+  // S18 design card: Account · Work · Money · Legal. Pure information-
+  // architecture grouping — every row keeps the exact tab `key` / `href`
+  // it had before, so nothing is dropped or re-targeted. Surfaces that
+  // don't map cleanly to a bucket are folded into their nearest one
+  // (family/pets → Account; host/community/benefits → Work;
+  // credits/records/referrals → Money; warnings/support → Legal).
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
       title: "Account",
       items: [
-        {
-          key: "credentials",
-          label: "Licensed & Insured",
-          icon: <ShieldCheck className="w-5 h-5" />,
-          desc: "Add your license and insurance",
-          tint: "var(--bark)",
-          incompleteLabel: credentialsIncomplete ? "Verify credentials" : undefined,
-        },
-        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & weekly hours", tint: "var(--burnt-sienna)" },
-        { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: "var(--gold-warm)" },
+        { key: "profile", label: "Edit profile", icon: <Edit className="w-5 h-5" />, desc: "Name, photo, bio & contact details", tint: "var(--bark)" },
         {
           key: "security",
           label: "Account Security",
@@ -338,6 +327,7 @@ export function ProfileLanding({
           tint: "var(--sage)",
           incompleteLabel: !phoneVerified ? "Verify phone" : undefined,
         },
+        { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: "var(--gold-warm)" },
         {
           key: "family",
           label: "Family & care",
@@ -357,25 +347,18 @@ export function ProfileLanding({
       ],
     },
     {
-      title: "Money",
+      title: "Work",
       items: [
+        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & weekly hours", tint: "var(--burnt-sienna)" },
+        { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: "var(--burnt-sienna)" },
         {
-          key: "payment",
-          label: "Payout & Payments",
-          icon: <CreditCard className="w-5 h-5" />,
-          desc: "Bank account & payment methods",
+          key: "credentials",
+          label: "Licensed & Insured",
+          icon: <ShieldCheck className="w-5 h-5" />,
+          desc: "Add your license and insurance",
           tint: "var(--bark)",
-          needsAction: stripeNeedsAction,
-          incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
+          incompleteLabel: credentialsIncomplete ? "Verify credentials" : undefined,
         },
-        { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--gold-warm)" },
-        { key: "analytics", label: "Earnings & Analytics", icon: <BarChart2 className="w-5 h-5" />, desc: "Trends, categories & hire rate", href: "/analytics" },
-        { key: "subscription", label: "Upgrade plan", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
-      ],
-    },
-    {
-      title: "Host & Property",
-      items: [
         {
           key: "str-settings",
           label: "Host Automation",
@@ -384,11 +367,6 @@ export function ProfileLanding({
           tint: "var(--bark)",
           href: "/str-settings",
         },
-      ],
-    },
-    {
-      title: "Community",
-      items: [
         {
           key: "pay-it-forward",
           label: "Pay It Forward",
@@ -396,14 +374,6 @@ export function ProfileLanding({
           desc: "Donate job credits for neighbors who need help",
           tint: "155 50% 30%",
           href: "/pay-it-forward",
-        },
-        {
-          key: "time-credits",
-          label: "Time Credits",
-          icon: <Crown className="w-5 h-5" />,
-          desc: "Earn credits by helping, spend them on your own jobs",
-          tint: "var(--gold-warm)",
-          href: "/time-credits",
         },
         {
           key: "benefits",
@@ -416,8 +386,29 @@ export function ProfileLanding({
       ],
     },
     {
-      title: "Records",
+      title: "Money",
       items: [
+        { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--gold-warm)" },
+        {
+          key: "payment",
+          label: "Payout & Payments",
+          icon: <CreditCard className="w-5 h-5" />,
+          desc: "Bank account & payment methods",
+          tint: "var(--bark)",
+          needsAction: stripeNeedsAction,
+          incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
+        },
+        { key: "subscription", label: "Upgrade plan", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
+        { key: "analytics", label: "Earnings & Analytics", icon: <BarChart2 className="w-5 h-5" />, desc: "Trends, categories & hire rate", href: "/analytics" },
+        {
+          key: "time-credits",
+          label: "Time Credits",
+          icon: <Crown className="w-5 h-5" />,
+          desc: "Earn credits by helping, spend them on your own jobs",
+          tint: "var(--gold-warm)",
+          href: "/time-credits",
+        },
+        { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--gold-warm)" },
         {
           key: "home-history",
           label: "Home History",
@@ -436,6 +427,22 @@ export function ProfileLanding({
         },
       ],
     },
+    {
+      title: "Legal",
+      items: [
+        { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines", tint: "var(--sage)" },
+        {
+          key: "data-rights",
+          label: "Data & privacy",
+          icon: <ShieldCheck className="w-5 h-5" />,
+          desc: "Export or delete your data",
+          tint: "var(--stormy-sky)",
+          href: "/data-rights",
+        },
+        { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: "var(--destructive)" },
+        { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: "var(--bark)" },
+      ],
+    },
   ];
 
   // "Profile" row in the header (Edit) doesn't get a pill — its own
@@ -445,16 +452,6 @@ export function ProfileLanding({
   // "+ Add a short bio" CTA already cover those).
   void bioMissing;
 
-  // Overflow items — quieter surfaces that don't earn a permanent row.
-  // Warnings auto-bumps to the top of the overflow when there's
-  // anything on file so it remains a visible alert.
-  const moreItems: MenuItem[] = [
-    { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: "var(--burnt-sienna)" },
-    { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--gold-warm)" },
-    { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: "var(--destructive)" },
-    { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: "var(--bark)" },
-    { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines", tint: "var(--sage)" },
-  ];
 
   return (
     <>
@@ -770,7 +767,7 @@ export function ProfileLanding({
                 Earnings · last 6 weeks
               </p>
               <p className="text-ds-15 font-bold leading-tight mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
-                ${Math.round(totalEarnings).toLocaleString()}
+                ${Number(formatPrice(totalEarnings)).toLocaleString()}
                 <span className="ml-1.5 text-ds-10 font-medium text-muted-foreground">total</span>
               </p>
             </div>
@@ -1422,86 +1419,6 @@ export function ProfileLanding({
             </div>
           </section>
 
-          {/* "More" overflow — saved helprs, referrals, warnings,
-              support, legal. Collapsed by default so the primary nav
-              above stays focused on the surfaces every account
-              touches week-to-week. */}
-          <section>
-            <div
-              className="rounded-ds-lg liquid-glass overflow-hidden"
-            >
-              <button
-                type="button"
-                onClick={() => setMoreOpen((o) => !o)}
-                aria-expanded={moreOpen}
-                aria-controls="profile-more-section"
-                className="glass-press w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="shrink-0">
-                    <div className="w-10 h-10 rounded-ds-md glass-field text-[hsl(var(--olivewood)/0.72)] flex items-center justify-center">
-                      <MoreHorizontal className="w-5 h-5" />
-                    </div>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-ds-13 font-semibold text-foreground leading-tight">
-                      More
-                    </p>
-                    <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">
-                      Saved helprs, referrals, support, legal
-                    </p>
-                  </div>
-                </div>
-                <span className="w-5 flex items-center justify-center shrink-0">
-                  <ChevronDown
-                    className={`w-4 h-4 text-muted-foreground/70 transition-transform ${moreOpen ? "rotate-180" : ""}`}
-                    strokeWidth={2.25}
-                  />
-                </span>
-              </button>
-              {moreOpen && (
-                <div id="profile-more-section">
-                  {moreItems.map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={() => {
-                        if (item.href) onNavigate(item.href);
-                        else onSelectTab(item.key);
-                      }}
-                      className="glass-press group/row w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
-                    >
-                      <span
-                        aria-hidden
-                        className="hairline pointer-events-none absolute top-0 left-[60px] right-[14px]"
-                      />
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="shrink-0">
-                          <div
-                            className="w-10 h-10 rounded-ds-md flex items-center justify-center transition-all group-hover/row:shadow-sm"
-                            style={{
-                              color: `hsl(${item.tint ?? "var(--olivewood)"})`,
-                              background: `hsl(${item.tint ?? "var(--olivewood)"} / 0.12)`,
-                            }}
-                          >
-                            {item.icon}
-                          </div>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-ds-13 font-semibold text-foreground leading-tight">
-                            {item.label}
-                          </p>
-                          <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">{item.desc}</p>
-                        </div>
-                      </div>
-                      <span className="w-5 flex items-center justify-center shrink-0">
-                        <ChevronRightIcon className="w-4 h-4 text-muted-foreground/70" strokeWidth={2.25} />
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
 
           {/* Worker protections card — static info card reassuring helpers
               that Helpr has their back on late cancellations and payment

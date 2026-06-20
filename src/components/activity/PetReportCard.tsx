@@ -298,6 +298,7 @@ export function SendReportCard({
                 <input
                   type="number"
                   min={0}
+                  aria-label="Exercise in minutes"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                   placeholder="30"
                   value={exerciseMinutes}
@@ -311,6 +312,7 @@ export function SendReportCard({
                 <input
                   type="number"
                   min={0}
+                  aria-label="Number of potty breaks"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                   placeholder="3"
                   value={pottyBreaks}
@@ -323,6 +325,7 @@ export function SendReportCard({
                 Walk summary (optional)
               </label>
               <input
+                aria-label="Walk summary (optional)"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                 placeholder="2 mile walk in City Park"
                 value={walkSummary}

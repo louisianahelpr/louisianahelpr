@@ -1242,6 +1242,7 @@ export const PostedJobsTab = ({
                                           placeholder="0"
                                           value={counterInputs[app.id] ?? ""}
                                           onChange={(e) => setCounterInputs((prev) => ({ ...prev, [app.id]: e.target.value }))}
+                                          aria-label="Counter offer amount in dollars"
                                           className="w-20 text-ds-12 font-sans rounded px-2 py-0.5 outline-none"
                                           style={{
                                             background: "hsla(0,0%,100%,0.65)",

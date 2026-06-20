@@ -481,6 +481,7 @@ export default function PayItForward() {
             <select
               value={resolvedParish}
               onChange={(e) => setParish(e.target.value)}
+              aria-label="Parish"
               className="w-full rounded-ds-sm py-2 px-3 text-ds-13 font-sans"
               style={{
                 background: "hsl(var(--parchment) / 0.6)",

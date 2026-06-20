@@ -383,11 +383,13 @@ function InviteForm({ myUserId }: { myUserId: string }) {
         placeholder="Email or phone number"
         type="text"
         className="h-11"
+        aria-label="Contact email or phone number"
       />
       <div className="flex gap-2">
         <select
           value={relationship}
           onChange={(e) => setRelationship(e.target.value)}
+          aria-label="Relationship to family member"
           className="flex-1 h-11 rounded-ds-sm px-3 text-ds-13 font-sans border"
           style={{
             background: "hsl(var(--ivory-sand))",

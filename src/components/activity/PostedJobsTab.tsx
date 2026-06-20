@@ -246,7 +246,7 @@ export const PostedJobsTab = ({
         if (error.code === "PGRST202") {
           toast.error("Counter-offer feature not yet deployed — try again later.");
         } else {
-          toast.error("Couldn't send counter-offer. Please try again.");
+          toast.error("Couldn't send your counter — try again?");
         }
         return;
       }
@@ -256,7 +256,7 @@ export const PostedJobsTab = ({
       setCounterShowing(null);
       setCounterInputs((prev) => { const next = { ...prev }; delete next[appId]; return next; });
     } catch {
-      toast.error("Something went wrong.");
+      toast.error("Couldn't send that — try again?");
     } finally {
       setCounterSending(false);
     }

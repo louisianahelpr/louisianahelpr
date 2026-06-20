@@ -195,7 +195,7 @@ export function JobTracking({
     // GPS proximity check for "arrived" — must be within 500ft of job location
     if (newStatus === "arrived") {
       if (!loc) {
-        toast.error("Location access is required to mark Arrived. Please enable GPS and try again.");
+        toast.error("Enable GPS in Settings to mark Arrived — then try again.");
         setUpdating(false);
         return;
       }
@@ -240,7 +240,7 @@ export function JobTracking({
         });
     if (writeErr) {
       report(writeErr, { tags: { source: "JobTracking.updateStatus" } });
-      toast.error("Couldn't update status. Please try again.");
+      toast.error("Couldn't update your status — try again?");
       setUpdating(false);
       loadTracking();
       return;

@@ -120,10 +120,10 @@ export const AppliedJobsTab = ({
     const ext = file.name.split('.').pop();
     const path = `${userId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file);
-    if (uploadErr) { hapticError(); toast.error("We couldn't upload that file — please try again."); setUploadingAttachment(null); return; }
+    if (uploadErr) { hapticError(); toast.error("Couldn't upload that file — try again?"); setUploadingAttachment(null); return; }
     const newUrls = [...currentUrls, path];
     const { error } = await supabase.from("applications").update({ attachment_urls: newUrls }).eq("id", appId);
-    if (error) { hapticError(); toast.error("We couldn't save that attachment — please try again."); }
+    if (error) { hapticError(); toast.error("Couldn't save that attachment — try again?"); }
     else toast.success("Attachment added");
     setUploadingAttachment(null);
   }, [userId]);
@@ -131,7 +131,7 @@ export const AppliedJobsTab = ({
   const handleRemoveAttachment = useCallback(async (appId: string, currentUrls: string[], urlToRemove: string) => {
     const newUrls = currentUrls.filter(u => u !== urlToRemove);
     const { error } = await supabase.from("applications").update({ attachment_urls: newUrls }).eq("id", appId);
-    if (error) { hapticError(); toast.error("We couldn't remove that attachment — please try again."); }
+    if (error) { hapticError(); toast.error("Couldn't remove that — try again?"); }
     else toast.success("Attachment removed");
   }, []);
 
@@ -206,7 +206,7 @@ export const AppliedJobsTab = ({
                 className="font-serif italic text-ds-13 mt-2"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Browse open tasks near you and apply — they&apos;ll collect here as you go.
+                Browse open jobs near you and apply — they&apos;ll collect here as you go.
               </p>
             </>
           }

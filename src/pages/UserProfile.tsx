@@ -750,7 +750,7 @@ const UserProfile = () => {
         if (error.code === "PGRST202") {
           toast.error("Feature not yet deployed — please try again later.");
         } else {
-          toast.error("Couldn't save response. Please try again.");
+          toast.error("Couldn't save your response — try again?");
         }
         return;
       }
@@ -766,7 +766,7 @@ const UserProfile = () => {
       setResponseText("");
       toast.success("Response saved.");
     } catch {
-      toast.error("Something went wrong.");
+      toast.error("Couldn't save your response — try again?");
     }
   };
 

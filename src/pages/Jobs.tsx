@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 
 import { ArrowRight, Search, Lock, Briefcase } from "lucide-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -21,6 +21,10 @@ import { queryKeys } from "@/lib/queryKeys";
 import JobCard from "@/components/dashboard/JobCard";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useJobRef } from "@/hooks/useJobRef";
+
+// Read-only job detail for logged-out visitors. Lazy so the guest browse
+// grid paints without pulling the heavy dialog chunk until a card is tapped.
+const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
 
 const DEBUG_AUTH = import.meta.env.DEV;
 
@@ -106,6 +110,8 @@ const Jobs = () => {
   useJobRef();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  // The job a guest tapped to preview — opens the read-only JobDetailDialog.
+  const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useCurrentUser();
 
@@ -304,16 +310,18 @@ const Jobs = () => {
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
                   {row.map((job, colIndex) => {
                     const flatIndex = rowIndex * CARDS_PER_ROW + colIndex;
+                    const enriched = toEnrichedJob(job);
                     return (
-                      // The whole card is a /signup link — phones have no
-                      // hover state, so the guest CTA must be reachable by
-                      // a plain tap. JobCard's guest variant renders the
-                      // persistent "Sign up to apply" affordance inside.
-                      <Link
+                      // Tapping a card opens a read-only detail preview (guest
+                      // mode). Phones have no hover state, so the whole card is
+                      // a plain tappable button. Apply/message/save are gated
+                      // inside the dialog behind a single sign-up CTA.
+                      <button
                         key={job.id}
-                        to="/signup"
-                        aria-label={`Sign up to apply for ${job.title}`}
-                        className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-in fade-in slide-in-from-bottom-2 duration-300"
+                        type="button"
+                        onClick={() => setDetailJob(enriched)}
+                        aria-label={`View details for ${job.title}`}
+                        className="block w-full text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-in fade-in slide-in-from-bottom-2 duration-300"
                         style={
                           flatIndex < MAX_STAGGER_CARDS
                             ? { animationDelay: `${flatIndex * 40}ms`, animationFillMode: "both" }
@@ -321,7 +329,7 @@ const Jobs = () => {
                         }
                       >
                         <JobCard
-                          job={toEnrichedJob(job)}
+                          job={enriched}
                           variant="guest"
                           effectiveFee={10}
                           onApply={noop}
@@ -329,7 +337,7 @@ const Jobs = () => {
                           onSelect={noop}
                           index={flatIndex}
                         />
-                      </Link>
+                      </button>
                     );
                   })}
                 </div>
@@ -371,6 +379,21 @@ const Jobs = () => {
           </div>
         </div>
       </div>
+
+      {/* Read-only guest preview. `guest` skips every authed look-up and
+          replaces apply/message/save/report with a single sign-up CTA. */}
+      {detailJob && (
+        <Suspense fallback={null}>
+          <JobDetailDialog
+            guest
+            job={detailJob}
+            effectiveFee={10}
+            onClose={() => setDetailJob(null)}
+            onApply={noop}
+            onReport={noop}
+          />
+        </Suspense>
+      )}
     </PublicLayout>
   );
 };

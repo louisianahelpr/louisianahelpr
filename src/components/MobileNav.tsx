@@ -214,7 +214,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // Count-only queries — deliberately not the heavy useActivityData hook.
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
   const [gateOpen, setGateOpen] = useState(false);
-  const [gateLabel, setGateLabel] = useState("this feature");
   // Long-press quick-action sheet — one sheet, with content keyed by which
   // tab was long-pressed. Keeps the markup compact instead of one sheet per
   // tab. `null` = closed.
@@ -405,8 +404,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     return stack.some((p) => location.pathname.startsWith(p));
   };
 
-  const triggerGate = (label: string) => {
-    setGateLabel(label);
+  const triggerGate = () => {
     setGateOpen(true);
   };
 
@@ -447,7 +445,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
     const handleClick = () => {
       if (guestLocked) {
-        triggerGate(label.toLowerCase());
+        triggerGate();
         return;
       }
       // Tab-switch haptic — only fires when the press actually moves the
@@ -594,7 +592,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
   const handlePostClick = () => {
     if (isGuest) {
-      triggerGate("post a job");
+      triggerGate();
       return;
     }
     navigate("/post-job");
@@ -753,7 +751,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           className="rounded-t-2xl pb-[calc(1rem_+_env(safe-area-inset-bottom,0px))]"
         >
           <SheetHeader className="text-left">
-            <SheetTitle>Sign up to {gateLabel}</SheetTitle>
+            <SheetTitle>Create your free account</SheetTitle>
             <SheetDescription>
               Join Helpr to post jobs, message helprs, and track your activity. It only takes a minute.
             </SheetDescription>

@@ -417,26 +417,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           return null;
         })()}
         <div className="w-full px-3.5 pt-6 pb-2.5">
-        {/* Recommended pill — a subtle relevance cue for the top picks.
-            pointer-events-none so it never intercepts the card tap / save
-            gestures. */}
-        {recommended && (
-          <span
-            className="inline-flex items-center gap-1 mb-1.5 px-1.5 py-0.5 rounded-full pointer-events-none"
-            style={{
-              fontSize: "10px",
-              background: "hsl(var(--burnt-sienna) / 0.10)",
-              color: "hsl(var(--burnt-sienna))",
-            }}
-          >
-            <Star
-              className="w-2.5 h-2.5 shrink-0"
-              strokeWidth={2}
-              style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }}
-            />
-            <span className="font-sans font-semibold leading-none">Recommended</span>
-          </span>
-        )}
         {/* Title + price share the top row — price chip is vertically
             centered against the title so on a two-line title it sits in the
             middle, not pinned to the first line. The location/date/time meta

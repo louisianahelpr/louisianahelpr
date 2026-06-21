@@ -42,10 +42,15 @@ interface JobDetailDialogProps {
   onReport: (jobId: string) => void;
   /** Switching the dialog from one job to another (swipe gesture or similar-job tap). */
   onSelect?: (job: EnrichedJob) => void;
+  /** Logged-out preview: render the public job info read-only and replace
+      every action (apply/message/save/report) with a single sign-up CTA.
+      The poster card, applicant banners, and authed look-ups are skipped —
+      a guest only has the masked public RPC fields. */
+  guest?: boolean;
 }
 
 const JobDetailDialog = ({
-  job, effectiveFee, allJobs: _allJobs, isSaved, onToggleSave, userLat, userLng, onClose, onApply, onReport, onSelect: _onSelect,
+  job, effectiveFee, allJobs: _allJobs, isSaved, onToggleSave, userLat, userLng, onClose, onApply, onReport, onSelect: _onSelect, guest = false,
 }: JobDetailDialogProps) => {
   const navigate = useNavigate();
   const [descExpanded, setDescExpanded] = useState(false);
@@ -79,6 +84,7 @@ const JobDetailDialog = ({
   // so the upsell shows unless a paid tier is positively confirmed.
   const { data: viewerSubscriptionTier = "free" } = useQuery({
     queryKey: ["viewerSubscriptionTier"],
+    enabled: !guest,
     staleTime: 60_000,
     queryFn: async (): Promise<string> => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -98,6 +104,7 @@ const JobDetailDialog = ({
   // falls back to 0 gracefully when the RPC doesn't exist yet (PGRST202).
   const { data: viewerTier = 0 } = useQuery({
     queryKey: ["viewerCredentialTier"],
+    enabled: !guest,
     staleTime: 60_000,
     queryFn: async (): Promise<number> => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -135,7 +142,7 @@ const JobDetailDialog = ({
   // idempotent (ON CONFLICT DO NOTHING) so repeated opens are safe.
   // Skip recording if the viewer is the poster (customer_id matches).
   useEffect(() => {
-    if (!job?.id) return;
+    if (guest || !job?.id) return;
     (async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -153,7 +160,7 @@ const JobDetailDialog = ({
         // Non-critical — PGRST202 (not yet deployed) or network error
       }
     })();
-  }, [job?.id, job?.customer_id]);
+  }, [guest, job?.id, job?.customer_id]);
 
   // Fetch how many helprs have already applied AND — if the viewer is
   // already in that queue — what position (1-indexed by created_at)
@@ -161,7 +168,7 @@ const JobDetailDialog = ({
   // for an already-applied helper; the raw count powers the original
   // "X helpers applied — you'd be #(X+1)" banner for fresh viewers.
   useEffect(() => {
-    if (!job?.id) return;
+    if (guest || !job?.id) return;
     let cancelled = false;
     (async () => {
       // We need both the total count AND, for the current user, the
@@ -197,7 +204,7 @@ const JobDetailDialog = ({
       }
     })();
     return () => { cancelled = true; };
-  }, [job?.id]);
+  }, [guest, job?.id]);
 
   // Fetch the poster's cancellation rate — shows next to their name on
   // the poster card. Combined poster-side + worked-side rate, capped at
@@ -205,7 +212,7 @@ const JobDetailDialog = ({
   // cancelled job. Mirrors the math in UserProfile so the inline
   // number matches the profile page if the helpr taps through.
   useEffect(() => {
-    if (!job?.customer_id) return;
+    if (guest || !job?.customer_id) return;
     let cancelled = false;
     (async () => {
       const customerId = job.customer_id;
@@ -232,13 +239,13 @@ const JobDetailDialog = ({
       else setPosterCancelRate(null);
     })();
     return () => { cancelled = true; };
-  }, [job?.customer_id]);
+  }, [guest, job?.customer_id]);
 
   // Fetch how many completed jobs the current helper has done for this
   // poster. Drives the repeat-customer badge in the poster card —
   // emotional rebooking signal when the relationship has history.
   useEffect(() => {
-    if (!job?.customer_id) {
+    if (guest || !job?.customer_id) {
       setRepeatJobs(0);
       return;
     }
@@ -257,7 +264,7 @@ const JobDetailDialog = ({
       if (!cancelled) setRepeatJobs(count ?? 0);
     })();
     return () => { cancelled = true; };
-  }, [job?.customer_id]);
+  }, [guest, job?.customer_id]);
 
   // Distance + driving-time estimate for the Where tile. Computed up
   // here (not inside the IIFE below) so the useDrivingTime hook can
@@ -720,7 +727,7 @@ const JobDetailDialog = ({
           />
         </div>
 
-        <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} />
+        {!guest && <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} />}
 
         {/* Applicant queue banner. Two flavors:
             - **Already applied** — the viewer is in the queue. Show a
@@ -736,7 +743,7 @@ const JobDetailDialog = ({
             buttons below don't jump down when the count resolves on a slow
             network. The skeleton matches the real banner's px-3 py-2 box so
             the swap is zero-shift. */}
-        {applicationCount === null ? (
+        {applicationCount === null && !guest ? (
           <div
             aria-hidden
             className="rounded-ds-md px-3 py-2 flex items-center gap-2 animate-pulse"
@@ -797,7 +804,40 @@ const JobDetailDialog = ({
 
         {/* Footer actions — Flag · Save · Message · Apply.
             Each secondary icon button gets a hover-scale + glow ring effect
-            so they feel tactile rather than static. */}
+            so they feel tactile rather than static.
+            Guests get a single sign-up CTA instead — apply/message/save/report
+            all require an account, so we surface one clear next step. */}
+        {guest ? (
+          <Button
+            size="lg"
+            onClick={() => { navigate("/signup"); onClose(); }}
+            className="btn-liquid-fill w-full rounded-ds-md h-11 sm:h-12 px-3 group relative overflow-hidden"
+            style={{
+              background:
+                "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.86) 100%)",
+              border: "0.5px solid hsl(var(--bark))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), " +
+                "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.18), " +
+                "0 1px 2px hsl(var(--olivewood) / 0.12), " +
+                "0 8px 22px -6px hsl(var(--bark) / 0.45)",
+            }}
+          >
+            <span
+              className="relative z-10 inline-flex items-center justify-center gap-2 min-w-0"
+              style={{ color: "white", textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)" }}
+            >
+              <span className="truncate">Sign up to apply</span>
+              <ChevronRight
+                className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
+                strokeWidth={2.5}
+              />
+            </span>
+          </Button>
+        ) : (
         <div className="flex gap-1.5 pt-0.5">
           <IconActionButton
             ariaLabel="Report this job"
@@ -946,6 +986,7 @@ const JobDetailDialog = ({
             </Button>
           )}
         </div>
+        )}
 
         <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} openInGridNonce={gridOpenNonce} />
       </DialogContent>

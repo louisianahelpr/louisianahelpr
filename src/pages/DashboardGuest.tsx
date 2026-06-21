@@ -1,4 +1,4 @@
-import { useEffect, useCallback, lazy, Suspense } from "react";
+import { useEffect, useCallback, useState, lazy, Suspense } from "react";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +22,10 @@ const PayoutTicker = lazy(() => import("@/components/landing/PayoutTicker"));
 const BrowseMap = lazy(() =>
   import("@/components/BrowseMap").then((m) => ({ default: m.BrowseMap })),
 );
+
+// Guests may open a read-only job detail (Apple "preview before signup").
+// Apply/contact/save/report inside the dialog stay gated to /signup.
+const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { queryKeys } from "@/lib/queryKeys";
@@ -162,6 +166,10 @@ const DashboardGuest = () => {
   const requireSignup = useCallback(() => {
     navigate("/signup");
   }, [navigate]);
+
+  // Read-only detail view for guests. Selecting a card opens the job's
+  // public info; every action inside the dialog still routes to signup.
+  const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
 
   // Pull-to-refresh: re-runs the guestDashboardJobs query so swiping down on
   // the empty-state / list surface fetches fresh open_jobs_browse rows.
@@ -375,7 +383,7 @@ const DashboardGuest = () => {
                         showApply
                         onApply={requireSignup}
                         onReport={requireSignup}
-                        onSelect={requireSignup}
+                        onSelect={setDetailJob}
                         onToggleSave={requireSignup}
                         index={idx}
                       />
@@ -384,6 +392,18 @@ const DashboardGuest = () => {
                 )}
               </PullToRefreshWrapper>
             )}
+      {detailJob && (
+        <Suspense fallback={null}>
+          <JobDetailDialog
+            guest
+            job={detailJob}
+            effectiveFee={10}
+            onClose={() => setDetailJob(null)}
+            onApply={requireSignup}
+            onReport={requireSignup}
+          />
+        </Suspense>
+      )}
     </PageScaffold>
   );
 };

@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
+import { jobStatusLabel } from "@/lib/statusLabels";
+import { formatCategory } from "@/lib/format";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -230,8 +232,8 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
       <div className="flex gap-1 flex-wrap bg-secondary/50 rounded-ds-sm p-1">
         {statusOptions.map(s => (
           <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            {s === "all" ? `All (${jobs.length})` : `${s.replace("_", " ")} (${jobs.filter(j => j.status === s).length})`}
+            className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {s === "all" ? `All (${jobs.length})` : `${jobStatusLabel(s)} (${jobs.filter(j => j.status === s).length})`}
           </button>
         ))}
       </div>
@@ -251,11 +253,11 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
                 <p className="font-semibold text-foreground text-ds-13 truncate">{j.title}</p>
                 <div className="flex flex-wrap gap-2 text-ds-11 text-muted-foreground mt-0.5">
                   <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{j.location}</span>
-                  <span className="capitalize">{j.category?.replace("_", " ")}</span>
+                  <span>{j.category ? formatCategory(j.category) : ""}</span>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
-                <Badge className={`text-ds-11 capitalize ${jobStatusColorClasses(j.status)}`}>{j.status.replace("_", " ")}</Badge>
+                <Badge className={`text-ds-11 ${jobStatusColorClasses(j.status)}`}>{jobStatusLabel(j.status)}</Badge>
                 <span className="text-ds-13 font-semibold text-foreground">${j.budget}</span>
               </div>
             </div>

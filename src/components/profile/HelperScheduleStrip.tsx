@@ -13,6 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
+import { jobStatusLabel } from "@/lib/statusLabels";
 import type { Database } from "@/integrations/supabase/types";
 
 type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
@@ -448,7 +449,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                             : "hsl(var(--bark))",
                       }}
                     >
-                      {j.status.replace("_", " ")}
+                      {jobStatusLabel(j.status)}
                     </span>
                   </div>
                 </li>

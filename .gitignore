@@ -67,6 +67,11 @@ supabase/.temp/
 test-results/
 playwright-report/
 
+# Playwright-MCP page snapshots and ad-hoc browser screenshots — scratch
+# artifacts from local browser-automation runs, never source.
+.playwright-mcp/
+browse-guest.png
+
 # Edge-function test harness scratch files (see src/test/edge/harness.ts).
 # The harness writes a rewritten copy of an edge function here, imports it,
 # then deletes it — this catches any left behind by an interrupted run.

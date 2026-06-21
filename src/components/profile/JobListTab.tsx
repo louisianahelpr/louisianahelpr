@@ -5,6 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
+import { formatCategory } from "@/lib/format";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -60,7 +61,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
                     <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                     <span>{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
                     <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
-                    <span className="capitalize">{job.category.replace("_", " ")}</span>
+                    <span>{formatCategory(job.category)}</span>
                   </div>
                 </div>
                 {isPosted ? (

@@ -9,6 +9,7 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
+import { jobStatusLabel } from "@/lib/statusLabels";
 import { todayLocalISO } from "@/lib/dateUtils";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -33,7 +34,7 @@ const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
           {job.start_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {job.start_time}</span>}
         </div>
       </div>
-      <span className="text-ds-11 font-medium capitalize">{job.status.replace("_", " ")}</span>
+      <span className="text-ds-11 font-medium">{jobStatusLabel(job.status)}</span>
     </div>
   </div>
 );

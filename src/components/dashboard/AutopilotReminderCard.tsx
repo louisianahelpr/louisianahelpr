@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { X, RefreshCw } from "lucide-react";
 import { useReducedMotion } from "@/lib/accessibility";
+import { formatCategory } from "@/lib/format";
 
 interface Reminder {
   id: string;
@@ -40,7 +41,7 @@ function weeksAgo(date: string): string {
  */
 export function AutopilotReminderCard({ reminder, onDismiss, onPostJob }: Props) {
   const reducedMotion = useReducedMotion();
-  const label = CATEGORY_LABELS[reminder.category] ?? reminder.category.replace(/_/g, " ");
+  const label = CATEGORY_LABELS[reminder.category] ?? formatCategory(reminder.category).toLowerCase();
   const sinceLabel = reminder.last_completed_date
     ? weeksAgo(reminder.last_completed_date)
     : null;

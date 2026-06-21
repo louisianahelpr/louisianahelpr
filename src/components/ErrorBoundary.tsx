@@ -165,7 +165,7 @@ class ErrorBoundary extends React.Component<Props, State> {
             >
               {chunkError
                 ? "A newer version of the app was just released. Reload to pick it up."
-                : this.state.error?.message || "Something unexpected happened. Give it another shot."}
+                : this.state.error?.message || "Something caught us off guard — the button below should fix it."}
             </p>
           </div>
           <Button

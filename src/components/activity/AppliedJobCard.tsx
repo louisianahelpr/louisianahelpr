@@ -200,7 +200,7 @@ function AppliedJobCardInner({
       toast.success(accept ? "Counter accepted! The poster will be notified." : "Counter declined. The poster will be notified.");
     } catch {
       hapticError();
-      toast.error("Couldn't respond to the counter-offer — please try again.");
+      toast.error("Couldn't respond to that offer — try again?");
     } finally {
       setCounterResponding(false);
     }

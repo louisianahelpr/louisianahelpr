@@ -932,32 +932,6 @@ function PostedJobCardInner({
                         >
                           <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
                         </Button>
-                        {/* Stale-job nudge sits directly under Boost — it points
-                            at Boost as the next move, so it reads best right
-                            below the button. Hidden when expanded (the inline
-                            applicants empty state already says "No applicants
-                            yet"). */}
-                        {isStale && !isExpanded && (
-                          <div
-                            className="rounded-ds-md px-3 py-2 flex items-start gap-2"
-                            style={{
-                              background: "hsl(var(--accent) / 0.08)",
-                              border: "0.5px solid hsl(var(--accent) / 0.30)",
-                            }}
-                          >
-                            <Rocket className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent" strokeWidth={2.25} />
-                            <p
-                              className="font-serif italic leading-snug"
-                              style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}
-                            >
-                              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                                Quiet so far — no applicants yet.
-                              </span>{" "}
-                              A Boost lifts this task to the top of the feed
-                              so more helprs see it.
-                            </p>
-                          </div>
-                        )}
                         {/* Broadcast-boost button — only shown when the job
                             is stale (24h+ open, 0 applicants). Sends a targeted
                             push notification to nearby approved helpers. One

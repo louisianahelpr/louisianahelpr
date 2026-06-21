@@ -1,8 +1,8 @@
-import { memo, useCallback, useRef, useState, type KeyboardEvent } from "react";
+import { memo, useCallback, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, Heart, CheckCheck, ShieldCheck,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck,
 } from "lucide-react";
-import { hapticLight, hapticMedium, hapticSuccess } from "@/lib/haptics";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 
@@ -83,69 +83,23 @@ interface JobCardProps {
 const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, onLongPress, recommended = false }: JobCardProps) => {
   const isGuest = variant === "guest";
 
-  // Double-tap-to-save (Instagram-style). A single tap still opens the
-  // detail view, but we delay it ~280ms so a fast second tap can claim
-  // the gesture as a "save" instead. Double-tap only ever SAVES — it
-  // never un-saves — so a quick double-tap can't accidentally remove a
-  // bookmark the user already has. The heart-pop overlay + success
-  // haptic only fire when the tap actually adds the save.
-  const DOUBLE_TAP_MS = 280;
-  const [showHeart, setShowHeart] = useState(false);
-  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastTapRef = useRef(0);
-  // Keep the latest isSaved in a ref so the tap handler reads fresh state
-  // without re-creating itself (and re-spreading on the card) every render.
-  const isSavedRef = useRef(_isSaved);
-  isSavedRef.current = _isSaved;
-
+  // A tap always opens the job detail view. Saving lives behind the
+  // bookmark control in the detail dialog — the card tap is reserved for
+  // "show me more" so it never feels like the heart is hijacking the tap.
   const handleTap = useCallback(() => {
-    const now = Date.now();
-    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
-      // Second tap inside the window → double-tap: cancel the pending
-      // single-tap navigation and save (only if not already saved).
-      lastTapRef.current = 0;
-      if (tapTimerRef.current) {
-        clearTimeout(tapTimerRef.current);
-        tapTimerRef.current = null;
-      }
-      if (_onToggleSave) {
-        // Double-tap only ever SAVES — only toggle when not already saved
-        // (so a quick double-tap can't accidentally un-bookmark). The
-        // heart-pop + success haptic fire either way as confirmation.
-        if (!isSavedRef.current) _onToggleSave(job.id, true);
-        hapticSuccess();
-        setShowHeart(true);
-      } else {
-        hapticLight();
-      }
-      return;
-    }
-    lastTapRef.current = now;
-    tapTimerRef.current = setTimeout(() => {
-      tapTimerRef.current = null;
-      hapticLight();
-      onSelect(job);
-    }, DOUBLE_TAP_MS);
-  }, [job, onSelect, _onToggleSave]);
+    hapticLight();
+    onSelect(job);
+  }, [job, onSelect]);
 
   // Long-press hook — fires onLongPress after 500ms hold, falls through
-  // to a normal tap (onSelect) when the user lifts before the threshold.
-  // We always create the hook to keep the component's render shape
-  // stable across renders, but ignore its props when there's no handler.
-  // The tap is routed through handleTap so the double-tap-to-save gesture
-  // works alongside the long-press quick-action sheet.
+  // to a normal tap (onSelect via handleTap) when the user lifts before
+  // the threshold. We always create the hook to keep the component's
+  // render shape stable across renders, but ignore its props when there's
+  // no handler.
   const longPress = useLongPress({
     threshold: 500,
     onLongPress: () => {
       if (onLongPress) {
-        // A single tap immediately before the hold may have queued a
-        // 280ms open-detail timer (the double-tap window). Cancel it so
-        // the detail view doesn't pop open underneath the quick-action
-        // sheet on a rapid tap-then-hold.
-        if (tapTimerRef.current) {
-          clearTimeout(tapTimerRef.current);
-          tapTimerRef.current = null;
-        }
         hapticMedium();
         onLongPress(job.id);
       }
@@ -531,22 +485,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 </span>
               </>
             )}
-            {/* "N applied" social proof. Only shown when at least one helpr has
-                applied (a "0 applied" reads as a negative signal). The count
-                rides in on the open_jobs_browse view via a best-effort query,
-                so it stays hidden until that migration is live. */}
-            {(job.applicant_count ?? 0) > 0 && (
-              <>
-                <span className="opacity-30">·</span>
-                <span
-                  className="flex items-center gap-1"
-                  aria-label={`${job.applicant_count} ${job.applicant_count === 1 ? "helpr has" : "helprs have"} applied`}
-                >
-                  <Users className="w-2.5 h-2.5 shrink-0" />
-                  <span className="font-sans">{job.applicant_count} applied</span>
-                </span>
-              </>
-            )}
             {/* "Posted X ago" was dropped from the row — it was the same on
                 every card (no decision value) and added a third wrapped line
                 on small phones. Freshness is still signalled by the "New"
@@ -591,29 +529,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           routes to /signup (see interactiveProps), which conveys the same
           "tap a job → sign up" intent without the noise. */}
       </div>
-
-      {/* Double-tap-to-save heart pop — Instagram-style. Centered over the
-          card, pops in then fades up over ~600ms. pointer-events-none so it
-          never blocks taps; unmounts on animation end. */}
-      {showHeart && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1/2 z-30 animate-heart-pop"
-          onAnimationEnd={() => setShowHeart(false)}
-          style={{
-            filter: "drop-shadow(0 4px 12px hsl(var(--burnt-sienna) / 0.45))",
-          }}
-        >
-          <Heart
-            className="w-20 h-20"
-            strokeWidth={1.5}
-            style={{
-              color: "hsl(var(--burnt-sienna))",
-              fill: "hsl(var(--burnt-sienna))",
-            }}
-          />
-        </span>
-      )}
     </div>
   );
 };

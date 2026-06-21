@@ -391,7 +391,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               <p
                 className="text-ds-11 text-muted-foreground"
               >
-                Email <a href="mailto:trust@louisianahelpr.com" className="underline">trust@louisianahelpr.com</a> with this number if you have more to add.
+                Email <a href="mailto:admin@louisianahelpr.com" className="underline">admin@louisianahelpr.com</a> with this number if you have more to add.
               </p>
             </div>
             <div className="flex items-center justify-end gap-2">

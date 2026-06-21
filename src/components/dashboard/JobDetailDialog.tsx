@@ -23,7 +23,6 @@ import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { report } from "@/lib/errorLogger";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { JobPrice } from "./JobPrice";
-import { formatPrice } from "@/lib/format";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -294,10 +293,7 @@ const JobDetailDialog = ({
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  const perHelper = job.budget / helpers;
   const commissionPercent = job.helper_fee_percent ?? effectiveFee;
-  const commission = (perHelper * commissionPercent) / 100;
-  const payout = perHelper - commission + (job.urgent_fee ?? 0);
 
   const handleAskQuestion = () => {
     navigate(`/messages?userId=${job.customer_id}&jobId=${job.id}`);
@@ -972,12 +968,6 @@ const JobDetailDialog = ({
                 }}
               >
                 <span className="truncate">{job.instant_book ? "Book now" : "Apply"}</span>
-                <span
-                  className="font-display italic font-bold tabular-nums shrink-0"
-                  style={{ fontSize: "0.95rem", letterSpacing: "-0.01em" }}
-                >
-                  · earn ${formatPrice(payout)}
-                </span>
                 <ChevronRight
                   className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
                   strokeWidth={2.5}

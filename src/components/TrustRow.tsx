@@ -57,7 +57,7 @@ export function TrustRow({
       <span key="rating">
         {avgRating.toFixed(1)}★
         {reviewCount != null && reviewCount > 0 && (
-          <span style={{ color: "hsl(var(--olivewood) / 0.65)" }}> ({reviewCount})</span>
+          <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}> ({reviewCount})</span>
         )}
       </span>,
     );

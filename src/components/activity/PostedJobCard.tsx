@@ -839,7 +839,7 @@ function PostedJobCardInner({
                   className="mx-4 rounded-ds-md px-3 py-2.5 space-y-1.5 mb-2"
                   style={{ background: "hsl(var(--parchment) / 0.4)", border: "1px solid hsl(var(--olivewood) / 0.1)" }}
                 >
-                  <p className="text-ds-11 font-semibold uppercase tracking-[0.1em]" style={{ color: "hsl(var(--olivewood) / 0.5)" }}>
+                  <p className="text-ds-11 font-semibold uppercase tracking-[0.1em]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     Activity
                   </p>
                   <div className="flex flex-wrap gap-x-4 gap-y-1">

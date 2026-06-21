@@ -1270,7 +1270,7 @@ export const PostedJobsTab = ({
                                           type="button"
                                           onClick={() => setCounterShowing(null)}
                                           className="text-ds-11 px-1.5 py-0.5 rounded-full active:opacity-70"
-                                          style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                                          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                                         >
                                           ✕
                                         </button>
@@ -1355,7 +1355,7 @@ export const PostedJobsTab = ({
                                     border: "0.5px solid hsl(var(--olivewood) / 0.2)",
                                   }}
                                 >
-                                  <X className="w-3.5 h-3.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+                                  <X className="w-3.5 h-3.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                                 </button>
                               </div>
                             )}
@@ -1430,7 +1430,7 @@ export const PostedJobsTab = ({
                                 type="button"
                                 onClick={() => { setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id]); }}
                                 className="text-left w-full text-ds-12 italic flex items-start gap-1.5"
-                                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                               >
                                 <Pencil className="w-3 h-3 mt-0.5 shrink-0" />
                                 {applicantNotes[app.id]}
@@ -1440,7 +1440,7 @@ export const PostedJobsTab = ({
                                 type="button"
                                 onClick={() => { setNoteEditing(app.id); setNoteDraft(""); }}
                                 className="text-ds-11 flex items-center gap-1"
-                                style={{ color: "hsl(var(--olivewood) / 0.4)" }}
+                                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                               >
                                 <Plus className="w-3 h-3" /> Add private note
                               </button>
@@ -1517,7 +1517,7 @@ export const PostedJobsTab = ({
                           className="px-3 py-1.5 rounded-full text-ds-12 font-sans font-semibold transition-all duration-150 active:scale-95"
                           style={{
                             background: active ? "hsl(var(--bark) / 0.10)" : "hsla(0, 0%, 100%, 0.55)",
-                            color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.65)",
+                            color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.8)",
                             border: active
                               ? "0.5px solid hsl(var(--bark) / 0.35)"
                               : "0.5px solid hsl(var(--olivewood) / 0.2)",

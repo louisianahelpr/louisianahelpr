@@ -593,10 +593,10 @@ const NotificationPreferences = () => {
           borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)",
         }}
       >
-        <Lock className="w-3 h-3 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.45)" }} />
+        <Lock className="w-3 h-3 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
         <p
           className="font-serif italic leading-snug"
-          style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.55)" }}
+          style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Critical security alerts — logins, disputes — can't be turned off.
         </p>

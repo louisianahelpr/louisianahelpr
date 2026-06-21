@@ -88,7 +88,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 <button
                   onClick={dismiss}
                   className="absolute top-3 right-3 transition-colors active:opacity-70"
-                  style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   aria-label="Close"
                 >
                   <X className="w-4 h-4" />

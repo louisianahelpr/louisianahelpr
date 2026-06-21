@@ -12,6 +12,7 @@ import { queryClient } from "@/lib/queryClient";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
+import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 import PageTransition from "@/components/PageTransition";
 import OfflineBanner from "@/components/OfflineBanner";
 import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
@@ -128,8 +129,8 @@ const AdminRoute = lazy(() => import("./components/AdminRoute"));
  * </RouteErrorBoundary>`) so a lazy-chunk fetch failure still surfaces
  * the branded route-error UI instead of suspending forever.
  */
-const routeEl = (node: ReactElement) => (
-  <Suspense fallback={<RouteSuspenseFallback />}>{node}</Suspense>
+const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFallback />) => (
+  <Suspense fallback={fallback}>{node}</Suspense>
 );
 
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
@@ -180,7 +181,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Mirrors /dashboard's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want
           a no-account preview, though the marketing landing remains canonical. */}
-      <Route path="/browse" element={<RouteErrorBoundary>{routeEl(<PageTransition><DashboardGuest /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/browse" element={<RouteErrorBoundary>{routeEl(<PageTransition><DashboardGuest /></PageTransition>, <GuestBrowseSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
       {/* /community is a legacy/external-link redirect stub — the content
           lives as a tab inside /legal. Without this redirect, old search

@@ -584,15 +584,21 @@ const CompleteProfile = () => {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
-                <span
-                  className={cn(
-                    "text-ds-11 tabular-nums",
-                    bio.trim().length >= 20 ? "text-primary" : "text-muted-foreground",
-                  )}
-                  aria-live="polite"
-                >
-                  {bio.trim().length}/20
-                </span>
+                {/* "20" is a MINIMUM, not a cap — showing "91/20" once the
+                    user is past it reads like an over-limit error. So:
+                    "X/20 min" while short of the minimum, a check once met. */}
+                {bio.trim().length >= 20 ? (
+                  <span
+                    className="text-ds-11 font-medium text-primary inline-flex items-center gap-1"
+                    aria-live="polite"
+                  >
+                    <Check className="w-3 h-3" strokeWidth={3} /> Looks good
+                  </span>
+                ) : (
+                  <span className="text-ds-11 tabular-nums text-muted-foreground" aria-live="polite">
+                    {bio.trim().length}/20 min
+                  </span>
+                )}
               </div>
               <Textarea
                 id="bio"

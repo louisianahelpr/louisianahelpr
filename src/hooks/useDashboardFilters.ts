@@ -105,9 +105,25 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     return map;
   }, [sortBy, allJobs, helperLocationForSort]);
 
+  // Local "YYYY-MM-DD" for today — used to hide past-dated jobs. Built from
+  // local date parts (not toISOString, which is UTC and would flip the day
+  // near midnight for US timezones).
+  const todayLocalDate = useMemo(() => {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${m}-${day}`;
+  }, []);
+
   const filteredJobs = useMemo(() => allJobs
     .filter((job) => {
       if (userId && job.customer_id === userId) return false;
+      // Drop stale posts whose needed date has already passed — a job
+      // wanted yesterday is noise in the browse feed. date_needed is a
+      // "YYYY-MM-DD" date string, so a lexicographic compare against
+      // today's local date is correct and timezone-safe. Unparseable /
+      // empty values are kept (better to show than silently hide).
+      if (job.date_needed && job.date_needed.slice(0, 10) < todayLocalDate) return false;
       if (boostedOnly && !job.isBoosted) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -205,7 +221,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, earlyAccessExempt, profile?.parish, profile?.location, smartIndexByJobId]);
+    }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, earlyAccessExempt, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
 
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";

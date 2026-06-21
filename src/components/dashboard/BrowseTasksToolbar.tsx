@@ -18,17 +18,19 @@ import {
   SEARCH_HISTORY_MIN_LENGTH,
 } from "@/lib/searchHistory";
 
-// Popular task searches surfaced when the box is focused but empty — gives
+// Popular categories surfaced when the box is focused but empty — gives
 // a brand-new helper (no history yet) something to tap instead of a blank
 // dropdown, the way top apps seed an empty search with trending picks.
-// Curated from the most-posted categories rather than the full filter list.
-const POPULAR_SEARCHES = [
-  "Cleaning",
-  "Yard Work",
-  "Moving",
-  "Handyman",
-  "Delivery",
-  "Pet Care",
+// These are real category KEYS (not free text) so tapping one applies the
+// exact category filter — a fuzzy title/description search would miss jobs
+// whose wording doesn't contain the category word. Ordered by post volume.
+const POPULAR_CATEGORIES = [
+  "cleaning",
+  "handyman",
+  "moving",
+  "yard_work",
+  "pet_care",
+  "delivery",
 ] as const;
 
 // Compact label for the active budget-range chip. Either bound can be
@@ -238,6 +240,13 @@ export function BrowseTasksToolbar({
     pushRecentSearch(q);
     lastPushedRef.current = q;
     setRecentSearches(getRecentSearches());
+    setSearchFocused(false);
+  };
+
+  // Popular-pick path: apply the real category filter (not a text search) and
+  // close the dropdown. Mirrors tapping the chip in CategoryChipRow.
+  const applyPopularCategory = (key: string) => {
+    filters.setSelectedCategory(key);
     setSearchFocused(false);
   };
 
@@ -562,21 +571,21 @@ export function BrowseTasksToolbar({
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 px-3 py-2.5">
-                    {POPULAR_SEARCHES.map((q) => (
+                    {POPULAR_CATEGORIES.map((key) => (
                       <button
-                        key={q}
+                        key={key}
                         type="button"
                         role="option"
                         aria-selected={false}
                         // Beat the input blur (same reason as the recent rows).
                         onMouseDown={(e) => {
                           e.preventDefault();
-                          applySuggestion(q);
+                          applyPopularCategory(key);
                         }}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.08)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.18)] text-ds-11 font-medium hover:bg-[hsl(var(--bark)/0.14)] btn-press"
                       >
-                        <Search className="w-3 h-3 shrink-0" />
-                        {q}
+                        <CategoryIcon category={key} className="w-3 h-3 shrink-0" />
+                        {categoryLabels[key]}
                       </button>
                     ))}
                   </div>

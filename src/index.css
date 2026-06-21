@@ -1481,46 +1481,6 @@ button,
   }
 }
 
-.mesh-gradient {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  /* Hero-internal mesh — desaturated 50 % from the previous boosted version.
-     Just a faint warm wash on the right side; the global mesh already pins
-     the dominant glow in the top-right corner. */
-  background:
-    radial-gradient(at 95% 18%, hsl(var(--burnt-sienna) / 0.09) 0px, transparent 50%),
-    radial-gradient(at 88% 32%, hsl(var(--sand) / 0.18) 0px, transparent 55%);
-  filter: blur(60px);
-  animation: mesh-drift 28s ease-in-out infinite alternate;
-  z-index: 0;
-}
-
-/* Pause the mesh drift when the tab is hidden — saves composite cycles
-   on lower-end devices when no one is looking. Toggled by a visibility
-   listener in HeroSection. */
-.mesh-gradient.is-paused {
-  animation-play-state: paused;
-}
-
-@keyframes mesh-drift {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(-20px, 16px, 0) scale(1.04);
-  }
-  100% {
-    transform: translate3d(18px, -10px, 0) scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mesh-gradient {
-    animation: none;
-  }
-}
-
 /* Bookmark "pop" — small spring scale when a user toggles save on a job
    card. The component re-keys the icon by isSaved boolean, so this anim
    replays on every toggle. */

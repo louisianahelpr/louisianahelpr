@@ -75,6 +75,7 @@
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cordova-plugin-purchase": "^13.17.2",
     "date-fns": "^4.4.0",
     "framer-motion": "^12.40.0",
     "husky": "^9.1.7",

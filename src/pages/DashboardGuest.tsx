@@ -215,7 +215,7 @@ const DashboardGuest = () => {
                 background: "hsl(var(--bark) / 0.05)",
               }}
             >
-              Sign up
+              Get started
             </Button>
           </div>
         </div>

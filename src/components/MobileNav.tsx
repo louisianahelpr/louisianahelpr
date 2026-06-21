@@ -544,7 +544,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               as a barrier wall on a first-time guest's home screen. The tab
               is gently dimmed (opacity-50) and a tap routes to sign-up, so
               "locked" is communicated without the cluttered lock glyphs. The
-              header's prominent Sign up button is the single unlock CTA. */}
+              header's prominent Get started button is the single unlock CTA. */}
           {showBadge && (
             <span
               className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full text-ds-10 flex items-center justify-center font-bold px-1"

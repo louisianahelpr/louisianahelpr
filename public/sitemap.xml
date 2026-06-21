@@ -36,6 +36,46 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/parish/orleans</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/parish/jefferson</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/parish/east-baton-rouge</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/parish/st-tammany</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/parish/caddo</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/parish/calcasieu</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/parish/lafayette</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/parish/ouachita</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/become-a-partner</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

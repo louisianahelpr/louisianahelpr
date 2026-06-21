@@ -465,7 +465,7 @@ function AppliedJobCardInner({
                       disabled={counterResponding}
                       onClick={() => handleRespondCounter(app.id, false)}
                       className="text-ds-12 px-3 py-1 rounded-full disabled:opacity-50 active:opacity-70 transition-opacity"
-                      style={{ background: "hsl(var(--olivewood) / 0.1)", color: "hsl(var(--olivewood) / 0.7)" }}
+                      style={{ background: "hsl(var(--olivewood) / 0.1)", color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Decline
                     </button>
@@ -838,7 +838,7 @@ function AppliedJobCardInner({
                         {label === "Mark Complete" ? "I'm done — request payout" : label}
                       </Button>
                       {tooEarly && (
-                        <p className="font-serif italic text-center" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                        <p className="font-serif italic text-center" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                           Available 30 minutes after arrival to ensure quality.
                         </p>
                       )}

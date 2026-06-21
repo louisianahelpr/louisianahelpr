@@ -189,7 +189,7 @@ export function HelperRevisionCard({
         </summary>
         <ul
           className="mt-1.5 space-y-1 pl-1"
-          style={{ color: "hsl(var(--olivewood) / 0.75)", lineHeight: 1.55 }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.55 }}
         >
           <li>• Message the poster before tapping "I'll fix it" — one sentence goes a long way</li>
           <li>• Take a clear after-photo when you're done and attach it in chat</li>

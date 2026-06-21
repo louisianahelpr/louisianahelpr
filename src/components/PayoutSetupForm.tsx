@@ -257,7 +257,7 @@ export function PayoutSetupForm() {
           onClick={loadData}
           disabled={statusQuery.isFetching}
           className="inline-flex items-center gap-1 text-[0.7rem] font-sans font-semibold tracking-wide active:opacity-70 transition-opacity disabled:opacity-50"
-          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           <RefreshCw className={`w-3 h-3 ${statusQuery.isFetching ? "animate-spin" : ""}`} />
           {statusQuery.isFetching ? "Refreshing…" : "Refresh status"}
@@ -273,7 +273,7 @@ export function PayoutSetupForm() {
             >
               Connect to start earning
             </p>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Set up your payout account through Stripe so completed jobs pay out straight to your bank.
             </p>
           </div>
@@ -290,7 +290,7 @@ export function PayoutSetupForm() {
             >
               One more step
             </p>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Stripe needs a few more details before payouts can run. Pick up where you left off below.
             </p>
           </div>
@@ -385,7 +385,7 @@ export function PayoutSetupForm() {
           >
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-              <p className="font-serif italic" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}>
+              <p className="font-serif italic" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 Payouts run automatically to your default method when jobs are completed.
               </p>
             </div>

@@ -131,7 +131,7 @@ export function BrandConfirmDialog({
           </AlertDialogTitle>
           <AlertDialogDescription
             className="text-center font-serif italic text-ds-13 text-balance"
-            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {description}
           </AlertDialogDescription>

@@ -208,7 +208,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           </DialogTitle>
           <DialogDescription
             className="font-serif italic mt-1 text-[0.82rem] leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Save your filters and we'll send a push the moment a matching job posts.
           </DialogDescription>
@@ -218,7 +218,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           <Label
             htmlFor="search-name"
             className="font-serif italic uppercase text-[0.6rem]"
-            style={{ color: "hsl(var(--olivewood) / 0.65)", letterSpacing: "0.16em" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.16em" }}
           >
             Save current filters
           </Label>
@@ -243,7 +243,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
           </div>
           <p
             className="text-ds-11 font-serif italic"
-            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Active filters:{" "}
             {[

@@ -10,6 +10,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
+import { isIapAvailable, purchaseTier, type IapTier } from "@/lib/iap";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -158,6 +159,17 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   const handleSubscribe = async (tier: string) => {
     setLoadingCheckout(tier);
     try {
+      // App Store Guideline 3.1.1: digital subscriptions on native iOS MUST go
+      // through Apple IAP. Web keeps the Stripe checkout flow.
+      if (isIapAvailable()) {
+        await purchaseTier(tier as IapTier, billingInterval);
+        // The grant lands server-side via the IAP approval handler; pull the
+        // refreshed profile so the UI reflects the new tier.
+        await supabase.functions.invoke("check-pro-subscription").catch(() => {});
+        await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
+        toast.success("Purchase complete — welcome aboard!");
+        return;
+      }
       const billing_cycle = billingInterval === "one_time" ? "one_time" : billingInterval;
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
         body: { tier, billing_cycle },

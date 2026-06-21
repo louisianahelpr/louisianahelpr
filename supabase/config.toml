@@ -66,3 +66,9 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # handler enforces auth itself.
   [functions.send-notification-email]
     verify_jwt = false
+  # Apple App Store Server Notifications: Apple POSTs lifecycle events here and
+  # cannot present a Supabase JWT, so the gateway must not require one. The
+  # handler re-fetches the authoritative transaction from Apple before trusting
+  # anything, so an unauthenticated POST can't grant a tier.
+  [functions.apple-app-store-notifications]
+    verify_jwt = false

@@ -5,6 +5,7 @@ import { TrustRow } from "@/components/TrustRow";
 import { SaveHelperButton } from "@/components/SaveHelperButton";
 import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { successToast } from "@/lib/toast";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -244,7 +245,9 @@ function PostedJobCardInner({
           setBroadcastBoosted(true);
           return;
         }
-        throw error;
+        // Surface the function's real reason (e.g. "Already boosted in the
+        // last 24 hours") instead of the generic "non-2xx status code".
+        throw new Error(await functionErrorMessage(error, "Couldn't send boost notification. Try again."));
       }
       // boost-job returns an untyped JSON body; narrow the fields we read.
       const boostData = data as { error?: string; notified?: number } | null;

@@ -26,3 +26,32 @@ export function unwrap<T>(result: { data: T; error: { message: string } | null }
   }
   return data;
 }
+
+/**
+ * functionErrorMessage — recover the real, user-facing reason from a failed
+ * `supabase.functions.invoke`.
+ *
+ * On any non-2xx the SDK returns a `FunctionsHttpError` whose `.message` is the
+ * generic "Edge Function returned a non-2xx status code". The actual reason our
+ * edge functions send lives in the JSON body (`{ error: "…" }`), reachable via
+ * `error.context` (the raw `Response`). This reads that body and returns the
+ * human message, falling back to `fallback` so the caller never shows the raw
+ * SDK string to a user.
+ */
+export async function functionErrorMessage(
+  error: unknown,
+  fallback = "Something went wrong. Please try again.",
+): Promise<string> {
+  const ctx = (error as { context?: unknown } | null)?.context;
+  if (ctx instanceof Response) {
+    try {
+      const body = await ctx.clone().json();
+      if (body && typeof body.error === "string" && body.error.trim()) {
+        return body.error;
+      }
+    } catch {
+      // Body wasn't JSON or was already consumed — fall through to fallback.
+    }
+  }
+  return fallback;
+}

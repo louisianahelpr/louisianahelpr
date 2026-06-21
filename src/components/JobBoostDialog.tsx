@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Rocket, Sparkles } from "lucide-react";
@@ -32,7 +33,11 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       const { data, error } = await supabase.functions.invoke("create-boost-payment", {
         body: { job_id: jobId },
       });
-      if (error) throw error;
+      // A non-2xx makes the SDK return a FunctionsHttpError whose message is
+      // the unhelpful "Edge Function returned a non-2xx status code". The real,
+      // user-facing reason lives in the response body — pull it out so we never
+      // surface the raw SDK string.
+      if (error) throw new Error(await functionErrorMessage(error, "We couldn't start your boost. Please try again."));
       if (data?.error) throw new Error(data.error);
       // Elite perk path — server flipped the boost flags directly and
       // returned `free: true`. No Stripe redirect needed.

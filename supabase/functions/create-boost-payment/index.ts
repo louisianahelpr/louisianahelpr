@@ -30,21 +30,26 @@ serve(async (req) => {
     (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? "",
   );
 
+  // Expected, user-facing failures (auth/validation/ownership) must return
+  // their own status + human message so the client can show the real reason.
+  // Only genuinely unexpected errors fall through to the 500 catch below —
+  // otherwise the client only ever sees "Edge Function returned a non-2xx".
+  const fail = (status: number, message: string) =>
+    new Response(JSON.stringify({ error: message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status,
+    });
+
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
-    }
+    if (!authHeader) return fail(401, "Please sign in to boost this job.");
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated");
+    if (!user?.email) return fail(401, "Your session expired — sign in again to boost.");
 
-    const { job_id } = await req.json();
-    if (!job_id) throw new Error("Missing job_id");
+    const { job_id } = await req.json().catch(() => ({}));
+    if (!job_id) return fail(400, "Missing job to boost.");
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -57,11 +62,11 @@ serve(async (req) => {
       .select("id, customer_id, status, title, boost_expires_at")
       .eq("id", job_id)
       .single();
-    if (jobErr || !job) throw new Error("Job not found");
-    if (job.customer_id !== user.id) throw new Error("Not authorized to boost this job");
-    if (job.status !== "open") throw new Error("Only open jobs can be boosted");
+    if (jobErr || !job) return fail(404, "We couldn't find that job.");
+    if (job.customer_id !== user.id) return fail(403, "You can only boost your own jobs.");
+    if (job.status !== "open") return fail(409, "Only open jobs can be boosted.");
     if (job.boost_expires_at && new Date(job.boost_expires_at) > new Date()) {
-      throw new Error("Job is already boosted");
+      return fail(409, "This job is already boosted.");
     }
 
     // Elite-tier perk: free boost. If the caller has an active Elite
@@ -89,7 +94,7 @@ serve(async (req) => {
         .eq("id", job_id);
       if (boostErr) {
         console.error("[create-boost-payment] elite boost flip failed:", boostErr);
-        throw new Error("Failed to apply elite boost");
+        return fail(500, "We couldn't apply your Elite boost. Please try again.");
       }
       return new Response(
         JSON.stringify({
@@ -154,9 +159,6 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("[create-boost-payment] error:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return fail(500, "Something went wrong starting your boost. Please try again.");
   }
 });

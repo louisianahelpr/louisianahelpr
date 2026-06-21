@@ -29,7 +29,7 @@ const MOODS = [
   { value: "happy", label: "Happy", icon: Laugh, color: "hsl(var(--bark))" },
   { value: "playful", label: "Playful", icon: Zap, color: "hsl(var(--gold-warm))" },
   { value: "calm", label: "Calm", icon: Smile, color: "hsl(var(--sage))" },
-  { value: "tired", label: "Tired", icon: Moon, color: "hsl(var(--olivewood) / 0.72)" },
+  { value: "tired", label: "Tired", icon: Moon, color: "hsl(var(--olivewood) / 0.8)" },
   { value: "anxious", label: "Anxious", icon: Frown, color: "hsl(var(--burnt-sienna))" },
 ] as const;
 
@@ -189,7 +189,7 @@ export function SendReportCard({
                     color:
                       petId === p.id
                         ? "hsl(var(--bark))"
-                        : "hsl(var(--olivewood) / 0.72)",
+                        : "hsl(var(--olivewood) / 0.8)",
                     border:
                       petId === p.id
                         ? "1px solid hsl(var(--bark) / 0.35)"
@@ -237,7 +237,7 @@ export function SendReportCard({
                       ? val
                         ? "hsl(var(--bark))"
                         : "hsl(var(--burnt-sienna))"
-                      : "hsl(var(--olivewood) / 0.72)",
+                      : "hsl(var(--olivewood) / 0.8)",
                   border: ateWell === val
                     ? `1px solid ${val ? "hsl(var(--bark) / 0.30)" : "hsl(var(--burnt-sienna) / 0.30)"}`
                     : "1px solid transparent",
@@ -267,7 +267,7 @@ export function SendReportCard({
                 style={{
                   background:
                     mood === value ? `${color}22` : "hsl(var(--olivewood) / 0.06)",
-                  color: mood === value ? color : "hsl(var(--olivewood) / 0.72)",
+                  color: mood === value ? color : "hsl(var(--olivewood) / 0.8)",
                   border:
                     mood === value
                       ? `1px solid ${color}55`

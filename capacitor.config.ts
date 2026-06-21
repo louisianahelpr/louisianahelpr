@@ -89,7 +89,7 @@ const config: CapacitorConfig = {
       // never hangs even if init fails.
       launchShowDuration: 0,
       launchAutoHide: false,
-      backgroundColor: '#F4F8F5', // Matches StatusBar.backgroundColor below so cold-start doesn't flash cream→sage as the splash hands off to the WebView
+      backgroundColor: '#ECE9E4', // Warm parchment (hsl(36 16% 91%), --parchment) — matches StatusBar, theme-color and the #root FCP shell so cold-start never flashes a mismatched tint as splash hands off to the WebView
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
@@ -100,10 +100,10 @@ const config: CapacitorConfig = {
       // Capacitor semantics (counter-intuitive but correct):
       //   Style.Light => dark icons (for LIGHT backgrounds — what we want here)
       //   Style.Dark  => light icons (for DARK backgrounds)
-      // Helpr's default surface is the cream #F4F8F5, so we want dark icons.
+      // Helpr's default surface is warm parchment #ECE9E4, so we want dark icons.
       // Per-screen overrides live in src/hooks/useStatusBar.ts.
       style: 'LIGHT',
-      backgroundColor: '#F4F8F5',
+      backgroundColor: '#ECE9E4',
       // overlaysWebView is **Android-only** in @capacitor/status-bar. On
       // Android, true (the plugin default) makes the WebView render
       // edge-to-edge under the status bar; the existing

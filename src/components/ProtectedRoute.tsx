@@ -63,7 +63,12 @@ export const PROFILE_GATE_FIELDS = [
   { key: "date_of_birth", label: "Date of birth" },
   { key: "phone", label: "Phone number" },
   { key: "location", label: "City" },
-  { key: "id_document_url", label: "Government-issued ID" },
+  // Government-issued ID is intentionally NOT a gate field. CompleteProfile
+  // makes it optional (identity verification is deferred to first-post / IDV),
+  // so requiring it here trapped freshly-completed profiles in a redirect loop
+  // back to /complete-profile — the form reported 7/7 done and navigated to
+  // /dashboard, but this gate bounced them right back. The two definitions of
+  // "complete" must stay in sync; the form is the source of truth.
 ] as const;
 
 export const isFieldComplete = (

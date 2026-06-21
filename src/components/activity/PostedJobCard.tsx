@@ -160,6 +160,9 @@ function PostedJobCardInner({
   const [broadcastText, setBroadcastText] = useState("");
   const [broadcastSending, setBroadcastSending] = useState(false);
   const broadcastRef = useRef<HTMLTextAreaElement>(null);
+  // Guards the Mark Resolved / Escalate to Admin buttons while their
+  // supabase UPDATE is in-flight — prevents double-tap submission.
+  const [disputeActing, setDisputeActing] = useState(false);
 
   /**
    * handleBroadcastMessage — inserts one message row per pending applicant
@@ -1323,23 +1326,35 @@ function PostedJobCardInner({
                       {/* Disputer actions: Mark Resolved or Escalate */}
                       {isDisputer && disputeStatus === "open" && (
                         <div className="grid grid-cols-2 gap-2">
-                          <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={async (e) => {
+                          <Button size="sm" disabled={disputeActing} className="w-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60" onClick={async (e) => {
                             e.stopPropagation();
-                            const { error } = await supabase.from("jobs").update({ status: "completed", dispute_status: "resolved", dispute_resolved_at: new Date().toISOString() }).eq("id", job.id);
-                            if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
-                            if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
-                            toast.success("Dispute resolved — payment released to helpr");
-                            onActionComplete();
+                            setDisputeActing(true);
+                            try {
+                              const { error } = await supabase.from("jobs").update({ status: "completed", dispute_status: "resolved", dispute_resolved_at: new Date().toISOString() }).eq("id", job.id);
+                              if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
+                              if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
+                              hapticSuccess();
+                              toast.success("Dispute resolved — payment released to helpr");
+                              onActionComplete();
+                            } finally {
+                              setDisputeActing(false);
+                            }
                           }}><CheckCircle2 className="w-4 h-4 mr-1" /> Mark Resolved</Button>
-                          <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={async (e) => {
+                          <Button size="sm" variant="outline" disabled={disputeActing} className="w-full text-destructive border-destructive/30 hover:bg-destructive/5 disabled:opacity-60" onClick={async (e) => {
                             e.stopPropagation();
-                            const { error } = await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id);
-                            if (error) { hapticError(); toast.error("We couldn't escalate that — please try again."); return; }
-                            const { data: adminRoles, error: adminErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-                            if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
-                            if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
-                            toast.success("Dispute escalated to admin for final decision");
-                            onActionComplete();
+                            setDisputeActing(true);
+                            try {
+                              const { error } = await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id);
+                              if (error) { hapticError(); toast.error("We couldn't escalate that — please try again."); return; }
+                              const { data: adminRoles, error: adminErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+                              if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
+                              if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
+                              hapticSuccess();
+                              toast.success("Dispute escalated to admin for final decision");
+                              onActionComplete();
+                            } finally {
+                              setDisputeActing(false);
+                            }
                           }}><AlertTriangle className="w-4 h-4 mr-1" /> Escalate to Admin</Button>
                         </div>
                       )}

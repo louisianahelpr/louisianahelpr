@@ -397,6 +397,38 @@ body {
   overscroll-behavior-y: contain;
 }
 
+/* Desktop / large-viewport framing (LH-52).
+   On a phone the fixed app shell fills the screen — correct. On a wide
+   desktop browser that same `fixed inset-x-0` shell stretches edge to edge
+   and the product reads as a stretched mobile site. Above the tablet
+   breakpoint, cap the shell (and the bottom dock that pairs with it) to a
+   phone-width column, center it with `margin-inline: auto`, and paint a
+   neutral backdrop behind it so the app presents as a centered device frame.
+   `margin-inline: auto` (not `transform`) is deliberate: a transform would
+   make this fixed element a containing block and break AppShell's own
+   descendant `position: fixed` children. Everything here is scoped to
+   `html.app-shell` so document-scroll marketing pages (Index, ForBusiness,
+   Legal) keep their intentional full-width SEO layout. */
+@media (min-width: 768px) {
+  html.app-shell {
+    background-color: hsl(36 10% 80%);
+  }
+  html.app-shell[data-theme="dark"] {
+    background-color: hsl(20 12% 5%);
+  }
+  html.app-shell .app-shell-frame {
+    max-width: 480px;
+    margin-inline: auto;
+    box-shadow:
+      0 0 0 1px hsl(36 14% 70% / 0.55),
+      0 24px 70px -20px hsl(64 16% 16% / 0.35);
+  }
+  html.app-shell .mobile-nav-frame {
+    max-width: 480px;
+    margin-inline: auto;
+  }
+}
+
 /* Leaflet map (BrowseMap) — lock ALL touch gestures to Leaflet itself.
    Without `touch-action: none`, iOS WKWebView treats a drag on the map as a
    page pan and slides the WHOLE app — header AND bottom dock — left/right

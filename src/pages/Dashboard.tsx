@@ -636,11 +636,14 @@ const Dashboard = () => {
       recordJobActionForPermissionPrompt();
       // Funnel: track first application separately for activation analysis.
       track(AhaEvent.JobApplied, { job_id: vars.jobId, instant_book: vars.isInstantBook ?? false });
-      const { count } = await supabase
-        .from("applications")
-        .select("id", { count: "exact", head: true })
-        .eq("helper_id", vars.helperId);
-      if ((count ?? 0) <= 1) track(AhaEvent.FirstJobApplication, { job_id: vars.jobId });
+      // Confirm to the helper FIRST — the insert has landed, so the success
+      // toast is owed regardless of whatever analytics/reconciliation runs
+      // afterward. Previously this fired AFTER an unguarded `await` on the
+      // first-application count query below; any throw there (a transient
+      // network blip, an RLS hiccup) silently skipped the toast entirely, so
+      // the helper saw the card vanish from Browse with no confirmation and
+      // no obvious way to find the application again. Toast up front =
+      // confirmation can never be swallowed by a later best-effort call.
       if (vars.isInstantBook) {
         toast.success("You're booked! Check My Jobs for details.", {
           action: { label: "View", onClick: () => navigate("/my-jobs") },
@@ -649,6 +652,23 @@ const Dashboard = () => {
         toast.success("Application sent! Track it in My Jobs.", {
           action: { label: "View", onClick: () => navigate("/my-jobs") },
         });
+      }
+      // First-application funnel event — strictly best-effort analytics, so
+      // it must never break (or block) the apply flow. Isolated in its own
+      // try/catch and we explicitly inspect the Supabase `error` instead of
+      // dropping it (project rule: never `const { count } = await supabase…`
+      // and silently swallow a failure).
+      try {
+        const { count, error: countError } = await supabase
+          .from("applications")
+          .select("id", { count: "exact", head: true })
+          .eq("helper_id", vars.helperId);
+        if (!countError && (count ?? 0) <= 1) {
+          track(AhaEvent.FirstJobApplication, { job_id: vars.jobId });
+        }
+      } catch {
+        // Analytics-only — a failed count must not affect the user-visible
+        // apply outcome (toast already shown, onSettled still reconciles).
       }
     },
     onSettled: async (_data, _err, vars) => {

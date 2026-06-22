@@ -684,16 +684,20 @@ const PetProfiles = () => {
           );
         })}
 
-        {/* Add button */}
-        <Button
-          className="w-full"
-          variant="outline"
-          size="lg"
-          onClick={openAdd}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add a pet
-        </Button>
+        {/* Add button — only when at least one pet exists. The empty
+            state already renders its own "Add a pet" CTA, so showing this
+            standalone one too would surface two identical CTAs at once. */}
+        {!!pets?.length && (
+          <Button
+            className="w-full"
+            variant="outline"
+            size="lg"
+            onClick={openAdd}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add a pet
+          </Button>
+        )}
 
         {/* Evacuation promo */}
         <div

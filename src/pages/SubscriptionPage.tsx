@@ -301,7 +301,7 @@ export default function SubscriptionPage() {
                       </>
                     ) : (
                       <>
-                        <PerkBullet color={color}>10% fee + verified business badge</PerkBullet>
+                        <PerkBullet color={color}>6% fee (save 6%) + verified business badge</PerkBullet>
                         <PerkBullet color={color}>Multi-tech team management</PerkBullet>
                         <PerkBullet color={color}>Featured badge + early access</PerkBullet>
                         <PerkBullet color={color}>Dedicated support SLA</PerkBullet>

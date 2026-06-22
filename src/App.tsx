@@ -19,7 +19,7 @@ import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
-import { useDynamicTypeSync } from "@/lib/accessibility";
+import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -298,7 +298,7 @@ const SessionManager = () => {
   useSessionTimeout();
   useLoginTracking();
   useNativePushSetup();
-  useDynamicTypeSync();
+  const dynamicTypeScale = useDynamicTypeSync();
   useDarkMode(); // initializes data-theme from localStorage / system preference
   useCppVariantRouter();
   useAppShellViewport();
@@ -311,13 +311,18 @@ const SessionManager = () => {
   // auto-refetch. No-op on web.
   useAppLifecycle();
 
-  // Apply senior-mode CSS class on <html> whenever the loaded profile
-  // has senior_mode enabled (e.g. after sign-in or a page refresh).
+  // Apply senior-mode CSS class on <html> when EITHER the loaded profile has
+  // senior_mode enabled, OR the OS reports a large accessibility text size
+  // (Dynamic Type). The profile flag is a manual opt-in; the Dynamic Type
+  // bridge (LH-22) honors the user's system-level text-size choice without
+  // them having to flip the in-app toggle. They're OR'd so the two can't
+  // clobber each other.
   const { profile } = useCurrentUser();
   useEffect(() => {
-    const enabled = !!(profile as unknown as { senior_mode?: boolean })?.senior_mode;
-    document.documentElement.classList.toggle("senior-mode", enabled);
-  }, [profile]);
+    const profileSenior = !!(profile as unknown as { senior_mode?: boolean })?.senior_mode;
+    const osLargeText = dynamicTypeScale >= OS_LARGE_TEXT_THRESHOLD;
+    document.documentElement.classList.toggle("senior-mode", profileSenior || osLargeText);
+  }, [profile, dynamicTypeScale]);
 
 
   return null;

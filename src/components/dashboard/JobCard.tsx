@@ -1,6 +1,6 @@
 import { memo, useCallback, type KeyboardEvent, type TouchEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck, Gavel,
 } from "lucide-react";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -348,11 +348,16 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             const bonus = Number(job.urgent_fee ?? 0);
             return (
               <span
-                className={`urgent-pulse ${corner} bg-accent/15 text-accent`}
+                className={`urgent-pulse ${corner}`}
                 aria-label={bonus > 0 ? `Urgent — $${bonus.toFixed(0)} bonus` : "Urgent"}
-                style={{ borderColor: "hsl(var(--accent) / 0.5)", letterSpacing: "0.05em" }}
+                style={{
+                  color: "hsl(var(--accent))",
+                  background: "hsl(var(--accent) / 0.15)",
+                  borderColor: "hsl(var(--accent) / 0.5)",
+                  letterSpacing: "0.05em",
+                }}
               >
-                <Zap className="w-2.5 h-2.5 shrink-0 fill-accent text-accent" />
+                <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--accent))", fill: "hsl(var(--accent))" }} />
                 {bonus > 0 ? `+$${bonus.toFixed(0)} Urgent` : "Urgent"}
               </span>
             );
@@ -375,6 +380,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 aria-label="Open bids"
                 style={{ color: "hsl(var(--bark))", background: "hsl(var(--bark) / 0.1)", borderColor: "hsl(var(--bark) / 0.3)", letterSpacing: "0.05em" }}
               >
+                <Gavel className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
                 Open bids
               </span>
             );
@@ -498,7 +504,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             {/* "Posted X ago" was dropped from the row — it was the same on
                 every card (no decision value) and added a third wrapped line
                 on small phones. Freshness is still signalled by the "New"
-                chip (<48h) at the head of the row. */}
+                chip (<30m) at the head of the row. */}
             {job.is_group_job && (
               <>
                 <span className="opacity-30">·</span>

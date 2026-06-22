@@ -9,6 +9,17 @@ interface UsePullToRefreshOptions {
 }
 
 /**
+ * Minimum time the `refreshing` flag stays true once a refresh fires.
+ * A cached or fast refresh resolves in a few ms, which would flip
+ * `refreshing` true→false within a single frame and flash the
+ * pull-to-refresh indicator and the recommended-section skeleton
+ * (both gated on `refreshing`). Holding it for a perceptible floor
+ * removes the flicker without delaying content — the job list renders
+ * independently of this flag.
+ */
+const MIN_REFRESH_VISIBLE_MS = 500;
+
+/**
  * Rubber-band resistance curve for the pull translation.
  *
  * Below the threshold the drag maps 1:1 so the indicator tracks the
@@ -112,9 +123,14 @@ export const usePullToRefresh = ({
       hapticImpactForce();
       setRefreshing(true);
       setPullDistance(0);
+      const startedAt = Date.now();
       try {
         await onRefresh();
       } finally {
+        const remaining = MIN_REFRESH_VISIBLE_MS - (Date.now() - startedAt);
+        if (remaining > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remaining));
+        }
         setRefreshing(false);
       }
     } else {

@@ -813,6 +813,24 @@ button,
   transform: translateY(-1px);
 }
 
+/*
+ * Primary-CTA gradient — the `default`/`hero` button fill.
+ *
+ * This MUST live as a hand-written CSS class, NOT a Tailwind arbitrary value.
+ * The equivalent `bg-[linear-gradient(180deg,hsl(var(--primary))_0%,hsl(var(--primary)/0.92)_100%)]`
+ * class silently fails to generate in the production Vite/Tailwind build when
+ * the second color stop carries a slash-alpha on a CSS var — the rule is
+ * dropped, leaving the button transparent with invisible cream text (the
+ * "near-white pill" bug). Authoring it directly sidesteps the JIT entirely.
+ */
+.btn-grad-primary {
+  background-image: linear-gradient(
+    180deg,
+    hsl(var(--primary)) 0%,
+    hsl(var(--primary) / 0.92) 100%
+  );
+}
+
 /* Oversized fluid display headline — used for the marquee marketing headers.
    Editorial serif (Fraunces) on near-black `--ink-deep`. Body text stays
    warm-charcoal `--foreground`; only headlines reach for the deep ink. */

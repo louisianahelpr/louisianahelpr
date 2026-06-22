@@ -186,7 +186,7 @@ export function SpendDashboardTab({
         <Card className="p-4">
           <h3 className="font-semibold mb-3">Spend by team member</h3>
           <div style={{ width: "100%", height: 240 }}>
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%" minHeight={240}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />

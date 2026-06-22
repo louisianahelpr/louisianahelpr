@@ -209,7 +209,7 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
               </p>
             ) : (
               <div className="h-[120px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minHeight={120}>
                   <AreaChart data={data} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
                     <defs>
                       <linearGradient id="profileStatsFill" x1="0" y1="0" x2="0" y2="1">

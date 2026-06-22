@@ -4,6 +4,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { report } from "@/lib/errorLogger";
+import {
+  isChunkLoadError,
+  hardReloadBypassCache,
+  recoverFromChunkError,
+} from "@/lib/chunkReload";
 
 /**
  * Per-route error boundary. Sits inside `<Routes>` so a crash on one page
@@ -42,6 +47,16 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Stale-chunk crashes (a deploy changed the chunk hashes mid-session)
+    // aren't real route bugs — they reach this boundary when the user
+    // navigates to a lazy route whose chunk 404s. Auto-recover with a
+    // one-shot hard reload and skip the Sentry noise. Without this, the
+    // user lands on the generic "This page hit a problem" fallback and is
+    // stuck until they manually refresh.
+    if (isChunkLoadError(error)) {
+      recoverFromChunkError();
+      return;
+    }
     // `report()` fans out to Sentry, PostHog, and the Supabase error_logs
     // table. The `route` tag lands on the Sentry event so we can slice
     // issue volume by route in the dashboard.
@@ -62,25 +77,37 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
   }
 
   handleReset = () => {
+    // A stale-chunk crash can't be cleared by re-rendering the same dead
+    // chunk reference — force a cache-busting reload instead.
+    if (isChunkLoadError(this.state.error)) {
+      void hardReloadBypassCache();
+      return;
+    }
     this.setState({ hasError: false, error: null });
   };
 
   render() {
     if (!this.state.hasError) return this.props.children;
 
+    const chunkError = isChunkLoadError(this.state.error);
+
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5 p-8 text-center">
         <div
           className="w-16 h-16 rounded-full flex items-center justify-center"
           style={{
-            background: "hsl(var(--burnt-sienna) / 0.12)",
-            color: "hsl(var(--burnt-sienna))",
-            border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
+            background: chunkError ? "hsl(var(--bark) / 0.12)" : "hsl(var(--burnt-sienna) / 0.12)",
+            color: chunkError ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
+            border: `0.5px solid ${chunkError ? "hsl(var(--bark) / 0.22)" : "hsl(var(--burnt-sienna) / 0.24)"}`,
             boxShadow:
               "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 6px 18px -6px hsl(var(--olivewood) / 0.20)",
           }}
         >
-          <AlertTriangle className="h-7 w-7" strokeWidth={1.75} />
+          {chunkError ? (
+            <RefreshCw className="h-7 w-7" strokeWidth={1.75} />
+          ) : (
+            <AlertTriangle className="h-7 w-7" strokeWidth={1.75} />
+          )}
         </div>
         <div className="space-y-1.5 max-w-md">
           <span
@@ -91,7 +118,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
               letterSpacing: "0.18em",
             }}
           >
-            A hiccup
+            {chunkError ? "Fresh paint" : "A hiccup"}
           </span>
           <h3
             className="font-display italic font-bold leading-tight"
@@ -101,7 +128,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
               letterSpacing: "-0.025em",
             }}
           >
-            This page hit a problem.
+            {chunkError ? "Update ready." : "This page hit a problem."}
           </h3>
           <p
             className="font-serif italic leading-relaxed"
@@ -110,7 +137,9 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
               color: "hsl(var(--olivewood) / 0.8)",
             }}
           >
-            We've logged it. Try again or head back home.
+            {chunkError
+              ? "A newer version of the app was just released. Reload to pick it up."
+              : "We've logged it. Try again or head back home."}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -120,7 +149,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
             className="rounded-ds-md"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Try again
+            {chunkError ? "Reload" : "Try again"}
           </Button>
           <Button
             variant="outline"

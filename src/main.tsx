@@ -5,6 +5,7 @@ import { initNative } from "./lib/nativeInit";
 import { installGlobalErrorHandlers } from "./lib/errorLogger";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
+import { recoverFromChunkError } from "./lib/chunkReload";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
 // changes still produces a new bundle hash, evicting stale CacheFirst
@@ -21,6 +22,19 @@ window.HELPR_BUILD = "2026-05-04-editorial-brand-polish";
 // Global error handlers are tiny + synchronous — keep them eager so we
 // catch any throw during the very first render.
 installGlobalErrorHandlers();
+
+// Stale-chunk recovery — eager, before render. When a deploy changes the
+// content-hashed chunk filenames, a tab still running the previous build
+// fails to fetch a lazy chunk on navigation. Vite fires a cancelable
+// `vite:preloadError` on window *before* throwing; preventDefault() stops
+// the throw so we own the recovery (a one-shot cache-busting reload) and
+// the user never hits an error boundary on the common case. The error
+// boundaries keep the same detection as a backstop for throws that bypass
+// this event (e.g. a bare `import()` rejection inside an effect).
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  recoverFromChunkError();
+});
 
 // Dev-mode service-worker exorcism — production registers a Workbox SW
 // that pre-caches JS bundles. If a dev session is opened on the same

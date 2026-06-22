@@ -381,7 +381,7 @@ export function BrowseTasksFeed({
                         key={job.id}
                         job={job}
                         effectiveFee={effectiveFee}
-                        recommended={i < 2}
+                        recommended={i === 0}
                         onSelect={(j) => setDetailJob(j)}
                         isHighlighted={hoveredJobId === job.id}
                         onMouseEnter={() => setHoveredJobId?.(job.id)}
@@ -410,7 +410,7 @@ export function BrowseTasksFeed({
                           onMouseEnter={() => setHoveredJobId?.(job.id)}
                           onMouseLeave={() => setHoveredJobId?.(null)}
                         >
-                          <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} recommended={i < 2} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
+                          <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} recommended={i === 0} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
                         </motion.div>
                       ))}
                     </AnimatePresence>

@@ -55,7 +55,7 @@ const buttonVariants = cva(
         //
         // Depth: all 4 treatments (filled primary CTA).
         default:
-          "bg-[linear-gradient(180deg,hsl(var(--primary))_0%,hsl(var(--primary)/0.92)_100%)] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] hover:brightness-110 " +
+          "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] hover:brightness-110 " +
           ELEV_FILLED,
         // Destructive: shadow + highlight + press, NO gradient — keep red
         // flat-looking so it doesn't get accidentally pressed.
@@ -77,7 +77,7 @@ const buttonVariants = cva(
         // so it gets all 4 treatments (gradient + highlight + 2-layer shadow
         // + active press), plus its existing shimmer sweep.
         hero:
-          "relative overflow-hidden bg-[linear-gradient(180deg,hsl(var(--primary))_0%,hsl(var(--primary)/0.92)_100%)] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] text-base hover:brightness-110 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out " +
+          "relative overflow-hidden btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] text-base hover:brightness-110 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out " +
           ELEV_FILLED,
         // Hero-outline: outline family, shadow #1 only.
         "hero-outline":

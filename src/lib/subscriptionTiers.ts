@@ -13,7 +13,7 @@ export interface TierPerks {
   name: string;
   price: number | null;         // monthly USD, null = free
   annualPrice: number | null;   // billed annually (2 months free), null = free
-  platformFeePercent: number;   // % taken from helper payout (free = 12%, pro = 10%, elite = 8%)
+  platformFeePercent: number;   // % taken from helper payout (free 12 / pro 10 / elite 8 / business 6)
   priorityPlacement: boolean;   // application floated higher in poster's recommended list
   instantBook: boolean;         // can be booked without applying on instant-book jobs
   featuredBadge: boolean;       // gold/crown badge on profile and applicant cards
@@ -79,7 +79,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     name: "Business",
     price: 49.99,
     annualPrice: 39.99,
-    platformFeePercent: 10,
+    platformFeePercent: 6,
     priorityPlacement: true,
     instantBook: true,
     featuredBadge: true,

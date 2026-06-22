@@ -27,6 +27,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getHelperFeePercent } from "../_shared/helperFees.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -195,14 +196,21 @@ serve(async (req) => {
   }
 
   // Compute payout: budget - platform cut + any urgent fee, in cents.
-  // Fee % comes from platform_settings (single source of truth across
-  // create-payment, process-scheduled-payouts, and this function).
+  // The platform cut is the helper's tiered commission (free 12 / pro 10 /
+  // elite 8 / business 6), resolved from their live subscription tier at
+  // payout time. platform_settings.helper_fee_percent is the fallback if the
+  // tier read fails, preserving prior behavior on a transient error.
   const { data: feeSettings } = await supabaseAdmin
     .from("platform_settings")
     .select("helper_fee_percent")
     .limit(1)
     .single();
-  const helperFeePercent = feeSettings?.helper_fee_percent ?? HELPER_FEE_PERCENT_FALLBACK;
+  const fallbackFeePercent = feeSettings?.helper_fee_percent ?? HELPER_FEE_PERCENT_FALLBACK;
+  const helperFeePercent = await getHelperFeePercent(
+    supabaseAdmin,
+    job.helper_id,
+    fallbackFeePercent,
+  );
   const grossDollars = Number(job.budget) + Number(job.urgent_fee ?? 0);
   const platformFeeDollars =
     Math.round(Number(job.budget) * helperFeePercent) / 100;
@@ -335,7 +343,14 @@ serve(async (req) => {
 
   await supabaseAdmin
     .from("jobs")
-    .update({ payment_status: "released" })
+    .update({
+      payment_status: "released",
+      // Persist the tier-resolved commission so job-level revenue analytics
+      // match what actually moved (the escrow-time value was a placeholder
+      // computed before any helper — and thus any tier — was known).
+      platform_fee_amount: platformFeeDollars,
+      helper_fee_percent: helperFeePercent,
+    })
     .eq("id", job.id);
 
   // Note: onboarding-fee flag was already flipped atomically above,

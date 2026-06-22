@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { getHelperFeePercent } from "../_shared/helperFees.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -316,7 +317,13 @@ serve(async (req) => {
       // Commission tax is already collected at checkout — no deduction here
       const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
-      const jobHelperFeePercent = job.helper_fee_percent ?? 10;
+      // Resolve the helper's live tier for an accurate payout estimate; the real
+      // transfer in process-scheduled-payouts re-resolves it at payout time.
+      const jobHelperFeePercent = await getHelperFeePercent(
+        supabaseAdmin,
+        job.helper_id,
+        job.helper_fee_percent ?? 10,
+      );
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
       const helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
       if (isPoster && job.helper_id && !helperDone) {
@@ -534,8 +541,15 @@ serve(async (req) => {
       if (pi.status !== "succeeded") throw new Error(`Payment not captured (status: ${pi.status})`);
       const captureResult = { paymentIntentId };
 
-      // Transfer to helpr
-      const feeAmt = job.platform_fee_amount || 0;
+      // Transfer to helpr. Resolve the platform fee from the helper's live
+      // subscription tier at release time; fall back to the amount frozen on the
+      // job at checkout if the profile read fails.
+      const disputeFeePercent = await getHelperFeePercent(
+        supabaseAdmin,
+        job.helper_id,
+        job.helper_fee_percent ?? 10,
+      );
+      const feeAmt = Math.round(Number(job.budget) * disputeFeePercent) / 100 || (job.platform_fee_amount || 0);
       const dpHelpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       const helperPayout = (job.budget / dpHelpersCount) - (feeAmt / dpHelpersCount) + (job.urgent_fee ?? 0);
       if (job.helper_id && helperPayout > 0) {
@@ -547,6 +561,8 @@ serve(async (req) => {
       await supabaseAdmin.from("jobs").update({
         status: "completed",
         payment_status: "released",
+        helper_fee_percent: disputeFeePercent,
+        platform_fee_amount: feeAmt,
       }).eq("id", jobId);
 
       // Notify both parties

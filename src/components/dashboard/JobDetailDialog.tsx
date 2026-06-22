@@ -919,12 +919,26 @@ const JobDetailDialog = ({
             }
           />
           )}
-          {/* Apply gate — when the job requires a credential tier and the
-              viewer's tier is below that threshold, replace the Apply button
-              with a locked state that routes them to /profile to get verified.
-              Falls back transparently when get_user_credential_tier isn't
-              deployed yet (viewerTier defaults to 0 on PGRST202). */}
-          {(job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0) ? (
+          {/* Own-job guard — a poster can reach their own job via a shared
+              link or Quick Apply toast, so swap the Apply CTA for a plain
+              "your post" marker. The Dashboard apply handler also rejects
+              self-applications, but hiding the button avoids the dead-end tap. */}
+          {viewerUserId === job.customer_id ? (
+            <div
+              className="flex-1 rounded-ds-md h-11 sm:h-12 px-3 flex items-center justify-center gap-2 text-center"
+              style={{
+                background: "hsl(var(--bark) / 0.06)",
+                border: "0.5px solid hsl(var(--bark) / 0.18)",
+              }}
+            >
+              <span
+                className="font-display italic font-semibold text-ds-14"
+                style={{ color: "hsl(var(--ink-deep))" }}
+              >
+                This is your post
+              </span>
+            </div>
+          ) : (job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0) ? (
             <div
               className="flex-1 rounded-ds-md p-3 text-center"
               style={{

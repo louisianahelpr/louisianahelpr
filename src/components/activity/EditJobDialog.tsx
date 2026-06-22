@@ -20,6 +20,24 @@ interface EditJobDialogProps {
   onSaved: () => void;
 }
 
+// Section heading — a Bodoni-italic chapter label with a trailing hairline
+// rule, mirroring the Post-a-Task SectionCard header but light enough for a
+// dialog. Deliberately distinct from the burnt-sienna field eyebrows so the
+// group → field hierarchy reads at a glance.
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className="font-display italic font-bold whitespace-nowrap"
+        style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+      >
+        {children}
+      </span>
+      <span className="flex-1 h-px" style={{ background: "hsl(var(--olivewood) / 0.14)" }} />
+    </div>
+  );
+}
+
 export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -86,7 +104,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             {title ? `"${title}"` : "Edit task"}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-5">
           {locked && (
             <p
               className="font-serif italic text-[0.8rem] leading-relaxed rounded-ds-md p-2.5"
@@ -99,59 +117,78 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               These fields are locked — a helpr's already accepted this task.
             </p>
           )}
-          <div className="space-y-1.5">
-            <Label className={eyebrowCls} style={eyebrowStyle}>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className={eyebrowCls} style={eyebrowStyle}>Description</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={hasHelper} autoCapitalize="sentences" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className={eyebrowCls} style={eyebrowStyle}>Category</Label>
-            <Select value={category} onValueChange={setCategory} disabled={hasHelper}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className={eyebrowCls} style={eyebrowStyle}>Location</Label>
-            <Input value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+          {/* ── The task — what it is ─────────────────────────────────── */}
+          <section className="space-y-4">
+            <SectionHeading>The task</SectionHeading>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-date-needed" className={eyebrowCls} style={eyebrowStyle}>Date needed</Label>
-              {hasHelper ? (
-                // When a helpr is locked in, the field is read-only. Show a
-                // disabled Input mirroring the locked state of the other
-                // fields in this dialog rather than a non-interactive
-                // DatePickerField (which has no `disabled` styling).
-                <Input id="edit-date-needed" type="date" value={dateNeeded} disabled readOnly />
-              ) : (
-                <DatePickerField
-                  id="edit-date-needed"
-                  value={dateNeeded}
-                  onChange={setDateNeeded}
-                  min={todayLocalISO()}
-                  placeholder="Choose a date"
-                />
-              )}
+              <Label className={eyebrowCls} style={eyebrowStyle}>Title</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
             </div>
             <div className="space-y-1.5">
-              <Label className={eyebrowCls} style={eyebrowStyle}>Start time</Label>
-              <TimePickerSelect value={startTime} onChange={setStartTime} disabled={hasHelper} />
+              <Label className={eyebrowCls} style={eyebrowStyle}>Description</Label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={hasHelper} autoCapitalize="sentences" />
             </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className={eyebrowCls} style={eyebrowStyle}>Est. hours</Label>
-            <Input type="number" inputMode="decimal" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} aria-label="Estimated hours" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className={eyebrowCls} style={eyebrowStyle}>Special requirements</Label>
-            <Textarea value={specialReq} onChange={(e) => setSpecialReq(e.target.value)} rows={2} disabled={hasHelper} autoCapitalize="sentences" />
-          </div>
+            <div className="space-y-1.5">
+              <Label className={eyebrowCls} style={eyebrowStyle}>Category</Label>
+              <Select value={category} onValueChange={setCategory} disabled={hasHelper}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </section>
+
+          {/* ── When & where — the logistics ──────────────────────────── */}
+          <section className="space-y-4">
+            <SectionHeading>When &amp; where</SectionHeading>
+            <div className="space-y-1.5">
+              <Label className={eyebrowCls} style={eyebrowStyle}>Location</Label>
+              <Input value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-date-needed" className={eyebrowCls} style={eyebrowStyle}>Date needed</Label>
+                {hasHelper ? (
+                  // When a helpr is locked in, the field is read-only. Show a
+                  // disabled Input mirroring the locked state of the other
+                  // fields in this dialog rather than a non-interactive
+                  // DatePickerField (which has no `disabled` styling).
+                  <Input id="edit-date-needed" type="date" value={dateNeeded} disabled readOnly />
+                ) : (
+                  <DatePickerField
+                    id="edit-date-needed"
+                    value={dateNeeded}
+                    onChange={setDateNeeded}
+                    min={todayLocalISO()}
+                    placeholder="Choose a date"
+                  />
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label className={eyebrowCls} style={eyebrowStyle}>Start time</Label>
+                <TimePickerSelect value={startTime} onChange={setStartTime} disabled={hasHelper} />
+              </div>
+            </div>
+            {/* Est. hours is a short numeric — half-width so it doesn't read
+                as a heavyweight full-bleed field alone on its row. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-est-hours" className={eyebrowCls} style={eyebrowStyle}>Est. hours</Label>
+                <Input id="edit-est-hours" type="number" inputMode="decimal" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} aria-label="Estimated hours" />
+              </div>
+            </div>
+          </section>
+
+          {/* ── Anything else — optional extras ───────────────────────── */}
+          <section className="space-y-4">
+            <SectionHeading>Anything else</SectionHeading>
+            <div className="space-y-1.5">
+              <Label className={eyebrowCls} style={eyebrowStyle}>Special requirements</Label>
+              <Textarea value={specialReq} onChange={(e) => setSpecialReq(e.target.value)} rows={2} disabled={hasHelper} autoCapitalize="sentences" />
+            </div>
+          </section>
         </div>
         <DialogFooter className="!gap-2">
           <Button

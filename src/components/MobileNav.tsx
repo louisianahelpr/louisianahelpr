@@ -20,6 +20,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
+import { getBlockedUserIds } from "@/lib/userBlocks";
 import { safeStorage } from "@/lib/safeStorage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
@@ -245,21 +246,31 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   useEffect(() => {
     if (!user) return;
 
-    const loadCounts = () => {
-      supabase
+    const loadCounts = async () => {
+      // Mirror the inbox's own hide rules (Messages.tsx) so the badge can't
+      // claim "1" while the inbox renders empty: the inbox drops system
+      // messages and any thread with a blocked sender, so the count must too.
+      const blockedSet = await getBlockedUserIds(user.id);
+      const base = supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
         .eq("receiver_id", user.id)
-        .eq("read", false)
-        .then(({ count, error }) => {
-          // Only overwrite the seeded value on a successful response —
-          // a failed query (offline, transient) must NOT zero the badge
-          // and surprise the user. The cache stays the floor.
-          if (error) return;
-          const next = count || 0;
-          setUnreadCount(next);
-          writeCachedUnread(next);
-        });
+        .eq("read", false);
+      // `is_system` is a real column but missing from the generated types,
+      // so the dynamic .not() filters need an untyped handle.
+      let query: any = base;
+      query = query.not("is_system", "is", true);
+      if (blockedSet.size > 0) {
+        query = query.not("sender_id", "in", `(${[...blockedSet].join(",")})`);
+      }
+      const { count, error } = await query;
+      // Only overwrite the seeded value on a successful response —
+      // a failed query (offline, transient) must NOT zero the badge
+      // and surprise the user. The cache stays the floor.
+      if (error) return;
+      const next = count || 0;
+      setUnreadCount(next);
+      writeCachedUnread(next);
     };
 
     loadCounts();

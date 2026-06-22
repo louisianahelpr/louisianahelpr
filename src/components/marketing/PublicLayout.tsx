@@ -45,7 +45,7 @@ const PublicLayout = ({
   children,
   showCtaBand = true,
   ctaHeadline = "Ready to start?",
-  ctaSubcopy = "Join thousands of Louisiana neighbors already getting things done on Helpr.",
+  ctaSubcopy = "Join your Louisiana neighbors getting things done on Helpr.",
   ctaLabel = "Get started",
   ctaTo = "/signup",
   noNavSpacer = false,

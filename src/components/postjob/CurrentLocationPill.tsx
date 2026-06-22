@@ -3,6 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { LocateFixed, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
+import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { hapticLight } from "@/lib/haptics";
 
 /** Reverse-geocode result: every field may be blank if undecodable. */
@@ -57,6 +58,7 @@ function isLouisianaState(rawState: string | undefined | null): boolean | null {
  */
 export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
   const mapKitStatus = useMapKitJs();
+  const { request: requestPermission } = usePermissionRationale();
   const [loading, setLoading] = useState(false);
 
   const reverseViaMapKit = (
@@ -147,43 +149,66 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
       toast.error("Location isn't supported on this device.");
       return;
     }
-    setLoading(true);
-    try {
-      const { latitude, longitude } = await getPosition();
-      let picked: ResolvedAddress | null = null;
-      if (mapKitStatus === "ready") {
-        picked = await reverseViaMapKit(latitude, longitude);
+
+    // Pre-prompt with the friendly "why we want location" rationale before
+    // the OS dialog fires. iOS only shows its system alert ONCE per install,
+    // so a cold prompt here burns the single shot with no context. The hook
+    // session-gates itself, so a returning user skips straight to the fetch.
+    let coords: { latitude: number; longitude: number } | null = null;
+    let posError: unknown = null;
+    await requestPermission("location", async () => {
+      setLoading(true);
+      try {
+        coords = await getPosition();
+      } catch (err) {
+        posError = err;
       }
-      if (!picked) {
-        picked = await reverseViaNominatim(latitude, longitude);
-      }
+    });
+
+    // The user declined the rationale ("Not now") — the native call never
+    // ran. Stay silent rather than nagging with an error toast.
+    if (!coords && !posError) {
       setLoading(false);
-      if (!picked) {
-        toast.error("Couldn't resolve your address. Try typing it instead.");
-        return;
-      }
-      // Louisiana-only: reject a geocode that clearly resolved out of state
-      // instead of silently filling State="LA" on a non-LA city/zip. When
-      // the state is undeterminable (null) we let it through — the form's
-      // own validation still gates submission.
-      if (isLouisianaState(picked.state) === false) {
-        toast.error("Louisiana Helpr is available in Louisiana only.");
-        return;
-      }
-      onResolved(picked);
-      toast.success("Address filled from your current location");
-    } catch (err) {
+      return;
+    }
+
+    if (posError) {
       setLoading(false);
-      const code = (err as { code?: number })?.code;
-      const msg = String((err as { message?: string })?.message ?? "");
+      const code = (posError as { code?: number })?.code;
+      const msg = String((posError as { message?: string })?.message ?? "");
       const denied =
         code === 1 /* PERMISSION_DENIED */ || /denied|permission/i.test(msg);
-      if (denied) {
-        toast.error("Location permission denied — type the address instead.");
-      } else {
-        toast.error("Couldn't get your location — try again or type it in.");
-      }
+      toast.error(
+        denied
+          ? "Location permission denied — type the address instead."
+          : "Couldn't get your location — try again or type it in.",
+      );
+      return;
     }
+
+    const { latitude, longitude } = coords!;
+    let picked: ResolvedAddress | null = null;
+    if (mapKitStatus === "ready") {
+      picked = await reverseViaMapKit(latitude, longitude);
+    }
+    if (!picked) {
+      picked = await reverseViaNominatim(latitude, longitude);
+    }
+    setLoading(false);
+    if (!picked) {
+      toast.error("Couldn't resolve your address. Try typing it instead.");
+      return;
+    }
+    // Louisiana-only: reject a geocode that clearly resolved out of state
+    // instead of silently filling State="LA" on a non-LA city/zip. When
+    // the state is undeterminable (null) we let it through — the form's
+    // own validation still gates submission.
+    if (isLouisianaState(picked.state) === false) {
+      toast.error("Louisiana Helpr is available in Louisiana only.");
+      return;
+    }
+    onResolved(picked);
+    toast.success("Address filled from your current location");
   };
 
   return (

@@ -58,7 +58,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # Full history so `sentry-cli releases set-commits --auto` can
           # diff against the previous release and attach commit metadata.

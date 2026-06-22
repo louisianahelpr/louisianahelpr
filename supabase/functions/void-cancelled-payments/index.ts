@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { getHelperFeePercent } from "../_shared/helperFees.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -137,13 +138,18 @@ serve(async (req) => {
 
           // Transfer cancellation fee to helper minus platform commission
           if (cancellationFee > 0 && job.helper_id) {
-            // Fetch helper fee percent from platform settings
+            // Resolve commission from the helper's live subscription tier; fall
+            // back to the platform-settings rate if the profile read fails.
             const { data: settings } = await supabaseAdmin
               .from("platform_settings")
               .select("helper_fee_percent")
               .limit(1)
               .single();
-            const commissionPercent = settings?.helper_fee_percent ?? 10;
+            const commissionPercent = await getHelperFeePercent(
+              supabaseAdmin,
+              job.helper_id,
+              settings?.helper_fee_percent ?? 10,
+            );
             const platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
             const helperPayout = cancellationFee - platformCut;
 

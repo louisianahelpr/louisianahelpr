@@ -108,11 +108,18 @@ const UserProfile = () => {
       // found". When the requested id is the current user's, fall back to
       // a direct self-select (the profiles RLS policy already permits the
       // owner to read their own row regardless of approval_status).
+      // Primary path: the masked RPC. We deliberately do NOT throw on its
+      // error — a missing function (PGRST202 before a migration is pushed)
+      // or any transient RPC failure used to collapse the whole query into
+      // <ErrorState> ("Something went wrong"), which retry could never
+      // recover because retry just re-ran the same failing RPC. Treat an
+      // error the same as an empty result and fall through to the direct
+      // select below, which RLS already gates to approved rows (and the
+      // owner's own row) — so the page loads instead of hard-failing.
       const profileRes = await supabase.rpc("get_safe_profiles", { user_ids: [userId!] });
-      if (profileRes.error) throw profileRes.error;
-      let prof = (profileRes.data?.[0] ?? null) as any;
+      let prof = (profileRes.error ? null : profileRes.data?.[0] ?? null) as any;
 
-      if (!prof && userId === currentUserId) {
+      if (!prof) {
         prof = unwrap(
           await supabase
             .from("profiles")

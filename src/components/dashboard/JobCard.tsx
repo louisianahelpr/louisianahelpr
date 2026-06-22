@@ -1,4 +1,4 @@
-import { memo, useCallback, type KeyboardEvent } from "react";
+import { memo, useCallback, type KeyboardEvent, type TouchEvent } from "react";
 import {
   MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck,
 } from "lucide-react";
@@ -209,6 +209,17 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     : onLongPress
       ? {
           ...longPress,
+          ...prefetchHandlers,
+          // prefetchHandlers.onTouchStart would otherwise clobber
+          // longPress.onTouchStart (last-write-wins spread), leaving the
+          // long-press/tap lifecycle un-armed. This branch has no onClick,
+          // so taps depend entirely on longPress's touch handlers — losing
+          // onTouchStart made single taps misfire (needing a double-tap).
+          // Compose both: warm the prefetch AND begin the press lifecycle.
+          onTouchStart: (e: TouchEvent) => {
+            prefetchHandlers.onTouchStart();
+            longPress.onTouchStart(e);
+          },
           role: "button" as const,
           tabIndex: 0,
           "aria-label": `View ${job.title} — $${formatPrice(job.budget)}`,
@@ -219,7 +230,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               onSelect(job);
             }
           },
-          ...prefetchHandlers,
         }
       : {
           onClick: handleTap,

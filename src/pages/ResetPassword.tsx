@@ -83,7 +83,7 @@ const ResetPassword = () => {
 
         {!ready ? (
           <div className="text-center space-y-4">
-            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               This page is used to reset your password. Please use the link from your email.
             </p>
             <Link to="/forgot-password">
@@ -104,7 +104,7 @@ const ResetPassword = () => {
                   required
                   minLength={8}
                   autoComplete="new-password"
-                  className={`${passwordValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]`}
+                  className={`${passwordValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
                 />
                 {passwordValid && (
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -138,7 +138,7 @@ const ResetPassword = () => {
                   </div>
                 );
               })()}
-              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 At least 8 characters, 1 uppercase, 1 number
               </p>
             </div>
@@ -154,7 +154,7 @@ const ResetPassword = () => {
                   required
                   minLength={8}
                   autoComplete="new-password"
-                  className={`${confirmValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]`}
+                  className={`${confirmValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
                 />
                 {confirmValid && (
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -195,7 +195,7 @@ const ResetPassword = () => {
           </form>
         )}
 
-        <p className="text-center text-ds-11 pt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+        <p className="text-center text-ds-11 pt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           <Link
             to="/login"
             className="font-semibold hover:underline inline-flex items-center gap-1"

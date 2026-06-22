@@ -189,7 +189,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             {copied ? "Copied" : "Copy"}
           </Button>
         </div>
-        <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+        <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
           When a friend completes their first job using your code, <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>you both earn $5</span>. Up to 5 friends ($25 max).
         </p>
       </div>
@@ -224,7 +224,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
               Cash out credits
             </p>
-            <p className="font-serif italic leading-snug truncate" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic leading-snug truncate" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               {hasStripeAccount ? `$${unredeemedCredits.toFixed(2)} → Stripe payout account` : "Connect Stripe to cash out"}
             </p>
           </div>

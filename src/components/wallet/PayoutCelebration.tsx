@@ -227,7 +227,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
               dismiss();
             }}
             className="absolute top-2 right-2 p-1 rounded-full transition-colors active:opacity-70"
-            style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             aria-label="Dismiss"
           >
             <X className="w-3.5 h-3.5" />
@@ -273,7 +273,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                 className="font-serif italic truncate"
                 style={{
                   fontSize: "0.74rem",
-                  color: "hsl(var(--olivewood) / 0.72)",
+                  color: "hsl(var(--olivewood) / 0.8)",
                 }}
               >
                 {newPayouts.length > 1

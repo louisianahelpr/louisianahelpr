@@ -205,7 +205,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           <h1 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             Message sent
           </h1>
-          <p className="font-serif italic max-w-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic max-w-sm" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Our team will review and get back to you soon.
           </p>
         </div>
@@ -245,7 +245,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                 {c.label}
               </p>
-              <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 {c.description}
               </p>
             </button>

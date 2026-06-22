@@ -164,7 +164,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
           {step !== "confirmation" && (
             <p
               className="font-serif italic mt-1 text-[0.82rem] leading-relaxed"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Tell us what's going on. Our trust team reviews every report.
             </p>
@@ -175,7 +175,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
           <div className="space-y-2">
             <p
               className="font-serif italic uppercase text-[0.6rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.65)", letterSpacing: "0.16em" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.16em" }}
             >
               Why are you reporting this?
             </p>
@@ -366,7 +366,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 <p
                   className="font-serif italic uppercase text-[0.6rem]"
                   style={{
-                    color: "hsl(var(--olivewood) / 0.7)",
+                    color: "hsl(var(--olivewood) / 0.8)",
                     letterSpacing: "0.16em",
                   }}
                 >

@@ -495,7 +495,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
               </p>
               <p
                 className="font-serif italic"
-                style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 New posts land here the moment they go live across Louisiana.
               </p>

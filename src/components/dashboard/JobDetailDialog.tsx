@@ -500,7 +500,7 @@ const JobDetailDialog = ({
             />
             <p
               className="font-serif italic text-ds-11 mt-1 text-center"
-              style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Scope video — see exactly what's needed
             </p>
@@ -703,7 +703,7 @@ const JobDetailDialog = ({
                     <p
                       className="flex items-center justify-center gap-1.5 text-ds-11 font-sans font-semibold uppercase"
                       style={{
-                        color: urgent ? "hsl(var(--accent))" : "hsl(var(--olivewood) / 0.65)",
+                        color: urgent ? "hsl(var(--accent))" : "hsl(var(--olivewood) / 0.8)",
                         letterSpacing: "0.06em",
                       }}
                     >
@@ -720,7 +720,7 @@ const JobDetailDialog = ({
                       {value}
                     </p>
                     {sub && (
-                      <p className="font-serif italic text-ds-11 truncate text-center mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                      <p className="font-serif italic text-ds-11 truncate text-center mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                         {sub}
                       </p>
                     )}
@@ -949,7 +949,7 @@ const JobDetailDialog = ({
               </p>
               <p
                 className="font-serif italic text-ds-12 mt-0.5"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Get verified to apply for this job
               </p>

@@ -105,10 +105,10 @@ export function EscrowProgressBar({
               ? "hsl(var(--olivewood) / 0.30)"
               : "hsl(var(--bark))";
             const nodeFg = isFuture
-              ? "hsl(var(--olivewood) / 0.45)"
+              ? "hsl(var(--olivewood) / 0.8)"
               : "hsl(var(--parchment))";
             const labelColor = isFuture
-              ? "hsl(var(--olivewood) / 0.45)"
+              ? "hsl(var(--olivewood) / 0.8)"
               : isCurrent
                 ? "hsl(var(--bark))"
                 : "hsl(var(--olivewood))";

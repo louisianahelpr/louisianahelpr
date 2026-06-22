@@ -145,7 +145,7 @@ export function SignupStep1({
               friction that costs activations without preventing errors. */}
           <Label htmlFor="email" className={labelCls}>Email</Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.5)" }} strokeWidth={1.75} />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
             <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" className={`${inputCls} pl-10 ${emailValid ? "pr-10" : ""}`} />
             {emailValid && (
               <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -171,7 +171,7 @@ export function SignupStep1({
         <div className="space-y-2">
           <Label htmlFor="password" className={labelCls}>Password</Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.5)" }} strokeWidth={1.75} />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
             <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={8} className={`${inputCls} pl-10 pr-10`} autoComplete="new-password" />
             <button
               type="button"
@@ -258,7 +258,7 @@ export function SignupStep1({
         />
         <span
           className="text-ds-11 leading-relaxed font-sans"
-          style={{ color: "hsl(var(--olivewood) / 0.78)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           I agree to the{" "}
           <Link to="/rules" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>,{" "}
@@ -298,14 +298,14 @@ export function SignupStep1({
           same-route ?type= flip keeps the parent form mounted, so typed
           email/password survive the switch. */}
       <div className="space-y-1.5 pt-1">
-        <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+        <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Already have an account?{" "}
           <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
             Log in
           </Link>
         </p>
         {!isBusinessSignup && (
-          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Setting up for a company?{" "}
             <Link to="/signup?type=business" replace className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
               Switch to business sign-up

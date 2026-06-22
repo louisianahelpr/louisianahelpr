@@ -511,7 +511,7 @@ export function ChatView({
                   </p>
                   <p
                     className="font-serif italic text-[0.82rem] max-w-[260px]"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Tap Retry. If it sticks, our end is having a hiccup —
                     not yours.
@@ -547,7 +547,7 @@ export function ChatView({
                   </p>
                   <p
                     className="font-serif italic text-[0.82rem] max-w-[260px]"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Send the first message to get the job moving.
                   </p>
@@ -578,7 +578,7 @@ export function ChatView({
                       style={{
                         fontSize: "0.62rem",
                         letterSpacing: "0.16em",
-                        color: "hsl(var(--olivewood) / 0.65)",
+                        color: "hsl(var(--olivewood) / 0.8)",
                       }}
                     >
                       {item.label}
@@ -620,7 +620,7 @@ export function ChatView({
                         style={{
                           fontSize: "8.5px",
                           letterSpacing: "0.12em",
-                          color: "hsl(var(--olivewood) / 0.5)",
+                          color: "hsl(var(--olivewood) / 0.8)",
                         }}
                       >
                         {new Date(ev.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
@@ -639,7 +639,7 @@ export function ChatView({
                   <div key={item.key} className="flex justify-center py-1.5">
                     <span
                       className="text-ds-11 font-serif italic px-3 py-0.5 rounded-full"
-                      style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {m.content}
                     </span>

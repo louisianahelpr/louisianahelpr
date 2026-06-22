@@ -296,7 +296,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               </p>
               <p
                 className="font-serif italic text-[0.78rem] leading-snug max-w-[280px]"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Tap retry — your saved searches are safe, this is just a fetch hiccup.
               </p>
@@ -334,7 +334,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               </p>
               <p
                 className="font-serif italic text-[0.78rem] leading-snug max-w-[280px]"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Set a filter combo above and save it — we'll ping you when fresh jobs match.
               </p>
@@ -362,7 +362,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                   </p>
                   <p
                     className="text-ds-11 font-serif italic truncate mt-0.5"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {[
                       s.category && `Category: ${categoryLabels[s.category] ?? s.category}`,

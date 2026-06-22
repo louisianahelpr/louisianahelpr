@@ -155,14 +155,14 @@ export default function BenefitsPage() {
                     </p>
                     <p
                       className="text-xs mt-0.5 leading-relaxed"
-                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {item.tagline}
                     </p>
                   </div>
                   <ExternalLink
                     className="w-4 h-4 shrink-0 mt-0.5"
-                    style={{ color: "hsl(var(--olivewood) / 0.4)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   />
                 </button>
               ))}
@@ -189,7 +189,7 @@ export default function BenefitsPage() {
               <li
                 key={item}
                 className="text-sm flex items-center gap-2"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
                 {item}
@@ -213,7 +213,7 @@ export default function BenefitsPage() {
             </p>
             <p
               className="text-xs"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Redeem hours earned from helping for cash discounts on your next job.
             </p>

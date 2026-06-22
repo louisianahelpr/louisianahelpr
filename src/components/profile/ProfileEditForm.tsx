@@ -269,7 +269,7 @@ export function ProfileEditForm({
           />
         </div>
         {completion.nextLabel && (
-          <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Next:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
               {completion.nextLabel}
@@ -332,7 +332,7 @@ export function ProfileEditForm({
               <p className="font-display italic font-bold leading-tight truncate text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                 {`${firstName} ${lastName}`.trim() || "Your name"}
               </p>
-              <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 Tap the photo to change. Your name is locked after signup
                 {onContactSupport ? (
                   <>
@@ -396,7 +396,7 @@ export function ProfileEditForm({
                 registered (and catches a wrong one). Parish drives
                 Louisiana sales tax. */}
             {resolvedParish && (
-              <p className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <MapPin className="w-3 h-3 shrink-0" />
                 Parish · <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{resolvedParish}</span>
               </p>
@@ -431,7 +431,7 @@ export function ProfileEditForm({
             autoCapitalize="sentences"
             className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
           />
-          <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
             Customers read this when deciding who to hire. The more specific, the better.
           </p>
         </div>
@@ -448,7 +448,7 @@ export function ProfileEditForm({
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
           </div>
           <div className="flex items-center gap-3">
-            <p className="font-serif italic leading-snug flex-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic leading-snug flex-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Upload a government-issued ID. Encrypted in transit, used only for identity verification and fraud prevention.
             </p>
             <label className="shrink-0">
@@ -479,9 +479,9 @@ export function ProfileEditForm({
             </p>
             <span className="text-ds-11 text-muted-foreground">{portfolioUrls.length}/{MAX_PORTFOLIO}</span>
           </div>
-          <p className="font-serif italic leading-snug -mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic leading-snug -mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
             Show off recent jobs — applicants see these when deciding to apply.
-            {" "}<span className="not-italic font-sans font-medium" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>Photos save automatically.</span>
+            {" "}<span className="not-italic font-sans font-medium" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Photos save automatically.</span>
           </p>
           <div className="grid grid-cols-3 gap-2">
             {portfolioUrls.map((url, i) => (
@@ -553,7 +553,7 @@ export function ProfileEditForm({
         )}
         <p
           className="text-center font-serif italic px-6 leading-snug"
-          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.6)" }}
+          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Photos &amp; ID save automatically. Other changes save when you tap{" "}
           <span className="not-italic font-sans font-medium">Save changes</span>.

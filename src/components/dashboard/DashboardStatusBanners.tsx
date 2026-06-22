@@ -61,7 +61,7 @@ const DashboardStatusBanners = ({
             <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
               Verification in progress — browse and apply now.
             </p>
-            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Review usually finishes in 24–48 hours. You'll just need it cleared before you can accept a job. Tap to track status.
             </p>
           </button>
@@ -94,7 +94,7 @@ const DashboardStatusBanners = ({
           <span className="flex-1 min-w-0 truncate text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
             <span className="font-semibold">{upcomingJob.title}</span>
             {upcomingJob.date_needed && (
-              <span style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+              <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {" · "}
                 {new Date(upcomingJob.date_needed).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                 {upcomingJob.start_time ? ` ${upcomingJob.start_time.slice(0, 5)}` : ""}

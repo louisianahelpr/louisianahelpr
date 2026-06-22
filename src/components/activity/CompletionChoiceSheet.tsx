@@ -187,7 +187,7 @@ export function CompletionChoiceSheet({
               >
                 How did it go?
               </SheetTitle>
-              <SheetDescription className="font-serif italic" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+              <SheetDescription className="font-serif italic" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 Your choice determines what happens to payment.
               </SheetDescription>
             </SheetHeader>
@@ -220,7 +220,7 @@ export function CompletionChoiceSheet({
                     </p>
                     <p
                       className="font-serif italic mt-0.5"
-                      style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}
+                      style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Release payment to {helperName}
                     </p>
@@ -255,7 +255,7 @@ export function CompletionChoiceSheet({
                     </p>
                     <p
                       className="font-serif italic mt-0.5"
-                      style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}
+                      style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Request a revision — payment stays held
                     </p>
@@ -284,7 +284,7 @@ export function CompletionChoiceSheet({
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <SheetDescription className="font-serif italic" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+              <SheetDescription className="font-serif italic" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 {helperName} will be notified and can respond before the job closes.
               </SheetDescription>
             </SheetHeader>

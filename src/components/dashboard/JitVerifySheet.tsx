@@ -87,7 +87,7 @@ export function JitVerifySheet({ open, onVerify, onLater }: JitVerifySheetProps)
               type="button"
               onClick={onLater}
               className="w-full py-2.5 font-serif italic text-[0.88rem] transition-opacity active:opacity-60"
-              style={{ color: "hsl(var(--olivewood) / 0.72)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               I'll do this later →
             </button>

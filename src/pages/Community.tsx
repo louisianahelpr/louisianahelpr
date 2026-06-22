@@ -131,7 +131,7 @@ function BeforeAfterCard({ post, onLike, likePending }: PostCardProps) {
           </p>
           <p
             className="font-sans uppercase tracking-wide truncate"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--olivewood) / 0.6)" }}
+            style={{ fontSize: "0.6rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {[post.category, post.parish, relTime].filter(Boolean).join(" · ")}
           </p>
@@ -208,11 +208,11 @@ function BeforeAfterCard({ post, onLike, likePending }: PostCardProps) {
             className="w-4.5 h-4.5 transition-colors"
             strokeWidth={post.liked ? 0 : 1.8}
             fill={post.liked ? "hsl(var(--burnt-sienna))" : "none"}
-            style={{ color: post.liked ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.55)" }}
+            style={{ color: post.liked ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.8)" }}
           />
           <span
             className="font-sans font-semibold"
-            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.65)" }}
+            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {post.like_count}
           </span>
@@ -220,7 +220,7 @@ function BeforeAfterCard({ post, onLike, likePending }: PostCardProps) {
         {post.parish && (
           <div
             className="flex items-center gap-1"
-            style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             <MapPin className="w-3 h-3" strokeWidth={1.8} />
             <span className="font-sans" style={{ fontSize: "0.68rem" }}>
@@ -266,7 +266,7 @@ function MilestoneCard({ post }: { post: CommunityPost }) {
           {post.parish && (
             <div
               className="flex items-center gap-1 mt-1"
-              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               <MapPin className="w-3 h-3" strokeWidth={1.8} />
               <span className="font-sans" style={{ fontSize: "0.68rem" }}>
@@ -397,7 +397,7 @@ function ShareBeforeAfterSheet({ open, onClose, userId, userParish }: ShareSheet
         <div className="grid grid-cols-2 gap-3 mb-4">
           {/* Before */}
           <div>
-            <p className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>Before</p>
+            <p className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Before</p>
             {beforePreview ? (
               <div className="relative">
                 <img src={beforePreview} alt="Before preview" className="w-full aspect-[4/3] object-cover rounded-md" />
@@ -416,8 +416,8 @@ function ShareBeforeAfterSheet({ open, onClose, userId, userParish }: ShareSheet
                 className="w-full aspect-[4/3] rounded-md flex flex-col items-center justify-center gap-1 active:opacity-70 transition-opacity"
                 style={{ border: "1.5px dashed hsl(var(--olivewood) / 0.30)", background: "hsl(var(--olivewood) / 0.04)" }}
               >
-                <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
-                <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>Add photo</span>
+                <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+                <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Add photo</span>
               </button>
             )}
             <input ref={beforeInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInput(e, "before")} />
@@ -425,7 +425,7 @@ function ShareBeforeAfterSheet({ open, onClose, userId, userParish }: ShareSheet
 
           {/* After */}
           <div>
-            <p className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>After</p>
+            <p className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>After</p>
             {afterPreview ? (
               <div className="relative">
                 <img src={afterPreview} alt="After preview" className="w-full aspect-[4/3] object-cover rounded-md" />
@@ -444,8 +444,8 @@ function ShareBeforeAfterSheet({ open, onClose, userId, userParish }: ShareSheet
                 className="w-full aspect-[4/3] rounded-md flex flex-col items-center justify-center gap-1 active:opacity-70 transition-opacity"
                 style={{ border: "1.5px dashed hsl(var(--olivewood) / 0.30)", background: "hsl(var(--olivewood) / 0.04)" }}
               >
-                <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
-                <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>Add photo</span>
+                <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+                <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Add photo</span>
               </button>
             )}
             <input ref={afterInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileInput(e, "after")} />
@@ -460,7 +460,7 @@ function ShareBeforeAfterSheet({ open, onClose, userId, userParish }: ShareSheet
           className="resize-none mb-1"
           rows={3}
         />
-        <p className="text-ds-11 text-right mb-4" style={{ color: "hsl(var(--olivewood) / 0.5)" }}>
+        <p className="text-ds-11 text-right mb-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           {caption.length}/200
         </p>
 
@@ -633,7 +633,7 @@ const Community = () => {
                   : "hsl(var(--olivewood) / 0.07)",
                 color: active
                   ? "hsl(var(--parchment))"
-                  : "hsl(var(--olivewood) / 0.75)",
+                  : "hsl(var(--olivewood) / 0.8)",
                 border: active
                   ? "1px solid hsl(var(--bark))"
                   : "0.5px solid hsl(var(--olivewood) / 0.18)",
@@ -675,7 +675,7 @@ const Community = () => {
             </p>
             <p
               className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.65)" }}
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Finish a job and share the before &amp; after — you'll inspire the whole neighborhood.
             </p>

@@ -72,7 +72,7 @@ export function DeleteAccountDialog({
           >
             <AlertTriangle className="w-5 h-5" /> Final confirmation
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-center font-serif italic text-ds-13 text-balance" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <AlertDialogDescription className="text-center font-serif italic text-ds-13 text-balance" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Type <strong className="not-italic font-sans" style={{ color: "hsl(var(--ink-deep))" }}>{CONFIRM_PHRASE}</strong> below to confirm. There is no undo.
           </AlertDialogDescription>
         </AlertDialogHeader>

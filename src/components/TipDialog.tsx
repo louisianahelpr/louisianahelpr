@@ -58,7 +58,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
           </DialogTitle>
           <p
             className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Pure thanks — goes straight to the helpr, no platform cut.
           </p>
@@ -106,7 +106,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
             <div className="h-px flex-1" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
             <span
               className="font-serif italic uppercase"
-              style={{ fontSize: "0.6rem", color: "hsl(var(--olivewood) / 0.55)", letterSpacing: "0.18em" }}
+              style={{ fontSize: "0.6rem", color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.18em" }}
             >
               or custom
             </span>

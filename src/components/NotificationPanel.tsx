@@ -333,7 +333,7 @@ const NotificationPanel = () => {
                     <span
                       className="tabular-nums text-[0.66rem] font-bold"
                       style={{
-                        color: isActive ? "hsl(var(--parchment) / 0.85)" : "hsl(var(--olivewood) / 0.55)",
+                        color: isActive ? "hsl(var(--parchment) / 0.85)" : "hsl(var(--olivewood) / 0.8)",
                       }}
                     >
                       {opt.count}
@@ -423,7 +423,7 @@ const NotificationPanel = () => {
                 </p>
                 <p
                   className="font-serif italic text-ds-13 leading-relaxed max-w-xs mx-auto"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {filter === "unread" && notifications.length > 0
                     ? "Switch to All to see everything from this week."
@@ -470,7 +470,7 @@ const NotificationPanel = () => {
                     <span>{group.label}</span>
                     <span
                       className="tabular-nums font-sans not-italic font-semibold"
-                      style={{ color: "hsl(var(--olivewood) / 0.5)", letterSpacing: "0.04em" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.04em" }}
                     >
                       {group.items.length}
                     </span>
@@ -526,7 +526,7 @@ const NotificationPanel = () => {
                             </div>
                             <p
                               className="font-serif italic mt-0.5 line-clamp-2"
-                              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               {n.message}
                             </p>
@@ -577,7 +577,7 @@ const NotificationPanel = () => {
                             })()}
                             <p
                               className="font-serif italic mt-1"
-                              style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.55)" }}
+                              style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               {timeAgo(n.created_at)}
                             </p>

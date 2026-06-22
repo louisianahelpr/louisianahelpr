@@ -106,14 +106,14 @@ export function ChatHeader({
             return (
               <BellOff
                 className="w-3 h-3 shrink-0"
-                style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 aria-label={remaining ?? "Muted"}
               />
             );
           })()}
         </p>
         <div className="flex items-center gap-1.5 mt-0.5">
-          <p className="text-ds-11 truncate leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-ds-11 truncate leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {activeConvo.jobTitle}
           </p>
           {activeConvo.jobStatus && (() => {

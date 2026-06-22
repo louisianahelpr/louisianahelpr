@@ -42,7 +42,7 @@ const PullToRefreshWrapper = forwardRef<HTMLDivElement, PullToRefreshWrapperProp
             <RefreshCw
               className={`w-4 h-4 transition-transform ${refreshing ? "animate-spin" : ""}`}
               style={{
-                color: canTrigger || refreshing ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.65)",
+                color: canTrigger || refreshing ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.8)",
                 transform: refreshing
                   ? undefined
                   : `rotate(${Math.min(pullDistance * 3, 360)}deg)`,

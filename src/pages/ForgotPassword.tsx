@@ -110,14 +110,14 @@ const ForgotPassword = () => {
             </h1>
             {/* Neutral confirmation copy — leaks no signal about whether
                 the address is registered (see performSend comment). */}
-            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               If{" "}
               <span className="font-semibold" style={{ color: "hsl(var(--olivewood))" }}>
                 {email}
               </span>
               {" "}is registered, we've sent a reset link. It expires in 1 hour.
             </p>
-            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.
             </p>
             <div className="space-y-2">
@@ -150,7 +150,7 @@ const ForgotPassword = () => {
               <h1 className="text-page-title leading-tight">
                 We'll send you a link.
               </h1>
-              <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.01em" }}>
+              <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.01em" }}>
                 Enter the email tied to your account and check your inbox.
               </p>
             </div>
@@ -161,7 +161,7 @@ const ForgotPassword = () => {
                 <div className="relative">
                   <Mail
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                    style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     strokeWidth={1.75}
                   />
                   <Input
@@ -180,7 +180,7 @@ const ForgotPassword = () => {
                     required
                     autoComplete="email"
                     aria-invalid={showEmailError}
-                    className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]"
+                    className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]"
                   />
                   {emailValid && (
                     <CheckCircle2

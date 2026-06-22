@@ -60,7 +60,7 @@ function StatusPill({ status }: { status: string }) {
     available: { label: "Available", color: "hsl(155 50% 30%)", bg: "hsl(155 50% 35% / 0.12)" },
     redeemed: { label: "Redeemed", color: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.10)" },
     reserved: { label: "Reserved", color: "hsl(var(--gold-warm))", bg: "hsl(var(--gold-warm) / 0.12)" },
-    expired: { label: "Expired", color: "hsl(var(--olivewood) / 0.6)", bg: "hsl(var(--olivewood) / 0.08)" },
+    expired: { label: "Expired", color: "hsl(var(--olivewood) / 0.8)", bg: "hsl(var(--olivewood) / 0.08)" },
   };
   const s = map[status] ?? map.available;
   return (
@@ -160,7 +160,7 @@ function EmptyState({ message }: { message: string }) {
       className="rounded-ds-md p-4 text-center"
       style={{ background: "hsl(var(--bark) / 0.04)", border: "0.5px dashed hsl(var(--bark) / 0.18)" }}
     >
-      <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+      <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         {message}
       </p>
     </div>
@@ -365,7 +365,7 @@ export default function PayItForward() {
             >
               Pay It Forward
             </h1>
-            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.70)" }}>
+            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Help a neighbor who needs it
             </p>
           </div>
@@ -414,7 +414,7 @@ export default function PayItForward() {
 
           {/* Amount chips */}
           <div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Amount
             </p>
             <div className="flex gap-2 flex-wrap">
@@ -452,7 +452,7 @@ export default function PayItForward() {
 
           {/* Category */}
           <div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Category suggestion — optional
             </p>
             <div className="flex gap-1.5 flex-wrap">
@@ -475,7 +475,7 @@ export default function PayItForward() {
 
           {/* Parish */}
           <div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Parish
             </p>
             <select
@@ -500,10 +500,10 @@ export default function PayItForward() {
           {/* Personal note */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Personal note — optional
               </p>
-              <span className="font-sans tabular-nums text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.5)" }}>
+              <span className="font-sans tabular-nums text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {note.length}/{MAX_NOTE_LENGTH}
               </span>
             </div>

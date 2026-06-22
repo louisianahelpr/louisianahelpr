@@ -157,7 +157,7 @@ export function CareerMilestones({ stats, showProgress = false }: CareerMileston
           <MilestoneIcon name={next.icon} color={next.color} />
           <p
             className="text-ds-12 font-serif italic"
-            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Next: <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>{next.label}</span>
             {" — "}{next.description}

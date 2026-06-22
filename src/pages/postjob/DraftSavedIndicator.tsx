@@ -79,7 +79,7 @@ export function DraftSavedIndicator({ savedAt }: DraftSavedIndicatorProps) {
       ) : (
         <CloudOff
           className="w-3 h-3 shrink-0"
-          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           aria-hidden
         />
       )}

@@ -91,7 +91,7 @@ export function SectionProgress({
                           }
                         : {
                             background: "hsla(0, 0%, 100%, 0.45)",
-                            color: "hsl(var(--olivewood) / 0.55)",
+                            color: "hsl(var(--olivewood) / 0.8)",
                             boxShadow: "inset 0 0 0 1px hsl(var(--olivewood) / 0.22)",
                           }
                   }
@@ -106,7 +106,7 @@ export function SectionProgress({
                       ? "hsl(var(--bark))"
                       : active
                         ? "hsl(var(--ink-deep))"
-                        : "hsl(var(--olivewood) / 0.5)",
+                        : "hsl(var(--olivewood) / 0.8)",
                   }}
                 >
                   {s.label}

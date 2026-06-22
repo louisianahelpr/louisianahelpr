@@ -72,7 +72,7 @@ const AccountBanned = () => {
           <h1 className="text-page-title leading-tight mt-1">
             {headline}.
           </h1>
-          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {subline}
           </p>
         </div>
@@ -107,7 +107,7 @@ const AccountBanned = () => {
           >
             Think this is a mistake?
           </h2>
-          <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             If you believe your account was suspended in error, contact our support team with your account email and we'll review your case.
           </p>
         </div>

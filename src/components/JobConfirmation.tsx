@@ -126,7 +126,7 @@ export function JobConfirmation({
         </p>
         <p
           className="font-serif italic"
-          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.65)" }}
+          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
           {hoursUntilJob > 0 && ` · ${urgencyText} away`}
@@ -138,7 +138,7 @@ export function JobConfirmation({
             style={
               myConfirmed
                 ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))", border: "0.5px solid hsl(var(--bark) / 0.22)" }
-                : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.75)" }
+                : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.8)" }
             }
           >
             {myConfirmed ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
@@ -149,7 +149,7 @@ export function JobConfirmation({
             style={
               otherConfirmed
                 ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))", border: "0.5px solid hsl(var(--bark) / 0.22)" }
-                : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.75)" }
+                : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.8)" }
             }
           >
             {otherConfirmed ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
@@ -195,7 +195,7 @@ export function JobConfirmation({
             </DialogTitle>
             <p
               className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               The other party will see you're locked in for the scheduled date.
             </p>

@@ -254,7 +254,7 @@ function CaregiverCard({
           <p className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
             {name}
           </p>
-          <p className="text-ds-12 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+          <p className="text-ds-12 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {isPending ? "Invite sent — waiting for your approval" : "Manages your jobs"}
           </p>
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -374,7 +374,7 @@ function InviteForm({ myUserId }: { myUserId: string }) {
       <p className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
         Invite a family member
       </p>
-      <p className="text-ds-12 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+      <p className="text-ds-12 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Enter their email or phone. They'll get an invite link to approve your access.
       </p>
       <Input
@@ -517,7 +517,7 @@ export default function FamilyDashboard() {
             )}
 
             {!relQuery.isLoading && !relQuery.isError && asCaregiver.length === 0 && (
-              <p className="text-ds-13 font-serif italic px-1" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+              <p className="text-ds-13 font-serif italic px-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 You're not managing jobs for anyone yet.
               </p>
             )}
@@ -544,7 +544,7 @@ export default function FamilyDashboard() {
                 Your family helper
               </h2>
             </div>
-            <p className="text-ds-12 font-serif italic -mt-1 px-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+            <p className="text-ds-12 font-serif italic -mt-1 px-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               These people can view and post jobs on your behalf.
             </p>
             {asRecipient.map((rel) => (
@@ -567,7 +567,7 @@ export default function FamilyDashboard() {
           }}
         >
           <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "hsl(var(--bark) / 0.5)" }} />
-          <p className="text-ds-12 font-serif italic leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+          <p className="text-ds-12 font-serif italic leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Family members you invite can view jobs, post new jobs, and message helpers on your behalf.
             You can remove their access at any time.
           </p>

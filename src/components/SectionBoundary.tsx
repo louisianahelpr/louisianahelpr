@@ -117,7 +117,7 @@ class SectionErrorBoundary extends React.Component<
               className="font-serif italic mt-0.5"
               style={{
                 fontSize: "0.78rem",
-                color: "hsl(var(--olivewood) / 0.75)",
+                color: "hsl(var(--olivewood) / 0.8)",
               }}
             >
               The rest of the page is still fine. Tap retry to give this section another shot.

@@ -216,11 +216,11 @@ const AdminBroadcasts = () => {
         <div className="rounded-ds-md liquid-glass p-4 space-y-3">
           <div className="space-y-2">
             <Label>Title</Label>
-            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Scheduled Maintenance" maxLength={100} />
+            <Input aria-label="Broadcast title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Scheduled Maintenance" maxLength={100} />
           </div>
           <div className="space-y-2">
             <Label>Message</Label>
-            <Textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="We'll be performing maintenance tonight from 10pm-12am CST." rows={2} maxLength={500} />
+            <Textarea aria-label="Broadcast message" value={message} onChange={e => setMessage(e.target.value)} placeholder="We'll be performing maintenance tonight from 10pm-12am CST." rows={2} maxLength={500} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">

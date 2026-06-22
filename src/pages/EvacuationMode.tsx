@@ -150,7 +150,7 @@ function RegisterPetModal({ ownerId, onClose, onRegistered }: RegisterPetModalPr
                     color:
                       selectedPetId === p.id
                         ? "hsl(var(--burnt-sienna))"
-                        : "hsl(var(--olivewood) / 0.72)",
+                        : "hsl(var(--olivewood) / 0.8)",
                     border:
                       selectedPetId === p.id
                         ? "1px solid hsl(var(--burnt-sienna) / 0.30)"

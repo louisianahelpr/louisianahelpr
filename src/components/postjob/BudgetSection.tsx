@@ -195,7 +195,7 @@ export function BudgetSection({
           {catPricing && (
             <p
               className="font-serif italic text-ds-12"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Most {catPricing.label} jobs in Louisiana go for ${catPricing.min}–${catPricing.max}
             </p>

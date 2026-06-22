@@ -128,7 +128,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             </div>
             <p
               className="font-serif italic text-[0.85rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               No rating yet — your first review sets the baseline.
             </p>
@@ -170,7 +170,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             </div>
             <p
               className="font-serif italic text-[0.85rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Based on{" "}
               <span className="font-display not-italic font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -351,7 +351,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                     {review.rating}/5
                   </span>
                 </div>
-                <span className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                <span className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                   {formatJobDate(review.created_at)}
                 </span>
               </div>
@@ -382,7 +382,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   &ldquo;{review.feedback}&rdquo;
                 </p>
               )}
-              <div className="flex items-center gap-2 font-serif italic pt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              <div className="flex items-center gap-2 font-serif italic pt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span>By <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{review.reviewerName}</span></span>
                 <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                 <span>{review.jobTitle}</span>

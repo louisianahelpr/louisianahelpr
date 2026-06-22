@@ -332,11 +332,11 @@ export function ApplyConfirmDialog({
                         You earn
                       </p>
                       <div className="space-y-1 text-[0.78rem]">
-                        <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
+                        <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                           <span className="font-serif italic">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
                           <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${perHelper.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
+                        <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                           <span className="font-serif italic">− {platformFee}% platform fee</span>
                           <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${commission.toFixed(2)}</span>
                         </div>
@@ -364,7 +364,7 @@ export function ApplyConfirmDialog({
                 })()}
               </div>
             ) : (
-              <p className="font-serif italic mt-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-serif italic mt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Are you sure you want to apply for this task?
               </p>
             )}
@@ -382,7 +382,7 @@ export function ApplyConfirmDialog({
               <div className="relative">
                 <span
                   className="absolute left-3 top-1/2 -translate-y-1/2 font-sans"
-                  style={{ fontSize: "0.84rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ fontSize: "0.84rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   $
                 </span>
@@ -400,7 +400,7 @@ export function ApplyConfirmDialog({
               {confirmApplyJob && (confirmApplyJob.budget ?? 0) > 0 && (
                 <p
                   className="font-serif italic"
-                  style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Poster's budget: ${confirmApplyJob.budget}
                 </p>
@@ -569,7 +569,7 @@ export function ApplyConfirmDialog({
             >
               <Plus className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />
               <span>Add more options</span>
-              <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+              <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 reliability stake · attachments
               </span>
             </button>
@@ -611,7 +611,7 @@ export function ApplyConfirmDialog({
                 Optional
               </span>
             </div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Put $5–$25 on the line. Complete the job → get it back plus 10% bonus. Cancel last-minute → it goes to the poster. Shows posters you're serious.
             </p>
             <div className="flex gap-2">
@@ -659,7 +659,7 @@ export function ApplyConfirmDialog({
                 >
                   <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
                   <span className="truncate flex-1 font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>{file.name}</span>
-                  <span className="font-sans tabular-nums shrink-0" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>{(file.size / 1024).toFixed(0)}KB</span>
+                  <span className="font-sans tabular-nums shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>{(file.size / 1024).toFixed(0)}KB</span>
                   <button type="button" onClick={() => setApplyFiles(f => f.filter((_, idx) => idx !== i))} aria-label="Remove attached file" style={{ color: "hsl(var(--burnt-sienna))" }} className="active:opacity-70">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

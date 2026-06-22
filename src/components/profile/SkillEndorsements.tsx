@@ -106,7 +106,7 @@ export function SkillEndorsements({
     <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.12)" }}>
       <p
         className="text-ds-10 font-sans font-semibold uppercase tracking-wide mb-2"
-        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         Skills
       </p>

@@ -39,7 +39,7 @@ const AccountDenied = () => {
           <h1 className="text-page-title leading-tight mt-1">
             We couldn't approve your account.
           </h1>
-          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Unfortunately, your account was not approved at this time.
           </p>
         </div>
@@ -76,7 +76,7 @@ const AccountDenied = () => {
             </div>
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Re-apply with updated info</p>
-              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Sign up again with the same email to resubmit your profile with a new photo, ID, and details.
               </p>
             </div>
@@ -88,7 +88,7 @@ const AccountDenied = () => {
             </div>
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Contact support</p>
-              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 If you think this was a mistake, reach out to our team.
               </p>
             </div>

@@ -120,7 +120,7 @@ export function IDVPromptDialog({
           </DialogTitle>
           <DialogDescription
             className="font-serif italic mt-2 text-[0.92rem] leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.78)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {description}
           </DialogDescription>
@@ -166,7 +166,7 @@ export function IDVPromptDialog({
                 >
                   Photo of your government ID
                 </p>
-                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                   Driver's license, passport, or state ID
                 </p>
               </div>
@@ -191,7 +191,7 @@ export function IDVPromptDialog({
                 >
                   A quick selfie
                 </p>
-                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                   We compare it to your ID to make sure it's really you
                 </p>
               </div>
@@ -208,7 +208,7 @@ export function IDVPromptDialog({
         {isPending && (
           <p
             className="font-serif italic px-1 py-2"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             You'll get a notification as soon as the review finishes. No need to do anything else right now.
           </p>

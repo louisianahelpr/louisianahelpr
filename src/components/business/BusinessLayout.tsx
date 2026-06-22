@@ -93,7 +93,7 @@ const BusinessLayout = ({ eyebrow, title, meta, children }: Props) => {
           </span>
           <h1 className="text-page-title leading-tight mt-1">{title}</h1>
           {meta && (
-            <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {meta}
             </p>
           )}

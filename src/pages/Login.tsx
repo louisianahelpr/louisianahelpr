@@ -208,7 +208,7 @@ const Login = () => {
           className="font-sans"
           style={{
             fontSize: "0.95rem",
-            color: "hsl(var(--olivewood) / 0.7)",
+            color: "hsl(var(--olivewood) / 0.8)",
             letterSpacing: "0.01em",
           }}
         >
@@ -251,7 +251,7 @@ const Login = () => {
             <div className="relative">
               <Mail
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 strokeWidth={1.75}
               />
               <Input
@@ -267,7 +267,7 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className={`pl-10 ${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]`}
+                className={`pl-10 ${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
               />
               {emailValid && (
                 <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -279,7 +279,7 @@ const Login = () => {
             <div className="relative">
               <Lock
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 strokeWidth={1.75}
               />
               <Input
@@ -291,7 +291,7 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]"
+                className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]"
               />
               <button
                 type="button"
@@ -307,7 +307,7 @@ const Login = () => {
             <Link
               to="/forgot-password"
               className="text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity"
-              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Forgot password?
             </Link>
@@ -337,7 +337,7 @@ const Login = () => {
         <SocialAuthButtons mode="signin" />
 
         <div className="space-y-1.5 pt-1">
-          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             New to Helpr?{" "}
             <Link
               to="/signup"
@@ -347,7 +347,7 @@ const Login = () => {
               Create an account
             </Link>
           </p>
-          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Have a business?{" "}
             <Link
               to="/signup?type=business"

@@ -43,7 +43,7 @@ const DashboardGreetingCard = ({
         style={{
           fontSize: "0.62rem",
           letterSpacing: "0.16em",
-          color: "hsl(var(--olivewood) / 0.55)",
+          color: "hsl(var(--olivewood) / 0.8)",
         }}
       >
         {/* Full date so the eyebrow is informative even when no jobs

@@ -212,7 +212,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             </DialogTitle>
             <p
               className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               A confirmation link will be sent to your new address before the change takes effect.
             </p>
@@ -311,7 +311,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-ds-13 font-medium text-foreground truncate">{email}</p>
-            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               We'll send a confirmation link to verify changes.
             </p>
           </div>
@@ -343,7 +343,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-ds-13 font-medium text-foreground tracking-widest">••••••••</p>
-            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Reset via secure email link.
             </p>
           </div>
@@ -386,7 +386,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Active sessions
             </h2>
-            <p className="text-ds-11 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="text-ds-11 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Recent sign-ins, grouped by device.
             </p>
           </div>
@@ -399,7 +399,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             ))}
           </div>
         ) : sessionGroups.length === 0 ? (
-          <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             No recent sessions on record yet.
           </p>
         ) : (
@@ -454,7 +454,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                     </p>
                     <p
                       className="text-ds-11 font-serif italic mt-0.5"
-                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Last seen {when}
                       {group.ipAddress && <span className="ml-1.5">· {group.ipAddress}</span>}

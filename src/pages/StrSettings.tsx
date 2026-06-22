@@ -110,7 +110,7 @@ function EmptyConnections() {
       </p>
       <p
         className="text-center max-w-xs"
-        style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+        style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
       >
         Add your first rental calendar below and Helpr will auto-post
         cleaning jobs after every guest checkout.
@@ -170,7 +170,7 @@ function ConnectionCard({ conn, onSync, onRemove, syncing }: ConnectionCardProps
 
       {/* Address */}
       {conn.property_address && (
-        <p style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.65)" }}>
+        <p style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
           {conn.property_address}
         </p>
       )}
@@ -372,7 +372,7 @@ function AddCalendarForm({
             <p className="font-medium" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}>
               Auto-create cleaning job
             </p>
-            <p style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.65)" }}>
+            <p style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Post a job automatically after each checkout
             </p>
           </div>
@@ -574,7 +574,7 @@ export default function StrSettings() {
           </h1>
           <p
             className="font-serif italic mt-0.5"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.72)" }}
+            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Auto-post cleaning jobs on guest checkout
           </p>
@@ -605,7 +605,7 @@ export default function StrSettings() {
               </p>
               <p
                 className="mt-1"
-                style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.75)", lineHeight: 1.5 }}
+                style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.5 }}
               >
                 Connect your Airbnb or VRBO calendar. When a guest checks out,
                 Helpr automatically posts a cleaning job — so you always have
@@ -659,9 +659,9 @@ export default function StrSettings() {
               </span>
             </div>
             {addOpen ? (
-              <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+              <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             ) : (
-              <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+              <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             )}
           </button>
 
@@ -678,7 +678,7 @@ export default function StrSettings() {
         {/* Help note */}
         <p
           className="text-center px-2"
-          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.55)" }}
+          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Helpr fetches your calendar every few hours. Cleaning jobs are created
           for checkouts up to 7 days out. Jobs you created manually are never

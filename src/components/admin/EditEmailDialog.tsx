@@ -103,6 +103,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">New Email</p>
             <Input
               type="email"
+              aria-label="New email"
               value={email1}
               onChange={(e) => setEmail1(e.target.value)}
               placeholder="Enter new email"
@@ -112,6 +113,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Confirm New Email</p>
             <Input
               type="email"
+              aria-label="Confirm new email"
               value={email2}
               onChange={(e) => setEmail2(e.target.value)}
               placeholder="Re-enter new email"

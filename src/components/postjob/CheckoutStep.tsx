@@ -202,7 +202,7 @@ export function CheckoutStep({
             <div className="text-right">
               <p className="text-ds-13 font-bold text-foreground">${budgetNum.toFixed(2)}</p>
               {helperEarns !== null && (
-                <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   You pay{" "}
                   <span className="font-semibold text-foreground">
                     ${(budgetNum + customerFeeAmount + urgentFeeNum).toFixed(2)}
@@ -476,7 +476,7 @@ export function CheckoutStep({
             </p>
             <p
               className="font-serif italic text-ds-11"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Your trusted helper from past jobs
             </p>

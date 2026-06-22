@@ -89,7 +89,7 @@ export function AutopilotReminderCard({ reminder, onDismiss, onPostJob }: Props)
         </p>
         <p
           className="font-serif italic text-ds-11 leading-snug mt-0.5"
-          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {subtext}
         </p>
@@ -122,7 +122,7 @@ export function AutopilotReminderCard({ reminder, onDismiss, onPostJob }: Props)
         onClick={onDismiss}
         aria-label="Dismiss reminder"
         className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04] transition-colors"
-        style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         <X className="w-4 h-4" />
       </button>

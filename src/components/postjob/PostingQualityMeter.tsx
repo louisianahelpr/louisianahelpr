@@ -39,7 +39,7 @@ export function PostingQualityMeter({
         </span>
         <span
           className="tabular-nums font-sans font-semibold"
-          style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.65)" }}
+          style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {score}%
         </span>

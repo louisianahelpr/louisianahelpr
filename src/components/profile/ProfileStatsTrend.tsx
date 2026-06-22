@@ -178,7 +178,7 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
                           color: "hsl(var(--parchment))",
                           boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
                         }
-                      : { color: "hsl(var(--olivewood) / 0.7)" }
+                      : { color: "hsl(var(--olivewood) / 0.8)" }
                   }
                   aria-pressed={active}
                   aria-label={`Show last ${WINDOW_LABEL[w]}`}
@@ -203,7 +203,7 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
             ) : data.every((d) => d.jobs === 0 && d.earned === 0) ? (
               <p
                 className="font-serif italic text-center py-6"
-                style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 No completed jobs in the last {WINDOW_LABEL[win]}.
               </p>

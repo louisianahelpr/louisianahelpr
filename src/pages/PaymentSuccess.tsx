@@ -230,7 +230,7 @@ const PaymentSuccess = () => {
                         </span>
                       )}
                     </p>
-                    <p className="font-serif italic text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
+                    <p className="font-serif italic text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       {step.caption}
                     </p>
                   </div>
@@ -238,7 +238,7 @@ const PaymentSuccess = () => {
               );
             })}
           </ol>
-          <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+          <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             If one side confirms and the other doesn't respond within 72 hours, payment is released automatically.
           </p>
         </div>

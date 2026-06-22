@@ -58,7 +58,7 @@ export function YourHelpersRow() {
           type="button"
           onClick={() => navigate("/profile?tab=saved_helpers")}
           className="text-[0.65rem] font-sans font-semibold active:opacity-60 transition-opacity"
-          style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           See all
         </button>

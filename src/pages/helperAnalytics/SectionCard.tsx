@@ -66,7 +66,7 @@ const SectionCard = ({
           </p>
           <p
             className="font-serif italic text-ds-12 mb-3 text-center max-w-[200px] mt-1"
-            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Upgrade to Helper Pro to unlock earnings insights
           </p>

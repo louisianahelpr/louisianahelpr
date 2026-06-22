@@ -192,7 +192,7 @@ function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormProps) {
                       color:
                         form.species === s.value
                           ? "hsl(var(--bark))"
-                          : "hsl(var(--olivewood) / 0.72)",
+                          : "hsl(var(--olivewood) / 0.8)",
                       border:
                         form.species === s.value
                           ? "1px solid hsl(var(--bark) / 0.35)"

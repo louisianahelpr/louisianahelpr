@@ -651,7 +651,7 @@ export const RichMessageInput = ({
           </div>
           <p
             className="mt-3 font-serif italic text-[0.74rem] leading-relaxed text-center"
-            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Up to {Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB ·
             photos and PDFs only.

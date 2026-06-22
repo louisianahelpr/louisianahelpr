@@ -213,7 +213,7 @@ const PayoutTicker = () => {
             </>
           ) : null}
           {relative ? (
-            <span style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+            <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {" "}· {relative}
             </span>
           ) : null}

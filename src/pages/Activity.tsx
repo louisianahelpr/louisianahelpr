@@ -275,7 +275,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                   style={{
                     fontSize: "0.62rem",
                     letterSpacing: "0.16em",
-                    color: "hsl(var(--olivewood) / 0.55)",
+                    color: "hsl(var(--olivewood) / 0.8)",
                   }}
                 >
                   {filteredCount} {filteredCount === 1 ? "task" : "tasks"}

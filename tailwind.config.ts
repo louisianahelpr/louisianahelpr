@@ -3,6 +3,13 @@ import type { Config } from "tailwindcss";
 export default {
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
+  // Key `dark:` utilities off the `[data-theme="dark"]` attribute that
+  // useDarkMode sets on <html>, NOT the default `prefers-color-scheme`
+  // media query. The CSS-variable tokens in index.css already flip on that
+  // attribute; without this the `dark:` utilities would track the OS instead
+  // of the user's saved choice, so a manual Light/Dark override would desync
+  // the two layers (utilities stuck on the OS theme, tokens on the picked one).
+  darkMode: ["selector", '[data-theme="dark"]'],
   // This is a touch-first Capacitor app. Without this flag Tailwind's
   // `hover:` styles compile to plain `:hover`, which STICKS after a tap on
   // touch devices — e.g. the toolbar's ghost buttons (`hover:bg-secondary`,

@@ -26,7 +26,7 @@ import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
-import { categoryTemplates } from "@/lib/postingTemplates";
+import { categoryTemplates, hasUnfilledPlaceholders } from "@/lib/postingTemplates";
 
 export const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -553,6 +553,14 @@ export function DetailsSection({
           maxLength={DESCRIPTION_MAX}
           autoCapitalize="sentences"
         />
+        {/* Placeholder guard — a template starter still carries "[…]"
+            fill-ins. Flag them inline so the poster swaps in real details
+            before the (now-disabled) submit button unlocks (LH-23). */}
+        {hasUnfilledPlaceholders(description) && (
+          <p className="text-[0.7rem] font-sans font-semibold leading-snug" style={{ color: "hsl(var(--destructive))" }}>
+            Replace the [bracketed] placeholders with your own details — they can't be posted as-is.
+          </p>
+        )}
         {/* Category-aware prompt — tells the poster exactly what a helpr
             needs to quote accurately. Vague posts get fewer applicants. */}
         <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>

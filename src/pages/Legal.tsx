@@ -14,6 +14,11 @@ import BackButton from "@/components/BackButton";
 import { PolicyRowItem, PolicySection, PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
+
+// Tier pricing/fees come from the single source of truth so this page can
+// never drift from the Subscription page or the in-feed fee math (LH-30).
+const legalFmtMo = (n: number | null) => (n == null ? "free" : `$${n.toFixed(2)}/mo`);
 
 type TabKey = "terms" | "community" | "privacy";
 const VALID_TABS: TabKey[] = ["terms", "community", "privacy"];
@@ -241,8 +246,8 @@ const TermsContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Poster service fee:</strong> 10% added at checkout.</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> 10% deducted from payout.</p>
-            <p><strong className="text-foreground">Total platform take:</strong> 20% per transaction.</p>
+            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.pro.platformFeePercent}% Helper Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite.</p>
+            <p><strong className="text-foreground">Total platform take:</strong> the 10% poster service fee plus the helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> $5 for priority placement.</p>
           </>
         }
@@ -285,7 +290,7 @@ const TermsContent = () => (
     <PolicySection
       icon={Crown}
       title="Subscription tiers"
-      subtitle="Basic, Pro, and Elite plans"
+      subtitle="Free, Helper Pro, Helpr Elite, and Business plans"
       anchorId="subscription-tiers"
     >
       <PolicyRowItem
@@ -293,10 +298,11 @@ const TermsContent = () => (
         title="Tiers & pricing"
         body={
           <>
-            <p><strong className="text-foreground">Basic:</strong> $5/mo or ~$50/yr.</p>
-            <p><strong className="text-foreground">Pro:</strong> $10/mo or ~$100/yr.</p>
-            <p><strong className="text-foreground">Elite:</strong> $15/mo or ~$150/yr.</p>
-            <p>All tiers maintain the same 10% / 10% split fee. Annual plans save ~17%. Stripe handles billing automatically.</p>
+            <p><strong className="text-foreground">Free:</strong> standard access at a {TIER_PERKS.free.platformFeePercent}% platform fee.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)} — reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.business.name}:</strong> {legalFmtMo(TIER_PERKS.business.price)} — team tools and a {TIER_PERKS.business.platformFeePercent}% platform fee.</p>
+            <p>Annual plans save about 2 months. Stripe handles billing automatically.</p>
           </>
         }
       />

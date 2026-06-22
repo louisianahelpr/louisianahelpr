@@ -18,6 +18,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { VirtualList } from "@/components/VirtualList";
 import { categoryLabels } from "@/components/activity/activityConstants";
 import { queryKeys } from "@/lib/queryKeys";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import JobCard from "@/components/dashboard/JobCard";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useJobRef } from "@/hooks/useJobRef";
@@ -331,7 +332,7 @@ const Jobs = () => {
                         <JobCard
                           job={enriched}
                           variant="guest"
-                          effectiveFee={10}
+                          effectiveFee={TIER_PERKS.free.platformFeePercent}
                           onApply={noop}
                           onReport={noop}
                           onSelect={noop}
@@ -387,7 +388,7 @@ const Jobs = () => {
           <JobDetailDialog
             guest
             job={detailJob}
-            effectiveFee={10}
+            effectiveFee={TIER_PERKS.free.platformFeePercent}
             onClose={() => setDetailJob(null)}
             onApply={noop}
             onReport={noop}

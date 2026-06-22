@@ -194,13 +194,53 @@
   </head>
   <body>
     <!--
-      Inline FCP shell — solid brand-color background only. Previously rendered
-      a 580×580 splash <img> which became Lighthouse's LCP element (the LCP
-      timer doesn't reset when React replaces the splash, so the score waited
-      on the splash to paint). With just the background color, the hero image
-      preloaded above wins LCP as intended.
+      Inline FCP shell — solid brand-color background + a small branded boot
+      loader (LH-50). Previously this rendered a 580×580 splash <img> which
+      became Lighthouse's LCP element (the LCP timer doesn't reset when React
+      replaces the splash, so the score waited on the splash to paint). It was
+      then stripped back to a bare background, which left a blank cream screen
+      for ~2-3s on slow connections while the JS bundle parsed.
+
+      This loader threads that needle: a 34px CSS ring spinner + a muted
+      wordmark, all inline (no external asset, no web-font dependency). Both
+      elements are deliberately tiny so neither becomes the LCP candidate —
+      the Bodoni hero H1 still wins LCP. React's createRoot().render() clears
+      #root's children on its first commit, so this markup is removed the
+      instant the app paints; no JS teardown is needed.
+
+      Do NOT reintroduce a large splash <img> here — that regresses LCP.
     -->
-    <div id="root" style="background:hsl(36 16% 91%);min-height:100vh;"></div>
+    <div id="root" style="background:hsl(36 16% 91%);min-height:100vh;">
+      <div
+        id="boot-loader"
+        role="status"
+        aria-label="Loading Helpr"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:hsl(36 16% 91%);"
+      >
+        <div class="boot-spinner"></div>
+        <div
+          style="font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-style:italic;font-size:15px;letter-spacing:0.05em;color:hsl(64 16% 16% / 0.55);"
+        >
+          Helpr
+        </div>
+        <style>
+          .boot-spinner {
+            width: 34px;
+            height: 34px;
+            border-radius: 9999px;
+            border: 2.5px solid hsl(70 20% 33% / 0.16);
+            border-top-color: hsl(19 75% 35%);
+            animation: boot-spin 0.7s linear infinite;
+          }
+          @keyframes boot-spin {
+            to { transform: rotate(360deg); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .boot-spinner { animation-duration: 1.6s; }
+          }
+        </style>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

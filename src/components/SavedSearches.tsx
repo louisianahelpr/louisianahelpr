@@ -95,7 +95,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
     const trimmed = name.trim();
     if (!trimmed) {
       hapticError();
-      toast.error("Give your search a name");
+      toast.error("Name your search to save it");
       return;
     }
     if (

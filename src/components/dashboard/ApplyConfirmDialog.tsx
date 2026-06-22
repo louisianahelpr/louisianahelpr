@@ -175,6 +175,7 @@ export function ApplyConfirmDialog({
   const { online } = useOnlineStatus();
   const charsLeft = MAX_PITCH_LENGTH - applyMessage.length;
   const isBidMode = (confirmApplyJob as any)?.pricing_mode === "accept_bids";
+  const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
   const trimmedLen = applyMessage.trim().length;
   const underMin = trimmedLen > 0 && trimmedLen < SOFT_MIN_PITCH_LENGTH;
   const jobId = confirmApplyJob?.id ?? null;
@@ -296,13 +297,13 @@ export function ApplyConfirmDialog({
             className="font-serif italic uppercase"
             style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
-            You're applying
+            {isInstantBook ? "You're booking" : "You're applying"}
           </span>
           <AlertDialogTitle
             className="font-display italic font-bold leading-tight mt-1"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
-            {confirmApplyJob ? `"${confirmApplyJob.title}"` : "Apply for this task"}
+            {confirmApplyJob ? `"${confirmApplyJob.title}"` : isInstantBook ? "Book this task" : "Apply for this task"}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             {confirmApplyJob ? (
@@ -728,7 +729,7 @@ export function ApplyConfirmDialog({
               boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
             }}
           >
-            {applyLoading ? "Applying…" : !online ? "Try again" : "Apply now"}
+            {applyLoading ? (isInstantBook ? "Booking…" : "Applying…") : !online ? "Try again" : isInstantBook ? "Book now" : "Apply now"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

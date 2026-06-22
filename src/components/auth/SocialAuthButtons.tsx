@@ -41,7 +41,10 @@ export function SocialAuthButtons({
   redirectTo,
 }: SocialAuthButtonsProps) {
   return (
-    <div className="flex gap-2.5">
+    // Stacked, full-width buttons each with a visible text label. Apple's
+    // HIG requires a properly labeled "Sign in with Apple" button — never
+    // icon-only — so both providers render their mark beside the label.
+    <div className="flex flex-col gap-2.5">
       <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} />
       <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} />
     </div>
@@ -85,12 +88,15 @@ function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps)
         // toasts" — even a cancel deserves a small haptic so the user
         // knows the tap registered.
         hapticError();
-        toast(`${providerName} sign-in cancelled.`);
+        // Stable id collapses any repeat into a single toast — the native
+        // Apple/Google flow can resolve more than once (plugin reject +
+        // redirect listener), which otherwise stacked identical toasts.
+        toast(`${providerName} sign-in cancelled.`, { id: `social-auth-${provider}` });
         setLoading(false);
         return;
       case "error":
         hapticError();
-        toast.error(result.message);
+        toast.error(result.message, { id: `social-auth-${provider}` });
         setLoading(false);
         return;
     }
@@ -101,18 +107,19 @@ function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps)
       type="button"
       variant="outline"
       size="lg"
-      className="flex-1 rounded-ds-md border-border/70 hover:bg-muted/40"
+      className="w-full rounded-ds-md border-border/70 font-medium hover:bg-muted/40"
       onClick={handleClick}
       disabled={loading}
       aria-label={loading ? "Connecting…" : label}
     >
       {loading ? (
-        <Loader2 className="w-5 h-5 animate-spin" />
+        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
       ) : provider === "apple" ? (
-        <AppleMark />
+        <span className="mr-2 inline-flex"><AppleMark /></span>
       ) : (
-        <GoogleMark />
+        <span className="mr-2 inline-flex"><GoogleMark /></span>
       )}
+      {loading ? "Connecting…" : label}
     </Button>
   );
 }

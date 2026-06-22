@@ -1529,7 +1529,7 @@ export function ProfileLanding({
           <button
             type="button"
             onClick={() => onNavigate("/wrapped")}
-            aria-label={`View your ${new Date().getFullYear()} Helpr Wrapped`}
+            aria-label="View your year so far on Helpr"
             className="w-full rounded-ds-lg overflow-hidden active:scale-[0.99] transition-transform text-left"
             style={{
               background:
@@ -1549,7 +1549,7 @@ export function ProfileLanding({
                   className="text-ds-13 font-semibold leading-tight"
                   style={{ color: "hsl(var(--ink-deep))" }}
                 >
-                  Your {new Date().getFullYear()} Wrapped
+                  Your year so far
                 </p>
                 <p
                   className="text-ds-11 font-serif italic mt-0.5"

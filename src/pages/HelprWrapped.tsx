@@ -9,9 +9,11 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
-import { formatCategory } from "@/lib/format";
+import { formatCategory, wrappedSeasonLabel } from "@/lib/format";
 
 const YEAR = new Date().getFullYear();
+// "Wrapped" in December, "so far" the rest of the year (see LH-39).
+const SEASON = wrappedSeasonLabel();
 
 // $15/hr proxy for converting budget → approximate hours
 const HOURLY_PROXY = 15;
@@ -158,7 +160,7 @@ const StatCard = ({ label, value, sublabel }: StatCardProps) => (
 );
 
 const HelprWrapped = () => {
-  usePageTitle(`Helpr Wrapped ${YEAR}`);
+  usePageTitle(SEASON.isYearEnd ? `Helpr Wrapped ${YEAR}` : `Your ${YEAR} so far`);
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
 
@@ -185,7 +187,7 @@ const HelprWrapped = () => {
       title: `My ${YEAR} on Helpr`,
       text: `I helped ${helpedCount} neighbor${helpedCount !== 1 ? "s" : ""} and earned $${earned.toLocaleString()} on @LouisianaHelpr this year! 🎉`,
       url: "https://www.louisianahelpr.com",
-      dialogTitle: "Share your Helpr Wrapped",
+      dialogTitle: SEASON.isYearEnd ? "Share your Helpr Wrapped" : "Share your Helpr year",
     });
   };
 
@@ -251,7 +253,7 @@ const HelprWrapped = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader eyebrow="Louisiana Helpr" title={`Your ${YEAR} Wrapped`} />
+      <PageHeader eyebrow="Louisiana Helpr" title={`Your ${SEASON.title}`} />
 
       <main className="px-5 py-6 flex flex-col items-center">
         <div
@@ -331,7 +333,7 @@ const HelprWrapped = () => {
                 onClick={handleShare}
               >
                 <Share2 className="w-4 h-4 mr-2" />
-                Share your Wrapped
+                {SEASON.isYearEnd ? "Share your Wrapped" : "Share your year"}
               </Button>
               <p
                 className="text-center text-ds-11 font-serif italic"

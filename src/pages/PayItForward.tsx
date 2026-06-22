@@ -513,7 +513,7 @@ export default function PayItForward() {
               placeholder="Hoping this helps someone near me…"
               rows={2}
               maxLength={MAX_NOTE_LENGTH}
-              className="rounded-ds-sm bg-white/60 border-border/60 font-serif italic text-ds-13 leading-relaxed"
+              className="rounded-ds-sm bg-background/60 border-border/60 font-serif italic text-ds-13 leading-relaxed"
             />
           </div>
 

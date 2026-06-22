@@ -199,7 +199,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                     className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-ds-md text-[12.5px] font-medium transition-all active:scale-[0.97] ${isLast && reasons.length % 2 === 1 ? "col-span-2 justify-center" : "justify-start"} ${
                       active
                         ? "bg-primary/10 text-primary border border-primary/35 shadow-[0_1px_2px_hsl(var(--primary)/0.10)]"
-                        : "bg-white text-foreground border border-border/60 hover:bg-secondary/40 hover:border-border"
+                        : "bg-card text-foreground border border-border/60 hover:bg-secondary/40 hover:border-border"
                     }`}
                   >
                     <Icon
@@ -258,7 +258,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 onChange={(e) => setDescription(e.target.value.slice(0, MAX_LENGTH))}
                 rows={4}
                 required
-                className="rounded-ds-md border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-[14px] leading-relaxed resize-none"
+                className="rounded-ds-md border-border/60 bg-background/80 focus-visible:bg-background focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-[14px] leading-relaxed resize-none"
               />
               <div className="flex items-center justify-between text-ds-11">
                 <span

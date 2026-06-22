@@ -296,7 +296,7 @@ export function CompletionChoiceSheet({
                 placeholder="Please describe what needs to be redone or fixed…"
                 rows={4}
                 maxLength={1000}
-                className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
+                className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
                 autoFocus
               />
 

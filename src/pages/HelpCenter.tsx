@@ -117,7 +117,7 @@ const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: "How do I get my first application accepted?",
-        a: "A complete profile (photo, bio, skills) gets 3× more views. Respond fast — posters notice quick turnaround.",
+        a: "A complete profile (photo, bio, skills) helps posters trust you faster. Respond fast — posters notice quick turnaround.",
       },
       {
         q: "When do I get paid?",

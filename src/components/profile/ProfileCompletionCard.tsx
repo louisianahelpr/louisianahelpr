@@ -70,7 +70,7 @@ export function ProfileCompletionCard({
       done: hasPhoto,
       points: 25,
       action: "edit-profile",
-      hint: "Profiles with photos get 3× more offers",
+      hint: "A photo helps posters recognize and trust you",
       icon: <Camera className="w-3.5 h-3.5" />,
     },
     {

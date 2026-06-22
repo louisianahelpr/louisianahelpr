@@ -248,7 +248,7 @@ const BecomeAPartner = () => {
             Grow your business with Helpr
           </h2>
           <p className="text-ds-15 text-muted-foreground leading-relaxed max-w-md mx-auto">
-            Join Louisiana's fastest-growing service marketplace. Bring your team, keep your brand.
+            Join Louisiana's local service marketplace. Bring your team, keep your brand.
           </p>
 
           {/* Two-column CTA hint */}

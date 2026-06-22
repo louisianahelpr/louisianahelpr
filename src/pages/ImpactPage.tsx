@@ -454,7 +454,7 @@ const ImpactPage = () => {
             className="mt-4 font-serif italic text-ds-17 leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Join thousands of Louisiana neighbors already on the platform.
+            Join your Louisiana neighbors on the platform.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">

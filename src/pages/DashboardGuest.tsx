@@ -191,7 +191,7 @@ const DashboardGuest = () => {
           {/* Both header actions are deliberately un-filled so the only
               solid-green element on the guest dashboard is the bottom "+"
               FAB (the app-wide primary action, which gates guests to signup
-              anyway). Log in is a plain text link; Sign up is a quiet
+              anyway). Log in is a plain text link; Get started is a quiet
               bark-tinted outline pill — clearly the CTA of the two, without
               competing with the FAB as a second filled-green target. */}
           <div className="flex items-center gap-1">

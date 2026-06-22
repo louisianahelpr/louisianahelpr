@@ -204,7 +204,10 @@ export function JobPrice({
               {urgentFee > 0 ? ` + $${urgentFee.toFixed(0)} urgent` : ""}
             </p>
           )}
-          {!showBudget && showProUpsell && (
+          {/* Only pitch the Pro fee reduction when the fee actually shown
+              is above the Pro rate (10%) — otherwise "reduces your fee to
+              10%" contradicts a fee line already reading 10% or lower. */}
+          {!showBudget && showProUpsell && effectiveFee > 10 && (
             <p className="font-serif italic text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
               <span style={{ color: "hsl(var(--burnt-sienna))" }}>Helper Pro</span> reduces your fee to 10%
               {" "}·{" "}

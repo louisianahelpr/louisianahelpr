@@ -137,7 +137,7 @@ const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What fees does Helpr charge?",
-        a: "Free account helpers keep 88% (12% platform fee). Pro members keep 90%, Elite keeps 92%. Posters pay a small service fee at checkout.",
+        a: "Free account Helprs keep 88% (12% platform fee). Pro members keep 90%, Elite keeps 92%. Posters pay a small service fee at checkout.",
       },
       {
         q: "What if there's a dispute?",

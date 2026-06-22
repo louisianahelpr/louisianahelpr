@@ -35,16 +35,16 @@ const testimonials = [
 
 const faqs = [
   {
-    q: "How do I know my helper is trustworthy?",
-    a: "Every helper submits a government-issued ID and is reviewed by our team before being activated. You also see their ratings, reviews, and how many jobs they've completed for other Louisiana neighbors — all before you choose.",
+    q: "How do I know my Helpr is trustworthy?",
+    a: "Every Helpr submits a government-issued ID and is reviewed by our team before being activated. You also see their ratings, reviews, and how many jobs they've completed for other Louisiana neighbors — all before you choose.",
   },
   {
     q: "What if the job isn't done right?",
-    a: "Payment is held in escrow until you confirm the work. If something's off, message your helper directly through the app or open a dispute and our team helps settle it — no awkward Venmo standoffs.",
+    a: "Payment is held in escrow until you confirm the work. If something's off, message your Helpr directly through the app or open a dispute and our team helps settle it — no awkward Venmo standoffs.",
   },
   {
     q: "How much does Helpr cost?",
-    a: "Posting a job is free. Helpers receive 88–92% of the agreed price depending on their plan — free accounts pay a 12% platform fee, while Pro and Elite members pay 10% and 8% respectively. Posters pay a small service fee at checkout. No surprise charges.",
+    a: "Posting a job is free. Helprs receive 88–92% of the agreed price depending on their plan — free accounts pay a 12% platform fee, while Pro and Elite members pay 10% and 8% respectively. Posters pay a small service fee at checkout. No surprise charges.",
   },
   {
     q: "How fast will someone respond?",

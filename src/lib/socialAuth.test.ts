@@ -116,7 +116,7 @@ describe("signInWithProvider — native path", () => {
     const result = await signInWithProvider("apple");
     expect(result.kind).toBe("error");
     if (result.kind === "error") {
-      expect(result.message).toMatch(/Apple sign-in failed/);
+      expect(result.message).toMatch(/Apple sign-in didn't work/);
     }
   });
 
@@ -167,7 +167,7 @@ describe("signInWithProvider — web fallback path", () => {
     const result = await signInWithProvider("apple");
     expect(result.kind).toBe("error");
     if (result.kind === "error") {
-      expect(result.message).toMatch(/Apple sign-in failed/);
+      expect(result.message).toMatch(/Apple sign-in didn't work/);
     }
   });
 

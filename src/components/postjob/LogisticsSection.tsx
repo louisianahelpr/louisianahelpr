@@ -15,6 +15,19 @@ import { todayLocalISO } from "@/lib/dateUtils";
 import { AppleMapPreview } from "@/components/postjob/AppleMapPreview";
 import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 
+// Normalize a reverse-geocoder's state value (full name or abbreviation)
+// to the canonical 2-letter code the form stores. We special-case the only
+// state Helpr serves ("Louisiana" → "LA"); any other already-2-letter code
+// is upper-cased and passed through, and anything else is returned trimmed
+// rather than coerced — so the field reflects what was actually geocoded
+// instead of a hard-coded "LA".
+function normalizeStateCode(rawState: string): string {
+  const s = rawState.trim();
+  if (/^louisiana$/i.test(s)) return "LA";
+  if (/^[A-Za-z]{2}$/.test(s)) return s.toUpperCase();
+  return s;
+}
+
 // Rough count of how many times a recurring job will run between the
 // start date and the end date at the chosen interval. Used to preview
 // the commitment + total cost before the poster pays.
@@ -147,9 +160,13 @@ export function LogisticsSection({
             onResolved={({ street, city: pickedCity, state: pickedState, zipCode: pickedZip }) => {
               if (street) setStreetAddress(street);
               if (pickedCity) setCity(pickedCity);
-              // The pill only fires for Louisiana geocodes, so normalize
-              // the resolved state to the canonical "LA" code we store.
-              if (pickedState) setAddrState("LA");
+              // Store the state the geocoder actually resolved — never a
+              // hard-coded "LA", which produced "San Francisco, LA 94108".
+              // The pill already rejects clearly out-of-state geocodes, so
+              // this only normalizes the LA name/code to the canonical
+              // 2-letter "LA" we store (a coarse/blank geocode passes
+              // through untouched for the form's own validation to gate).
+              if (pickedState) setAddrState(normalizeStateCode(pickedState));
               if (pickedZip) setZipCode(pickedZip);
             }}
           />

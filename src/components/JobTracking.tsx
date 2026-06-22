@@ -15,6 +15,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { shareNative } from "@/lib/nativeShare";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
 // pulled in when an active "on_the_way" tracking card is visible.
@@ -159,13 +160,27 @@ export function JobTracking({
   }, [jobId, helperId, loadTracking]);
 
   const getLocation = async (): Promise<{ lat: number; lng: number } | null> => {
-    if (!navigator.geolocation) return null;
+    if (!isNativePlatform && !navigator.geolocation) return null;
     let location: { lat: number; lng: number } | null = null;
     // Pre-prompt before the first OS dialog this session, so the helper
     // sees a friendly "we use your location to confirm arrival" message
     // before iOS shows its system alert.
-    await requestPermission("location", () => {
-      return new Promise<void>((resolve) => {
+    await requestPermission("location", async () => {
+      // On native (iOS/Android) read through the Capacitor Geolocation
+      // plugin only — falling through to the WKWebView navigator.geolocation
+      // shim fires a SECOND "localhost would like to use your location"
+      // prompt on top of the OS-native one.
+      if (isNativePlatform) {
+        try {
+          const { Geolocation } = await import("@capacitor/geolocation");
+          const pos = await Geolocation.getCurrentPosition({ timeout: 10000 });
+          location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        } catch {
+          /* denied / unavailable — leave location null */
+        }
+        return;
+      }
+      await new Promise<void>((resolve) => {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             location = { lat: pos.coords.latitude, lng: pos.coords.longitude };

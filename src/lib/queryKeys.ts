@@ -45,6 +45,7 @@ export const queryKeys = {
   jobs: {
     all: ["jobs"] as const,
     open: () => ["jobs", "open"] as const,
+    publicDetail: (jobId: string) => ["jobs", "publicDetail", jobId] as const,
   },
   activity: {
     all: ["activity"] as const,

@@ -35,7 +35,7 @@ const TOOLTIP_STYLE = {
 };
 
 export const SubscriberPieChart = ({ data }: { data: SubPieDatum[] }) => (
-  <ResponsiveContainer width="100%" height="100%">
+  <ResponsiveContainer width="100%" height="100%" minHeight={180}>
     <RePieChart>
       <Pie data={data} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
         {data.map((entry, index) => (
@@ -49,7 +49,7 @@ export const SubscriberPieChart = ({ data }: { data: SubPieDatum[] }) => (
 );
 
 export const RevenueLineChart = ({ data }: { data: MonthlyDatum[] }) => (
-  <ResponsiveContainer width="100%" height="100%">
+  <ResponsiveContainer width="100%" height="100%" minHeight={250}>
     <LineChart data={data}>
       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
       <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
@@ -64,7 +64,7 @@ export const RevenueLineChart = ({ data }: { data: MonthlyDatum[] }) => (
 );
 
 export const MonthlyJobsBarChart = ({ data }: { data: MonthlyDatum[] }) => (
-  <ResponsiveContainer width="100%" height="100%">
+  <ResponsiveContainer width="100%" height="100%" minHeight={200}>
     <BarChart data={data}>
       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
       <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
@@ -76,7 +76,7 @@ export const MonthlyJobsBarChart = ({ data }: { data: MonthlyDatum[] }) => (
 );
 
 export const CategoriesBarChart = ({ data }: { data: CategoryDatum[] }) => (
-  <ResponsiveContainer width="100%" height="100%">
+  <ResponsiveContainer width="100%" height="100%" minHeight={250}>
     <BarChart data={data} layout="vertical">
       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
       <XAxis type="number" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />

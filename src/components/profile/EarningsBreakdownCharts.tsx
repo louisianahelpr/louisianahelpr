@@ -169,7 +169,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
             By category
           </p>
           <div className="h-[180px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={180}>
               <PieChart>
                 <Pie
                   data={pieData}
@@ -226,7 +226,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
             )}
           </div>
           <div className="h-[200px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <LineChart data={trendData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                 <CartesianGrid stroke="hsl(70, 22%, 24%)" strokeOpacity={0.08} vertical={false} />
                 <XAxis

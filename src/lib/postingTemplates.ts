@@ -28,7 +28,7 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
       "When do you need it done?",
     ],
     quickTips: [
-      "Posts with a room count get 3× more applicants",
+      "Adding a room count helps helprs gauge the job and apply",
       "Mention if you have pets",
     ],
   },

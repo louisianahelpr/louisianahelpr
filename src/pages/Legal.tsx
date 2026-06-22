@@ -799,7 +799,23 @@ const PrivacyContent = () => (
       <PolicyRowItem
         icon={Wallet}
         title="Payment processors"
-        body={<p>Stripe processes all payments securely under their own privacy policy.</p>}
+        body={<p>Stripe processes all payments and identity verification securely under their own privacy policy.</p>}
+      />
+      <PolicyRowItem
+        icon={Database}
+        title="Service providers we rely on"
+        body={
+          <>
+            <p>We use a small set of trusted vendors to run Helpr. Each only receives the data it needs for its function, under its own privacy policy:</p>
+            <ul className="mt-2 list-disc pl-5 space-y-1">
+              <li><strong className="text-foreground">Supabase</strong> — database, authentication, and file storage.</li>
+              <li><strong className="text-foreground">Stripe</strong> — payments, payouts, and identity verification.</li>
+              <li><strong className="text-foreground">Apple &amp; Google</strong> — optional Sign in with Apple / Google, and push-notification delivery (APNs / FCM).</li>
+              <li><strong className="text-foreground">PostHog</strong> — privacy-respecting product analytics.</li>
+              <li><strong className="text-foreground">Sentry</strong> — crash and error monitoring.</li>
+            </ul>
+          </>
+        }
       />
       <PolicyRowItem
         icon={Scale}

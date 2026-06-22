@@ -55,7 +55,7 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
     return (
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 flex flex-col bg-background overflow-hidden",
+          "app-shell-frame fixed inset-x-0 bottom-0 flex flex-col bg-background overflow-hidden",
           className,
         )}
         style={{

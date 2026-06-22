@@ -43,19 +43,19 @@ export const categories = Object.entries(categoryLabels).map(([value, label]) =>
  *   other     → warm stone      (neutral default)
  */
 export const categoryColors: Record<string, { badge: string; title: string; dot: string }> = {
-  cleaning:   { badge: "bg-[hsl(180_30%_94%)] text-[hsl(182_26%_33%)] border-[hsl(180_22%_80%)]",  title: "text-[hsl(182_26%_33%)]", dot: "bg-[hsl(182_28%_44%)]" },
-  yard_work:  { badge: "bg-[hsl(140_28%_94%)] text-[hsl(142_28%_31%)] border-[hsl(140_22%_78%)]",  title: "text-[hsl(142_28%_31%)]", dot: "bg-[hsl(142_30%_40%)]" },
-  moving:     { badge: "bg-[hsl(38_46%_93%)] text-[hsl(32_42%_37%)] border-[hsl(36_38%_78%)]",     title: "text-[hsl(32_42%_37%)]",  dot: "bg-[hsl(34_44%_47%)]" },
-  errands:    { badge: "bg-[hsl(75_32%_92%)] text-[hsl(74_32%_30%)] border-[hsl(74_26%_76%)]",     title: "text-[hsl(74_32%_30%)]",  dot: "bg-[hsl(73_32%_40%)]" },
-  handyman:   { badge: "bg-[hsl(22_50%_93%)] text-[hsl(18_44%_41%)] border-[hsl(20_42%_80%)]",     title: "text-[hsl(18_44%_41%)]",  dot: "bg-[hsl(19_46%_49%)]" },
-  painting:   { badge: "bg-[hsl(330_44%_94%)] text-[hsl(330_38%_47%)] border-[hsl(330_34%_84%)]",  title: "text-[hsl(330_38%_47%)]", dot: "bg-[hsl(330_40%_56%)]" },
-  delivery:   { badge: "bg-[hsl(214_34%_94%)] text-[hsl(214_28%_42%)] border-[hsl(214_26%_82%)]",  title: "text-[hsl(214_28%_42%)]", dot: "bg-[hsl(214_30%_51%)]" },
-  pet_care:   { badge: "bg-[hsl(278_26%_94%)] text-[hsl(278_22%_48%)] border-[hsl(278_22%_84%)]",  title: "text-[hsl(278_22%_48%)]", dot: "bg-[hsl(278_24%_57%)]" },
-  assembly:   { badge: "bg-[hsl(6_44%_94%)] text-[hsl(6_40%_46%)] border-[hsl(6_36%_84%)]",        title: "text-[hsl(6_40%_46%)]",   dot: "bg-[hsl(6_42%_53%)]" },
+  cleaning:   { badge: "bg-[hsl(180_30%_94%)] text-[hsl(182_26%_33%)] border-[hsl(180_22%_80%)] dark:bg-[hsl(182_26%_17%)] dark:text-[hsl(180_30%_76%)] dark:border-[hsl(182_22%_30%)]",  title: "text-[hsl(182_26%_33%)] dark:text-[hsl(180_30%_76%)]", dot: "bg-[hsl(182_28%_44%)]" },
+  yard_work:  { badge: "bg-[hsl(140_28%_94%)] text-[hsl(142_28%_31%)] border-[hsl(140_22%_78%)] dark:bg-[hsl(142_26%_16%)] dark:text-[hsl(140_32%_75%)] dark:border-[hsl(142_22%_29%)]",  title: "text-[hsl(142_28%_31%)] dark:text-[hsl(140_32%_75%)]", dot: "bg-[hsl(142_30%_40%)]" },
+  moving:     { badge: "bg-[hsl(38_46%_93%)] text-[hsl(32_42%_37%)] border-[hsl(36_38%_78%)] dark:bg-[hsl(34_40%_17%)] dark:text-[hsl(38_46%_76%)] dark:border-[hsl(35_36%_31%)]",     title: "text-[hsl(32_42%_37%)] dark:text-[hsl(38_46%_76%)]",  dot: "bg-[hsl(34_44%_47%)]" },
+  errands:    { badge: "bg-[hsl(75_32%_92%)] text-[hsl(74_32%_30%)] border-[hsl(74_26%_76%)] dark:bg-[hsl(74_28%_16%)] dark:text-[hsl(75_34%_74%)] dark:border-[hsl(74_24%_29%)]",     title: "text-[hsl(74_32%_30%)] dark:text-[hsl(75_34%_74%)]",  dot: "bg-[hsl(73_32%_40%)]" },
+  handyman:   { badge: "bg-[hsl(22_50%_93%)] text-[hsl(18_44%_41%)] border-[hsl(20_42%_80%)] dark:bg-[hsl(18_42%_18%)] dark:text-[hsl(22_50%_77%)] dark:border-[hsl(20_38%_32%)]",     title: "text-[hsl(18_44%_41%)] dark:text-[hsl(22_50%_77%)]",  dot: "bg-[hsl(19_46%_49%)]" },
+  painting:   { badge: "bg-[hsl(330_44%_94%)] text-[hsl(330_38%_47%)] border-[hsl(330_34%_84%)] dark:bg-[hsl(330_34%_19%)] dark:text-[hsl(330_44%_78%)] dark:border-[hsl(330_30%_33%)]",  title: "text-[hsl(330_38%_47%)] dark:text-[hsl(330_44%_78%)]", dot: "bg-[hsl(330_40%_56%)]" },
+  delivery:   { badge: "bg-[hsl(214_34%_94%)] text-[hsl(214_28%_42%)] border-[hsl(214_26%_82%)] dark:bg-[hsl(214_30%_18%)] dark:text-[hsl(214_36%_78%)] dark:border-[hsl(214_26%_32%)]",  title: "text-[hsl(214_28%_42%)] dark:text-[hsl(214_36%_78%)]", dot: "bg-[hsl(214_30%_51%)]" },
+  pet_care:   { badge: "bg-[hsl(278_26%_94%)] text-[hsl(278_22%_48%)] border-[hsl(278_22%_84%)] dark:bg-[hsl(278_24%_19%)] dark:text-[hsl(278_30%_79%)] dark:border-[hsl(278_22%_33%)]",  title: "text-[hsl(278_22%_48%)] dark:text-[hsl(278_30%_79%)]", dot: "bg-[hsl(278_24%_57%)]" },
+  assembly:   { badge: "bg-[hsl(6_44%_94%)] text-[hsl(6_40%_46%)] border-[hsl(6_36%_84%)] dark:bg-[hsl(6_38%_19%)] dark:text-[hsl(6_46%_78%)] dark:border-[hsl(6_34%_33%)]",        title: "text-[hsl(6_40%_46%)] dark:text-[hsl(6_46%_78%)]",   dot: "bg-[hsl(6_42%_53%)]" },
   // storm_prep → steel blue (storm / weather — distinct from delivery's slate)
-  storm_prep: { badge: "bg-[hsl(210_30%_92%)] text-[hsl(210_28%_38%)] border-[hsl(210_24%_78%)]", title: "text-[hsl(210_28%_38%)]", dot: "bg-[hsl(210_30%_47%)]" },
-  events:     { badge: "bg-[hsl(45_48%_93%)] text-[hsl(42_44%_36%)] border-[hsl(44_40%_78%)]",     title: "text-[hsl(42_44%_36%)]",  dot: "bg-[hsl(43_46%_46%)]" },
-  other:      { badge: "bg-[hsl(40_14%_92%)] text-[hsl(40_9%_42%)] border-[hsl(40_12%_80%)]",      title: "text-[hsl(40_9%_42%)]",   dot: "bg-[hsl(40_10%_55%)]" },
+  storm_prep: { badge: "bg-[hsl(210_30%_92%)] text-[hsl(210_28%_38%)] border-[hsl(210_24%_78%)] dark:bg-[hsl(210_28%_18%)] dark:text-[hsl(210_32%_77%)] dark:border-[hsl(210_24%_32%)]", title: "text-[hsl(210_28%_38%)] dark:text-[hsl(210_32%_77%)]", dot: "bg-[hsl(210_30%_47%)]" },
+  events:     { badge: "bg-[hsl(45_48%_93%)] text-[hsl(42_44%_36%)] border-[hsl(44_40%_78%)] dark:bg-[hsl(42_40%_17%)] dark:text-[hsl(45_50%_76%)] dark:border-[hsl(44_36%_31%)]",     title: "text-[hsl(42_44%_36%)] dark:text-[hsl(45_50%_76%)]",  dot: "bg-[hsl(43_46%_46%)]" },
+  other:      { badge: "bg-[hsl(40_14%_92%)] text-[hsl(40_9%_42%)] border-[hsl(40_12%_80%)] dark:bg-[hsl(40_10%_19%)] dark:text-[hsl(40_14%_75%)] dark:border-[hsl(40_10%_33%)]",      title: "text-[hsl(40_9%_42%)] dark:text-[hsl(40_14%_75%)]",   dot: "bg-[hsl(40_10%_55%)]" },
 };
 
 /**

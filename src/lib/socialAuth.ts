@@ -174,9 +174,8 @@ export async function signInWithProvider(
   }
 }
 
-// Back-compat named exports — the existing tests + a couple of older call
-// sites (AppleSignInButton.tsx, GoogleSignInButton.tsx) still reference
-// these directly. They throw on failure so the legacy "try/catch around
+// Back-compat named exports — the existing tests still reference these
+// directly. They throw on failure so the legacy "try/catch around
 // nativeAppleSignIn" call sites keep working.
 export async function nativeAppleSignIn(): Promise<void> {
   await nativeSignIn("apple");

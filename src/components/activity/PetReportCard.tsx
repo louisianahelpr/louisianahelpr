@@ -79,7 +79,7 @@ export function SendReportCard({
 
   const handleSubmit = async () => {
     if (!petId) {
-      toast.error("Please select which pet this report is for");
+      toast.error("Pick which pet this report is for");
       hapticError();
       return;
     }

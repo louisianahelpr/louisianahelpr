@@ -67,7 +67,11 @@ export function usePostJobForm() {
   const [category, setCategory] = useState<string>("other");
   const [streetAddress, setStreetAddress] = useState("");
   const [city, setCity] = useState("");
-  const [addrState, setAddrState] = useState("");
+  // State is locked to LA (Helpr is Louisiana-only) and the field is rendered
+  // read-only, so seed it with "LA" — otherwise the empty real value fails the
+  // `!addrState.trim()` submit gate while the UI shows "LA", silently blocking
+  // the poster with a toast that scrolls to an uneditable field (LH-53).
+  const [addrState, setAddrState] = useState("LA");
   const [zipCode, setZipCode] = useState("");
   const [parish, setParish] = useState<string | null>(null);
   const [dateNeeded, setDateNeeded] = useState("");

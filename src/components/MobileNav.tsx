@@ -633,7 +633,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
   return (
     <>
-      <nav ref={ref} aria-label="Bottom navigation" className="fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <nav ref={ref} aria-label="Bottom navigation" className="mobile-nav-frame fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         {/* Frosted curtain — full-width backdrop-blur layer behind the
             nav so any content scrolling up the page softly blurs as it
             passes through this band, not just under the centered pill.

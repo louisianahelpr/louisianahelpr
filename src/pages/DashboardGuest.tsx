@@ -30,6 +30,7 @@ const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialo
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { queryKeys } from "@/lib/queryKeys";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import HelprMark from "@/components/HelprMark";
@@ -387,7 +388,7 @@ const DashboardGuest = () => {
                         key={job.id}
                         job={job}
                         variant="guest"
-                        effectiveFee={10}
+                        effectiveFee={TIER_PERKS.free.platformFeePercent}
                         currentUserId={undefined}
                         showApply
                         onApply={requireSignup}
@@ -406,7 +407,7 @@ const DashboardGuest = () => {
           <JobDetailDialog
             guest
             job={detailJob}
-            effectiveFee={10}
+            effectiveFee={TIER_PERKS.free.platformFeePercent}
             onClose={() => setDetailJob(null)}
             onApply={requireSignup}
             onReport={requireSignup}

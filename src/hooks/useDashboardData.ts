@@ -11,6 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
 // initial paint stays cheap as the marketplace grows; later pages are fetched
@@ -128,7 +129,10 @@ export function useDashboardData() {
       // blocks, etc.) instead of an outright error state.
 
       const feeRow = Array.isArray(feeRes.data) ? (feeRes.data)[0] : null;
-      const platformFee = feeRow?.helper_fee_percent ?? 10;
+      // Fall back to the canonical FREE-tier rate (12%), not a magic 10 — a
+      // helper with no fee row is on the free plan, and the subscription page
+      // already advertises free = 12% / pro = 10% / elite = 8% (LH-30).
+      const platformFee = feeRow?.helper_fee_percent ?? TIER_PERKS.free.platformFeePercent;
       const helperAvailability = availRes.data ?? [];
       const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
       const blockedUserIds = new Set<string>();

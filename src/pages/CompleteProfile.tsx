@@ -306,27 +306,34 @@ const CompleteProfile = () => {
       if (avatarUrl) updates.avatar_url = avatarUrl;
       if (idDocumentPath) updates.id_document_url = idDocumentPath;
 
-      const { error: updateErr } = await withTimeout(
-        Promise.resolve(supabase.from("profiles").update(updates).eq("user_id", user.id)),
+      // Read the persisted row back in the same round-trip. ProtectedRoute's
+      // Big-7 completeness gate re-evaluates the instant we navigate to
+      // /dashboard, so the cache MUST hold the authoritative saved row — not
+      // an optimistic guess that a stale background refetch could clobber.
+      const { data: savedRow, error: updateErr } = await withTimeout(
+        Promise.resolve(
+          supabase.from("profiles").update(updates).eq("user_id", user.id).select("*").maybeSingle(),
+        ),
         "Profile save",
       );
       if (updateErr) throw updateErr;
 
       queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: any) => ({
         ...(current ?? {}),
-        profile: {
+        // Prefer the row Postgres actually persisted; fall back to a merged
+        // optimistic shape only if the read-back came back empty.
+        profile: savedRow ?? {
           ...(current?.profile ?? profile ?? {}),
           ...updates,
           user_id: user.id,
         },
         isAdmin: current?.isAdmin ?? false,
       }));
-      // Force a fresh DB read so ProtectedRoute re-evaluates against the
-      // *persisted* row, not just our optimistic cache. The small delay
-      // gives Postgres + the realtime channel a beat to settle so the
-      // very next route render reads the new values.
-      await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
-      await new Promise((r) => setTimeout(r, 800));
+      // No invalidate + sleep here: that triggered a background refetch that
+      // could resolve the pre-update row mid-navigation (read-after-write
+      // race), failing the completeness gate and bouncing the user straight
+      // back to /complete-profile (LH-29). The authoritative row above is the
+      // single source of truth; staleTime keeps it from refetching on arrival.
       hapticSuccess();
       toast.success("Profile complete — welcome to Helpr!");
       navigate("/dashboard", { replace: true });

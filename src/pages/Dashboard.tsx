@@ -953,12 +953,14 @@ const Dashboard = () => {
                     loadError={loadError}
                     refresh={refresh}
                     recommendedJobs={recommendedJobs}
-                    // Reserve the "Picked for you" slot with skeletons while a feed
-                    // fetch is in flight and no picks exist yet — recommendations are
-                    // derived from loaded pages, so they can arrive a beat after the
-                    // feed itself (refresh / next-page), and the empty→filled swap
-                    // would otherwise shove the list down (CLS).
-                    recommendedLoading={refreshing || isFetchingNextPage}
+                    // Reserve the "Picked for you" slot with skeletons only while a
+                    // pull-to-refresh re-derives recommendations and no picks exist
+                    // yet, so the empty→filled swap doesn't shove the list down (CLS).
+                    // NOT keyed on isFetchingNextPage: the recommended section belongs
+                    // to the first page only, so infinite-scroll pagination would
+                    // otherwise flash two placeholder cards at the top of the feed
+                    // every time the next page loads with zero recommendations.
+                    recommendedLoading={refreshing}
                     dismissedJobIds={dismissedJobIds}
                     effectiveFee={effectiveFee}
                     handleApplyRequest={handleApplyRequest}

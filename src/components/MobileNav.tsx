@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { getBlockedUserIds } from "@/lib/userBlocks";
+import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
 import { safeStorage } from "@/lib/safeStorage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
@@ -249,11 +250,14 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const loadCounts = async () => {
       // Mirror the inbox's own hide rules (Messages.tsx) so the badge can't
       // claim "1" while the inbox renders empty: the inbox drops system
-      // messages and any thread with a blocked sender, so the count must too.
+      // messages, threads with a blocked sender, AND locally-archived threads,
+      // so the count must too. Archived threads are a client-only (safeStorage)
+      // concept, so we can't filter them in SQL — we fetch the lightweight
+      // unread rows and drop archived ones in JS (LH-54).
       const blockedSet = await getBlockedUserIds(user.id);
       const base = supabase
         .from("messages")
-        .select("*", { count: "exact", head: true })
+        .select("job_id, sender_id, created_at")
         .eq("receiver_id", user.id)
         .eq("read", false);
       // `is_system` is a real column but missing from the generated types,
@@ -263,12 +267,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       if (blockedSet.size > 0) {
         query = query.not("sender_id", "in", `(${[...blockedSet].join(",")})`);
       }
-      const { count, error } = await query;
+      const { data, error } = await query;
       // Only overwrite the seeded value on a successful response —
       // a failed query (offline, transient) must NOT zero the badge
       // and surprise the user. The cache stays the floor.
       if (error) return;
-      const next = count || 0;
+      // Exclude unread messages whose thread the user archived (and that the
+      // archive hasn't auto-resurfaced — `isArchived` checks the message's own
+      // timestamp against the archive moment, exactly like the inbox). For a
+      // received message the other participant is the sender.
+      const next = (data ?? []).filter(
+        (m: { job_id: string | null; sender_id: string | null; created_at: string }) =>
+          !isArchived(user.id, m.job_id ?? "", m.sender_id ?? "", m.created_at),
+      ).length;
       setUnreadCount(next);
       writeCachedUnread(next);
     };
@@ -286,8 +297,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       )
       .subscribe();
 
+    // Archiving/unarchiving a thread changes which unread messages the badge
+    // should count, but it's a local action with no `messages` write — so the
+    // realtime channel above never fires. Recompute on the archive event too
+    // (LH-54).
+    const onArchiveChanged = () => loadCounts();
+    window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
     };
   }, [user?.id]);
 

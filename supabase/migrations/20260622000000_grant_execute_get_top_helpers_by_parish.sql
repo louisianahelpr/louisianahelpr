@@ -1,0 +1,11 @@
+-- Grant EXECUTE on get_top_helpers_by_parish to anon and authenticated.
+--
+-- The parish page (/parish/:slug) is a public marketing surface visited by
+-- unauthenticated guests. Without this grant the anon role receives a Postgres
+-- 42501 "permission denied" error when the page calls the RPC, silently
+-- emptying the Community Heroes section for every visitor.
+--
+-- Tracked in Sentry as JAVASCRIPT-14; flagged as a pre-existing backlog item
+-- in docs/function-grant-guard.md ("Likely client-callable … anon where used
+-- by guest/marketing surfaces").
+GRANT EXECUTE ON FUNCTION public.get_top_helpers_by_parish(text, integer) TO anon, authenticated;

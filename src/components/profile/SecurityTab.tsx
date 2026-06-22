@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 
 interface LoginHistoryRow {
   id: string;
@@ -367,6 +368,8 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           </Button>
         </div>
       </div>
+
+      <TwoFactorCard />
 
       {/* Active sessions — recent SIGNED_IN events grouped by coarse
           device fingerprint (OS + browser, scoped by IP). Read-only:

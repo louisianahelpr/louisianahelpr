@@ -172,11 +172,16 @@ const ConversationRowBase = ({
     ? "Photo"
     : (c.lastMessage || "—");
 
-  // Compact last-active label — quiet trust signal that lets a poster
-  // gauge how likely a helpr is to reply soon. Returns null beyond
-  // 7 days (the presence signal degrades from "fresh" to "stale" and
-  // we'd rather hide than mislead). Pulled from the batched
-  // `get_user_last_active` RPC in `loadConversations`.
+  // Live-presence label — quiet trust signal that lets a poster see a
+  // helpr is online *right now* (drives the green "Active now" dot).
+  //
+  // We intentionally only surface the LIVE state and never a numeric
+  // "Xm/Xh/Xd ago" presence age: the far-right `when` already shows a
+  // relative last-message time, and a second relative-vs-absolute age
+  // sitting beside it read as two conflicting timestamps for one moment
+  // ("6h ago" presence next to "May 30" last-message). One timestamp per
+  // row — `when` — plus the live dot, no stale presence age.
+  // Pulled from the batched `get_user_last_active` RPC in `loadConversations`.
   const lastActiveLabel = (() => {
     if (!c.otherUserLastActiveAt) return null;
     const at = new Date(c.otherUserLastActiveAt);
@@ -184,11 +189,6 @@ const ConversationRowBase = ({
     if (!Number.isFinite(ms) || ms < 0) return null;
     const m = Math.floor(ms / 60_000);
     if (m < 10) return { text: "Active now", isLive: true };
-    if (m < 60) return { text: `${m}m ago`, isLive: false };
-    const h = Math.floor(m / 60);
-    if (h < 24) return { text: `${h}h ago`, isLive: false };
-    const d = Math.floor(h / 24);
-    if (d <= 7) return { text: `${d}d ago`, isLive: false };
     return null;
   })();
   return (

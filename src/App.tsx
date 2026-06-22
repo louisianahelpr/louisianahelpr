@@ -76,6 +76,7 @@ const Legal = lazy(() => import("./pages/Legal"));
 const DataRights = lazy(() => import("./pages/DataRights"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Jobs = lazy(() => import("./pages/Jobs"));
+const JobDetail = lazy(() => import("./pages/JobDetail"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
 const DischargeConcierge = lazy(() => import("./pages/DischargeConcierge"));
@@ -177,6 +178,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           exact guests it targets to /login. /browse remains the in-app
           (AppShell) guest experience; this is its marketing-page sibling. */}
       <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<PageTransition><Jobs /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Public, deep-linkable job preview. Shared links (ShareJobButton →
+          /jobs/{id}?ref=share) land here: guests get a read-only preview,
+          signed-in users are redirected into the dashboard apply flow. */}
+      <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<PageTransition><JobDetail /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /dashboard's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want

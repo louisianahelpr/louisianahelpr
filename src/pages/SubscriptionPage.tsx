@@ -116,7 +116,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Subscription" meta="Choose the plan that fits your goals" />
+      <PageHeader title="Membership" meta="Lower the commission on the jobs you complete" />
 
       <div className="px-4 space-y-4 mt-2 pb-8">
         {/* ── Current plan card ─────────────────────────────────────────── */}
@@ -176,6 +176,20 @@ export default function SubscriptionPage() {
             </button>
           )}
         </div>
+
+        {/* Membership framing + billing disclosure. Helpr memberships lower
+            the marketplace commission on the real-world jobs a helper
+            completes (Apple Guideline 3.1.5(a) — physical/real-world
+            services), and are billed through Stripe, the same processor that
+            handles job payments. */}
+        <p
+          className="font-serif italic text-center px-2"
+          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.5 }}
+        >
+          A membership lowers the commission Helpr takes on the real-world jobs
+          you complete and adds visibility perks. Billed securely through
+          Stripe — manage or cancel anytime.
+        </p>
 
         {/* ── Tier cards ────────────────────────────────────────────────── */}
         {TIER_ORDER.map((tier) => {
@@ -459,6 +473,14 @@ export default function SubscriptionPage() {
             Common questions
           </h2>
           {[
+            {
+              q: "What does a membership do?",
+              a: "It lowers the commission Helpr deducts from the real-world jobs you get paid for — from 12% down to as low as 6% — and adds visibility perks like priority placement and a featured badge. The lower commission applies to every job you complete.",
+            },
+            {
+              q: "How am I billed?",
+              a: "Membership is billed securely through Stripe — the same processor that handles your job payments. You can manage or cancel your membership anytime from Manage plan.",
+            },
             {
               q: "Can I cancel anytime?",
               a: "Yes — downgrade at any time. Your paid perks stay active through the end of your billing period, then you revert to Free.",

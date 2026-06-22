@@ -60,11 +60,10 @@ interface ShareJobButtonProps {
  * User-cancellation of the OS sheet is normal — we silently ignore it
  * rather than toasting an error.
  *
- * The URL points at `/dashboard?job={id}` because the app currently
- * has no public job-detail route (see `src/App.tsx`). The dashboard is
- * the closest safe landing — recipients who tap will at least arrive
- * inside Louisiana Helpr. If a `/job/:id` route is added later, swap
- * the URL builder below.
+ * The URL points at the public `/jobs/:id` preview route. Guests who tap
+ * get a read-only job preview (apply gated to /signup); signed-in
+ * recipients are redirected into the dashboard apply flow. See
+ * `src/pages/JobDetail.tsx`.
  */
 export function ShareJobButton({
   job,

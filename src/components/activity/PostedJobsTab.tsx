@@ -1234,7 +1234,7 @@ export const PostedJobsTab = ({
                                         className="flex items-center gap-1.5 mt-1 w-full"
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        <span className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>$</span>
+                                        <span className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>$</span>
                                         <input
                                           type="number"
                                           min="1"
@@ -1367,7 +1367,7 @@ export const PostedJobsTab = ({
                               </span>
                             )}
                             {app.status === "rejected" && (
-                              <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.7)]">
+                              <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.8)]">
                                 <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--olivewood)/0.7)]" aria-hidden="true" />
                                 Declined
                               </span>
@@ -1407,6 +1407,7 @@ export const PostedJobsTab = ({
                               <div className="flex gap-2 items-start">
                                 <textarea
                                   autoFocus
+                                  aria-label="Private note"
                                   value={noteDraft}
                                   onChange={(e) => setNoteDraft(e.target.value)}
                                   onKeyDown={(e) => {
@@ -1499,7 +1500,7 @@ export const PostedJobsTab = ({
                 <div role="group" aria-label="Decline reason">
                   <p
                     className="font-serif italic mb-2"
-                    style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                    style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Choose a reason (optional)
                   </p>

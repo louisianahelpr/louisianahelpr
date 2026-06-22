@@ -361,7 +361,7 @@ export function BrowseTasksToolbar({
           {filters.filteredJobs.length > 0 && (
             <span
               className="font-serif italic mt-0.5 text-ds-11"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {filters.filteredJobs.length}{" "}
               {filters.filteredJobs.length === 1 ? "job" : "jobs"}
@@ -521,7 +521,7 @@ export function BrowseTasksToolbar({
                       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30">
                         <span
                           className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
-                          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                         >
                           Recent
                         </span>
@@ -565,7 +565,7 @@ export function BrowseTasksToolbar({
                   <div className="px-3 py-1.5 border-b border-border/30">
                     <span
                       className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
-                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Popular
                     </span>

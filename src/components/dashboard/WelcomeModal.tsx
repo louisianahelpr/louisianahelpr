@@ -109,7 +109,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
               </p>
               <p
                 className="font-serif italic mt-0.5 text-[0.72rem] leading-snug"
-                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Post your first job in 2 min.
               </p>
@@ -151,7 +151,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
               </p>
               <p
                 className="font-serif italic mt-0.5 text-[0.72rem] leading-snug"
-                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Browse open jobs near you.
               </p>
@@ -178,7 +178,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
         >
           <p
             className="font-serif italic text-center text-[0.68rem] leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.70)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Payment always protected · Verify when you're ready · Real people if you need help
           </p>
@@ -190,7 +190,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
             type="button"
             onClick={onDismiss}
             className="font-serif italic text-[0.78rem] underline underline-offset-2 active:opacity-60 transition-opacity"
-            style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Skip for now
           </button>

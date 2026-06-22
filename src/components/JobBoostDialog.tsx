@@ -75,7 +75,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
           </DialogTitle>
           <p
             className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Featured placement and a Boosted badge for 24 hours.
           </p>
@@ -114,7 +114,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 </p>
                 <p
                   className="font-serif italic mt-1.5"
-                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
                 </p>
@@ -129,7 +129,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 </p>
                 <p
                   className="font-serif italic mt-1.5"
-                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   One-time · runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
                 </p>

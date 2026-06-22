@@ -211,7 +211,7 @@ export const DisputeTimelineDialog = ({
           >
             Timeline
           </DialogTitle>
-          <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
             {decidedAt
               ? "An admin has reached a decision on this dispute."
               : "An admin is reviewing this dispute. Add more evidence to strengthen your case."}
@@ -227,7 +227,7 @@ export const DisputeTimelineDialog = ({
               <p className="font-serif italic uppercase inline-flex items-center gap-1.5" style={eyebrowStyle}>
                 <Clock className="w-3 h-3" /> Filed
                 {createdAt && (
-                  <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     · {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
                   </span>
                 )}
@@ -237,7 +237,7 @@ export const DisputeTimelineDialog = ({
                   "{reason}"
                 </p>
               )}
-              <p className="font-sans text-ds-10 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-sans text-ds-10 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {isOpener ? "Filed by you." : "Filed by the other party."}
               </p>
             </div>
@@ -246,12 +246,12 @@ export const DisputeTimelineDialog = ({
             <div>
               <p className="font-serif italic uppercase inline-flex items-center gap-1.5" style={eyebrowStyle}>
                 <FileImage className="w-3 h-3" /> Evidence on file
-                <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   · {evidenceUrls.length}
                 </span>
               </p>
               {evidenceUrls.length === 0 ? (
-                <p className="font-serif italic mt-1.5" style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="font-serif italic mt-1.5" style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                   No evidence uploaded yet.
                 </p>
               ) : (
@@ -276,7 +276,7 @@ export const DisputeTimelineDialog = ({
               <div className="rounded-ds-md p-3" style={{ background: "hsl(var(--primary) / 0.08)", border: "0.5px solid hsl(var(--primary) / 0.25)" }}>
                 <p className="font-serif italic uppercase inline-flex items-center gap-1.5" style={{ ...eyebrowStyle, color: "hsl(var(--primary))" }}>
                   <CheckCircle2 className="w-3 h-3" /> Decided
-                  <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     · {formatDistanceToNow(new Date(decidedAt), { addSuffix: true })}
                   </span>
                 </p>

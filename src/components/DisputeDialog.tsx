@@ -183,7 +183,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           </DialogTitle>
           <p
             className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             You've already requested a revision. Filing a dispute holds payment for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours</strong> while an admin reviews.
           </p>

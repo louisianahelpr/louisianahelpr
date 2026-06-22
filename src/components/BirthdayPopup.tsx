@@ -122,7 +122,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 <DialogPrimitive.Description asChild>
                   <p
                     className="font-serif italic leading-relaxed mt-2 max-w-[280px] mx-auto"
-                    style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                    style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Wishing you a great one. Thanks for being part of the Louisiana Helpr community.
                   </p>

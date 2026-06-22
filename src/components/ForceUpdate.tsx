@@ -80,7 +80,7 @@ export const ForceUpdate = ({ storeUrl }: Props) => {
             className="font-serif italic leading-relaxed max-w-sm mx-auto"
             style={{
               fontSize: "0.92rem",
-              color: "hsl(var(--olivewood) / 0.78)",
+              color: "hsl(var(--olivewood) / 0.8)",
             }}
           >
             We've shipped a few important changes — getting the latest version

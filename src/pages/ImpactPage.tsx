@@ -126,7 +126,7 @@ const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon }
       </p>
       <p
         className="font-sans font-semibold uppercase"
-        style={{ fontSize: "0.63rem", letterSpacing: "0.18em", color: "hsl(var(--olivewood) / 0.65)" }}
+        style={{ fontSize: "0.63rem", letterSpacing: "0.18em", color: "hsl(var(--olivewood) / 0.8)" }}
       >
         {label}
       </p>
@@ -180,7 +180,7 @@ const LouisianaMap = () => (
     </svg>
     <p
       className="text-center font-serif italic mt-3"
-      style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.65)" }}
+      style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}
     >
       Active parishes with helpers &amp; jobs
     </p>
@@ -334,7 +334,7 @@ const ImpactPage = () => {
               </p>
               <p
                 className="mt-3 font-serif italic text-ds-13"
-                style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 <a
                   href="/parishes"
@@ -452,7 +452,7 @@ const ImpactPage = () => {
           </h2>
           <p
             className="mt-4 font-serif italic text-ds-17 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Join thousands of Louisiana neighbors already on the platform.
           </p>

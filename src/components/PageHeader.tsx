@@ -62,7 +62,7 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false,
             {meta && (
               <span
                 className="font-serif italic mt-0.5 text-[0.78rem]"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {meta}
               </span>

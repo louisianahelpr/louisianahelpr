@@ -125,7 +125,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
           </button>
         )}
         {atMax && (
-          <span className="text-ds-10 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+          <span className="text-ds-10 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Max {MAX_SKILLS} skills
           </span>
         )}
@@ -133,7 +133,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
 
       {/* Current skills */}
       {!isLoading && skills.length === 0 && (
-        <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+        <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Add skills so clients know what you're great at.
         </p>
       )}
@@ -199,7 +199,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
 
           {/* Skill chips to add */}
           {allAvailable.length === 0 ? (
-            <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+            <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               All skills in this category already added.
             </p>
           ) : (

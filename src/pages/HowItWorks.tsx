@@ -392,7 +392,7 @@ const HowItWorks = () => {
           </h2>
           <p
             className="font-serif italic text-ds-15 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Join thousands of Louisiana neighbors already on the platform.
           </p>

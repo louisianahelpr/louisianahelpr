@@ -202,7 +202,7 @@ export function ConversationList({
                 style={{
                   fontSize: "0.62rem",
                   letterSpacing: "0.16em",
-                  color: "hsl(var(--olivewood) / 0.55)",
+                  color: "hsl(var(--olivewood) / 0.8)",
                 }}
               >
                 {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
@@ -249,7 +249,7 @@ export function ConversationList({
                 style={
                   searchOpen || searchQuery
                     ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))" }
-                    : { color: "hsl(var(--olivewood) / 0.7)" }
+                    : { color: "hsl(var(--olivewood) / 0.8)" }
                 }
               >
                 <Search className="w-4 h-4" />
@@ -339,7 +339,7 @@ export function ConversationList({
                   border: "0.5px solid hsl(var(--olivewood) / 0.16)",
                 }}
               >
-                <Search className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} strokeWidth={1.75} />
+                <Search className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
               </div>
               <p
                 className="font-display italic font-bold"
@@ -349,7 +349,7 @@ export function ConversationList({
               </p>
               <p
                 className="font-serif italic text-[0.8rem] max-w-[240px]"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Try a different name or keyword.
               </p>

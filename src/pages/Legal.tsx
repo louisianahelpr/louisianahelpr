@@ -157,7 +157,7 @@ const PolicyFooter = ({ updated }: { updated: string }) => (
     </p>
     <span
       className="shrink-0 text-ds-11 font-sans tabular-nums"
-      style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
     >
       Updated {updated}
     </span>
@@ -698,7 +698,7 @@ const PrivacyContent = () => (
           >
             We never sell your data.
           </p>
-          <p className="font-serif italic mt-1 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic mt-1 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Other users only see your first name, photo, and ratings. ID documents stay encrypted and are accessed only during verification.
           </p>
         </div>
@@ -1026,7 +1026,7 @@ const Legal = () => {
     <div className="relative" data-print-hide>
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-        style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       />
       <input
         type="text"
@@ -1045,7 +1045,7 @@ const Legal = () => {
           onClick={() => setQuery("")}
           aria-label="Clear search"
           className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
-          style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           <X className="w-4 h-4" />
         </button>
@@ -1058,7 +1058,7 @@ const Legal = () => {
       <p className="font-display font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
         No matches for “{query.trim()}”
       </p>
-      <p className="mt-1 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+      <p className="mt-1 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Try a different term or clear the search.
       </p>
     </div>

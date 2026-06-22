@@ -115,7 +115,7 @@ export function EscrowFlowExplainer() {
 
       <p
         className="text-ds-11 font-serif italic leading-snug pt-1"
-        style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         If the job isn&apos;t completed, the held payment is refunded to
         your original payment method.

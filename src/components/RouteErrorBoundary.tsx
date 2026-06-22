@@ -107,7 +107,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
             className="font-serif italic leading-relaxed"
             style={{
               fontSize: "0.92rem",
-              color: "hsl(var(--olivewood) / 0.75)",
+              color: "hsl(var(--olivewood) / 0.8)",
             }}
           >
             We've logged it. Try again or head back home.

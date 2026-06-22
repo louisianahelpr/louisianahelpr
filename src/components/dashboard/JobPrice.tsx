@@ -142,7 +142,7 @@ export function JobPrice({
           <span
             id={panelId}
             className="font-sans tabular-nums text-[9px] tracking-[0.02em] mt-1 pt-1 whitespace-nowrap"
-            style={{ color: "hsl(var(--olivewood) / 0.7)", borderTop: "0.5px solid hsl(var(--bark) / 0.18)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)", borderTop: "0.5px solid hsl(var(--bark) / 0.18)" }}
           >
             Budget ${budget.toFixed(0)} − {effectiveFee}% fee
             {helpers > 1 ? ` ÷ ${helpers}` : ""}
@@ -198,7 +198,7 @@ export function JobPrice({
           {!showBudget && (
             <p
               className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               ${budget.toFixed(0)} budget − {effectiveFee}% fee
               {urgentFee > 0 ? ` + $${urgentFee.toFixed(0)} urgent` : ""}
@@ -208,7 +208,7 @@ export function JobPrice({
               is above the Pro rate (10%) — otherwise "reduces your fee to
               10%" contradicts a fee line already reading 10% or lower. */}
           {!showBudget && showProUpsell && effectiveFee > 10 && (
-            <p className="font-serif italic text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+            <p className="font-serif italic text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               <span style={{ color: "hsl(var(--burnt-sienna))" }}>Helper Pro</span> reduces your fee to 10%
               {" "}·{" "}
               <button
@@ -225,7 +225,7 @@ export function JobPrice({
         {!showBudget && (
           <ChevronDown
             className={`shrink-0 w-4 h-4 ${expanded ? "rotate-180" : ""}`}
-            style={{ color: "hsl(var(--olivewood) / 0.6)", transition }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)", transition }}
           />
         )}
       </div>

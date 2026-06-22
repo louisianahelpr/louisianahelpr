@@ -146,7 +146,7 @@ const StatCard = ({ label, value, sublabel }: StatCardProps) => (
     >
       {value}
     </p>
-    <p className="text-[0.7rem] font-sans font-semibold uppercase tracking-wider leading-tight" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+    <p className="text-[0.7rem] font-sans font-semibold uppercase tracking-wider leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
       {label}
     </p>
     {sublabel && (
@@ -285,7 +285,7 @@ const HelprWrapped = () => {
             </h1>
             <p
               className="mt-1 font-serif italic text-ds-13"
-              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Louisiana Helpr Community
             </p>
@@ -308,7 +308,7 @@ const HelprWrapped = () => {
                 <p className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                   No activity yet in {YEAR}
                 </p>
-                <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Post a job or help a neighbor to start building your story.
                 </p>
               </div>
@@ -335,7 +335,7 @@ const HelprWrapped = () => {
               </Button>
               <p
                 className="text-center text-ds-11 font-serif italic"
-                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 <a
                   href="/wrapped"

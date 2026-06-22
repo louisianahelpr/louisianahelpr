@@ -287,7 +287,7 @@ export function DetailsSection({
         <div className="relative">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
-            style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             aria-hidden
           />
           <Input
@@ -309,7 +309,7 @@ export function DetailsSection({
             >
               <X
                 className="w-3.5 h-3.5"
-                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 strokeWidth={2.5}
               />
             </button>
@@ -362,7 +362,7 @@ export function DetailsSection({
             <div
               className="col-span-2 px-3 py-3 rounded-xl text-center text-[0.78rem] font-serif italic"
               style={{
-                color: "hsl(var(--olivewood) / 0.75)",
+                color: "hsl(var(--olivewood) / 0.8)",
                 background: "hsl(var(--parchment) / 0.45)",
                 border: "0.5px dashed hsl(var(--olivewood) / 0.25)",
               }}
@@ -573,7 +573,7 @@ export function DetailsSection({
           return (
             <p
               className="text-[0.68rem] font-serif italic leading-snug"
-              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Tip: {unmet.join(" · ")}
             </p>
@@ -634,7 +634,7 @@ export function DetailsSection({
                       style={{
                         color: active
                           ? "hsl(var(--bark))"
-                          : "hsl(var(--olivewood) / 0.6)",
+                          : "hsl(var(--olivewood) / 0.8)",
                       }}
                       strokeWidth={2.25}
                       aria-hidden
@@ -657,8 +657,8 @@ export function DetailsSection({
                       style={{
                         fontSize: "0.67rem",
                         color: active
-                          ? "hsl(var(--olivewood) / 0.75)"
-                          : "hsl(var(--olivewood) / 0.55)",
+                          ? "hsl(var(--olivewood) / 0.8)"
+                          : "hsl(var(--olivewood) / 0.8)",
                       }}
                     >
                       {sub}
@@ -733,7 +733,7 @@ export function DetailsSection({
                       <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover pointer-events-none" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
-                        <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+                        <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                       </div>
                     )}
                     {/* Per-image upload progress — bottom-edge bar. */}
@@ -836,7 +836,7 @@ export function DetailsSection({
                     <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
-                      <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+                      <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                     </div>
                   )}
                   {uploading && (
@@ -918,9 +918,9 @@ export function DetailsSection({
       {onVideoSelect && (
         <div className="mt-4">
           <p className="font-display italic font-semibold text-ds-14 mb-1" style={{ color: "hsl(var(--ink-deep))" }}>
-            Show them the job <span className="font-sans text-ds-11 not-italic font-normal" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>(optional)</span>
+            Show them the job <span className="font-sans text-ds-11 not-italic font-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>(optional)</span>
           </p>
-          <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             A short video of the space gets you more accurate quotes and fewer surprises.
           </p>
           {scopeVideoUrl ? (
@@ -944,7 +944,7 @@ export function DetailsSection({
               style={{ border: "1.5px dashed hsl(var(--bark) / 0.3)", background: "hsl(var(--bark) / 0.03)" }}
             >
               <Video className="w-6 h-6 mx-auto mb-1" style={{ color: "hsl(var(--bark) / 0.5)" }} />
-              <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+              <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Upload a video (30s max)
               </span>
               <input type="file" accept="video/*" className="hidden" onChange={onVideoSelect} />

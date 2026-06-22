@@ -416,7 +416,7 @@ const EnterprisePage = () => {
         >
           <p
             className="font-serif italic uppercase text-ds-9 text-center mb-4"
-            style={{ color: "hsl(var(--olivewood) / 0.55)", letterSpacing: "0.18em" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.18em" }}
           >
             Trust &amp; Compliance
           </p>

@@ -364,6 +364,7 @@ const AdminReports = () => {
               This will send an in-app notification to {messageTarget?.name}.
             </p>
             <Textarea
+              aria-label="Message to user"
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               placeholder="Type your message…"

@@ -75,7 +75,7 @@ const StarRow = ({
           {optional && (
             <span
               className="font-serif italic"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--olivewood) / 0.55)", letterSpacing: "0.04em" }}
+              style={{ fontSize: "0.62rem", color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.04em" }}
             >
               Optional
             </span>
@@ -83,7 +83,7 @@ const StarRow = ({
         </p>
         <p
           className="font-serif italic mt-0.5"
-          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}
+          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {sublabel}
         </p>
@@ -292,7 +292,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           </DialogTitle>
           <p
             className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Reviews are how other neighbors decide who to trust.
           </p>
@@ -310,7 +310,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           ))}
           <p
             className="font-serif italic"
-            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.65)" }}
+            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Only the Overall rating is needed — the rest are optional. You can skip them and still post your review.
           </p>
@@ -400,14 +400,14 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                   }}
                 >
                   <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} />
-                  <span className="font-serif italic" style={{ fontSize: "0.58rem", color: "hsl(var(--olivewood) / 0.65)" }}>
+                  <span className="font-serif italic" style={{ fontSize: "0.58rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                     {photoFiles.length === 0 ? "Add photo" : "Add more"}
                   </span>
                 </button>
               )}
             </div>
             {photoFiles.length > 0 && (
-              <p className="font-serif italic" style={{ fontSize: "0.68rem", color: "hsl(var(--olivewood) / 0.55)" }}>
+              <p className="font-serif italic" style={{ fontSize: "0.68rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 {photoFiles.length}/{MAX_PHOTOS} photo{photoFiles.length !== 1 ? "s" : ""} attached
               </p>
             )}
@@ -472,7 +472,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             >
               Send {revieweeName} a tip?
             </DialogTitle>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Goes straight to the helpr — no platform cut. Most posters tip 10–15% for great work.
             </p>
           </DialogHeader>

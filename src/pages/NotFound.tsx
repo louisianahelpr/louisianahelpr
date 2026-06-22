@@ -64,7 +64,7 @@ const NotFound = () => {
             >
               404
             </h1>
-            <p className="font-serif italic text-ds-17" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="font-serif italic text-ds-17" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               This page doesn't exist or has been moved.
             </p>
           </div>

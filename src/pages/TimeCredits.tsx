@@ -212,7 +212,7 @@ export default function TimeCredits() {
                     </p>
                     <p
                       className="text-xs"
-                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {formatShortDate(tx.created_at)}
                     </p>
@@ -254,7 +254,7 @@ export default function TimeCredits() {
               </p>
               <p
                 className="text-xs"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Health coverage, financial tools & discounts
               </p>

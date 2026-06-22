@@ -186,6 +186,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       {/* Composer */}
       <div className="rounded-ds-sm liquid-glass p-3 space-y-2">
         <Textarea
+          aria-label="New admin note"
           value={newNote}
           onChange={(e) => setNewNote(e.target.value)}
           placeholder="Add an internal note about this user (only admins can see this)…"

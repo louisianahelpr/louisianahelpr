@@ -151,7 +151,7 @@ export const ProfileHeaderCard = ({
         {profile.location && (
           <p
             className="font-serif italic flex items-center justify-center gap-1 mt-0.5"
-            style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             <MapPin className="w-3 h-3" />{profile.location}
           </p>
@@ -182,7 +182,7 @@ export const ProfileHeaderCard = ({
               style={{
                 background: lastActiveLabel.isLive
                   ? "hsl(140 60% 42%)"
-                  : "hsl(var(--olivewood) / 0.65)",
+                  : "hsl(var(--olivewood) / 0.8)",
                 boxShadow: lastActiveLabel.isLive
                   ? "0 0 0 3px hsl(140 60% 42% / 0.18)"
                   : "none",
@@ -216,7 +216,7 @@ export const ProfileHeaderCard = ({
         )}
         {/* Response Metrics inline */}
         {responseMetrics.totalApplications > 0 && (
-          <div className="flex items-center justify-center gap-3 mt-2 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <div className="flex items-center justify-center gap-3 mt-2 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {responseMetrics.avgResponseHours !== null && (
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
@@ -252,7 +252,7 @@ export const ProfileHeaderCard = ({
             Skipped silently when the schema doesn't yield a usable
             signal (no arrived_at timestamps recorded yet). */}
         {(onTimeArrivalRate !== null || revisionFrequency !== null) && (
-          <div className="flex items-center justify-center gap-3 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <div className="flex items-center justify-center gap-3 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {onTimeArrivalRate !== null && (
               <span className="flex items-center gap-1">
                 <Timer className="w-3 h-3" />
@@ -345,7 +345,7 @@ export const ProfileHeaderCard = ({
           }
           if (jobsNearbyCount === null) return null;
           return (
-            <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               <MapPin className="w-3 h-3" />
               <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
                 {jobsNearbyCount}
@@ -360,7 +360,7 @@ export const ProfileHeaderCard = ({
             rate". Color shifts olive→amber→sienna at 5%/15% so the
             signal degrades gracefully rather than feeling punitive. */}
         {cancellationRate.rate !== null && (
-          <div className="flex items-center justify-center gap-1 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <div className="flex items-center justify-center gap-1 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             <span
               className="font-display italic font-bold tabular-nums"
               style={{
@@ -375,7 +375,7 @@ export const ProfileHeaderCard = ({
               {cancellationRate.rate.toFixed(0)}%
             </span>
             <span>cancel rate</span>
-            <span style={{ color: "hsl(var(--olivewood) / 0.45)" }}>· {cancellationRate.cancelled}/{cancellationRate.total} jobs</span>
+            <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>· {cancellationRate.cancelled}/{cancellationRate.total} jobs</span>
           </div>
         )}
         {/* "No disputes on record" trust signal — shown only when
@@ -407,7 +407,7 @@ export const ProfileHeaderCard = ({
           </div>
         )}
         {profile.phone && (
-          <p className="font-serif italic mt-1.5 flex items-center justify-center gap-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic mt-1.5 flex items-center justify-center gap-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
             <Phone className="w-3 h-3" />{profile.phone}
           </p>
         )}

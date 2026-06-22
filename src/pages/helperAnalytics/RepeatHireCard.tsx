@@ -26,7 +26,7 @@ const RepeatHireCard = ({ analytics, hasAccess, isLoading, onUpgrade }: RepeatHi
           >
             {analytics.repeatHirePercent}%
           </p>
-          <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             of clients hired you more than once
           </p>
           {analytics.repeatHirePercent !== null && analytics.repeatHirePercent >= 30 && (

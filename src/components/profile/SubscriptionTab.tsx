@@ -249,7 +249,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               {expiresAt && (
                 <p
                   className="font-serif italic mt-1"
-                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Renews{" "}
                   <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -428,7 +428,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     )}
                     <span
                       className="font-serif italic truncate"
-                      style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                      style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {tier.forWhom}
                     </span>
@@ -551,7 +551,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             </DialogTitle>
             <p
               className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Keep your spot — request a one-month, no-charge pause on your {(currentTier ?? "plan")}. We'll confirm by email and your plan resumes after the pause. Cancel anytime if you've changed your mind.
             </p>
@@ -633,7 +633,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             </DialogTitle>
             <p
               className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Quick — what's holding you back? It helps us improve, and we might be able to fix it.
             </p>

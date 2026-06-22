@@ -123,7 +123,7 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
           </h3>
           <p
             className="font-serif italic mt-1 leading-snug"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Show this to a friend at a job site — they scan, sign up, and your code is auto-applied.
           </p>
@@ -214,7 +214,7 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
                       ? "hsl(var(--bark))"
                       : isNext
                         ? "hsl(var(--gold-warm))"
-                        : "hsl(var(--olivewood) / 0.5)",
+                        : "hsl(var(--olivewood) / 0.8)",
                   }}
                 />
                 <p
@@ -225,7 +225,7 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
                 </p>
                 <p
                   className="font-serif italic mt-0.5 leading-snug"
-                  style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {m.label}
                 </p>

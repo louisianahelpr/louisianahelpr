@@ -653,7 +653,7 @@ function PostedJobCardInner({
                           </p>
                           <p
                             className="font-serif italic leading-snug"
-                            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.75)" }}
+                            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
                           >
                             Share your task or Boost it (below) to reach more helprs nearby.
                           </p>

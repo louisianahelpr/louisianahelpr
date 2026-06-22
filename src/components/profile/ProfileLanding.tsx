@@ -776,7 +776,7 @@ export function ProfileLanding({
                 values={earningsSparkline}
                 label="Your earnings over the last 6 weeks"
               />
-              <ChevronRightIcon className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.4)" }} />
+              <ChevronRightIcon className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             </div>
           </button>
         )}
@@ -806,7 +806,7 @@ export function ProfileLanding({
               type="button"
               onClick={() => onSelectTab("profile")}
               className="w-full text-left font-serif italic text-ds-13 leading-snug active:opacity-70 transition-opacity"
-              style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >+ Add a short bio so applicants know who they're hiring.</button>
           )}
         </div>
@@ -958,11 +958,11 @@ export function ProfileLanding({
                 <p className="text-ds-13 font-semibold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
                   My QR Code
                 </p>
-                <p className="text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.72)" }}>
+                <p className="text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Share with your poster to verify at the door
                 </p>
               </div>
-              <ChevronRightIcon className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.4)" }} />
+              <ChevronRightIcon className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             </button>
           </div>
         )}
@@ -1094,7 +1094,7 @@ export function ProfileLanding({
                                 ) : (
                                   <p
                                     className="font-serif italic text-ds-11 leading-snug"
-                                    style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                                   >
                                     {r.jobTitle}
                                   </p>
@@ -1406,7 +1406,7 @@ export function ProfileLanding({
                         color:
                           theme === value
                             ? "hsl(var(--bark))"
-                            : "hsl(var(--olivewood) / 0.55)",
+                            : "hsl(var(--olivewood) / 0.8)",
                       }}
                     >
                       <Icon className="w-4 h-4" strokeWidth={2} />
@@ -1553,14 +1553,14 @@ export function ProfileLanding({
                 </p>
                 <p
                   className="text-ds-11 font-serif italic mt-0.5"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   See your year on Helpr
                 </p>
               </div>
               <MoreHorizontal
                 className="w-4 h-4 shrink-0"
-                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               />
             </div>
           </button>
@@ -1624,7 +1624,7 @@ export function ProfileLanding({
                 <QrCode className="w-12 h-12" style={{ color: "hsl(var(--bark) / 0.3)" }} />
               </div>
             )}
-            <p className="text-ds-12 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="text-ds-12 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Share with your poster so they can verify you at the door.
             </p>
             <button

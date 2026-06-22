@@ -124,7 +124,7 @@ export function DemoVideoSection() {
         >
           <span
             className="flex items-center gap-2 text-ds-13 font-medium"
-            style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             <Clock className="w-4 h-4" strokeWidth={1.75} />
             Demo coming soon

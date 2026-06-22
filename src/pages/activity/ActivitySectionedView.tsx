@@ -177,7 +177,7 @@ export function ActivitySectionedView<TItem>({
                 <ChevronDown
                   className="w-4 h-4 shrink-0 transition-transform"
                   style={{
-                    color: "hsl(var(--olivewood) / 0.6)",
+                    color: "hsl(var(--olivewood) / 0.8)",
                     transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
                   }}
                   aria-hidden="true"
@@ -189,7 +189,7 @@ export function ActivitySectionedView<TItem>({
                 {count === 0 ? (
                   <p
                     className="text-ds-12 px-3 py-4 text-center font-serif italic"
-                    style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Nothing in {sectionLabels[key].toLowerCase()} yet.
                   </p>

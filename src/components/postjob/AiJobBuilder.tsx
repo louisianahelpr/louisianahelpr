@@ -87,7 +87,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
           <p className="font-display italic font-bold mt-0.5" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
             Try the AI Job Builder
           </p>
-          <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Describe your task and let AI fill the form.
           </p>
         </div>

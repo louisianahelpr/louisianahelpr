@@ -522,7 +522,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                       >
                         {formatName(h.full_name)}
                       </Link>
-                      <div className="flex items-center gap-x-2 gap-y-0.5 mt-1 font-serif italic flex-wrap" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                      <div className="flex items-center gap-x-2 gap-y-0.5 mt-1 font-serif italic flex-wrap" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                         {h.completed_jobs_together > 0 && (
                           <span className="flex items-center gap-1 text-primary">
                             <Star className="w-3 h-3 fill-primary" />
@@ -539,7 +539,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                         )}
                       </div>
                       {h.skills && (
-                        <p className="font-serif italic mt-1.5 line-clamp-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                        <p className="font-serif italic mt-1.5 line-clamp-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                           {h.skills}
                         </p>
                       )}

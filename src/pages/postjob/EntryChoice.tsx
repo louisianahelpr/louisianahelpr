@@ -91,11 +91,11 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           >
             Start fresh
           </span>
-          <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Build your request from a blank form.
           </span>
         </span>
-        <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.5)" }} aria-hidden />
+        <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden />
       </button>
 
       {/* 2 — LOAD DRAFT (only when a saved draft exists) */}
@@ -119,11 +119,11 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             >
               Pick up your draft
             </span>
-            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Continue the request you saved earlier.
             </span>
           </span>
-          <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.5)" }} aria-hidden />
+          <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden />
         </button>
       )}
 
@@ -150,13 +150,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               >
                 Repost a recent task
               </span>
-              <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Quickest way to ask for the same help again.
               </span>
             </span>
             <ChevronDown
               className="w-5 h-5 shrink-0 transition-transform duration-200"
-              style={{ color: "hsl(var(--olivewood) / 0.5)", transform: repostOpen ? "rotate(180deg)" : undefined }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)", transform: repostOpen ? "rotate(180deg)" : undefined }}
               aria-hidden
             />
           </button>
@@ -200,14 +200,14 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                         </span>
                         <span
                           className="block font-serif italic mt-0.5 text-ds-11 tabular-nums"
-                          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                         >
                           {shortRelativeDate(job.created_at)} · ${formatPrice(job.budget)}
                         </span>
                       </span>
                       <ChevronRight
                         className="w-4 h-4 shrink-0"
-                        style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                         aria-hidden
                       />
                     </button>
@@ -241,13 +241,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             >
               Use a template
             </span>
-            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Start from a common task and tweak the details.
             </span>
           </span>
           <ChevronDown
             className="w-5 h-5 shrink-0 transition-transform duration-200"
-            style={{ color: "hsl(var(--olivewood) / 0.5)", transform: templatesOpen ? "rotate(180deg)" : undefined }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)", transform: templatesOpen ? "rotate(180deg)" : undefined }}
             aria-hidden
           />
         </button>
@@ -287,7 +287,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                   </p>
                   <p
                     className="font-serif italic mt-1 text-ds-11 tabular-nums"
-                    style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     typical ${sample.typical_price} · ~
                     {sample.typical_duration_minutes < 60

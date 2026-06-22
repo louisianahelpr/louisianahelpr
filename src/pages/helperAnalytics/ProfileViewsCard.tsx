@@ -26,7 +26,7 @@ const ProfileViewsCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Profil
           >
             {analytics.profileViewCount}
           </p>
-          <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             profile views in the last 30 days
           </p>
           {analytics.profileViewCount === 0 && (

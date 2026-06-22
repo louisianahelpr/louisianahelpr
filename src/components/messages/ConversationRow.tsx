@@ -246,7 +246,7 @@ const ConversationRowBase = ({
             <div className="flex items-center gap-1.5 mt-0.5">
               <p
                 className="text-[0.7rem] truncate font-serif italic"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {c.jobTitle}
               </p>
@@ -316,7 +316,7 @@ const ConversationRowBase = ({
               {c.isMuted && (
                 <BellOff
                   className="w-3 h-3 shrink-0"
-                  style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   aria-label="Muted"
                 />
               )}
@@ -369,7 +369,7 @@ const ConversationRowBase = ({
               <p
                 className="text-[0.78rem] truncate min-w-0 flex-1"
                 style={{
-                  color: hasUnreadFromOther ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.75)",
+                  color: hasUnreadFromOther ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
                   fontWeight: hasUnreadFromOther ? 600 : 400,
                 }}
               >

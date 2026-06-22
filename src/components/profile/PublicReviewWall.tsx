@@ -187,7 +187,7 @@ function ReviewQuote({
 
       <p
         className="font-sans text-ds-11"
-        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         <span className="font-semibold text-[hsl(var(--ink-deep)/0.78)]">
           {review.reviewerName}
@@ -305,7 +305,7 @@ export function PublicReviewWall({
       >
         <Star
           className="w-5 h-5 mx-auto"
-          style={{ color: "hsl(var(--olivewood) / 0.4)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           aria-hidden="true"
         />
         <p

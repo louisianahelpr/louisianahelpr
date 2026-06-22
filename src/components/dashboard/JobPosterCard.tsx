@@ -72,7 +72,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
         <div className="min-w-0 flex-1">
           <p
             className="text-ds-10 font-sans font-semibold uppercase"
-            style={{ color: "hsl(var(--olivewood) / 0.65)", letterSpacing: "0.06em" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.06em" }}
           >
             Posted by
           </p>
@@ -87,18 +87,18 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
                   <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                     {job.posterAvgRating?.toFixed(1)}
                   </span>
-                  <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                  <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     ({job.posterReviewCount})
                   </span>
                 </>
               ) : (
-                <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   New
                 </span>
               )}
             </span>
           </div>
-          <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
             {(job.posterCompletedJobs ?? 0) > 0 && (
               <>
@@ -118,7 +118,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
                     color: cancellationRate < 5
                       ? "hsl(155 50% 35%)"
                       : cancellationRate < 15
-                        ? "hsl(var(--olivewood) / 0.7)"
+                        ? "hsl(var(--olivewood) / 0.8)"
                         : "hsl(var(--burnt-sienna))",
                   }}
                 >
@@ -137,7 +137,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
             card visually reads as tappable. */}
         <ChevronRight
           className="shrink-0 w-4 h-4 transition-transform group-hover:translate-x-0.5"
-          style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           strokeWidth={2}
         />
       </div>
@@ -154,7 +154,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
         {/* Platform-level chips — always truthful regardless of poster data */}
         <span
           className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
-          style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.06em" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.06em" }}
         >
           <Lock className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} />
           Helpr Escrow

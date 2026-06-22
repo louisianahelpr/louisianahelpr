@@ -229,7 +229,7 @@ const WorkRecord = () => {
                     >
                       Employment &amp; Earnings Record
                     </h2>
-                    <p className="font-serif italic text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                    <p className="font-serif italic text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       Generated {today}
                     </p>
                   </div>
@@ -267,7 +267,7 @@ const WorkRecord = () => {
                           <span style={{ color: "hsl(var(--bark))" }}>Verified</span>
                         </>
                       ) : (
-                        <span style={{ color: "hsl(var(--olivewood) / 0.65)" }}>Pending</span>
+                        <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Pending</span>
                       )}
                     </p>
                   </div>
@@ -433,7 +433,7 @@ const WorkRecord = () => {
               >
                 <p
                   className="font-serif italic text-ds-11 leading-relaxed"
-                  style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   This record was generated from Helpr&rsquo;s verified job history on {today}.
                   Helpr is a Louisiana-based labor marketplace.

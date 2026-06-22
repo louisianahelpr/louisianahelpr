@@ -143,7 +143,7 @@ const HomeHistory = () => {
               </p>
               <p
                 className="font-serif italic text-ds-13 leading-snug max-w-[26rem]"
-                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 When a job is done, it lives here forever — your home&rsquo;s permanent service history.
               </p>
@@ -256,7 +256,7 @@ const HomeHistory = () => {
                         {job.description?.trim() && (
                           <p
                             className="font-serif italic text-ds-12 leading-snug line-clamp-2"
-                            style={{ color: "hsl(var(--olivewood) / 0.72)" }}
+                            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                           >
                             {job.description}
                           </p>

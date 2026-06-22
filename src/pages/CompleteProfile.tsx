@@ -398,10 +398,10 @@ const CompleteProfile = () => {
             >
               Almost there.
             </h1>
-            <p className="mt-3 font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="mt-3 font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
-            <p className="mt-2 text-[0.7rem] font-sans" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+            <p className="mt-2 text-[0.7rem] font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               All fields marked <span style={{ color: "hsl(var(--burnt-sienna))" }}>*</span> are required.
             </p>
           </div>
@@ -613,7 +613,7 @@ const CompleteProfile = () => {
                   profile gate, but we set expectations that it can be
                   refined any time from Profile so the user doesn't feel
                   like this needs to be the bio of a lifetime. */}
-              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Don't sweat it — you can polish this any time from your profile.
               </p>
             </div>
@@ -654,7 +654,7 @@ const CompleteProfile = () => {
               </label>
             </div>
 
-            <label className="flex items-start gap-2.5 text-ds-11 cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <label className="flex items-start gap-2.5 text-ds-11 cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               <Checkbox
                 checked={acceptedPolicies}
                 onCheckedChange={(v) => setAcceptedPolicies(v === true)}

@@ -79,7 +79,7 @@ export function TrustRow({
         .filter(Boolean)
         .join(" ")}
       style={{
-        color: "hsl(var(--olivewood) / 0.7)",
+        color: "hsl(var(--olivewood) / 0.8)",
         letterSpacing: "0.06em",
       }}
     >

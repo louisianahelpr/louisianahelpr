@@ -128,7 +128,7 @@ export default function SubscriptionPage() {
           </h1>
           <p
             className="font-serif italic mt-0.5"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.72)" }}
+            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Choose the plan that fits your goals
           </p>
@@ -175,7 +175,7 @@ export default function SubscriptionPage() {
           </h2>
           <p
             className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {tierPerks.tagline}
           </p>
@@ -272,7 +272,7 @@ export default function SubscriptionPage() {
                   {/* Tagline */}
                   <p
                     className="font-serif italic mt-0.5"
-                    style={{ fontSize: "0.73rem", color: "hsl(var(--olivewood) / 0.72)" }}
+                    style={{ fontSize: "0.73rem", color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {perks.tagline}
                   </p>
@@ -330,7 +330,7 @@ export default function SubscriptionPage() {
                       {perks.annualPrice && (
                         <p
                           className="font-serif italic leading-none text-right"
-                          style={{ fontSize: "0.65rem", color: "hsl(var(--olivewood) / 0.65)" }}
+                          style={{ fontSize: "0.65rem", color: "hsl(var(--olivewood) / 0.8)" }}
                         >
                           or ${perks.annualPrice}/mo
                           <br />annual
@@ -369,7 +369,7 @@ export default function SubscriptionPage() {
                   className="font-serif italic mt-2 pt-2"
                   style={{
                     fontSize: "0.72rem",
-                    color: "hsl(var(--olivewood) / 0.72)",
+                    color: "hsl(var(--olivewood) / 0.8)",
                     borderTop: "0.5px dashed hsl(var(--bark) / 0.14)",
                   }}
                 >
@@ -399,9 +399,9 @@ export default function SubscriptionPage() {
               Full feature comparison
             </span>
             {tableOpen ? (
-              <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+              <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             ) : (
-              <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+              <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             )}
           </button>
 
@@ -410,7 +410,7 @@ export default function SubscriptionPage() {
               <table className="w-full text-left" style={{ borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderTop: "0.5px solid hsl(var(--bark) / 0.14)" }}>
-                    <th className="px-4 py-2 font-sans text-ds-11 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.55)", width: "38%" }}>
+                    <th className="px-4 py-2 font-sans text-ds-11 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.8)", width: "38%" }}>
                       Feature
                     </th>
                     {TIER_ORDER.map((t) => (
@@ -532,9 +532,9 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
           {question}
         </span>
         {open ? (
-          <ChevronUp className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.55)" }} />
+          <ChevronUp className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
         ) : (
-          <ChevronDown className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.55)" }} />
+          <ChevronDown className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
         )}
       </button>
       {open && (

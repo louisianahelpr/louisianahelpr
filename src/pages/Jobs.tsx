@@ -207,7 +207,7 @@ const Jobs = () => {
               <h1 className="text-page-title leading-tight truncate mt-1">
                 Browse tasks
               </h1>
-              <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span className="font-semibold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{filtered.length}</span>{" "}
                 {filtered.length === 1 ? "task" : "tasks"}{" "}
                 <span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}

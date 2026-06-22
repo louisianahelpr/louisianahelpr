@@ -90,7 +90,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <h2 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: palette.title, letterSpacing: "-0.02em" }}>
                     {title}
                   </h2>
-                  <p className="font-serif italic max-w-sm mx-auto" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <p className="font-serif italic max-w-sm mx-auto" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                     {body}
                   </p>
                 </div>
@@ -134,7 +134,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                         {v.violation_type.replace(/_/g, " ")}
                       </span>
                     </div>
-                    <span className="font-serif italic whitespace-nowrap shrink-0" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                    <span className="font-serif italic whitespace-nowrap shrink-0" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                       {v.created_at ? formatJobDate(v.created_at) : "—"}
                     </span>
                   </div>

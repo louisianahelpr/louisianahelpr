@@ -307,12 +307,12 @@ const HelpCenter = () => {
           >
             <Search
               className="w-4 h-4 shrink-0"
-              style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               strokeWidth={1.75}
             />
             <span
               className="font-sans text-ds-14"
-              style={{ color: "hsl(var(--olivewood) / 0.50)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Search help articles...
             </span>
@@ -320,7 +320,7 @@ const HelpCenter = () => {
 
           <p
             className="font-sans text-ds-12"
-            style={{ color: "hsl(var(--olivewood) / 0.60)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Browse by topic below or scroll to popular questions.
           </p>
@@ -481,7 +481,7 @@ const HelpCenter = () => {
 
           <p
             className="font-serif italic text-ds-13 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             We review every message and aim to respond within one business day.
             For urgent safety or dispute concerns, flag it in the subject line.

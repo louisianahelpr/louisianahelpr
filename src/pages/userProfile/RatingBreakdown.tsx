@@ -39,7 +39,7 @@ export const RatingBreakdown = ({ reviews }: Props) => {
       {/* Distribution chart */}
       <p
         className="text-[10px] uppercase tracking-wide font-semibold"
-        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         Rating breakdown
       </p>
@@ -71,7 +71,7 @@ export const RatingBreakdown = ({ reviews }: Props) => {
             </div>
             <span
               className="text-ds-11 tabular-nums w-4 shrink-0 text-right"
-              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {count}
             </span>
@@ -85,7 +85,7 @@ export const RatingBreakdown = ({ reviews }: Props) => {
           <div className="h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
           <p
             className="text-[10px] uppercase tracking-wide font-semibold"
-            style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Sub-ratings
           </p>
@@ -99,7 +99,7 @@ export const RatingBreakdown = ({ reviews }: Props) => {
                 <div key={label} className="flex items-center gap-2">
                   <span
                     className="text-ds-11 w-24 shrink-0"
-                    style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {label}
                   </span>

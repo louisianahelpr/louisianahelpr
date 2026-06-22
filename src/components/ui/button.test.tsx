@@ -68,7 +68,10 @@ describe("Button", () => {
       render(<Button>Continue</Button>);
       const cls = screen.getByRole("button").className;
       expectFilledElevation(cls);
-      expect(cls).toContain("linear-gradient(180deg,hsl(var(--primary))_0%,hsl(var(--primary)/0.92)_100%)");
+      // Gradient ships via the hand-written .btn-grad-primary CSS class, NOT a
+      // Tailwind arbitrary value — the slash-alpha-on-var arbitrary form silently
+      // dropped out of the prod JIT build, rendering the CTA as a near-white pill.
+      expect(cls).toContain("btn-grad-primary");
     });
 
     it("destructive gets shadow + highlight + press but NO gradient (red stays flat to discourage misclicks)", () => {
@@ -112,7 +115,8 @@ describe("Button", () => {
       render(<Button variant="hero">Get started</Button>);
       const cls = screen.getByRole("button").className;
       expectFilledElevation(cls);
-      expect(cls).toContain("linear-gradient(180deg,hsl(var(--primary))_0%,hsl(var(--primary)/0.92)_100%)");
+      // Same gradient delivery as `default` — via .btn-grad-primary, see above.
+      expect(cls).toContain("btn-grad-primary");
     });
 
     it("hero-outline gets outline-family elevation (shadow + press only)", () => {

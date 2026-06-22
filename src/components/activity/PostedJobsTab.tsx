@@ -1550,7 +1550,7 @@ export const PostedJobsTab = ({
                     maxLength={DECLINE_NOTE_MAX}
                     placeholder="The helper will see this as a notification…"
                     rows={2}
-                    className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed resize-none"
+                    className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed resize-none"
                   />
                   <p
                     className="text-ds-11 text-right tabular-nums"

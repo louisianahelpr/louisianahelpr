@@ -153,7 +153,7 @@ export function BlockUserDialog({
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   rows={2}
-                  className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.85rem]"
+                  className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.85rem]"
                 />
               </div>
             </div>

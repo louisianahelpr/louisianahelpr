@@ -194,7 +194,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               Reason
             </Label>
             <Select value={reason} onValueChange={setReason}>
-              <SelectTrigger className="rounded-ds-md bg-white/60 border-border/60 focus:border-primary/40">
+              <SelectTrigger className="rounded-ds-md bg-background/60 border-border/60 focus:border-primary/40">
                 <SelectValue placeholder="Pick the closest fit…" />
               </SelectTrigger>
               <SelectContent>
@@ -215,7 +215,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               placeholder="The more specific you are, the faster admin can help…"
               rows={3}
               maxLength={1000}
-              className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
+              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
             />
           </div>
 

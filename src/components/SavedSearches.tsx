@@ -229,7 +229,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={60}
-              className="rounded-ds-md h-11 border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
+              className="rounded-ds-md h-11 border-border/60 bg-background/80 focus-visible:bg-background focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
             />
             <Button
               variant="bark"

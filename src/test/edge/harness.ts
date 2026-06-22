@@ -75,6 +75,17 @@ function rewriteSource(src: string): string {
     `import {$1} from "${MOCK.shared}";`,
   );
 
+  // Tiered fee resolver: `../_shared/helperFees.ts` is pure TypeScript (it
+  // takes the Supabase client as a param and has no Deno/remote imports), so
+  // point the generated file at the REAL module — relative to a `.gen.ts` in
+  // THIS dir (src/test/edge) — instead of a mock. The live ladder logic stays
+  // under test; with no subscription row in the mocked client it falls back to
+  // the caller's prior fee, so existing fee assertions hold unchanged.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["']\.\.\/_shared\/helperFees\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/helperFees.ts";`,
+  );
+
   // Prepend the harness preamble: a `serve` that records the handler and a
   // `Deno` global backed by an env map the test controls.
   const preamble = `

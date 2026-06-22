@@ -154,7 +154,7 @@ const ExceptionQueueInner = () => {
                     <p className="font-semibold text-ds-13 text-foreground truncate">
                       {r.full_name || "Unnamed user"}
                     </p>
-                    <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-50 text-amber-700 text-ds-10 font-semibold px-2 py-0.5">
+                    <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30 text-ds-10 font-semibold px-2 py-0.5">
                       {EXCEPTION_TYPE_LABELS[r.exception_type] ?? r.exception_type}
                     </span>
                     {r.credential_type && (

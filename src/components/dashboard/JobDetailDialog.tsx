@@ -623,12 +623,25 @@ const JobDetailDialog = ({
                 Icon: Calendar,
                 label: "Date",
                 value: dateValid ? formatJobDate(job.date_needed) : "—",
-                // 12-hour clock (e.g. "2:30 PM"), matching the feed card —
-                // not the raw "14:30:00" the DB column stores.
-                sub: job.start_time ? formatTime12(job.start_time) : null,
+                sub: null,
                 href: calendarUrl,
                 urgent: false,
               },
+              // Time is its own tile (not a sub-line under Date) so the date
+              // stops truncating and the start time reads as a first-class
+              // fact. Omitted when unset, matching Estimated/Closes below.
+              // 12-hour clock (e.g. "2:30 PM"), matching the feed card — not
+              // the raw "14:30:00" the DB column stores.
+              ...(job.start_time
+                ? [{
+                    Icon: Clock,
+                    label: "Time",
+                    value: formatTime12(job.start_time),
+                    sub: null,
+                    href: null,
+                    urgent: false,
+                  }]
+                : []),
               // Estimated-hours tile is omitted entirely when unset — a bare
               // "Estimated —" read as a bug rather than "no estimate given".
               ...(job.estimated_hours != null

@@ -1,25 +1,56 @@
 import { useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { LocateFixed, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { hapticLight } from "@/lib/haptics";
 
+/** Reverse-geocode result: every field may be blank if undecodable. */
+interface ResolvedAddress {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
+
 interface CurrentLocationPillProps {
   /** Fires with whatever fields we could resolve. Any may be empty. */
-  onResolved: (picked: { street: string; city: string; zipCode: string }) => void;
+  onResolved: (picked: ResolvedAddress) => void;
+}
+
+const isNativePlatform = Capacitor.isNativePlatform();
+
+/**
+ * Normalize a reverse-geocoder's state value (full name or abbreviation)
+ * to a 2-letter code, then test whether it's Louisiana. Returns null when
+ * the state can't be determined (so we don't wrongly block the user).
+ */
+function isLouisianaState(rawState: string | undefined | null): boolean | null {
+  const s = (rawState ?? "").trim().toLowerCase();
+  if (!s) return null;
+  return s === "la" || s === "louisiana";
 }
 
 /**
  * "Use my current location" — single-tap helper for the address step of
  * Post-a-Task. Walks the same fallback chain we use elsewhere:
  *
- *  1. `navigator.geolocation.getCurrentPosition` to read a lat/lng.
+ *  1. Read a lat/lng. On native (iOS/Android) this goes through the
+ *     Capacitor Geolocation plugin (single OS-native prompt); on web it
+ *     uses `navigator.geolocation.getCurrentPosition`. Using the browser
+ *     API on native triggered a SECOND "localhost would like to use your
+ *     location" WKWebView prompt on top of the Capacitor one.
  *  2. Apple MapKit JS reverse-geocode (`mapkit.Geocoder.reverseLookup`)
  *     when MapKit is configured — the result mirrors AddressAutocomplete's
- *     "place" structure so we can populate street + city + zip in one shot.
+ *     "place" structure so we can populate street + city + state + zip in
+ *     one shot.
  *  3. If MapKit isn't initialized, fall back to a Nominatim reverse lookup
  *     so the pill still works on devices where MapKit can't load. Returns
- *     a coarse city + zip when full street isn't decodable.
+ *     a coarse city + state + zip when full street isn't decodable.
+ *
+ * Helpr only operates in Louisiana, so a geocode that resolves OUTSIDE
+ * Louisiana is rejected with a clear message rather than silently coerced
+ * to "LA" (which produced the nonsensical "San Francisco, LA 94108").
  *
  * Hidden surfaces: if neither geolocation nor any geocoder is available
  * we still render the button — it just shows a friendly toast on tap.
@@ -31,7 +62,7 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
   const reverseViaMapKit = (
     lat: number,
     lng: number,
-  ): Promise<{ street: string; city: string; zipCode: string } | null> => {
+  ): Promise<ResolvedAddress | null> => {
     return new Promise((resolve) => {
       const mk = window.mapkit;
       if (!mk) return resolve(null);
@@ -48,8 +79,10 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
           const thor = place.thoroughfare ?? "";
           const street = [sub, thor].filter(Boolean).join(" ").trim();
           const city = place.locality ?? "";
+          // administrativeArea is the state (e.g. "LA" / "Louisiana").
+          const state = place.administrativeArea ?? place.administrativeAreaCode ?? "";
           const zipCode = place.postCode ?? place.postalCode ?? "";
-          resolve({ street, city, zipCode });
+          resolve({ street, city, state, zipCode });
         });
       } catch {
         resolve(null);
@@ -60,7 +93,7 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
   const reverseViaNominatim = async (
     lat: number,
     lng: number,
-  ): Promise<{ street: string; city: string; zipCode: string } | null> => {
+  ): Promise<ResolvedAddress | null> => {
     try {
       const url = new URL("https://nominatim.openstreetmap.org/reverse");
       url.searchParams.set("lat", String(lat));
@@ -74,50 +107,83 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
       const road = a.road ?? a.pedestrian ?? "";
       const street = [houseNumber, road].filter(Boolean).join(" ").trim();
       const city = a.city ?? a.town ?? a.village ?? "";
+      // Nominatim returns the full state name in `state` (e.g. "Louisiana").
+      const state = a.state ?? a["ISO3166-2-lvl4"]?.replace(/^US-/, "") ?? "";
       const zipCode = a.postcode ?? "";
       if (!street && !city && !zipCode) return null;
-      return { street, city, zipCode };
+      return { street, city, state, zipCode };
     } catch {
       return null;
     }
   };
 
+  // Read the current position. On native, route through the Capacitor
+  // Geolocation plugin so iOS/Android show a single OS-native prompt — the
+  // WKWebView navigator.geolocation shim fires a second "localhost would
+  // like to use your location" prompt on top of the Capacitor one.
+  const getPosition = async (): Promise<{ latitude: number; longitude: number }> => {
+    if (isNativePlatform) {
+      const { Geolocation } = await import("@capacitor/geolocation");
+      const pos = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 12_000,
+        maximumAge: 5 * 60 * 1000,
+      });
+      return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+    }
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        reject,
+        { enableHighAccuracy: true, timeout: 12_000, maximumAge: 5 * 60 * 1000 },
+      );
+    });
+  };
+
   const handleTap = async () => {
     void hapticLight();
     if (loading) return;
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
+    if (!isNativePlatform && (typeof navigator === "undefined" || !navigator.geolocation)) {
       toast.error("Location isn't supported on this device.");
       return;
     }
     setLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        let picked: { street: string; city: string; zipCode: string } | null = null;
-        if (mapKitStatus === "ready") {
-          picked = await reverseViaMapKit(latitude, longitude);
-        }
-        if (!picked) {
-          picked = await reverseViaNominatim(latitude, longitude);
-        }
-        setLoading(false);
-        if (!picked) {
-          toast.error("Couldn't resolve your address. Try typing it instead.");
-          return;
-        }
-        onResolved(picked);
-        toast.success("Address filled from your current location");
-      },
-      (err) => {
-        setLoading(false);
-        if (err.code === err.PERMISSION_DENIED) {
-          toast.error("Location permission denied — type the address instead.");
-        } else {
-          toast.error("Couldn't get your location — try again or type it in.");
-        }
-      },
-      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 5 * 60 * 1000 },
-    );
+    try {
+      const { latitude, longitude } = await getPosition();
+      let picked: ResolvedAddress | null = null;
+      if (mapKitStatus === "ready") {
+        picked = await reverseViaMapKit(latitude, longitude);
+      }
+      if (!picked) {
+        picked = await reverseViaNominatim(latitude, longitude);
+      }
+      setLoading(false);
+      if (!picked) {
+        toast.error("Couldn't resolve your address. Try typing it instead.");
+        return;
+      }
+      // Louisiana-only: reject a geocode that clearly resolved out of state
+      // instead of silently filling State="LA" on a non-LA city/zip. When
+      // the state is undeterminable (null) we let it through — the form's
+      // own validation still gates submission.
+      if (isLouisianaState(picked.state) === false) {
+        toast.error("Louisiana Helpr is available in Louisiana only.");
+        return;
+      }
+      onResolved(picked);
+      toast.success("Address filled from your current location");
+    } catch (err) {
+      setLoading(false);
+      const code = (err as { code?: number })?.code;
+      const msg = String((err as { message?: string })?.message ?? "");
+      const denied =
+        code === 1 /* PERMISSION_DENIED */ || /denied|permission/i.test(msg);
+      if (denied) {
+        toast.error("Location permission denied — type the address instead.");
+      } else {
+        toast.error("Couldn't get your location — try again or type it in.");
+      }
+    }
   };
 
   return (

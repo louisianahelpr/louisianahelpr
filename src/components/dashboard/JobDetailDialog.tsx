@@ -17,6 +17,7 @@ import { getParishCentroid } from "@/lib/parishCentroids";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import type { EnrichedJob } from "./types";
 import { JobPosterCard } from "./JobPosterCard";
+import { formatTime12 } from "@/components/TimePickerSelect";
 import { IconActionButton } from "./IconActionButton";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
@@ -622,20 +623,24 @@ const JobDetailDialog = ({
                 Icon: Calendar,
                 label: "Date",
                 value: dateValid ? formatJobDate(job.date_needed) : "—",
-                sub: job.start_time || null,
+                // 12-hour clock (e.g. "2:30 PM"), matching the feed card —
+                // not the raw "14:30:00" the DB column stores.
+                sub: job.start_time ? formatTime12(job.start_time) : null,
                 href: calendarUrl,
                 urgent: false,
               },
-              {
-                Icon: Clock,
-                label: "Estimated",
-                value: job.estimated_hours != null
-                  ? `${job.estimated_hours} ${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`
-                  : "—",
-                sub: null,
-                href: null,
-                urgent: false,
-              },
+              // Estimated-hours tile is omitted entirely when unset — a bare
+              // "Estimated —" read as a bug rather than "no estimate given".
+              ...(job.estimated_hours != null
+                ? [{
+                    Icon: Clock,
+                    label: "Estimated",
+                    value: `${job.estimated_hours} ${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`,
+                    sub: null,
+                    href: null,
+                    urgent: false,
+                  }]
+                : []),
               // Closes tile is omitted entirely when the job has no expiry —
               // an empty "—" deadline read as a bug rather than "no deadline".
               ...(job.expires_at

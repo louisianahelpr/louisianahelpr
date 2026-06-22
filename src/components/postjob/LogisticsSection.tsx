@@ -88,7 +88,7 @@ export function LogisticsSection({
   city,
   setCity,
   addrState,
-  // setAddrState intentionally not destructured — State is locked to LA.
+  setAddrState,
   zipCode,
   setZipCode,
   dateNeeded,
@@ -144,9 +144,12 @@ export function LogisticsSection({
               error toast if location is denied or no street can be
               resolved. */}
           <CurrentLocationPill
-            onResolved={({ street, city: pickedCity, zipCode: pickedZip }) => {
+            onResolved={({ street, city: pickedCity, state: pickedState, zipCode: pickedZip }) => {
               if (street) setStreetAddress(street);
               if (pickedCity) setCity(pickedCity);
+              // The pill only fires for Louisiana geocodes, so normalize
+              // the resolved state to the canonical "LA" code we store.
+              if (pickedState) setAddrState("LA");
               if (pickedZip) setZipCode(pickedZip);
             }}
           />

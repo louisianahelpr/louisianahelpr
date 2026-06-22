@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 
 /**
  * Suspense fallback for the /browse guest route's lazy chunk.
@@ -10,8 +11,14 @@ import { Skeleton } from "@/components/ui/skeleton";
  * structure — header, toolbar, card list — with shared <Skeleton> bars so
  * the surface reads as "loading content" instead of "broken / blank".
  *
- * Deliberately self-contained (only <Skeleton> + divs) so it stays in the
- * eager bundle and renders instantly, before the route chunk arrives.
+ * The card list uses the same shape-matched <JobCardSkeleton> the guest
+ * dashboard renders while its jobs query loads, so the chunk-load skeleton
+ * and the data-load skeleton are identical — the surface never re-jumps as
+ * one hands off to the other.
+ *
+ * Deliberately self-contained (only shared <Skeleton>-based primitives +
+ * divs) so it stays in the eager bundle and renders instantly, before the
+ * route chunk arrives.
  */
 export const GuestBrowseSkeleton = () => (
   <div
@@ -46,10 +53,10 @@ export const GuestBrowseSkeleton = () => (
         </div>
       </div>
 
-      {/* Job card list. */}
+      {/* Job card list — shape-matched to the real feed cards. */}
       <div className="space-y-2.5">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-40 w-full rounded-2xl" />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <JobCardSkeleton key={i} />
         ))}
       </div>
     </div>

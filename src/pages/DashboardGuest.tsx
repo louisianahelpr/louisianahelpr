@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
+import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
@@ -281,12 +282,20 @@ const DashboardGuest = () => {
                 className="flex-1 min-h-0 px-4 pt-3 pb-0"
               >
                 {isLoading ? (
+                  /* Loading feed — shape-matched JobCardSkeletons (the same
+                     primitive the authenticated dashboard uses) so the cards
+                     swap in without shifting the layout (no CLS). Reserves the
+                     same vertical rhythm as the real list below. */
                   <div
+                    role="status"
+                    aria-live="polite"
+                    aria-busy="true"
                     className="space-y-2.5"
                     style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
                   >
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <Skeleton key={i} className="h-40 w-full rounded-2xl" />
+                    <span className="sr-only">Loading jobs…</span>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <JobCardSkeleton key={i} />
                     ))}
                   </div>
                 ) : filters.filteredJobs.length === 0 ? (() => {

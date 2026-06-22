@@ -667,7 +667,11 @@ const JobDetailDialog = ({
                   }]
                 : []),
             ];
-            return tiles.map(({ Icon, label, value, sub, href, urgent }) => {
+            return tiles.map(({ Icon, label, value, sub, href, urgent }, index) => {
+              // An odd tile count leaves the last tile alone in the 2-col
+              // mobile grid with an empty cell beside it — let it span the
+              // full width instead so the strip reads as intentional.
+              const fillsRow = tiles.length % 2 === 1 && index === tiles.length - 1;
               const Wrapper: ElementType = href ? "a" : "div";
               // Only the anchor branch carries href/target/rel; an empty object
               // for the div branch. Typed as the minimal shared shape so the
@@ -679,7 +683,7 @@ const JobDetailDialog = ({
                 <Wrapper
                   key={label}
                   {...wrapperProps}
-                  className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
+                  className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${fillsRow ? "col-span-2 sm:col-span-1" : ""} ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
                   style={{
                     backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "var(--glass-bg-soft)",
                     backdropFilter: "blur(18px) saturate(160%)",

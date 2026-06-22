@@ -37,7 +37,7 @@ const widthMap = {
 
 const AuthShell = ({
   children,
-  eyebrow = "Your Local Task Partner",
+  eyebrow = "Louisiana's Local Task Partner",
   hideBack = false,
   backTo,
   backLabel,

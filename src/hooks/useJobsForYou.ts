@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -47,7 +48,7 @@ export function useJobsForYou(
       let jobsQuery = supabase
         .from("jobs")
         .select(
-          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, boosted_at, credential_tier",
+          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, boosted_at, credential_tier, is_flexible_schedule, is_recurring",
         )
         .eq("status", "open")
         .order("created_at", { ascending: false })
@@ -78,7 +79,7 @@ export function useJobsForYou(
           const { data, error } = await supabase
             .from("jobs")
             .select(
-              "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, boosted_at, credential_tier",
+              "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, boosted_at, credential_tier, is_flexible_schedule, is_recurring",
             )
             .eq("status", "open")
             .order("created_at", { ascending: false })
@@ -107,10 +108,18 @@ export function useJobsForYou(
         // PGRST202-safe: if the query fails we just skip this filter.
       }
 
-      // Also exclude the helper's own posts.
-      const candidates = jobs.filter(
-        (j) => !appliedJobIds.has(j.id) && j.customer_id !== userId,
-      );
+      // Also exclude the helper's own posts and any one-off job whose date
+      // has already passed (flexible/recurring jobs have no single hard date,
+      // so they're exempt — mirrors the past-date cull in useDashboardData).
+      const nowDate = new Date();
+      const startOfToday = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
+      const candidates = jobs.filter((j) => {
+        if (appliedJobIds.has(j.id) || j.customer_id === userId) return false;
+        const flexible = (j as EnrichedJob & { is_flexible_schedule?: boolean; is_recurring?: boolean });
+        if (flexible.is_flexible_schedule || flexible.is_recurring || !j.date_needed) return true;
+        const d = parseLocalDate(j.date_needed);
+        return isNaN(d.getTime()) || d >= startOfToday;
+      });
 
       if (candidates.length === 0) return [];
 

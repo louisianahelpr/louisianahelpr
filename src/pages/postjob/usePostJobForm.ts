@@ -23,6 +23,7 @@ import type { SampleJob } from "@/data/sampleJobs";
 import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
+import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
 import { validateResult } from "@/lib/validateResult";
 import { jobRowSchema } from "@/lib/schemas";
 import type { Database } from "@/integrations/supabase/types";
@@ -494,6 +495,7 @@ export function usePostJobForm() {
     e.preventDefault();
     if (!title.trim()) { toast.error("Task title is required"); scrollToField("title"); return; }
     if (!description.trim()) { toast.error("Description is required"); scrollToField("description"); return; }
+    if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting"); scrollToField("description"); return; }
     if (!category) { toast.error("Category is required"); scrollToField("category-picker"); return; }
     // Photo is optional — a photo dramatically improves applicant count and
     // quote accuracy, so it's strongly nudged in the UI, but tasks like
@@ -915,7 +917,7 @@ export function usePostJobForm() {
   // Section completion for the 3-step progress bar. Photos are optional
   // (strongly nudged, never required), so the Details chapter is "done"
   // once title, description, and category are set.
-  const detailsComplete = !!(title.trim() && description.trim() && category);
+  const detailsComplete = !!(title.trim() && description.trim() && category && !hasUnfilledPlaceholders(description));
   const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && estimatedHours && parseFloat(estimatedHours) >= 0.5);
   // In accept_bids mode the budget is optional — helpers set their own price.
   const budgetComplete =

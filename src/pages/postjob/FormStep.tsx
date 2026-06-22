@@ -97,7 +97,8 @@ export function FormStep({ form }: FormStepProps) {
   if (!form.detailsComplete) {
     if (!form.title.trim()) submitLabel = "Add a title to continue";
     else if (!form.description.trim()) submitLabel = "Add a description to continue";
-    else submitLabel = "Pick a category to continue";
+    else if (!form.category) submitLabel = "Pick a category to continue";
+    else submitLabel = "Replace the [placeholders] to continue";
   } else if (!form.logisticsComplete) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
       submitLabel = "Add the address to continue";

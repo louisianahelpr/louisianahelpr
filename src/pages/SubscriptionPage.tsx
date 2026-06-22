@@ -18,7 +18,7 @@ import {
   Sparkles, Briefcase, Star, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import BackButton from "@/components/BackButton";
+import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
@@ -116,24 +116,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {/* Page header */}
-      <div className="px-4 pt-safe-top pt-4 pb-2 flex items-center gap-3">
-        <BackButton />
-        <div>
-          <h1
-            className="font-display italic font-bold leading-none"
-            style={{ fontSize: "1.55rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Subscription
-          </h1>
-          <p
-            className="font-serif italic mt-0.5"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Choose the plan that fits your goals
-          </p>
-        </div>
-      </div>
+      <PageHeader title="Subscription" meta="Choose the plan that fits your goals" />
 
       <div className="px-4 space-y-4 mt-2 pb-8">
         {/* ── Current plan card ─────────────────────────────────────────── */}

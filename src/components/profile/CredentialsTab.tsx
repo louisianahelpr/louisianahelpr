@@ -247,8 +247,12 @@ export function CredentialsTab({ userId }: { userId: string }) {
         //   license only  → "Licensed"
         //   insurance only → "Insured"
         //   both          → "Licensed & Insured"
-        const licVerified = data.license_status === "verified";
-        const insVerified = data.insurance_status === "verified";
+        // A credential only counts as live when its toggle is on AND admin
+        // verified it — same predicate CredentialBadge enforces. Reading
+        // status alone would surface "Verified" for a row whose toggle is
+        // off (stale/admin data, or toggle-off without an uploaded doc).
+        const licVerified = data.is_licensed && data.license_status === "verified";
+        const insVerified = data.is_insured && data.insurance_status === "verified";
         const eyebrow =
           licVerified && insVerified
             ? "Licensed & Insured"
@@ -291,8 +295,8 @@ export function CredentialsTab({ userId }: { userId: string }) {
             </div>
             <div className="pt-1">
               {anyVerified ||
-              data.license_status === "pending" ||
-              data.insurance_status === "pending" ? (
+              (data.is_licensed && data.license_status === "pending") ||
+              (data.is_insured && data.insurance_status === "pending") ? (
                 <CredentialBadge credentials={data} size="md" />
               ) : (
                 <span
@@ -323,19 +327,19 @@ export function CredentialsTab({ userId }: { userId: string }) {
               style={{
                 fontSize: "0.62rem",
                 color:
-                  data.license_status === "verified"
+                  licensedOn && data.license_status === "verified"
                     ? "hsl(var(--bark))"
-                    : data.license_status === "rejected"
+                    : licensedOn && data.license_status === "rejected"
                       ? "hsl(var(--destructive))"
                       : "hsl(var(--burnt-sienna) / 0.78)",
                 letterSpacing: "0.18em",
               }}
             >
-              {data.license_status === "verified"
+              {licensedOn && data.license_status === "verified"
                 ? "Verified"
-                : data.license_status === "pending"
+                : licensedOn && data.license_status === "pending"
                   ? "Under review"
-                  : data.license_status === "rejected"
+                  : licensedOn && data.license_status === "rejected"
                     ? "Action needed"
                     : "Optional"}
             </p>
@@ -419,19 +423,19 @@ export function CredentialsTab({ userId }: { userId: string }) {
               style={{
                 fontSize: "0.62rem",
                 color:
-                  data.insurance_status === "verified"
+                  insuredOn && data.insurance_status === "verified"
                     ? "hsl(var(--bark))"
-                    : data.insurance_status === "rejected"
+                    : insuredOn && data.insurance_status === "rejected"
                       ? "hsl(var(--destructive))"
                       : "hsl(var(--burnt-sienna) / 0.78)",
                 letterSpacing: "0.18em",
               }}
             >
-              {data.insurance_status === "verified"
+              {insuredOn && data.insurance_status === "verified"
                 ? "Verified"
-                : data.insurance_status === "pending"
+                : insuredOn && data.insurance_status === "pending"
                   ? "Under review"
-                  : data.insurance_status === "rejected"
+                  : insuredOn && data.insurance_status === "rejected"
                     ? "Action needed"
                     : "Optional"}
             </p>

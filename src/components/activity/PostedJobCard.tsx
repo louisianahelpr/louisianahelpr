@@ -924,18 +924,11 @@ function PostedJobCardInner({
                           hue so the row reads at a glance without shouting:
                           Boost = orange (visibility), Edit = gold/yellow,
                           Share = blue, Cancel = red. Applicants (above) stays
-                          the single solid-green primary. Tints are kept low so
-                          it's colorful, not loud. */}
+                          the single solid-green primary, so these four sit
+                          together as one secondary icon row — Boost included,
+                          not promoted to a full-width near-primary. Tints are
+                          kept low so it's colorful, not loud. */}
                       <div className="space-y-2">
-                        <Button
-                          variant="outline" size="sm"
-                          className="w-full rounded-ds-md glass-press border-0"
-                          style={{ background: "hsl(var(--boost-tint) / 0.14)", color: "hsl(var(--boost-ink))", border: "0.5px solid hsl(var(--boost-tint) / 0.34)" }}
-                          disabled={!!isBoosted}
-                          onClick={() => onBoost(job.id)}
-                        >
-                          <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
-                        </Button>
                         {/* Broadcast-boost button — only shown when the job
                             is stale (24h+ open, 0 applicants). Sends a targeted
                             push notification to nearby approved helpers. One
@@ -977,7 +970,16 @@ function PostedJobCardInner({
                             </p>
                           </div>
                         )}
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-4 gap-2">
+                          <Button
+                            variant="outline" size="sm"
+                            className="w-full glass-press border-0"
+                            style={{ background: "hsl(var(--boost-tint) / 0.14)", color: "hsl(var(--boost-ink))", border: "0.5px solid hsl(var(--boost-tint) / 0.34)" }}
+                            disabled={!!isBoosted}
+                            onClick={() => onBoost(job.id)}
+                          >
+                            <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
+                          </Button>
                           <Button
                             variant="outline" size="sm"
                             className="w-full glass-press border-0"

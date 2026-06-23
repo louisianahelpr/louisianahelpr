@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText, LayoutTemplate, FileSignature, Zap } from "lucide-react";
+import { FileSignature, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
-import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
-import { SampleJobTemplates } from "@/components/postjob/SampleJobTemplates";
 import { DirectOfferBanner } from "./DirectOfferBanner";
 import { DraftSavedIndicator } from "./DraftSavedIndicator";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
@@ -36,10 +34,6 @@ export function FormStep({ form }: FormStepProps) {
   const logisticsRef = useRef<HTMLDivElement>(null);
   const budgetRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState<PostJobSectionId>("details");
-  // The blank form is the default. Two small tabs sit above it: "Pick up
-  // draft" (only when a saved draft exists) restores it in one tap, and
-  // "Use a template" reveals the sample-job grid.
-  const [showTemplates, setShowTemplates] = useState(false);
 
   const refs = useMemo(
     () => ({ details: detailsRef, logistics: logisticsRef, budget: budgetRef }),
@@ -131,70 +125,10 @@ export function FormStep({ form }: FormStepProps) {
         </div>
       )}
 
-      {/* Two small tabs above the blank form — a quick way to pull in a
-          saved draft or start from a template, without a separate landing
-          step. The draft tab only appears when a draft actually exists. */}
-      <div className="flex items-center gap-2">
-        {form.hasDraft && !form.draftConsumed && (
-          <button
-            type="button"
-            onClick={form.loadDraft}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-sans font-semibold active:scale-95 transition-all"
-            style={{
-              fontSize: "0.8rem",
-              color: "hsl(var(--bark))",
-              background: "hsl(var(--parchment) / 0.7)",
-              border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.06)",
-            }}
-          >
-            <FileText className="w-3.5 h-3.5" aria-hidden />
-            Pick up draft
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowTemplates((v) => !v)}
-          aria-pressed={showTemplates}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-sans font-semibold active:scale-95 transition-all"
-          style={{
-            fontSize: "0.8rem",
-            color: showTemplates ? "hsl(var(--burnt-sienna))" : "hsl(var(--bark))",
-            background: showTemplates
-              ? "hsl(var(--burnt-sienna) / 0.12)"
-              : "hsl(var(--parchment) / 0.7)",
-            border: showTemplates
-              ? "0.5px solid hsl(var(--burnt-sienna) / 0.35)"
-              : "0.5px solid hsl(var(--olivewood) / 0.22)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.06)",
-          }}
-        >
-          <LayoutTemplate className="w-3.5 h-3.5" aria-hidden />
-          Use a template
-        </button>
-      </div>
-
-      {/* Sample-job templates — revealed by the "Use a template" tab.
-          Applying one (or hiding) collapses the panel. */}
-      <SampleJobTemplates
-        open={showTemplates}
-        onClose={() => setShowTemplates(false)}
-        setTitle={form.setTitle}
-        setDescription={form.setDescription}
-        setCategory={form.setCategory}
-        setBudget={form.setBudget}
-        setEstimatedHours={form.setEstimatedHours}
-      />
-
-      {/* AI Job Builder — secondary helper, collapsed by default. */}
-      <AiJobBuilder
-        locationContext={`${form.city}, ${form.addrState}`.trim().replace(/^,\s*/, "")}
-        onGenerated={form.applyAiJob}
-      />
+      {/* Draft tab, template picker, and AI builder all live on the entry
+          step (EntryChoice) now — the form is for filling in details, not
+          for re-offering ways to start one. Keeping them here duplicated the
+          entry screen and made the "form" step read as a second landing. */}
 
       {/* Sticky stepper — pins below the page header and reflects which
           of the three chapters the poster is currently in. */}

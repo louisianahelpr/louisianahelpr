@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchAnalytics } from "./helperAnalytics/fetchAnalytics";
 import HeroSummary from "./helperAnalytics/HeroSummary";
@@ -87,6 +88,8 @@ const HelperAnalytics = () => {
         eyebrow="Helper dashboard"
         title="Earnings & Analytics"
         meta="Your last 6 months"
+        showBrand
+        rightSlot={<NotificationPanel />}
       />
 
       <main className="container mx-auto px-5 py-6">

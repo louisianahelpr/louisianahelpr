@@ -36,7 +36,7 @@ const EarningsByMonthCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Ear
                     minHeight: "4px",
                     background: m.amount > 0
                       ? "hsl(var(--burnt-sienna) / 0.80)"
-                      : "hsl(var(--olivewood) / 0.15)",
+                      : "hsl(var(--bark) / 0.18)",
                   }}
                 />
                 <span className="text-ds-10 text-muted-foreground">{m.label}</span>

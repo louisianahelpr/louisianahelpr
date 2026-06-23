@@ -77,7 +77,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             <Zap className="w-3 h-3" /> Skip the wait
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Cash out instantly.
@@ -110,7 +110,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
               style={{
                 background:
                   "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-                  "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.74) 100%)",
+                  "var(--surface-premium)",
                 border: "0.5px solid hsl(var(--bark) / 0.22)",
                 boxShadow:
                   "inset 0 1px 1px 0 rgba(255,255,255,0.6), " +

@@ -234,15 +234,15 @@ export function CompletionChoiceSheet({
                 onClick={() => setMode("revision")}
                 className="w-full text-left rounded-ds-md p-4 transition-all active:scale-[0.985]"
                 style={{
-                  background: "hsl(36 72% 48% / 0.07)",
-                  border: "1px solid hsl(36 72% 48% / 0.22)",
+                  background: "hsl(var(--amber-tint) / 0.07)",
+                  border: "1px solid hsl(var(--amber-tint) / 0.22)",
                   boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.50)",
                 }}
               >
                 <div className="flex items-start gap-3">
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                    style={{ background: "hsl(36 72% 48% / 0.15)", color: "hsl(36 72% 28%)" }}
+                    style={{ background: "hsl(var(--amber-tint) / 0.15)", color: "hsl(var(--amber-ink))" }}
                   >
                     <RotateCcw className="w-5 h-5" />
                   </div>
@@ -354,11 +354,11 @@ export function CompletionChoiceSheet({
               <div
                 className="rounded-ds-md px-3 py-2.5 flex items-start gap-2"
                 style={{
-                  background: "hsl(36 72% 48% / 0.07)",
-                  border: "0.5px solid hsl(36 72% 48% / 0.22)",
+                  background: "hsl(var(--amber-tint) / 0.07)",
+                  border: "0.5px solid hsl(var(--amber-tint) / 0.22)",
                 }}
               >
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(36 72% 30%)" }} />
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--amber-ink))" }} />
                 <p
                   className="font-serif italic leading-snug"
                   style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}
@@ -383,9 +383,9 @@ export function CompletionChoiceSheet({
                   style={
                     description.trim()
                       ? {
-                          background: "hsl(36 72% 35%)",
+                          background: "hsl(var(--amber-solid))",
                           backgroundImage: "none",
-                          border: "1px solid hsl(36 72% 35%)",
+                          border: "1px solid hsl(var(--amber-solid))",
                           color: "white",
                           fontFamily: "Montserrat, system-ui, sans-serif",
                           fontWeight: 600,

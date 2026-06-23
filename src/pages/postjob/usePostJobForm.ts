@@ -945,13 +945,27 @@ export function usePostJobForm() {
   // real market; otherwise fall back to the static guide.
   const suggested = category && categoryPricing[category] ? categoryPricing[category] : null;
   const presetRange = priceStats ?? suggested;
+  // Snap each preset to the nearest $25 ($25 floor) so the quick-tap pills
+  // read as clean round numbers instead of raw market values like $38.
+  // A bump pass keeps the three values distinct and ascending when two
+  // snap to the same multiple (e.g. 38 & 60 → 50 & 50 → 50 & 75).
   const budgetPresets = presetRange
-    ? Array.from(new Set([
-        presetRange.min,
-        priceStats?.median ?? Math.round((presetRange.min + presetRange.max) / 2),
-        presetRange.max,
-      ]))
-    : [25, 50, 100];
+    ? (() => {
+        const snap25 = (n: number) => Math.max(25, Math.round(n / 25) * 25);
+        const raw = [
+          presetRange.min,
+          priceStats?.median ?? Math.round((presetRange.min + presetRange.max) / 2),
+          presetRange.max,
+        ]
+          .map(snap25)
+          .sort((a, b) => a - b);
+        return raw.reduce<number[]>((acc, v) => {
+          const prev = acc[acc.length - 1];
+          acc.push(prev != null && v <= prev ? prev + 25 : v);
+          return acc;
+        }, []);
+      })()
+    : [25, 50, 75];
 
   const handlePostJobBack = () => {
     if (step === "checkout") {

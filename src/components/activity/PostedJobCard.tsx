@@ -38,6 +38,7 @@ import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { IncomingReportCard } from "./PetReportCard";
+import { formatPrice } from "@/lib/format";
 
 /** Bid column added by a later migration not yet regenerated into the
     Supabase types (PGRST202 migration-lag pattern — see CLAUDE.md).
@@ -285,7 +286,7 @@ function PostedJobCardInner({
             // to the top of the list.
             className="group relative scroll-mt-3"
           >
-            <JobCardTitleBar title={job.title} amount={String(job.budget)} />
+            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} />
 
             {/* Escrow progress — high-context status of the customer's
                 payment for this job. Sits above the action area (below
@@ -339,10 +340,13 @@ function PostedJobCardInner({
                 {(job.description.length > 100 || job.special_requirements?.trim()) && (
                   <button
                     type="button"
-                    className="text-ds-10 text-primary hover:underline inline-flex items-center gap-1"
+                    aria-expanded={isExpanded}
+                    className="inline-flex items-center gap-0.5 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
                     onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
                   >
-                    {isExpanded ? <><ChevronUp className="w-3 h-3" /> Less</> : <><ChevronDown className="w-3 h-3" /> More details</>}
+                    {isExpanded
+                      ? <>Hide details <ChevronUp className="w-3 h-3" /></>
+                      : <>View details <ChevronDown className="w-3 h-3" /></>}
                   </button>
                 )}
               </div>
@@ -354,7 +358,9 @@ function PostedJobCardInner({
                   <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0">
                     {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
                   </div>
-                  <span className="text-ds-11 text-muted-foreground">Offered to</span>
+                  <span className="text-ds-11 text-muted-foreground">
+                    {job.status === "completed" ? "Completed by" : "Offered to"}
+                  </span>
                   <a href={`/user/${job.helper_id}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline">
                     {helperNames[job.helper_id] || "Helpr"}
                   </a>
@@ -398,7 +404,7 @@ function PostedJobCardInner({
                             color: isCharged
                               ? "hsl(var(--destructive))"
                               : isPending
-                              ? "hsl(36 72% 28%)"
+                              ? "hsl(var(--amber-ink))"
                               : "hsl(var(--olivewood))",
                             border: `0.5px solid ${isCharged ? "hsl(var(--destructive) / 0.20)" : isPending ? "hsl(var(--gold-warm) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
                           }}
@@ -561,16 +567,14 @@ function PostedJobCardInner({
             {/* Additional details - collapsible for fully completed jobs */}
             {(!isFullyCompleted || isExpanded) && (
             <div>
-              <div className="px-4 py-3 space-y-3 border-t border-border/30">
-                {(job.photos || []).length > 0 && (
+              {(job.photos || []).length > 0 && (
+                <div className="px-4 py-3 space-y-3 border-t border-border/30">
                   <div>
                     <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
                     <JobCardPhotoStrip urls={job.photos || []} size="md" />
                   </div>
-                )}
-
-
-              </div>
+                </div>
+              )}
 
               {/* Features for active jobs */}
               {(job.status === "in_progress" || job.status === "accepted") && (
@@ -761,9 +765,9 @@ function PostedJobCardInner({
                                   type="button"
                                   className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-ds-md text-ds-12 font-semibold transition-colors"
                                   style={{
-                                    background: "hsl(210 55% 47% / 0.10)",
-                                    color: "hsl(210 62% 30%)",
-                                    border: "0.5px solid hsl(210 55% 47% / 0.28)",
+                                    background: "hsl(var(--info-tint) / 0.10)",
+                                    color: "hsl(var(--info-ink))",
+                                    border: "0.5px solid hsl(var(--info-tint) / 0.28)",
                                   }}
                                   onClick={() => {
                                     setBroadcastOpen(true);
@@ -779,14 +783,14 @@ function PostedJobCardInner({
                                 <div
                                   className="rounded-ds-md p-3 space-y-2"
                                   style={{
-                                    background: "hsl(210 55% 47% / 0.06)",
-                                    border: "0.5px solid hsl(210 55% 47% / 0.24)",
+                                    background: "hsl(var(--info-tint) / 0.06)",
+                                    border: "0.5px solid hsl(var(--info-tint) / 0.24)",
                                   }}
                                 >
                                   <div className="flex items-center justify-between mb-0.5">
                                     <p
                                       className="text-ds-11 font-semibold"
-                                      style={{ color: "hsl(210 62% 30%)" }}
+                                      style={{ color: "hsl(var(--info-ink))" }}
                                     >
                                       Message all {pendingCount} applicants
                                     </p>
@@ -839,8 +843,10 @@ function PostedJobCardInner({
                 </div>
               )}
 
-              {/* Analytics mini-panel — only shown when there's data to display */}
-              {jobAnalytics && (jobAnalytics.viewCount > 0 || jobAnalytics.applicantCount > 0) && (
+              {/* Analytics mini-panel — reach/views readout. The applicant
+                  count is intentionally NOT shown here: the Applicants button
+                  already surfaces it, so repeating it as "N applied" is noise. */}
+              {jobAnalytics && jobAnalytics.viewCount > 0 && (
                 <div
                   className="mx-4 rounded-ds-md px-3 py-2.5 space-y-1.5 mb-2"
                   style={{ background: "hsl(var(--parchment) / 0.4)", border: "1px solid hsl(var(--olivewood) / 0.1)" }}
@@ -852,11 +858,6 @@ function PostedJobCardInner({
                     {jobAnalytics.viewCount > 0 && (
                       <span className="text-ds-12 flex items-center gap-1" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
                         <Eye className="w-3 h-3" /> {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
-                      </span>
-                    )}
-                    {jobAnalytics.applicantCount > 0 && (
-                      <span className="text-ds-12 flex items-center gap-1" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
-                        <Users className="w-3 h-3" /> {jobAnalytics.applicantCount} applied
                       </span>
                     )}
                     {jobAnalytics.conversionRate !== null && (
@@ -929,7 +930,7 @@ function PostedJobCardInner({
                         <Button
                           variant="outline" size="sm"
                           className="w-full rounded-ds-md glass-press border-0"
-                          style={{ background: "hsl(25 75% 48% / 0.14)", color: "hsl(25 82% 28%)", border: "0.5px solid hsl(25 75% 48% / 0.34)" }}
+                          style={{ background: "hsl(var(--boost-tint) / 0.14)", color: "hsl(var(--boost-ink))", border: "0.5px solid hsl(var(--boost-tint) / 0.34)" }}
                           disabled={!!isBoosted}
                           onClick={() => onBoost(job.id)}
                         >
@@ -946,7 +947,7 @@ function PostedJobCardInner({
                             className="w-full rounded-ds-md glass-press border-0 btn-press"
                             style={{
                               background: "hsl(var(--gold-warm) / 0.12)",
-                              color: "hsl(36 80% 28%)",
+                              color: "hsl(var(--amber-ink))",
                               border: "0.5px solid hsl(var(--gold-warm) / 0.38)",
                             }}
                             disabled={broadcastBoosting}
@@ -980,7 +981,7 @@ function PostedJobCardInner({
                           <Button
                             variant="outline" size="sm"
                             className="w-full glass-press border-0"
-                            style={{ background: "hsl(var(--gold-warm) / 0.16)", color: "hsl(36 72% 25%)", border: "0.5px solid hsl(var(--gold-warm) / 0.36)" }}
+                            style={{ background: "hsl(var(--gold-warm) / 0.16)", color: "hsl(var(--amber-ink))", border: "0.5px solid hsl(var(--gold-warm) / 0.36)" }}
                             onClick={() => onEdit(job)}
                           >
                             <Pencil className="w-4 h-4 mr-1" /> Edit
@@ -988,12 +989,12 @@ function PostedJobCardInner({
                           <ShareJobButton
                             job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                             className="w-full glass-press border-0"
-                            style={{ background: "hsl(210 55% 47% / 0.12)", color: "hsl(210 62% 30%)", border: "0.5px solid hsl(210 55% 47% / 0.32)" }}
+                            style={{ background: "hsl(var(--info-tint) / 0.12)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.32)" }}
                           />
                           <Button
                             variant="outline" size="sm"
                             className="w-full glass-press border-0"
-                            style={{ background: "hsl(6 58% 46% / 0.11)", color: "hsl(6 62% 34%)", border: "0.5px solid hsl(6 58% 46% / 0.32)" }}
+                            style={{ background: "hsl(var(--cancel-tint) / 0.11)", color: "hsl(var(--cancel-ink))", border: "0.5px solid hsl(var(--cancel-tint) / 0.32)" }}
                             onClick={() => onCancel(job)}
                           >
                             <XCircle className="w-4 h-4 mr-1" /> Cancel
@@ -1022,7 +1023,7 @@ function PostedJobCardInner({
                       <ShareJobButton
                         job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                         className="w-full glass-press border-0"
-                        style={{ background: "hsl(210 55% 47% / 0.10)", color: "hsl(210 62% 30%)", border: "0.5px solid hsl(210 55% 47% / 0.28)" }}
+                        style={{ background: "hsl(var(--info-tint) / 0.10)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.28)" }}
                       />
                     </div>
                   )}
@@ -1150,7 +1151,7 @@ function PostedJobCardInner({
                       <ShareJobButton
                         job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                         className="w-full glass-press border-0"
-                        style={{ background: "hsl(210 55% 47% / 0.10)", color: "hsl(210 62% 30%)", border: "0.5px solid hsl(210 55% 47% / 0.28)" }}
+                        style={{ background: "hsl(var(--info-tint) / 0.10)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.28)" }}
                       />
                       {/* Request Revision — only after helper marks complete (Stage 2) */}
                       {job.status === "in_progress" && !job.poster_completed_at && job.helper_completed_at && (

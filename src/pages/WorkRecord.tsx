@@ -13,6 +13,7 @@ import {
   Award,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
@@ -162,28 +163,8 @@ const WorkRecord = () => {
         eyebrow="Employment & Earnings"
         meta="Your verified Helpr work history"
         onBack={() => navigate("/profile")}
-        rightSlot={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              aria-label="Print work record"
-              className="h-9 w-9 rounded-full flex items-center justify-center transition-colors hover:bg-secondary/60 active:scale-95"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              <Printer className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => { void handleShare(); }}
-              aria-label="Share work record"
-              className="h-9 w-9 rounded-full flex items-center justify-center transition-colors hover:bg-secondary/60 active:scale-95"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-          </div>
-        }
+        showBrand
+        rightSlot={<NotificationPanel />}
       />
 
       <div className="mx-auto max-w-5xl px-4 lg:px-8 xl:px-12 pb-10 space-y-5 mt-2">
@@ -439,11 +420,11 @@ const WorkRecord = () => {
                   Helpr is a Louisiana-based labor marketplace.
                   For verification inquiries:{" "}
                   <a
-                    href="mailto:support@louisianahelpr.com"
+                    href="mailto:admin@louisianahelpr.com"
                     className="underline"
                     style={{ color: "hsl(var(--bark))" }}
                   >
-                    support@louisianahelpr.com
+                    admin@louisianahelpr.com
                   </a>
                 </p>
               </div>
@@ -456,8 +437,9 @@ const WorkRecord = () => {
                 onClick={() => { void handleShare(); }}
                 className="flex-1 flex items-center justify-center gap-2 rounded-ds-lg py-3.5 text-ds-14 font-semibold active:scale-[0.99] transition-all"
                 style={{
-                  background: "hsl(var(--bark))",
-                  color: "hsl(var(--parchment))",
+                  background: "hsl(var(--bark) / 0.10)",
+                  border: "1px solid hsl(var(--bark) / 0.30)",
+                  color: "hsl(var(--bark))",
                 }}
               >
                 <Share2 className="w-4 h-4" />

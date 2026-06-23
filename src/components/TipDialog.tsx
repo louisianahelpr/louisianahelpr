@@ -51,7 +51,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
             <Gift className="w-3 h-3" /> A little extra
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Send a tip{helperName ? ` to ${helperName}` : ""}.
@@ -83,7 +83,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
                     fontSize: "1.15rem",
                     background:
                       "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-                      "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.74) 100%)",
+                      "var(--surface-premium)",
                     border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
                     color: "hsl(var(--ink-deep))",
                     letterSpacing: "-0.02em",

@@ -454,11 +454,11 @@ const HelpCenter = () => {
               >
                 Try a different word, or email{" "}
                 <a
-                  href="mailto:support@louisianahelpr.com"
+                  href="mailto:admin@louisianahelpr.com"
                   className="font-semibold underline"
                   style={{ color: "hsl(var(--burnt-sienna))" }}
                 >
-                  support@louisianahelpr.com
+                  admin@louisianahelpr.com
                 </a>
                 .
               </p>
@@ -541,11 +541,11 @@ const HelpCenter = () => {
                 strokeWidth={1.75}
               />
               <a
-                href="mailto:support@louisianahelpr.com"
+                href="mailto:admin@louisianahelpr.com"
                 className="font-sans font-semibold text-ds-13 transition-opacity hover:opacity-75"
                 style={{ color: "hsl(var(--burnt-sienna))" }}
               >
-                support@louisianahelpr.com
+                admin@louisianahelpr.com
               </a>
             </div>
             <div className="flex items-center gap-2">

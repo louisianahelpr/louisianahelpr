@@ -99,13 +99,18 @@ const ScrollToTop = () => {
   }, [pathname, hash, key]);
 
   const scrollToTop = () => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
     hapticLight();
-    scroller.scrollTo({
-      top: 0,
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-    });
+    const behavior = prefersReducedMotion() ? "auto" : "smooth";
+    // Fixed-shell routes scroll AppShell's inner container; document-scroll
+    // routes (multi-step forms, legal, marketing) scroll the window. Mirror
+    // the reveal watcher's `scroller ?? window` fallback — otherwise the
+    // button renders on document-scroll pages but the click does nothing.
+    const scroller = scrollerRef.current;
+    if (scroller) {
+      scroller.scrollTo({ top: 0, behavior });
+    } else {
+      window.scrollTo({ top: 0, behavior });
+    }
   };
 
   return (

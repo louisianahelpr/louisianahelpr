@@ -87,7 +87,7 @@ const RatingsReviewsCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Rati
                               ? "hsl(var(--burnt-sienna) / 0.75)"
                               : star === 3
                               ? "hsl(var(--bark) / 0.55)"
-                              : "hsl(var(--olivewood) / 0.8)",
+                              : "hsl(var(--bark) / 0.32)",
                           }}
                         />
                       </div>

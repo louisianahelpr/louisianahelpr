@@ -126,7 +126,7 @@ export default function SubscriptionPage() {
             background:
               "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
               "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%), " +
-              "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.76) 100%)",
+              "var(--surface-premium)",
             border: "0.5px solid hsl(var(--bark) / 0.22)",
             boxShadow:
               "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
@@ -307,16 +307,11 @@ export default function SubscriptionPage() {
                   </ul>
                 </div>
 
-                {/* Price column */}
+                {/* Price column — the free tier's name already reads "Free",
+                    so we omit a redundant "Free" price here and let only the
+                    paid tiers carry a price label. */}
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
-                  {isFree ? (
-                    <p
-                      className="font-display italic font-bold leading-none"
-                      style={{ fontSize: "1.1rem", color, letterSpacing: "-0.02em" }}
-                    >
-                      Free
-                    </p>
-                  ) : (
+                  {isFree ? null : (
                     <>
                       <p
                         className="font-display italic font-bold tabular-nums leading-none"

@@ -109,7 +109,7 @@ export function IDVPromptDialog({
             Identity check
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{
               fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
               color: "hsl(var(--ink-deep))",
@@ -149,7 +149,7 @@ export function IDVPromptDialog({
             <div
               className="flex items-start gap-3 p-3 rounded-ds-md"
               style={{
-                background: "hsla(0, 0%, 100%, 0.5)",
+                background: "hsl(var(--ivory-sand) / 0.5)",
                 border: "0.5px solid hsl(var(--olivewood) / 0.14)",
               }}
             >
@@ -174,7 +174,7 @@ export function IDVPromptDialog({
             <div
               className="flex items-start gap-3 p-3 rounded-ds-md"
               style={{
-                background: "hsla(0, 0%, 100%, 0.5)",
+                background: "hsl(var(--ivory-sand) / 0.5)",
                 border: "0.5px solid hsl(var(--olivewood) / 0.14)",
               }}
             >

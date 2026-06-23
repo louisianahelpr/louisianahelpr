@@ -1,11 +1,12 @@
 /**
  * GDPR + CCPA data rights page.
  *
- * - GDPR Art. 17 "right to erasure" → delete account button (calls existing
- *   delete-own-account edge function)
+ * - Data export → triggers a JSON dump of profile + jobs + messages
  * - CCPA "do not sell or share" → opt-out toggle (we don't sell data, but
  *   the toggle still has to exist for CA residents)
- * - Data export → triggers a JSON dump of profile + jobs + messages
+ *
+ * GDPR Art. 17 "right to erasure" is exercised from the Profile / Settings
+ * screen's "Delete account" control (single entry point — no duplicate here).
  *
  * Linked from Settings, Privacy Policy, and the iOS App Store privacy listing.
  */
@@ -16,11 +17,11 @@ import { Switch } from "@/components/ui/switch";
 import { report } from "@/lib/errorLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, Trash2, ShieldOff, Loader2, ArrowLeft } from "lucide-react";
+import { Download, ShieldOff, Loader2, ArrowLeft } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
-import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { hapticError } from "@/lib/haptics";
 import { safeStorage } from "@/lib/safeStorage";
 
 const DataRights = () => {
@@ -34,8 +35,6 @@ const DataRights = () => {
       "Export, correct, or delete your personal information on Helpr at any time under the EU GDPR and California CCPA.",
   });
   const [exporting, setExporting] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [doNotSell, setDoNotSell] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -93,26 +92,6 @@ const DataRights = () => {
     }
   };
 
-  const handleDelete = async () => {
-    hapticHeavy();
-    setDeleting(true);
-    try {
-      const { error } = await supabase.functions.invoke("delete-own-account", {
-        body: { confirmation: "DELETE MY ACCOUNT" },
-      });
-      if (error) throw error;
-      hapticSuccess();
-      toast.success("Your account has been deleted.");
-      await supabase.auth.signOut();
-      window.location.href = "/";
-    } catch (err: any) {
-      hapticError();
-      toast.error(err?.message ?? "We couldn't delete your account just now — please email support.");
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   const toggleDoNotSell = (next: boolean) => {
     setDoNotSell(next);
     safeStorage.setItem("helpr_do_not_sell", next ? "1" : "0");
@@ -125,12 +104,14 @@ const DataRights = () => {
         eyebrow="Privacy controls"
         title="Your Data Rights"
         meta="Export, correct, or delete your information at any time"
+        showBrand
+        rightSlot={<NotificationPanel />}
       />
       <main className="container mx-auto px-5 py-6 max-w-lg space-y-6">
         <p className="text-ds-11 text-muted-foreground">
           Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
           Use the controls below to exercise them. For all other privacy questions email{" "}
-          <a href="mailto:privacy@louisianahelpr.com" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>privacy@louisianahelpr.com</a>.
+          <a href="mailto:admin@louisianahelpr.com" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>admin@louisianahelpr.com</a>.
         </p>
 
         {/* Export */}
@@ -144,7 +125,17 @@ const DataRights = () => {
               </p>
             </div>
           </div>
-          <Button onClick={handleExport} disabled={exporting || !userId} className="w-full sm:w-auto" size="lg">
+          <Button
+            onClick={handleExport}
+            disabled={exporting || !userId}
+            className="w-full sm:w-auto"
+            size="lg"
+            style={{
+              background: "hsl(var(--bark) / 0.10)",
+              border: "1px solid hsl(var(--bark) / 0.30)",
+              color: "hsl(var(--bark))",
+            }}
+          >
             {exporting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Preparing…</> : "Download my data"}
           </Button>
         </section>
@@ -164,41 +155,9 @@ const DataRights = () => {
           </div>
         </section>
 
-        {/* Delete — GDPR Art. 17 */}
-        <section className="rounded-2xl border border-destructive/40 bg-destructive/5 p-5 space-y-3">
-          <div className="flex items-start gap-3">
-            <Trash2 className="w-5 h-5 text-destructive mt-1 flex-shrink-0" aria-hidden />
-            <div className="flex-1">
-              <h2 className="font-display italic font-semibold text-ds-17">Delete my account</h2>
-              <p className="text-ds-11 text-muted-foreground mt-1">
-                Permanently removes your profile, posted jobs, applications, messages, and personal information.
-                Financial records (completed payouts, tax records) are retained as required by IRS regulations.
-                <strong className="text-foreground"> This cannot be undone.</strong>
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="destructive"
-            size="lg"
-            className="w-full sm:w-auto"
-            disabled={deleting}
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            {deleting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting…</> : "Delete my account"}
-          </Button>
-          <BrandConfirmDialog
-            open={deleteDialogOpen}
-            onOpenChange={setDeleteDialogOpen}
-            title="Permanently delete your account?"
-            description="This removes everything in your account that's not legally required for tax/audit purposes. You'll be signed out immediately and cannot sign back in with this email."
-            primaryLabel={deleting ? "Deleting…" : "Yes, delete my account"}
-            primaryTone="sienna"
-            primaryHaptic="error"
-            primaryDisabled={deleting}
-            onPrimary={(e) => { e.preventDefault(); handleDelete(); }}
-            secondaryLabel="Cancel"
-          />
-        </section>
+        {/* Account deletion (GDPR Art. 17 erasure) lives on the Profile /
+            Settings screen — keeping a single entry point avoids a confusing
+            duplicate control here. */}
 
         <div className="text-center pt-4">
           <Link to="/privacy" className="text-ds-11 text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">

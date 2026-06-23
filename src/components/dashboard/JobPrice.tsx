@@ -166,7 +166,7 @@ export function JobPrice({
       style={{
         background:
           "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-          "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.74) 100%)",
+          "var(--surface-premium)",
         backdropFilter: "blur(20px) saturate(170%)",
         WebkitBackdropFilter: "blur(20px) saturate(170%)",
         border: "0.5px solid hsl(var(--bark) / 0.22)",
@@ -200,7 +200,7 @@ export function JobPrice({
               className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              ${budget.toFixed(0)} budget − {effectiveFee}% fee
+              ${budget.toFixed(0)} budget{helpers > 1 ? ` ÷ ${helpers}` : ""} − {effectiveFee}% fee
               {urgentFee > 0 ? ` + $${urgentFee.toFixed(0)} urgent` : ""}
             </p>
           )}

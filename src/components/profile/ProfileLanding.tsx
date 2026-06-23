@@ -1482,8 +1482,8 @@ export function ProfileLanding({
             className="rounded-ds-lg overflow-hidden"
             style={{
               background:
-                "linear-gradient(135deg, hsl(155 50% 35% / 0.06) 0%, hsl(155 50% 35% / 0.02) 100%)",
-              border: "0.5px solid hsl(155 50% 35% / 0.18)",
+                "linear-gradient(135deg, hsl(var(--pif-tint) / 0.06) 0%, hsl(var(--pif-tint) / 0.02) 100%)",
+              border: "0.5px solid hsl(var(--pif-tint) / 0.18)",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255,255,255,0.40), 0 2px 8px -2px hsl(var(--olivewood) / 0.06)",
             }}
@@ -1491,11 +1491,11 @@ export function ProfileLanding({
             <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2">
               <ShieldCheck
                 className="w-4 h-4 shrink-0"
-                style={{ color: "hsl(155 50% 32%)" }}
+                style={{ color: "hsl(var(--pif-green))" }}
               />
               <p
                 className="text-ds-13 font-semibold leading-tight"
-                style={{ color: "hsl(155 50% 25%)" }}
+                style={{ color: "hsl(var(--pif-ink))" }}
               >
                 Your protections
               </p>
@@ -1509,12 +1509,12 @@ export function ProfileLanding({
                 <div key={line} className="flex items-start gap-2">
                   <CheckCircle2
                     className="w-3.5 h-3.5 mt-0.5 shrink-0"
-                    style={{ color: "hsl(155 50% 38%)" }}
+                    style={{ color: "hsl(var(--pif-tint))" }}
                     strokeWidth={2.25}
                   />
                   <p
                     className="font-serif italic text-ds-12 leading-snug"
-                    style={{ color: "hsl(155 40% 35%)" }}
+                    style={{ color: "hsl(var(--pif-green))" }}
                   >
                     {line}
                   </p>

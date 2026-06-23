@@ -169,8 +169,8 @@ const HeroSection = () => {
         <span
           className="w-1.5 h-1.5 rounded-full animate-pulse"
           style={{
-            backgroundColor: "hsl(120, 60%, 50%)",
-            boxShadow: "0 0 6px hsl(120, 60%, 55%, 0.6)",
+            backgroundColor: "hsl(var(--live))",
+            boxShadow: "0 0 6px hsl(var(--live) / 0.6)",
           }}
         />
         {animatedCount !== null

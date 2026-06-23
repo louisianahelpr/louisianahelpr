@@ -268,7 +268,12 @@ const UserProfile = () => {
       // record_profile_view (returns false on any error). Self-view guard is
       // enforced in the SQL function; double-guard here to avoid the RPC call.
       if (userId !== currentUserId) {
-        void (supabase.rpc as any)("record_profile_view", { p_viewed_user_id: userId }).catch(() => {/* silent */});
+        // `supabase.rpc(...)` returns a Postgrest builder — a thenable, NOT a
+        // real Promise, so it has no `.catch`. Calling `.catch` on it throws
+        // synchronously and rejects the whole queryFn (bricking every other
+        // user's profile with "couldn't load this"). Wrap in Promise.resolve
+        // to get a real Promise before swallowing.
+        void Promise.resolve((supabase.rpc as any)("record_profile_view", { p_viewed_user_id: userId })).catch(() => {/* silent */});
       }
 
       const postedJobs = postedRes.data || [];

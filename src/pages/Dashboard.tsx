@@ -6,7 +6,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
@@ -37,7 +36,6 @@ const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 const JitVerifySheet = lazy(() => import("@/components/dashboard/JitVerifySheet").then(m => ({ default: m.JitVerifySheet })));
-const JobMapView = lazy(() => import("@/components/dashboard/JobMapView").then(m => ({ default: m.JobMapView })));
 const WelcomeModal = lazy(() => import("@/components/dashboard/WelcomeModal"));
 import SectionBoundary from "@/components/SectionBoundary";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
@@ -938,12 +936,12 @@ const Dashboard = () => {
                 page-level ErrorBoundary above still catches anything
                 that escapes this. */}
             <SectionBoundary label="the job feed">
-              {/* Split-screen layout on lg+ viewports: job list (420px
-                  fixed left) + Leaflet map (right). Completely hidden on
-                  mobile — no layout changes touch the Capacitor native
-                  app which is always <1024px. */}
+              {/* The job feed fills the frame. The map is reached via the
+                  toolbar list/map toggle (BrowseMap inside BrowseTasksFeed),
+                  not a side panel — a fixed split-screen map clipped at the
+                  edge of the centered phone-width frame. */}
               <div className="flex flex-1 min-h-0 overflow-hidden">
-                <div className="flex-1 lg:w-[420px] lg:flex-none lg:border-r lg:border-[hsl(var(--olivewood)/0.1)] min-w-0 overflow-hidden flex flex-col">
+                <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
                   <BrowseTasksFeed
                     view={view}
                     density={density}
@@ -984,17 +982,6 @@ const Dashboard = () => {
                     hoveredJobId={hoveredJobId}
                     setHoveredJobId={setHoveredJobId}
                   />
-                </div>
-                {/* Map panel — desktop only. Lazy-loaded so the Leaflet
-                    bundle isn't paid for by mobile users. */}
-                <div className="hidden lg:flex lg:flex-1 lg:relative min-h-0">
-                  <Suspense fallback={<Skeleton className="flex-1 rounded-none" />}>
-                    <JobMapView
-                      jobs={filters.filteredJobs}
-                      hoveredJobId={hoveredJobId}
-                      onJobClick={openDetailJob}
-                    />
-                  </Suspense>
                 </div>
               </div>
             </SectionBoundary>

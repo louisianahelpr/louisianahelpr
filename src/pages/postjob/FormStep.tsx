@@ -292,7 +292,6 @@ export function FormStep({ form }: FormStepProps) {
             customUrgentFee={form.customUrgentFee}
             setCustomUrgentFee={form.setCustomUrgentFee}
             budgetComplete={form.budgetComplete}
-            helperFeePercent={form.helperFee}
             category={form.category}
             pricingMode={form.pricingMode}
             setPricingMode={form.setPricingMode}

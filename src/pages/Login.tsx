@@ -358,7 +358,7 @@ const Login = () => {
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
             <div className="relative">
               <Mail
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 strokeWidth={1.75}
               />
@@ -386,7 +386,7 @@ const Login = () => {
             <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
             <div className="relative">
               <Lock
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 strokeWidth={1.75}
               />

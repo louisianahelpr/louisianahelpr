@@ -13,6 +13,20 @@ export const isNativePlatform =
   typeof window !== "undefined" &&
   (window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() === true;
 
+// Tag <html> with the runtime platform so CSS can diverge a handful of
+// color tokens between the native iOS WebView (Display-P3 wide gamut,
+// where saturated accents pop harder and cool near-whites read warmer)
+// and desktop web (sRGB). Set at module import — before createRoot — so
+// the `html[data-platform="ios"]` overrides apply on the very first paint
+// with no flash. Web stays `data-platform="web"` (no overrides = base
+// :root tokens). See the `html[data-platform="ios"]` block in index.css.
+if (typeof document !== "undefined") {
+  const platform =
+    (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ??
+    "web";
+  document.documentElement.setAttribute("data-platform", platform);
+}
+
 export async function initNative() {
   if (!isNativePlatform) return;
 

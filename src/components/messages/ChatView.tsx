@@ -528,7 +528,7 @@ export function ChatView({
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center"
                   style={{
-                    backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                    backgroundColor: "hsl(var(--ivory-sand) / 0.55)",
                     border: "1px solid hsl(var(--olivewood) / 0.10)",
                     boxShadow:
                       "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +

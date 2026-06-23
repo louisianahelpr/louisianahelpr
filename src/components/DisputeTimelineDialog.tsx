@@ -206,7 +206,7 @@ export const DisputeTimelineDialog = ({
             <AlertTriangle className="w-3 h-3" /> Dispute in progress
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Timeline

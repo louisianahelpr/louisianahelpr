@@ -152,7 +152,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             {eyebrow}
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{
               fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)",
               color: "hsl(var(--ink-deep))",
@@ -336,21 +336,21 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             <div
               className="rounded-ds-md p-4 text-center space-y-3"
               style={{
-                background: "hsl(155 60% 96%)",
-                border: "0.5px solid hsl(155 35% 70% / 0.35)",
+                background: "hsl(var(--success-tint))",
+                border: "0.5px solid hsl(var(--success-border) / 0.35)",
               }}
             >
               <div className="flex justify-center">
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center"
                   style={{
-                    background: "hsl(155 60% 90%)",
-                    border: "1px solid hsl(155 35% 60% / 0.35)",
+                    background: "hsl(var(--success-tint-strong))",
+                    border: "1px solid hsl(var(--success-border-strong) / 0.35)",
                   }}
                 >
                   <Check
                     className="w-6 h-6"
-                    style={{ color: "hsl(155 50% 30%)" }}
+                    style={{ color: "hsl(var(--success-ink))" }}
                     strokeWidth={2.5}
                   />
                 </div>

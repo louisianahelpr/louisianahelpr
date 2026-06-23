@@ -335,8 +335,8 @@ const ConversationRowBase = ({
                       aria-hidden="true"
                       className="w-1.5 h-1.5 rounded-full"
                       style={{
-                        background: "hsl(155 60% 40%)",
-                        boxShadow: "0 0 4px hsl(155 60% 40% / 0.55)",
+                        background: "hsl(var(--live))",
+                        boxShadow: "0 0 4px hsl(var(--live) / 0.55)",
                       }}
                     />
                   )}
@@ -344,7 +344,7 @@ const ConversationRowBase = ({
                     className="text-[0.62rem] font-serif italic"
                     style={{
                       color: lastActiveLabel.isLive
-                        ? "hsl(155 35% 30%)"
+                        ? "hsl(var(--live))"
                         : "hsl(var(--olivewood) / 0.8)",
                       letterSpacing: "0.02em",
                     }}

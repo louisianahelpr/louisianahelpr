@@ -22,6 +22,7 @@ import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -300,12 +301,11 @@ function InviteForm({ myUserId }: { myUserId: string }) {
   const inviteMut = useMutation({
     mutationFn: async () => {
       const token = crypto.randomUUID();
-      // Look up the care recipient by email or phone
-      const isEmail = contact.includes("@");
+      // Look up the care recipient by email (case-insensitive)
       const lookupRes = await supabase
         .from("profiles")
         .select("user_id")
-        .eq(isEmail ? "email" : "phone", contact)
+        .ilike("email", contact.trim())
         .maybeSingle();
       if (lookupRes.error) throw lookupRes.error;
 
@@ -313,7 +313,7 @@ function InviteForm({ myUserId }: { myUserId: string }) {
         // No existing account — store a pending invite with token only;
         // when they sign up and visit the link, they can accept.
         throw new Error(
-          "No account found for that email or phone. Ask them to sign up first, then share the invite link."
+          "No account found for that email. Ask them to sign up first, then share the invite link."
         );
       }
 
@@ -375,15 +375,17 @@ function InviteForm({ myUserId }: { myUserId: string }) {
         Invite a family member
       </p>
       <p className="text-ds-12 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        Enter their email or phone. They'll get an invite link to approve your access.
+        Enter their email. They'll get an invite link to approve your access.
       </p>
       <Input
         value={contact}
         onChange={(e) => setContact(e.target.value)}
-        placeholder="Email or phone number"
-        type="text"
+        placeholder="Email address"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
         className="h-11"
-        aria-label="Contact email or phone number"
+        aria-label="Family member email address"
       />
       <div className="flex gap-2">
         <select
@@ -485,7 +487,7 @@ export default function FamilyDashboard() {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Family & care" onBack={() => navigate(-1)} />
+      <PageHeader title="Family & care" onBack={() => navigate(-1)} showBrand rightSlot={<NotificationPanel />} />
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
 

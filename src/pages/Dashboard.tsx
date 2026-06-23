@@ -18,6 +18,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
+import { DashboardRightRail } from "@/components/dashboard/DashboardRightRail";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import DashboardGreetingCard from "@/components/dashboard/DashboardGreetingCard";
@@ -983,6 +984,10 @@ const Dashboard = () => {
                     setHoveredJobId={setHoveredJobId}
                   />
                 </div>
+                {/* Desktop-only right rail (web-desktop). Hidden on
+                    mobile/native via its own `hidden lg:flex`, so the feed
+                    keeps full width there exactly as today. */}
+                <DashboardRightRail />
               </div>
             </SectionBoundary>
 

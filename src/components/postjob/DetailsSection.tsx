@@ -399,15 +399,17 @@ export function DetailsSection({
                           "0 6px 16px -4px hsl(var(--bark) / 0.22)",
                       }
                     : {
-                        // Fill with the card SURFACE token, not --parchment:
-                        // the page canvas IS --parchment, so a parchment fill
-                        // is invisible (1.00 contrast) no matter the opacity.
-                        // --card (--ivory-sand) is defined brighter than the
-                        // page in both themes, so the chip lifts as a real,
-                        // tappable surface in light AND dark mode.
-                        background: "hsl(var(--card) / 0.92)",
-                        border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-                        boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+                        // These chips sit INSIDE the white Details card, not
+                        // on the page — so they must be RECESSED to read as
+                        // separate tiles. Fill with --parchment (the page /
+                        // recessed tone, always darker than --card in BOTH
+                        // themes: light 87% vs 98.5%, dark 9% vs 13%) so each
+                        // box visibly sinks below the card surface. Filling
+                        // with --card here paints the card's own colour
+                        // (white-on-white) and the boxes vanish.
+                        background: "hsl(var(--parchment))",
+                        border: "0.5px solid hsl(var(--border) / 0.7)",
+                        boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.3)",
                       }
                 }
               >

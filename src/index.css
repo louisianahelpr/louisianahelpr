@@ -1053,10 +1053,15 @@ button,
    + soft drop shadow give physical weight. Use on stat cards, frosted CTAs,
    anywhere a card needs to "lift" off the parchment. */
 .liquid-glass {
-  background-color: hsla(0, 0%, 100%, 0.42);
+  /* Light mode: a near-solid warm-white fill + a real warm hairline border.
+     The old recipe (42% white fill, 55% WHITE border) gave cards no edge and
+     no luminance delta against the champagne canvas — they read as invisible
+     white-on-white. A defined `--border` hairline lifts every card cleanly
+     regardless of how light the page is. Dark mode overrides this below. */
+  background-color: hsla(40, 44%, 99%, 0.86);
   backdrop-filter: blur(20px) saturate(170%);
   -webkit-backdrop-filter: blur(20px) saturate(170%);
-  border: 1px solid hsla(0, 0%, 100%, 0.55);
+  border: 1px solid hsl(var(--border) / 0.55);
   border-radius: 1.5rem;
   box-shadow:
     /* Brighter top inner highlight (was 0.7) so the card catches light off
@@ -1747,7 +1752,7 @@ button,
      Previously this layered darker `--secondary` radial washes, which made
      auth/onboarding screens read heavier than the dashboard. */
   background-image:
-    linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
+    linear-gradient(135deg, #F1EDE4 0%, #E7E1D7 100%);
   background-attachment: fixed;
 }
 
@@ -1758,7 +1763,7 @@ button,
 .bg-premium-page {
   background-color: hsl(var(--background));
   background-image:
-    linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
+    linear-gradient(135deg, #F1EDE4 0%, #E7E1D7 100%);
   background-attachment: fixed;
 }
 

@@ -1601,7 +1601,13 @@ button,
      grey. Replaces the old warm champagne (#FAF9F5→#F4F1EA) that read as cream;
      now matches the cool hue-220 canvas for a premium, never-tacky base. */
   background: linear-gradient(135deg, #FCFCFD 0%, #F1F3F6 100%);
-  z-index: 0;
+  /* Sit BEHIND in-flow page content. As a fixed, non-positioned-sibling
+     background layer this must use a negative z-index — at z-index:0 it
+     paints AFTER (visually over) static, non-positioned content, which
+     blanked plain PublicLayout pages (e.g. /enterprise) whose content
+     isn't itself z-indexed above it. pointer-events:none hid it from
+     hit-testing, so only a screenshot revealed the cover-up. */
+  z-index: -1;
 }
 
 /* Status-pill pulse glow — breathing white halo + faint green ring that

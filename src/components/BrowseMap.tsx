@@ -17,6 +17,7 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import { divIcon, point as leafletPoint } from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Crosshair, BellRing, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -578,7 +579,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
                   {labels[job.category as keyof typeof labels] ?? job.category}
                   {job.parish ? ` · ${job.parish}` : ""}
                 </p>
-                <p className="font-mono text-ds-13 font-semibold">${Number(job.budget).toFixed(2)}</p>
+                <p className="font-mono text-ds-13 font-semibold">${formatPrice(Number(job.budget))}</p>
                 {job.is_urgent && (
                   <p className="text-ds-10 uppercase tracking-wide text-destructive font-bold">
                     Urgent

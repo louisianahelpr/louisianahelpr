@@ -783,16 +783,16 @@ const JobDetailDialog = ({
           <div
             className="rounded-ds-md px-3 py-2 flex items-center gap-2"
             style={{
-              background: "hsl(155 60% 96%)",
-              border: "0.5px solid hsl(155 35% 70% / 0.35)",
+              background: "hsl(var(--success-tint))",
+              border: "0.5px solid hsl(var(--success-border) / 0.35)",
             }}
           >
-            <Check className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(155 50% 30%)" }} strokeWidth={2.5} />
+            <Check className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--success-ink))" }} strokeWidth={2.5} />
             <p
               className="font-serif italic leading-snug"
               style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
             >
-              <span className="not-italic font-display font-bold" style={{ color: "hsl(155 45% 22%)" }}>
+              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--success-ink-deep))" }}>
                 You've applied.
               </span>{" "}
               You're applicant #{viewerAppPosition} of {applicationCount}.

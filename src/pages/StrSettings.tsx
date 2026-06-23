@@ -77,7 +77,7 @@ function formatSyncTime(ts: string | null): string {
 const cardStyle: React.CSSProperties = {
   background:
     "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.06) 0%, transparent 55%), " +
-    "linear-gradient(180deg, hsla(38, 50%, 96%, 0.94) 0%, hsla(38, 30%, 92%, 0.8) 100%)",
+    "var(--surface-premium)",
   border: "0.5px solid hsl(var(var(--bark)) / 0.18)",
   borderColor: "hsl(var(--bark) / 0.18)",
   boxShadow:

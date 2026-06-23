@@ -166,7 +166,7 @@ export function JobPrice({
       style={{
         background:
           "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-          "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.74) 100%)",
+          "var(--surface-premium)",
         backdropFilter: "blur(20px) saturate(170%)",
         WebkitBackdropFilter: "blur(20px) saturate(170%)",
         border: "0.5px solid hsl(var(--bark) / 0.22)",

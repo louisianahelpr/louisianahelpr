@@ -202,6 +202,51 @@
       "sameAs": ["https://www.facebook.com/louisianahelpr"]
     }
     </script>
+
+    <!--
+      Pre-paint theme resolution. useDarkMode.ts only sets data-theme once the
+      JS bundle parses — after the inline boot loader below has already painted,
+      so dark-mode users saw a light flash on every cold start. This tiny inline
+      script mirrors useDarkMode's resolution (localStorage 'helpr-theme' →
+      system) and stamps data-theme on <html> before <body> renders. The bundle
+      reconciles to the same value later; this just removes the flash.
+    -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("helpr-theme") || "system";
+          var resolved =
+            t === "system"
+              ? window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+              : t;
+          document.documentElement.setAttribute("data-theme", resolved);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
+
+    <!--
+      Boot-shell dark overrides. The #root / #boot-loader inline styles below
+      are light-tuned defaults; these !important rules repaint them for dark so
+      there's no light gutter (desktop) or flash (cold start) before React
+      mounts. Light path is left entirely on the inline styles.
+    -->
+    <style id="boot-theme">
+      [data-theme="dark"] #root,
+      [data-theme="dark"] #boot-loader {
+        background: hsl(20 15% 9%) !important;
+      }
+      [data-theme="dark"] #boot-loader .boot-word {
+        color: hsl(36 15% 80% / 0.62) !important;
+      }
+      [data-theme="dark"] .boot-spinner {
+        border-color: hsl(36 15% 80% / 0.16) !important;
+        border-top-color: hsl(19 65% 52%) !important;
+      }
+    </style>
   </head>
   <body>
     <!--
@@ -230,6 +275,7 @@
       >
         <div class="boot-spinner"></div>
         <div
+          class="boot-word"
           style="font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-style:italic;font-size:15px;letter-spacing:0.05em;color:hsl(64 16% 16% / 0.55);"
         >
           Helpr

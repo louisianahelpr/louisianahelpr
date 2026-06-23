@@ -1301,11 +1301,11 @@ export const PostedJobsTab = ({
                               {(bidApp.stake_amount ?? 0) > 0 && (
                                 <span
                                   className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
-                                  style={{ color: "hsl(155 50% 35%)" }}
+                                  style={{ color: "hsl(var(--pif-tint))" }}
                                 >
                                   <span
                                     className="w-1.5 h-1.5 rounded-full shrink-0"
-                                    style={{ background: "hsl(155 50% 35%)" }}
+                                    style={{ background: "hsl(var(--pif-tint))" }}
                                     aria-hidden="true"
                                   />
                                   ${bidApp.stake_amount} staked

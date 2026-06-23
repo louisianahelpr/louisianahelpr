@@ -317,16 +317,16 @@ function AppliedJobCardInner({
                       className="inline-flex items-center gap-1 text-ds-11 font-medium px-2 py-0.5 rounded-full"
                       style={{
                         background: isCharged
-                          ? "hsl(142 35% 96%)"
+                          ? "hsl(var(--charged-tint))"
                           : isPending
                           ? "hsl(var(--gold-warm) / 0.12)"
                           : "hsl(var(--olivewood) / 0.08)",
                         color: isCharged
-                          ? "hsl(142 38% 28%)"
+                          ? "hsl(var(--charged-ink))"
                           : isPending
-                          ? "hsl(36 72% 28%)"
+                          ? "hsl(var(--amber-ink))"
                           : "hsl(var(--olivewood))",
-                        border: `0.5px solid ${isCharged ? "hsl(142 35% 78%)" : isPending ? "hsl(var(--gold-warm) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
+                        border: `0.5px solid ${isCharged ? "hsl(var(--charged-border))" : isPending ? "hsl(var(--gold-warm) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
                       }}
                     >
                       {label}
@@ -576,7 +576,7 @@ function AppliedJobCardInner({
                 <div
                   className="rounded-ds-md p-3"
                   style={{
-                    background: "hsla(0, 0%, 100%, 0.65)",
+                    background: "hsl(var(--ivory-sand) / 0.65)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.12)",
                   }}
                 >

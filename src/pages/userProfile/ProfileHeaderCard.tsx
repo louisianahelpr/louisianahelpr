@@ -165,15 +165,15 @@ export const ProfileHeaderCard = ({
             className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full text-ds-11"
             style={{
               background: lastActiveLabel.isLive
-                ? "hsl(140 50% 38% / 0.10)"
+                ? "hsl(var(--live) / 0.10)"
                 : "hsl(var(--olivewood) / 0.08)",
               border: `0.5px solid ${
                 lastActiveLabel.isLive
-                  ? "hsl(140 50% 38% / 0.35)"
+                  ? "hsl(var(--live) / 0.35)"
                   : "hsl(var(--olivewood) / 0.20)"
               }`,
               color: lastActiveLabel.isLive
-                ? "hsl(140 60% 28%)"
+                ? "hsl(var(--live))"
                 : "hsl(var(--olivewood))",
             }}
           >
@@ -181,10 +181,10 @@ export const ProfileHeaderCard = ({
               className="w-1.5 h-1.5 rounded-full"
               style={{
                 background: lastActiveLabel.isLive
-                  ? "hsl(140 60% 42%)"
+                  ? "hsl(var(--live))"
                   : "hsl(var(--olivewood) / 0.8)",
                 boxShadow: lastActiveLabel.isLive
-                  ? "0 0 0 3px hsl(140 60% 42% / 0.18)"
+                  ? "0 0 0 3px hsl(var(--live) / 0.18)"
                   : "none",
               }}
               aria-hidden
@@ -388,7 +388,7 @@ export const ProfileHeaderCard = ({
           <div className="flex items-center justify-center mt-1.5">
             <span
               className="font-serif italic"
-              style={{ fontSize: "0.78rem", color: "hsl(155 50% 35%)" }}
+              style={{ fontSize: "0.78rem", color: "hsl(var(--success-ink))" }}
             >
               ✓ No disputes on record
             </span>
@@ -399,7 +399,7 @@ export const ProfileHeaderCard = ({
           <div className="flex items-center justify-center mt-1.5">
             <span
               className="inline-flex items-center gap-1 font-serif italic"
-              style={{ fontSize: "0.78rem", color: "hsl(278 22% 48%)" }}
+              style={{ fontSize: "0.78rem", color: "hsl(var(--petcare-ink))" }}
             >
               <ClipboardList className="w-3 h-3" />
               Cared for {petCareSignal.distinctPets} {petCareSignal.distinctPets === 1 ? "pet" : "pets"} · {petCareSignal.reportCount} {petCareSignal.reportCount === 1 ? "report" : "reports"} sent

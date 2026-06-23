@@ -1155,7 +1155,7 @@ const Legal = () => {
         aria-hidden
         style={{
           paddingTop: "env(safe-area-inset-top, 0px)",
-          background: "hsl(38 18% 97%)",
+          background: "hsl(var(--surface-band))",
         }}
       />
     );
@@ -1196,7 +1196,7 @@ const Legal = () => {
               className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
               style={{
                 top: webBandStickyTop,
-                background: "hsl(38 18% 97%)",
+                background: "hsl(var(--surface-band))",
                 borderBottom: "1px solid hsl(var(--bark) / 0.10)",
               }}
             >

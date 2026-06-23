@@ -36,7 +36,24 @@ const DashboardGreetingCard = ({
           matches those tabs exactly. */}
       <h1 className="text-page-title">
         {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
-        <em className="signature" style={{ fontStyle: "normal", color: "hsl(var(--burnt-sienna))" }}>{firstName}</em>.
+        {/* Beth Ellen has a small x-height, so at the hero size it reads
+            undersized next to the Bodoni greeting — bump ~1.15em to bring
+            the name to visual parity. inline-block + tight line-height keep
+            the taller glyph from disturbing the greeting's baseline. */}
+        <em
+          className="signature"
+          style={{
+            fontStyle: "normal",
+            color: "hsl(var(--burnt-sienna))",
+            fontSize: "1.15em",
+            lineHeight: 1,
+            display: "inline-block",
+            verticalAlign: "baseline",
+          }}
+        >
+          {firstName}
+        </em>
+        .
       </h1>
       <p
         className="mt-1 truncate font-sans font-semibold uppercase"

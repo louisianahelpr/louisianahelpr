@@ -571,7 +571,7 @@ export function ProfileEditForm({
         <div
           className="pointer-events-auto max-w-2xl mx-auto rounded-2xl flex items-center gap-2 p-2"
           style={{
-            background: "hsla(38, 18%, 97%, 0.85)",
+            background: "hsl(var(--surface-band) / 0.85)",
             backdropFilter: "blur(24px) saturate(170%)",
             WebkitBackdropFilter: "blur(24px) saturate(170%)",
             border: "1px solid hsla(0, 0%, 100%, 0.6)",

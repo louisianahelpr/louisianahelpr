@@ -217,16 +217,16 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
                         <stop offset="100%" stopColor="hsl(20, 60%, 50%)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="hsl(70, 22%, 24%)" strokeOpacity={0.06} vertical={false} />
+                    <CartesianGrid stroke="hsl(var(--olivewood))" strokeOpacity={0.06} vertical={false} />
                     <XAxis
                       dataKey="label"
-                      tick={{ fontSize: 9, fill: "hsl(70, 22%, 24%)" }}
+                      tick={{ fontSize: 9, fill: "hsl(var(--olivewood))" }}
                       axisLine={false}
                       tickLine={false}
                       interval="preserveStartEnd"
                     />
                     <YAxis
-                      tick={{ fontSize: 9, fill: "hsl(70, 22%, 24%)" }}
+                      tick={{ fontSize: 9, fill: "hsl(var(--olivewood))" }}
                       axisLine={false}
                       tickLine={false}
                       width={32}
@@ -239,7 +239,7 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
                           : [String(value), "Jobs"]
                       }
                       contentStyle={{
-                        background: "hsla(0, 0%, 100%, 0.95)",
+                        background: "hsl(var(--ivory-sand) / 0.95)",
                         border: "0.5px solid hsl(var(--olivewood) / 0.18)",
                         borderRadius: 8,
                         fontSize: "0.72rem",

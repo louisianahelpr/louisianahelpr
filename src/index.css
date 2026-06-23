@@ -73,14 +73,21 @@
   --foreground:           var(--olivewood);
   --card:                 var(--ivory-sand);
   --card-foreground:      var(--olivewood);
-  --popover:              var(--parchment);
+  --popover:              var(--ivory-sand); /* card tone, not page canvas —
+                                                dropdowns/menus read as lifted
+                                                surfaces, not painted on the page */
   --popover-foreground:   var(--olivewood);
   --muted:                var(--sand);
   --muted-foreground:     var(--stormy-sky);
   --secondary:            var(--sand);
   --secondary-foreground: var(--olivewood);
   --border:               38 24% 56%;
-  --input:                var(--ivory-sand);
+  --input:                38 24% 72%;  /* `--input` is the field BORDER token
+                                          (border-input). It was --ivory-sand
+                                          (98.5%) — a near-white hairline that
+                                          vanished on the card. Softer than
+                                          --border (56%) so fields read as quiet
+                                          wells, but now actually visible. */
   --accent:               var(--burnt-sienna);
   --accent-foreground:    0 0% 100%;
   /* App primary = Bark (the bolder olive-green from the landing CTAs). The
@@ -168,6 +175,67 @@
   --glass-bg-crisp:  hsl(40 30% 99% / 0.97);
   --glass-bg-title:  hsl(40 30% 99% / 0.85);
   --glass-border:    hsl(var(--bark) / 0.18);
+
+  /* Pay It Forward — donation "mint" identity palette. Tokenised so the page
+     (built with inline-style colors) renders correctly in dark mode instead of
+     painting glaring light-green blocks on the dark canvas. */
+  --pif-ink:        155 50% 28%;   /* headings / amount */
+  --pif-green:      155 50% 30%;   /* primary green: icons, button, pill text */
+  --pif-green-soft: 155 40% 40%;   /* muted green subtext */
+  --pif-tint:       155 50% 35%;   /* base hue used at low alpha for fills/borders */
+  --pif-card-from:  155 50% 97%;   /* credit-card gradient top */
+  --pif-card-to:    155 40% 94%;   /* credit-card gradient bottom */
+  --pif-form-from:  38 50% 96%;    /* give-a-credit form gradient top */
+  --pif-form-to:    38 30% 92%;    /* give-a-credit form gradient bottom */
+  --pif-sheen:      hsla(0, 0%, 100%, 0.55); /* corner radial highlight */
+
+  /* "Active now" / live-presence green — one token for every online dot &
+     live label (messages list, landing heartbeat, payout ticker), so the hue
+     is consistent and legible on both canvases. */
+  --live: 142 64% 40%;
+
+  /* Success / confirmation mint — report-submitted & job-completed panels.
+     One family so the green checkmark surfaces read on both canvases. */
+  --success-tint:         155 60% 96%;   /* panel fill */
+  --success-tint-strong:  155 60% 90%;   /* icon-circle fill */
+  --success-border:       155 35% 70%;   /* panel hairline */
+  --success-border-strong:155 35% 60%;   /* icon-circle ring */
+  --success-ink:          155 50% 30%;   /* check + body */
+  --success-ink-deep:     155 45% 22%;   /* emphasis text */
+
+  /* Amber "pending / awaiting revision" warning — revision banners, completion
+     warnings, awaiting-response chips. Distinct from --gold-warm (boosted). */
+  --amber-tint:   36 72% 48%;   /* base hue, used at low alpha for fills/borders */
+  --amber-ink:    36 72% 28%;   /* label & body text */
+  --amber-solid:  36 72% 35%;   /* solid button fill */
+
+  /* "Charged / paid" green status chip (activity payment state). */
+  --charged-tint:   142 35% 96%;   /* chip fill */
+  --charged-ink:    142 38% 28%;   /* chip text */
+  --charged-border: 142 35% 78%;   /* chip hairline */
+
+  /* Pet-care trust-signal plum (profile). */
+  --petcare-ink: 278 22% 48%;
+
+  /* Info blue — scheduled/awaiting status chips in activity cards. */
+  --info-tint: 210 55% 47%;   /* base hue, used at low alpha for fills/borders */
+  --info-ink:  210 62% 30%;   /* chip text */
+
+  /* Boost orange — the "Boost"/promote action button in activity cards. */
+  --boost-tint: 25 75% 48%;   /* base hue, used at low alpha for fill/border */
+  --boost-ink:  25 82% 28%;   /* button label */
+
+  /* Cancel red — destructive "Cancel job" action button. Warmer & more
+     saturated than the muted system --destructive, kept as its own pair. */
+  --cancel-tint: 6 58% 46%;   /* base hue, used at low alpha for fill/border */
+  --cancel-ink:  6 62% 34%;   /* button label */
+
+  /* Premium cream surfaces — the warm parchment panel behind upgrade/payout
+     sheets and sticky list-section headers. The literals were hardcoded cream
+     with no dark sibling, so they stayed bright in dark mode. --surface-premium
+     is the gradient panel fill; --surface-band is the flat sticky-header band. */
+  --surface-premium: linear-gradient(180deg, hsl(38 50% 96% / 0.92), hsl(38 30% 92% / 0.74));
+  --surface-band: 38 18% 97%;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -253,6 +321,51 @@
   --glass-bg-crisp:  hsl(20 12% 13% / 0.97);
   --glass-bg-title:  hsl(20 12% 13% / 0.85);
   --glass-border:    hsl(var(--bark) / 0.25);
+
+  /* Pay It Forward — dark-mode mint palette: lightened greens for legible
+     foreground, dark green-tinted surfaces instead of light fills. */
+  --pif-ink:        155 35% 72%;
+  --pif-green:      155 33% 62%;
+  --pif-green-soft: 155 20% 60%;
+  --pif-tint:       155 30% 52%;
+  --pif-card-from:  155 22% 13%;
+  --pif-card-to:    155 18% 11%;
+  --pif-form-from:  38 14% 14%;
+  --pif-form-to:    38 12% 11%;
+  --pif-sheen:      hsla(0, 0%, 100%, 0.05);
+
+  --live: 142 52% 60%;  /* lightened so the dot/label reads on the dark page */
+
+  --success-tint:         155 24% 13%;
+  --success-tint-strong:  155 24% 17%;
+  --success-border:       155 22% 38%;
+  --success-border-strong:155 22% 44%;
+  --success-ink:          155 35% 64%;
+  --success-ink-deep:     155 30% 72%;
+
+  --amber-tint:   36 65% 56%;   /* lighter base so low-alpha fills read on dark */
+  --amber-ink:    36 78% 66%;   /* legible amber text on the dark canvas */
+  --amber-solid:  36 60% 50%;
+
+  --charged-tint:   142 24% 15%;   /* deep green chip fill on dark card */
+  --charged-ink:    142 45% 66%;   /* legible green text on dark */
+  --charged-border: 142 22% 36%;
+
+  --petcare-ink: 278 35% 72%;   /* lightened plum, legible on dark */
+
+  --info-tint: 210 55% 60%;   /* lighter base so low-alpha fills read on dark */
+  --info-ink:  210 72% 70%;   /* legible blue text on dark */
+
+  --boost-tint: 25 65% 56%;   /* lighter base so low-alpha fill reads on dark */
+  --boost-ink:  25 80% 70%;   /* legible orange label on dark */
+
+  --cancel-tint: 6 55% 56%;   /* lighter base so low-alpha fill reads on dark */
+  --cancel-ink:  6 65% 70%;   /* legible red label on dark */
+
+  /* Premium cream surfaces — deep warm-charcoal so the upgrade/payout panels
+     and sticky bands sit slightly above the dark canvas instead of glowing. */
+  --surface-premium: linear-gradient(180deg, hsl(20 12% 15% / 0.92), hsl(20 12% 13% / 0.74));
+  --surface-band: 20 12% 13%;
 }
 
 /* Dark mode page gradients */
@@ -420,14 +533,19 @@ body {
     background-color: hsl(20 12% 5%);
   }
   html.app-shell .app-shell-frame {
-    max-width: 480px;
+    /* Desktop app-frame. Widened from 480 → 680 so the single-column UI
+       fills more of a desktop viewport AND viewport-keyed `sm:` layouts
+       (e.g. the Browse empty-state's side-by-side CTAs) stop overflowing
+       the frame and clipping text ("…neighbor" → "neigh▮"). Kept well
+       below a full-bleed width so job cards / headers don't stretch. */
+    max-width: 680px;
     margin-inline: auto;
     box-shadow:
       0 0 0 1px hsl(36 14% 70% / 0.55),
       0 24px 70px -20px hsl(64 16% 16% / 0.35);
   }
   html.app-shell .mobile-nav-frame {
-    max-width: 480px;
+    max-width: 680px;
     margin-inline: auto;
   }
 }

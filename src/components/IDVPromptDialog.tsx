@@ -149,7 +149,7 @@ export function IDVPromptDialog({
             <div
               className="flex items-start gap-3 p-3 rounded-ds-md"
               style={{
-                background: "hsla(0, 0%, 100%, 0.5)",
+                background: "hsl(var(--ivory-sand) / 0.5)",
                 border: "0.5px solid hsl(var(--olivewood) / 0.14)",
               }}
             >
@@ -174,7 +174,7 @@ export function IDVPromptDialog({
             <div
               className="flex items-start gap-3 p-3 rounded-ds-md"
               style={{
-                background: "hsla(0, 0%, 100%, 0.5)",
+                background: "hsl(var(--ivory-sand) / 0.5)",
                 border: "0.5px solid hsl(var(--olivewood) / 0.14)",
               }}
             >

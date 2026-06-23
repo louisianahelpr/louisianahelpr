@@ -464,7 +464,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           <div
             className="pointer-events-auto flex flex-col items-center text-center gap-3 rounded-2xl px-6 py-6 max-w-[300px]"
             style={{
-              backgroundColor: "hsla(38, 18%, 97%, 0.92)",
+              backgroundColor: "hsl(var(--surface-band) / 0.92)",
               border: "0.5px solid hsl(var(--olivewood) / 0.18)",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
@@ -524,7 +524,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         className="absolute inset-0 z-[300] flex items-center justify-center pointer-events-none transition-opacity duration-500"
         style={{
           opacity: tilesLoading ? 1 : 0,
-          background: "hsla(38, 18%, 97%, 0.55)",
+          background: "hsl(var(--surface-band) / 0.55)",
           backdropFilter: "blur(2px)",
           WebkitBackdropFilter: "blur(2px)",
         }}

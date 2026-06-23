@@ -113,7 +113,7 @@ export function MessageBubble({
         } : {
           // "Theirs" bubble — translucent parchment with a hairline border
           // so it reads as an inbound card without looking gray-on-gray.
-          backgroundColor: "hsla(0, 0%, 100%, 0.78)",
+          backgroundColor: "hsl(var(--ivory-sand) / 0.78)",
           color: "hsl(var(--ink-deep))",
           border: "0.5px solid hsl(var(--olivewood) / 0.14)",
           boxShadow:

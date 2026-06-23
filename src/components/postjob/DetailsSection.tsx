@@ -357,7 +357,7 @@ export function DetailsSection({
             doesn't bury the Photos + later sections under one picker.
             Active chip keeps the brand-color ring + adds a check so
             the selection reads instantly. */}
-        <div id="category-picker" className="grid grid-cols-2 gap-2">
+        <div id="category-picker" className="grid grid-cols-2 lg:grid-cols-3 gap-2">
           {visibleCategories.length === 0 && (
             <div
               className="col-span-2 px-3 py-3 rounded-xl text-center text-[0.78rem] font-serif italic"

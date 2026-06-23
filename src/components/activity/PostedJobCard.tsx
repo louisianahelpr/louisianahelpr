@@ -340,10 +340,13 @@ function PostedJobCardInner({
                 {(job.description.length > 100 || job.special_requirements?.trim()) && (
                   <button
                     type="button"
-                    className="text-ds-10 text-primary hover:underline inline-flex items-center gap-1"
+                    aria-expanded={isExpanded}
+                    className="inline-flex items-center gap-0.5 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
                     onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
                   >
-                    {isExpanded ? <><ChevronUp className="w-3 h-3" /> Less</> : <><ChevronDown className="w-3 h-3" /> More details</>}
+                    {isExpanded
+                      ? <>Hide details <ChevronUp className="w-3 h-3" /></>
+                      : <>View details <ChevronDown className="w-3 h-3" /></>}
                   </button>
                 )}
               </div>
@@ -562,16 +565,14 @@ function PostedJobCardInner({
             {/* Additional details - collapsible for fully completed jobs */}
             {(!isFullyCompleted || isExpanded) && (
             <div>
-              <div className="px-4 py-3 space-y-3 border-t border-border/30">
-                {(job.photos || []).length > 0 && (
+              {(job.photos || []).length > 0 && (
+                <div className="px-4 py-3 space-y-3 border-t border-border/30">
                   <div>
                     <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Photos</p>
                     <JobCardPhotoStrip urls={job.photos || []} size="md" />
                   </div>
-                )}
-
-
-              </div>
+                </div>
+              )}
 
               {/* Features for active jobs */}
               {(job.status === "in_progress" || job.status === "accepted") && (
@@ -840,8 +841,10 @@ function PostedJobCardInner({
                 </div>
               )}
 
-              {/* Analytics mini-panel — only shown when there's data to display */}
-              {jobAnalytics && (jobAnalytics.viewCount > 0 || jobAnalytics.applicantCount > 0) && (
+              {/* Analytics mini-panel — reach/views readout. The applicant
+                  count is intentionally NOT shown here: the Applicants button
+                  already surfaces it, so repeating it as "N applied" is noise. */}
+              {jobAnalytics && jobAnalytics.viewCount > 0 && (
                 <div
                   className="mx-4 rounded-ds-md px-3 py-2.5 space-y-1.5 mb-2"
                   style={{ background: "hsl(var(--parchment) / 0.4)", border: "1px solid hsl(var(--olivewood) / 0.1)" }}
@@ -853,11 +856,6 @@ function PostedJobCardInner({
                     {jobAnalytics.viewCount > 0 && (
                       <span className="text-ds-12 flex items-center gap-1" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
                         <Eye className="w-3 h-3" /> {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
-                      </span>
-                    )}
-                    {jobAnalytics.applicantCount > 0 && (
-                      <span className="text-ds-12 flex items-center gap-1" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
-                        <Users className="w-3 h-3" /> {jobAnalytics.applicantCount} applied
                       </span>
                     )}
                     {jobAnalytics.conversionRate !== null && (

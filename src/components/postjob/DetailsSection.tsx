@@ -8,7 +8,6 @@ import {
   Briefcase,
   Check,
   Plus,
-  Search,
   Sparkles,
   Mic,
   GripVertical,
@@ -77,23 +76,6 @@ const titlePlaceholders: Record<string, string> = {
   assembly: "e.g. Assemble an IKEA wardrobe",
   storm_prep: "e.g. Board up windows before the storm",
   other: "e.g. Help me with a quick task",
-};
-
-// Per-category search aliases — common synonyms a poster might type
-// into the filter input. The category label itself is always matched
-// implicitly so this only carries the *additional* terms.
-const categorySearchAliases: Record<string, string[]> = {
-  cleaning: ["clean", "tidy", "housekeep", "maid", "vacuum", "mop", "dust"],
-  yard_work: ["yard", "lawn", "mow", "mowing", "garden", "landscape", "trim", "edge", "leaves", "rake"],
-  moving: ["move", "movers", "haul", "load", "lift", "furniture"],
-  errands: ["errand", "grocery", "shopping", "pickup", "pharmacy", "store"],
-  handyman: ["handy", "repair", "fix", "mount", "drill", "install"],
-  painting: ["paint", "wall", "color", "interior", "exterior", "roller"],
-  delivery: ["deliver", "drop off", "transport", "courier"],
-  pet_care: ["pet", "dog", "cat", "walk", "sit", "feed", "boarding"],
-  assembly: ["assemble", "ikea", "furniture", "build", "put together"],
-  storm_prep: ["storm", "hurricane", "flood", "board", "window", "shutter", "generator", "sandbag", "debris", "prep"],
-  other: ["misc", "other", "miscellaneous", "general"],
 };
 
 // Category-specific description prompts — tells the poster what detail
@@ -220,27 +202,22 @@ export function DetailsSection({
   });
   const startTitleDictation = dictation.start;
 
-  // Filter input for the category grid — speeds selection once the
-  // category list outgrows what fits comfortably in a single screen
-  // height. Matches against the label AND a small alias list so typing
-  // "lawn" hits Yard Work, "ikea" hits Assembly, etc.
-  const [categoryQuery, setCategoryQuery] = useState("");
-
   // Hurricane season: June–Nov (months 5–10, 0-indexed). Used to surface
   // the Storm Prep seasonal pick above the regular category grid.
   const isHurricaneSeason = useMemo(() => {
     const month = new Date().getMonth();
     return month >= 5 && month <= 10;
   }, []);
-  const visibleCategories = useMemo(() => {
-    const q = categoryQuery.trim().toLowerCase();
-    if (!q) return categories;
-    return categories.filter((c) => {
-      if (c.label.toLowerCase().includes(q)) return true;
-      const aliases = categorySearchAliases[c.value] ?? [];
-      return aliases.some((a) => a.toLowerCase().includes(q));
-    });
-  }, [categoryQuery]);
+  // During hurricane season the Storm pick lives in the seasonal banner
+  // above the grid, so drop its grid chip to avoid showing Storm twice;
+  // off-season it stays in the grid so the category is always reachable.
+  const visibleCategories = useMemo(
+    () =>
+      isHurricaneSeason
+        ? categories.filter((c) => c.value !== "storm_prep")
+        : categories,
+    [isHurricaneSeason],
+  );
 
   return (
     <SectionCard
@@ -275,43 +252,6 @@ export function DetailsSection({
             >
               <Sparkles className="w-3 h-3" aria-hidden />
               Auto-selected from title — tap to change
-            </button>
-          )}
-        </div>
-        {/* Filterable picker — search input above the grid. Matches the
-            category label OR a small alias list ("lawn" → Yard Work,
-            "ikea" → Assembly) so posters who don't see their exact
-            category at a glance can still jump to it in one tap. The
-            input is search-styled (role inferred from type="search")
-            so iOS shows the rounded magnifier-decorated keyboard. */}
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            aria-hidden
-          />
-          <Input
-            type="search"
-            value={categoryQuery}
-            onChange={(e) => setCategoryQuery(e.target.value)}
-            placeholder="Search categories"
-            aria-label="Search categories"
-            autoCorrect="off"
-            autoCapitalize="none"
-            className="pl-9 text-[14px]"
-          />
-          {categoryQuery && (
-            <button
-              type="button"
-              onClick={() => setCategoryQuery("")}
-              aria-label="Clear category search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full active:scale-90 transition-transform"
-            >
-              <X
-                className="w-3.5 h-3.5"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                strokeWidth={2.5}
-              />
             </button>
           )}
         </div>
@@ -358,18 +298,6 @@ export function DetailsSection({
             Active chip keeps the brand-color ring + adds a check so
             the selection reads instantly. */}
         <div id="category-picker" className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-          {visibleCategories.length === 0 && (
-            <div
-              className="col-span-2 px-3 py-3 rounded-xl text-center text-[0.78rem] font-serif italic"
-              style={{
-                color: "hsl(var(--olivewood) / 0.8)",
-                background: "hsl(var(--parchment) / 0.45)",
-                border: "0.5px dashed hsl(var(--olivewood) / 0.25)",
-              }}
-            >
-              No matches — try a broader term, or pick &ldquo;Other&rdquo;.
-            </div>
-          )}
           {visibleCategories.map((c) => {
             const colors = categoryColors[c.value];
             const active = category === c.value;

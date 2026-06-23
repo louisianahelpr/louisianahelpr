@@ -6,6 +6,7 @@ import { useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryColors } from "@/components/activity/activityConstants";
+import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { formatPrice } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 
@@ -42,10 +43,13 @@ function shortRelativeDate(iso: string): string {
  * Purely presentational — all transitions/handlers come from usePostJobForm.
  */
 export function EntryChoice({ form }: EntryChoiceProps) {
-  // A small, curated set of quick-start templates so the user can pre-fill
-  // in one tap without first entering the form. Drawn from the shared
-  // sampleJobs data (the same source the in-form template row uses).
+  // Quick-start templates pre-fill the form in one tap. We show the first
+  // four by default and reveal the rest on "Show all" — the full set now
+  // lives entirely on this entry step (the in-form template picker was
+  // removed), so there's no longer a link that pushed into an empty form.
   const quickTemplates = sampleJobs.slice(0, 4);
+  const [showAllTemplates, setShowAllTemplates] = useState(false);
+  const visibleTemplates = showAllTemplates ? sampleJobs : quickTemplates;
 
   // Last 3 jobs this poster has created — shown as "Repost" tiles so a
   // returning user can spin up a near-duplicate request in one tap. The
@@ -256,7 +260,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           <>
             {/* Quick-start template cards — one tap pre-fills the form. */}
             <div className="grid grid-cols-2 gap-2.5 mt-3">
-              {quickTemplates.map((sample) => (
+              {visibleTemplates.map((sample) => (
                 <button
                   key={sample.id}
                   type="button"
@@ -298,17 +302,33 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               ))}
             </div>
 
-            <button
-              type="button"
-              onClick={() => form.useTemplate()}
-              className="mt-3 text-ds-11 font-sans font-semibold active:scale-95 transition-transform"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Browse all templates in the form →
-            </button>
+            {sampleJobs.length > quickTemplates.length && (
+              <button
+                type="button"
+                onClick={() => setShowAllTemplates((v) => !v)}
+                aria-expanded={showAllTemplates}
+                className="mt-3 text-ds-11 font-sans font-semibold active:scale-95 transition-transform"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                {showAllTemplates
+                  ? "Show fewer"
+                  : `Show all ${sampleJobs.length} templates`}
+              </button>
+            )}
           </>
         )}
       </div>
+
+      {/* 5 — AI JOB BUILDER (self-contained collapsible card). Lives on the
+          entry step so all the "ways to start a post" sit together; once it
+          generates fields we advance into the form to review them. */}
+      <AiJobBuilder
+        locationContext=""
+        onGenerated={(job) => {
+          form.applyAiJob(job);
+          form.setStep("form");
+        }}
+      />
     </div>
   );
 }

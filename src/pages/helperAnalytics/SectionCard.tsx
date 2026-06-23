@@ -52,7 +52,7 @@ const SectionCard = ({
         <div
           className="absolute inset-0 flex flex-col items-center justify-center"
           style={{
-            background: "hsla(var(--parchment) / 0.85)",
+            background: "hsl(var(--parchment) / 0.85)",
             backdropFilter: "blur(8px)",
             borderRadius: "inherit",
           }}

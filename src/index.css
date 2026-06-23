@@ -42,13 +42,16 @@
      pages read the same correct value. */
   --safe-area-top: env(safe-area-inset-top, 0px);
   /* Named brand tokens — referenced directly by components. */
-  --parchment:    36 16% 91%;   /* page canvas — a soft warm greige, deepened
+  --parchment:    36 16% 87%;   /* page canvas — a soft warm greige, deepened
                                     well below the near-white card surface so
                                     cards read as distinctly elevated tiles.
                                     Held at hue 36 / sat 16% so the added depth
                                     stays a neutral warm grey, never yellow.
-                                    ~7.5pt darker than the card (98.5%) for
-                                    unmistakable figure-ground separation. */
+                                    ~11.5pt darker than the card (98.5%) — the
+                                    earlier 7.5pt gap tested too washed-out on
+                                    real screens (cards blended into the page),
+                                    so the canvas is deepened for unmistakable
+                                    figure-ground separation. */
   --ivory-sand:   40 38% 98.5%; /* surface (cards) — a crisp, barely-warm white. At this lightness the warmth reads as "ivory paper," never yellow, and the card sits clearly BRIGHTER than the page so it pops as an elevated surface instead of blending into the parchment wash. */
   --sand:         38 39% 76%;   /* #D6C7AD — soft border / quiet surface */
   --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
@@ -76,7 +79,7 @@
   --muted-foreground:     var(--stormy-sky);
   --secondary:            var(--sand);
   --secondary-foreground: var(--olivewood);
-  --border:               38 25% 65%;
+  --border:               38 24% 56%;
   --input:                var(--ivory-sand);
   --accent:               var(--burnt-sienna);
   --accent-foreground:    0 0% 100%;

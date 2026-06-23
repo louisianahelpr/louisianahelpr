@@ -665,7 +665,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             // gradually across the band instead of snapping on partway up.
             maskImage: "linear-gradient(to top, black 35%, transparent 100%)",
             WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",
-            background: "linear-gradient(to top, hsla(40, 28%, 99%, 0.6), hsla(40, 28%, 99%, 0))",
+            background: "linear-gradient(to top, var(--nav-curtain-top), var(--nav-curtain-fade))",
           }}
         />
         <div className="relative mx-3 mb-3 flex items-end gap-3.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl md:mx-auto md:px-8 xl:px-12">
@@ -676,16 +676,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           <div
             className="flex-1 rounded-full transition-shadow duration-300"
             style={{
-              backgroundColor: "hsla(0, 0%, 100%, 0.4)",
+              backgroundColor: "var(--nav-pill-bg)",
               backdropFilter: "blur(40px) saturate(180%)",
               WebkitBackdropFilter: "blur(40px) saturate(180%)",
               // Stronger high-contrast white edge along the top — mimics
               // the Apple Dock's "glass-catching-light" rim. Sides + bottom
-              // stay softer.
-              borderTop: "1px solid hsla(0, 0%, 100%, 0.85)",
-              borderLeft: "1px solid hsla(0, 0%, 100%, 0.55)",
-              borderRight: "1px solid hsla(0, 0%, 100%, 0.55)",
-              borderBottom: "1px solid hsla(0, 0%, 100%, 0.45)",
+              // stay softer. Rim opacities drop in dark mode via the tokens.
+              borderTop: "1px solid var(--nav-rim-strong)",
+              borderLeft: "1px solid var(--nav-rim-soft)",
+              borderRight: "1px solid var(--nav-rim-soft)",
+              borderBottom: "1px solid var(--nav-rim-bottom)",
               // Bumped to match the elevated treatment used on the Post
               // button + FAB — bright top rim, subtle inset bottom, and
               // a more pronounced multi-stop spreading drop shadow.
@@ -693,8 +693,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               // a big ambient drop. No hard line — all very soft, very
               // wide spreads.
               boxShadow: scrolled
-                ? "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.06), 0 2px 4px hsl(var(--olivewood) / 0.08), 0 22px 44px -10px hsl(var(--olivewood) / 0.20), 0 50px 90px -20px hsl(var(--olivewood) / 0.24)"
-                : "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.05), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 18px 36px -8px hsl(var(--olivewood) / 0.16), 0 40px 72px -16px hsl(var(--olivewood) / 0.20)",
+                ? "inset 0 1px 1px 0 var(--nav-inset-hi), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.06), 0 2px 4px hsl(var(--olivewood) / 0.08), 0 22px 44px -10px hsl(var(--olivewood) / 0.20), 0 50px 90px -20px hsl(var(--olivewood) / 0.24)"
+                : "inset 0 1px 1px 0 var(--nav-inset-hi), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.05), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 18px 36px -8px hsl(var(--olivewood) / 0.16), 0 40px 72px -16px hsl(var(--olivewood) / 0.20)",
             }}
           >
             <div className="flex items-stretch h-14 px-2">

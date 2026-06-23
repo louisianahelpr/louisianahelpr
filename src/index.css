@@ -176,6 +176,19 @@
                                                canvas tone. Opaque white now lifts it. */
   --glass-border:    hsl(var(--bark) / 0.18);
 
+  /* Bottom-nav dock glass — the floating pill + its frosted curtain are
+     drawn with inline styles in MobileNav.tsx, so they must reference
+     tokens to follow the theme. Light defaults reproduce the original
+     warm-white liquid-glass look; the dark overrides flip them to a deep
+     warm surface so the dock doesn't stay bright-white over a dark page. */
+  --nav-pill-bg:       hsla(0, 0%, 100%, 0.40);
+  --nav-rim-strong:    hsla(0, 0%, 100%, 0.85);
+  --nav-rim-soft:      hsla(0, 0%, 100%, 0.55);
+  --nav-rim-bottom:    hsla(0, 0%, 100%, 0.45);
+  --nav-inset-hi:      rgba(255, 255, 255, 0.40);
+  --nav-curtain-top:   hsla(40, 28%, 99%, 0.6);
+  --nav-curtain-fade:  hsla(40, 28%, 99%, 0);
+
   /* Pay It Forward — donation "mint" identity palette. Tokenised so the page
      (built with inline-style colors) renders correctly in dark mode instead of
      painting glaring light-green blocks on the dark canvas. */
@@ -321,6 +334,18 @@
   --glass-bg-crisp:  hsl(20 12% 13% / 0.97);
   --glass-bg-title:  hsl(20 12% 13% / 0.85);
   --glass-border:    hsl(var(--bark) / 0.25);
+
+  /* Bottom-nav dock glass — dark surface so the floating pill reads as
+     dark frosted glass over the dark page instead of a bright-white slab.
+     Rims drop to faint light hairlines; the curtain fades a near-black
+     warm tint instead of warm-white. */
+  --nav-pill-bg:       hsl(20 14% 12% / 0.72);
+  --nav-rim-strong:    hsla(0, 0%, 100%, 0.14);
+  --nav-rim-soft:      hsla(0, 0%, 100%, 0.08);
+  --nav-rim-bottom:    hsla(0, 0%, 100%, 0.05);
+  --nav-inset-hi:      rgba(255, 255, 255, 0.10);
+  --nav-curtain-top:   hsl(20 15% 8% / 0.6);
+  --nav-curtain-fade:  hsl(20 15% 8% / 0);
 
   /* Pay It Forward — dark-mode mint palette: lightened greens for legible
      foreground, dark green-tinted surfaces instead of light fills. */

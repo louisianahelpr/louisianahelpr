@@ -131,7 +131,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     setSignOutDialogOpen(false);
     const { error } = await supabase.auth.signOut({ scope: "global" });
     if (error) {
-      toast.error(error.message);
+      toast.error("Couldn't sign you out everywhere — try again?");
       return;
     }
     toast.success("Signed out everywhere.");
@@ -360,7 +360,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                 redirectTo: getPublicResetPasswordUrl(),
               });
               setResettingPassword(false);
-              if (error) toast.error(error.message);
+              if (error) toast.error("Couldn't send the reset link — try again?");
               else toast.success("Password reset link sent to your email!");
             }}
           >

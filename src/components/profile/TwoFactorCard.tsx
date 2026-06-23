@@ -348,7 +348,7 @@ function DisableDialog({
     const { error } = await supabase.auth.mfa.unenroll({ factorId });
     setWorking(false);
     if (error) {
-      toast.error(error.message);
+      toast.error("Couldn't turn off two-step verification — try again?");
       return;
     }
     toast.success("Two-step verification is off.");

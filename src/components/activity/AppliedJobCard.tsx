@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   CheckCircle2, Star, MessageSquare, Users, AlertTriangle,
   RefreshCw, ThumbsUp, ThumbsDown, Send, XCircle,
-  Paperclip, FileText, Trash2, Pencil, Check, X, ChevronRight,
+  Paperclip, FileText, Trash2, Pencil, Check, X,
   ChevronUp, ChevronDown, ClipboardList, Eye, CalendarPlus,
 } from "lucide-react";
 import { downloadIcs } from "@/lib/icalExport";
@@ -33,6 +33,7 @@ import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
+import { formatPrice } from "@/lib/format";
 
 /** Negotiation/bid columns added by a later migration that hasn't been
     regenerated into the Supabase types yet (the PGRST202 migration-lag
@@ -247,7 +248,7 @@ function AppliedJobCardInner({
         >
           <JobCardTitleBar
             title={job.title || "Task"}
-            amount={payout.toFixed(2)}
+            amount={formatPrice(payout)}
             amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
           />
 
@@ -273,18 +274,23 @@ function AppliedJobCardInner({
               expiresAt={isPending && !job.helper_id ? job.expires_at : null}
             />
 
-            {/* Description preview — collapsed to keep cards compact.
-                Full details live on the job page (chevron link below). */}
+            {/* Description preview — clamped while collapsed to keep cards
+                compact, un-clamped once the card is expanded so the full
+                brief shows inline (this card IS the detail surface for an
+                applied job; there is no separate signed-in detail page). */}
             {!isMinimalCard && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-              <p className="text-ds-11 text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
+              <p className={`text-ds-11 text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
             )}
             {!isMinimalCard && (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); navigate(`/dashboard?job=${job.id}`); }}
+                onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
+                aria-expanded={isExpanded}
                 className="inline-flex items-center gap-0.5 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
               >
-                View details <ChevronRight className="w-3 h-3" />
+                {isExpanded
+                  ? <>Hide details <ChevronUp className="w-3 h-3" /></>
+                  : <>View details <ChevronDown className="w-3 h-3" /></>}
               </button>
             )}
 

@@ -38,6 +38,7 @@ import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { IncomingReportCard } from "./PetReportCard";
+import { formatPrice } from "@/lib/format";
 
 /** Bid column added by a later migration not yet regenerated into the
     Supabase types (PGRST202 migration-lag pattern — see CLAUDE.md).
@@ -285,7 +286,7 @@ function PostedJobCardInner({
             // to the top of the list.
             className="group relative scroll-mt-3"
           >
-            <JobCardTitleBar title={job.title} amount={String(job.budget)} />
+            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} />
 
             {/* Escrow progress — high-context status of the customer's
                 payment for this job. Sits above the action area (below

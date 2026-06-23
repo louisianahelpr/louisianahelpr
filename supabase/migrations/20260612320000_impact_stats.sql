@@ -23,11 +23,11 @@ AS $$
     COUNT(DISTINCT helper_id) FILTER (WHERE helper_id IS NOT NULL AND status = 'completed'),
     COUNT(DISTINCT location) FILTER (WHERE status = 'completed' AND location IS NOT NULL),
     COUNT(DISTINCT customer_id),
-    ROUND(AVG(
+    ROUND((AVG(
       EXTRACT(EPOCH FROM (
         SELECT MIN(ja.created_at) FROM applications ja WHERE ja.job_id = jobs.id
       ) - jobs.created_at) / 60
-    ) FILTER (WHERE status != 'open'), 0),
+    ) FILTER (WHERE status != 'open'))::numeric, 0),
     COUNT(*) FILTER (WHERE status = 'completed' AND created_at >= date_trunc('month', now())),
     COALESCE(SUM(budget) FILTER (WHERE status = 'completed' AND created_at >= date_trunc('month', now())), 0)
   FROM jobs;

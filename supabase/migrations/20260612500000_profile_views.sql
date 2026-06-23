@@ -7,13 +7,11 @@ CREATE TABLE IF NOT EXISTS public.profile_views (
   id         bigserial PRIMARY KEY,
   viewed_user_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   viewer_user_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  -- timestamp (no tz) keeps date_trunc IMMUTABLE, which Postgres requires for
-  -- generated columns. Supabase runs UTC so local ≡ UTC throughout.
   viewed_at       timestamp NOT NULL DEFAULT LOCALTIMESTAMP,
-  -- Bucket into 1-hour windows so ON CONFLICT handles dedup
-  hour_bucket     timestamp NOT NULL GENERATED ALWAYS AS (
-    date_trunc('hour', viewed_at)
-  ) STORED
+  -- Bucket into 1-hour windows so ON CONFLICT handles dedup.
+  -- Populated by the before-insert trigger below; date_trunc(text,timestamp)
+  -- is STABLE (not IMMUTABLE) so it cannot be used in GENERATED ALWAYS AS.
+  hour_bucket     timestamp NOT NULL DEFAULT LOCALTIMESTAMP
 );
 
 -- Unique per viewer+viewed per hour → dedup without a separate lookup
@@ -26,6 +24,20 @@ CREATE INDEX IF NOT EXISTS profile_views_viewed_at_idx
 
 -- RLS: only authenticated users may insert; only the viewed user may read their own views
 ALTER TABLE public.profile_views ENABLE ROW LEVEL SECURITY;
+
+-- Keep hour_bucket in sync with viewed_at (GENERATED ALWAYS AS cannot be used
+-- because date_trunc(text, timestamp) is STABLE, not IMMUTABLE).
+CREATE OR REPLACE FUNCTION public.set_profile_view_hour_bucket()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.hour_bucket := date_trunc('hour', NEW.viewed_at);
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER profile_views_set_hour_bucket
+  BEFORE INSERT ON public.profile_views
+  FOR EACH ROW EXECUTE FUNCTION public.set_profile_view_hour_bucket();
 
 CREATE POLICY "Authenticated users can record views"
   ON public.profile_views FOR INSERT

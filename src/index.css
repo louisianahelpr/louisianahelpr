@@ -42,18 +42,17 @@
      pages read the same correct value. */
   --safe-area-top: env(safe-area-inset-top, 0px);
   /* Named brand tokens — referenced directly by components. */
-  --parchment:    36 16% 87%;   /* page canvas — a soft warm greige, deepened
-                                    well below the near-white card surface so
-                                    cards read as distinctly elevated tiles.
-                                    Held at hue 36 / sat 16% so the added depth
-                                    stays a neutral warm grey, never yellow.
-                                    ~11.5pt darker than the card (98.5%) — the
-                                    earlier 7.5pt gap tested too washed-out on
-                                    real screens (cards blended into the page),
-                                    so the canvas is deepened for unmistakable
-                                    figure-ground separation. */
-  --ivory-sand:   40 38% 98.5%; /* surface (cards) — a crisp, barely-warm white. At this lightness the warmth reads as "ivory paper," never yellow, and the card sits clearly BRIGHTER than the page so it pops as an elevated surface instead of blending into the parchment wash. */
-  --sand:         38 39% 76%;   /* #D6C7AD — soft border / quiet surface */
+  --parchment:    220 14% 95%;  /* page canvas — cool near-white. Refined cool-neutral
+                                    grey (hue 220, low sat) — the Linear/Stripe/Vercel
+                                    premium register, never tacky cream. Held a touch
+                                    below the 100%-white cards (~5% L gap) so every
+                                    surface lifts off the canvas instead of blending
+                                    white-on-white — separation from tone + hairline +
+                                    shadow together, not shadow alone. */
+  --ivory-sand:   0 0% 100%;    /* surface (cards) — pure crisp white. Sits brighter
+                                    than the cool-grey canvas so it reads as a clean,
+                                    elevated paper tile. */
+  --sand:         220 14% 90%;  /* cool light grey — soft border / quiet surface (was warm tan #D6C7AD) */
   --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
   --sage:         78 9% 53%;    /* #8C947D — primary accent */
   --bark:         70 20% 33%;   /* #5E6544 — deep olive */
@@ -81,13 +80,11 @@
   --muted-foreground:     var(--stormy-sky);
   --secondary:            var(--sand);
   --secondary-foreground: var(--olivewood);
-  --border:               38 24% 56%;
-  --input:                38 24% 72%;  /* `--input` is the field BORDER token
-                                          (border-input). It was --ivory-sand
-                                          (98.5%) — a near-white hairline that
-                                          vanished on the card. Softer than
-                                          --border (56%) so fields read as quiet
-                                          wells, but now actually visible. */
+  --border:               220 14% 82%; /* cool hairline — premium neutral edge, firmed
+                                            so the 1px card outline is actually perceptible
+                                            against both the near-white canvas and white
+                                            cards (was 87%, too faint; orig warm tan 38 24% 56%) */
+  --input:                220 13% 90%;  /* field BORDER token — cool quiet well, visible on white card (was warm 38 24% 72%) */
   --accent:               var(--burnt-sienna);
   --accent-foreground:    0 0% 100%;
   /* App primary = Bark (the bolder olive-green from the landing CTAs). The
@@ -113,7 +110,7 @@
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent:             var(--sand);
   --sidebar-accent-foreground:  var(--olivewood);
-  --sidebar-border:             38 25% 65%;
+  --sidebar-border:             220 13% 90%;
   --sidebar-ring:               var(--sage);
   --radius: 0.5rem;
 
@@ -125,13 +122,13 @@
      floating above the canvas rather than a same-tone panel painted onto
      it — the single biggest lever for visual hierarchy. */
   --card-shadow:
-    0 1px 2px hsl(var(--olivewood) / 0.10),
-    0 10px 22px -8px hsl(var(--olivewood) / 0.18),
-    0 26px 50px -18px hsl(var(--olivewood) / 0.14);
+    0 1px 2px hsl(222 24% 16% / 0.05),
+    0 6px 16px -4px hsl(222 24% 16% / 0.08),
+    0 18px 36px -12px hsl(222 24% 16% / 0.06);
   --card-hover-shadow:
-    0 2px 5px hsl(var(--olivewood) / 0.13),
-    0 16px 32px -8px hsl(var(--olivewood) / 0.22),
-    0 34px 64px -18px hsl(var(--olivewood) / 0.18);
+    0 2px 4px hsl(222 24% 16% / 0.07),
+    0 10px 24px -4px hsl(222 24% 16% / 0.10),
+    0 24px 48px -12px hsl(222 24% 16% / 0.08);
 
   /* Legacy token names kept as aliases so existing components don't need
      a sweeping rewrite. They now resolve to the new brand palette. */
@@ -172,8 +169,11 @@
   --glass-bg:        hsla(0, 0%, 100%, 0.55);
   --glass-bg-soft:   hsla(0, 0%, 100%, 0.42);
   --glass-bg-strong: hsla(0, 0%, 100%, 0.75);
-  --glass-bg-crisp:  hsl(40 30% 99% / 0.97);
-  --glass-bg-title:  hsl(40 30% 99% / 0.85);
+  --glass-bg-crisp:  hsl(0 0% 100% / 0.98);
+  --glass-bg-title:  hsl(0 0% 100% / 0.95); /* near-solid cool white — was warm hue-40
+                                               at 0.85, which let the canvas bleed
+                                               through and flattened the title card to
+                                               canvas tone. Opaque white now lifts it. */
   --glass-border:    hsl(var(--bark) / 0.18);
 
   /* Pay It Forward — donation "mint" identity palette. Tokenised so the page
@@ -185,8 +185,8 @@
   --pif-tint:       155 50% 35%;   /* base hue used at low alpha for fills/borders */
   --pif-card-from:  155 50% 97%;   /* credit-card gradient top */
   --pif-card-to:    155 40% 94%;   /* credit-card gradient bottom */
-  --pif-form-from:  38 50% 96%;    /* give-a-credit form gradient top */
-  --pif-form-to:    38 30% 92%;    /* give-a-credit form gradient bottom */
+  --pif-form-from:  220 30% 98%;   /* give-a-credit form gradient top (cool neutral) */
+  --pif-form-to:    220 20% 94%;   /* give-a-credit form gradient bottom (cool neutral) */
   --pif-sheen:      hsla(0, 0%, 100%, 0.55); /* corner radial highlight */
 
   /* "Active now" / live-presence green — one token for every online dot &
@@ -234,8 +234,8 @@
      sheets and sticky list-section headers. The literals were hardcoded cream
      with no dark sibling, so they stayed bright in dark mode. --surface-premium
      is the gradient panel fill; --surface-band is the flat sticky-header band. */
-  --surface-premium: linear-gradient(180deg, hsl(38 50% 96% / 0.92), hsl(38 30% 92% / 0.74));
-  --surface-band: 38 18% 97%;
+  --surface-premium: linear-gradient(180deg, hsl(220 30% 99% / 0.92), hsl(220 18% 96% / 0.74));
+  --surface-band: 220 16% 98%;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -367,6 +367,22 @@
   --surface-premium: linear-gradient(180deg, hsl(20 12% 15% / 0.92), hsl(20 12% 13% / 0.74));
   --surface-band: 20 12% 13%;
 }
+
+/* ── iOS-native color divergence ─────────────────────────────────────
+   The native iOS WebView renders in Display-P3 wide gamut, so the same
+   token reads slightly different on an iPhone than in desktop Chrome
+   (sRGB): saturated accents pop harder, cool near-whites can read warmer.
+   This block lets a handful of tokens be "their own but similar" on iOS
+   without touching the web palette. Set via `data-platform="ios"` on
+   <html> (see src/lib/nativeInit.ts). Scoped under light + dark so each
+   theme can be compensated independently.
+
+   Currently a no-op scaffold — fill in only the tokens that actually
+   look off on-device, measured against web, once the divergence
+   direction is confirmed. Examples (commented until tuned):
+     html[data-platform="ios"] { --parchment: 220 16% 97%; }
+     html[data-platform="ios"][data-theme="dark"] { --parchment: 20 15% 9%; }
+*/
 
 /* Dark mode page gradients */
 [data-theme="dark"] .bg-premium-page,
@@ -527,7 +543,7 @@ body {
    Legal) keep their intentional full-width SEO layout. */
 @media (min-width: 768px) {
   html.app-shell {
-    background-color: hsl(36 10% 80%);
+    background-color: hsl(40 5% 93%);
   }
   html.app-shell[data-theme="dark"] {
     background-color: hsl(20 12% 5%);
@@ -1171,12 +1187,14 @@ button,
    + soft drop shadow give physical weight. Use on stat cards, frosted CTAs,
    anywhere a card needs to "lift" off the parchment. */
 .liquid-glass {
-  /* Light mode: a near-solid warm-white fill + a real warm hairline border.
-     The old recipe (42% white fill, 55% WHITE border) gave cards no edge and
-     no luminance delta against the champagne canvas — they read as invisible
-     white-on-white. A defined `--border` hairline lifts every card cleanly
-     regardless of how light the page is. Dark mode overrides this below. */
-  background-color: hsla(40, 44%, 99%, 0.97);
+  /* Light mode: a SOLID cool-white fill + a real cool hairline border.
+     The fill is opaque (not translucent) so the deeper near-white canvas
+     can't bleed through and flatten the card to canvas-tone — the card
+     reads as a crisp, elevated white tile with a clear ~5% luminance gap
+     above the 95% canvas. Dropped the old warm hue-40 cream tint to match
+     the cool-neutral palette. The defined `--border` hairline + drop
+     shadow finish the separation. Dark mode overrides this below. */
+  background-color: hsl(0 0% 100%);
   backdrop-filter: blur(20px) saturate(170%);
   -webkit-backdrop-filter: blur(20px) saturate(170%);
   /* Solid, fully-opaque warm hairline. A translucent border let the
@@ -1579,11 +1597,10 @@ button,
   position: fixed;
   inset: 0;
   pointer-events: none;
-  /* Champagne flow — soft linear gradient from near-white (#FAF9F5) to
-     light champagne (#F4F1EA). Replaces the previous radial tan glow that was
-     reading as "spotlight." Desaturated 20 % overall — the olive + white
-     glass cards now have proper contrast against this calmer canvas. */
-  background: linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
+  /* Cool-neutral flow — soft linear gradient from pure white to a faint cool
+     grey. Replaces the old warm champagne (#FAF9F5→#F4F1EA) that read as cream;
+     now matches the cool hue-220 canvas for a premium, never-tacky base. */
+  background: linear-gradient(135deg, #FCFCFD 0%, #F1F3F6 100%);
   z-index: 0;
 }
 
@@ -1877,7 +1894,7 @@ button,
      Previously this layered darker `--secondary` radial washes, which made
      auth/onboarding screens read heavier than the dashboard. */
   background-image:
-    linear-gradient(135deg, #E1DEDB 0%, #D5D2CD 100%);
+    linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
   background-attachment: fixed;
 }
 
@@ -1888,7 +1905,7 @@ button,
 .bg-premium-page {
   background-color: hsl(var(--background));
   background-image:
-    linear-gradient(135deg, #E1DEDB 0%, #D5D2CD 100%);
+    linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
   background-attachment: fixed;
 }
 

@@ -89,8 +89,8 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
         <div
           className="shrink-0 rounded-ds-md p-2"
           style={{
-            background: "hsl(38, 50%, 96%)",
-            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+            background: "hsl(var(--surface-band))",
+            border: "0.5px solid hsl(var(--border))",
           }}
         >
           {referralCode ? (

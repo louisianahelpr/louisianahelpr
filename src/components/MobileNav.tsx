@@ -540,28 +540,22 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       >
         {/* Sliding active pill — single shared layoutId across all items
             so the pill animates between tabs when you switch. Sits BEHIND
-            the icon + label content. Uses the same elevated vocabulary
-            (inset rim light + layered Bark-tinted drop shadow) as the
-            Post button + FAB so the active tab reads as a lifted lens. */}
+            the icon + label content. Deliberately QUIET: a soft neutral-ink
+            chip with no brand color and no drop shadow, so it never competes
+            with the bark-green Post FAB. The Post FAB is the single loud
+            focal point in the bar; the active tab is signalled by the bolder
+            olivewood icon/label + the burnt-sienna underline dot, with this
+            chip just a subtle "you are here" backing. (Was a bark-green glass
+            lens with a layered drop shadow that rivalled the FAB for emphasis
+            — that broke the bar's visual hierarchy.) */}
         {isActive && (
           <motion.span
             layoutId="mobile-nav-pill"
             className="absolute inset-x-2 inset-y-1 rounded-full pointer-events-none"
             style={{
-              // Olive-green glass lens — the brand's action color (bark/olive),
-              // lit from above. Selected reads as the brand green, not cream.
-              // The pill is a soft bark wash; the icon + label sit on top in a
-              // deeper olivewood so the contrast stays crisp (no olive-on-olive
-              // mud).
-              background:
-                "radial-gradient(120% 120% at 30% 18%, hsl(var(--bark) / 0.20) 0%, hsl(var(--bark) / 0.14) 50%, hsl(var(--bark) / 0.22) 100%)",
-              border: "0.5px solid hsl(var(--bark) / 0.30)",
-              boxShadow:
-                "inset 0 1px 1.5px 0 hsl(45 40% 98% / 0.55), " +
-                "inset 0 -1.5px 2px 0 hsl(var(--bark) / 0.18), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.16), " +
-                "0 6px 14px -4px hsl(var(--olivewood) / 0.24), " +
-                "0 12px 22px -8px hsl(var(--olivewood) / 0.18)",
+              background: "hsl(var(--olivewood) / 0.06)",
+              border: "0.5px solid hsl(var(--olivewood) / 0.07)",
+              boxShadow: "inset 0 1px 1px 0 hsl(0 0% 100% / 0.45)",
             }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
             aria-hidden

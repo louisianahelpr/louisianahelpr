@@ -213,5 +213,23 @@ export const queryKeys = {
     helperVerifications: (userId: string) => ["helper-verifications", userId] as const,
     helperVerificationActors: (actorIdsKey: string) =>
       ["helper-verifications-actors", actorIdsKey] as const,
+    support: (filter: string) => ["admin-support", filter] as const,
+    fraudFlags: (filter: string, showResolved: boolean) =>
+      ["admin-fraud-flags", filter, showResolved] as const,
+  },
+  /** Per-applicant helper stats computed in PostedJobsTab bulk-fetch queries. */
+  helperStats: {
+    neighborCount: (helperId: string, lat: number | undefined, lng: number | undefined) =>
+      ["neighbor-count", helperId, lat, lng] as const,
+    completedCounts: (helperIdsKey: string) =>
+      ["helper-completed-counts", helperIdsKey] as const,
+    repeatHirePercents: (helperIdsKey: string) =>
+      ["helper-repeat-hire-percents", helperIdsKey] as const,
+    onTimePercents: (helperIdsKey: string) =>
+      ["helper-on-time-percents", helperIdsKey] as const,
+    distancesFromJob: (jobId: string | undefined, helperIdsKey: string) =>
+      ["helper-distances-from-job", jobId, helperIdsKey] as const,
+    jobViewCounts: (jobIdsKey: string) =>
+      ["job-view-counts", jobIdsKey] as const,
   },
 } as const;

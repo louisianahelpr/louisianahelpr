@@ -33,7 +33,7 @@ import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatShortDate } from "@/lib/format";
 
 /** Negotiation/bid columns added by a later migration that hasn't been
     regenerated into the Supabase types yet (the PGRST202 migration-lag
@@ -307,7 +307,7 @@ function AppliedJobCardInner({
                     the poster cancelled after the helper was selected and a
                     fee was assessed. Subtle pill; only when data is present. */}
                 {isCancelled && job.cancellation_fee != null && job.cancellation_fee > 0 && (() => {
-                  const feeAmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(job.cancellation_fee);
+                  const feeAmt = `$${formatPrice(job.cancellation_fee)}`;
                   const status = job.cancellation_fee_status;
                   if (!status) return null;
                   const statusCopy: Record<string, string> = {
@@ -534,7 +534,7 @@ function AppliedJobCardInner({
                 <span
                   className="flex items-center gap-0.5 text-ds-10 font-medium"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  title={`Poster viewed on ${new Date(bidApp.poster_viewed_at).toLocaleDateString()}`}
+                  title={`Poster viewed on ${formatShortDate(bidApp.poster_viewed_at)}`}
                 >
                   <Eye className="w-3 h-3" aria-hidden="true" /> Seen
                 </span>
@@ -1071,7 +1071,7 @@ function AppliedJobCardInner({
               {job.is_recurring && (
                 <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                   <RefreshCw className="w-3 h-3 text-primary" />
-                  <span>{job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}{job.recurrence_end_date && ` until ${new Date(job.recurrence_end_date).toLocaleDateString()}`}</span>
+                  <span>{job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}</span>
                 </div>
               )}
               {job.is_group_job && (

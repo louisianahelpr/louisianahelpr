@@ -345,6 +345,7 @@ export function SendReportCard({
           </h3>
           <textarea
             rows={3}
+            aria-label="Notes for the owner"
             className="glass-field w-full rounded-ds-lg px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
             placeholder="Anything the owner should know about today's visit…"
             value={notes}

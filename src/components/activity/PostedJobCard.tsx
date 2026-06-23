@@ -804,6 +804,7 @@ function PostedJobCardInner({
                                   </div>
                                   <textarea
                                     ref={broadcastRef}
+                                    aria-label="Message to all applicants"
                                     className="w-full resize-none rounded-ds-sm px-3 py-2 text-ds-12 text-foreground placeholder:text-muted-foreground/60 bg-background border border-border/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
                                     rows={3}
                                     placeholder={`e.g. "I'm running 15 min late — please bring your own gloves"`}

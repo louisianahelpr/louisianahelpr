@@ -362,6 +362,7 @@ function AppliedJobCardInner({
                     <Textarea
                       value={editMessageText}
                       onChange={(e) => setEditMessageText(e.target.value)}
+                      aria-label="Edit your application message"
                       placeholder="Introduce yourself or share relevant experience…"
                       rows={3}
                       className="text-ds-11"

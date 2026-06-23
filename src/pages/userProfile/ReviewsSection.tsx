@@ -212,7 +212,7 @@ export const ReviewsSection = ({
                 <div className="mt-3 pt-3 border-t border-[hsl(var(--bark)/0.10)]">
                   <p
                     className="text-ds-11 font-semibold uppercase tracking-[0.06em] mb-1.5"
-                    style={{ color: "hsl(var(--olivewood)/0.55)" }}
+                    style={{ color: "hsl(var(--olivewood)/0.8)" }}
                   >
                     Response from {profileFullName}
                   </p>
@@ -241,7 +241,7 @@ export const ReviewsSection = ({
                 <button
                   type="button"
                   className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
-                  style={{ color: "hsl(var(--olivewood)/0.55)" }}
+                  style={{ color: "hsl(var(--olivewood)/0.8)" }}
                   onClick={() => {
                     onStartResponding(r.id, r.response_text ?? "");
                   }}
@@ -255,6 +255,7 @@ export const ReviewsSection = ({
                   <textarea
                     value={responseText}
                     onChange={(e) => onSetResponseText(e.target.value)}
+                    aria-label="Write a public response"
                     maxLength={500}
                     rows={3}
                     placeholder="Write a brief public response…"
@@ -274,7 +275,7 @@ export const ReviewsSection = ({
                       type="button"
                       onClick={onCancelResponding}
                       className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold"
-                      style={{ color: "hsl(var(--olivewood)/0.70)" }}
+                      style={{ color: "hsl(var(--olivewood)/0.8)" }}
                     >
                       Cancel
                     </button>

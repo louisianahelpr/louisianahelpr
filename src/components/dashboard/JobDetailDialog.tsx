@@ -587,7 +587,7 @@ const JobDetailDialog = ({
             facts (where, when, how long, deadline) before they see the
             payout. Where + Date are clickable: Where opens Google Maps,
             Date opens Google Calendar. */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:[grid-template-columns:repeat(auto-fit,minmax(115px,1fr))]">
           {(() => {
             const dateNeeded = parseLocalDate(job.date_needed);
             const dateValid = !isNaN(dateNeeded.getTime());

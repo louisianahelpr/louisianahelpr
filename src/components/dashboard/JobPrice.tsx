@@ -200,7 +200,7 @@ export function JobPrice({
               className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              ${budget.toFixed(0)} budget − {effectiveFee}% fee
+              ${budget.toFixed(0)} budget{helpers > 1 ? ` ÷ ${helpers}` : ""} − {effectiveFee}% fee
               {urgentFee > 0 ? ` + $${urgentFee.toFixed(0)} urgent` : ""}
             </p>
           )}

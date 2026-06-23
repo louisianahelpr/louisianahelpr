@@ -38,7 +38,7 @@ export const categories = [
   { value: "delivery", label: "Delivery" },
   { value: "pet_care", label: "Pet Care" },
   { value: "assembly", label: "Assembly" },
-  { value: "storm_prep", label: "Storm Prep" },
+  { value: "storm_prep", label: "Storm" },
   { value: "other", label: "Other" },
 ];
 
@@ -328,7 +328,7 @@ export function DetailsSection({
               setCategory("storm_prep");
             }}
             aria-pressed={category === "storm_prep"}
-            aria-label="Storm Prep — seasonal pick"
+            aria-label="Storm — seasonal pick"
             className="w-full rounded-ds-md p-2.5 flex items-center gap-2 transition-all active:scale-[0.97]"
             style={{
               background: category === "storm_prep" ? "hsl(210 25% 15% / 0.85)" : "hsl(210 25% 15% / 0.4)",
@@ -337,7 +337,7 @@ export function DetailsSection({
           >
             <CloudLightning className="w-4 h-4 shrink-0" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={2} />
             <span className="font-display italic font-semibold text-ds-14 leading-tight" style={{ color: "hsl(210 30% 90%)" }}>
-              Storm Prep
+              Storm
             </span>
             {category === "storm_prep" && (
               <Check className="w-3.5 h-3.5 ml-1 shrink-0" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={3} />

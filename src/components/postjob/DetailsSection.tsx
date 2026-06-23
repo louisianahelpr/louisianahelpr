@@ -329,22 +329,22 @@ export function DetailsSection({
             }}
             aria-pressed={category === "storm_prep"}
             aria-label="Storm — seasonal pick"
-            className="w-full rounded-ds-md p-2.5 flex items-center gap-2 transition-all active:scale-[0.97]"
-            style={{
-              background: category === "storm_prep" ? "hsl(210 25% 15% / 0.85)" : "hsl(210 25% 15% / 0.4)",
-              border: `0.5px solid hsl(210 25% 40% / ${category === "storm_prep" ? "0.7" : "0.3"})`,
-            }}
+            className={`w-full rounded-ds-md p-2.5 flex items-center gap-2 transition-all active:scale-[0.97] border-[0.5px] ${
+              category === "storm_prep"
+                ? "bg-[hsl(210_35%_82%)] border-[hsl(210_30%_58%)] dark:bg-[hsl(210_30%_26%)] dark:border-[hsl(210_28%_46%)]"
+                : "bg-[hsl(210_30%_92%)] border-[hsl(210_24%_78%)] dark:bg-[hsl(210_28%_18%)] dark:border-[hsl(210_24%_32%)]"
+            }`}
           >
-            <CloudLightning className="w-4 h-4 shrink-0" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={2} />
-            <span className="font-display italic font-semibold text-ds-14 leading-tight" style={{ color: "hsl(210 30% 90%)" }}>
+            <CloudLightning className="w-4 h-4 shrink-0 text-[hsl(210_45%_44%)] dark:text-[hsl(210_55%_70%)]" strokeWidth={2} />
+            <span className="font-display italic font-semibold text-ds-14 leading-tight text-[hsl(210_28%_36%)] dark:text-[hsl(210_32%_80%)]">
               Storm
             </span>
             {category === "storm_prep" && (
-              <Check className="w-3.5 h-3.5 ml-1 shrink-0" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={3} />
+              <Check className="w-3.5 h-3.5 ml-1 shrink-0 text-[hsl(210_45%_44%)] dark:text-[hsl(210_55%_70%)]" strokeWidth={3} />
             )}
             <span
-              className="ml-auto text-ds-10 font-sans font-semibold uppercase px-1.5 py-0.5 rounded-ds-sm shrink-0"
-              style={{ background: "hsl(210 60% 40% / 0.4)", color: "hsl(210 60% 80%)", letterSpacing: "0.06em" }}
+              className="ml-auto text-ds-10 font-sans font-semibold uppercase px-1.5 py-0.5 rounded-ds-sm shrink-0 bg-[hsl(210_42%_78%)] text-[hsl(210_38%_30%)] dark:bg-[hsl(210_45%_32%)] dark:text-[hsl(210_55%_84%)]"
+              style={{ letterSpacing: "0.06em" }}
             >
               In season
             </span>

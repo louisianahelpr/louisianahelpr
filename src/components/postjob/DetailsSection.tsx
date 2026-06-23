@@ -391,7 +391,7 @@ export function DetailsSection({
                 style={
                   active
                     ? {
-                        background: "hsl(var(--parchment) / 0.7)",
+                        background: "hsl(var(--card))",
                         border: "0.5px solid hsl(var(--bark) / 0.35)",
                         boxShadow:
                           "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
@@ -399,11 +399,13 @@ export function DetailsSection({
                           "0 6px 16px -4px hsl(var(--bark) / 0.22)",
                       }
                     : {
-                        // Inactive chip surface was nearly invisible on the
-                        // parchment page — bumped fill opacity AND raised
-                        // the olivewood border so unselected categories
-                        // read as a real, tappable choice instead of a ghost.
-                        background: "hsl(var(--parchment) / 0.7)",
+                        // Fill with the card SURFACE token, not --parchment:
+                        // the page canvas IS --parchment, so a parchment fill
+                        // is invisible (1.00 contrast) no matter the opacity.
+                        // --card (--ivory-sand) is defined brighter than the
+                        // page in both themes, so the chip lifts as a real,
+                        // tappable surface in light AND dark mode.
+                        background: "hsl(var(--card) / 0.92)",
                         border: "0.5px solid hsl(var(--olivewood) / 0.22)",
                         boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
                       }

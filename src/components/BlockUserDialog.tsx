@@ -120,7 +120,7 @@ export function BlockUserDialog({
             <ShieldAlert className="w-3 h-3" /> Safety
           </span>
           <AlertDialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Block {blockedUserName}?
@@ -159,43 +159,16 @@ export function BlockUserDialog({
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="!gap-2 sm:!flex-col sm:!items-stretch sm:!space-x-0">
-          {/* Report-and-block combo — surfaces only when the parent
-              opted-in (it owns the Report dialog and routes it back
-              through the `onReportAndBlock` hook). Closes the block
-              dialog first, then opens Report — the trust team gets
-              the flag and the user stops seeing the offender in the
-              same gesture. */}
-          {onReportAndBlock && (
-            <AlertDialogAction
-              onClick={async (e) => {
-                e.preventDefault();
-                await handleBlock();
-                onReportAndBlock();
-              }}
-              disabled={submitting}
-              className="rounded-ds-md"
-              style={{
-                background: "hsl(var(--burnt-sienna))",
-                backgroundImage: "none",
-                border: "1px solid hsl(var(--burnt-sienna))",
-                color: "hsl(var(--parchment))",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                letterSpacing: "0.01em",
-                boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)",
-              }}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Working…
-                </>
-              ) : (
-                "Block and report"
-              )}
-            </AlertDialogAction>
-          )}
+        {/* Force normal (top-down) column order — shadcn's footer defaults to
+            flex-col-reverse on mobile, which would float Cancel to the top.
+            We want the action stack to read Just block → Block and report →
+            Cancel, with Cancel anchored at the bottom. */}
+        <AlertDialogFooter className="!flex-col !gap-2 sm:!items-stretch sm:!space-x-0">
+          {/* Order: Just block → Block and report → Cancel. When the parent
+              opts into report-and-block, "Block and report" is the primary
+              filled CTA and sits closest to the thumb (just above Cancel);
+              "Just block" reads as a solid-tinted secondary above it. When
+              there's no report path, "Just block" is the lone primary. */}
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -240,6 +213,36 @@ export function BlockUserDialog({
               "Just block"
             )}
           </AlertDialogAction>
+          {onReportAndBlock && (
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault();
+                await handleBlock();
+                onReportAndBlock();
+              }}
+              disabled={submitting}
+              className="rounded-ds-md"
+              style={{
+                background: "hsl(var(--burnt-sienna))",
+                backgroundImage: "none",
+                border: "1px solid hsl(var(--burnt-sienna))",
+                color: "hsl(var(--parchment))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                letterSpacing: "0.01em",
+                boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)",
+              }}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Working…
+                </>
+              ) : (
+                "Block and report"
+              )}
+            </AlertDialogAction>
+          )}
           <AlertDialogCancel disabled={submitting} className="rounded-ds-md">Cancel</AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>

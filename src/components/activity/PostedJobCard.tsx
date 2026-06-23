@@ -358,7 +358,9 @@ function PostedJobCardInner({
                   <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0">
                     {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
                   </div>
-                  <span className="text-ds-11 text-muted-foreground">Offered to</span>
+                  <span className="text-ds-11 text-muted-foreground">
+                    {job.status === "completed" ? "Completed by" : "Offered to"}
+                  </span>
                   <a href={`/user/${job.helper_id}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline">
                     {helperNames[job.helper_id] || "Helpr"}
                   </a>

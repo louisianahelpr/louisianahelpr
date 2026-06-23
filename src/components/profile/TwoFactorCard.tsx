@@ -217,7 +217,7 @@ function EnrollDialog({
             <Smartphone className="w-3 h-3" /> Authenticator app
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Turn on two-step.
@@ -366,7 +366,7 @@ function DisableDialog({
             <ShieldCheck className="w-3 h-3" /> Two-step verification
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Turn off two-step?

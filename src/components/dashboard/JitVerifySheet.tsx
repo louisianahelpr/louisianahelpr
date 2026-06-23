@@ -43,7 +43,7 @@ export function JitVerifySheet({ open, onVerify, onLater }: JitVerifySheetProps)
             Quick check before your first job
           </span>
           <SheetTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Verify your identity

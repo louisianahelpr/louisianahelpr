@@ -345,7 +345,7 @@ export function BrowseTasksToolbar({
               : "Fresh today"}
           </span>
           <h2
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{
               fontSize: "1.25rem",
               color: "hsl(var(--ink-deep))",

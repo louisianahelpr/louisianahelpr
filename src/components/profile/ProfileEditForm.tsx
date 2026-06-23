@@ -235,51 +235,6 @@ export function ProfileEditForm({
         onBack={onBack}
       />
 
-      {/* Completion meter — the 3 post-signup enhancements (ZIP / ID
-          verified / work photos) via the shared getProfileCompletion
-          helper. Tints based on progress. */}
-      <div className="rounded-2xl liquid-glass p-5 space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-            Profile completion
-          </p>
-          <span
-            className="font-display italic font-bold tabular-nums"
-            style={{
-              fontSize: "0.95rem",
-              color: completionPct === 100 ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {completionPct}%
-          </span>
-        </div>
-        <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${completionPct}%`,
-              background:
-                completionPct === 100
-                  ? "hsl(var(--bark))"
-                  : completionPct >= 66
-                    ? "hsl(var(--bark) / 0.85)"
-                    : "hsl(var(--burnt-sienna) / 0.75)",
-            }}
-          />
-        </div>
-        {completion.nextLabel && (
-          <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Next:{" "}
-            <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-              {completion.nextLabel}
-            </span>
-            {" — "}
-            complete profiles get more offers.
-          </p>
-        )}
-      </div>
-
       <form onSubmit={onSave} className="space-y-4">
         {/* Photo + Name section */}
         <div className="rounded-2xl liquid-glass p-5 space-y-4">
@@ -332,25 +287,75 @@ export function ProfileEditForm({
               <p className="font-display italic font-bold leading-tight truncate text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                 {`${firstName} ${lastName}`.trim() || "Your name"}
               </p>
-              <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                Tap the photo to change. Your name is locked after signup
-                {onContactSupport ? (
-                  <>
-                    {" — "}
-                    <button
-                      type="button"
-                      onClick={onContactSupport}
-                      className="not-italic font-sans font-semibold underline active:opacity-70"
-                      style={{ color: "hsl(var(--bark))" }}
-                    >
-                      contact support
-                    </button>
-                    {" to change it."}
-                  </>
-                ) : "."}
+              <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                Tap the photo to change it.
               </p>
             </div>
           </div>
+          <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            Your name is locked after signup
+            {onContactSupport ? (
+              <>
+                {" — "}
+                <button
+                  type="button"
+                  onClick={onContactSupport}
+                  className="not-italic font-sans font-semibold underline active:opacity-70"
+                  style={{ color: "hsl(var(--bark))" }}
+                >
+                  contact support
+                </button>
+                {" to change it."}
+              </>
+            ) : "."}
+          </p>
+        </div>
+
+        {/* Completion meter — the 3 post-signup enhancements (ZIP / ID
+            verified / work photos) via the shared getProfileCompletion
+            helper. Tints based on progress. Sits just under Photo & Name
+            so the headline identity row leads and the progress nudge
+            follows it. */}
+        <div className="rounded-2xl liquid-glass p-5 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              Profile completion
+            </p>
+            <span
+              className="font-display italic font-bold tabular-nums"
+              style={{
+                fontSize: "0.95rem",
+                color: completionPct === 100 ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {completionPct}%
+            </span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${completionPct}%`,
+                background:
+                  completionPct === 100
+                    ? "hsl(var(--bark))"
+                    : completionPct >= 66
+                      ? "hsl(var(--bark) / 0.85)"
+                      : "hsl(var(--burnt-sienna) / 0.75)",
+              }}
+            />
+          </div>
+          {completion.nextLabel && (
+            <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Next:{" "}
+              <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                {completion.nextLabel}
+              </span>
+              {" — "}
+              complete profiles get more offers.
+            </p>
+          )}
         </div>
 
         {/* Contact section */}
@@ -452,7 +457,13 @@ export function ProfileEditForm({
               Upload a government-issued ID. Encrypted in transit, used only for identity verification and fraud prevention.
             </p>
             <label className="shrink-0">
-              <span className="inline-flex items-center gap-1.5 text-ds-11 font-semibold px-3 h-9 rounded-ds-md bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 active:scale-[0.98] transition-all">
+              <span
+                className={`inline-flex items-center gap-1.5 text-ds-11 font-semibold px-3 h-9 rounded-ds-md cursor-pointer active:scale-[0.98] transition-all ${
+                  hasId
+                    ? "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                }`}
+              >
                 {idUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                 {hasId ? "Replace" : "Upload"}
               </span>
@@ -555,8 +566,8 @@ export function ProfileEditForm({
           className="text-center font-serif italic px-6 leading-snug"
           style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          Photos &amp; ID save automatically. Other changes save when you tap{" "}
-          <span className="not-italic font-sans font-medium">Save changes</span>.
+          Photos &amp; ID save automatically. Your other edits save from the{" "}
+          <span className="not-italic font-sans font-medium">bar below</span>.
         </p>
       </form>
 

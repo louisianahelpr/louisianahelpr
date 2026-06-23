@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Coins, ChevronRight, Gift } from "lucide-react";
+import { Clock, Coins, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { formatShortDate } from "@/lib/format";
@@ -70,7 +71,7 @@ export default function TimeCredits() {
 
   return (
     <div className="min-h-screen pb-safe-nav" style={{ background: "hsl(var(--parchment))" }}>
-      <PageHeader title="Time Credits" />
+      <PageHeader title="Time Credits" showBrand rightSlot={<NotificationPanel />} />
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
         {/* Balance card */}
@@ -164,8 +165,9 @@ export default function TimeCredits() {
         <Button
           className="w-full"
           style={{
-            background: "hsl(var(--bark))",
-            color: "hsl(var(--parchment))",
+            background: "hsl(var(--bark) / 0.10)",
+            color: "hsl(var(--bark))",
+            border: "1px solid hsl(var(--bark) / 0.30)",
           }}
           onClick={() => navigate("/post-job")}
         >
@@ -234,37 +236,6 @@ export default function TimeCredits() {
           </div>
         )}
 
-        {/* CTA to benefits */}
-        <div
-          className="rounded-2xl p-5 flex items-center justify-between cursor-pointer active:opacity-80"
-          style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}
-          onClick={() => navigate("/benefits")}
-        >
-          <div className="flex items-center gap-3">
-            <Gift
-              className="w-6 h-6"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            />
-            <div>
-              <p
-                className="font-semibold text-sm"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-              >
-                Benefits & Perks
-              </p>
-              <p
-                className="text-xs"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                Health coverage, financial tools & discounts
-              </p>
-            </div>
-          </div>
-          <ChevronRight
-            className="w-5 h-5"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}
-          />
-        </div>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -492,7 +493,7 @@ const PetProfiles = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="My Pets" />
+      <PageHeader title="My Pets" showBrand rightSlot={<NotificationPanel />} />
 
       <div className="px-4 pt-4 space-y-3">
         {isLoading && (
@@ -519,7 +520,7 @@ const PetProfiles = () => {
             title="No pets yet"
             body="Add your pets' profiles so helpers know their needs."
             action={
-              <Button onClick={openAdd}>
+              <Button variant="outline" onClick={openAdd}>
                 <Plus className="w-4 h-4 mr-1" /> Add a pet
               </Button>
             }

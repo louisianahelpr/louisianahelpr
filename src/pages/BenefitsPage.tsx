@@ -8,6 +8,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 
 interface BenefitItem {
@@ -98,7 +99,7 @@ export default function BenefitsPage() {
 
   return (
     <div className="min-h-screen pb-safe-nav" style={{ background: "hsl(var(--parchment))" }}>
-      <PageHeader title="Benefits & Perks" />
+      <PageHeader title="Benefits & Perks" showBrand rightSlot={<NotificationPanel />} />
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
         {/* Hero */}
@@ -228,8 +229,9 @@ export default function BenefitsPage() {
         <Button
           className="w-full mb-2"
           style={{
-            background: "hsl(var(--bark))",
-            color: "hsl(var(--parchment))",
+            background: "hsl(var(--bark) / 0.10)",
+            color: "hsl(var(--bark))",
+            border: "1px solid hsl(var(--bark) / 0.30)",
           }}
           onClick={() => navigate("/dashboard")}
         >

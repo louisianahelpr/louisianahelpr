@@ -109,7 +109,7 @@ export function IDVPromptDialog({
             Identity check
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{
               fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
               color: "hsl(var(--ink-deep))",

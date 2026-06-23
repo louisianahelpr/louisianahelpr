@@ -359,7 +359,7 @@ const JobDetailDialog = ({
             {categoryLabels[job.category] || job.category}
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{
               fontSize: "1.5rem",
               color: "hsl(var(--ink-deep))",
@@ -468,9 +468,22 @@ const JobDetailDialog = ({
           </div>
         )}
 
-        {/* Group / recurring tags */}
-        {(job.is_group_job || job.is_recurring) && (
+        {/* Status pills — urgent · group size · recurrence — in one
+            aligned flex row so the signals read as a single set instead
+            of stacking unevenly. Urgent only joins this row when there's
+            no photo; with a photo it overlays the image up top instead. */}
+        {((job.is_urgent && photos.length === 0) || job.is_group_job || job.is_recurring) && (
           <div className="flex items-center gap-1.5 flex-wrap">
+            {job.is_urgent && photos.length === 0 && (
+              <span
+                aria-label="Urgent"
+                className="urgent-pulse inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-ds-10 font-semibold uppercase tracking-wider"
+                style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
+              >
+                <Zap className="w-3 h-3 fill-accent" strokeWidth={2.25} />
+                Urgent
+              </span>
+            )}
             {job.is_group_job && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-ds-10 font-semibold uppercase tracking-wider border border-primary/20">
                 <Users className="w-3 h-3" strokeWidth={2.25} />
@@ -507,23 +520,14 @@ const JobDetailDialog = ({
           </div>
         )}
 
-        {/* Description — own glass plate. When there's no photo, this
-            is where Boosted (top-right) and Urgent (top-left) stamps
-            live. "Read more" expands the full text inline when long. */}
+        {/* Description — own glass plate. When there's no photo, the
+            Boosted (top-right) stamp lives here; Urgent has moved up into
+            the status-pill row. "Read more" expands the text inline. */}
         {/* min-w-0: as a grid item of the DialogContent grid this defaults
             to min-width:auto, so a long unbroken word would force the item
             wider than the track and the line-clamp box would clip the
             overflow. min-w-0 lets it shrink to the track and wrap. */}
         <div className="relative min-w-0">
-          {photos.length === 0 && job.is_urgent && (
-            <span
-              aria-label="Urgent"
-              className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[9px] font-bold uppercase tracking-wider"
-              style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
-            >
-              <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
-            </span>
-          )}
           {photos.length === 0 && job.isBoosted && (
             <span
               aria-label="Boosted"

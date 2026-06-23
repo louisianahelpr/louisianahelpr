@@ -18,6 +18,7 @@ import { hapticSuccess, hapticMedium } from "@/lib/haptics";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -347,7 +348,7 @@ export default function PayItForward() {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Pay It Forward" onBack={() => navigate(-1)} />
+      <PageHeader title="Pay It Forward" onBack={() => navigate(-1)} showBrand rightSlot={<NotificationPanel />} />
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
         {/* ── Header ─────────────────────────────────────────────────────── */}

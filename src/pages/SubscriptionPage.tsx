@@ -307,16 +307,11 @@ export default function SubscriptionPage() {
                   </ul>
                 </div>
 
-                {/* Price column */}
+                {/* Price column — the free tier's name already reads "Free",
+                    so we omit a redundant "Free" price here and let only the
+                    paid tiers carry a price label. */}
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
-                  {isFree ? (
-                    <p
-                      className="font-display italic font-bold leading-none"
-                      style={{ fontSize: "1.1rem", color, letterSpacing: "-0.02em" }}
-                    >
-                      Free
-                    </p>
-                  ) : (
+                  {isFree ? null : (
                     <>
                       <p
                         className="font-display italic font-bold tabular-nums leading-none"

@@ -53,7 +53,10 @@ const NotificationTrigger = forwardRef<HTMLButtonElement, { unreadCount: number 
     <Button ref={ref} variant="ghost" size="icon" className="relative" aria-label="Notifications" {...props}>
       <Bell className="w-4 h-4" />
       {unreadCount > 0 && (
-        <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-ds-10 leading-none flex items-center justify-center font-bold ring-2 ring-background">
+        <span
+          className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-ds-10 leading-none flex items-center justify-center font-bold ring-2 ring-background"
+          style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
+        >
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>
       )}

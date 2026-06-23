@@ -886,7 +886,7 @@ function AppliedJobCardInner({
                     {disputeStatus === "escalated" ? "Admin reviewing" : "Dispute open"}
                   </span>
                   <p
-                    className="font-display italic font-bold leading-tight mt-1"
+                    className="font-display italic font-bold leading-tight mt-2"
                     style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                   >
                     {disputeStatus === "escalated"

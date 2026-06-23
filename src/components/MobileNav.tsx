@@ -536,7 +536,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         ariaLabel={locked ? `${label} — locked until your account is approved` : label}
         ariaCurrent={isActive ? "page" : undefined}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
-        style={{ color: isActive ? "hsl(var(--olivewood))" : "hsl(48 9% 47%)" }}
+        style={{ color: isActive ? "hsl(var(--bark))" : "hsl(48 9% 47%)" }}
       >
         {/* Sliding active pill — single shared layoutId across all items
             so the pill animates between tabs when you switch. Sits BEHIND
@@ -544,17 +544,18 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             chip with no brand color and no drop shadow, so it never competes
             with the bark-green Post FAB. The Post FAB is the single loud
             focal point in the bar; the active tab is signalled by the bolder
-            olivewood icon/label + the burnt-sienna underline dot, with this
-            chip just a subtle "you are here" backing. (Was a bark-green glass
-            lens with a layered drop shadow that rivalled the FAB for emphasis
-            — that broke the bar's visual hierarchy.) */}
+            mid-bark icon/label + the burnt-sienna underline dot, with this
+            chip just a subtle "you are here" backing. (Active was near-black
+            olivewood, which read as a heavy dark blob; bark is a lighter
+            recognizable brand green. Was also a bark-green glass lens with a
+            layered drop shadow that rivalled the FAB — that broke hierarchy.) */}
         {isActive && (
           <motion.span
             layoutId="mobile-nav-pill"
             className="absolute inset-x-2 inset-y-1 rounded-full pointer-events-none"
             style={{
-              background: "hsl(var(--olivewood) / 0.06)",
-              border: "0.5px solid hsl(var(--olivewood) / 0.07)",
+              background: "hsl(var(--bark) / 0.07)",
+              border: "0.5px solid hsl(var(--bark) / 0.08)",
               boxShadow: "inset 0 1px 1px 0 hsl(0 0% 100% / 0.45)",
             }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
@@ -565,7 +566,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           <Icon
             className="w-[22px] h-[22px] transition-all duration-200"
             strokeWidth={isActive ? 2.3 : 1.8}
-            fill={isActive ? "hsl(var(--olivewood) / 0.20)" : "none"}
+            fill={isActive ? "hsl(var(--bark) / 0.16)" : "none"}
           />
           {/* No per-tab padlock for guests — three padlocks in a row read
               as a barrier wall on a first-time guest's home screen. The tab
@@ -593,7 +594,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             fontSize: "0.66rem",
             fontWeight: isActive ? 700 : 500,
             letterSpacing: isActive ? "0.01em" : "0.02em",
-            color: isActive ? "hsl(var(--olivewood))" : undefined,
+            color: isActive ? "hsl(var(--bark))" : undefined,
           }}
         >
           {label}

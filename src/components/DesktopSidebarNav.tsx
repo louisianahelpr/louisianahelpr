@@ -55,14 +55,24 @@ const NAV_ITEMS: Array<{
 // Mirrors MobileNav's `authPages` allow-list so the rail tracks the same
 // surfaces. Kept deliberately broad — the CSS class `web-desktop` already
 // constrains us to the desktop website.
-const AUTH_PREFIXES = [
+export const AUTH_PREFIXES = [
   "/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile",
   "/messages", "/support", "/schedule", "/availability", "/user", "/earnings",
   "/jobs", "/browse", "/job-history", "/saved-helpers", "/community",
 ];
-const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin"];
+export const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin"];
 
-function useIsWebDesktop() {
+/**
+ * True when the desktop sidebar rail owns navigation for `pathname` — i.e. a
+ * route the rail covers and isn't explicitly excluded. The marketing Navbar
+ * uses this to step aside on those routes so the two navs never stack.
+ */
+export function isDesktopRailRoute(pathname: string) {
+  if (NO_NAV_PREFIXES.some((p) => pathname.startsWith(p))) return false;
+  return AUTH_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
+export function useIsWebDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
     if (Capacitor.isNativePlatform() || typeof window.matchMedia !== "function") {
@@ -138,8 +148,7 @@ const DesktopSidebarNav = () => {
   // gate as the `web-desktop` <html> class, so the rail and the CSS that
   // insets the shell turn on/off together.
   if (!isWebDesktop) return null;
-  if (NO_NAV_PREFIXES.some((p) => location.pathname.startsWith(p))) return null;
-  if (!AUTH_PREFIXES.some((p) => location.pathname.startsWith(p))) return null;
+  if (!isDesktopRailRoute(location.pathname)) return null;
 
   const badgeFor = (key?: "messages" | "posts" | "jobs") => {
     if (key === "messages") return unreadCount;

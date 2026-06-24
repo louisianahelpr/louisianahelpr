@@ -172,19 +172,10 @@ const DesktopSidebarNav = () => {
         boxShadow: "1px 0 2px hsl(var(--olivewood) / 0.06)",
       }}
     >
-      {/* Brand wordmark */}
-      <button
-        onClick={() => navigate("/dashboard")}
-        className="flex items-center gap-2 px-6 pt-6 pb-5 text-left"
-        aria-label="Helpr home"
-      >
-        <span
-          className="text-[1.5rem] leading-none"
-          style={{ fontFamily: '"Beth Ellen", cursive', color: "hsl(var(--bark))" }}
-        >
-          Helpr·LA
-        </span>
-      </button>
+      {/* Spacer matching the top header band (h-14) so the first rail item
+          aligns with the header's bottom edge. The brand lockup lives solely
+          in the top header now — the rail no longer duplicates it. */}
+      <div className="h-14 shrink-0" aria-hidden="true" />
 
       {/* Post-task primary action */}
       {!isPendingApproval && (

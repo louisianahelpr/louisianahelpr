@@ -17,6 +17,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
+import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
+import { Skeleton } from "@/components/ui/skeleton";
 import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -37,6 +39,9 @@ const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 const JitVerifySheet = lazy(() => import("@/components/dashboard/JitVerifySheet").then(m => ({ default: m.JitVerifySheet })));
 const WelcomeModal = lazy(() => import("@/components/dashboard/WelcomeModal"));
+// Map column for the web-desktop two-pane (leaflet is heavy — lazy so the
+// phone/native feed never pays for it).
+const BrowseMap = lazy(() => import("@/components/BrowseMap").then(m => ({ default: m.BrowseMap })));
 import SectionBoundary from "@/components/SectionBoundary";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -187,6 +192,11 @@ const Dashboard = () => {
   // resetting to "list" on next mount matches user expectation that
   // the default landing surface is the curated feed.
   const [view, setView] = usePersistedBrowseView("list");
+
+  // Web desktop (≥1024px, non-native) composes the feed and the map
+  // side by side, so the list/map toggle is meaningless there and the
+  // feed is locked to "list" — the map always occupies its own column.
+  const isWebDesktop = useIsWebDesktop();
 
   // Feed density — comfortable (full cards) or compact (48px rows). Read from
   // any persisted preference; the in-toolbar toggle was removed for a cleaner
@@ -920,6 +930,7 @@ const Dashboard = () => {
               helperAvailability={helperAvailability}
               view={view}
               setView={setView}
+              hideViewToggle={isWebDesktop}
               onClearAllFilters={() => {
                 // After clearing filters, snap the feed back to the top
                 // so the user lands on the fresh unfiltered head of the
@@ -943,7 +954,7 @@ const Dashboard = () => {
               <div className="flex flex-1 min-h-0 overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
                   <BrowseTasksFeed
-                    view={view}
+                    view={isWebDesktop ? "list" : view}
                     density={density}
                     filters={filters}
                     user={user}
@@ -983,6 +994,25 @@ const Dashboard = () => {
                     setHoveredJobId={setHoveredJobId}
                   />
                 </div>
+                {/* Web-desktop only: the map rides alongside the feed in its
+                    own column rather than hiding behind a toggle. The page
+                    frame is full-width here (PageScaffold desktop), so the
+                    map has real room and doesn't clip at a phone-width edge
+                    the way the old side-map did (#12). */}
+                {isWebDesktop && (
+                  <div
+                    className="w-[42%] shrink-0 min-h-0 flex flex-col pl-3 pt-2"
+                    style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}
+                  >
+                    <Suspense fallback={<Skeleton className="h-full w-full rounded-2xl" />}>
+                      <BrowseMap
+                        onJobAction={handleApplyRequest}
+                        ctaLabel="Apply"
+                        currentUserId={user?.id}
+                      />
+                    </Suspense>
+                  </div>
+                )}
               </div>
             </SectionBoundary>
 

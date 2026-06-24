@@ -57,6 +57,9 @@ interface BrowseTasksToolbarProps {
   /** List vs Map view selection. */
   view: "list" | "map";
   setView: (next: "list" | "map") => void;
+  /** Hide the List⇄Map toggle. On the desktop web the feed and map sit
+   *  side by side, so the toggle is meaningless — both panes are visible. */
+  hideViewToggle?: boolean;
   /** Called when the user clears all filters via the "Clear all" chip —
    *  Dashboard uses this to scroll the feed back to the top so the user
    *  doesn't end up mid-list in a freshly unfiltered feed. */
@@ -204,6 +207,7 @@ export function BrowseTasksToolbar({
   helperAvailability,
   view,
   setView,
+  hideViewToggle = false,
   onClearAllFilters,
 }: BrowseTasksToolbarProps) {
   // Recent searches dropdown — shown only when the search input is
@@ -377,22 +381,25 @@ export function BrowseTasksToolbar({
                   toolbar cluster beside saved-search / search / filter.
                   List is the default; tapping swaps to the map and back.
                   Always available (the map shows the live Louisiana board
-                  even when 0 jobs are nearby). */}
-              <Button
-                variant="ghost"
-                size="icon"
-                // Mark the view swap as a transition — switching to map lazy-
-                // loads the leaflet chunk, and a slow fetch would otherwise
-                // block this tap from feeling responsive. startTransition lets
-                // React keep the current view interactive (and its Suspense
-                // fallback in place) while the map commits non-urgently.
-                onClick={() => startTransition(() => setView(view === "map" ? "list" : "map"))}
-                className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${view === "map" ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
-                aria-label={view === "map" ? "Show list view" : "Show map view"}
-                aria-pressed={view === "map"}
-              >
-                {view === "map" ? <List className="w-5 h-5" /> : <MapIcon className="w-5 h-5" />}
-              </Button>
+                  even when 0 jobs are nearby). Hidden on the desktop web,
+                  where the feed and map already render side by side. */}
+              {!hideViewToggle && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  // Mark the view swap as a transition — switching to map lazy-
+                  // loads the leaflet chunk, and a slow fetch would otherwise
+                  // block this tap from feeling responsive. startTransition lets
+                  // React keep the current view interactive (and its Suspense
+                  // fallback in place) while the map commits non-urgently.
+                  onClick={() => startTransition(() => setView(view === "map" ? "list" : "map"))}
+                  className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${view === "map" ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
+                  aria-label={view === "map" ? "Show list view" : "Show map view"}
+                  aria-pressed={view === "map"}
+                >
+                  {view === "map" ? <List className="w-5 h-5" /> : <MapIcon className="w-5 h-5" />}
+                </Button>
+              )}
               {user && (
                 <SavedSearches
                   userId={user.id}

@@ -55,9 +55,9 @@ const ALL_CATEGORIES = Object.keys(categoryLabels);
 
 const PAGE_SIZE = 30;
 
-// Cards per virtualized row — matches the lg:grid-cols-3 grid so each
-// VirtualList row holds a full grid line.
-const CARDS_PER_ROW = 3;
+// One card per virtualized row — the browse list is a single column at
+// every width (product preference), so each VirtualList row holds one card.
+const CARDS_PER_ROW = 1;
 
 // Cap the staggered entrance animation to roughly the first screenful of
 // cards. Beyond this the per-card animationDelay would compound layout
@@ -177,8 +177,8 @@ const Jobs = () => {
     });
   }, [jobs, search, selectedCategory]);
 
-  // Chunk the filtered jobs into grid rows so the window-scroll VirtualList
-  // (single-column row primitive) still renders the original 3-up grid.
+  // Wrap each job in its own single-item row so the window-scroll
+  // VirtualList (single-column row primitive) renders one card per row.
   const rows = useMemo<PublicJob[][]>(() => {
     const out: PublicJob[][] = [];
     for (let i = 0; i < filtered.length; i += CARDS_PER_ROW) {
@@ -195,7 +195,7 @@ const Jobs = () => {
           last action isn't kissing the dock. pb-32 was barely 2px
           short on notched phones. */}
       <div className="pt-20 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)] md:pb-safe-nav px-5">
-        <div className="container mx-auto max-w-5xl">
+        <div className="container mx-auto max-w-2xl">
           {/* Header — title + live count vertically centered with a "Live" pill on the right. */}
           <div className="flex items-center justify-between gap-4 mb-6 md:mb-8 mt-2 md:mt-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="flex flex-col leading-none min-w-0">
@@ -259,8 +259,8 @@ const Jobs = () => {
 
           {/* Jobs Grid */}
           {jobsLoading ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="Loading jobs">
-              {Array.from({ length: 6 }).map((_, i) => (
+            <div className="grid grid-cols-1 gap-4" aria-label="Loading jobs">
+              {Array.from({ length: 4 }).map((_, i) => (
                 <JobCardSkeleton key={i} />
               ))}
             </div>
@@ -299,16 +299,15 @@ const Jobs = () => {
               />
             </div>
           ) : (
-            // Virtualized grid: each VirtualList row is one grid line of up
-            // to CARDS_PER_ROW cards. The window virtualizer keeps the DOM
-            // small on long lists while preserving the 1/2/3-up layout.
+            // Virtualized single-column list: each VirtualList row is one
+            // card. The window virtualizer keeps the DOM small on long lists.
             <VirtualList
               items={rows}
               getKey={(row, i) => `row-${i}-${row[0]?.id ?? "empty"}`}
               estimateSize={250}
               overscan={3}
               renderItem={(row, rowIndex) => (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+                <div className="grid grid-cols-1 gap-4 pb-4">
                   {row.map((job, colIndex) => {
                     const flatIndex = rowIndex * CARDS_PER_ROW + colIndex;
                     const enriched = toEnrichedJob(job);

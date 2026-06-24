@@ -46,6 +46,7 @@ const Sonner = lazy(() =>
 // the landing-page hot path.
 const SuccessMomentHost = lazy(() => import("@/components/feedback/SuccessMomentHost"));
 const MobileNav = lazy(() => import("./components/MobileNav"));
+const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
@@ -441,6 +442,7 @@ const App = () => (
           </main>
           <Suspense fallback={null}>
             <MobileNav />
+            <DesktopSidebarNav />
             <PermissionRationaleDialog />
           </Suspense>
           <SpeedInsightsRouted />

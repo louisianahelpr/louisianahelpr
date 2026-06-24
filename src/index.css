@@ -567,13 +567,18 @@ body {
    `html.app-shell` so document-scroll marketing pages (Index, ForBusiness,
    Legal) keep their intentional full-width SEO layout. */
 @media (min-width: 768px) {
-  html.app-shell {
+  /* Centered phone-frame presentation. This is the MOBILE-web / tablet
+     treatment and it must NOT apply on `web-desktop` (the wide desktop
+     website), where we instead let the shell fill the viewport and add a
+     persistent left sidebar. Scoping every rule to `:not(.web-desktop)`
+     keeps mobile-web + tablet byte-identical while desktop opts out. */
+  html.app-shell:not(.web-desktop) {
     background-color: hsl(40 5% 93%);
   }
-  html.app-shell[data-theme="dark"] {
+  html.app-shell:not(.web-desktop)[data-theme="dark"] {
     background-color: hsl(20 12% 5%);
   }
-  html.app-shell .app-shell-frame {
+  html.app-shell:not(.web-desktop) .app-shell-frame {
     /* Desktop app-frame. Widened from 480 → 680 so the single-column UI
        fills more of a desktop viewport AND viewport-keyed `sm:` layouts
        (e.g. the Browse empty-state's side-by-side CTAs) stop overflowing
@@ -585,9 +590,65 @@ body {
       0 0 0 1px hsl(36 14% 70% / 0.55),
       0 24px 70px -20px hsl(64 16% 16% / 0.35);
   }
-  html.app-shell .mobile-nav-frame {
+  html.app-shell:not(.web-desktop) .mobile-nav-frame {
     max-width: 680px;
     margin-inline: auto;
+  }
+}
+
+/* ── Web-desktop (wide browser only — never native) ─────────────────────────
+   Gated by the `web-desktop` class on <html>, set ONLY when
+   `!Capacitor.isNativePlatform()` AND viewport ≥ 1024px (see
+   useAppShellViewport.ts). The native app and phone-width browsers never get
+   this class, so their layout is unchanged.
+
+   The persistent left sidebar (DesktopSidebarNav) is a fixed-position rail.
+   We reserve its width as a CSS variable and inset the app shell + content
+   from the left by that amount so the shell fills the rest of the viewport
+   instead of floating in a 680px column with gray gutters. */
+html.web-desktop {
+  --desktop-sidebar-w: 248px;
+}
+@media (min-width: 1024px) {
+  html.web-desktop.app-shell .app-shell-frame {
+    /* Fill the viewport to the right of the sidebar. No max-width cap, no
+       centered phone frame. */
+    left: var(--desktop-sidebar-w);
+    max-width: none;
+    margin-inline: 0;
+    box-shadow: none;
+  }
+  /* The floating bottom dock is replaced by the sidebar on desktop. Hide it
+     outright so it can't overlap content. */
+  html.web-desktop .mobile-nav-frame {
+    display: none !important;
+  }
+  /* Widen the inner content column on desktop. PageScaffold's centered column
+     is capped at max-w-3xl (768px) on mobile; on desktop give it a roomy cap
+     so the multi-column rails have space to breathe. */
+  html.web-desktop .app-shell-frame .ds-desktop-wide {
+    max-width: 1280px;
+  }
+
+  /* Full-bleed top header. On the desktop website the header spans the ENTIRE
+     viewport width, sitting above the left sidebar rail, rather than being
+     inset alongside the content. The frame stays inset by the sidebar width
+     (so content clears the rail); lifting the header out of that frame's flow
+     via fixed positioning lets it reach x:0 and cover the rail's reserved top
+     band (DesktopSidebarNav's h-14 spacer sits beneath it). */
+  html.web-desktop.app-shell .app-shell-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+  /* Re-reserve the header's height (h-14 = 3.5rem) for the content now that
+     the header is removed from flow. The adjacent-sibling selector matches the
+     content div ONLY when a header precedes it, so header-less app-shell pages
+     keep their natural top edge. */
+  html.web-desktop.app-shell .app-shell-header + div {
+    padding-top: 3.5rem;
   }
 }
 

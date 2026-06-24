@@ -176,13 +176,13 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
             <AlertTriangle className="w-3 h-3" /> Last resort
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             File a dispute.
           </DialogTitle>
           <p
-            className="font-serif italic mt-1"
+            className="font-serif italic pt-1"
             style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             You've already requested a revision. Filing a dispute holds payment for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours</strong> while an admin reviews.

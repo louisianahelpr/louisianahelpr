@@ -109,7 +109,7 @@ export function IDVPromptDialog({
             Identity check
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{
               fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
               color: "hsl(var(--ink-deep))",
@@ -119,7 +119,7 @@ export function IDVPromptDialog({
             {headline}
           </DialogTitle>
           <DialogDescription
-            className="font-serif italic mt-2 text-[0.92rem] leading-relaxed"
+            className="font-serif italic pt-2 text-[0.92rem] leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {description}

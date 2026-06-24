@@ -77,12 +77,12 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             <Zap className="w-3 h-3" /> Skip the wait
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Cash out instantly.
           </DialogTitle>
-          <DialogDescription className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <DialogDescription className="font-serif italic pt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
             In your debit card in ~30 minutes.
           </DialogDescription>
         </DialogHeader>

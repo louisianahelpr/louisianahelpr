@@ -746,7 +746,16 @@ export function ChatView({
                state; the error card above is the only action: Retry. */
             null
           ) : (
-            <>
+            /* Composer dock — quick-reply chips and the input share ONE
+               frosted glass panel so they read as a single sticky unit.
+               The chips used to sit in a transparent wrapper above the
+               dock, leaving a seam where scrolling message bubbles bled
+               up behind them; folding them inside the glass closes that
+               gap and keeps the backdrop consistent. */
+            <div
+              className="pt-2 pb-3 glass-header sticky bottom-0"
+              style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
+            >
               {/* First-message chips — three ice-breaker suggestions shown
                   ONLY when the thread is brand-new (zero messages) and the
                   user hasn't already picked one this session. Dismissed
@@ -759,6 +768,7 @@ export function ChatView({
                     setDraft(text);
                     setChipsDismissed(true);
                   }}
+                  className="pt-0 pb-2"
                 />
               )}
 
@@ -785,7 +795,7 @@ export function ChatView({
                 if (draft.trim() || userSentLast) return null;
 
                 return (
-                  <div className="pt-1">
+                  <div className="pb-1">
                     <QuickReplies
                       onSelect={(msg) => setDraft(msg)}
                       onSend={(msg) => { void sendMessage(msg); }}
@@ -796,30 +806,24 @@ export function ChatView({
                 );
               })()}
 
-              {/* Rich message input */}
-              <div
-                className="pt-2 pb-3 glass-header sticky bottom-0"
-                style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
-              >
-                <RichMessageInput
-                  value={draft}
-                  onChange={setDraft}
-                  onSend={async (content, attachment) => {
-                    // RichMessageInput clears its (controlled) text right
-                    // after onSend returns. If the content scan in the page
-                    // blocks the message (`sendMessage` resolves `false`),
-                    // restore the typed text so a blocked message isn't
-                    // silently lost — the user keeps what they wrote and a
-                    // toast explains why it didn't send.
-                    const accepted = await sendMessage(content, attachment);
-                    if (!accepted && content.trim()) setDraft(content);
-                  }}
-                  onTyping={broadcastTyping}
-                  jobId={activeConvo.jobId}
-                  senderId={userId || undefined}
-                />
-              </div>
-            </>
+              <RichMessageInput
+                value={draft}
+                onChange={setDraft}
+                onSend={async (content, attachment) => {
+                  // RichMessageInput clears its (controlled) text right
+                  // after onSend returns. If the content scan in the page
+                  // blocks the message (`sendMessage` resolves `false`),
+                  // restore the typed text so a blocked message isn't
+                  // silently lost — the user keeps what they wrote and a
+                  // toast explains why it didn't send.
+                  const accepted = await sendMessage(content, attachment);
+                  if (!accepted && content.trim()) setDraft(content);
+                }}
+                onTyping={broadcastTyping}
+                jobId={activeConvo.jobId}
+                senderId={userId || undefined}
+              />
+            </div>
           )}
         </div>
         </div>

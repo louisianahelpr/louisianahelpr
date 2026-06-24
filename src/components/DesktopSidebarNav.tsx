@@ -163,19 +163,22 @@ const DesktopSidebarNav = () => {
   return (
     <nav
       aria-label="Primary"
-      className="fixed left-0 top-0 bottom-0 z-40 hidden lg:flex lg:flex-col"
+      className="fixed left-0 bottom-0 z-40 hidden lg:flex lg:flex-col"
       style={{
+        // Start the rail BELOW the full-width top header (h-14 = 3.5rem plus
+        // any safe-area inset the header reserves) so the header — which spans
+        // the entire viewport width and paints in a separate stacking context
+        // — is never covered by the rail's top band.
+        top: "calc(env(safe-area-inset-top, 0px) + 3.5rem)",
         width: "var(--desktop-sidebar-w, 248px)",
-        paddingTop: "env(safe-area-inset-top, 0px)",
         background: "var(--glass-bg-crisp, hsl(0 0% 100% / 0.97))",
         borderRight: "1px solid hsl(var(--olivewood) / 0.12)",
         boxShadow: "1px 0 2px hsl(var(--olivewood) / 0.06)",
       }}
     >
-      {/* Spacer matching the top header band (h-14) so the first rail item
-          aligns with the header's bottom edge. The brand lockup lives solely
-          in the top header now — the rail no longer duplicates it. */}
-      <div className="h-14 shrink-0" aria-hidden="true" />
+      {/* The rail now starts beneath the header, so add a little breathing room
+          at the top rather than a full header-height spacer. */}
+      <div className="h-3 shrink-0" aria-hidden="true" />
 
       {/* Post-task primary action */}
       {!isPendingApproval && (

@@ -629,6 +629,27 @@ html.web-desktop {
   html.web-desktop .app-shell-frame .ds-desktop-wide {
     max-width: 1280px;
   }
+
+  /* Full-bleed top header. On the desktop website the header spans the ENTIRE
+     viewport width, sitting above the left sidebar rail, rather than being
+     inset alongside the content. The frame stays inset by the sidebar width
+     (so content clears the rail); lifting the header out of that frame's flow
+     via fixed positioning lets it reach x:0 and cover the rail's reserved top
+     band (DesktopSidebarNav's h-14 spacer sits beneath it). */
+  html.web-desktop.app-shell .app-shell-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+  /* Re-reserve the header's height (h-14 = 3.5rem) for the content now that
+     the header is removed from flow. The adjacent-sibling selector matches the
+     content div ONLY when a header precedes it, so header-less app-shell pages
+     keep their natural top edge. */
+  html.web-desktop.app-shell .app-shell-header + div {
+    padding-top: 3.5rem;
+  }
 }
 
 /* Leaflet map (BrowseMap) — lock ALL touch gestures to Leaflet itself.

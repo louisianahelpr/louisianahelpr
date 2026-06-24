@@ -40,16 +40,8 @@ export function JobCardMetaRow({
 }: JobCardMetaRowProps) {
   return (
     <div className="flex items-center gap-2.5 flex-wrap text-ds-11 text-muted-foreground">
-      <span className="flex items-center gap-1">
-        <Calendar className="w-3 h-3 shrink-0" />
-        {formatJobDate(dateNeeded)}
-        {!startTime
-          ? ` · ${flexibleLabel}`
-          : ` · ${new Date(`2000-01-01T${startTime}`).toLocaleTimeString(undefined, {
-              hour: "numeric",
-              minute: "2-digit",
-            })}`}
-      </span>
+      {/* Location → date → time, matching the home feed ("Browse Tasks")
+          card order so the two surfaces read consistently. */}
       <a
         onClick={(e) => e.stopPropagation()}
         href={
@@ -64,6 +56,19 @@ export function JobCardMetaRow({
         <MapPin className="w-3 h-3 shrink-0" />
         <span className="truncate max-w-[140px]">{getCity(location)}</span>
       </a>
+      <span className="flex items-center gap-1">
+        <Calendar className="w-3 h-3 shrink-0" />
+        {formatJobDate(dateNeeded)}
+      </span>
+      <span className="flex items-center gap-1">
+        <Clock className="w-3 h-3 shrink-0" />
+        {!startTime
+          ? flexibleLabel
+          : new Date(`2000-01-01T${startTime}`).toLocaleTimeString(undefined, {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+      </span>
       {estimatedHours ? (
         <span className="flex items-center gap-1">
           <Clock className="w-3 h-3 shrink-0" /> {estimatedHours}h

@@ -19,6 +19,10 @@ interface ChatHeaderProps {
   isOtherOnline: boolean;
   /** Leave the thread, back to the inbox. */
   onBack: () => void;
+  /** Desktop split keeps the inbox permanently visible to the left, so the
+   *  back arrow has nowhere to go — hide it there. Defaults to false
+   *  (mobile/native always show it). */
+  hideBack?: boolean;
   /** Open the snooze picker (only invoked when the thread is unmuted). */
   onOpenMuteSheet: () => void;
   /** Toggle mute (used as the fast unmute when already muted). */
@@ -37,6 +41,7 @@ export function ChatHeader({
   activeConvo,
   isOtherOnline,
   onBack,
+  hideBack = false,
   onOpenMuteSheet,
   onToggleMute,
   onReportUser,
@@ -49,15 +54,17 @@ export function ChatHeader({
        the job currently stands so both sides have shared
        context without scrolling back. */
     <div className="flex items-center gap-2.5 py-2 -mx-4 px-4 border-b border-border bg-card">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="rounded-full h-9 w-9 shrink-0 self-center"
-        onClick={onBack}
-        aria-label="Back to conversations"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </Button>
+      {!hideBack && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full h-9 w-9 shrink-0 self-center"
+          onClick={onBack}
+          aria-label="Back to conversations"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+      )}
       <div
         className={cn(
           "w-9 h-9 rounded-full flex items-center justify-center shrink-0 self-center overflow-hidden",

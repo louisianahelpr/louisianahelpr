@@ -552,6 +552,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
         // Surface the failure instead of silently rendering an empty
         // "no reviews yet" state that looks like real data.
         console.error("[ReviewList] failed to load reviews:", error);
+        report(error, { severity: "warning", tags: { source: "ReviewPanel.load" } });
         setLoadFailed(true);
         setLoaded(true);
         return;

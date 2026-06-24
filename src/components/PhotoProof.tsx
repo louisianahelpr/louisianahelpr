@@ -71,6 +71,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
     const { error: updateError } = await supabase.from("jobs").update(updateField).eq("id", jobId);
     if (updateError) {
       console.error("[PhotoProof] failed to save photo URLs:", updateError);
+      report(updateError, { tags: { source: "PhotoProof.save" } });
       toast.error("Photos uploaded but couldn't be saved to the job. Please try again.");
       setUploading(false);
       return;

@@ -113,6 +113,7 @@ export function JobTracking({
       .limit(1);
     if (error) {
       console.error("[JobTracking] failed to load tracking:", error);
+      report(error, { severity: "warning", tags: { source: "JobTracking.load" } });
       toast.error("Couldn't load job tracking");
       return;
     }

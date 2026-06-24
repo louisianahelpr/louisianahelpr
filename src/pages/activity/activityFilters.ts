@@ -47,6 +47,10 @@ export const POSTED_STATUS_FILTERS: StatusFilter[] = [
   { key: "accepted",     label: jobStatusLabel("accepted"),     color: jobStatusColorClasses("accepted") },
   { key: "in_progress",  label: jobStatusLabel("in_progress"),  color: jobStatusColorClasses("in_progress") },
   { key: "completed",    label: jobStatusLabel("completed"),    color: jobStatusColorClasses("completed") },
+  // Cancelled is a terminal bucket like Completed, so it gets its own
+  // filter rather than living only inside the grouped "All" view. It
+  // folds disputed in, mirroring `bucketPostedJob`.
+  { key: "cancelled",    label: jobStatusLabel("cancelled"),    color: jobStatusColorClasses("cancelled") },
 ];
 
 export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
@@ -113,6 +117,7 @@ export function useActivityFilters({
       else if (statusFilter === "direct_offer") statusMatch = !!j.offered_to_helper_id && j.direct_offer_status === "pending";
       else if (statusFilter === "offered") statusMatch = j.status === "accepted" && !j.helper_confirmed_at;
       else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!j.helper_confirmed_at;
+      else if (statusFilter === "cancelled") statusMatch = j.status === "cancelled" || j.status === "disputed";
       else statusMatch = j.status === statusFilter && !(statusFilter === "open" && j.direct_offer_status === "pending");
       if (!statusMatch) return false;
       // Search filter
@@ -171,6 +176,9 @@ export function useActivityFilters({
       else if (j.status === "accepted" && !!j.helper_confirmed_at) counts.accepted++;
       else counts[j.status] = (counts[j.status] || 0) + 1;
     });
+    // The Cancelled filter folds disputed in (mirroring bucketPostedJob),
+    // so its chip count must include both terminal-negative states.
+    counts.cancelled = (counts.cancelled || 0) + (counts.disputed || 0);
     return counts;
   }, [postedJobs]);
 

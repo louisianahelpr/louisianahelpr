@@ -179,6 +179,7 @@ const TermsContent = () => (
         "Posters pay 10% on top. Helprs are paid 90% of the agreed price (10% platform fee).",
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
+        "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
       ]}
     />
 
@@ -303,6 +304,81 @@ const TermsContent = () => (
             <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.business.name}:</strong> {legalFmtMo(TIER_PERKS.business.price)} — team tools and a {TIER_PERKS.business.platformFeePercent}% platform fee.</p>
             <p>Annual plans save about 2 months. Stripe handles billing automatically.</p>
+          </>
+        }
+      />
+    </PolicySection>
+
+    <PolicySection
+      icon={ShieldAlert}
+      title="Disclaimers & limitation of liability"
+      subtitle="Helpr is the marketplace — not a party to your job"
+      anchorId="liability"
+    >
+      <PolicyRowItem
+        icon={ShieldAlert}
+        title="Helpr is only the marketplace"
+        body={
+          <>
+            <p><strong className="text-foreground">We connect people — we don't do the work.</strong> Helpr provides the platform that lets posters and helprs find each other. We do not perform, supervise, direct, inspect, schedule, or control any task.</p>
+            <p>Every job is a <strong className="text-foreground">direct agreement between the two users.</strong> Helpr is not a party to that agreement, is not your employer or agent, and does not act on your behalf.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={AlertTriangle}
+        title="No liability for what happens during a task"
+        body={
+          <>
+            <p><strong className="text-foreground">To the fullest extent permitted by law, Helpr is not responsible or liable</strong> for any loss, theft, or damage to property, or for any personal injury, illness, death, or other harm, arising out of or related to a task, a user's conduct, or anything that happens before, during, or after a job — whether at the job site or anywhere else.</p>
+            <p>This includes the acts, omissions, honesty, qualifications, or safety of any other user. <strong className="text-foreground">You meet and deal with other users at your own risk.</strong></p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Scale}
+        title={'Provided "as is" — no warranties'}
+        body={
+          <>
+            <p><strong className="text-foreground">The platform and all services are provided "as is" and "as available,"</strong> without warranties of any kind, express or implied.</p>
+            <p>We do not guarantee the quality, safety, legality, honesty, or qualifications of any user, task, listing, or outcome, and we do not guarantee that any verification, rating, or background information is accurate or complete.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Handshake}
+        title="You assume the risk & release Helpr"
+        body={
+          <>
+            <p><strong className="text-foreground">You are solely responsible</strong> for vetting the people you hire or work for, for your own safety, and for your belongings and property.</p>
+            <p>You release Helpr, its owners, and its staff from any and all claims, demands, and damages arising from your use of the platform or your dealings with other users.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Siren}
+        title="Limitation of liability"
+        body={
+          <>
+            <p>To the maximum extent allowed by law, <strong className="text-foreground">Helpr's total liability for any claim is limited to the greater of the platform fees you paid us on the transaction at issue, or $100.</strong></p>
+            <p>Helpr is never liable for indirect, incidental, special, consequential, or punitive damages, or for lost profits or lost data — even if we were advised such damages were possible.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={ShieldCheck}
+        title="Indemnification"
+        body={
+          <p>You agree to <strong className="text-foreground">defend, indemnify, and hold Helpr harmless</strong> from any claims, losses, liabilities, and expenses (including reasonable attorneys' fees) arising from your tasks, your conduct, your content, your violation of these Terms, or your violation of any law or the rights of another person.</p>
+        }
+      />
+      <PolicyRowItem
+        icon={AlertTriangle}
+        title="No insurance; disputes between users"
+        body={
+          <>
+            <p><strong className="text-foreground">Helpr does not provide insurance</strong> for posters or helprs. Any protection or guarantee program we may offer is governed by its own separate terms.</p>
+            <p>Disputes between users are handled through the dispute process in the <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>. Helpr's role is limited to facilitating that process and is not a guarantor of any outcome.</p>
           </>
         }
       />

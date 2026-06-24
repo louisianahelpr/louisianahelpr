@@ -601,6 +601,11 @@ const UserProfile = () => {
   }, [reviews.length, userId, loadingMoreReviews, reviewsFromQuery]);
   const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
   const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
+  // The "Completed" stat tile is a trust signal — it must count only jobs
+  // actually finished as a helper, not every job taken. workedJobs includes
+  // In Progress / Accepted rows, so filter to completed before counting or
+  // listing under that label.
+  const completedWorkedJobs = workedJobs.filter((j) => j.status === "completed");
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
   const cancellationRate = data?.cancellationRate ?? { total: 0, cancelled: 0, rate: null as number | null };
   const mutualJobsCount = data?.mutualJobsCount ?? 0;
@@ -877,7 +882,7 @@ const UserProfile = () => {
           <ProfileStatsGrid
             stats={stats}
             postedJobsCount={postedJobs.length}
-            workedJobsCount={workedJobs.length}
+            workedJobsCount={completedWorkedJobs.length}
             isOwnProfile={isOwnProfile}
             showReviews={showReviews}
             showPostedJobs={showPostedJobs}
@@ -994,7 +999,7 @@ const UserProfile = () => {
           {showPostedJobs && <JobsList jobs={postedJobs} variant="posted" />}
 
           {/* Worked Jobs expanded inline */}
-          {showWorkedJobs && <JobsList jobs={workedJobs} variant="worked" />}
+          {showWorkedJobs && <JobsList jobs={completedWorkedJobs} variant="worked" />}
 
           {profile.hourly_rate && (
             <div className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">

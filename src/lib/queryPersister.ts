@@ -41,12 +41,46 @@ const idbAsyncStorage = {
 };
 
 /**
+ * Marker key used to round-trip a `Set` through JSON. Default
+ * `JSON.stringify` turns a Set into `{}` (Sets have no enumerable own
+ * properties), so any persisted query whose data holds a Set would
+ * rehydrate it as a plain object and blow up the first time the consumer
+ * calls `.has()`/`.add()`. The activity feed (useActivityData) returns
+ * three such Sets — startRequestedJobIds, declinedJobIds,
+ * helperReviewedJobIds — which is exactly how My Posts / My Jobs crashed
+ * to an error boundary after a cold start rehydrated the persisted cache.
+ */
+const SET_MARKER = "__rq_set__";
+
+const serializeReplacer = (_key: string, value: unknown) =>
+  value instanceof Set ? { [SET_MARKER]: Array.from(value) } : value;
+
+const deserializeReviver = (_key: string, value: unknown) => {
+  if (
+    value &&
+    typeof value === "object" &&
+    Array.isArray((value as Record<string, unknown>)[SET_MARKER])
+  ) {
+    return new Set((value as Record<string, unknown[]>)[SET_MARKER]);
+  }
+  return value;
+};
+
+/**
+ * Bumped to `-s2` when the Set-aware serializer landed: pre-existing
+ * IndexedDB payloads still hold the broken `{}`-shaped Sets, so the buster
+ * string must change to evict them exactly once on the next load.
+ */
+const SERIALIZATION_VERSION = "s2";
+
+/**
  * Cache buster — bump (or rely on VITE_APP_VERSION bumping) any time the
  * persisted cache shape changes in a backward-incompatible way so old
  * payloads are discarded instead of hydrated into the new code path.
  */
-const CACHE_BUSTER =
-  (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "v1";
+const CACHE_BUSTER = `${
+  (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "v1"
+}-${SERIALIZATION_VERSION}`;
 
 /**
  * 24 hours. The default `gcTime` on the QueryClient must be >= this for
@@ -69,6 +103,10 @@ export const queryCachePersister = createAsyncStoragePersister({
   // Coalesce frequent writes (e.g. during a list-scroll that refetches
   // pages) into a single IndexedDB transaction per second.
   throttleTime: 1000,
+  // Set-aware (de)serialization — default JSON would flatten any Set in a
+  // query's data to `{}` and crash the consumer on rehydration.
+  serialize: (client) => JSON.stringify(client, serializeReplacer),
+  deserialize: (cached) => JSON.parse(cached, deserializeReviver),
 });
 
 /**

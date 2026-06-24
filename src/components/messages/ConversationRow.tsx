@@ -1,8 +1,6 @@
 import { memo, useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Flag, Ban, Trash2, MoreVertical, BellOff, Bell, Pin, PinOff } from "lucide-react";
-import { toast } from "sonner";
-import { hapticLight } from "@/lib/haptics";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +39,11 @@ interface ConversationRowProps {
   isPinned: boolean;
   /** Toggle the pinned state for this conversation. */
   onTogglePin: () => void;
+  /** Highlighted as the open thread in the desktop list+thread split, so
+   *  the inbox tracks which conversation fills the right pane. Defaults to
+   *  false — on mobile (screen-swap) no row is ever the persistent active
+   *  one. */
+  isActive?: boolean;
 }
 
 /**
@@ -119,6 +122,7 @@ const ConversationRowBase = ({
   onOpenMuteSheet,
   isPinned,
   onTogglePin,
+  isActive = false,
 }: ConversationRowProps) => {
   // Relative time so the list reads as "active", not as a stack of
   // full dates.
@@ -199,9 +203,19 @@ const ConversationRowBase = ({
         // ~0.97-white conversations panel, so each thread blurred into the
         // next. A near-opaque card surface + a stronger hairline border and
         // lift give every thread a clearly readable, separated edge.
-        backgroundColor: "hsl(var(--card))",
-        border: "1px solid hsl(var(--olivewood) / 0.22)",
-        boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.08), 0 6px 16px -4px hsl(var(--olivewood) / 0.12)",
+        //
+        // Active (desktop split — this thread is open in the right pane):
+        // a bark-tinted surface + bark ring so the row reads as "selected"
+        // without changing its shape. Inert on mobile (isActive is false).
+        backgroundColor: isActive
+          ? "hsl(var(--bark) / 0.08)"
+          : "hsl(var(--card))",
+        border: isActive
+          ? "1px solid hsl(var(--bark) / 0.40)"
+          : "1px solid hsl(var(--olivewood) / 0.22)",
+        boxShadow: isActive
+          ? "0 1px 2px hsl(var(--bark) / 0.12), 0 6px 16px -4px hsl(var(--bark) / 0.18)"
+          : "0 1px 2px hsl(var(--olivewood) / 0.08), 0 6px 16px -4px hsl(var(--olivewood) / 0.12)",
       }}
     >
       {/* Avatar — uses real photo when available, otherwise a per-person
@@ -251,62 +265,18 @@ const ConversationRowBase = ({
                 {c.jobTitle}
               </p>
               {statusChip && (
-                // For a cancelled job the chip becomes a tap target: tapping
-                // it explains *what* happened (the row's main tap still opens
-                // the thread — the badge `stopPropagation`s so the two don't
-                // collide). The hit area is padded to ≥44px for touch even
-                // though the visible chip stays compact. Non-cancelled
-                // statuses stay a plain inert label.
-                c.jobStatus === "cancelled" ? (
-                  // The chip is rendered as a `role="button"` span (NOT a
-                  // <button>) because it lives inside the row's main
-                  // open-thread <button> — nested <button>s are invalid
-                  // HTML. The span's onClick stops propagation so tapping
-                  // the badge reveals the cancellation detail without also
-                  // opening the thread. The hit area is padded to ≥44px for
-                  // touch even though the visible chip stays compact.
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      hapticLight();
-                      // Conversation rows don't carry the cancellation
-                      // reason/timestamp (not in the inbox fetch), so we
-                      // surface the status + job title — enough to answer
-                      // "which one and what happened" at a glance.
-                      toast("This job was cancelled.", {
-                        description: c.jobTitle,
-                      });
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        hapticLight();
-                        toast("This job was cancelled.", {
-                          description: c.jobTitle,
-                        });
-                      }
-                    }}
-                    aria-label={`This job was cancelled: ${c.jobTitle}. Tap for details.`}
-                    className="-my-3 py-3 px-1 inline-flex items-center shrink-0 btn-press cursor-pointer"
-                  >
-                    <span
-                      className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                      style={{ color: statusChip.color, backgroundColor: statusChip.bg, letterSpacing: "0.08em" }}
-                    >
-                      {statusChip.label}
-                    </span>
-                  </span>
-                ) : (
-                  <span
-                    className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
-                    style={{ color: statusChip.color, backgroundColor: statusChip.bg, letterSpacing: "0.08em" }}
-                  >
-                    {statusChip.label}
-                  </span>
-                )
+                // Plain inert label for every status, cancelled included.
+                // The chip lives inside the row's open-thread <button>, so a
+                // tap anywhere on the row — chip included — opens the thread.
+                // (A cancelled thread is still fully readable/replyable, and
+                // the thread itself renders a "Job cancelled" system event,
+                // so the chip doesn't need to intercept taps to explain it.)
+                <span
+                  className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                  style={{ color: statusChip.color, backgroundColor: statusChip.bg, letterSpacing: "0.08em" }}
+                >
+                  {statusChip.label}
+                </span>
               )}
               {/* Muted bell-slash — quiet visual mark that this thread
                   has notifications off for the current user. iMessage

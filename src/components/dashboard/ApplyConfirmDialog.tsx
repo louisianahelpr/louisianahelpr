@@ -300,14 +300,14 @@ export function ApplyConfirmDialog({
             {isInstantBook ? "You're booking" : "You're applying"}
           </span>
           <AlertDialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             {confirmApplyJob ? `"${confirmApplyJob.title}"` : isInstantBook ? "Book this task" : "Apply for this task"}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             {confirmApplyJob ? (
-              <div className="mt-3">
+              <div className="pt-3">
                 {(() => {
                   const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
                   const perHelper = confirmApplyJob.budget / helpers;
@@ -365,7 +365,7 @@ export function ApplyConfirmDialog({
                 })()}
               </div>
             ) : (
-              <p className="font-serif italic mt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic pt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Are you sure you want to apply for this task?
               </p>
             )}

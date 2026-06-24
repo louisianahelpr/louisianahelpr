@@ -72,7 +72,7 @@ export function PermissionRationaleDialog() {
             {eyebrow}
           </span>
           <AlertDialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{
               fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)",
               color: "hsl(var(--ink-deep))",
@@ -82,7 +82,7 @@ export function PermissionRationaleDialog() {
             {copy.title}
           </AlertDialogTitle>
           <AlertDialogDescription
-            className="font-serif italic mt-2 text-[0.92rem] leading-relaxed"
+            className="font-serif italic pt-2 text-[0.92rem] leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.80)" }}
           >
             {copy.body}

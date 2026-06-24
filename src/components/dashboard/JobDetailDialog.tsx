@@ -359,7 +359,7 @@ const JobDetailDialog = ({
             {categoryLabels[job.category] || job.category}
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{
               fontSize: "1.5rem",
               color: "hsl(var(--ink-deep))",

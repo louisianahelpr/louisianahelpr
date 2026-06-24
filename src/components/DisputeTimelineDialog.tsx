@@ -206,12 +206,12 @@ export const DisputeTimelineDialog = ({
             <AlertTriangle className="w-3 h-3" /> Dispute in progress
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Timeline
           </DialogTitle>
-          <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-serif italic pt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
             {decidedAt
               ? "An admin has reached a decision on this dispute."
               : "An admin is reviewing this dispute. Add more evidence to strengthen your case."}

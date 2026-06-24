@@ -196,7 +196,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             <Clock className="w-3 h-3" /> Heads up
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Cancel "{jobTitle}"?

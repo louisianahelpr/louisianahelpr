@@ -158,6 +158,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         <div className="relative md:col-span-2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
+            aria-label="Search notifications"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by email, subject, or user id"

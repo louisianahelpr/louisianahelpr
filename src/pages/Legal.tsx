@@ -1005,9 +1005,14 @@ const Legal = () => {
   // rather than spring-sliding between tabs.
   const reduceMotion = useReducedMotion();
 
-  // WEB: the marketing Navbar owns the top; the tab band sticks just below it
-  // in normal document flow. NATIVE renders via AppShell instead (see below).
-  const webBandStickyTop = "calc(3.5rem + env(safe-area-inset-top, 0px))";
+  // WEB: the tab band pins to the very top of the viewport on scroll. We do
+  // NOT offset by the marketing Navbar's height: that Navbar is `position:
+  // fixed`, but the global Framer page-transition wrapper sets `will-change:
+  // transform`, which makes the wrapper a containing block — so the Navbar
+  // anchors to it and scrolls away with the page instead of staying pinned.
+  // Offsetting by 3.5rem therefore left an empty strip above the band where
+  // later content (search / tagline) leaked through. top: 0 closes that gap.
+  const webBandStickyTop = "0px";
 
   // Switching tabs is a fresh document: drop any active search and jump back
   // to the top (native scrolls AppShell's internal container; web scrolls the

@@ -312,8 +312,9 @@ export function ProfileLanding({
   // architecture grouping — every row keeps the exact tab `key` / `href`
   // it had before, so nothing is dropped or re-targeted. Surfaces that
   // don't map cleanly to a bucket are folded into their nearest one
-  // (family/pets → Account; host/community/benefits → Work;
-  // credits/records/referrals → Money; warnings/support → Legal).
+  // (family/pets/home record → Account; insights/host/community/benefits
+  // → Work; credits/referrals/earnings docs → Money; warnings/support →
+  // Legal).
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
       title: "Account",
@@ -344,12 +345,21 @@ export function ProfileLanding({
           tint: "var(--sage)",
           href: "/pets",
         },
+        {
+          key: "home-history",
+          label: "Home History",
+          icon: <ClipboardList className="w-5 h-5" />,
+          desc: "Your home's permanent maintenance record",
+          tint: "var(--sage)",
+          href: "/home-history",
+        },
       ],
     },
     {
       title: "Work",
       items: [
         { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & weekly hours", tint: "var(--burnt-sienna)" },
+        { key: "analytics", label: "Analytics", icon: <BarChart2 className="w-5 h-5" />, desc: "Trends, categories & hire rate", tint: "var(--stormy-sky)", href: "/analytics" },
         { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: "var(--burnt-sienna)" },
         {
           key: "credentials",
@@ -399,7 +409,6 @@ export function ProfileLanding({
           incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
         },
         { key: "subscription", label: "Upgrade plan", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
-        { key: "analytics", label: "Analytics", icon: <BarChart2 className="w-5 h-5" />, desc: "Trends, categories & hire rate", tint: "var(--stormy-sky)", href: "/analytics" },
         {
           key: "time-credits",
           label: "Time Credits",
@@ -409,14 +418,6 @@ export function ProfileLanding({
           href: "/time-credits",
         },
         { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--gold-warm)" },
-        {
-          key: "home-history",
-          label: "Home History",
-          icon: <ClipboardList className="w-5 h-5" />,
-          desc: "Your home's permanent maintenance record",
-          tint: "var(--sage)",
-          href: "/home-history",
-        },
         {
           key: "work-record",
           label: "Work Record",

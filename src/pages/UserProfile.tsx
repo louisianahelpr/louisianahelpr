@@ -90,6 +90,7 @@ const UserProfile = () => {
   // Response-to-review state: which review is being responded to, and the draft text.
   const [respondingToReview, setRespondingToReview] = useState<string | null>(null);
   const [responseText, setResponseText] = useState("");
+  const [savingResponse, setSavingResponse] = useState(false);
   // Local reviews state for optimistic updates after saving a response.
   const [localReviews, setLocalReviews] = useState<any[] | null>(null);
 
@@ -753,6 +754,7 @@ const UserProfile = () => {
   // Save or update the reviewee's public response to a review they received.
   const handleSaveResponse = async (reviewId: string) => {
     if (!responseText.trim()) return;
+    setSavingResponse(true);
     try {
       const { error } = await (supabase.rpc as any)("respond_to_review", {
         _review_id: reviewId,
@@ -779,6 +781,8 @@ const UserProfile = () => {
       toast.success("Response saved.");
     } catch {
       toast.error("Couldn't save your response — try again?");
+    } finally {
+      setSavingResponse(false);
     }
   };
 
@@ -984,6 +988,7 @@ const UserProfile = () => {
               }}
               onCancelResponding={() => setRespondingToReview(null)}
               onSaveResponse={handleSaveResponse}
+              savingResponse={savingResponse}
               reviewsHasMore={reviewsHasMore}
               loadMoreReviews={loadMoreReviews}
               loadingMoreReviews={loadingMoreReviews}

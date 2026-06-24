@@ -59,6 +59,7 @@ const BusinessContracts = () => {
   const [budgetCents, setBudgetCents] = useState("12500");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const {
     data: templates = [],
@@ -146,6 +147,7 @@ const BusinessContracts = () => {
   };
 
   const deleteTemplate = async (id: string) => {
+    setDeletingId(id);
     try {
       const { error } = await (supabase.from as any)("business_job_templates")
         .delete()
@@ -154,7 +156,10 @@ const BusinessContracts = () => {
       hapticSuccess();
       queryClient.invalidateQueries({ queryKey: queryKeys.business.templates(businessId) });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Couldn't delete template.");
+      hapticError();
+      toast.error(err instanceof Error ? err.message : "Couldn't delete that template — try again?");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -273,8 +278,8 @@ const BusinessContracts = () => {
                   </p>
                 </div>
                 <Switch checked={t.active} onCheckedChange={() => togglePower(t)} aria-label="Toggle schedule" />
-                <Button variant="ghost" size="sm" onClick={() => deleteTemplate(t.id)} aria-label="Delete">
-                  <Trash2 className="w-4 h-4" />
+                <Button variant="ghost" size="sm" disabled={deletingId === t.id} onClick={() => deleteTemplate(t.id)} aria-label="Delete">
+                  {deletingId === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 </Button>
               </li>
             ))}

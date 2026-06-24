@@ -18,7 +18,6 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
-import { DashboardRightRail } from "@/components/dashboard/DashboardRightRail";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import DashboardGreetingCard from "@/components/dashboard/DashboardGreetingCard";
@@ -940,10 +939,12 @@ const Dashboard = () => {
               {/* The job feed fills the frame. The map is reached via the
                   toolbar list/map toggle (BrowseMap inside BrowseTasksFeed),
                   not a side panel — a fixed split-screen map clipped at the
-                  edge of the centered phone-width frame. */}
-              <div className="flex flex-1 min-h-0 overflow-hidden">
-                <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
-                  <BrowseTasksFeed
+                  edge of the centered phone-width frame. The feed spans the
+                  full content width right of the desktop sidebar; those
+                  shortcut destinations live in the persistent left sidebar
+                  (DesktopSidebarNav), so no separate quick-actions rail. */}
+              <div className="flex flex-1 min-w-0 min-h-0 overflow-hidden flex-col">
+                <BrowseTasksFeed
                     view={view}
                     density={density}
                     filters={filters}
@@ -983,11 +984,6 @@ const Dashboard = () => {
                     hoveredJobId={hoveredJobId}
                     setHoveredJobId={setHoveredJobId}
                   />
-                </div>
-                {/* Desktop-only right rail (web-desktop). Hidden on
-                    mobile/native via its own `hidden lg:flex`, so the feed
-                    keeps full width there exactly as today. */}
-                <DashboardRightRail />
               </div>
             </SectionBoundary>
 

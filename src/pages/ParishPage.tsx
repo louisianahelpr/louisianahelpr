@@ -408,7 +408,7 @@ const ParishPage = () => {
               Browse all jobs
             </Button>
             <Button
-              variant="hero"
+              variant="bark"
               size="sm"
               className="rounded-full squircle flex-1 min-w-0"
               onClick={() => navigate("/post-job")}

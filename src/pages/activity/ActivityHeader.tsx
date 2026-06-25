@@ -39,7 +39,7 @@ export function ActivityHeader({
   // The "non-default" status that lights up the filter button + dot.
   // Preserved verbatim from the prior dropdown so the active indicator
   // behaves identically after the move to the bottom sheet.
-  const defaultStatus = tab === "applied" ? "pending" : "open";
+  const defaultStatus = tab === "applied" ? "pending" : "active";
   const isStatusFiltered = statusFilter !== defaultStatus;
   return (
     <>

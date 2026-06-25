@@ -1001,7 +1001,7 @@ const Dashboard = () => {
                     the way the old side-map did (#12). */}
                 {isWebDesktop && (
                   <div
-                    className="w-[42%] shrink-0 min-h-0 flex flex-col pl-3 pt-2"
+                    className="w-[48%] shrink-0 min-h-0 flex flex-col pl-3 pt-2"
                     style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}
                   >
                     <Suspense fallback={<Skeleton className="h-full w-full rounded-2xl" />}>

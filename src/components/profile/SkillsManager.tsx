@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { hapticLight } from "@/lib/haptics";
 import { categorySkills, universalSkills } from "@/lib/skillsGuide";
+import { formatCategory } from "@/lib/format";
 import { X, Plus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
@@ -192,7 +193,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
                   border: `0.5px solid hsl(var(--bark) / ${selectedCategory === cat ? "0.6" : "0.18"})`,
                 }}
               >
-                {cat.replace(/_/g, " ")}
+                {formatCategory(cat)}
               </button>
             ))}
           </div>

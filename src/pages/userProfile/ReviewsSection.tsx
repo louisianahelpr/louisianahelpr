@@ -1,6 +1,6 @@
 import { Star, ChevronDown } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
-import { formatShortDate } from "@/lib/format";
+import { formatShortDate, formatCategory } from "@/lib/format";
 import type { ProfileReview } from "./types";
 
 type RatingFilter = "all" | "5" | "4" | "low";
@@ -114,7 +114,7 @@ export const ReviewsSection = ({
                     }}
                   >
                     <Icon className="w-3 h-3" />
-                    <span className="capitalize">{cat.replace(/_/g, " ")}</span>
+                    <span>{formatCategory(cat)}</span>
                   </button>
                 );
               })}

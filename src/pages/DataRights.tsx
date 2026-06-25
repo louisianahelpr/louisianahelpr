@@ -36,11 +36,12 @@ const DataRights = () => {
       "Export, correct, or delete your personal information on Helpr at any time under the EU GDPR and California CCPA.",
   });
   // Derive the user id from the app-wide auth snapshot (getSession-backed,
-  // local, offline-safe) rather than a network getUser() call — the page
-  // already sits behind ProtectedRoute, so the session is trusted. A failed
-  // getUser() round-trip (e.g. a transient auth-server hiccup) used to leave
-  // `userId` null and the export button permanently disabled for a
-  // legitimately logged-in user.
+  // local, offline-safe) rather than a network getUser() call. This route is
+  // public (linked from the App Store privacy listing), so a logged-out
+  // visitor correctly gets a null id and a disabled export. The bug this
+  // avoids is for a logged-IN user: a failed getUser() round-trip (transient
+  // auth-server hiccup) used to leave `userId` null and the export button
+  // permanently disabled even though a valid local session existed.
   const { user } = useAuthReady();
   const userId = user?.id ?? null;
   const [exporting, setExporting] = useState(false);

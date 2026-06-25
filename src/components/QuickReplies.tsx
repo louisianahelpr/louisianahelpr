@@ -148,6 +148,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus 
       {smartReplies.map((qr) => (
         <Button
           key={`smart-${qr.label}`}
+          variant="outline"
           size="sm"
           className="shrink-0 text-ds-11 min-h-[44px] px-2.5 gap-1 rounded-full"
           style={{

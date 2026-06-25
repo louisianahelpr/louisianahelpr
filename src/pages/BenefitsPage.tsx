@@ -200,6 +200,7 @@ export default function BenefitsPage() {
 
         {/* Footer CTA */}
         <Button
+          variant="outline"
           className="w-full mb-2"
           style={{
             background: "hsl(var(--bark) / 0.10)",

@@ -13,7 +13,10 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
-import OfflineBanner from "@/components/OfflineBanner";
+// OfflineBanner statically imports WifiOff from lucide-react, which would
+// otherwise pull the entire lucide chunk onto the critical initial load path.
+// It's only ever visible when the network drops (rare), so lazy-loading is safe.
+const OfflineBanner = lazy(() => import("@/components/OfflineBanner"));
 import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
@@ -430,7 +433,7 @@ const App = () => (
           <Suspense fallback={null}><ScrollToTop /></Suspense>
           <SessionManager />
           <NativeLaunchRouter />
-          <OfflineBanner />
+          <Suspense fallback={null}><OfflineBanner /></Suspense>
           <Suspense fallback={null}>
             <StrikeBanner />
           </Suspense>

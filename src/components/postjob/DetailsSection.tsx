@@ -11,7 +11,6 @@ import {
   Sparkles,
   Mic,
   GripVertical,
-  ShieldCheck,
   Award,
   BadgeCheck,
   Users2,
@@ -53,10 +52,12 @@ const CREDENTIAL_TIER_CATEGORIES = new Set([
   "assembly",
 ]);
 
-// The four tier options rendered in the "Who can apply?" segmented control.
+// The tier options rendered in the "Who can apply?" segmented control.
+// No "ID-Verified" tier: every helper accepted for a job is already
+// ID-verified, so it would never actually narrow the applicant pool.
+// The only meaningful gates for trade work are licensing and insurance.
 const CREDENTIAL_TIERS = [
   { value: 0, label: "Open", sub: "Anyone can apply", Icon: Users2 },
-  { value: 1, label: "ID-Verified", sub: "ID-verified helpers", Icon: ShieldCheck },
   { value: 2, label: "Licensed", sub: "Licensed pros only", Icon: Award },
   { value: 3, label: "Licensed + Insured", sub: "Licensed & insured", Icon: BadgeCheck },
 ] as const;

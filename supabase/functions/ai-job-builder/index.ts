@@ -42,7 +42,7 @@ Always respond using the generate_job_posting tool.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
@@ -93,7 +93,7 @@ Always respond using the generate_job_posting tool.`;
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI service error" }), {
+      return new Response(JSON.stringify({ error: `AI service error (${response.status}): ${t.slice(0, 200)}` }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

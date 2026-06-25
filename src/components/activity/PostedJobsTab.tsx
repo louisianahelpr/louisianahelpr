@@ -12,6 +12,7 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { VirtualList } from "@/components/VirtualList";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
@@ -203,6 +204,10 @@ export const PostedJobsTab = ({
   onActionComplete, groupByStatus = false,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
+  // Wide browser desktop only (never native / phone-web): swap the
+  // window-virtualized flat list for a plain two-column grid so the
+  // per-status views match the sectioned view's desktop layout.
+  const isWebDesktop = useIsWebDesktop();
 
   // Sort order for the applicants comparison panel.
   // "recommended" = multi-factor score desc (default)
@@ -738,6 +743,12 @@ export const PostedJobsTab = ({
       title="No matches in this view"
       body="Nothing here fits that filter yet — try a different status from the filter button to see more."
     />
+  ) : isWebDesktop ? (
+    <div className="ds-activity-grid">
+      {visibleJobs.map((job) => (
+        <div key={job.id}>{renderJobCard(job)}</div>
+      ))}
+    </div>
   ) : (
     <VirtualList
       items={visibleJobs}

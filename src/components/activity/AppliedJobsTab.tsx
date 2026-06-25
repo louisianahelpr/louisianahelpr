@@ -10,6 +10,7 @@ import { Briefcase } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { VirtualList } from "@/components/VirtualList";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { type Application, type AppliedApp, type Job } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
@@ -58,6 +59,10 @@ export const AppliedJobsTab = ({
   groupByStatus = false,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
+  // Wide browser desktop only (never native / phone-web): swap the
+  // window-virtualized flat list for a plain two-column grid so the
+  // per-status views match the sectioned view's desktop layout.
+  const isWebDesktop = useIsWebDesktop();
   const [disputeResponse, setDisputeResponse] = useState("");
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
@@ -229,6 +234,12 @@ export const AppliedJobsTab = ({
       renderItem={renderAppliedCard}
       labels={{ cancelled: "Closed" }}
     />
+  ) : isWebDesktop ? (
+    <div className="ds-activity-grid">
+      {apps.map((app) => (
+        <div key={app.id}>{renderAppliedCard(app)}</div>
+      ))}
+    </div>
   ) : (
     <VirtualList
       items={apps}

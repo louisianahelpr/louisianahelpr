@@ -650,6 +650,23 @@ html.web-desktop {
   html.web-desktop.app-shell .app-shell-header + div {
     padding-top: 3.5rem;
   }
+
+  /* Activity (My Posts / My Jobs) two-column card grid. Gated by web-desktop
+     so the native app + phone-width browsers keep their single column. Used by
+     both the sectioned view (ActivitySectionedView) and the flat per-status
+     view (PostedJobsTab / AppliedJobsTab render a plain grid here instead of
+     the window-virtualized list when useIsWebDesktop() is true). `!important`
+     cancels the base `space-y-3` vertical margins so the grid gap is the only
+     spacing. */
+  html.web-desktop .ds-activity-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    align-items: start;
+  }
+  html.web-desktop .ds-activity-grid > * {
+    margin-top: 0 !important;
+  }
 }
 
 /* Leaflet map (BrowseMap) — lock ALL touch gestures to Leaflet itself.

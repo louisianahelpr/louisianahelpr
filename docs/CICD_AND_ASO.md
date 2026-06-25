@@ -1,9 +1,9 @@
 # CI/CD + App Store Optimization (ASO)
 
 Operational runbook for Helpr's release pipeline and App Store listing.
-Code changes ship via Lovable's preview/publish flow — this doc covers the
+Web changes deploy to Vercel on push to `main` — this doc covers the
 **iOS native build**, **TestFlight delivery**, and **App Store metadata**
-steps that live outside the codebase.
+steps that live outside the web deploy.
 
 ---
 
@@ -20,9 +20,9 @@ and uploads the binary that matches the existing App Store Connect record.
 - App Store metadata change that requires a binary version bump
 
 ### Recommended workflow file
-Create `.github/workflows/ios-testflight.yml` in your forked git repo
-(this Lovable-managed project does **not** include a `.github/` directory —
-add it once you mirror the repo to GitHub):
+Create `.github/workflows/ios-testflight.yml` to automate TestFlight builds
+(note: macOS runner minutes are costly — local Fastlane or Xcode Cloud may
+be preferable):
 
 ```yaml
 name: iOS TestFlight

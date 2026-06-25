@@ -1,6 +1,6 @@
 // Slack ops-alerts dispatcher.
 // Posts critical platform events (disputes, fraud flags, payout failures,
-// auto-suspensions) into a Slack channel via the Lovable connector gateway.
+// auto-suspensions) into a Slack channel via the Slack Web API.
 //
 // Fire-and-forget by design: callers should NOT await the result for
 // latency-sensitive flows. Failures are logged but never thrown back to
@@ -8,7 +8,7 @@
 
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 
-const GATEWAY_URL = 'https://connector-gateway.lovable.dev/slack/api'
+const SLACK_API_URL = 'https://slack.com/api'
 const DEFAULT_CHANNEL = Deno.env.get('SLACK_OPS_CHANNEL') || '#ops-alerts'
 
 type AlertSeverity = 'critical' | 'warning' | 'info'
@@ -27,7 +27,7 @@ interface AlertBody {
   message: string
   // Optional structured fields rendered as a fields block
   fields?: Record<string, string | number | null | undefined>
-  // Optional Lovable admin deep link (e.g. /admin?tab=disputes&job=...)
+  // Optional admin deep link (e.g. /admin?tab=disputes&job=...)
   link?: string
   // Override the destination channel (defaults to SLACK_OPS_CHANNEL or #ops-alerts)
   channel?: string
@@ -88,11 +88,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY')
     const slackKey = Deno.env.get('SLACK_API_KEY')
 
-    if (!lovableKey || !slackKey) {
-      console.error('slack-ops-alert: missing LOVABLE_API_KEY or SLACK_API_KEY')
+    if (!slackKey) {
+      console.error('slack-ops-alert: missing SLACK_API_KEY')
       return new Response(
         JSON.stringify({ skipped: true, reason: 'slack_not_configured' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -111,12 +110,11 @@ Deno.serve(async (req) => {
     const channel = body.channel || DEFAULT_CHANNEL
     const blocks = buildBlocks(body, severity)
 
-    const res = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
+    const res = await fetch(`${SLACK_API_URL}/chat.postMessage`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        'X-Connection-Api-Key': slackKey,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${slackKey}`,
+        'Content-Type': 'application/json; charset=utf-8',
       },
       body: JSON.stringify({
         channel,

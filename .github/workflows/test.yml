@@ -64,9 +64,8 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        # Lovable manages package-lock.json out-of-band, so it can drift from
-        # package.json between syncs. Use `npm install` (not `npm ci`) so CI
-        # heals a stale lockfile instead of failing the run.
+        # Use `npm install` (not `npm ci`) so CI heals a stale lockfile
+        # instead of failing the run if package-lock.json drifts.
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: ESLint

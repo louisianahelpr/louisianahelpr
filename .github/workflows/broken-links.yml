@@ -22,7 +22,7 @@ on:
 
 jobs:
   link-check:
-    name: Crawl louisianahelpr.lovable.app for 404s
+    name: Crawl www.louisianahelpr.com for 404s
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -35,14 +35,14 @@ jobs:
         run: |
           set -e
           URLS=(
-            "https://louisianahelpr.lovable.app/"
-            "https://louisianahelpr.lovable.app/privacy"
-            "https://louisianahelpr.lovable.app/terms"
-            "https://louisianahelpr.lovable.app/rules"
-            "https://louisianahelpr.lovable.app/support"
-            "https://louisianahelpr.lovable.app/login"
-            "https://louisianahelpr.lovable.app/signup"
-            "https://louisianahelpr.lovable.app/data-rights"
+            "https://www.louisianahelpr.com/"
+            "https://www.louisianahelpr.com/privacy"
+            "https://www.louisianahelpr.com/terms"
+            "https://www.louisianahelpr.com/rules"
+            "https://www.louisianahelpr.com/support"
+            "https://www.louisianahelpr.com/login"
+            "https://www.louisianahelpr.com/signup"
+            "https://www.louisianahelpr.com/data-rights"
           )
           FAIL=0
           for URL in "${URLS[@]}"; do
@@ -71,5 +71,5 @@ jobs:
             --accept 200,206,429
             --exclude-mail
             --exclude-path node_modules
-            https://louisianahelpr.lovable.app/
+            https://www.louisianahelpr.com/
           fail: false # don't fail on flaky external links — log only

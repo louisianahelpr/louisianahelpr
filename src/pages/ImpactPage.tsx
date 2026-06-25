@@ -236,6 +236,12 @@ const ImpactPage = () => {
       <Suspense fallback={null}>
         <Navbar />
       </Suspense>
+      {/* Spacer clears the fixed Navbar (h-12 + safe-area top inset) so the
+          PageHeader title isn't occluded — mirrors PublicLayout's spacer. */}
+      <div
+        aria-hidden
+        style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3rem)" }}
+      />
 
       <PageHeader
         title="Louisiana's local economy, moving."

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
+import { PenLine, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
 import { sampleJobs } from "@/data/sampleJobs";
 import { useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
@@ -86,7 +86,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
           aria-hidden
         >
-          <Sparkles className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+          <PenLine className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
         </span>
         <span className="min-w-0 flex-1">
           <span

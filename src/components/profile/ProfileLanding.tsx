@@ -512,10 +512,7 @@ export function ProfileLanding({
           </button>
         </div>
 
-        {/* pr-[132px] reserves space for the Share icon (40px) + gap (6px)
-            + Edit pill (~86px) so the name/location row never wraps into
-            those controls on narrow phones. */}
-        <div className="flex flex-row items-center gap-4 pr-[132px]">
+        <div className="flex flex-row items-center gap-4">
           {/* Avatar — a real focal point on this applicant-facing page.
               Tier-styled ring uses gold for elite, sienna for pro,
               bark for everyone else. ID-verified checkmark sits on the
@@ -588,7 +585,13 @@ export function ProfileLanding({
 
           {/* Name + tier + location, vertically centered against the avatar */}
           <div className="flex-1 min-w-0 text-left">
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Only the name line clears the absolutely-positioned Share
+                icon (40px) + gap (6px) + Edit pill (~86px) at top-right via
+                pr-[132px]. The location + badges sit BELOW the buttons'
+                bottom edge, so they take the full column width instead of
+                being needlessly crushed (which forced "New Orleans, LA" to
+                wrap mid-phrase). */}
+            <div className="flex items-center gap-2 flex-wrap pr-[132px]">
               <h1
                 className="font-display italic font-bold leading-tight"
                 style={{

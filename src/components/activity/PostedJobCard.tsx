@@ -870,36 +870,45 @@ function PostedJobCardInner({
                           not promoted to a full-width near-primary. Tints are
                           kept low so it's colorful, not loud. */}
                       <div className="space-y-2">
-                        <div className="grid grid-cols-4 gap-2">
+                        {/* Compact glanceable row: at 375px four labelled
+                            pills won't fit side-by-side, so each cell stacks
+                            its icon over a small label. Keeps every action
+                            named (clearer than icon-only) while the color
+                            tints still let the row read at a glance. */}
+                        <div className="grid grid-cols-4 gap-1.5">
                           <Button
                             variant="outline" size="sm"
-                            className="w-full glass-press border-0"
+                            className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
                             style={{ background: "hsl(var(--boost-tint) / 0.14)", color: "hsl(var(--boost-ink))", border: "0.5px solid hsl(var(--boost-tint) / 0.34)" }}
                             disabled={!!isBoosted}
                             onClick={() => onBoost(job.id)}
                           >
-                            <Rocket className="w-4 h-4 mr-1" /> {isBoosted ? "Boosted" : "Boost"}
+                            <Rocket className="w-4 h-4" />
+                            <span className="text-[0.66rem] leading-none font-medium">{isBoosted ? "Boosted" : "Boost"}</span>
                           </Button>
                           <Button
                             variant="outline" size="sm"
-                            className="w-full glass-press border-0"
+                            className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
                             style={{ background: "hsl(var(--gold-warm) / 0.16)", color: "hsl(var(--amber-ink))", border: "0.5px solid hsl(var(--gold-warm) / 0.36)" }}
                             onClick={() => onEdit(job)}
                           >
-                            <Pencil className="w-4 h-4 mr-1" /> Edit
+                            <Pencil className="w-4 h-4" />
+                            <span className="text-[0.66rem] leading-none font-medium">Edit</span>
                           </Button>
                           <ShareJobButton
                             job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-                            className="w-full glass-press border-0"
+                            layout="stack"
+                            className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
                             style={{ background: "hsl(var(--info-tint) / 0.12)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.32)" }}
                           />
                           <Button
                             variant="outline" size="sm"
-                            className="w-full glass-press border-0"
+                            className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
                             style={{ background: "hsl(var(--cancel-tint) / 0.11)", color: "hsl(var(--cancel-ink))", border: "0.5px solid hsl(var(--cancel-tint) / 0.32)" }}
                             onClick={() => onCancel(job)}
                           >
-                            <XCircle className="w-4 h-4 mr-1" /> Cancel
+                            <XCircle className="w-4 h-4" />
+                            <span className="text-[0.66rem] leading-none font-medium">Cancel</span>
                           </Button>
                         </div>
                       </div>

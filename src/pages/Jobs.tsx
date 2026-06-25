@@ -314,14 +314,26 @@ const Jobs = () => {
                     return (
                       // Tapping a card opens a read-only detail preview (guest
                       // mode). Phones have no hover state, so the whole card is
-                      // a plain tappable button. Apply/message/save are gated
-                      // inside the dialog behind a single sign-up CTA.
-                      <button
+                      // tappable. This is a <div role="button">, NOT a real
+                      // <button>: the JobPrice chip inside renders its own
+                      // <button> (tap-to-reveal earnings), and a <button> may
+                      // not nest inside a <button> (validateDOMNesting). The
+                      // role="button" + key handler give the same semantics
+                      // without the invalid nesting — matching the authed feed,
+                      // where JobCard's root is likewise a div role="button".
+                      <div
                         key={job.id}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setDetailJob(enriched)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setDetailJob(enriched);
+                          }
+                        }}
                         aria-label={`View details for ${job.title}`}
-                        className="block w-full text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-in fade-in slide-in-from-bottom-2 duration-300"
+                        className="block w-full text-left rounded-2xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-in fade-in slide-in-from-bottom-2 duration-300"
                         style={
                           flatIndex < MAX_STAGGER_CARDS
                             ? { animationDelay: `${flatIndex * 40}ms`, animationFillMode: "both" }
@@ -337,7 +349,7 @@ const Jobs = () => {
                           onSelect={noop}
                           index={flatIndex}
                         />
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

@@ -194,7 +194,13 @@ export function ActivitySectionedView<TItem>({
                     Nothing in {sectionLabels[key].toLowerCase()} yet.
                   </p>
                 ) : (
-                  <div className="space-y-3">
+                  // Single column on phones / native (the primary target).
+                  // Only the wide *browser* desktop (html.web-desktop, never
+                  // the native shell — see useAppShellViewport) splits these
+                  // into two columns; on phone width the cards otherwise
+                  // stretch to ~900px and read half-empty. The grid + its
+                  // space-y reset live in index.css under `.ds-activity-grid`.
+                  <div className="space-y-3 ds-activity-grid">
                     {bucketItems.map((item) => (
                       <div key={getKey(item)}>{renderItem(item)}</div>
                     ))}

@@ -4,7 +4,6 @@ import {
   DollarSign,
   ShoppingBag,
   Clock,
-  ChevronRight,
   ExternalLink,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -197,32 +196,6 @@ export default function BenefitsPage() {
               </li>
             ))}
           </ul>
-        </div>
-
-        {/* CTA to time credits */}
-        <div
-          className="rounded-2xl p-5 flex items-center justify-between cursor-pointer active:opacity-80"
-          style={{ background: "hsl(var(--gold-warm) / 0.10)" }}
-          onClick={() => navigate("/time-credits")}
-        >
-          <div>
-            <p
-              className="font-semibold text-sm"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Have time credits?
-            </p>
-            <p
-              className="text-xs"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Redeem hours earned from helping for cash discounts on your next job.
-            </p>
-          </div>
-          <ChevronRight
-            className="w-5 h-5 shrink-0"
-            style={{ color: "hsl(var(--bark) / 0.4)" }}
-          />
         </div>
 
         {/* Footer CTA */}

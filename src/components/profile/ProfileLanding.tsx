@@ -409,14 +409,6 @@ export function ProfileLanding({
           incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
         },
         { key: "subscription", label: "Upgrade plan", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
-        {
-          key: "time-credits",
-          label: "Time Credits",
-          icon: <Crown className="w-5 h-5" />,
-          desc: "Earn credits by helping, spend them on your own jobs",
-          tint: "var(--gold-warm)",
-          href: "/time-credits",
-        },
         { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--gold-warm)" },
         {
           key: "work-record",

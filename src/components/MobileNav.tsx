@@ -398,7 +398,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending", "/saved-helpers", "/community",
     // Standalone settings sub-pages keep the bottom tab bar so they share the
     // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
-    "/pets", "/subscription", "/time-credits", "/home-history", "/work-record", "/pay-it-forward", "/benefits", "/family", "/wrapped", "/str-settings", "/help", "/data-rights"];
+    "/pets", "/subscription", "/home-history", "/work-record", "/pay-it-forward", "/benefits", "/family", "/wrapped", "/str-settings", "/help", "/data-rights"];
   // /admin is a distinct console shell (its own full-height layout, header,
   // back button, and logout) — the consumer Posts/Jobs/Messages/Profile bar
   // doesn't belong there, so it's a no-nav page, not an auth tab route.

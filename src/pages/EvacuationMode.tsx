@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
+import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -293,6 +294,7 @@ const EvacuationMode = () => {
         }}
       >
         <div className="flex items-start gap-3">
+          <BackButton />
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
             style={{ background: "hsl(var(--burnt-sienna) / 0.15)" }}

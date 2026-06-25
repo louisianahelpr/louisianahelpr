@@ -106,7 +106,6 @@ const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
 const PetProfiles = lazy(() => import("./pages/PetProfiles"));
 const EvacuationMode = lazy(() => import("./pages/EvacuationMode"));
-const TimeCredits = lazy(() => import("./pages/TimeCredits"));
 const BenefitsPage = lazy(() => import("./pages/BenefitsPage"));
 
 // Lazy load less-critical global components
@@ -239,8 +238,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/parish/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Helpr Wrapped — auth-gated, HelprWrapped handles the redirect */}
       <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<HelprWrapped />)}</RouteErrorBoundary>} />
-      {/* Time banking — earn credits by helping, spend on posted jobs */}
-      <Route path="/time-credits" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><TimeCredits /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Benefits marketplace — partner perks for helpers */}
       <Route path="/benefits" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BenefitsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Pet care — manage pet profiles, vet notes, and evacuation mode */}

@@ -33,7 +33,7 @@ const INITIAL: State = {
   invites: "",
   paymentMethod: "card",
   firstJobTitle: "",
-  firstJobBudget: "12500",
+  firstJobBudget: "125",
 };
 
 const STEPS = [
@@ -163,8 +163,11 @@ const BusinessOnboarding = () => {
                 <Input id="o-job-title" placeholder="Weekly office cleaning" value={state.firstJobTitle} onChange={(e) => setState((s) => ({ ...s, firstJobTitle: e.target.value }))} />
               </div>
               <div>
-                <Label htmlFor="o-job-budget">Budget (cents)</Label>
-                <Input id="o-job-budget" type="number" min={0} value={state.firstJobBudget} onChange={(e) => setState((s) => ({ ...s, firstJobBudget: e.target.value }))} />
+                <Label htmlFor="o-job-budget">Budget</Label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input id="o-job-budget" className="pl-7" type="number" min={0} step="1" inputMode="decimal" placeholder="125" value={state.firstJobBudget} onChange={(e) => setState((s) => ({ ...s, firstJobBudget: e.target.value }))} />
+                </div>
               </div>
             </div>
           </>

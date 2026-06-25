@@ -92,23 +92,60 @@ export function JobPrice({
   // chip — the small feed/Browse card price tile.
   // ──────────────────────────────────────────────────────────────────────
   if (variant === "chip") {
+    const amountNode = (
+      <span
+        className="font-display leading-none tabular-nums"
+        style={{
+          fontWeight: 800,
+          fontSize: "1.05rem",
+          color: "hsl(var(--bark))",
+          letterSpacing: "-0.02em",
+        }}
+      >
+        {/* Literal `$` pulled tight to the digits so the amount reads as
+            one confident figure. */}
+        <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>
+          $
+        </span>
+        {earnings}
+      </span>
+    );
+
+    const chipClass = `inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center ${className ?? ""}`;
+    const chipSurface = {
+      background: "hsl(var(--bark) / 0.10)",
+      border: "0.5px solid hsl(var(--bark) / 0.28)",
+    };
+
+    // Guest/poster surfaces show a static budget with no net breakdown to
+    // reveal, so the chip is purely presentational. Render a plain <div>,
+    // NOT a <button> — these surfaces wrap the whole card in an outer
+    // <button> (guest Browse), and a <button> may not nest inside a
+    // <button> (validateDOMNesting). A non-interactive element keeps the
+    // markup valid while the outer card stays the single tap target.
+    if (showBudget) {
+      return (
+        <div className={chipClass} style={chipSurface}>
+          {amountNode}
+        </div>
+      );
+    }
+
     return (
       <button
         type="button"
         // Stop the tap bubbling to the card root (which opens the detail
         // view) — tapping the price only ever toggles the breakdown.
         onClick={(e) => {
-          if (showBudget) return; // guest/poster: no net breakdown to reveal
           e.stopPropagation();
           setExpanded((v) => !v);
         }}
-        aria-expanded={showBudget ? undefined : expanded}
-        aria-controls={showBudget ? undefined : panelId}
-        className={`inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center ${className ?? ""}`}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        className={chipClass}
         style={{
-          background: "hsl(var(--bark) / 0.10)",
-          border: "0.5px solid hsl(var(--bark) / 0.28)",
-          cursor: showBudget ? "default" : "pointer",
+          ...chipSurface,
+          cursor: "pointer",
           // Override the global 44px min-height/width that every <button>
           // gets (it's a tap-target rule) so the price chip hugs the
           // amount tightly — the whole card is the real tap target.
@@ -116,29 +153,14 @@ export function JobPrice({
           minWidth: 0,
         }}
       >
-        <span
-          className="font-display leading-none tabular-nums"
-          style={{
-            fontWeight: 800,
-            fontSize: "1.05rem",
-            color: "hsl(var(--bark))",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          {/* Literal `$` pulled tight to the digits so the amount reads as
-              one confident figure. */}
-          <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>
-            $
-          </span>
-          {earnings}
-        </span>
+        {amountNode}
         {/* No caption under the amount — the feed chip is a single clean
             net figure. The "You earn" framing, the fee math, and the urgent
             bonus all live in the corner badge + the job-detail breakdown,
             so they're one tap away rather than crowding the card. */}
         {/* Tap-to-reveal breakdown — "Budget $80 − 10% fee". Kept compact;
             collapses by default so the chip stays the size of the title row. */}
-        {!showBudget && expanded && (
+        {expanded && (
           <span
             id={panelId}
             className="font-sans tabular-nums text-[9px] tracking-[0.02em] mt-1 pt-1 whitespace-nowrap"

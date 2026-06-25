@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import BuildStamp from "@/components/BuildStamp";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
+import { safeInternalRedirect } from "@/lib/authRedirects";
 import {
   getLastAuthMethod,
   setLastAuthMethod,
@@ -84,6 +85,13 @@ const signInWithTimeout = async (email: string, password: string) => {
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // A safe ?redirect= target set by ProtectedRoute when it bounced a
+  // logged-out user off a gated route. When present we (a) explain the
+  // bounce in the header copy and (b) return the user there after sign-in
+  // instead of silently dumping them on /dashboard.
+  const redirectTarget = safeInternalRedirect(searchParams.get("redirect"));
+  const postLoginDest = redirectTarget ?? "/dashboard";
   const queryClient = useQueryClient();
   usePageMeta({
     title: "Log In — Helpr",
@@ -211,7 +219,7 @@ const Login = () => {
       }
     } catch { /* fall through to generic copy */ }
     toast.success(firstName ? `Welcome back, ${firstName}.` : "Welcome back.");
-    navigate("/dashboard", { replace: true });
+    navigate(postLoginDest, { replace: true });
   };
 
   const handleVerifyMfa = async (e: React.FormEvent) => {
@@ -262,7 +270,7 @@ const Login = () => {
             letterSpacing: "0.01em",
           }}
         >
-          Pick up right where you left off.
+          {redirectTarget ? "Sign in to continue." : "Pick up right where you left off."}
         </p>
       </div>
 

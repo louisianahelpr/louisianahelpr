@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import BusinessNoAccountState from "@/components/business/BusinessNoAccountState";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -87,7 +87,7 @@ const BusinessContracts = () => {
       </BusinessLayout>
     );
   }
-  if (!business) return <Navigate to="/dashboard" replace />;
+  if (!business) return <BusinessNoAccountState title="Contracts" />;
 
   const selectedPreset = SCHEDULE_PRESETS.find((p) => p.id === presetId)!;
   const cronExpression = presetId === "custom" ? customCron.trim() : selectedPreset.cron;

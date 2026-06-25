@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import BusinessNoAccountState from "@/components/business/BusinessNoAccountState";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -119,7 +119,7 @@ const BusinessApi = () => {
       </BusinessLayout>
     );
   }
-  if (!business) return <Navigate to="/dashboard" replace />;
+  if (!business) return <BusinessNoAccountState title="API & Webhooks" />;
   if (!isOwner) {
     return (
       <BusinessLayout eyebrow="Developer" title="API & Webhooks">

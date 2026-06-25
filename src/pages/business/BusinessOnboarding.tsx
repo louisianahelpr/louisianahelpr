@@ -91,7 +91,7 @@ const BusinessOnboarding = () => {
               <Building2 className="w-4 h-4" /> Tell us about your company
             </h2>
             <p className="text-ds-12 text-muted-foreground mb-4">
-              Anything you set here you can change later in /business/team.
+              Anything you set here you can change later in Team settings.
             </p>
             <div className="space-y-3">
               <div>
@@ -112,7 +112,7 @@ const BusinessOnboarding = () => {
               <Users className="w-4 h-4" /> Invite your team
             </h2>
             <p className="text-ds-12 text-muted-foreground mb-4">
-              Enter one email per line. You can add more from /business/team later.
+              Enter one email per line. You can add more from Team settings later.
             </p>
             <Textarea
               rows={5}

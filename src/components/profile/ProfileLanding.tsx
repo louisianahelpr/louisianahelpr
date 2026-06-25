@@ -633,7 +633,7 @@ export function ProfileLanding({
               // stays intact (it travels as one shrink-0 group).
               <p className="text-ds-11 text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5 mt-1">
                 <MapPin className="w-3 h-3 shrink-0" />
-                <span className="truncate max-w-full min-w-0">{profile.location}</span>
+                <span className="break-words">{profile.location}</span>
                 {memberSinceLabel && (
                   <span className="shrink-0 inline-flex items-center gap-1">
                     <span className="opacity-50">·</span>

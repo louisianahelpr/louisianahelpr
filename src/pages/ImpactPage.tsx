@@ -461,8 +461,8 @@ const ImpactPage = () => {
             <Button
               onClick={goToPostJob}
               size="lg"
+              variant="bark"
               className="rounded-full px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
-              style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
             >
               Post a job
               <ArrowRight className="w-4 h-4" strokeWidth={2} />

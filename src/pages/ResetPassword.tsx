@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Check, X } from "lucide-react";
+import { Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import HelprMark from "@/components/HelprMark";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { friendlyAuthError } from "@/lib/authErrors";
 import { passwordStrength } from "./signup/signupHelpers";
@@ -72,15 +73,33 @@ const ResetPassword = () => {
   };
 
   return (
-    <AuthShell eyebrow="Set a new password" maxWidth="sm" align="center">
-      <div className="liquid-glass p-6 sm:p-8 space-y-6">
-        <div className="text-center space-y-2">
-          <span className="text-display-eyebrow">Reset password</span>
-          <h1 className="text-page-title leading-tight mt-2">
-            Choose a new one.
-          </h1>
+    <AuthShell hideHeader maxWidth="sm" backTo="/login" backLabel="Back to sign in">
+      <div className="text-center mb-8 space-y-2">
+        <div className="flex justify-center mb-3">
+          <HelprMark to={null} size="md" emblemOnly />
         </div>
-
+        <h1
+          className="font-display italic font-bold leading-tight"
+          style={{
+            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
+            color: "hsl(var(--ink-deep))",
+            letterSpacing: "-0.03em",
+          }}
+        >
+          Choose a new one.
+        </h1>
+        <p
+          className="font-sans"
+          style={{
+            fontSize: "0.95rem",
+            color: "hsl(var(--olivewood) / 0.8)",
+            letterSpacing: "0.01em",
+          }}
+        >
+          Set a new password for your account.
+        </p>
+      </div>
+      <div className="liquid-glass p-6 sm:p-8 space-y-6">
         {!ready ? (
           <div className="text-center space-y-4">
             <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -194,16 +213,6 @@ const ResetPassword = () => {
             </Button>
           </form>
         )}
-
-        <p className="text-center text-ds-11 pt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          <Link
-            to="/login"
-            className="font-semibold hover:underline inline-flex items-center gap-1"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to sign in
-          </Link>
-        </p>
       </div>
     </AuthShell>
   );

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Coins, ChevronRight } from "lucide-react";
+import { Clock, Coins, ChevronRight, CheckCircle2, PiggyBank, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import PageHeader from "@/components/PageHeader";
@@ -112,17 +112,17 @@ export default function TimeCredits() {
           </h2>
           <ul className="space-y-2 text-sm" style={{ color: "hsl(var(--olivewood))" }}>
             <li className="flex items-start gap-2">
-              <span className="mt-0.5">✅</span>
+              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "hsl(var(--bark))" }} aria-hidden />
               <span>Complete any job as a helper to earn 60 minutes (1 credit).</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="mt-0.5">💸</span>
+              <PiggyBank className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "hsl(var(--bark))" }} aria-hidden />
               <span>
                 Redeem credits as a $10/hr discount when you post your own job.
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="mt-0.5">♻️</span>
+              <RefreshCw className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "hsl(var(--bark))" }} aria-hidden />
               <span>Credits never expire — keep helping, keep saving.</span>
             </li>
           </ul>

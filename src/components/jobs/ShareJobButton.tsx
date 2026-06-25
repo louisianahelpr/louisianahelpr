@@ -31,6 +31,14 @@ interface ShareJobButtonProps {
    * footer where the row is a sequence of equal-square icon buttons.
    */
   variant?: "default" | "icon";
+  /**
+   * Layout of the default (pill) variant. `"row"` keeps the icon and
+   * "Share" label side-by-side (the standard full-width mount). `"stack"`
+   * centers a small icon over a tiny label so the button fits a tight
+   * multi-column action grid (e.g. the My Posts Boost/Edit/Share/Cancel
+   * row at 375px). Ignored by the icon-only variant.
+   */
+  layout?: "row" | "stack";
   /** Optional aria-label override for the icon-only variant. */
   ariaLabel?: string;
   /**
@@ -69,6 +77,7 @@ export function ShareJobButton({
   job,
   className,
   variant = "default",
+  layout = "row",
   ariaLabel,
   style,
 }: ShareJobButtonProps) {
@@ -183,7 +192,16 @@ export function ShareJobButton({
         className,
       )}
     >
-      <Share2 className="w-4 h-4 mr-1" /> Share
+      {layout === "stack" ? (
+        <>
+          <Share2 className="w-4 h-4" />
+          <span className="text-[0.66rem] leading-none font-medium">Share</span>
+        </>
+      ) : (
+        <>
+          <Share2 className="w-4 h-4 mr-1" /> Share
+        </>
+      )}
     </Button>
   );
 }

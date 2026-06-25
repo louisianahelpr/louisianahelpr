@@ -3,7 +3,6 @@
 A dual-sided gig marketplace exclusively for Louisiana. Connects **Posters** (homeowners and small businesses) with **Helprs** (1099 independent contractors) for everyday tasks like cleaning, errands, yard work, moving, and senior help.
 
 - **Live site:** https://www.louisianahelpr.com
-- **Lovable project:** https://lovable.dev/projects/215189c5-272d-4716-babd-430ab4187c14
 
 ## Features
 
@@ -22,7 +21,7 @@ A dual-sided gig marketplace exclusively for Louisiana. Connects **Posters** (ho
 ## Tech stack
 
 - **Frontend:** Vite, React 18, TypeScript, Tailwind CSS, shadcn/ui, framer-motion
-- **Backend:** Lovable Cloud (Supabase) — Postgres + RLS, Auth, Storage, Edge Functions
+- **Backend:** Supabase — Postgres + RLS, Auth, Storage, Edge Functions
 - **Payments:** Stripe Connect (Express), Stripe Identity, Stripe Checkout with automatic tax
 - **Mobile:** Capacitor 8 (iOS + Android), Fastlane for App Store / Play Store releases
 - **PWA:** vite-plugin-pwa with workbox
@@ -55,7 +54,7 @@ npm run dev
 
 ### Environment
 
-The Supabase client and `.env` are managed automatically by Lovable Cloud. Do **not** edit `src/integrations/supabase/client.ts`, `src/integrations/supabase/types.ts`, or `.env` manually — they are regenerated.
+Supabase connection values live in `.env` (see `src/integrations/supabase/client.ts`). `src/integrations/supabase/types.ts` is generated from the database schema via the Supabase CLI (`supabase gen types`) — regenerate it rather than editing by hand.
 
 ## Native mobile (Capacitor)
 
@@ -73,8 +72,11 @@ App ID: `com.Helpr`. See `docs/CICD_AND_ASO.md` and `fastlane/` for release auto
 
 ## Deployment
 
-Push to `main` is automatically deployed by Lovable. To publish a new version, open the project in Lovable and click **Share → Publish**, or use a custom domain via **Project → Settings → Domains**.
+The web app deploys to Vercel on push to `main`. Supabase edge functions deploy
+via `.github/workflows/functions-deploy.yml` when `supabase/functions/**` changes.
+Native iOS/Android releases go through Fastlane (see `docs/CICD_AND_ASO.md`).
 
 ## Contributing
 
-This repo is bidirectionally synced with Lovable. Changes pushed to GitHub appear in the Lovable editor and vice versa.
+Branch off `main`, open a PR, and ensure `npm run typecheck`, `npm run lint`, and
+`npm run build` all pass before requesting review.

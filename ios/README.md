@@ -95,8 +95,8 @@ npx cap open ios
 ## Local hot-reload (for development only)
 
 ```bash
-# Point the app at the live Lovable preview
-CAP_DEV_URL=https://215189c5-272d-4716-babd-430ab4187c14.lovableproject.com npx cap sync ios
+# Point the app at a live dev server (Vite, tunnel, etc.)
+CAP_DEV_URL=https://your-dev-server.example.com npx cap sync ios
 npx cap run ios
 ```
 

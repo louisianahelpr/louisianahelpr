@@ -1,9 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { verifyCronSecret } from '../_shared/cron-auth.ts'
 
-// Email delivery is via Resend exclusively. Lovable Cloud's email-js was
-// previously used for auth_emails (templated by Lovable IDE) but the
-// project no longer relies on Lovable infra — Helpr's auth-email-hook
+// Email delivery is via Resend exclusively. Helpr's auth-email-hook
 // renders templates locally with @react-email/components and enqueues
 // the rendered HTML/text into the auth_emails queue, where this function
 // picks it up and sends via Resend like any transactional email.
@@ -109,7 +107,7 @@ Deno.serve(async (req) => {
 
   let totalProcessed = 0
 
-  // 2. Process auth_emails first (via Lovable), then transactional_emails (via Resend)
+  // 2. Process auth_emails first, then transactional_emails — both via Resend
   for (const queue of ['auth_emails', 'transactional_emails']) {
     const dlq = `${queue}_dlq`
     const { data: messages, error: readError } = await supabase.rpc('read_email_batch', {
@@ -210,10 +208,7 @@ Deno.serve(async (req) => {
       try {
         // Both auth_emails and transactional_emails route through Resend.
         // The auth-email-hook function pre-renders templates to HTML/text
-        // before enqueuing, so payload already has subject/html/text. Lovable-
-        // specific tracking fields (run_id, idempotency_key, unsubscribe_token)
-        // are ignored — Resend's reply tracking + our email_send_log table
-        // cover the same operational visibility.
+        // before enqueuing, so payload already has subject/html/text.
         await sendWithResend(resendApiKey, payload)
 
         // Log success. auth-email-hook inserts a `pending` row at enqueue

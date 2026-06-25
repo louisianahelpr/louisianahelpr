@@ -360,7 +360,7 @@ export function BrowseTasksFeed({
           <>
             {showRecommendedSkeleton && density === "comfortable" && (
               <div
-                className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5"
+                className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3"
                 aria-hidden
               >
                 {/* Recommended-section variant — matches the real recommended
@@ -390,7 +390,7 @@ export function BrowseTasksFeed({
                     ))}
                   </ul>
                 ) : (
-                  <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4 xl:space-y-5">
+                  <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3">
                     {/* AnimatePresence with initial={false} — only NEW
                         recommended jobs slide in (e.g. when a fresh match
                         arrives or the user dismisses a sibling). The

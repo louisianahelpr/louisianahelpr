@@ -47,10 +47,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
   const tab = defaultTab as Tab;
-  // My Posts defaults to "all" (the grouped Active/Completed/Cancelled view)
-  // so a poster whose only tasks are completed/cancelled still sees them on
-  // landing instead of an empty "open" view that reads as "0 posts".
-  const defaultFilter = defaultTab === "applied" ? "pending" : "all";
+  // My Posts opens on "Active" — a flat list of every non-terminal task
+  // (open / accepted / in_progress / …). Completed and Cancelled remain
+  // reachable via the status filter.
+  const defaultFilter = defaultTab === "applied" ? "pending" : "active";
   // Filter + search seed from URL params so a deep link (or browser
   // back/forward) lands the user on the exact view they had. We keep the
   // local-state mirror because the dropdown/search inputs need a

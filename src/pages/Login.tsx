@@ -87,11 +87,13 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // A safe ?redirect= target set by ProtectedRoute when it bounced a
-  // logged-out user off a gated route. When present we (a) explain the
-  // bounce in the header copy and (b) return the user there after sign-in
-  // instead of silently dumping them on /dashboard.
+  // logged-out user off a gated route. We use it ONLY to explain the bounce
+  // in the header copy. Sign-in always lands on the home dashboard — the
+  // app's main tabs (My Posts, etc.) should never be the post-login landing;
+  // the user explicitly wants "log in → home". Deep content links surface
+  // their own in-app routing once the user is home.
   const redirectTarget = safeInternalRedirect(searchParams.get("redirect"));
-  const postLoginDest = redirectTarget ?? "/dashboard";
+  const postLoginDest = "/dashboard";
   const queryClient = useQueryClient();
   usePageMeta({
     title: "Log In — Helpr",

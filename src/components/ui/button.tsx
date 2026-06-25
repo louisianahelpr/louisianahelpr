@@ -91,7 +91,7 @@ const buttonVariants = cva(
         // Depth: all 4 treatments — this is THE primary CTA the TestFlight
         // feedback flagged as flat.
         bark:
-          "bg-[linear-gradient(180deg,hsl(74_19%_41%)_0%,hsl(var(--bark))_50%,hsl(66_23%_23%)_100%)] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border border-[hsl(66_24%_20%)] [font-family:Montserrat,system-ui,sans-serif] font-semibold tracking-[0.01em] hover:brightness-110 " +
+          "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border border-[hsl(66_24%_20%)] [font-family:Montserrat,system-ui,sans-serif] font-semibold tracking-[0.01em] hover:brightness-110 " +
           ELEV_FILLED,
       },
       size: {

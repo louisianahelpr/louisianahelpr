@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FileSignature, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -9,7 +8,6 @@ import { DetailsSection } from "@/components/postjob/DetailsSection";
 import { DirectOfferBanner } from "./DirectOfferBanner";
 import { DraftSavedIndicator } from "./DraftSavedIndicator";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
-import { SectionProgress, type PostJobSectionId } from "./SectionProgress";
 import { formatPrice } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 
@@ -27,54 +25,6 @@ interface FormStepProps {
  */
 export function FormStep({ form }: FormStepProps) {
   const { business } = useMyBusiness();
-  // Each section is wrapped in a ref'd anchor so the sticky stepper can
-  // scroll-jump to it and an IntersectionObserver can light up the step
-  // for whichever section the poster is currently reading.
-  const detailsRef = useRef<HTMLDivElement>(null);
-  const logisticsRef = useRef<HTMLDivElement>(null);
-  const budgetRef = useRef<HTMLDivElement>(null);
-  const [activeSection, setActiveSection] = useState<PostJobSectionId>("details");
-
-  const refs = useMemo(
-    () => ({ details: detailsRef, logistics: logisticsRef, budget: budgetRef }),
-    [],
-  );
-
-  // Scroll-spy — the topmost section currently inside the spy band (just
-  // below the sticky stepper) becomes the active step.
-  useEffect(() => {
-    const anchors = [detailsRef.current, logisticsRef.current, budgetRef.current].filter(
-      (el): el is HTMLDivElement => !!el,
-    );
-    if (anchors.length === 0) return;
-
-    const order: PostJobSectionId[] = ["details", "logistics", "budget"];
-    const visible = new Set<PostJobSectionId>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const id = (entry.target as HTMLElement).dataset.section as PostJobSectionId;
-          if (entry.isIntersecting) visible.add(id);
-          else visible.delete(id);
-        }
-        const top = order.find((id) => visible.has(id));
-        if (top) setActiveSection(top);
-      },
-      // Spy band sits just under the sticky stepper; the negative bottom
-      // margin keeps only the upper part of the viewport "active".
-      { rootMargin: "-128px 0px -55% 0px", threshold: 0 },
-    );
-    for (const el of anchors) observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const handleJump = useCallback(
-    (id: PostJobSectionId) => {
-      setActiveSection(id);
-      refs[id].current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    },
-    [refs],
-  );
 
   const atOpenJobLimit = form.openJobCount !== null && form.openJobCount >= 5;
   // The form is "ready" once all three sections' required fields are
@@ -128,22 +78,17 @@ export function FormStep({ form }: FormStepProps) {
       {/* Draft tab, template picker, and AI builder all live on the entry
           step (EntryChoice) now — the form is for filling in details, not
           for re-offering ways to start one. Keeping them here duplicated the
-          entry screen and made the "form" step read as a second landing. */}
+          entry screen and made the "form" step read as a second landing.
 
-      {/* Sticky stepper — pins below the page header and reflects which
-          of the three chapters the poster is currently in. */}
-      <SectionProgress
-        detailsComplete={form.detailsComplete}
-        logisticsComplete={form.logisticsComplete}
-        budgetComplete={form.budgetComplete}
-        activeSection={activeSection}
-        onJump={handleJump}
-      />
+          The in-form Details/Logistics/Budget stepper rail was removed too:
+          it stacked directly under the whole-flow Entry→Details→Pay stepper
+          and re-stated "Details", reading as a duplicate stepper. The
+          per-section chapter cards (numbered headers) now carry section
+          identity on their own. */}
 
       <form onSubmit={form.handleReview} className="space-y-4">
-        {/* SECTION 1: DETAILS — scroll-margin clears the sticky stepper
-            so a jump lands the header in view, not under the rail. */}
-        <div ref={detailsRef} data-section="details" style={{ scrollMarginTop: "120px" }}>
+        {/* SECTION 1: DETAILS */}
+        <div>
           <DetailsSection
             stepNumber={1}
             title={form.title}
@@ -168,7 +113,7 @@ export function FormStep({ form }: FormStepProps) {
         </div>
 
         {/* SECTION 2: LOGISTICS */}
-        <div ref={logisticsRef} data-section="logistics" style={{ scrollMarginTop: "120px" }}>
+        <div>
           <LogisticsSection
             stepNumber={2}
             streetAddress={form.streetAddress}
@@ -210,7 +155,7 @@ export function FormStep({ form }: FormStepProps) {
         </div>
 
         {/* SECTION 3: BUDGET */}
-        <div ref={budgetRef} data-section="budget" style={{ scrollMarginTop: "120px" }}>
+        <div>
           <BudgetSection
             stepNumber={3}
             budget={form.budget}

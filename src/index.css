@@ -1079,10 +1079,15 @@ button,
  * "near-white pill" bug). Authoring it directly sidesteps the JIT entirely.
  */
 .btn-grad-primary {
-  background-image: linear-gradient(
-    180deg,
-    hsl(var(--primary)) 0%,
-    hsl(var(--primary) / 0.92) 100%
+  /* Single source of truth for the primary-CTA surface — the same radial
+     "Post a task" treatment used by the nav CTAs (MobileNav / DesktopSidebarNav
+     / Community). Every primary green button (default / hero / bark variants)
+     references this so the look can't drift across the app. */
+  background-image: radial-gradient(
+    125% 125% at 32% 22%,
+    hsl(76 20% 44%) 0%,
+    hsl(var(--bark)) 46%,
+    hsl(66 25% 19%) 100%
   );
 }
 

@@ -135,8 +135,15 @@ const ProtectedRoute = ({
   }
 
   if (!user) {
-    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/login", reason: "no-user-after-ready" });
-    return <Navigate to="/login" replace />;
+    // Preserve where the user was headed so /login can return them there
+    // after they sign in, instead of silently dumping them on /dashboard.
+    const intended = location.pathname + location.search;
+    const to =
+      intended && intended !== "/"
+        ? `/login?redirect=${encodeURIComponent(intended)}`
+        : "/login";
+    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to, reason: "no-user-after-ready" });
+    return <Navigate to={to} replace />;
   }
 
   // SECURITY: profile fetch errored (after retries) — DO NOT fall through.

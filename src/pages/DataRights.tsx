@@ -21,6 +21,7 @@ import { Download, ShieldOff, Loader2, ArrowLeft } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticError } from "@/lib/haptics";
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -34,16 +35,20 @@ const DataRights = () => {
     ogDescription:
       "Export, correct, or delete your personal information on Helpr at any time under the EU GDPR and California CCPA.",
   });
+  // Derive the user id from the app-wide auth snapshot (getSession-backed,
+  // local, offline-safe) rather than a network getUser() call — the page
+  // already sits behind ProtectedRoute, so the session is trusted. A failed
+  // getUser() round-trip (e.g. a transient auth-server hiccup) used to leave
+  // `userId` null and the export button permanently disabled for a
+  // legitimately logged-in user.
+  const { user } = useAuthReady();
+  const userId = user?.id ?? null;
   const [exporting, setExporting] = useState(false);
   const [doNotSell, setDoNotSell] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id ?? null);
-      const stored = safeStorage.getItem("helpr_do_not_sell");
-      if (stored === "1") setDoNotSell(true);
-    });
+    const stored = safeStorage.getItem("helpr_do_not_sell");
+    if (stored === "1") setDoNotSell(true);
   }, []);
 
   const handleExport = async () => {

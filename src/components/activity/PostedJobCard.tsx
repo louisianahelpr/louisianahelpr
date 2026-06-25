@@ -263,6 +263,9 @@ function PostedJobCardInner({
                 estimatedHours={job.estimated_hours}
                 expiresAt={!job.helper_id ? job.expires_at : null}
               >
+                {(applicantCounts[job.id] || 0) > 0 && job.status === "open" && (
+                  <span className="flex items-center gap-1 text-primary font-medium"><Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}</span>
+                )}
                 {viewCount != null && viewCount > 0 && (
                    <span className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                      <Eye className="w-3 h-3 shrink-0" />

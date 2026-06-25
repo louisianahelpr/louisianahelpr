@@ -60,8 +60,11 @@ describe("Button", () => {
       render(<Button variant="bark">Sign in</Button>);
       const cls = screen.getByRole("button").className;
       expectFilledElevation(cls);
-      // Bark uses a 3-stop bark/olive vertical gradient (lighter top → bark mid → deep base)
-      expect(cls).toContain("linear-gradient(180deg,hsl(74_19%_41%)_0%,hsl(var(--bark))_50%,hsl(66_23%_23%)_100%)");
+      // Bark shares the primary CTA gradient via the hand-written
+      // .btn-grad-primary CSS class (same as `default`/`hero`), so every
+      // "Post a job"–family CTA reads identically. Asserting the class — not
+      // an inline arbitrary gradient — keeps this in step with that unifying.
+      expect(cls).toContain("btn-grad-primary");
     });
 
     it("default primary gets gradient + highlight + shadow + press", () => {

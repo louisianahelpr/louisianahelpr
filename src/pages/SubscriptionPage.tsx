@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   TIER_PERKS,
   getPaysSelfBack,
@@ -72,6 +73,7 @@ const PERK_ROWS: Array<{ label: string; key: keyof typeof TIER_PERKS.free }> = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function SubscriptionPage() {
+  usePageTitle("Subscription — Helpr");
   const { profile } = useCurrentUser();
   const currentTier = toSubscriptionTier(profile?.subscription_tier);
 

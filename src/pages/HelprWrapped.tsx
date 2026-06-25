@@ -160,7 +160,7 @@ const StatCard = ({ label, value, sublabel }: StatCardProps) => (
 );
 
 const HelprWrapped = () => {
-  usePageTitle(SEASON.isYearEnd ? `Helpr Wrapped ${YEAR}` : `Your ${YEAR} so far`);
+  usePageTitle(SEASON.isYearEnd ? `Helpr Wrapped ${YEAR}` : `Your ${YEAR} so far — Helpr`);
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
 

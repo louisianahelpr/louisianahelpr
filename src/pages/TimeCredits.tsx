@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { formatShortDate } from "@/lib/format";
@@ -13,6 +14,7 @@ import { formatShortDate } from "@/lib/format";
 const PRESET_MINUTES = [60, 120, 180];
 
 export default function TimeCredits() {
+  usePageTitle("Time Credits — Helpr");
   const { user } = useCurrentUser();
   const navigate = useNavigate();
 

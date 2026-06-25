@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ---------------------------------------------------------------------------
 // Types (derived from DB schema — keep in sync with migration)
@@ -429,6 +430,7 @@ function AddCalendarForm({
 // Main page
 // ---------------------------------------------------------------------------
 export default function StrSettings() {
+  usePageTitle("Host Automation — Helpr");
   const [addOpen, setAddOpen] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const { user } = useCurrentUser();

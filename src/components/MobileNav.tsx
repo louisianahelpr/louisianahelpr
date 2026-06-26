@@ -737,7 +737,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 onClick={handlePostClick}
                 onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
                 onFocus={() => !isGuest && prefetchRoute("/post-job")}
-                aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
+                aria-label={isGuest ? "Post a new task — sign up required" : "Post a new task"}
                 className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
                 style={{
                   // Lit-from-top orb — a radial highlight in the upper-left

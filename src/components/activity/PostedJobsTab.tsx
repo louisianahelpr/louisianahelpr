@@ -716,7 +716,7 @@ export const PostedJobsTab = ({
         body="Post your first task and we'll match you with ID-verified Louisiana helprs nearby."
         action={
           <Button onClick={() => navigate("/post-job")} className="rounded-ds-md btn-press">
-            <Wrench className="w-4 h-4 mr-1.5" /> Post a job
+            <Wrench className="w-4 h-4 mr-1.5" /> Post a task
           </Button>
         }
       />

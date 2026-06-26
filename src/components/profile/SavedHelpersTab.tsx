@@ -450,7 +450,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 onClick={() => navigate("/post-job")}
                 className="text-ds-13"
               >
-                Post a job instead
+                Post a task instead
               </Button>
             }
           />
@@ -473,7 +473,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
             action={
               helpers.length === 0 ? (
                 <BarkPillButton onClick={() => navigate("/post-job")}>
-                  Post a job
+                  Post a task
                 </BarkPillButton>
               ) : (
                 <BarkPillButton onClick={() => setSearch("")}>

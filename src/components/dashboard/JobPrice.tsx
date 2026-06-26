@@ -230,7 +230,12 @@ export function JobPrice({
             type="button"
             onClick={() => navigate("/subscription")}
             className="underline underline-offset-2"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
+            // Inline text link inside a sentence — override the global 44px
+            // tap-target min-height/width (it's meant for standalone controls)
+            // so the button doesn't inflate this line's box and strand dead
+            // space above + below the Helper Pro upsell. The pill itself is the
+            // real tap surface.
+            style={{ color: "hsl(var(--burnt-sienna))", minHeight: 0, minWidth: 0 }}
           >
             Learn more
           </button>

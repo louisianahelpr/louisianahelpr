@@ -109,7 +109,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   usePageTitle("Dashboard — Helpr");
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   // Capture ?ref= attribution from deep-links (push notifications, share
   // links, etc.) so analytics can attribute which surface drove the open.
   useJobRef();
@@ -776,7 +776,18 @@ const Dashboard = () => {
     const el = containerRef.current;
     if (el) detailScrollSnapshotRef.current = el.scrollTop;
     setDetailJob(value);
-  }, [containerRef]);
+    // Mirror the open job into the URL (?job=<id>, replacing the entry so we
+    // don't spam history). This is what lets a jump to a sub-route from inside
+    // the dialog — e.g. the Helper Pro "Learn more" → /subscription — return to
+    // the open job on Back, instead of dropping onto the bare dashboard.
+    if (value && typeof value !== "function") {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("job", value.id);
+        return next;
+      }, { replace: true });
+    }
+  }, [containerRef, setSearchParams]);
 
   // Close the detail dialog and restore the feed scroll position captured
   // at open time. We restore after a microtask to outlast any layout-shift
@@ -784,6 +795,11 @@ const Dashboard = () => {
   // open captures a fresh value.
   const closeDetailJob = useCallback(() => {
     setDetailJob(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("job");
+      return next;
+    }, { replace: true });
     const snapshot = detailScrollSnapshotRef.current;
     detailScrollSnapshotRef.current = null;
     if (snapshot == null) return;
@@ -795,7 +811,26 @@ const Dashboard = () => {
         if (el) el.scrollTop = snapshot;
       });
     });
-  }, [containerRef]);
+  }, [containerRef, setSearchParams]);
+
+  // Re-open the detail dialog from the URL on mount (?job=<id>). Add-only and
+  // one-shot: it restores the dialog after returning from a sub-route like
+  // /subscription, but never clears the param (close handles that), so it can't
+  // race the open/close writers above. Retries until the job feed has loaded.
+  const restoredJobParam = useRef(false);
+  useEffect(() => {
+    if (restoredJobParam.current) return;
+    const id = searchParams.get("job");
+    if (!id) {
+      restoredJobParam.current = true;
+      return;
+    }
+    const match = allJobs.find((j) => j.id === id);
+    if (match) {
+      setDetailJob(match);
+      restoredJobParam.current = true;
+    }
+  }, [searchParams, allJobs]);
 
   const handleDismissConfirm = useCallback(() => {
     if (!confirmDismissJobId) return;

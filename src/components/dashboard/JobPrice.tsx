@@ -1,7 +1,6 @@
 import { useId, useState } from "react";
-import { ChevronDown, DollarSign } from "lucide-react";
+import { DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useReducedMotion } from "@/lib/accessibility";
 import { formatPrice } from "@/lib/format";
 
 export interface JobPriceProps {
@@ -74,10 +73,9 @@ export function JobPrice({
 }: JobPriceProps) {
   const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
-  const reducedMotion = useReducedMotion();
   const panelId = useId();
 
-  const { helpers, perHelperBudget, commission, netEarnings } = computeNet(
+  const { helpers, netEarnings } = computeNet(
     budget,
     effectiveFee,
     urgentFee,
@@ -86,7 +84,6 @@ export function JobPrice({
 
   const amount = showBudget ? budget : netEarnings;
   const earnings = formatPrice(amount);
-  const transition = reducedMotion ? "none" : undefined;
 
   // ──────────────────────────────────────────────────────────────────────
   // chip — the small feed/Browse card price tile.
@@ -177,14 +174,13 @@ export function JobPrice({
 
   // ──────────────────────────────────────────────────────────────────────
   // detail — the large featured payout pill in the job-detail view.
+  // Non-interactive: the amount + always-visible micro-breakdown already show
+  // the full math (budget ÷ helpers − fee + urgent), so a tap-to-expand panel
+  // only repeated the same numbers. Rendered as a plain <div>.
   // ──────────────────────────────────────────────────────────────────────
   return (
-    <button
-      type="button"
-      onClick={() => setExpanded((v) => !v)}
-      aria-expanded={expanded}
-      aria-controls={panelId}
-      className={`w-full text-left glass-press rounded-ds-md p-3 transition-shadow hover:shadow-lg relative overflow-hidden ${className ?? ""}`}
+    <div
+      className={`w-full rounded-ds-md p-3 relative overflow-hidden ${className ?? ""}`}
       style={{
         background:
           "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
@@ -201,92 +197,46 @@ export function JobPrice({
           "0 8px 18px -5px hsl(var(--bark) / 0.26)",
       }}
     >
-      <div className="flex items-baseline justify-between gap-3">
-        <div>
-          <p
-            className="text-[0.6rem] font-serif italic uppercase tracking-[0.18em] flex items-center gap-1"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
-          >
-            <DollarSign className="w-3 h-3" /> {showBudget ? "Budget" : "You earn"}
-          </p>
-          <p
-            className="font-display font-bold tabular-nums leading-none mt-1"
-            style={{ fontSize: "1.5rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
-          >
-            ${amount.toFixed(2)}
-          </p>
-          {/* Always-visible micro-breakdown so helpers see the math without
-              needing to tap-expand. */}
-          {!showBudget && (
-            <p
-              className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              ${budget.toFixed(0)} budget{helpers > 1 ? ` ÷ ${helpers}` : ""} − {effectiveFee}% fee
-              {urgentFee > 0 ? ` + $${urgentFee.toFixed(0)} urgent` : ""}
-            </p>
-          )}
-          {/* Only pitch the Pro fee reduction when the fee actually shown
-              is above the Pro rate (10%) — otherwise "reduces your fee to
-              10%" contradicts a fee line already reading 10% or lower. */}
-          {!showBudget && showProUpsell && effectiveFee > 10 && (
-            <p className="font-serif italic text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              <span style={{ color: "hsl(var(--burnt-sienna))" }}>Helper Pro</span> reduces your fee to 10%
-              {" "}·{" "}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); navigate("/subscription"); }}
-                className="underline underline-offset-2"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-              >
-                Learn more
-              </button>
-            </p>
-          )}
-        </div>
-        {!showBudget && (
-          <ChevronDown
-            className={`shrink-0 w-4 h-4 ${expanded ? "rotate-180" : ""}`}
-            style={{ color: "hsl(var(--olivewood) / 0.8)", transition }}
-          />
-        )}
-      </div>
-      {!showBudget && expanded && (
-        <div
-          id={panelId}
-          className="mt-2 pt-2 space-y-0.5 text-ds-11 font-serif italic"
-          style={{ color: "hsl(var(--olivewood) / 0.85)", borderTop: "0.5px solid hsl(var(--bark) / 0.18)" }}
+      <p
+        className="text-[0.6rem] font-serif italic uppercase tracking-[0.18em] flex items-center gap-1"
+        style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+      >
+        <DollarSign className="w-3 h-3" /> {showBudget ? "Budget" : "You earn"}
+      </p>
+      <p
+        className="font-display font-bold tabular-nums leading-none mt-1"
+        style={{ fontSize: "1.5rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+      >
+        ${amount.toFixed(2)}
+      </p>
+      {/* Always-visible micro-breakdown so helpers see the math at a glance. */}
+      {!showBudget && (
+        <p
+          className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          <div className="flex justify-between">
-            <span>Budget</span>
-            <span className="tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${budget.toFixed(2)}</span>
-          </div>
-          {helpers > 1 && (
-            <div className="flex justify-between">
-              <span>÷ {helpers} helprs</span>
-              <span className="tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${perHelperBudget.toFixed(2)}</span>
-            </div>
-          )}
-          <div className="flex justify-between">
-            <span>− {effectiveFee}% platform fee</span>
-            <span className="tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${commission.toFixed(2)}</span>
-          </div>
-          {urgentFee > 0 && (
-            <div className="flex justify-between">
-              <span>+ urgent bonus</span>
-              <span className="tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>+${urgentFee.toFixed(2)}</span>
-            </div>
-          )}
-          <div
-            className="flex justify-between pt-1 mt-1 font-display not-italic font-bold"
-            style={{ color: "hsl(var(--ink-deep))", borderTop: "0.5px dashed hsl(var(--bark) / 0.18)" }}
-          >
-            <span>Take-home</span>
-            <span className="tabular-nums">${netEarnings.toFixed(2)}</span>
-          </div>
-        </div>
+          ${budget.toFixed(0)} budget{helpers > 1 ? ` ÷ ${helpers}` : ""} − {effectiveFee}% fee
+          {urgentFee > 0 ? ` + $${urgentFee.toFixed(0)} urgent` : ""}
+        </p>
       )}
-    </button>
+      {/* Only pitch the Pro fee reduction when the fee actually shown is above
+          the Pro rate (10%) — otherwise "reduces your fee to 10%" contradicts
+          a fee line already reading 10% or lower. */}
+      {!showBudget && showProUpsell && effectiveFee > 10 && (
+        <p className="font-serif italic text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <span style={{ color: "hsl(var(--burnt-sienna))" }}>Helper Pro</span> reduces your fee to 10%
+          {" "}·{" "}
+          <button
+            type="button"
+            onClick={() => navigate("/subscription")}
+            className="underline underline-offset-2"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            Learn more
+          </button>
+        </p>
+      )}
+    </div>
   );
 }
 

@@ -670,6 +670,19 @@ html.web-desktop {
   html.web-desktop .ds-activity-grid > * {
     margin-top: 0 !important;
   }
+
+  /* Document-scroll pages (UserProfile, PostJob, Community, Subscription, …)
+     render straight into #root rather than the .app-shell-frame, so they
+     never picked up the sidebar inset above and the fixed 248px rail painted
+     over their header (hiding the back button + brand) and knocked the
+     centered column off-center. When the rail is present (`desktop-rail`) and
+     the page is NOT an app-shell page (those inset via .app-shell-frame), pad
+     #root by the rail width so the whole page sits to the right of the rail
+     and re-centers in the remaining space. The fixed rail ignores this
+     padding, so it stays pinned at the viewport's left edge. */
+  html.web-desktop.desktop-rail:not(.app-shell) #root {
+    padding-left: var(--desktop-sidebar-w);
+  }
 }
 
 /* Leaflet map (BrowseMap) — lock ALL touch gestures to Leaflet itself.

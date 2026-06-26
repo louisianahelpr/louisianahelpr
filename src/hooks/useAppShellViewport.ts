@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { isDesktopRailRoute } from "@/components/DesktopSidebarNav";
 
 /**
  * Routes that use document-scroll (long-form content, SEO landing pages).
@@ -145,6 +146,12 @@ export const useAppShellViewport = () => {
     } else {
       html.classList.add("app-shell");
     }
+    // Mirror the DesktopSidebarNav's own visibility gate onto <html> so the
+    // CSS that insets document-scroll pages from the fixed left rail turns
+    // on/off with the rail itself. app-shell pages inset via .app-shell-frame
+    // instead, so the inset rule excludes them — but the class is still set
+    // here (route-only; the `web-desktop` half of the gate lives in CSS).
+    html.classList.toggle("desktop-rail", isDesktopRailRoute(pathname));
     return () => {
       // Don't strip on unmount — the next route effect will set it correctly.
     };

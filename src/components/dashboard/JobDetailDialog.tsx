@@ -340,7 +340,7 @@ const JobDetailDialog = ({
         {/* Header — mirrors the dashboard's Browse Tasks block: italic
             Garamond eyebrow (category) → bold italic Bodoni headline (job
             title) → italic Garamond meta (location · time · status pills). */}
-        <DialogHeader className="!text-left space-y-0 pr-10 mb-2">
+        <DialogHeader className="!text-left space-y-0 pr-10">
           <span
             className="text-[0.62rem] font-serif italic uppercase tracking-[0.18em] flex items-center gap-1.5"
             style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
@@ -591,7 +591,7 @@ const JobDetailDialog = ({
             facts (where, when, how long, deadline) before they see the
             payout. Where + Date are clickable: Where opens Google Maps,
             Date opens Google Calendar. */}
-        <div className="grid grid-cols-2 gap-2 sm:[grid-template-columns:repeat(auto-fit,minmax(115px,1fr))]">
+        <div className="grid grid-cols-2 gap-2">
           {(() => {
             const dateNeeded = parseLocalDate(job.date_needed);
             const dateValid = !isNaN(dateNeeded.getTime());
@@ -673,8 +673,8 @@ const JobDetailDialog = ({
             ];
             return tiles.map(({ Icon, label, value, sub, href, urgent }, index) => {
               // An odd tile count leaves the last tile alone in the 2-col
-              // mobile grid with an empty cell beside it — let it span the
-              // full width instead so the strip reads as intentional.
+              // grid with an empty cell beside it — let it span the full
+              // width instead so the strip reads as intentional.
               const fillsRow = tiles.length % 2 === 1 && index === tiles.length - 1;
               const Wrapper: ElementType = href ? "a" : "div";
               // Only the anchor branch carries href/target/rel; an empty object
@@ -687,7 +687,7 @@ const JobDetailDialog = ({
                 <Wrapper
                   key={label}
                   {...wrapperProps}
-                  className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${fillsRow ? "col-span-2 sm:col-span-1" : ""} ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
+                  className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${fillsRow ? "col-span-2" : ""} ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
                   style={{
                     backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "var(--glass-bg-soft)",
                     backdropFilter: "blur(18px) saturate(160%)",

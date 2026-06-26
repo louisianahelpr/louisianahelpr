@@ -662,6 +662,7 @@ const UserProfile = () => {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <PageHeader
+          showBrand
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -693,6 +694,7 @@ const UserProfile = () => {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <PageHeader
+          showBrand
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -711,6 +713,7 @@ const UserProfile = () => {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <PageHeader
+          showBrand
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -790,6 +793,7 @@ const UserProfile = () => {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
+        showBrand
         eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
         title={isOwnProfile ? "Profile Review" : "Profile"}
         meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}

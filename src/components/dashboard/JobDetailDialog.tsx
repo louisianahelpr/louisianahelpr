@@ -749,7 +749,14 @@ const JobDetailDialog = ({
           />
         </div>
 
-        {!guest && <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} />}
+        {/* Poster card shows for guests too — the guest feed already enriches
+            each job with the poster's name, avatar, rating and review count, so
+            the logged-out preview carries the same social proof as the authed
+            dialog. The two authed-only signals (repeat-customer count, poster
+            cancellation rate) stay at their guest defaults (0 / null) and their
+            lines simply hide, so the only real difference remains the footer
+            CTA below. */}
+        <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} />
 
         {/* Applicant queue banner. Two flavors:
             - **Already applied** — the viewer is in the queue. Show a

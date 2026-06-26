@@ -109,9 +109,8 @@ const BusinessContracts = () => {
         schedule_cron: cronExpression,
         schedule_label: scheduleLabel,
         template_payload: payload,
-        // TODO: real next_run_at computation belongs in the cron worker
-        // that materializes jobs from these templates. For now we leave
-        // it null and the worker fills it on first scan.
+        // next_run_at is intentionally null here — the cron worker that
+        // materializes jobs from templates fills it on its first scan.
         next_run_at: null,
         active: true,
       });

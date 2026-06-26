@@ -1,10 +1,10 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowRight, Search, Lock, Briefcase } from "lucide-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -113,6 +113,7 @@ const Jobs = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   // The job a guest tapped to preview — opens the read-only JobDetailDialog.
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useCurrentUser();
 
@@ -151,6 +152,46 @@ const Jobs = () => {
     () => (pagesData?.pages ?? []).flatMap((p) => p.jobs),
     [pagesData],
   );
+
+  // Mirror the open job into the URL (?job=<id>) so a jump to a sub-route from
+  // inside the dialog — e.g. the Helper Pro "Learn more" → /subscription —
+  // returns to the open job on Back, instead of dropping onto the bare feed.
+  const openDetailJob = useCallback((job: EnrichedJob) => {
+    setDetailJob(job);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("job", job.id);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const closeDetailJob = useCallback(() => {
+    setDetailJob(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("job");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // Re-open the detail dialog from the URL on mount (?job=<id>). One-shot and
+  // add-only: it restores the dialog after returning from /subscription, but
+  // never clears the param (close handles that), so it can't race the writers
+  // above. Retries until the open-jobs feed has loaded.
+  const restoredJobParam = useRef(false);
+  useEffect(() => {
+    if (restoredJobParam.current) return;
+    const id = searchParams.get("job");
+    if (!id) {
+      restoredJobParam.current = true;
+      return;
+    }
+    const match = jobs.find((j) => j.id === id);
+    if (match) {
+      setDetailJob(toEnrichedJob(match));
+      restoredJobParam.current = true;
+    }
+  }, [searchParams, jobs]);
 
   useEffect(() => {
     if (!DEBUG_AUTH) return;
@@ -325,11 +366,11 @@ const Jobs = () => {
                         key={job.id}
                         role="button"
                         tabIndex={0}
-                        onClick={() => setDetailJob(enriched)}
+                        onClick={() => openDetailJob(enriched)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
-                            setDetailJob(enriched);
+                            openDetailJob(enriched);
                           }
                         }}
                         aria-label={`View details for ${job.title}`}
@@ -400,7 +441,7 @@ const Jobs = () => {
             guest
             job={detailJob}
             effectiveFee={TIER_PERKS.free.platformFeePercent}
-            onClose={() => setDetailJob(null)}
+            onClose={closeDetailJob}
             onApply={noop}
             onReport={noop}
           />

@@ -1,6 +1,6 @@
-import { useEffect, useCallback, useState, lazy, Suspense } from "react";
+import { useEffect, useCallback, useState, useRef, lazy, Suspense } from "react";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -172,6 +172,47 @@ const DashboardGuest = () => {
   // Read-only detail view for guests. Selecting a card opens the job's
   // public info; every action inside the dialog still routes to signup.
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Mirror the open job into the URL (?job=<id>) so a jump to a sub-route from
+  // inside the dialog — e.g. the Helper Pro "Learn more" → /subscription —
+  // returns to the open job on Back, instead of dropping onto the bare feed.
+  const openDetailJob = useCallback((job: EnrichedJob) => {
+    setDetailJob(job);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("job", job.id);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const closeDetailJob = useCallback(() => {
+    setDetailJob(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("job");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // Re-open the detail dialog from the URL on mount (?job=<id>). One-shot and
+  // add-only: it restores the dialog after returning from /subscription, but
+  // never clears the param (close handles that), so it can't race the writers
+  // above. Retries until the guest feed has loaded.
+  const restoredJobParam = useRef(false);
+  useEffect(() => {
+    if (restoredJobParam.current) return;
+    const id = searchParams.get("job");
+    if (!id) {
+      restoredJobParam.current = true;
+      return;
+    }
+    const match = jobs.find((j) => j.id === id);
+    if (match) {
+      setDetailJob(match);
+      restoredJobParam.current = true;
+    }
+  }, [searchParams, jobs]);
 
   // Pull-to-refresh: re-runs the guestDashboardJobs query so swiping down on
   // the empty-state / list surface fetches fresh open_jobs_browse rows.
@@ -393,7 +434,7 @@ const DashboardGuest = () => {
                         showApply
                         onApply={requireSignup}
                         onReport={requireSignup}
-                        onSelect={setDetailJob}
+                        onSelect={openDetailJob}
                         onToggleSave={requireSignup}
                         index={idx}
                       />
@@ -408,7 +449,7 @@ const DashboardGuest = () => {
             guest
             job={detailJob}
             effectiveFee={TIER_PERKS.free.platformFeePercent}
-            onClose={() => setDetailJob(null)}
+            onClose={closeDetailJob}
             onApply={requireSignup}
             onReport={requireSignup}
           />

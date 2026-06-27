@@ -75,7 +75,7 @@ export function EscrowExplainer({
         }}
       >
         <Lock className="w-3 h-3" strokeWidth={2.25} aria-hidden />
-        Held in escrow until complete
+        Held securely until complete
       </span>
 
       <Popover open={open} onOpenChange={setOpen}>

@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
 import { queryKeys } from "@/lib/queryKeys";
+import { formatCategory } from "@/lib/format";
 
 /**
  * PublicReviewWall — a vertical stack of the helper's most recent
@@ -152,7 +153,7 @@ function ReviewQuote({
               border: "0.5px solid hsl(var(--bark) / 0.18)",
             }}
           >
-            {review.jobCategory.replace(/_/g, " ")}
+            {formatCategory(review.jobCategory)}
           </span>
         )}
       </div>

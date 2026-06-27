@@ -337,7 +337,10 @@ export default defineConfig(({ mode }) => ({
           if (id.includes("framer-motion")) return "motion";
           if (id.includes("@stripe") || id.includes("stripe-js")) return "stripe";
           if (id.includes("@supabase")) return "supabase";
-          if (id.includes("date-fns") || id.includes("react-day-picker")) return "dates";
+          // react-day-picker is only imported by <Calendar> which is always
+          // React.lazy'd — keep it off the critical path by not pinning it to
+          // the eagerly-loaded "dates" chunk.
+          if (id.includes("date-fns")) return "dates";
           if (id.includes("@tanstack")) return "tanstack";
           if (id.includes("react-hook-form") || id.includes("zod") || id.includes("@hookform")) return "forms";
           // Split Sentry and PostHog out of the main bundle. They're only

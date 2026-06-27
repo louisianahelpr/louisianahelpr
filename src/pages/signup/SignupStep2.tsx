@@ -215,7 +215,7 @@ export function SignupStep2(props: SignupStep2Props) {
           className="flex items-start gap-3 px-4 py-3 rounded-2xl"
           style={{ background: "hsl(var(--olivewood) / 0.05)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
         >
-          <UserCircle2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
+          <UserCircle2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
           <div className="space-y-0.5">
             <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
               Personal account
@@ -317,7 +317,7 @@ export function SignupStep2(props: SignupStep2Props) {
                 whether to type the leading 1. */}
             <span
               className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-13 font-sans font-medium pointer-events-none select-none"
-              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               aria-hidden
             >
               +1
@@ -363,7 +363,7 @@ export function SignupStep2(props: SignupStep2Props) {
           />
           {fieldErrors.dateOfBirth
             ? <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
-            : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>You must be at least 18 years old.</p>
+            : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>You must be at least 18 years old.</p>
           }
         </div>
         <div className="space-y-2">
@@ -377,7 +377,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <FieldError id="location-error" message={fieldErrors.location} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="bio" className={labelCls}>About you <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.5)]">(optional)</span></Label>
+          <Label htmlFor="bio" className={labelCls}>About you <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
           <Textarea
             id="bio"
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"

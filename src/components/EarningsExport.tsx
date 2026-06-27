@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { formatCategory } from "@/lib/format";
 // jsPDF + jspdf-autotable are ~450KB combined; load only when user clicks PDF export.
 import type jsPDFType from "jspdf";
 
@@ -220,7 +221,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
       body: rows.map((r) => [
         r.date_completed,
         r.job_title.length > 28 ? r.job_title.slice(0, 26) + "…" : r.job_title,
-        r.category.replace(/_/g, " "),
+        formatCategory(r.category),
         r.parish,
         r.tax_status,
         `$${Number(r.gross_budget).toFixed(2)}`,

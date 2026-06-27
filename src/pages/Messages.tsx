@@ -31,12 +31,21 @@ import type { Conversation, Message } from "@/components/messages/types";
 import { ChatView } from "@/components/messages/ChatView";
 import { ConversationList } from "@/components/messages/ConversationList";
 import { SectionBoundary } from "@/components/SectionBoundary";
+import { PageScaffold } from "@/components/ui/PageScaffold";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
+import { MessageSquare } from "lucide-react";
 
 const CHAT_PAGE_SIZE = 50;
 
 const Messages = () => {
   usePageTitle("Messages — Helpr");
   const navigate = useNavigate();
+  // On the desktop website (≥1024px, non-native) the inbox and the open
+  // thread sit side by side in a single shell — the list on the left, the
+  // thread on the right — instead of the mobile screen-swap. False on
+  // phone/native, where the either/or swap below is unchanged.
+  const isWebDesktop = useIsWebDesktop();
   const [searchParams] = useSearchParams();
   const deepLinkJobId = searchParams.get("jobId");
   const deepLinkUserId = searchParams.get("userId");
@@ -384,6 +393,7 @@ const Messages = () => {
     // "Say hello." empty state, which would wrongly imply 0 messages.
     if (error) {
       console.error("[Messages] openConvo failed:", error);
+      report(error, { tags: { source: "Messages.openConvo" } });
       setChatLoadError(true);
       return;
     }
@@ -417,6 +427,7 @@ const Messages = () => {
             if (markError) {
               // Revert the optimistic read flags so the badge re-appears.
               console.error("[Messages] mark-as-read failed:", markError);
+              report(markError, { severity: "warning", tags: { source: "Messages.markRead" } });
               const unreadSet = new Set(unreadIds);
               setMessages((prev) =>
                 prev.map((m) => (unreadSet.has(m.id) ? { ...m, read: false } : m)),
@@ -450,6 +461,7 @@ const Messages = () => {
 
     if (error) {
       console.error("[Messages] refreshActiveThread failed:", error);
+      report(error, { severity: "warning", tags: { source: "Messages.refreshThread" } });
       toast.error("Couldn't refresh this conversation.");
       return;
     }
@@ -488,6 +500,7 @@ const Messages = () => {
     // leave the "Load earlier" affordance so the user can retry.
     if (error) {
       console.error("[Messages] loadOlderMessages failed:", error);
+      report(error, { severity: "warning", tags: { source: "Messages.loadOlder" } });
       toast.error("Couldn't load earlier messages. Tap to try again.");
       setLoadingMore(false);
       return;
@@ -1020,55 +1033,171 @@ const Messages = () => {
     setDeleteMessageConfirm(null);
   };
 
+  // The two panes, built once and reused by both the mobile screen-swap
+  // and the desktop side-by-side split. `embedded={isWebDesktop}` strips
+  // each component's own full-viewport shell on desktop so they compose
+  // inside the single PageScaffold below; on mobile they keep their
+  // standalone shells exactly as before.
+  const listEl = (
+    <ConversationList
+      conversations={conversations}
+      loading={loading}
+      loadError={loadError}
+      userId={userId}
+      loadConversations={loadConversations}
+      openConvo={openConvo}
+      setReportTarget={setReportTarget}
+      setBlockTarget={setBlockTarget}
+      setDeleteConvoConfirm={setDeleteConvoConfirm}
+      onToggleMute={handleToggleMute}
+      onSnoozeMute={handleSnoozeMute}
+      onUnmute={handleUnmute}
+      embedded={isWebDesktop}
+      activeKey={
+        activeConvo
+          ? `${activeConvo.jobId}_${activeConvo.otherUserId}`
+          : null
+      }
+    />
+  );
+
+  const chatEl = activeConvo ? (
+    <ChatView
+      activeConvo={activeConvo}
+      setActiveConvo={setActiveConvo}
+      keyboardInset={keyboardInset}
+      isOtherOnline={isOtherOnline}
+      isOtherTyping={isOtherTyping}
+      broadcastTyping={broadcastTyping}
+      messages={messages}
+      userId={userId}
+      chatLoadError={chatLoadError}
+      onRetryLoad={() => openConvo(activeConvo)}
+      hasMoreMessages={hasMoreMessages}
+      loadingMore={loadingMore}
+      loadOlderMessages={loadOlderMessages}
+      onRefreshThread={refreshActiveThread}
+      sendMessage={sendMessage}
+      retryMessage={retryMessage}
+      chatContainerRef={chatContainerRef}
+      bottomRef={bottomRef}
+      setReportTarget={setReportTarget}
+      setBlockTarget={setBlockTarget}
+      setDeleteMessageConfirm={setDeleteMessageConfirm}
+      onToggleMute={handleToggleMute}
+      onSnoozeMute={handleSnoozeMute}
+      onUnmute={handleUnmute}
+      jobSystemEvents={jobSystemEvents}
+      embedded={isWebDesktop}
+    />
+  ) : null;
+
   return (
     <>
-      {!activeConvo ? (
-        <SectionBoundary label="conversations">
-          <ConversationList
-            conversations={conversations}
-            loading={loading}
-            loadError={loadError}
-            userId={userId}
-            loadConversations={loadConversations}
-            openConvo={openConvo}
-            setReportTarget={setReportTarget}
-            setBlockTarget={setBlockTarget}
-            setDeleteConvoConfirm={setDeleteConvoConfirm}
-            onToggleMute={handleToggleMute}
-            onSnoozeMute={handleSnoozeMute}
-            onUnmute={handleUnmute}
-          />
-        </SectionBoundary>
+      {isWebDesktop ? (
+        <PageScaffold
+          header={<DashboardHeader />}
+          titleCard={
+            // Desktop title bar spans both panes, so left-align the page
+            // title over the list column and park an at-a-glance unread
+            // summary on the right — otherwise the wide bar reads as dead
+            // space beside the thread pane. The pill counts only genuinely
+            // unread inbound messages (sum of per-thread `unread`).
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col leading-none min-w-0">
+                <h1 className="text-page-title leading-tight">Messages</h1>
+                {!loading && conversations.length > 0 && (
+                  <p
+                    className="mt-1 truncate font-sans font-semibold uppercase"
+                    style={{
+                      fontSize: "0.62rem",
+                      letterSpacing: "0.16em",
+                      color: "hsl(var(--olivewood) / 0.8)",
+                    }}
+                  >
+                    {conversations.length}{" "}
+                    {conversations.length === 1 ? "thread" : "threads"}
+                  </p>
+                )}
+              </div>
+              {(() => {
+                const totalUnread = conversations.reduce(
+                  (sum, c) => sum + (c.unread || 0),
+                  0,
+                );
+                if (loading || totalUnread === 0) return null;
+                return (
+                  <span
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-sans font-bold uppercase"
+                    style={{
+                      fontSize: "0.62rem",
+                      letterSpacing: "0.12em",
+                      color: "hsl(var(--parchment))",
+                      background: "hsl(var(--burnt-sienna))",
+                      boxShadow: "0 1px 3px hsl(var(--burnt-sienna) / 0.35)",
+                    }}
+                  >
+                    {totalUnread} unread
+                  </span>
+                );
+              })()}
+            </div>
+          }
+        >
+          <div className="flex-1 min-h-0 flex">
+            {/* Left pane — the inbox list. Fixed width so the thread pane
+                gets the remaining space; right border separates the two. */}
+            <div
+              className="w-[340px] shrink-0 min-h-0 flex flex-col"
+              style={{ borderRight: "1px solid hsl(var(--olivewood) / 0.12)" }}
+            >
+              <SectionBoundary label="conversations">{listEl}</SectionBoundary>
+            </div>
+            {/* Right pane — the open thread, or a resting empty state when
+                nothing is selected yet. */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              {chatEl ? (
+                <SectionBoundary label="chat">{chatEl}</SectionBoundary>
+              ) : (
+                <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center px-8 gap-3">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: "hsl(var(--ivory-sand) / 0.55)",
+                      border: "1px solid hsl(var(--olivewood) / 0.10)",
+                    }}
+                  >
+                    <MessageSquare
+                      className="w-7 h-7"
+                      style={{ color: "hsl(var(--bark))" }}
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  <p
+                    className="font-display italic font-bold"
+                    style={{
+                      fontSize: "1.15rem",
+                      color: "hsl(var(--ink-deep))",
+                      letterSpacing: "-0.015em",
+                    }}
+                  >
+                    Your conversations
+                  </p>
+                  <p
+                    className="font-serif italic text-[0.85rem] max-w-[280px]"
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  >
+                    Pick a thread on the left to read and reply here.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </PageScaffold>
+      ) : !activeConvo ? (
+        <SectionBoundary label="conversations">{listEl}</SectionBoundary>
       ) : (
-        <SectionBoundary label="chat">
-          <ChatView
-            activeConvo={activeConvo}
-            setActiveConvo={setActiveConvo}
-            keyboardInset={keyboardInset}
-            isOtherOnline={isOtherOnline}
-            isOtherTyping={isOtherTyping}
-            broadcastTyping={broadcastTyping}
-            messages={messages}
-            userId={userId}
-            chatLoadError={chatLoadError}
-            onRetryLoad={() => openConvo(activeConvo)}
-            hasMoreMessages={hasMoreMessages}
-            loadingMore={loadingMore}
-            loadOlderMessages={loadOlderMessages}
-            onRefreshThread={refreshActiveThread}
-            sendMessage={sendMessage}
-            retryMessage={retryMessage}
-            chatContainerRef={chatContainerRef}
-            bottomRef={bottomRef}
-            setReportTarget={setReportTarget}
-            setBlockTarget={setBlockTarget}
-            setDeleteMessageConfirm={setDeleteMessageConfirm}
-            onToggleMute={handleToggleMute}
-            onSnoozeMute={handleSnoozeMute}
-            onUnmute={handleUnmute}
-            jobSystemEvents={jobSystemEvents}
-          />
-        </SectionBoundary>
+        <SectionBoundary label="chat">{chatEl}</SectionBoundary>
       )}
 
       {reportTarget && (

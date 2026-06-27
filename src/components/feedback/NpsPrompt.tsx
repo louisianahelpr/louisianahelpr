@@ -146,7 +146,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
           <SheetTitle className="font-display text-[hsl(var(--olivewood))]">
             How are we doing?
           </SheetTitle>
-          <p className="text-ds-13 text-[hsl(var(--olivewood)/0.72)]">
+          <p className="text-ds-13 text-[hsl(var(--olivewood)/0.8)]">
             How likely are you to recommend Helpr to a friend?
           </p>
         </SheetHeader>
@@ -187,7 +187,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
             })}
           </div>
 
-          <div className="flex justify-between text-[11px] text-[hsl(var(--olivewood)/0.6)] px-1">
+          <div className="flex justify-between text-[11px] text-[hsl(var(--olivewood)/0.8)] px-1">
             <span>{ANCHORS[0]}</span>
             <span>{ANCHORS[1]}</span>
           </div>
@@ -220,7 +220,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
               variant="ghost"
               onClick={() => dismiss("maybe-later")}
               disabled={submitting}
-              className="text-[hsl(var(--olivewood)/0.75)]"
+              className="text-[hsl(var(--olivewood)/0.8)]"
             >
               Maybe later
             </Button>

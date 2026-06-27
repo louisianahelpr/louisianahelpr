@@ -3,6 +3,7 @@ import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatJobDate } from "@/lib/format";
+import { report } from "@/lib/errorLogger";
 
 export default function StrikeBanner() {
   const [status, setStatus] = useState<{
@@ -22,6 +23,7 @@ export default function StrikeBanner() {
       if (cancelled) return;
       if (error) {
         console.error("[StrikeBanner] failed to load ban status:", error);
+        report(error, { severity: "warning", tags: { source: "StrikeBanner.load" } });
         return;
       }
       if (data) setStatus(data);

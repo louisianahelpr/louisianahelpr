@@ -17,6 +17,7 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import { divIcon, point as leafletPoint } from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Crosshair, BellRing, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -298,6 +299,11 @@ function RecenterControl({ center, zoom }: { center: [number, number]; zoom: num
 
 export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta }: BrowseMapProps) {
   const [jobs, setJobs] = useState<MapJob[]>([]);
+  // Total open jobs in the feed, including ones the map can't plot because
+  // they lack geocoded coordinates. Lets the badge read "N of M" so a user
+  // who sees 21 in the feed but 19 pins understands the 2 missing jobs are
+  // un-mappable, not lost.
+  const [totalOpen, setTotalOpen] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   // Initialize from localStorage so the user's last choice survives
   // app restarts (and Capacitor cold starts).
@@ -321,6 +327,17 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
 
   useEffect(() => {
     let cancelled = false;
+    // Total open jobs (same surface the feed counts) — the denominator for
+    // the "N of M" badge. Best-effort: a failure just leaves the badge as a
+    // plain pin count rather than bricking the map.
+    supabase
+      .from("open_jobs_browse")
+      .select("id", { count: "exact", head: true })
+      .neq("payment_status", "abandoned")
+      .then(({ count, error }) => {
+        if (cancelled || error) return;
+        setTotalOpen(count ?? null);
+      });
     supabase
       .rpc("get_open_jobs_for_map")
       .then(({ data, error }) => {
@@ -414,7 +431,9 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
             WebkitBackdropFilter: "blur(8px)",
           }}
         >
-          {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
+          {totalOpen !== null && totalOpen > jobs.length
+            ? `${jobs.length} of ${totalOpen} mapped`
+            : `${jobs.length} ${jobs.length === 1 ? "job" : "jobs"}`}
         </div>
         <div
           role="group"
@@ -464,7 +483,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           <div
             className="pointer-events-auto flex flex-col items-center text-center gap-3 rounded-2xl px-6 py-6 max-w-[300px]"
             style={{
-              backgroundColor: "hsla(38, 18%, 97%, 0.92)",
+              backgroundColor: "hsl(var(--surface-band) / 0.92)",
               border: "0.5px solid hsl(var(--olivewood) / 0.18)",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
@@ -495,7 +514,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
               </p>
               <p
                 className="font-serif italic"
-                style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 New posts land here the moment they go live across Louisiana.
               </p>
@@ -524,7 +543,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         className="absolute inset-0 z-[300] flex items-center justify-center pointer-events-none transition-opacity duration-500"
         style={{
           opacity: tilesLoading ? 1 : 0,
-          background: "hsla(38, 18%, 97%, 0.55)",
+          background: "hsl(var(--surface-band) / 0.55)",
           backdropFilter: "blur(2px)",
           WebkitBackdropFilter: "blur(2px)",
         }}
@@ -578,7 +597,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
                   {labels[job.category as keyof typeof labels] ?? job.category}
                   {job.parish ? ` · ${job.parish}` : ""}
                 </p>
-                <p className="font-mono text-ds-13 font-semibold">${Number(job.budget).toFixed(2)}</p>
+                <p className="font-mono text-ds-13 font-semibold">${formatPrice(Number(job.budget))}</p>
                 {job.is_urgent && (
                   <p className="text-ds-10 uppercase tracking-wide text-destructive font-bold">
                     Urgent

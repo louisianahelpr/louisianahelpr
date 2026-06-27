@@ -53,7 +53,10 @@ const NotificationTrigger = forwardRef<HTMLButtonElement, { unreadCount: number 
     <Button ref={ref} variant="ghost" size="icon" className="relative" aria-label="Notifications" {...props}>
       <Bell className="w-4 h-4" />
       {unreadCount > 0 && (
-        <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-ds-10 leading-none flex items-center justify-center font-bold ring-2 ring-background">
+        <span
+          className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-ds-10 leading-none flex items-center justify-center font-bold ring-2 ring-background"
+          style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
+        >
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>
       )}
@@ -333,7 +336,7 @@ const NotificationPanel = () => {
                     <span
                       className="tabular-nums text-[0.66rem] font-bold"
                       style={{
-                        color: isActive ? "hsl(var(--parchment) / 0.85)" : "hsl(var(--olivewood) / 0.55)",
+                        color: isActive ? "hsl(var(--parchment) / 0.85)" : "hsl(var(--olivewood) / 0.8)",
                       }}
                     >
                       {opt.count}
@@ -392,10 +395,10 @@ const NotificationPanel = () => {
               <div
                 className="w-20 h-20 rounded-full flex items-center justify-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-500"
                 style={{
-                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                  backgroundColor: "hsl(var(--ivory-sand) / 0.55)",
                   backdropFilter: "blur(16px) saturate(150%)",
                   WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                  border: "1px solid hsla(0, 0%, 100%, 0.7)",
+                  border: "1px solid hsl(var(--olivewood) / 0.18)",
                   boxShadow:
                     "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
                     "0 1px 2px hsl(var(--olivewood) / 0.05), " +
@@ -423,7 +426,7 @@ const NotificationPanel = () => {
                 </p>
                 <p
                   className="font-serif italic text-ds-13 leading-relaxed max-w-xs mx-auto"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {filter === "unread" && notifications.length > 0
                     ? "Switch to All to see everything from this week."
@@ -461,7 +464,7 @@ const NotificationPanel = () => {
                     style={{
                       color: "hsl(var(--burnt-sienna) / 0.78)",
                       background:
-                        "linear-gradient(to bottom, hsla(38, 18%, 97%, 0.92), hsla(38, 18%, 97%, 0.78))",
+                        "linear-gradient(to bottom, hsl(var(--surface-band) / 0.92), hsl(var(--surface-band) / 0.78))",
                       backdropFilter: "blur(8px) saturate(140%)",
                       WebkitBackdropFilter: "blur(8px) saturate(140%)",
                       borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)",
@@ -470,7 +473,7 @@ const NotificationPanel = () => {
                     <span>{group.label}</span>
                     <span
                       className="tabular-nums font-sans not-italic font-semibold"
-                      style={{ color: "hsl(var(--olivewood) / 0.5)", letterSpacing: "0.04em" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.04em" }}
                     >
                       {group.items.length}
                     </span>
@@ -526,7 +529,7 @@ const NotificationPanel = () => {
                             </div>
                             <p
                               className="font-serif italic mt-0.5 line-clamp-2"
-                              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               {n.message}
                             </p>
@@ -577,7 +580,7 @@ const NotificationPanel = () => {
                             })()}
                             <p
                               className="font-serif italic mt-1"
-                              style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.55)" }}
+                              style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               {timeAgo(n.created_at)}
                             </p>

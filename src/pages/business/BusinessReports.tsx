@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import BusinessNoAccountState from "@/components/business/BusinessNoAccountState";
 import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
@@ -72,7 +72,7 @@ const BusinessReports = () => {
       </BusinessLayout>
     );
   }
-  if (!business) return <Navigate to="/dashboard" replace />;
+  if (!business) return <BusinessNoAccountState title="Monthly Reports" />;
   if (!business.is_owner) {
     return (
       <BusinessLayout eyebrow="Reports" title="Monthly Reports">

@@ -199,7 +199,7 @@ const ForBusiness = () => {
                   >
                     Up and running in minutes.
                   </h2>
-                  <p className="text-ds-11 font-sans mb-5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <p className="text-ds-11 font-sans mb-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     Sign up, invite your team, start posting. No sales calls.
                   </p>
 
@@ -213,7 +213,7 @@ const ForBusiness = () => {
                     <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
                   </Button>
 
-                  <p className="text-ds-11 mt-3" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <p className="text-ds-11 mt-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     Already have an account?{" "}
                     <Link
                       to="/login"

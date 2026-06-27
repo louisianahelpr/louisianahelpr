@@ -1,5 +1,5 @@
 // Marketing email blast tool — admin-only.
-// Sends a one-off campaign to a segmented user list via Resend (gateway).
+// Sends a one-off campaign to a segmented user list via the Resend API.
 // Segments: all | helpers | posters | by_parish.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -9,7 +9,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const RESEND_API_URL = "https://api.resend.com/emails";
 
 interface BlastBody {
   subject: string;
@@ -23,12 +23,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
 
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is not configured");
 
     // Auth: must be admin
@@ -134,7 +132,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send via Resend gateway. Throttle lightly: batches of 10, 200ms between.
+    // Send via the Resend API. Throttle lightly: batches of 10, 200ms between.
     let sent = 0, failed = 0;
     const errors: string[] = [];
 
@@ -142,12 +140,11 @@ Deno.serve(async (req) => {
       const batch = recipients.slice(i, i + 10);
       await Promise.all(batch.map(async (r) => {
         try {
-          const resp = await fetch(`${GATEWAY_URL}/emails`, {
+          const resp = await fetch(RESEND_API_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-              "X-Connection-Api-Key": RESEND_API_KEY,
+              "Authorization": `Bearer ${RESEND_API_KEY}`,
             },
             body: JSON.stringify({
               from: "Helpr <hello@louisianahelpr.com>",

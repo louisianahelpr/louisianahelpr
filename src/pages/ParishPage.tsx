@@ -229,7 +229,7 @@ const ParishPage = () => {
                 <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
                   No open jobs yet
                 </p>
-                <p className="text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Be the first to post in {displayParishName}.
                 </p>
               </div>
@@ -266,7 +266,7 @@ const ParishPage = () => {
                       <p className="text-ds-13 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
                         {job.title}
                       </p>
-                      <p className="text-ds-11 mt-0.5 flex items-center gap-1.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      <p className="text-ds-11 mt-0.5 flex items-center gap-1.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                         <Clock className="w-3 h-3 shrink-0" />
                         {timeAgo(job.created_at)}
                         <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
@@ -314,8 +314,8 @@ const ParishPage = () => {
             </div>
           ) : topHelpers.length === 0 ? (
             <div className="rounded-ds-md liquid-glass p-5 text-center" role="status">
-              <Users className="w-6 h-6 mx-auto mb-2" style={{ color: "hsl(var(--olivewood) / 0.45)" }} />
-              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <Users className="w-6 h-6 mx-auto mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 No helpers yet in {displayParishName}
               </p>
             </div>
@@ -360,7 +360,7 @@ const ParishPage = () => {
                       <p className="text-ds-13 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
                         {displayName}
                       </p>
-                      <div className="flex items-center gap-1.5 mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                         {helper.avg_rating > 0 && (
                           <>
                             <Star className="w-3 h-3" style={{ fill: "hsl(var(--gold-warm))", color: "hsl(var(--gold-warm))" }} />
@@ -379,7 +379,7 @@ const ParishPage = () => {
                         </span>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.45)" }} />
+                    <ArrowRight className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                   </Link>
                 );
               })}
@@ -408,7 +408,7 @@ const ParishPage = () => {
               Browse all jobs
             </Button>
             <Button
-              variant="hero"
+              variant="bark"
               size="sm"
               className="rounded-full squircle flex-1 min-w-0"
               onClick={() => navigate("/post-job")}

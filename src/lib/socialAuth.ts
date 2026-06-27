@@ -85,12 +85,12 @@ function isCancelError(err: unknown): boolean {
 // fallback that names the provider.
 function friendlyProviderError(provider: SocialProvider, err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err ?? "");
-  if (!raw) return providerLabel(provider) + " sign-in failed. Please try again.";
+  if (!raw) return `${providerLabel(provider)} sign-in didn't work — give it another try?`;
   const mapped = friendlyAuthError(raw);
   // friendlyAuthError returns the generic fallback for unrecognised input;
   // when that happens, prefer a provider-named line over the bare generic.
-  if (mapped === "Something went wrong. Please try again.") {
-    return `${providerLabel(provider)} sign-in failed. Please try again.`;
+  if (mapped === "Couldn't sign you in — give it another try?") {
+    return `${providerLabel(provider)} sign-in didn't work — give it another try?`;
   }
   return mapped;
 }
@@ -174,9 +174,8 @@ export async function signInWithProvider(
   }
 }
 
-// Back-compat named exports — the existing tests + a couple of older call
-// sites (AppleSignInButton.tsx, GoogleSignInButton.tsx) still reference
-// these directly. They throw on failure so the legacy "try/catch around
+// Back-compat named exports — the existing tests still reference these
+// directly. They throw on failure so the legacy "try/catch around
 // nativeAppleSignIn" call sites keep working.
 export async function nativeAppleSignIn(): Promise<void> {
   await nativeSignIn("apple");

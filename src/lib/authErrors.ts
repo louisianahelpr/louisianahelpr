@@ -20,5 +20,5 @@ export function friendlyAuthError(raw: string | undefined | null): string {
     return "An account already uses that email. Try signing in instead.";
   }
 
-  return "Something went wrong. Please try again.";
+  return "Couldn't sign you in — give it another try?";
 }

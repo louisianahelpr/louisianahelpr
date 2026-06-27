@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import BusinessNoAccountState from "@/components/business/BusinessNoAccountState";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -70,6 +70,7 @@ const BusinessApi = () => {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [webhookEvents, setWebhookEvents] = useState<string[]>(["job.created"]);
   const [savingWebhook, setSavingWebhook] = useState(false);
+  const [deletingWebhookId, setDeletingWebhookId] = useState<string | null>(null);
 
   const {
     data: apiKeys = [],
@@ -119,7 +120,7 @@ const BusinessApi = () => {
       </BusinessLayout>
     );
   }
-  if (!business) return <Navigate to="/dashboard" replace />;
+  if (!business) return <BusinessNoAccountState title="API & Webhooks" />;
   if (!isOwner) {
     return (
       <BusinessLayout eyebrow="Developer" title="API & Webhooks">
@@ -232,14 +233,19 @@ const BusinessApi = () => {
   };
 
   const deleteWebhook = async (id: string) => {
+    setDeletingWebhookId(id);
     try {
       const { error } = await (supabase.from as any)("business_webhooks")
         .delete()
         .eq("id", id);
       if (error) throw error;
+      hapticSuccess();
       queryClient.invalidateQueries({ queryKey: queryKeys.business.webhooks(businessId) });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Couldn't delete webhook.");
+      hapticError();
+      toast.error(err instanceof Error ? err.message : "Couldn't delete that webhook — try again?");
+    } finally {
+      setDeletingWebhookId(null);
     }
   };
 
@@ -402,8 +408,8 @@ const BusinessApi = () => {
                   </p>
                 </div>
                 <Switch checked={w.active} onCheckedChange={() => toggleWebhook(w)} />
-                <Button variant="ghost" size="sm" onClick={() => deleteWebhook(w.id)}>
-                  <Trash2 className="w-4 h-4" />
+                <Button variant="ghost" size="sm" disabled={deletingWebhookId === w.id} aria-label="Delete webhook" onClick={() => deleteWebhook(w.id)}>
+                  {deletingWebhookId === w.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 </Button>
               </li>
             ))}

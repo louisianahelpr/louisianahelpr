@@ -2,7 +2,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, Zap, Lightbulb, TrendingUp, Receipt, Gavel, Sparkles } from "lucide-react";
+import { DollarSign, Zap, Lightbulb, TrendingUp, Gavel, Sparkles } from "lucide-react";
 import type { CategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryPricing, getSmartPrice } from "@/lib/pricingGuide";
@@ -34,13 +34,6 @@ interface BudgetSectionProps {
   customUrgentFee: boolean;
   setCustomUrgentFee: (v: boolean) => void;
   budgetComplete: boolean;
-  /**
-   * The helper-side fee percentage (commission deducted at payout).
-   * Used to compute the helpr's net take-home preview as the poster
-   * types the budget. Defaults to 12% when not provided so the
-   * preview still shows a sensible number on slow settings load.
-   */
-  helperFeePercent?: number | null;
   /** Current job category — used for smart-price midpoint lookup. */
   category?: string;
   /** Pricing mode selected by poster. */
@@ -77,7 +70,6 @@ export function BudgetSection({
   customUrgentFee,
   setCustomUrgentFee,
   budgetComplete,
-  helperFeePercent,
   category = "other",
   pricingMode,
   setPricingMode,
@@ -88,12 +80,7 @@ export function BudgetSection({
   bidsSealed,
   setBidsSealed,
 }: BudgetSectionProps) {
-  // Helper-net preview — what the helpr will actually take home after
-  // the platform's helper-side commission. Default to 12% when settings
-  // haven't loaded yet so this never renders as $NaN.
   const budgetNum = parseFloat(budget) || 0;
-  const helperPct = helperFeePercent ?? 12;
-  const helperNet = budgetNum > 0 ? budgetNum * (1 - helperPct / 100) : 0;
 
   // Smart price midpoint for the selected category
   const smartPrice = getSmartPrice(category);
@@ -195,7 +182,7 @@ export function BudgetSection({
           {catPricing && (
             <p
               className="font-serif italic text-ds-12"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Most {catPricing.label} jobs in Louisiana go for ${catPricing.min}–${catPricing.max}
             </p>
@@ -263,26 +250,6 @@ export function BudgetSection({
               <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={2} />
               <p className="text-ds-11 text-muted-foreground">
                 Suggested: <span className="font-semibold text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs
-              </p>
-            </div>
-          )}
-          {/* Platform-fee preview — confirms what the helpr will actually
-              take home before the poster gets to checkout. Calmly worded
-              so it doesn't read as a hidden-fee warning. Hidden until the
-              budget is high enough to compute a meaningful number. */}
-          {budgetNum >= 5 && (
-            <div className="flex items-center gap-2 rounded-ds-md bg-secondary/40 border border-border px-3 py-2">
-              <Receipt
-                className="w-3.5 h-3.5 shrink-0"
-                style={{ color: "hsl(var(--bark))" }}
-                strokeWidth={2}
-              />
-              <p className="text-ds-11 text-muted-foreground leading-snug">
-                We keep <span className="font-semibold text-foreground tabular-nums">{helperPct}%</span> as the helpr-side fee — the helpr sees{" "}
-                <span className="font-semibold text-foreground tabular-nums">
-                  ${helperNet.toFixed(2)}
-                </span>{" "}
-                net for this task.
               </p>
             </div>
           )}

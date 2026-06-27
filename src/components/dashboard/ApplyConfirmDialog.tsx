@@ -175,6 +175,7 @@ export function ApplyConfirmDialog({
   const { online } = useOnlineStatus();
   const charsLeft = MAX_PITCH_LENGTH - applyMessage.length;
   const isBidMode = (confirmApplyJob as any)?.pricing_mode === "accept_bids";
+  const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
   const trimmedLen = applyMessage.trim().length;
   const underMin = trimmedLen > 0 && trimmedLen < SOFT_MIN_PITCH_LENGTH;
   const jobId = confirmApplyJob?.id ?? null;
@@ -296,17 +297,17 @@ export function ApplyConfirmDialog({
             className="font-serif italic uppercase"
             style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
-            You're applying
+            {isInstantBook ? "You're booking" : "You're applying"}
           </span>
           <AlertDialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
-            {confirmApplyJob ? `"${confirmApplyJob.title}"` : "Apply for this task"}
+            {confirmApplyJob ? `"${confirmApplyJob.title}"` : isInstantBook ? "Book this task" : "Apply for this task"}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             {confirmApplyJob ? (
-              <div className="mt-3">
+              <div className="pt-3">
                 {(() => {
                   const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
                   const perHelper = confirmApplyJob.budget / helpers;
@@ -318,7 +319,7 @@ export function ApplyConfirmDialog({
                       style={{
                         background:
                           "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-                          "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.74) 100%)",
+                          "var(--surface-premium)",
                         border: "0.5px solid hsl(var(--bark) / 0.22)",
                         boxShadow:
                           "inset 0 1px 1px 0 rgba(255,255,255,0.6), " +
@@ -332,11 +333,11 @@ export function ApplyConfirmDialog({
                         You earn
                       </p>
                       <div className="space-y-1 text-[0.78rem]">
-                        <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
+                        <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                           <span className="font-serif italic">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
                           <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${perHelper.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
+                        <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                           <span className="font-serif italic">− {platformFee}% platform fee</span>
                           <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${commission.toFixed(2)}</span>
                         </div>
@@ -364,7 +365,7 @@ export function ApplyConfirmDialog({
                 })()}
               </div>
             ) : (
-              <p className="font-serif italic mt-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-serif italic pt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Are you sure you want to apply for this task?
               </p>
             )}
@@ -382,7 +383,7 @@ export function ApplyConfirmDialog({
               <div className="relative">
                 <span
                   className="absolute left-3 top-1/2 -translate-y-1/2 font-sans"
-                  style={{ fontSize: "0.84rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ fontSize: "0.84rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   $
                 </span>
@@ -400,7 +401,7 @@ export function ApplyConfirmDialog({
               {confirmApplyJob && (confirmApplyJob.budget ?? 0) > 0 && (
                 <p
                   className="font-serif italic"
-                  style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Poster's budget: ${confirmApplyJob.budget}
                 </p>
@@ -481,7 +482,7 @@ export function ApplyConfirmDialog({
               maxLength={MAX_PITCH_LENGTH}
               placeholder="Introduce yourself or share relevant experience…"
               rows={3}
-              className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
+              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
             />
             <div className="flex items-center justify-between text-ds-11">
               {/* Soft min counter — surfaces the "30+ chars feels real"
@@ -569,7 +570,7 @@ export function ApplyConfirmDialog({
             >
               <Plus className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />
               <span>Add more options</span>
-              <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+              <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 reliability stake · attachments
               </span>
             </button>
@@ -611,7 +612,7 @@ export function ApplyConfirmDialog({
                 Optional
               </span>
             </div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Put $5–$25 on the line. Complete the job → get it back plus 10% bonus. Cancel last-minute → it goes to the poster. Shows posters you're serious.
             </p>
             <div className="flex gap-2">
@@ -659,7 +660,7 @@ export function ApplyConfirmDialog({
                 >
                   <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
                   <span className="truncate flex-1 font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>{file.name}</span>
-                  <span className="font-sans tabular-nums shrink-0" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>{(file.size / 1024).toFixed(0)}KB</span>
+                  <span className="font-sans tabular-nums shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>{(file.size / 1024).toFixed(0)}KB</span>
                   <button type="button" onClick={() => setApplyFiles(f => f.filter((_, idx) => idx !== i))} aria-label="Remove attached file" style={{ color: "hsl(var(--burnt-sienna))" }} className="active:opacity-70">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -728,7 +729,7 @@ export function ApplyConfirmDialog({
               boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
             }}
           >
-            {applyLoading ? "Applying…" : !online ? "Try again" : "Apply now"}
+            {applyLoading ? (isInstantBook ? "Booking…" : "Applying…") : !online ? "Try again" : isInstantBook ? "Book now" : "Apply now"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

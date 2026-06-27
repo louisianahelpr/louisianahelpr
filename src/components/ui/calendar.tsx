@@ -52,7 +52,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
           "!bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] hover:!bg-[hsl(var(--bark))] focus:!bg-[hsl(var(--bark))] shadow-[0_1px_2px_hsl(var(--bark)/0.18)] font-display italic font-bold",
         today:
           "!bg-[hsl(var(--burnt-sienna)/0.10)] !text-[hsl(var(--burnt-sienna))] !font-display !italic !font-bold ring-1 ring-[hsl(var(--burnt-sienna)/0.28)]",
-        outside: "day-outside text-[hsl(var(--olivewood)/0.45)] opacity-60 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+        outside: "day-outside text-[hsl(var(--olivewood)/0.8)] opacity-60 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         disabled: "text-[hsl(var(--olivewood)/0.35)] opacity-50",
         range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
         hidden: "invisible",

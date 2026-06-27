@@ -79,7 +79,7 @@ const MonthlyGoalCard = ({
             type="button"
             onClick={() => setEditing(true)}
             className="text-ds-11 font-medium underline underline-offset-2"
-            style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Edit
           </button>
@@ -103,7 +103,7 @@ const MonthlyGoalCard = ({
             Set your monthly earnings target
           </label>
           <div className="flex items-center gap-2">
-            <span className="text-ds-16 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.5)" }}>
+            <span className="text-ds-16 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               $
             </span>
             <input
@@ -142,7 +142,7 @@ const MonthlyGoalCard = ({
               className="px-4 rounded-xl py-2 text-ds-13 font-semibold"
               style={{
                 background: "hsl(var(--olivewood) / 0.10)",
-                color: "hsl(var(--olivewood) / 0.75)",
+                color: "hsl(var(--olivewood) / 0.8)",
               }}
             >
               Cancel
@@ -153,7 +153,7 @@ const MonthlyGoalCard = ({
               type="button"
               onClick={handleClearGoal}
               className="text-ds-11 underline underline-offset-2 w-full text-center pt-1"
-              style={{ color: "hsl(var(--olivewood) / 0.45)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Remove goal
             </button>
@@ -168,7 +168,7 @@ const MonthlyGoalCard = ({
         >
           <p
             className="font-serif italic text-ds-13"
-            style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Set a monthly earnings goal{" "}
             <span style={{ color: "hsl(var(--burnt-sienna) / 0.80)" }}>→</span>
@@ -208,7 +208,7 @@ const MonthlyGoalCard = ({
             >
               {fmtDollars(currentMonthEarnings)}
             </p>
-            <p className="text-ds-12 font-medium tabular-nums" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+            <p className="text-ds-12 font-medium tabular-nums" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               of {fmtDollars(goal)} goal
             </p>
           </div>
@@ -228,7 +228,7 @@ const MonthlyGoalCard = ({
               }}
             />
           </div>
-          <p className="text-ds-11 font-medium" style={{ color: "hsl(var(--olivewood) / 0.60)" }}>
+          <p className="text-ds-11 font-medium" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {pct}% of {fmtDollars(goal)} goal this month
           </p>
         </div>

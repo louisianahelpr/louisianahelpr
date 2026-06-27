@@ -90,13 +90,35 @@ const ForgotPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader align="center" backTo="/login" backLabel="Back to sign in">
-      <div className={`liquid-glass glass-paper-mesh relative p-6 sm:p-8 space-y-5 ${sent ? "" : "pt-12 sm:pt-14"}`}>
-        {!sent && (
-          <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-            <HelprMark to={null} size="lg" emblemOnly />
+    <AuthShell hideHeader backTo="/login" backLabel="Back to sign in">
+      {!sent && (
+        <div className="text-center mb-8 space-y-2">
+          <div className="flex justify-center mb-3">
+            <HelprMark to={null} size="md" emblemOnly />
           </div>
-        )}
+          <h1
+            className="font-display italic font-bold leading-tight"
+            style={{
+              fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            We'll send you a link.
+          </h1>
+          <p
+            className="font-sans"
+            style={{
+              fontSize: "0.95rem",
+              color: "hsl(var(--olivewood) / 0.8)",
+              letterSpacing: "0.01em",
+            }}
+          >
+            Enter the email tied to your account and check your inbox.
+          </p>
+        </div>
+      )}
+      <div className="liquid-glass glass-paper-mesh relative p-6 sm:p-8 space-y-5">
         {sent ? (
           <div className="text-center space-y-4">
             <div
@@ -110,14 +132,14 @@ const ForgotPassword = () => {
             </h1>
             {/* Neutral confirmation copy — leaks no signal about whether
                 the address is registered (see performSend comment). */}
-            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               If{" "}
               <span className="font-semibold" style={{ color: "hsl(var(--olivewood))" }}>
                 {email}
               </span>
               {" "}is registered, we've sent a reset link. It expires in 1 hour.
             </p>
-            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.
             </p>
             <div className="space-y-2">
@@ -145,23 +167,13 @@ const ForgotPassword = () => {
             </div>
           </div>
         ) : (
-          <>
-            <div className="text-center space-y-2">
-              <h1 className="text-page-title leading-tight">
-                We'll send you a link.
-              </h1>
-              <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.01em" }}>
-                Enter the email tied to your account and check your inbox.
-              </p>
-            </div>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email address</Label>
                 <div className="relative">
                   <Mail
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                    style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     strokeWidth={1.75}
                   />
                   <Input
@@ -180,7 +192,7 @@ const ForgotPassword = () => {
                     required
                     autoComplete="email"
                     aria-invalid={showEmailError}
-                    className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]"
+                    className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]"
                   />
                   {emailValid && (
                     <CheckCircle2
@@ -206,7 +218,6 @@ const ForgotPassword = () => {
                 {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</> : "Send reset link"}
               </Button>
             </form>
-          </>
         )}
       </div>
     </AuthShell>

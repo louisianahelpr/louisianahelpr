@@ -26,7 +26,7 @@ const OnTimeArrivalCard = ({ analytics, hasAccess, isLoading, onUpgrade }: OnTim
           >
             {analytics.onTimeRate}%
           </p>
-          <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             of jobs you arrived on time or early
           </p>
           <p className="text-ds-11 text-muted-foreground">

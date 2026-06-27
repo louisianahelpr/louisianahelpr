@@ -9,9 +9,11 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
-import { formatCategory } from "@/lib/format";
+import { formatCategory, wrappedSeasonLabel } from "@/lib/format";
 
 const YEAR = new Date().getFullYear();
+// "Wrapped" in December, "so far" the rest of the year (see LH-39).
+const SEASON = wrappedSeasonLabel();
 
 // $15/hr proxy for converting budget → approximate hours
 const HOURLY_PROXY = 15;
@@ -146,7 +148,7 @@ const StatCard = ({ label, value, sublabel }: StatCardProps) => (
     >
       {value}
     </p>
-    <p className="text-[0.7rem] font-sans font-semibold uppercase tracking-wider leading-tight" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+    <p className="text-[0.7rem] font-sans font-semibold uppercase tracking-wider leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
       {label}
     </p>
     {sublabel && (
@@ -158,7 +160,7 @@ const StatCard = ({ label, value, sublabel }: StatCardProps) => (
 );
 
 const HelprWrapped = () => {
-  usePageTitle(`Helpr Wrapped ${YEAR}`);
+  usePageTitle(SEASON.isYearEnd ? `Helpr Wrapped ${YEAR}` : `Your ${YEAR} so far — Helpr`);
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
 
@@ -185,7 +187,7 @@ const HelprWrapped = () => {
       title: `My ${YEAR} on Helpr`,
       text: `I helped ${helpedCount} neighbor${helpedCount !== 1 ? "s" : ""} and earned $${earned.toLocaleString()} on @LouisianaHelpr this year! 🎉`,
       url: "https://www.louisianahelpr.com",
-      dialogTitle: "Share your Helpr Wrapped",
+      dialogTitle: SEASON.isYearEnd ? "Share your Helpr Wrapped" : "Share your Helpr year",
     });
   };
 
@@ -251,7 +253,7 @@ const HelprWrapped = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader eyebrow="Louisiana Helpr" title={`Your ${YEAR} Wrapped`} />
+      <PageHeader eyebrow="Louisiana Helpr" title={`Your ${SEASON.title}`} />
 
       <main className="px-5 py-6 flex flex-col items-center">
         <div
@@ -285,7 +287,7 @@ const HelprWrapped = () => {
             </h1>
             <p
               className="mt-1 font-serif italic text-ds-13"
-              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Louisiana Helpr Community
             </p>
@@ -308,7 +310,7 @@ const HelprWrapped = () => {
                 <p className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                   No activity yet in {YEAR}
                 </p>
-                <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Post a job or help a neighbor to start building your story.
                 </p>
               </div>
@@ -331,11 +333,11 @@ const HelprWrapped = () => {
                 onClick={handleShare}
               >
                 <Share2 className="w-4 h-4 mr-2" />
-                Share your Wrapped
+                {SEASON.isYearEnd ? "Share your Wrapped" : "Share your year"}
               </Button>
               <p
                 className="text-center text-ds-11 font-serif italic"
-                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 <a
                   href="/wrapped"

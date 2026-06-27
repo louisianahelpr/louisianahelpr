@@ -169,8 +169,8 @@ const HeroSection = () => {
         <span
           className="w-1.5 h-1.5 rounded-full animate-pulse"
           style={{
-            backgroundColor: "hsl(120, 60%, 50%)",
-            boxShadow: "0 0 6px hsl(120, 60%, 55%, 0.6)",
+            backgroundColor: "hsl(var(--live))",
+            boxShadow: "0 0 6px hsl(var(--live) / 0.6)",
           }}
         />
         {animatedCount !== null
@@ -330,37 +330,6 @@ const HeroSection = () => {
                   </span>
                 </div>
               </a>
-              <span
-                className="liquid-glass inline-flex items-center gap-2 px-3.5 py-2 rounded-ds-md"
-                style={{
-                  color: "hsl(var(--ink-deep))",
-                  opacity: 0.6,
-                }}
-                aria-label="Coming soon to Google Play"
-                title="Coming soon to Google Play"
-              >
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden>
-                  <path d="M3.6 1.86a1 1 0 00-.6.91v18.46a1 1 0 00.6.91l11.34-10.14L3.6 1.86zm12.84 9.34l2.94 2.62 3.42-1.97c.94-.54.94-1.9 0-2.44l-3.42-1.97-2.94 2.62-.18.07.18.07zm-1.5-.85L4.49 1.21 15.14 11l-.2.34zm0 1.7l.2.34L4.49 22.79l10.45-9.14z"/>
-                </svg>
-                <div className="text-left leading-none">
-                  <span
-                    className="font-mono uppercase block"
-                    style={{
-                      fontSize: "0.55rem",
-                      color: "hsl(var(--stormy-sky))",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    Coming soon
-                  </span>
-                  <span
-                    className="font-display font-bold tracking-tight block"
-                    style={{ fontSize: "0.95rem", marginTop: "1px" }}
-                  >
-                    Google Play
-                  </span>
-                </div>
-              </span>
             </div>
           </div>
 

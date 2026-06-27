@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, lazy, Suspense } from "react";
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -47,10 +47,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
   const tab = defaultTab as Tab;
-  // My Posts defaults to "all" (the grouped Active/Completed/Cancelled view)
-  // so a poster whose only tasks are completed/cancelled still sees them on
-  // landing instead of an empty "open" view that reads as "0 posts".
-  const defaultFilter = defaultTab === "applied" ? "pending" : "all";
+  // My Posts opens on "Active" — a flat list of every non-terminal task
+  // (open / accepted / in_progress / …). Completed and Cancelled remain
+  // reachable via the status filter.
+  const defaultFilter = defaultTab === "applied" ? "pending" : "active";
   // Filter + search seed from URL params so a deep link (or browser
   // back/forward) lands the user on the exact view they had. We keep the
   // local-state mirror because the dropdown/search inputs need a
@@ -113,15 +113,27 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // Sync filter when URL search params change externally (e.g. navigating
   // from a notification or via browser back/forward — not from our own
   // write above, which already matches local state).
+  //
+  // We read the latest local filter/query through refs rather than listing
+  // them as effect deps. If they were deps, this effect would also fire on
+  // a *local* selection — at which point `searchParams` is still the
+  // pre-write value (the Effect above's `setSearchParams` hasn't committed
+  // a re-render yet), so it would read "no filter" and clobber the
+  // just-applied selection back to the default. Depending only on the URL
+  // means this runs solely for genuine external navigation.
+  const statusFilterRef = useRef(statusFilter);
+  const searchQueryRef = useRef(searchQuery);
+  statusFilterRef.current = statusFilter;
+  searchQueryRef.current = searchQuery;
   useEffect(() => {
     const paramFilter = searchParams.get("filter") ?? defaultFilter;
-    if (paramFilter !== statusFilter) setStatusFilter(paramFilter);
+    if (paramFilter !== statusFilterRef.current) setStatusFilter(paramFilter);
     const paramQuery = searchParams.get("q") ?? "";
-    if (paramQuery !== searchQuery.trim()) {
+    if (paramQuery !== searchQueryRef.current.trim()) {
       setSearchQuery(paramQuery);
       if (paramQuery) setSearchOpen(true);
     }
-  }, [searchParams, defaultFilter, statusFilter, searchQuery]);
+  }, [searchParams, defaultFilter]);
 
   const {
     loading, loadError, postedJobs, appliedApps, applicantCounts,
@@ -275,7 +287,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                   style={{
                     fontSize: "0.62rem",
                     letterSpacing: "0.16em",
-                    color: "hsl(var(--olivewood) / 0.55)",
+                    color: "hsl(var(--olivewood) / 0.8)",
                   }}
                 >
                   {filteredCount} {filteredCount === 1 ? "task" : "tasks"}

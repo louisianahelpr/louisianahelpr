@@ -48,6 +48,15 @@ interface ConversationListProps {
   onSnoozeMute: (convo: Conversation, until: Date | null) => void;
   /** Explicit unmute — clears any forever or snoozed mute. */
   onUnmute: (convo: Conversation) => void;
+  /** When true, render only the inbox body (no PageScaffold / fixed-
+   *  viewport shell, no title card) so the desktop Messages page can host
+   *  it as the left pane of a list+thread split. Defaults to false —
+   *  mobile/native render the full standalone PageScaffold exactly as
+   *  before. The selected thread is highlighted via `activeKey`. */
+  embedded?: boolean;
+  /** `${jobId}_${otherUserId}` of the open thread — used to highlight the
+   *  active row in the embedded (desktop split) layout. */
+  activeKey?: string | null;
 }
 
 // Sort comparator (descending by lastAt) — pulled out so the pinned /
@@ -79,6 +88,8 @@ export function ConversationList({
   onToggleMute,
   onSnoozeMute,
   onUnmute,
+  embedded = false,
+  activeKey = null,
 }: ConversationListProps) {
   const navigate = useNavigate();
   const [showAllConvos, setShowAllConvos] = useState(false);
@@ -183,10 +194,7 @@ export function ConversationList({
     onRefresh: async () => { if (userId) await loadConversations(userId); },
   });
 
-  return (
-    <PageScaffold
-      header={<DashboardHeader />}
-      titleCard={
+  const titleCard = (
           <div className="flex flex-col leading-none">
             {/* Canonical page-title — same `.text-page-title` (Bodoni Moda
                 italic 700, --headline-hero) used by the Activity tabs
@@ -202,15 +210,17 @@ export function ConversationList({
                 style={{
                   fontSize: "0.62rem",
                   letterSpacing: "0.16em",
-                  color: "hsl(var(--olivewood) / 0.55)",
+                  color: "hsl(var(--olivewood) / 0.8)",
                 }}
               >
                 {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
               </p>
             )}
           </div>
-      }
-    >
+  );
+
+  const listBody = (
+    <>
           {/* Inner header — eyebrow + title row mirroring the
               Posts/Jobs bottom-box header pattern. Hidden on an empty
               inbox so the empty state reads as a single clean panel. */}
@@ -219,24 +229,34 @@ export function ConversationList({
               className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
               style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
-              <div className="flex flex-col leading-none">
-                <span
-                  className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
-                  style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
-                >
-                  Conversations
-                </span>
-                <h2
-                  className="font-display italic font-bold leading-tight mt-1"
-                  style={{
-                    fontSize: "1.25rem",
-                    color: "hsl(var(--ink-deep))",
-                    letterSpacing: "-0.018em",
-                  }}
-                >
-                  All threads
-                </h2>
-              </div>
+              {/* On the desktop split the shared title card already reads
+                  "Messages", so this eyebrow + "All threads" heading would
+                  just stack a second redundant header directly under it.
+                  Hide the text block when embedded — the row collapses to a
+                  thin search toolbar over the list. Mobile keeps the full
+                  header (it's the only title on that screen). */}
+              {!embedded ? (
+                <div className="flex flex-col leading-none">
+                  <span
+                    className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+                  >
+                    Conversations
+                  </span>
+                  <h2
+                    className="font-display italic font-bold leading-tight mt-2"
+                    style={{
+                      fontSize: "1.25rem",
+                      color: "hsl(var(--ink-deep))",
+                      letterSpacing: "-0.018em",
+                    }}
+                  >
+                    All threads
+                  </h2>
+                </div>
+              ) : (
+                <span aria-hidden="true" />
+              )}
               {/* Search toggle — expands the field below this header row,
                   matching the Activity tabs' search pattern. Tinted active
                   while open or while a query is set so the affordance reads
@@ -249,7 +269,7 @@ export function ConversationList({
                 style={
                   searchOpen || searchQuery
                     ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))" }
-                    : { color: "hsl(var(--olivewood) / 0.7)" }
+                    : { color: "hsl(var(--olivewood) / 0.8)" }
                 }
               >
                 <Search className="w-4 h-4" />
@@ -319,7 +339,14 @@ export function ConversationList({
             isPulling={isPulling}
             canTrigger={canTrigger}
             className="flex-1 min-h-0 px-3 py-3"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+            style={{
+              // Mobile pads for the floating dock; the desktop split pane
+              // has no dock, so the 96px reserve would just be dead scroll
+              // space — trim it to a normal gutter when embedded.
+              paddingBottom: embedded
+                ? "1rem"
+                : "calc(env(safe-area-inset-bottom, 0px) + 96px)",
+            }}
           >
           <div className="space-y-2">
           {loading ? (
@@ -339,7 +366,7 @@ export function ConversationList({
                   border: "0.5px solid hsl(var(--olivewood) / 0.16)",
                 }}
               >
-                <Search className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} strokeWidth={1.75} />
+                <Search className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
               </div>
               <p
                 className="font-display italic font-bold"
@@ -349,7 +376,7 @@ export function ConversationList({
               </p>
               <p
                 className="font-serif italic text-[0.8rem] max-w-[240px]"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Try a different name or keyword.
               </p>
@@ -371,6 +398,12 @@ export function ConversationList({
                       const pinned = pinnedSetForRender.has(
                         pinnedKey(c.jobId, c.otherUserId),
                       );
+                      // In the desktop split, highlight the row whose thread
+                      // is open in the right pane so the inbox tracks the
+                      // selection. No-op on mobile (activeKey stays null).
+                      const isActive =
+                        !!activeKey &&
+                        activeKey === `${c.jobId}_${c.otherUserId}`;
                       return (
                         <SwipeableConversationRow
                           isPinned={pinned}
@@ -410,6 +443,7 @@ export function ConversationList({
                               onOpenMuteSheet={setMuteSheetConvo}
                               isPinned={pinned}
                               onTogglePin={() => handleTogglePin(c)}
+                              isActive={isActive}
                             />
                           </div>
                         </SwipeableConversationRow>
@@ -452,6 +486,19 @@ export function ConversationList({
         onSnoozeMute={onSnoozeMute}
         onUnmute={onUnmute}
       />
+    </>
+  );
+
+  // Embedded (desktop list+thread split): just the inbox body, no
+  // PageScaffold shell or title card — the parent provides the outer
+  // shell and a shared title card spanning both panes.
+  if (embedded) {
+    return <div className="flex-1 min-h-0 flex flex-col">{listBody}</div>;
+  }
+
+  return (
+    <PageScaffold header={<DashboardHeader />} titleCard={titleCard}>
+      {listBody}
     </PageScaffold>
   );
 }

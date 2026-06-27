@@ -243,7 +243,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
               className="flex items-center justify-center w-48 h-32"
               style={{ background: "hsl(var(--ivory-sand) / 0.5)" }}
             >
-              <Loader2 className="w-4 h-4 animate-spin" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             </div>
           ) : thumbUrl ? (
             <img loading="lazy" decoding="async"
@@ -254,7 +254,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
           ) : (
             <div
               className="flex items-center justify-center w-48 h-32 font-serif italic"
-              style={{ background: "hsl(var(--ivory-sand) / 0.5)", fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ background: "hsl(var(--ivory-sand) / 0.5)", fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Failed to load
             </div>

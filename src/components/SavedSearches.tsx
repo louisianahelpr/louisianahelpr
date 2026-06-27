@@ -95,7 +95,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
     const trimmed = name.trim();
     if (!trimmed) {
       hapticError();
-      toast.error("Give your search a name");
+      toast.error("Name your search to save it");
       return;
     }
     if (
@@ -197,7 +197,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
             Get notified
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{
               fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)",
               color: "hsl(var(--ink-deep))",
@@ -229,7 +229,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={60}
-              className="rounded-ds-md h-11 border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
+              className="rounded-ds-md h-11 border-border/60 bg-background/80 focus-visible:bg-background focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
             />
             <Button
               variant="bark"
@@ -296,7 +296,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               </p>
               <p
                 className="font-serif italic text-[0.78rem] leading-snug max-w-[280px]"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Tap retry — your saved searches are safe, this is just a fetch hiccup.
               </p>
@@ -334,7 +334,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               </p>
               <p
                 className="font-serif italic text-[0.78rem] leading-snug max-w-[280px]"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Set a filter combo above and save it — we'll ping you when fresh jobs match.
               </p>
@@ -362,7 +362,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                   </p>
                   <p
                     className="text-ds-11 font-serif italic truncate mt-0.5"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {[
                       s.category && `Category: ${categoryLabels[s.category] ?? s.category}`,

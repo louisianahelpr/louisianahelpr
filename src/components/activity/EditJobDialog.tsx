@@ -98,7 +98,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <DialogHeader className="space-y-0 text-left">
           <span className={eyebrowCls} style={eyebrowStyle}>Editing your task</span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             {title ? `"${title}"` : "Edit task"}
@@ -123,7 +123,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <SectionHeading>The task</SectionHeading>
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Title</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
+              <Input aria-label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
             </div>
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Description</Label>
@@ -145,7 +145,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <SectionHeading>When &amp; where</SectionHeading>
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Location</Label>
-              <Input value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
+              <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">

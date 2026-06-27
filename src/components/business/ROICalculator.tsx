@@ -175,7 +175,7 @@ export function ROICalculator() {
               </span>
               <span
                 className="text-ds-13 font-semibold tabular-nums line-through"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 <AnimatedCounter
                   value={numbers.w2MonthlyCost}

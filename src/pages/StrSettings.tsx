@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // ---------------------------------------------------------------------------
 // Types (derived from DB schema — keep in sync with migration)
@@ -77,7 +78,7 @@ function formatSyncTime(ts: string | null): string {
 const cardStyle: React.CSSProperties = {
   background:
     "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.06) 0%, transparent 55%), " +
-    "linear-gradient(180deg, hsla(38, 50%, 96%, 0.94) 0%, hsla(38, 30%, 92%, 0.8) 100%)",
+    "var(--surface-premium)",
   border: "0.5px solid hsl(var(var(--bark)) / 0.18)",
   borderColor: "hsl(var(--bark) / 0.18)",
   boxShadow:
@@ -110,7 +111,7 @@ function EmptyConnections() {
       </p>
       <p
         className="text-center max-w-xs"
-        style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+        style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
       >
         Add your first rental calendar below and Helpr will auto-post
         cleaning jobs after every guest checkout.
@@ -127,9 +128,10 @@ interface ConnectionCardProps {
   onSync: (id: string) => void;
   onRemove: (id: string) => void;
   syncing: boolean;
+  removing: boolean;
 }
 
-function ConnectionCard({ conn, onSync, onRemove, syncing }: ConnectionCardProps) {
+function ConnectionCard({ conn, onSync, onRemove, syncing, removing }: ConnectionCardProps) {
   const hasError = !!conn.last_sync_error;
   const statusColor = hasError ? "hsl(var(--burnt-sienna))" : "hsl(var(--sage))";
   const StatusIcon = hasError ? AlertCircle : CheckCircle;
@@ -170,7 +172,7 @@ function ConnectionCard({ conn, onSync, onRemove, syncing }: ConnectionCardProps
 
       {/* Address */}
       {conn.property_address && (
-        <p style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.65)" }}>
+        <p style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
           {conn.property_address}
         </p>
       )}
@@ -222,8 +224,10 @@ function ConnectionCard({ conn, onSync, onRemove, syncing }: ConnectionCardProps
           {syncing ? "Syncing…" : "Sync now"}
         </Button>
         <button
+          type="button"
           aria-label="Remove calendar connection"
-          className="flex items-center justify-center rounded-ds-md"
+          disabled={removing}
+          className="flex items-center justify-center rounded-ds-md disabled:opacity-50"
           style={{
             width: 40, height: 36,
             background: "hsl(var(--burnt-sienna) / 0.08)",
@@ -232,7 +236,11 @@ function ConnectionCard({ conn, onSync, onRemove, syncing }: ConnectionCardProps
           }}
           onClick={() => onRemove(conn.id)}
         >
-          <Trash2 className="w-4 h-4" />
+          {removing ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Trash2 className="w-4 h-4" />
+          )}
         </button>
       </div>
     </div>
@@ -372,7 +380,7 @@ function AddCalendarForm({
             <p className="font-medium" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}>
               Auto-create cleaning job
             </p>
-            <p style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.65)" }}>
+            <p style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Post a job automatically after each checkout
             </p>
           </div>
@@ -429,8 +437,10 @@ function AddCalendarForm({
 // Main page
 // ---------------------------------------------------------------------------
 export default function StrSettings() {
+  usePageTitle("Host Automation — Helpr");
   const [addOpen, setAddOpen] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
 
@@ -553,10 +563,14 @@ export default function StrSettings() {
       if (error) throw error;
     },
     onSuccess: () => {
+      setRemovingId(null);
       toast.success("Calendar removed");
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },
-    onError: () => toast.error("Failed to remove calendar"),
+    onError: () => {
+      setRemovingId(null);
+      toast.error("Couldn't remove that calendar — try again?");
+    },
   });
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -574,7 +588,7 @@ export default function StrSettings() {
           </h1>
           <p
             className="font-serif italic mt-0.5"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.72)" }}
+            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Auto-post cleaning jobs on guest checkout
           </p>
@@ -605,7 +619,7 @@ export default function StrSettings() {
               </p>
               <p
                 className="mt-1"
-                style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.75)", lineHeight: 1.5 }}
+                style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.5 }}
               >
                 Connect your Airbnb or VRBO calendar. When a guest checks out,
                 Helpr automatically posts a cleaning job — so you always have
@@ -631,8 +645,9 @@ export default function StrSettings() {
                 key={conn.id}
                 conn={conn}
                 onSync={handleSync}
-                onRemove={(id) => removeConnection(id)}
+                onRemove={(id) => { setRemovingId(id); removeConnection(id); }}
                 syncing={syncingId === conn.id}
+                removing={removingId === conn.id}
               />
             ))}
           </div>
@@ -659,9 +674,9 @@ export default function StrSettings() {
               </span>
             </div>
             {addOpen ? (
-              <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+              <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             ) : (
-              <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+              <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             )}
           </button>
 
@@ -678,7 +693,7 @@ export default function StrSettings() {
         {/* Help note */}
         <p
           className="text-center px-2"
-          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.55)" }}
+          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Helpr fetches your calendar every few hours. Cleaning jobs are created
           for checkouts up to 7 days out. Jobs you created manually are never

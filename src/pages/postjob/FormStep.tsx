@@ -1,17 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText, LayoutTemplate, FileSignature, Zap } from "lucide-react";
+import { FileSignature, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
-import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
-import { SampleJobTemplates } from "@/components/postjob/SampleJobTemplates";
 import { DirectOfferBanner } from "./DirectOfferBanner";
 import { DraftSavedIndicator } from "./DraftSavedIndicator";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
-import { SectionProgress, type PostJobSectionId } from "./SectionProgress";
 import { formatPrice } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 
@@ -29,58 +25,6 @@ interface FormStepProps {
  */
 export function FormStep({ form }: FormStepProps) {
   const { business } = useMyBusiness();
-  // Each section is wrapped in a ref'd anchor so the sticky stepper can
-  // scroll-jump to it and an IntersectionObserver can light up the step
-  // for whichever section the poster is currently reading.
-  const detailsRef = useRef<HTMLDivElement>(null);
-  const logisticsRef = useRef<HTMLDivElement>(null);
-  const budgetRef = useRef<HTMLDivElement>(null);
-  const [activeSection, setActiveSection] = useState<PostJobSectionId>("details");
-  // The blank form is the default. Two small tabs sit above it: "Pick up
-  // draft" (only when a saved draft exists) restores it in one tap, and
-  // "Use a template" reveals the sample-job grid.
-  const [showTemplates, setShowTemplates] = useState(false);
-
-  const refs = useMemo(
-    () => ({ details: detailsRef, logistics: logisticsRef, budget: budgetRef }),
-    [],
-  );
-
-  // Scroll-spy — the topmost section currently inside the spy band (just
-  // below the sticky stepper) becomes the active step.
-  useEffect(() => {
-    const anchors = [detailsRef.current, logisticsRef.current, budgetRef.current].filter(
-      (el): el is HTMLDivElement => !!el,
-    );
-    if (anchors.length === 0) return;
-
-    const order: PostJobSectionId[] = ["details", "logistics", "budget"];
-    const visible = new Set<PostJobSectionId>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const id = (entry.target as HTMLElement).dataset.section as PostJobSectionId;
-          if (entry.isIntersecting) visible.add(id);
-          else visible.delete(id);
-        }
-        const top = order.find((id) => visible.has(id));
-        if (top) setActiveSection(top);
-      },
-      // Spy band sits just under the sticky stepper; the negative bottom
-      // margin keeps only the upper part of the viewport "active".
-      { rootMargin: "-128px 0px -55% 0px", threshold: 0 },
-    );
-    for (const el of anchors) observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const handleJump = useCallback(
-    (id: PostJobSectionId) => {
-      setActiveSection(id);
-      refs[id].current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    },
-    [refs],
-  );
 
   const atOpenJobLimit = form.openJobCount !== null && form.openJobCount >= 5;
   // The form is "ready" once all three sections' required fields are
@@ -97,7 +41,8 @@ export function FormStep({ form }: FormStepProps) {
   if (!form.detailsComplete) {
     if (!form.title.trim()) submitLabel = "Add a title to continue";
     else if (!form.description.trim()) submitLabel = "Add a description to continue";
-    else submitLabel = "Pick a category to continue";
+    else if (!form.category) submitLabel = "Pick a category to continue";
+    else submitLabel = "Replace the [placeholders] to continue";
   } else if (!form.logisticsComplete) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
       submitLabel = "Add the address to continue";
@@ -130,85 +75,20 @@ export function FormStep({ form }: FormStepProps) {
         </div>
       )}
 
-      {/* Two small tabs above the blank form — a quick way to pull in a
-          saved draft or start from a template, without a separate landing
-          step. The draft tab only appears when a draft actually exists. */}
-      <div className="flex items-center gap-2">
-        {form.hasDraft && !form.draftConsumed && (
-          <button
-            type="button"
-            onClick={form.loadDraft}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-sans font-semibold active:scale-95 transition-all"
-            style={{
-              fontSize: "0.8rem",
-              color: "hsl(var(--bark))",
-              background: "hsl(var(--parchment) / 0.7)",
-              border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.06)",
-            }}
-          >
-            <FileText className="w-3.5 h-3.5" aria-hidden />
-            Pick up draft
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowTemplates((v) => !v)}
-          aria-pressed={showTemplates}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-sans font-semibold active:scale-95 transition-all"
-          style={{
-            fontSize: "0.8rem",
-            color: showTemplates ? "hsl(var(--burnt-sienna))" : "hsl(var(--bark))",
-            background: showTemplates
-              ? "hsl(var(--burnt-sienna) / 0.12)"
-              : "hsl(var(--parchment) / 0.7)",
-            border: showTemplates
-              ? "0.5px solid hsl(var(--burnt-sienna) / 0.35)"
-              : "0.5px solid hsl(var(--olivewood) / 0.22)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.06)",
-          }}
-        >
-          <LayoutTemplate className="w-3.5 h-3.5" aria-hidden />
-          Use a template
-        </button>
-      </div>
+      {/* Draft tab, template picker, and AI builder all live on the entry
+          step (EntryChoice) now — the form is for filling in details, not
+          for re-offering ways to start one. Keeping them here duplicated the
+          entry screen and made the "form" step read as a second landing.
 
-      {/* Sample-job templates — revealed by the "Use a template" tab.
-          Applying one (or hiding) collapses the panel. */}
-      <SampleJobTemplates
-        open={showTemplates}
-        onClose={() => setShowTemplates(false)}
-        setTitle={form.setTitle}
-        setDescription={form.setDescription}
-        setCategory={form.setCategory}
-        setBudget={form.setBudget}
-        setEstimatedHours={form.setEstimatedHours}
-      />
-
-      {/* AI Job Builder — secondary helper, collapsed by default. */}
-      <AiJobBuilder
-        locationContext={`${form.city}, ${form.addrState}`.trim().replace(/^,\s*/, "")}
-        onGenerated={form.applyAiJob}
-      />
-
-      {/* Sticky stepper — pins below the page header and reflects which
-          of the three chapters the poster is currently in. */}
-      <SectionProgress
-        detailsComplete={form.detailsComplete}
-        logisticsComplete={form.logisticsComplete}
-        budgetComplete={form.budgetComplete}
-        activeSection={activeSection}
-        onJump={handleJump}
-      />
+          The in-form Details/Logistics/Budget stepper rail was removed too:
+          it stacked directly under the whole-flow Entry→Details→Pay stepper
+          and re-stated "Details", reading as a duplicate stepper. The
+          per-section chapter cards (numbered headers) now carry section
+          identity on their own. */}
 
       <form onSubmit={form.handleReview} className="space-y-4">
-        {/* SECTION 1: DETAILS — scroll-margin clears the sticky stepper
-            so a jump lands the header in view, not under the rail. */}
-        <div ref={detailsRef} data-section="details" style={{ scrollMarginTop: "120px" }}>
+        {/* SECTION 1: DETAILS */}
+        <div>
           <DetailsSection
             stepNumber={1}
             title={form.title}
@@ -233,7 +113,7 @@ export function FormStep({ form }: FormStepProps) {
         </div>
 
         {/* SECTION 2: LOGISTICS */}
-        <div ref={logisticsRef} data-section="logistics" style={{ scrollMarginTop: "120px" }}>
+        <div>
           <LogisticsSection
             stepNumber={2}
             streetAddress={form.streetAddress}
@@ -275,7 +155,7 @@ export function FormStep({ form }: FormStepProps) {
         </div>
 
         {/* SECTION 3: BUDGET */}
-        <div ref={budgetRef} data-section="budget" style={{ scrollMarginTop: "120px" }}>
+        <div>
           <BudgetSection
             stepNumber={3}
             budget={form.budget}
@@ -291,7 +171,6 @@ export function FormStep({ form }: FormStepProps) {
             customUrgentFee={form.customUrgentFee}
             setCustomUrgentFee={form.setCustomUrgentFee}
             budgetComplete={form.budgetComplete}
-            helperFeePercent={form.helperFee}
             category={form.category}
             pricingMode={form.pricingMode}
             setPricingMode={form.setPricingMode}

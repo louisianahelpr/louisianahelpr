@@ -68,14 +68,14 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             <Rocket className="w-3 h-3" /> Lift it to the top
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Boost your job.
           </DialogTitle>
           <p
-            className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+            className="font-serif italic pt-1"
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Featured placement and a Boosted badge for 24 hours.
           </p>
@@ -89,7 +89,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             style={{
               background:
                 "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-                "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.74) 100%)",
+                "var(--surface-premium)",
               border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
@@ -114,7 +114,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 </p>
                 <p
                   className="font-serif italic mt-1.5"
-                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
                 </p>
@@ -129,7 +129,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 </p>
                 <p
                   className="font-serif italic mt-1.5"
-                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   One-time · runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
                 </p>

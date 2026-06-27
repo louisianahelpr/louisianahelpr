@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { TabsContent } from "@/components/ui/tabs";
-import { formatJobDate } from "@/lib/format";
+import { formatJobDate, formatCategory } from "@/lib/format";
 import type { Profile } from "../adminUserHelpers";
 
 interface OverviewTabProps {
@@ -108,7 +108,7 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
                   }`}>
                     {v.action_taken === "permanent_ban" ? "Perm Ban" : v.action_taken === "temp_ban" ? "Temp Ban" : "Warning"}
                   </span>
-                  <span className="text-ds-11 text-muted-foreground capitalize">{v.violation_type?.replace(/_/g, " ")}</span>
+                  <span className="text-ds-11 text-muted-foreground">{formatCategory(v.violation_type ?? "")}</span>
                   <span className="text-ds-11 text-muted-foreground ml-auto">{new Date(v.created_at).toLocaleDateString()}</span>
                 </div>
                 {v.description && <p className="text-ds-11 text-foreground">{v.description}</p>}

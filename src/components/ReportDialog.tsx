@@ -152,7 +152,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             {eyebrow}
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{
               fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)",
               color: "hsl(var(--ink-deep))",
@@ -163,8 +163,8 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
           </DialogTitle>
           {step !== "confirmation" && (
             <p
-              className="font-serif italic mt-1 text-[0.82rem] leading-relaxed"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              className="font-serif italic pt-1 text-[0.82rem] leading-relaxed"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Tell us what's going on. Our trust team reviews every report.
             </p>
@@ -175,7 +175,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
           <div className="space-y-2">
             <p
               className="font-serif italic uppercase text-[0.6rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.65)", letterSpacing: "0.16em" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.16em" }}
             >
               Why are you reporting this?
             </p>
@@ -199,7 +199,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                     className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-ds-md text-[12.5px] font-medium transition-all active:scale-[0.97] ${isLast && reasons.length % 2 === 1 ? "col-span-2 justify-center" : "justify-start"} ${
                       active
                         ? "bg-primary/10 text-primary border border-primary/35 shadow-[0_1px_2px_hsl(var(--primary)/0.10)]"
-                        : "bg-white text-foreground border border-border/60 hover:bg-secondary/40 hover:border-border"
+                        : "bg-card text-foreground border border-border/60 hover:bg-secondary/40 hover:border-border"
                     }`}
                   >
                     <Icon
@@ -258,7 +258,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 onChange={(e) => setDescription(e.target.value.slice(0, MAX_LENGTH))}
                 rows={4}
                 required
-                className="rounded-ds-md border-border/60 bg-white/80 focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-[14px] leading-relaxed resize-none"
+                className="rounded-ds-md border-border/60 bg-background/80 focus-visible:bg-background focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-[14px] leading-relaxed resize-none"
               />
               <div className="flex items-center justify-between text-ds-11">
                 <span
@@ -336,21 +336,21 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             <div
               className="rounded-ds-md p-4 text-center space-y-3"
               style={{
-                background: "hsl(155 60% 96%)",
-                border: "0.5px solid hsl(155 35% 70% / 0.35)",
+                background: "hsl(var(--success-tint))",
+                border: "0.5px solid hsl(var(--success-border) / 0.35)",
               }}
             >
               <div className="flex justify-center">
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center"
                   style={{
-                    background: "hsl(155 60% 90%)",
-                    border: "1px solid hsl(155 35% 60% / 0.35)",
+                    background: "hsl(var(--success-tint-strong))",
+                    border: "1px solid hsl(var(--success-border-strong) / 0.35)",
                   }}
                 >
                   <Check
                     className="w-6 h-6"
-                    style={{ color: "hsl(155 50% 30%)" }}
+                    style={{ color: "hsl(var(--success-ink))" }}
                     strokeWidth={2.5}
                   />
                 </div>
@@ -366,7 +366,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 <p
                   className="font-serif italic uppercase text-[0.6rem]"
                   style={{
-                    color: "hsl(var(--olivewood) / 0.7)",
+                    color: "hsl(var(--olivewood) / 0.8)",
                     letterSpacing: "0.16em",
                   }}
                 >

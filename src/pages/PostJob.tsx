@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
@@ -13,6 +15,14 @@ import { PostJobFlowStepper } from "./postjob/PostJobFlowStepper";
 const PostJob = () => {
   usePageTitle("Post a Task — Helpr");
   const form = usePostJobForm();
+  // On the desktop website the fixed left rail (DesktopSidebarNav) overlaps the
+  // left edge of this document-scroll page. App-shell pages clear it via
+  // `.app-shell-frame { left: var(--desktop-sidebar-w) }`, but this page isn't
+  // app-shell, so inset its body by the rail width here. The DashboardHeader
+  // stays full-bleed (over the rail). This also re-centers the content in the
+  // post-rail area like every other rail page, and un-hides the back button,
+  // which previously sat underneath the rail.
+  const isWebDesktop = useIsWebDesktop();
 
   // iOS keeps the focused field under the keyboard when it sits near the
   // bottom of this long document-scroll form (e.g. the logistics notes /
@@ -49,19 +59,21 @@ const PostJob = () => {
     <div className="min-h-screen bg-premium-page relative pb-safe-nav">
       {form.redirecting && <RedirectingOverlay />}
 
-      {/* showBrand keeps the standard pinned top nav (Helpr·LA wordmark)
-          present here like the Dashboard, instead of dropping the poster
-          straight into a chromeless title block. */}
-      <PageHeader
-        eyebrow={header.eyebrow}
-        title={header.title}
-        meta={header.meta}
-        onBack={form.handlePostJobBack}
-        showBrand
-      />
+      {/* Use the real DashboardHeader so the pinned top nav here is identical
+          to the rest of the app — full-width Helpr·LA wordmark on the left and
+          the notification bell on the right — rather than PageHeader's
+          centered, bell-less brand bar, which read as a different top nav. */}
+      <DashboardHeader />
+      <div style={isWebDesktop ? { paddingLeft: "var(--desktop-sidebar-w)" } : undefined}>
+        <PageHeader
+          eyebrow={header.eyebrow}
+          title={header.title}
+          meta={header.meta}
+          onBack={form.handlePostJobBack}
+        />
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="max-w-lg mx-auto space-y-6">
+        <main className="container mx-auto px-4 py-6">
+          <div className="max-w-lg lg:max-w-3xl mx-auto space-y-6">
           {/* Whole-flow progress: Entry → Details → Pay. Always visible so the
               poster knows where they are across the three-step machine — the
               in-form/in-checkout rails track only sub-progress within a step. */}
@@ -75,8 +87,9 @@ const PostJob = () => {
 
           {/* STEP 2: ORDER SUMMARY / CHECKOUT */}
           {form.step === "checkout" && <CheckoutStepView form={form} />}
-        </div>
-      </main>
+          </div>
+        </main>
+      </div>
 
       <IDVPromptDialog
         open={form.idvDialogOpen}

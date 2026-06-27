@@ -4,6 +4,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { haversineMiles, parseNearbyFilter } from "@/lib/geo";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { sortJobsSmart } from "@/lib/smartSort";
+import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 
 // Persisted browse-feed sort key. Stored in localStorage so a helper's
 // pick survives reloads; defaults to "smart" the very first time the
@@ -167,9 +168,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       // free users wait). Encourages helpers AND posters to subscribe.
       if (!earlyAccessExempt) {
         const jobAge = Date.now() - new Date(job.created_at).getTime();
-        const earlyMinutes = helprTier === "elite" ? 20 : helprTier === "pro" ? 10 : helprTier === "basic" ? 5 : 0;
-        const delayMs = (20 - earlyMinutes) * 60 * 1000;
-        if (jobAge < delayMs) return false;
+        if (jobAge < earlyAccessDelayMs(helprTier)) return false;
       }
       if (matchAvailability && helperAvailability.length > 0) {
         const jobDate = new Date(job.date_needed + "T12:00:00");

@@ -79,7 +79,7 @@ export function MuteSheet({
           </SheetTitle>
           <p
             className="font-serif italic text-[0.82rem] leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             New messages from {convo.otherUserName} won't notify you, but
             you'll still see them in your inbox.
@@ -92,7 +92,7 @@ export function MuteSheet({
                 border: "0.5px solid hsl(var(--olivewood) / 0.18)",
               }}
             >
-              <Clock className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.7)" }} />
+              <Clock className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
               <span
                 className="font-serif italic text-[0.74rem]"
                 style={{ color: "hsl(var(--olivewood) / 0.85)" }}
@@ -124,12 +124,12 @@ export function MuteSheet({
               {preset.id === "forever" ? (
                 <BellOff
                   className="w-4 h-4 shrink-0"
-                  style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 />
               ) : (
                 <Clock
                   className="w-4 h-4 shrink-0"
-                  style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 />
               )}
             </button>

@@ -131,7 +131,7 @@ export function SampleJobTemplates({
             </p>
             <p
               className="font-serif italic mt-1 text-ds-11 tabular-nums"
-              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               typical ${sample.typical_price} · ~
               {sample.typical_duration_minutes < 60

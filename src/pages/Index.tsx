@@ -121,7 +121,7 @@ const Index = () => {
   useScrollFadeUp();
 
   usePageMeta({
-    title: "Helpr — Louisiana's #1 Local Help Marketplace | Cleaning, Moving, Errands & More",
+    title: "Helpr — Louisiana's Local Help Marketplace | Cleaning, Moving, Errands & More",
     description:
       "Find trusted helprs in New Orleans, Baton Rouge, Shreveport & across Louisiana for cleaning, yard work, moving, errands, and handyman tasks. Post a job in minutes.",
     keywords:

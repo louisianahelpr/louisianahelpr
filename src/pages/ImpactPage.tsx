@@ -126,7 +126,7 @@ const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon }
       </p>
       <p
         className="font-sans font-semibold uppercase"
-        style={{ fontSize: "0.63rem", letterSpacing: "0.18em", color: "hsl(var(--olivewood) / 0.65)" }}
+        style={{ fontSize: "0.63rem", letterSpacing: "0.18em", color: "hsl(var(--olivewood) / 0.8)" }}
       >
         {label}
       </p>
@@ -180,7 +180,7 @@ const LouisianaMap = () => (
     </svg>
     <p
       className="text-center font-serif italic mt-3"
-      style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.65)" }}
+      style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}
     >
       Active parishes with helpers &amp; jobs
     </p>
@@ -236,6 +236,12 @@ const ImpactPage = () => {
       <Suspense fallback={null}>
         <Navbar />
       </Suspense>
+      {/* Spacer clears the fixed Navbar (h-12 + safe-area top inset) so the
+          PageHeader title isn't occluded — mirrors PublicLayout's spacer. */}
+      <div
+        aria-hidden
+        style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3rem)" }}
+      />
 
       <PageHeader
         title="Louisiana's local economy, moving."
@@ -334,7 +340,7 @@ const ImpactPage = () => {
               </p>
               <p
                 className="mt-3 font-serif italic text-ds-13"
-                style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 <a
                   href="/parishes"
@@ -452,17 +458,17 @@ const ImpactPage = () => {
           </h2>
           <p
             className="mt-4 font-serif italic text-ds-17 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Join thousands of Louisiana neighbors already on the platform.
+            Join your Louisiana neighbors on the platform.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
               onClick={goToPostJob}
               size="lg"
+              variant="bark"
               className="rounded-full px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
-              style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
             >
               Post a job
               <ArrowRight className="w-4 h-4" strokeWidth={2} />

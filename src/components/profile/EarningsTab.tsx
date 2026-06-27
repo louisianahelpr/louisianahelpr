@@ -443,7 +443,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             </h3>
             <p
               className="font-serif italic mt-1 leading-snug"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               You may receive a 1099-K from Stripe. Download a payout statement now so you're not scrambling in April.
             </p>
@@ -506,7 +506,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 </h2>
               </div>
             </div>
-            <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Connect your payout account to see your live balance.
             </p>
             <Button size="sm" onClick={() => navigate("/profile?tab=payment")}>Set up payouts</Button>
@@ -547,13 +547,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
                   {formatCents(availableTotal)}
                 </p>
-                <p className="font-serif italic mt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="font-serif italic mt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                   ready to pay out
                 </p>
               </div>
               <div className="border-l border-border/40 pl-4">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Loader2 className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+                  <Loader2 className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                   <span className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
                     Pending
                   </span>
@@ -561,7 +561,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
                   {formatCents(pendingTotal)}
                 </p>
-                <p className="font-serif italic mt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="font-serif italic mt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                   clearing soon
                 </p>
               </div>
@@ -650,7 +650,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.15rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                   {value}
                 </p>
-                <p className="font-serif italic mt-1" style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="font-serif italic mt-1" style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                   {sub}
                 </p>
               </div>
@@ -695,7 +695,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 </p>
                 <p
                   className="font-serif italic"
-                  style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Payouts land within 2 business days of a completed job.
                 </p>
@@ -714,7 +714,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                             {formatCategory(p.status)}
                           </span>
                         </div>
-                        <p className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                        <p className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                           Arrives {formatDate(p.arrival_date)} · {p.method === "instant" ? "Instant" : "Standard"}
                         </p>
                       </div>
@@ -764,7 +764,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                         </h3>
                         <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium capitalize ${tone}`}>{t.status}</span>
                       </div>
-                      <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                      <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                         {date}
                         {t.stripe_transfer_id && (
                           <span className="ml-2 text-ds-10 font-mono opacity-60" title="Stripe transfer ID">{t.stripe_transfer_id.slice(-8)}</span>
@@ -779,7 +779,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                         ${amount}
                       </p>
                       {Number(fee) > 0 && (
-                        <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.6)" }}>
+                        <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                           fee ${fee}
                         </p>
                       )}
@@ -859,7 +859,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 </p>
                 <p
                   className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Apply to a task and your earnings will land here.
                 </p>
@@ -886,7 +886,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                           </h3>
                           <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${jobStatusColorClasses(job.status)}`}>{jobStatusLabel(job.status)}</span>
                         </div>
-                        <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                        <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                           {job.location} <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span> {new Date(job.date_needed).toLocaleDateString()}
                         </p>
                       </div>
@@ -898,7 +898,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                         )}
                         {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
                         {job.status === "in_progress" && (
-                          <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                          <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                             ${job.budget} budget
                           </p>
                         )}

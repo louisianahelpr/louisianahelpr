@@ -42,15 +42,17 @@
      pages read the same correct value. */
   --safe-area-top: env(safe-area-inset-top, 0px);
   /* Named brand tokens — referenced directly by components. */
-  --parchment:    36 16% 91%;   /* page canvas — a soft warm greige, deepened
-                                    well below the near-white card surface so
-                                    cards read as distinctly elevated tiles.
-                                    Held at hue 36 / sat 16% so the added depth
-                                    stays a neutral warm grey, never yellow.
-                                    ~7.5pt darker than the card (98.5%) for
-                                    unmistakable figure-ground separation. */
-  --ivory-sand:   40 38% 98.5%; /* surface (cards) — a crisp, barely-warm white. At this lightness the warmth reads as "ivory paper," never yellow, and the card sits clearly BRIGHTER than the page so it pops as an elevated surface instead of blending into the parchment wash. */
-  --sand:         38 39% 76%;   /* #D6C7AD — soft border / quiet surface */
+  --parchment:    220 14% 95%;  /* page canvas — cool near-white. Refined cool-neutral
+                                    grey (hue 220, low sat) — the Linear/Stripe/Vercel
+                                    premium register, never tacky cream. Held a touch
+                                    below the 100%-white cards (~5% L gap) so every
+                                    surface lifts off the canvas instead of blending
+                                    white-on-white — separation from tone + hairline +
+                                    shadow together, not shadow alone. */
+  --ivory-sand:   0 0% 100%;    /* surface (cards) — pure crisp white. Sits brighter
+                                    than the cool-grey canvas so it reads as a clean,
+                                    elevated paper tile. */
+  --sand:         220 14% 90%;  /* cool light grey — soft border / quiet surface (was warm tan #D6C7AD) */
   --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
   --sage:         78 9% 53%;    /* #8C947D — primary accent */
   --bark:         70 20% 33%;   /* #5E6544 — deep olive */
@@ -70,14 +72,19 @@
   --foreground:           var(--olivewood);
   --card:                 var(--ivory-sand);
   --card-foreground:      var(--olivewood);
-  --popover:              var(--parchment);
+  --popover:              var(--ivory-sand); /* card tone, not page canvas —
+                                                dropdowns/menus read as lifted
+                                                surfaces, not painted on the page */
   --popover-foreground:   var(--olivewood);
   --muted:                var(--sand);
   --muted-foreground:     var(--stormy-sky);
   --secondary:            var(--sand);
   --secondary-foreground: var(--olivewood);
-  --border:               38 25% 65%;
-  --input:                var(--ivory-sand);
+  --border:               220 14% 82%; /* cool hairline — premium neutral edge, firmed
+                                            so the 1px card outline is actually perceptible
+                                            against both the near-white canvas and white
+                                            cards (was 87%, too faint; orig warm tan 38 24% 56%) */
+  --input:                220 13% 90%;  /* field BORDER token — cool quiet well, visible on white card (was warm 38 24% 72%) */
   --accent:               var(--burnt-sienna);
   --accent-foreground:    0 0% 100%;
   /* App primary = Bark (the bolder olive-green from the landing CTAs). The
@@ -103,7 +110,7 @@
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent:             var(--sand);
   --sidebar-accent-foreground:  var(--olivewood);
-  --sidebar-border:             38 25% 65%;
+  --sidebar-border:             220 13% 90%;
   --sidebar-ring:               var(--sage);
   --radius: 0.5rem;
 
@@ -115,13 +122,13 @@
      floating above the canvas rather than a same-tone panel painted onto
      it — the single biggest lever for visual hierarchy. */
   --card-shadow:
-    0 1px 2px hsl(var(--olivewood) / 0.10),
-    0 10px 22px -8px hsl(var(--olivewood) / 0.18),
-    0 26px 50px -18px hsl(var(--olivewood) / 0.14);
+    0 1px 2px hsl(222 24% 16% / 0.05),
+    0 6px 16px -4px hsl(222 24% 16% / 0.08),
+    0 18px 36px -12px hsl(222 24% 16% / 0.06);
   --card-hover-shadow:
-    0 2px 5px hsl(var(--olivewood) / 0.13),
-    0 16px 32px -8px hsl(var(--olivewood) / 0.22),
-    0 34px 64px -18px hsl(var(--olivewood) / 0.18);
+    0 2px 4px hsl(222 24% 16% / 0.07),
+    0 10px 24px -4px hsl(222 24% 16% / 0.10),
+    0 24px 48px -12px hsl(222 24% 16% / 0.08);
 
   /* Legacy token names kept as aliases so existing components don't need
      a sweeping rewrite. They now resolve to the new brand palette. */
@@ -162,9 +169,86 @@
   --glass-bg:        hsla(0, 0%, 100%, 0.55);
   --glass-bg-soft:   hsla(0, 0%, 100%, 0.42);
   --glass-bg-strong: hsla(0, 0%, 100%, 0.75);
-  --glass-bg-crisp:  hsl(40 30% 99% / 0.97);
-  --glass-bg-title:  hsl(40 30% 99% / 0.85);
+  --glass-bg-crisp:  hsl(0 0% 100% / 0.98);
+  --glass-bg-title:  hsl(0 0% 100% / 0.95); /* near-solid cool white — was warm hue-40
+                                               at 0.85, which let the canvas bleed
+                                               through and flattened the title card to
+                                               canvas tone. Opaque white now lifts it. */
   --glass-border:    hsl(var(--bark) / 0.18);
+
+  /* Bottom-nav dock glass — the floating pill + its frosted curtain are
+     drawn with inline styles in MobileNav.tsx, so they must reference
+     tokens to follow the theme. Light defaults reproduce the original
+     warm-white liquid-glass look; the dark overrides flip them to a deep
+     warm surface so the dock doesn't stay bright-white over a dark page. */
+  --nav-pill-bg:       hsla(0, 0%, 100%, 0.40);
+  --nav-rim-strong:    hsla(0, 0%, 100%, 0.85);
+  --nav-rim-soft:      hsla(0, 0%, 100%, 0.55);
+  --nav-rim-bottom:    hsla(0, 0%, 100%, 0.45);
+  --nav-inset-hi:      rgba(255, 255, 255, 0.40);
+  --nav-curtain-top:   hsla(40, 28%, 99%, 0.6);
+  --nav-curtain-fade:  hsla(40, 28%, 99%, 0);
+
+  /* Pay It Forward — donation "mint" identity palette. Tokenised so the page
+     (built with inline-style colors) renders correctly in dark mode instead of
+     painting glaring light-green blocks on the dark canvas. */
+  --pif-ink:        155 50% 28%;   /* headings / amount */
+  --pif-green:      155 50% 30%;   /* primary green: icons, button, pill text */
+  --pif-green-soft: 155 40% 40%;   /* muted green subtext */
+  --pif-tint:       155 50% 35%;   /* base hue used at low alpha for fills/borders */
+  --pif-card-from:  155 50% 97%;   /* credit-card gradient top */
+  --pif-card-to:    155 40% 94%;   /* credit-card gradient bottom */
+  --pif-form-from:  220 30% 98%;   /* give-a-credit form gradient top (cool neutral) */
+  --pif-form-to:    220 20% 94%;   /* give-a-credit form gradient bottom (cool neutral) */
+  --pif-sheen:      hsla(0, 0%, 100%, 0.55); /* corner radial highlight */
+
+  /* "Active now" / live-presence green — one token for every online dot &
+     live label (messages list, landing heartbeat, payout ticker), so the hue
+     is consistent and legible on both canvases. */
+  --live: 142 64% 40%;
+
+  /* Success / confirmation mint — report-submitted & job-completed panels.
+     One family so the green checkmark surfaces read on both canvases. */
+  --success-tint:         155 60% 96%;   /* panel fill */
+  --success-tint-strong:  155 60% 90%;   /* icon-circle fill */
+  --success-border:       155 35% 70%;   /* panel hairline */
+  --success-border-strong:155 35% 60%;   /* icon-circle ring */
+  --success-ink:          155 50% 30%;   /* check + body */
+  --success-ink-deep:     155 45% 22%;   /* emphasis text */
+
+  /* Amber "pending / awaiting revision" warning — revision banners, completion
+     warnings, awaiting-response chips. Distinct from --gold-warm (boosted). */
+  --amber-tint:   36 72% 48%;   /* base hue, used at low alpha for fills/borders */
+  --amber-ink:    36 72% 28%;   /* label & body text */
+  --amber-solid:  36 72% 35%;   /* solid button fill */
+
+  /* "Charged / paid" green status chip (activity payment state). */
+  --charged-tint:   142 35% 96%;   /* chip fill */
+  --charged-ink:    142 38% 28%;   /* chip text */
+  --charged-border: 142 35% 78%;   /* chip hairline */
+
+  /* Pet-care trust-signal plum (profile). */
+  --petcare-ink: 278 22% 48%;
+
+  /* Info blue — scheduled/awaiting status chips in activity cards. */
+  --info-tint: 210 55% 47%;   /* base hue, used at low alpha for fills/borders */
+  --info-ink:  210 62% 30%;   /* chip text */
+
+  /* Boost orange — the "Boost"/promote action button in activity cards. */
+  --boost-tint: 25 75% 48%;   /* base hue, used at low alpha for fill/border */
+  --boost-ink:  25 82% 28%;   /* button label */
+
+  /* Cancel red — destructive "Cancel job" action button. Warmer & more
+     saturated than the muted system --destructive, kept as its own pair. */
+  --cancel-tint: 6 58% 46%;   /* base hue, used at low alpha for fill/border */
+  --cancel-ink:  6 62% 34%;   /* button label */
+
+  /* Premium cream surfaces — the warm parchment panel behind upgrade/payout
+     sheets and sticky list-section headers. The literals were hardcoded cream
+     with no dark sibling, so they stayed bright in dark mode. --surface-premium
+     is the gradient panel fill; --surface-band is the flat sticky-header band. */
+  --surface-premium: linear-gradient(180deg, hsl(220 30% 99% / 0.92), hsl(220 18% 96% / 0.74));
+  --surface-band: 220 16% 98%;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -250,7 +334,80 @@
   --glass-bg-crisp:  hsl(20 12% 13% / 0.97);
   --glass-bg-title:  hsl(20 12% 13% / 0.85);
   --glass-border:    hsl(var(--bark) / 0.25);
+
+  /* Bottom-nav dock glass — dark surface so the floating pill reads as
+     dark frosted glass over the dark page instead of a bright-white slab.
+     Rims drop to faint light hairlines; the curtain fades a near-black
+     warm tint instead of warm-white. */
+  --nav-pill-bg:       hsl(20 14% 12% / 0.72);
+  --nav-rim-strong:    hsla(0, 0%, 100%, 0.14);
+  --nav-rim-soft:      hsla(0, 0%, 100%, 0.08);
+  --nav-rim-bottom:    hsla(0, 0%, 100%, 0.05);
+  --nav-inset-hi:      rgba(255, 255, 255, 0.10);
+  --nav-curtain-top:   hsl(20 15% 8% / 0.6);
+  --nav-curtain-fade:  hsl(20 15% 8% / 0);
+
+  /* Pay It Forward — dark-mode mint palette: lightened greens for legible
+     foreground, dark green-tinted surfaces instead of light fills. */
+  --pif-ink:        155 35% 72%;
+  --pif-green:      155 33% 62%;
+  --pif-green-soft: 155 20% 60%;
+  --pif-tint:       155 30% 52%;
+  --pif-card-from:  155 22% 13%;
+  --pif-card-to:    155 18% 11%;
+  --pif-form-from:  38 14% 14%;
+  --pif-form-to:    38 12% 11%;
+  --pif-sheen:      hsla(0, 0%, 100%, 0.05);
+
+  --live: 142 52% 60%;  /* lightened so the dot/label reads on the dark page */
+
+  --success-tint:         155 24% 13%;
+  --success-tint-strong:  155 24% 17%;
+  --success-border:       155 22% 38%;
+  --success-border-strong:155 22% 44%;
+  --success-ink:          155 35% 64%;
+  --success-ink-deep:     155 30% 72%;
+
+  --amber-tint:   36 65% 56%;   /* lighter base so low-alpha fills read on dark */
+  --amber-ink:    36 78% 66%;   /* legible amber text on the dark canvas */
+  --amber-solid:  36 60% 50%;
+
+  --charged-tint:   142 24% 15%;   /* deep green chip fill on dark card */
+  --charged-ink:    142 45% 66%;   /* legible green text on dark */
+  --charged-border: 142 22% 36%;
+
+  --petcare-ink: 278 35% 72%;   /* lightened plum, legible on dark */
+
+  --info-tint: 210 55% 60%;   /* lighter base so low-alpha fills read on dark */
+  --info-ink:  210 72% 70%;   /* legible blue text on dark */
+
+  --boost-tint: 25 65% 56%;   /* lighter base so low-alpha fill reads on dark */
+  --boost-ink:  25 80% 70%;   /* legible orange label on dark */
+
+  --cancel-tint: 6 55% 56%;   /* lighter base so low-alpha fill reads on dark */
+  --cancel-ink:  6 65% 70%;   /* legible red label on dark */
+
+  /* Premium cream surfaces — deep warm-charcoal so the upgrade/payout panels
+     and sticky bands sit slightly above the dark canvas instead of glowing. */
+  --surface-premium: linear-gradient(180deg, hsl(20 12% 15% / 0.92), hsl(20 12% 13% / 0.74));
+  --surface-band: 20 12% 13%;
 }
+
+/* ── iOS-native color divergence ─────────────────────────────────────
+   The native iOS WebView renders in Display-P3 wide gamut, so the same
+   token reads slightly different on an iPhone than in desktop Chrome
+   (sRGB): saturated accents pop harder, cool near-whites can read warmer.
+   This block lets a handful of tokens be "their own but similar" on iOS
+   without touching the web palette. Set via `data-platform="ios"` on
+   <html> (see src/lib/nativeInit.ts). Scoped under light + dark so each
+   theme can be compensated independently.
+
+   Currently a no-op scaffold — fill in only the tokens that actually
+   look off on-device, measured against web, once the divergence
+   direction is confirmed. Examples (commented until tuned):
+     html[data-platform="ios"] { --parchment: 220 16% 97%; }
+     html[data-platform="ios"][data-theme="dark"] { --parchment: 20 15% 9%; }
+*/
 
 /* Dark mode page gradients */
 [data-theme="dark"] .bg-premium-page,
@@ -395,6 +552,137 @@ body {
 .app-shell-scroll {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+}
+
+/* Desktop / large-viewport framing (LH-52).
+   On a phone the fixed app shell fills the screen — correct. On a wide
+   desktop browser that same `fixed inset-x-0` shell stretches edge to edge
+   and the product reads as a stretched mobile site. Above the tablet
+   breakpoint, cap the shell (and the bottom dock that pairs with it) to a
+   phone-width column, center it with `margin-inline: auto`, and paint a
+   neutral backdrop behind it so the app presents as a centered device frame.
+   `margin-inline: auto` (not `transform`) is deliberate: a transform would
+   make this fixed element a containing block and break AppShell's own
+   descendant `position: fixed` children. Everything here is scoped to
+   `html.app-shell` so document-scroll marketing pages (Index, ForBusiness,
+   Legal) keep their intentional full-width SEO layout. */
+@media (min-width: 768px) {
+  /* Centered phone-frame presentation. This is the MOBILE-web / tablet
+     treatment and it must NOT apply on `web-desktop` (the wide desktop
+     website), where we instead let the shell fill the viewport and add a
+     persistent left sidebar. Scoping every rule to `:not(.web-desktop)`
+     keeps mobile-web + tablet byte-identical while desktop opts out. */
+  html.app-shell:not(.web-desktop) {
+    background-color: hsl(40 5% 93%);
+  }
+  html.app-shell:not(.web-desktop)[data-theme="dark"] {
+    background-color: hsl(20 12% 5%);
+  }
+  html.app-shell:not(.web-desktop) .app-shell-frame {
+    /* Desktop app-frame. Widened from 480 → 680 so the single-column UI
+       fills more of a desktop viewport AND viewport-keyed `sm:` layouts
+       (e.g. the Browse empty-state's side-by-side CTAs) stop overflowing
+       the frame and clipping text ("…neighbor" → "neigh▮"). Kept well
+       below a full-bleed width so job cards / headers don't stretch. */
+    max-width: 680px;
+    margin-inline: auto;
+    box-shadow:
+      0 0 0 1px hsl(36 14% 70% / 0.55),
+      0 24px 70px -20px hsl(64 16% 16% / 0.35);
+  }
+  html.app-shell:not(.web-desktop) .mobile-nav-frame {
+    max-width: 680px;
+    margin-inline: auto;
+  }
+}
+
+/* ── Web-desktop (wide browser only — never native) ─────────────────────────
+   Gated by the `web-desktop` class on <html>, set ONLY when
+   `!Capacitor.isNativePlatform()` AND viewport ≥ 1024px (see
+   useAppShellViewport.ts). The native app and phone-width browsers never get
+   this class, so their layout is unchanged.
+
+   The persistent left sidebar (DesktopSidebarNav) is a fixed-position rail.
+   We reserve its width as a CSS variable and inset the app shell + content
+   from the left by that amount so the shell fills the rest of the viewport
+   instead of floating in a 680px column with gray gutters. */
+html.web-desktop {
+  --desktop-sidebar-w: 248px;
+}
+@media (min-width: 1024px) {
+  html.web-desktop.app-shell .app-shell-frame {
+    /* Fill the viewport to the right of the sidebar. No max-width cap, no
+       centered phone frame. */
+    left: var(--desktop-sidebar-w);
+    max-width: none;
+    margin-inline: 0;
+    box-shadow: none;
+  }
+  /* The floating bottom dock is replaced by the sidebar on desktop. Hide it
+     outright so it can't overlap content. */
+  html.web-desktop .mobile-nav-frame {
+    display: none !important;
+  }
+  /* Widen the inner content column on desktop. PageScaffold's centered column
+     is capped at max-w-3xl (768px) on mobile; on desktop give it a roomy cap
+     so the multi-column rails have space to breathe. */
+  html.web-desktop .app-shell-frame .ds-desktop-wide {
+    max-width: 1280px;
+  }
+
+  /* Full-bleed top header. On the desktop website the header spans the ENTIRE
+     viewport width, sitting above the left sidebar rail, rather than being
+     inset alongside the content. The frame stays inset by the sidebar width
+     (so content clears the rail); lifting the header out of that frame's flow
+     via fixed positioning lets it reach x:0 and cover the rail's reserved top
+     band (DesktopSidebarNav's h-14 spacer sits beneath it). */
+  html.web-desktop.app-shell .app-shell-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+  /* Re-reserve the header's height (h-14 = 3.5rem) for the content now that
+     the header is removed from flow. The adjacent-sibling selector matches the
+     content div ONLY when a header precedes it, so header-less app-shell pages
+     keep their natural top edge. */
+  html.web-desktop.app-shell .app-shell-header + div {
+    padding-top: 3.5rem;
+  }
+
+  /* Activity (My Posts / My Jobs) card column. Gated by web-desktop so the
+     native app + phone-width browsers keep their identical single column.
+     Used by both the sectioned view (ActivitySectionedView) and the flat
+     per-status view (PostedJobsTab / AppliedJobsTab render here instead of
+     the window-virtualized list when useIsWebDesktop() is true). A single
+     column keeps each card full and scannable; the max-width stops cards
+     from stretching unreadably wide on large monitors. `!important` (below)
+     cancels the base `space-y-3` vertical margins so the grid gap is the
+     only spacing. */
+  html.web-desktop .ds-activity-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+    max-width: 640px;
+  }
+  html.web-desktop .ds-activity-grid > * {
+    margin-top: 0 !important;
+  }
+
+  /* Document-scroll pages (UserProfile, PostJob, Community, Subscription, …)
+     render straight into #root rather than the .app-shell-frame, so they
+     never picked up the sidebar inset above and the fixed 248px rail painted
+     over their header (hiding the back button + brand) and knocked the
+     centered column off-center. When the rail is present (`desktop-rail`) and
+     the page is NOT an app-shell page (those inset via .app-shell-frame), pad
+     #root by the rail width so the whole page sits to the right of the rail
+     and re-centers in the remaining space. The fixed rail ignores this
+     padding, so it stays pinned at the viewport's left edge. */
+  html.web-desktop.desktop-rail:not(.app-shell) #root {
+    padding-left: var(--desktop-sidebar-w);
+  }
 }
 
 /* Leaflet map (BrowseMap) — lock ALL touch gestures to Leaflet itself.
@@ -824,10 +1112,15 @@ button,
  * "near-white pill" bug). Authoring it directly sidesteps the JIT entirely.
  */
 .btn-grad-primary {
-  background-image: linear-gradient(
-    180deg,
-    hsl(var(--primary)) 0%,
-    hsl(var(--primary) / 0.92) 100%
+  /* Single source of truth for the primary-CTA surface — the same radial
+     "Post a task" treatment used by the nav CTAs (MobileNav / DesktopSidebarNav
+     / Community). Every primary green button (default / hero / bark variants)
+     references this so the look can't drift across the app. */
+  background-image: radial-gradient(
+    125% 125% at 32% 22%,
+    hsl(76 20% 44%) 0%,
+    hsl(var(--bark)) 46%,
+    hsl(66 25% 19%) 100%
   );
 }
 
@@ -1018,19 +1311,33 @@ button,
    + soft drop shadow give physical weight. Use on stat cards, frosted CTAs,
    anywhere a card needs to "lift" off the parchment. */
 .liquid-glass {
-  background-color: hsla(0, 0%, 100%, 0.42);
+  /* Light mode: a SOLID cool-white fill + a real cool hairline border.
+     The fill is opaque (not translucent) so the deeper near-white canvas
+     can't bleed through and flatten the card to canvas-tone — the card
+     reads as a crisp, elevated white tile with a clear ~5% luminance gap
+     above the 95% canvas. Dropped the old warm hue-40 cream tint to match
+     the cool-neutral palette. The defined `--border` hairline + drop
+     shadow finish the separation. Dark mode overrides this below. */
+  background-color: hsl(0 0% 100%);
   backdrop-filter: blur(20px) saturate(170%);
   -webkit-backdrop-filter: blur(20px) saturate(170%);
-  border: 1px solid hsla(0, 0%, 100%, 0.55);
+  /* Solid, fully-opaque warm hairline. A translucent border let the
+     backdrop blur wash the edge out to nothing — the card lost its
+     outline against the champagne canvas. A defined 1px line at full
+     strength is the single most reliable separator in light mode. */
+  border: 1px solid hsl(var(--border));
   border-radius: 1.5rem;
   box-shadow:
-    /* Brighter top inner highlight (was 0.7) so the card catches light off
-       its top edge over the warm champagne canvas, reading as glass rather
-       than flat fill — without touching the surface tint. */
+    /* Brighter top inner highlight so the card catches light off its top
+       edge over the warm champagne canvas, reading as glass rather than
+       flat fill. */
     inset 0 1px 0 0 hsla(0, 0%, 100%, 0.9),
-    0 1px 2px hsl(var(--olivewood) / 0.04),
-    0 12px 24px -6px hsl(var(--olivewood) / 0.08),
-    0 28px 56px -14px hsl(var(--olivewood) / 0.1);
+    /* Deepened drop shadow — roughly doubled from before so the card
+       casts a real, perceptible shadow onto the page. This is what makes
+       the separation read as physical depth rather than a faint tint. */
+    0 1px 3px hsl(var(--olivewood) / 0.1),
+    0 14px 28px -8px hsl(var(--olivewood) / 0.16),
+    0 32px 64px -16px hsl(var(--olivewood) / 0.2);
 }
 
 /* Subtle paper-like depth for empty-state surfaces — barely-there
@@ -1414,12 +1721,17 @@ button,
   position: fixed;
   inset: 0;
   pointer-events: none;
-  /* Champagne flow — soft linear gradient from near-white (#FAF9F5) to
-     light champagne (#F4F1EA). Replaces the previous radial tan glow that was
-     reading as "spotlight." Desaturated 20 % overall — the olive + white
-     glass cards now have proper contrast against this calmer canvas. */
-  background: linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
-  z-index: 0;
+  /* Cool-neutral flow — soft linear gradient from pure white to a faint cool
+     grey. Replaces the old warm champagne (#FAF9F5→#F4F1EA) that read as cream;
+     now matches the cool hue-220 canvas for a premium, never-tacky base. */
+  background: linear-gradient(135deg, #FCFCFD 0%, #F1F3F6 100%);
+  /* Sit BEHIND in-flow page content. As a fixed, non-positioned-sibling
+     background layer this must use a negative z-index — at z-index:0 it
+     paints AFTER (visually over) static, non-positioned content, which
+     blanked plain PublicLayout pages (e.g. /enterprise) whose content
+     isn't itself z-indexed above it. pointer-events:none hid it from
+     hit-testing, so only a screenshot revealed the cover-up. */
+  z-index: -1;
 }
 
 /* Status-pill pulse glow — breathing white halo + faint green ring that
@@ -1712,7 +2024,7 @@ button,
      Previously this layered darker `--secondary` radial washes, which made
      auth/onboarding screens read heavier than the dashboard. */
   background-image:
-    linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
+    linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
   background-attachment: fixed;
 }
 
@@ -1723,7 +2035,7 @@ button,
 .bg-premium-page {
   background-color: hsl(var(--background));
   background-image:
-    linear-gradient(135deg, #FAF9F5 0%, #F4F1EA 100%);
+    linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
   background-attachment: fixed;
 }
 

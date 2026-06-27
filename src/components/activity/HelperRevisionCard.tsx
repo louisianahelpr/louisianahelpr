@@ -130,8 +130,8 @@ export function HelperRevisionCard({
     <div
       className="rounded-ds-md p-3 space-y-2.5"
       style={{
-        background: "hsl(36 72% 48% / 0.09)",
-        border: "0.5px solid hsl(36 72% 48% / 0.28)",
+        background: "hsl(var(--amber-tint) / 0.09)",
+        border: "0.5px solid hsl(var(--amber-tint) / 0.28)",
         boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.45)",
       }}
     >
@@ -139,7 +139,7 @@ export function HelperRevisionCard({
       <div>
         <span
           className="font-serif italic uppercase inline-flex items-center gap-1.5"
-          style={{ fontSize: "0.62rem", color: "hsl(36 72% 30%)", letterSpacing: "0.18em" }}
+          style={{ fontSize: "0.62rem", color: "hsl(var(--amber-ink))", letterSpacing: "0.18em" }}
         >
           <AlertTriangle className="w-3 h-3" />
           Revision requested
@@ -182,7 +182,7 @@ export function HelperRevisionCard({
       <details className="group text-left" style={{ fontSize: "0.78rem" }}>
         <summary
           className="cursor-pointer select-none font-medium list-none flex items-center gap-1"
-          style={{ color: "hsl(36 72% 30%)", opacity: 0.75 }}
+          style={{ color: "hsl(var(--amber-ink))", opacity: 0.75 }}
         >
           <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
           How to handle this well
@@ -206,13 +206,13 @@ export function HelperRevisionCard({
           onClick={handleAccept}
           disabled={accepting}
           style={{
-            background: "hsl(36 72% 35%)",
+            background: "hsl(var(--amber-solid))",
             backgroundImage: "none",
-            border: "1px solid hsl(36 72% 35%)",
+            border: "1px solid hsl(var(--amber-solid))",
             color: "white",
             fontFamily: "Montserrat, system-ui, sans-serif",
             fontWeight: 600,
-            boxShadow: "0 1px 2px hsl(36 72% 35% / 0.18), 0 4px 12px -4px hsl(36 72% 35% / 0.28)",
+            boxShadow: "0 1px 2px hsl(var(--amber-solid) / 0.18), 0 4px 12px -4px hsl(var(--amber-solid) / 0.28)",
           }}
         >
           <Wrench className="w-3.5 h-3.5 mr-1" />

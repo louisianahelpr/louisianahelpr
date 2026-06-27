@@ -344,19 +344,20 @@ describe("release-payout edge function", () => {
       );
       const out = await json(res);
       expect(res.status).toBe(200);
-      // $100 budget - 10% fee = $90 → 9000 cents
-      expect(out.amount_cents).toBe(9000);
-      expect(out.platform_fee_cents).toBe(1000);
+      // Untiered helper resolves to the free tier → 12% fee.
+      // $100 budget - 12% fee = $88 → 8800 cents
+      expect(out.amount_cents).toBe(8800);
+      expect(out.platform_fee_cents).toBe(1200);
 
       const transferArgs = stripeMock.transfers.create.mock.calls[0][0];
-      expect(transferArgs.amount).toBe(9000);
+      expect(transferArgs.amount).toBe(8800);
       expect(transferArgs.destination).toBe("acct_helper");
 
       const ledger = scenario.writes.find(
         (w) => w.table === "payout_transfers" && w.op === "insert",
       );
       expect((ledger?.payload as Record<string, unknown>).status).toBe("pending");
-      expect((ledger?.payload as Record<string, unknown>).amount_cents).toBe(9000);
+      expect((ledger?.payload as Record<string, unknown>).amount_cents).toBe(8800);
 
       const jobWrite = scenario.writes.find(
         (w) => w.table === "jobs" && w.op === "update",
@@ -375,8 +376,9 @@ describe("release-payout edge function", () => {
           body: { job_id: "job-1" },
         }),
       );
-      // gross = 100 + 20 = 120; fee = 10% of budget (100) = 10; net = 110
-      expect((await json(res)).amount_cents).toBe(11000);
+      // Untiered helper → free tier → 12%.
+      // gross = 100 + 20 = 120; fee = 12% of budget (100) = 12; net = 108
+      expect((await json(res)).amount_cents).toBe(10800);
     });
 
     it("deducts the one-time $2 onboarding fee from a helper who has not paid it", async () => {
@@ -399,8 +401,9 @@ describe("release-payout edge function", () => {
           body: { job_id: "job-1" },
         }),
       );
-      // $90 net - $2 onboarding fee = $88 → 8800 cents
-      expect((await json(res)).amount_cents).toBe(8800);
+      // Untiered helper → free tier → 12%.
+      // $88 net - $2 onboarding fee = $86 → 8600 cents
+      expect((await json(res)).amount_cents).toBe(8600);
     });
 
     it("returns 502 when the Stripe transfer call fails", async () => {

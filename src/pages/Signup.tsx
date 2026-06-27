@@ -312,7 +312,7 @@ const Signup = () => {
   // read as one set. (The `pl-10`/`pr-10` icon padding is appended at each
   // call site, mirroring Login.)
   const inputCls =
-    "rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.5)]";
+    "rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]";
   const labelCls = "text-ds-13 font-sans font-medium";
 
   // Short, single-line titles that mirror the Login screen's heading,
@@ -344,7 +344,7 @@ const Signup = () => {
           className="font-sans"
           style={{
             fontSize: "0.95rem",
-            color: "hsl(var(--olivewood) / 0.7)",
+            color: "hsl(var(--olivewood) / 0.8)",
             letterSpacing: "0.01em",
           }}
         >

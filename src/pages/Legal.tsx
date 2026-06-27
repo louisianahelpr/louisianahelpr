@@ -14,6 +14,11 @@ import BackButton from "@/components/BackButton";
 import { PolicyRowItem, PolicySection, PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
+
+// Tier pricing/fees come from the single source of truth so this page can
+// never drift from the Subscription page or the in-feed fee math (LH-30).
+const legalFmtMo = (n: number | null) => (n == null ? "free" : `$${n.toFixed(2)}/mo`);
 
 type TabKey = "terms" | "community" | "privacy";
 const VALID_TABS: TabKey[] = ["terms", "community", "privacy"];
@@ -157,7 +162,7 @@ const PolicyFooter = ({ updated }: { updated: string }) => (
     </p>
     <span
       className="shrink-0 text-ds-11 font-sans tabular-nums"
-      style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
     >
       Updated {updated}
     </span>
@@ -174,6 +179,7 @@ const TermsContent = () => (
         "Posters pay 10% on top. Helprs are paid 90% of the agreed price (10% platform fee).",
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
+        "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
       ]}
     />
 
@@ -241,8 +247,8 @@ const TermsContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Poster service fee:</strong> 10% added at checkout.</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> 10% deducted from payout.</p>
-            <p><strong className="text-foreground">Total platform take:</strong> 20% per transaction.</p>
+            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.pro.platformFeePercent}% Helper Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite.</p>
+            <p><strong className="text-foreground">Total platform take:</strong> the 10% poster service fee plus the helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> $5 for priority placement.</p>
           </>
         }
@@ -285,7 +291,7 @@ const TermsContent = () => (
     <PolicySection
       icon={Crown}
       title="Subscription tiers"
-      subtitle="Basic, Pro, and Elite plans"
+      subtitle="Free, Helper Pro, Helpr Elite, and Business plans"
       anchorId="subscription-tiers"
     >
       <PolicyRowItem
@@ -293,10 +299,86 @@ const TermsContent = () => (
         title="Tiers & pricing"
         body={
           <>
-            <p><strong className="text-foreground">Basic:</strong> $5/mo or ~$50/yr.</p>
-            <p><strong className="text-foreground">Pro:</strong> $10/mo or ~$100/yr.</p>
-            <p><strong className="text-foreground">Elite:</strong> $15/mo or ~$150/yr.</p>
-            <p>All tiers maintain the same 10% / 10% split fee. Annual plans save ~17%. Stripe handles billing automatically.</p>
+            <p><strong className="text-foreground">Free:</strong> standard access at a {TIER_PERKS.free.platformFeePercent}% platform fee.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)} — reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.business.name}:</strong> {legalFmtMo(TIER_PERKS.business.price)} — team tools and a {TIER_PERKS.business.platformFeePercent}% platform fee.</p>
+            <p>Annual plans save about 2 months. Stripe handles billing automatically.</p>
+          </>
+        }
+      />
+    </PolicySection>
+
+    <PolicySection
+      icon={ShieldAlert}
+      title="Disclaimers & limitation of liability"
+      subtitle="Helpr is the marketplace — not a party to your job"
+      anchorId="liability"
+    >
+      <PolicyRowItem
+        icon={ShieldAlert}
+        title="Helpr is only the marketplace"
+        body={
+          <>
+            <p><strong className="text-foreground">We connect people — we don't do the work.</strong> Helpr provides the platform that lets posters and helprs find each other. We do not perform, supervise, direct, inspect, schedule, or control any task.</p>
+            <p>Every job is a <strong className="text-foreground">direct agreement between the two users.</strong> Helpr is not a party to that agreement, is not your employer or agent, and does not act on your behalf.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={AlertTriangle}
+        title="No liability for what happens during a task"
+        body={
+          <>
+            <p><strong className="text-foreground">To the fullest extent permitted by law, Helpr is not responsible or liable</strong> for any loss, theft, or damage to property, or for any personal injury, illness, death, or other harm, arising out of or related to a task, a user's conduct, or anything that happens before, during, or after a job — whether at the job site or anywhere else.</p>
+            <p>This includes the acts, omissions, honesty, qualifications, or safety of any other user. <strong className="text-foreground">You meet and deal with other users at your own risk.</strong></p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Scale}
+        title={'Provided "as is" — no warranties'}
+        body={
+          <>
+            <p><strong className="text-foreground">The platform and all services are provided "as is" and "as available,"</strong> without warranties of any kind, express or implied.</p>
+            <p>We do not guarantee the quality, safety, legality, honesty, or qualifications of any user, task, listing, or outcome, and we do not guarantee that any verification, rating, or background information is accurate or complete.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Handshake}
+        title="You assume the risk & release Helpr"
+        body={
+          <>
+            <p><strong className="text-foreground">You are solely responsible</strong> for vetting the people you hire or work for, for your own safety, and for your belongings and property.</p>
+            <p>You release Helpr, its owners, and its staff from any and all claims, demands, and damages arising from your use of the platform or your dealings with other users.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Siren}
+        title="Limitation of liability"
+        body={
+          <>
+            <p>To the maximum extent allowed by law, <strong className="text-foreground">Helpr's total liability for any claim is limited to the greater of the platform fees you paid us on the transaction at issue, or $100.</strong></p>
+            <p>Helpr is never liable for indirect, incidental, special, consequential, or punitive damages, or for lost profits or lost data — even if we were advised such damages were possible.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={ShieldCheck}
+        title="Indemnification"
+        body={
+          <p>You agree to <strong className="text-foreground">defend, indemnify, and hold Helpr harmless</strong> from any claims, losses, liabilities, and expenses (including reasonable attorneys' fees) arising from your tasks, your conduct, your content, your violation of these Terms, or your violation of any law or the rights of another person.</p>
+        }
+      />
+      <PolicyRowItem
+        icon={AlertTriangle}
+        title="No insurance; disputes between users"
+        body={
+          <>
+            <p><strong className="text-foreground">Helpr does not provide insurance</strong> for posters or helprs. Any protection or guarantee program we may offer is governed by its own separate terms.</p>
+            <p>Disputes between users are handled through the dispute process in the <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>. Helpr's role is limited to facilitating that process and is not a guarantor of any outcome.</p>
           </>
         }
       />
@@ -698,7 +780,7 @@ const PrivacyContent = () => (
           >
             We never sell your data.
           </p>
-          <p className="font-serif italic mt-1 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic mt-1 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Other users only see your first name, photo, and ratings. ID documents stay encrypted and are accessed only during verification.
           </p>
         </div>
@@ -793,7 +875,23 @@ const PrivacyContent = () => (
       <PolicyRowItem
         icon={Wallet}
         title="Payment processors"
-        body={<p>Stripe processes all payments securely under their own privacy policy.</p>}
+        body={<p>Stripe processes all payments and identity verification securely under their own privacy policy.</p>}
+      />
+      <PolicyRowItem
+        icon={Database}
+        title="Service providers we rely on"
+        body={
+          <>
+            <p>We use a small set of trusted vendors to run Helpr. Each only receives the data it needs for its function, under its own privacy policy:</p>
+            <ul className="mt-2 list-disc pl-5 space-y-1">
+              <li><strong className="text-foreground">Supabase</strong> — database, authentication, and file storage.</li>
+              <li><strong className="text-foreground">Stripe</strong> — payments, payouts, and identity verification.</li>
+              <li><strong className="text-foreground">Apple &amp; Google</strong> — optional Sign in with Apple / Google, and push-notification delivery (APNs / FCM).</li>
+              <li><strong className="text-foreground">PostHog</strong> — privacy-respecting product analytics.</li>
+              <li><strong className="text-foreground">Sentry</strong> — crash and error monitoring.</li>
+            </ul>
+          </>
+        }
       />
       <PolicyRowItem
         icon={Scale}
@@ -907,9 +1005,14 @@ const Legal = () => {
   // rather than spring-sliding between tabs.
   const reduceMotion = useReducedMotion();
 
-  // WEB: the marketing Navbar owns the top; the tab band sticks just below it
-  // in normal document flow. NATIVE renders via AppShell instead (see below).
-  const webBandStickyTop = "calc(3.5rem + env(safe-area-inset-top, 0px))";
+  // WEB: the tab band pins to the very top of the viewport on scroll. We do
+  // NOT offset by the marketing Navbar's height: that Navbar is `position:
+  // fixed`, but the global Framer page-transition wrapper sets `will-change:
+  // transform`, which makes the wrapper a containing block — so the Navbar
+  // anchors to it and scrolls away with the page instead of staying pinned.
+  // Offsetting by 3.5rem therefore left an empty strip above the band where
+  // later content (search / tagline) leaked through. top: 0 closes that gap.
+  const webBandStickyTop = "0px";
 
   // Switching tabs is a fresh document: drop any active search and jump back
   // to the top (native scrolls AppShell's internal container; web scrolls the
@@ -1026,7 +1129,7 @@ const Legal = () => {
     <div className="relative" data-print-hide>
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-        style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       />
       <input
         type="text"
@@ -1045,7 +1148,7 @@ const Legal = () => {
           onClick={() => setQuery("")}
           aria-label="Clear search"
           className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
-          style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           <X className="w-4 h-4" />
         </button>
@@ -1058,7 +1161,7 @@ const Legal = () => {
       <p className="font-display font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
         No matches for “{query.trim()}”
       </p>
-      <p className="mt-1 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+      <p className="mt-1 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Try a different term or clear the search.
       </p>
     </div>
@@ -1133,7 +1236,7 @@ const Legal = () => {
         aria-hidden
         style={{
           paddingTop: "env(safe-area-inset-top, 0px)",
-          background: "hsl(38 18% 97%)",
+          background: "hsl(var(--surface-band))",
         }}
       />
     );
@@ -1174,7 +1277,7 @@ const Legal = () => {
               className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
               style={{
                 top: webBandStickyTop,
-                background: "hsl(38 18% 97%)",
+                background: "hsl(var(--surface-band))",
                 borderBottom: "1px solid hsl(var(--bark) / 0.10)",
               }}
             >

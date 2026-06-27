@@ -4,10 +4,10 @@ import {
   DollarSign,
   ShoppingBag,
   Clock,
-  ChevronRight,
   ExternalLink,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 
 interface BenefitItem {
@@ -98,7 +98,7 @@ export default function BenefitsPage() {
 
   return (
     <div className="min-h-screen pb-safe-nav" style={{ background: "hsl(var(--parchment))" }}>
-      <PageHeader title="Benefits & Perks" />
+      <PageHeader title="Benefits & Perks" showBrand rightSlot={<NotificationPanel />} />
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
         {/* Hero */}
@@ -155,14 +155,14 @@ export default function BenefitsPage() {
                     </p>
                     <p
                       className="text-xs mt-0.5 leading-relaxed"
-                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {item.tagline}
                     </p>
                   </div>
                   <ExternalLink
                     className="w-4 h-4 shrink-0 mt-0.5"
-                    style={{ color: "hsl(var(--olivewood) / 0.4)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   />
                 </button>
               ))}
@@ -189,7 +189,7 @@ export default function BenefitsPage() {
               <li
                 key={item}
                 className="text-sm flex items-center gap-2"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
                 {item}
@@ -198,38 +198,14 @@ export default function BenefitsPage() {
           </ul>
         </div>
 
-        {/* CTA to time credits */}
-        <div
-          className="rounded-2xl p-5 flex items-center justify-between cursor-pointer active:opacity-80"
-          style={{ background: "hsl(var(--gold-warm) / 0.10)" }}
-          onClick={() => navigate("/time-credits")}
-        >
-          <div>
-            <p
-              className="font-semibold text-sm"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Have time credits?
-            </p>
-            <p
-              className="text-xs"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-            >
-              Redeem hours earned from helping for cash discounts on your next job.
-            </p>
-          </div>
-          <ChevronRight
-            className="w-5 h-5 shrink-0"
-            style={{ color: "hsl(var(--bark) / 0.4)" }}
-          />
-        </div>
-
         {/* Footer CTA */}
         <Button
+          variant="outline"
           className="w-full mb-2"
           style={{
-            background: "hsl(var(--bark))",
-            color: "hsl(var(--parchment))",
+            background: "hsl(var(--bark) / 0.10)",
+            color: "hsl(var(--bark))",
+            border: "1px solid hsl(var(--bark) / 0.30)",
           }}
           onClick={() => navigate("/dashboard")}
         >

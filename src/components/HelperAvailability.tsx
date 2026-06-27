@@ -273,7 +273,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     className="font-display italic font-bold w-10"
                     style={{
                       fontSize: "1rem",
-                      color: off ? "hsl(var(--olivewood) / 0.6)" : "hsl(var(--ink-deep))",
+                      color: off ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--ink-deep))",
                       letterSpacing: "-0.01em",
                     }}
                   >
@@ -298,7 +298,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.7rem] font-sans font-semibold uppercase tracking-wider"
                     style={{
                       background: "hsl(var(--olivewood) / 0.10)",
-                      color: "hsl(var(--olivewood) / 0.75)",
+                      color: "hsl(var(--olivewood) / 0.8)",
                       border: "1px solid hsl(var(--olivewood) / 0.18)",
                     }}
                   >

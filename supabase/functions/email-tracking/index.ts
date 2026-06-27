@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       // Only follow redirect if it's a safe absolute URL on our domain (avoid open redirects)
       try {
         const target = new URL(redirect)
-        const allowedHosts = ['louisianahelpr.com', 'www.louisianahelpr.com', 'louisianahelpr.lovable.app']
+        const allowedHosts = ['louisianahelpr.com', 'www.louisianahelpr.com']
         if (!allowedHosts.includes(target.hostname)) {
           return new Response('Invalid redirect', { status: 400 })
         }
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
   if (eventType === 'click' && redirect) {
     try {
       const target = new URL(redirect)
-      const allowedHosts = ['louisianahelpr.com', 'www.louisianahelpr.com', 'louisianahelpr.lovable.app']
+      const allowedHosts = ['louisianahelpr.com', 'www.louisianahelpr.com']
       if (!allowedHosts.includes(target.hostname)) {
         return new Response('Invalid redirect', { status: 400 })
       }

@@ -78,6 +78,7 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
           <div className="space-y-2">
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Note (optional)</p>
             <Textarea
+              aria-label="Note to user (optional)"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. Photo was too blurry — please retake in good lighting."

@@ -1,6 +1,6 @@
 import { Star, ChevronDown } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
-import { formatShortDate } from "@/lib/format";
+import { formatShortDate, formatCategory } from "@/lib/format";
 import type { ProfileReview } from "./types";
 
 type RatingFilter = "all" | "5" | "4" | "low";
@@ -22,6 +22,7 @@ type Props = {
   onStartResponding: (reviewId: string, initial: string) => void;
   onCancelResponding: () => void;
   onSaveResponse: (reviewId: string) => void;
+  savingResponse: boolean;
   reviewsHasMore: boolean;
   loadMoreReviews: () => void;
   loadingMoreReviews: boolean;
@@ -44,6 +45,7 @@ export const ReviewsSection = ({
   onStartResponding,
   onCancelResponding,
   onSaveResponse,
+  savingResponse,
   reviewsHasMore,
   loadMoreReviews,
   loadingMoreReviews,
@@ -114,7 +116,7 @@ export const ReviewsSection = ({
                     }}
                   >
                     <Icon className="w-3 h-3" />
-                    <span className="capitalize">{cat.replace(/_/g, " ")}</span>
+                    <span>{formatCategory(cat)}</span>
                   </button>
                 );
               })}
@@ -212,7 +214,7 @@ export const ReviewsSection = ({
                 <div className="mt-3 pt-3 border-t border-[hsl(var(--bark)/0.10)]">
                   <p
                     className="text-ds-11 font-semibold uppercase tracking-[0.06em] mb-1.5"
-                    style={{ color: "hsl(var(--olivewood)/0.55)" }}
+                    style={{ color: "hsl(var(--olivewood)/0.8)" }}
                   >
                     Response from {profileFullName}
                   </p>
@@ -241,7 +243,7 @@ export const ReviewsSection = ({
                 <button
                   type="button"
                   className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
-                  style={{ color: "hsl(var(--olivewood)/0.55)" }}
+                  style={{ color: "hsl(var(--olivewood)/0.8)" }}
                   onClick={() => {
                     onStartResponding(r.id, r.response_text ?? "");
                   }}
@@ -255,26 +257,28 @@ export const ReviewsSection = ({
                   <textarea
                     value={responseText}
                     onChange={(e) => onSetResponseText(e.target.value)}
+                    aria-label="Write a public response"
                     maxLength={500}
                     rows={3}
                     placeholder="Write a brief public response…"
-                    className="w-full rounded-ds-md border border-[hsl(var(--bark)/0.20)] bg-white/60 px-3 py-2 text-ds-13 font-sans resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--bark)/0.40)]"
+                    className="w-full rounded-ds-md border border-[hsl(var(--bark)/0.20)] bg-background/60 px-3 py-2 text-ds-13 font-sans resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--bark)/0.40)]"
                     style={{ color: "hsl(var(--ink-deep))" }}
                   />
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => onSaveResponse(r.id)}
-                      className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold text-white"
+                      disabled={savingResponse}
+                      className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold text-white disabled:opacity-50"
                       style={{ backgroundColor: "hsl(var(--burnt-sienna))" }}
                     >
-                      Save
+                      {savingResponse ? "Saving…" : "Save"}
                     </button>
                     <button
                       type="button"
                       onClick={onCancelResponding}
                       className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold"
-                      style={{ color: "hsl(var(--olivewood)/0.70)" }}
+                      style={{ color: "hsl(var(--olivewood)/0.8)" }}
                     >
                       Cancel
                     </button>

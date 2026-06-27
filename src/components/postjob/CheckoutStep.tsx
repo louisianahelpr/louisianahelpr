@@ -85,8 +85,6 @@ interface CheckoutStepProps {
   sendToPreferred?: boolean;
   /** Callback when the checkbox changes. */
   onSendToPreferredChange?: (checked: boolean) => void;
-  /** Time credits applied (in minutes). Displayed as a discount line. */
-  timeCreditsMinutes?: number;
 }
 
 export function CheckoutStep({
@@ -132,7 +130,6 @@ export function CheckoutStep({
   preferredHelper,
   sendToPreferred,
   onSendToPreferredChange,
-  timeCreditsMinutes,
 }: CheckoutStepProps) {
   // Compute helper's net payout: budget minus the helper-side commission.
   // Shown in the "Review & Post" summary so posters understand both sides
@@ -202,7 +199,7 @@ export function CheckoutStep({
             <div className="text-right">
               <p className="text-ds-13 font-bold text-foreground">${budgetNum.toFixed(2)}</p>
               {helperEarns !== null && (
-                <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   You pay{" "}
                   <span className="font-semibold text-foreground">
                     ${(budgetNum + customerFeeAmount + urgentFeeNum).toFixed(2)}
@@ -358,16 +355,6 @@ export function CheckoutStep({
               <span className="font-medium text-foreground">${urgentFeeNum.toFixed(2)}</span>
             </div>
           )}
-          {timeCreditsMinutes != null && timeCreditsMinutes > 0 && (
-            <div className="flex justify-between text-ds-13">
-              <span className="flex items-center gap-1" style={{ color: "hsl(155 50% 30%)" }}>
-                Time credit ({Math.floor(timeCreditsMinutes / 60)}h{timeCreditsMinutes % 60 > 0 ? ` ${timeCreditsMinutes % 60}m` : ""} applied)
-              </span>
-              <span className="font-medium" style={{ color: "hsl(155 50% 30%)" }}>
-                −${((timeCreditsMinutes / 60) * 10).toFixed(2)}
-              </span>
-            </div>
-          )}
           <div className="flex justify-between text-ds-13">
             <span className="text-muted-foreground">Sales Tax</span>
             <span className="font-medium text-muted-foreground italic">Calculated at checkout</span>
@@ -476,7 +463,7 @@ export function CheckoutStep({
             </p>
             <p
               className="font-serif italic text-ds-11"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Your trusted helper from past jobs
             </p>

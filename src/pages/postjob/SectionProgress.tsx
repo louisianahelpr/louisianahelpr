@@ -44,7 +44,7 @@ export function SectionProgress({
         // never slides up behind the brand bar.
         top: "calc(env(safe-area-inset-top, 0px) + 3.5rem - 0.25rem)",
         background:
-          "linear-gradient(to bottom, hsla(38, 18%, 97%, 0.97) 72%, hsla(38, 18%, 97%, 0))",
+          "linear-gradient(to bottom, hsl(var(--background) / 0.97) 72%, hsl(var(--background) / 0))",
         backdropFilter: "blur(6px)",
         WebkitBackdropFilter: "blur(6px)",
       }}
@@ -85,13 +85,13 @@ export function SectionProgress({
                         }
                       : active
                         ? {
-                            background: "hsla(0, 0%, 100%, 0.85)",
+                            background: "hsl(var(--card) / 0.92)",
                             color: "hsl(var(--bark))",
                             boxShadow: "0 0 0 2px hsl(var(--bark) / 0.55)",
                           }
                         : {
-                            background: "hsla(0, 0%, 100%, 0.45)",
-                            color: "hsl(var(--olivewood) / 0.55)",
+                            background: "hsl(var(--card) / 0.5)",
+                            color: "hsl(var(--olivewood) / 0.8)",
                             boxShadow: "inset 0 0 0 1px hsl(var(--olivewood) / 0.22)",
                           }
                   }
@@ -106,7 +106,7 @@ export function SectionProgress({
                       ? "hsl(var(--bark))"
                       : active
                         ? "hsl(var(--ink-deep))"
-                        : "hsl(var(--olivewood) / 0.5)",
+                        : "hsl(var(--olivewood) / 0.8)",
                   }}
                 >
                   {s.label}

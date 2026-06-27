@@ -1,4 +1,4 @@
-import { Star, ChevronRight, Lock, Crown, Sparkles } from "lucide-react";
+import { Star, ChevronRight, Crown, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
@@ -32,6 +32,11 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
   });
   const posterInitials = (job.posterName || "User")
     .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+
+  const hasReviews = (job.posterReviewCount ?? 0) >= 3;
+  const hasTier =
+    job.posterSubscriptionTier === "elite" || job.posterSubscriptionTier === "pro";
+  const showTrustRow = hasTier || hasReviews || repeatJobs >= 2;
 
   return (
     <Link
@@ -72,7 +77,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
         <div className="min-w-0 flex-1">
           <p
             className="text-ds-10 font-sans font-semibold uppercase"
-            style={{ color: "hsl(var(--olivewood) / 0.65)", letterSpacing: "0.06em" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.06em" }}
           >
             Posted by
           </p>
@@ -87,18 +92,18 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
                   <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                     {job.posterAvgRating?.toFixed(1)}
                   </span>
-                  <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                  <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     ({job.posterReviewCount})
                   </span>
                 </>
               ) : (
-                <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   New
                 </span>
               )}
             </span>
           </div>
-          <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
             {(job.posterCompletedJobs ?? 0) > 0 && (
               <>
@@ -116,9 +121,9 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
                   className="tabular-nums"
                   style={{
                     color: cancellationRate < 5
-                      ? "hsl(155 50% 35%)"
+                      ? "hsl(var(--pif-tint))"
                       : cancellationRate < 15
-                        ? "hsl(var(--olivewood) / 0.7)"
+                        ? "hsl(var(--olivewood) / 0.8)"
                         : "hsl(var(--burnt-sienna))",
                   }}
                 >
@@ -137,31 +142,23 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
             card visually reads as tappable. */}
         <ChevronRight
           className="shrink-0 w-4 h-4 transition-transform group-hover:translate-x-0.5"
-          style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           strokeWidth={2}
         />
       </div>
 
-      {/* Trust signal row — platform guarantees (Helpr Escrow, tier) are
-          rendered inline; poster-data signals (Trusted, Worked together)
-          go through the shared TrustRow component for code reuse. */}
-      <div
-        className="flex items-center justify-center gap-3 mt-2 pt-2"
-        style={{
-          borderTop: "0.5px solid hsl(var(--bark) / 0.12)",
-        }}
-      >
-        {/* Platform-level chips — always truthful regardless of poster data */}
-        <span
-          className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
-          style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.06em" }}
+      {/* Trust signal row — poster tier (Pro/Elite) is rendered inline;
+          poster-data signals (Trusted, Worked together) go through the
+          shared TrustRow component. Hidden entirely when a poster has no
+          tier and no trust data, so new posters don't get an empty band. */}
+      {showTrustRow && (
+        <div
+          className="flex items-center justify-center gap-3 mt-2 pt-2"
+          style={{
+            borderTop: "0.5px solid hsl(var(--bark) / 0.12)",
+          }}
         >
-          <Lock className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }} strokeWidth={2.25} />
-          Helpr Escrow
-        </span>
-        {job.posterSubscriptionTier === "elite" && (
-          <>
-            <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+          {job.posterSubscriptionTier === "elite" && (
             <span
               className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
               style={{ color: "hsl(var(--gold-warm))", letterSpacing: "0.06em" }}
@@ -169,11 +166,8 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
               <Crown className="w-3.5 h-3.5" strokeWidth={2.25} />
               Elite Poster
             </span>
-          </>
-        )}
-        {job.posterSubscriptionTier === "pro" && (
-          <>
-            <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+          )}
+          {job.posterSubscriptionTier === "pro" && (
             <span
               className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
               style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.06em" }}
@@ -181,21 +175,17 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
               <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} />
               Pro Poster
             </span>
-          </>
-        )}
-        {/* Poster-data trust signals via the reusable TrustRow component.
-            "Trusted" maps to avgRating+reviewCount (shown when ≥3 reviews).
-            "Worked together N×" maps to repeatHirePercent (≥2 jobs → 100%). */}
-        <TrustRow
-          avgRating={
-            (job.posterReviewCount ?? 0) >= 3 ? (job.posterAvgRating ?? undefined) : undefined
-          }
-          reviewCount={
-            (job.posterReviewCount ?? 0) >= 3 ? (job.posterReviewCount ?? undefined) : undefined
-          }
-          repeatHirePercent={repeatJobs >= 2 ? 100 : undefined}
-        />
-      </div>
+          )}
+          {/* Poster-data trust signals via the reusable TrustRow component.
+              "Trusted" maps to avgRating+reviewCount (shown when ≥3 reviews).
+              "Worked together N×" maps to repeatHirePercent (≥2 jobs → 100%). */}
+          <TrustRow
+            avgRating={hasReviews ? (job.posterAvgRating ?? undefined) : undefined}
+            reviewCount={hasReviews ? (job.posterReviewCount ?? undefined) : undefined}
+            repeatHirePercent={repeatJobs >= 2 ? 100 : undefined}
+          />
+        </div>
+      )}
     </Link>
   );
 }

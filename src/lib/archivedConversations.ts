@@ -23,6 +23,21 @@ import { safeStorage } from "@/lib/safeStorage";
 /** `helpr_`-prefixed so safeStorage mirrors it to durable Preferences. */
 const STORAGE_KEY = "helpr_archived_conversations";
 
+/**
+ * Window event fired whenever the archive set changes. Archiving is a local
+ * (safeStorage) action that fires no `messages` realtime event, so the nav
+ * unread badge — which excludes archived threads — would otherwise stay stale
+ * until the next message arrives. The badge listens for this to recompute
+ * immediately (LH-54).
+ */
+export const ARCHIVE_CHANGED_EVENT = "helpr:archive-changed";
+
+function emitArchiveChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(ARCHIVE_CHANGED_EVENT));
+  }
+}
+
 /** Stable key for one conversation — a job + the other participant. */
 export function conversationKey(jobId: string, otherUserId: string): string {
   return `${jobId}_${otherUserId}`;
@@ -68,6 +83,7 @@ export function archiveConversation(
   const map = readMap(userId);
   map[conversationKey(jobId, otherUserId)] = new Date().toISOString();
   writeMap(userId, map);
+  emitArchiveChanged();
 }
 
 /**
@@ -104,4 +120,5 @@ export function unarchiveConversation(
   const map = readMap(userId);
   delete map[conversationKey(jobId, otherUserId)];
   writeMap(userId, map);
+  emitArchiveChanged();
 }

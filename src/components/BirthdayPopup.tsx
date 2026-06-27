@@ -113,7 +113,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 </span>
                 <DialogPrimitive.Title asChild>
                   <h2
-                    className="font-display italic font-bold leading-tight mt-1"
+                    className="font-display italic font-bold leading-tight mt-2"
                     style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
                   >
                     Happy birthday, {firstName}.
@@ -122,7 +122,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 <DialogPrimitive.Description asChild>
                   <p
                     className="font-serif italic leading-relaxed mt-2 max-w-[280px] mx-auto"
-                    style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                    style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Wishing you a great one. Thanks for being part of the Louisiana Helpr community.
                   </p>

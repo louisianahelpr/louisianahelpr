@@ -169,7 +169,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
             By category
           </p>
           <div className="h-[180px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={180}>
               <PieChart>
                 <Pie
                   data={pieData}
@@ -178,7 +178,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
                   innerRadius={36}
                   outerRadius={70}
                   paddingAngle={2}
-                  stroke="hsl(38, 50%, 96%)"
+                  stroke="hsl(var(--ivory-sand))"
                   strokeWidth={1}
                 >
                   {pieData.map((_, i) => (
@@ -188,7 +188,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
                 <Tooltip
                   formatter={(value) => [`$${Number(value).toFixed(2)}`, "Take-home"]}
                   contentStyle={{
-                    background: "hsla(0, 0%, 100%, 0.95)",
+                    background: "hsl(var(--ivory-sand) / 0.95)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.18)",
                     borderRadius: 8,
                     fontSize: "0.78rem",
@@ -226,17 +226,17 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
             )}
           </div>
           <div className="h-[200px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <LineChart data={trendData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
-                <CartesianGrid stroke="hsl(70, 22%, 24%)" strokeOpacity={0.08} vertical={false} />
+                <CartesianGrid stroke="hsl(var(--olivewood))" strokeOpacity={0.08} vertical={false} />
                 <XAxis
                   dataKey="month"
-                  tick={{ fontSize: 10, fill: "hsl(70, 22%, 24%)" }}
-                  axisLine={{ stroke: "hsl(70, 22%, 24%)", strokeOpacity: 0.2 }}
+                  tick={{ fontSize: 10, fill: "hsl(var(--olivewood))" }}
+                  axisLine={{ stroke: "hsl(var(--olivewood))", strokeOpacity: 0.2 }}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: "hsl(70, 22%, 24%)" }}
+                  tick={{ fontSize: 10, fill: "hsl(var(--olivewood))" }}
                   axisLine={false}
                   tickLine={false}
                   width={44}
@@ -245,7 +245,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
                 <Tooltip
                   formatter={(value, name) => [`$${Number(value).toFixed(2)}`, String(name) === "ytd" ? String(ytdYear) : String(priorYtdYear)]}
                   contentStyle={{
-                    background: "hsla(0, 0%, 100%, 0.95)",
+                    background: "hsl(var(--ivory-sand) / 0.95)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.18)",
                     borderRadius: 8,
                     fontSize: "0.78rem",
@@ -254,7 +254,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
                 <Line
                   type="monotone"
                   dataKey="prior"
-                  stroke="hsl(70, 22%, 24%)"
+                  stroke="hsl(var(--olivewood))"
                   strokeOpacity={0.35}
                   strokeWidth={2}
                   dot={false}

@@ -104,7 +104,7 @@ export function CompactJobCard({
           {city && (
             <span
               className="shrink-0 font-sans text-ds-11 leading-none"
-              style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {city}
             </span>
@@ -123,7 +123,7 @@ export function CompactJobCard({
         {timeAgo && (
           <span
             className="shrink-0 font-sans text-ds-11 tabular-nums"
-            style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {timeAgo}
           </span>

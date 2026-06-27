@@ -505,6 +505,7 @@ const AdminPayoutBatches = () => {
               Stripe transfer is fired. Logged to admin_audit_log.
             </p>
             <Textarea
+              aria-label="Hold reason"
               placeholder="Reason — visible to other admins reviewing the queue."
               value={holdReasonDraft?.reason ?? ""}
               onChange={(e) => holdReasonDraft && setHoldReasonDraft({ ...holdReasonDraft, reason: e.target.value })}
@@ -540,6 +541,7 @@ const AdminPayoutBatches = () => {
               hold as denied. No Stripe transfer is fired or reversed.
             </p>
             <Textarea
+              aria-label="Denial reason"
               placeholder="Reason for denying this payout."
               value={denyDraft?.reason ?? ""}
               onChange={(e) => denyDraft && setDenyDraft({ ...denyDraft, reason: e.target.value })}

@@ -62,8 +62,8 @@ export function AutopilotReminderCard({ reminder, onDismiss, onPostJob }: Props)
       className="shrink-0 mx-4 mb-1 rounded-ds-md px-3 py-3 flex items-start gap-3"
       style={{
         background:
-          "radial-gradient(70% 100% at 0% 50%, hsl(155 50% 35% / 0.06) 0%, transparent 60%)",
-        border: "0.5px solid hsl(155 50% 35% / 0.20)",
+          "radial-gradient(70% 100% at 0% 50%, hsl(var(--pif-tint) / 0.06) 0%, transparent 60%)",
+        border: "0.5px solid hsl(var(--pif-tint) / 0.20)",
         backdropFilter: "blur(10px)",
       }}
     >
@@ -71,8 +71,8 @@ export function AutopilotReminderCard({ reminder, onDismiss, onPostJob }: Props)
       <div
         className="shrink-0 w-9 h-9 rounded-ds-sm flex items-center justify-center mt-0.5"
         style={{
-          background: "hsl(155 50% 35% / 0.10)",
-          color: "hsl(155 50% 30%)",
+          background: "hsl(var(--pif-tint) / 0.10)",
+          color: "hsl(var(--pif-green))",
         }}
         aria-hidden
       >
@@ -89,7 +89,7 @@ export function AutopilotReminderCard({ reminder, onDismiss, onPostJob }: Props)
         </p>
         <p
           className="font-serif italic text-ds-11 leading-snug mt-0.5"
-          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {subtext}
         </p>
@@ -99,9 +99,9 @@ export function AutopilotReminderCard({ reminder, onDismiss, onPostJob }: Props)
             onClick={() => onPostJob(reminder.category)}
             className="font-sans font-semibold text-ds-11 px-2.5 py-1 rounded-ds-pill active:opacity-70 transition-opacity"
             style={{
-              background: "hsl(155 50% 30% / 0.10)",
-              color: "hsl(155 50% 25%)",
-              border: "0.5px solid hsl(155 50% 35% / 0.24)",
+              background: "hsl(var(--pif-green) / 0.10)",
+              color: "hsl(var(--pif-ink))",
+              border: "0.5px solid hsl(var(--pif-tint) / 0.24)",
             }}
           >
             Post a {label.replace(/\b\w/g, (c) => c.toUpperCase())} job →
@@ -122,7 +122,7 @@ export function AutopilotReminderCard({ reminder, onDismiss, onPostJob }: Props)
         onClick={onDismiss}
         aria-label="Dismiss reminder"
         className="shrink-0 -mt-1 -mr-1 w-9 h-9 flex items-center justify-center rounded-full active:opacity-70 hover:bg-black/[0.04] transition-colors"
-        style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         <X className="w-4 h-4" />
       </button>

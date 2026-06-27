@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronUp } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigationType } from "react-router-dom";
 
 import { prefersReducedMotion } from "@/lib/accessibility";
 import { hapticLight } from "@/lib/haptics";
@@ -13,31 +13,60 @@ import { hapticLight } from "@/lib/haptics";
 // the reachable equivalent.
 const REVEAL_AFTER_PX = 1200;
 
+// Per-history-entry scroll offsets, keyed by react-router's `location.key`.
+// Module-level so it survives the AppShell remounting between routes (but
+// resets on a full reload, which matches browser-native scroll restoration).
+const scrollPositions = new Map<string, number>();
+
 /**
  * Two jobs:
- *  1. Resets scroll to the top on every pathname change (skipping hash
- *     anchors so in-page links still work).
+ *  1. Browser-style scroll restoration: on a forward navigation (PUSH/REPLACE)
+ *     reset to the top; on a back/forward navigation (POP) restore the offset
+ *     the user left that entry at — so backing out of a settings sub-page
+ *     lands them where they were, not at the top. Hash anchors are skipped so
+ *     in-page links still work.
  *  2. Renders a subtle floating "scroll to top" affordance for the AppShell
  *     internal scroll container — the iOS "tap status bar to scroll up"
  *     convention, surfaced as a tappable button since no native tap signal
  *     is available.
  *
- * Uses useLayoutEffect for the reset so it happens before the browser paints
- * the new route — preventing the brief "blank/bottom" flash some pages showed.
+ * Uses useLayoutEffect for the reset/restore so it happens before the browser
+ * paints the new route — preventing the brief "blank/bottom" flash some pages
+ * showed.
  */
 const ScrollToTop = () => {
-  const { pathname, hash } = useLocation();
+  const { pathname, hash, key } = useLocation();
+  const navigationType = useNavigationType();
   const [visible, setVisible] = useState(false);
   // The AppShell scroll container currently being watched.
   const scrollerRef = useRef<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
     if (hash) return; // Let the browser handle anchor scrolling
+
+    const mainEl = document.getElementById("main-content");
+    const saved = scrollPositions.get(key);
+
+    // POP = back/forward button. Restore the saved offset for this history
+    // entry. Content may not be fully laid out on the first frame (data still
+    // loading), so re-apply on the next animation frame to land accurately.
+    if (navigationType === "POP" && saved != null && saved > 0) {
+      const apply = () => {
+        const scroller = document.querySelector<HTMLElement>(".app-shell-scroll");
+        if (scroller) scroller.scrollTop = saved;
+        if (mainEl) mainEl.scrollTop = saved;
+        window.scrollTo(0, saved);
+      };
+      apply();
+      requestAnimationFrame(apply);
+      return;
+    }
+
+    // Forward navigation — reset every possible scroll container to the top.
     window.scrollTo(0, 0);
     if (document.documentElement) document.documentElement.scrollTop = 0;
     if (document.body) document.body.scrollTop = 0;
     // Document-scroll routes use <main id="main-content"> as the scroll container.
-    const mainEl = document.getElementById("main-content");
     if (mainEl) mainEl.scrollTop = 0;
     // Fixed-shell routes use AppShell's internal `.app-shell-scroll` div —
     // resetting only #main-content leaves stale scroll position when
@@ -46,32 +75,42 @@ const ScrollToTop = () => {
       el.scrollTop = 0;
     });
     setVisible(false);
-  }, [pathname, hash]);
+  }, [pathname, hash, key, navigationType]);
 
-  // Watch the active AppShell scroll container for the reveal threshold.
-  // The container is owned by the route, so re-resolve it on each navigation.
+  // Watch the active scroll container for the reveal threshold AND continuously
+  // record its offset against the current history entry, so a later POP back to
+  // this entry can restore it. The container is owned by the route, so
+  // re-resolve it on each navigation; document-scroll routes fall back to the
+  // window.
   useEffect(() => {
     if (hash) return;
     const scroller = document.querySelector<HTMLElement>(".app-shell-scroll");
     scrollerRef.current = scroller;
-    if (!scroller) {
-      setVisible(false);
-      return;
-    }
-    const onScroll = () => setVisible(scroller.scrollTop > REVEAL_AFTER_PX);
+    const readPos = () => (scroller ? scroller.scrollTop : window.scrollY);
+    const onScroll = () => {
+      const pos = readPos();
+      setVisible(pos > REVEAL_AFTER_PX);
+      scrollPositions.set(key, pos);
+    };
     onScroll();
-    scroller.addEventListener("scroll", onScroll, { passive: true });
-    return () => scroller.removeEventListener("scroll", onScroll);
-  }, [pathname, hash]);
+    const target: HTMLElement | Window = scroller ?? window;
+    target.addEventListener("scroll", onScroll, { passive: true });
+    return () => target.removeEventListener("scroll", onScroll);
+  }, [pathname, hash, key]);
 
   const scrollToTop = () => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
     hapticLight();
-    scroller.scrollTo({
-      top: 0,
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-    });
+    const behavior = prefersReducedMotion() ? "auto" : "smooth";
+    // Fixed-shell routes scroll AppShell's inner container; document-scroll
+    // routes (multi-step forms, legal, marketing) scroll the window. Mirror
+    // the reveal watcher's `scroller ?? window` fallback — otherwise the
+    // button renders on document-scroll pages but the click does nothing.
+    const scroller = scrollerRef.current;
+    if (scroller) {
+      scroller.scrollTo({ top: 0, behavior });
+    } else {
+      window.scrollTo({ top: 0, behavior });
+    }
   };
 
   return (

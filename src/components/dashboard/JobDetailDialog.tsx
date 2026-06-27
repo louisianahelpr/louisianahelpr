@@ -340,7 +340,7 @@ const JobDetailDialog = ({
         {/* Header — mirrors the dashboard's Browse Tasks block: italic
             Garamond eyebrow (category) → bold italic Bodoni headline (job
             title) → italic Garamond meta (location · time · status pills). */}
-        <DialogHeader className="!text-left space-y-0 pr-10 mb-2">
+        <DialogHeader className="!text-left space-y-0 pr-10">
           <span
             className="text-[0.62rem] font-serif italic uppercase tracking-[0.18em] flex items-center gap-1.5"
             style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
@@ -359,7 +359,7 @@ const JobDetailDialog = ({
             {categoryLabels[job.category] || job.category}
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{
               fontSize: "1.5rem",
               color: "hsl(var(--ink-deep))",
@@ -468,9 +468,22 @@ const JobDetailDialog = ({
           </div>
         )}
 
-        {/* Group / recurring tags */}
-        {(job.is_group_job || job.is_recurring) && (
+        {/* Status pills — urgent · group size · recurrence — in one
+            aligned flex row so the signals read as a single set instead
+            of stacking unevenly. Urgent only joins this row when there's
+            no photo; with a photo it overlays the image up top instead. */}
+        {((job.is_urgent && photos.length === 0) || job.is_group_job || job.is_recurring) && (
           <div className="flex items-center gap-1.5 flex-wrap">
+            {job.is_urgent && photos.length === 0 && (
+              <span
+                aria-label="Urgent"
+                className="urgent-pulse inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-ds-10 font-semibold uppercase tracking-wider"
+                style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
+              >
+                <Zap className="w-3 h-3 fill-accent" strokeWidth={2.25} />
+                Urgent
+              </span>
+            )}
             {job.is_group_job && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-ds-10 font-semibold uppercase tracking-wider border border-primary/20">
                 <Users className="w-3 h-3" strokeWidth={2.25} />
@@ -500,30 +513,21 @@ const JobDetailDialog = ({
             />
             <p
               className="font-serif italic text-ds-11 mt-1 text-center"
-              style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Scope video — see exactly what's needed
             </p>
           </div>
         )}
 
-        {/* Description — own glass plate. When there's no photo, this
-            is where Boosted (top-right) and Urgent (top-left) stamps
-            live. "Read more" expands the full text inline when long. */}
+        {/* Description — own glass plate. When there's no photo, the
+            Boosted (top-right) stamp lives here; Urgent has moved up into
+            the status-pill row. "Read more" expands the text inline. */}
         {/* min-w-0: as a grid item of the DialogContent grid this defaults
             to min-width:auto, so a long unbroken word would force the item
             wider than the track and the line-clamp box would clip the
             overflow. min-w-0 lets it shrink to the track and wrap. */}
         <div className="relative min-w-0">
-          {photos.length === 0 && job.is_urgent && (
-            <span
-              aria-label="Urgent"
-              className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[9px] font-bold uppercase tracking-wider"
-              style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
-            >
-              <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
-            </span>
-          )}
           {photos.length === 0 && job.isBoosted && (
             <span
               aria-label="Boosted"
@@ -587,7 +591,7 @@ const JobDetailDialog = ({
             facts (where, when, how long, deadline) before they see the
             payout. Where + Date are clickable: Where opens Google Maps,
             Date opens Google Calendar. */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {(() => {
             const dateNeeded = parseLocalDate(job.date_needed);
             const dateValid = !isNaN(dateNeeded.getTime());
@@ -669,8 +673,8 @@ const JobDetailDialog = ({
             ];
             return tiles.map(({ Icon, label, value, sub, href, urgent }, index) => {
               // An odd tile count leaves the last tile alone in the 2-col
-              // mobile grid with an empty cell beside it — let it span the
-              // full width instead so the strip reads as intentional.
+              // grid with an empty cell beside it — let it span the full
+              // width instead so the strip reads as intentional.
               const fillsRow = tiles.length % 2 === 1 && index === tiles.length - 1;
               const Wrapper: ElementType = href ? "a" : "div";
               // Only the anchor branch carries href/target/rel; an empty object
@@ -683,7 +687,7 @@ const JobDetailDialog = ({
                 <Wrapper
                   key={label}
                   {...wrapperProps}
-                  className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${fillsRow ? "col-span-2 sm:col-span-1" : ""} ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
+                  className={`relative min-w-0 rounded-ds-md p-2.5 overflow-hidden ${fillsRow ? "col-span-2" : ""} ${href ? "glass-press transition-shadow hover:shadow-md cursor-pointer" : ""} ${urgent ? "urgent-pulse" : ""}`}
                   style={{
                     backgroundColor: urgent ? "hsl(var(--accent) / 0.10)" : "var(--glass-bg-soft)",
                     backdropFilter: "blur(18px) saturate(160%)",
@@ -703,7 +707,7 @@ const JobDetailDialog = ({
                     <p
                       className="flex items-center justify-center gap-1.5 text-ds-11 font-sans font-semibold uppercase"
                       style={{
-                        color: urgent ? "hsl(var(--accent))" : "hsl(var(--olivewood) / 0.65)",
+                        color: urgent ? "hsl(var(--accent))" : "hsl(var(--olivewood) / 0.8)",
                         letterSpacing: "0.06em",
                       }}
                     >
@@ -720,7 +724,7 @@ const JobDetailDialog = ({
                       {value}
                     </p>
                     {sub && (
-                      <p className="font-serif italic text-ds-11 truncate text-center mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                      <p className="font-serif italic text-ds-11 truncate text-center mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                         {sub}
                       </p>
                     )}
@@ -745,7 +749,14 @@ const JobDetailDialog = ({
           />
         </div>
 
-        {!guest && <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} />}
+        {/* Poster card shows for guests too — the guest feed already enriches
+            each job with the poster's name, avatar, rating and review count, so
+            the logged-out preview carries the same social proof as the authed
+            dialog. The two authed-only signals (repeat-customer count, poster
+            cancellation rate) stay at their guest defaults (0 / null) and their
+            lines simply hide, so the only real difference remains the footer
+            CTA below. */}
+        <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} />
 
         {/* Applicant queue banner. Two flavors:
             - **Already applied** — the viewer is in the queue. Show a
@@ -783,16 +794,16 @@ const JobDetailDialog = ({
           <div
             className="rounded-ds-md px-3 py-2 flex items-center gap-2"
             style={{
-              background: "hsl(155 60% 96%)",
-              border: "0.5px solid hsl(155 35% 70% / 0.35)",
+              background: "hsl(var(--success-tint))",
+              border: "0.5px solid hsl(var(--success-border) / 0.35)",
             }}
           >
-            <Check className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(155 50% 30%)" }} strokeWidth={2.5} />
+            <Check className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--success-ink))" }} strokeWidth={2.5} />
             <p
               className="font-serif italic leading-snug"
               style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
             >
-              <span className="not-italic font-display font-bold" style={{ color: "hsl(155 45% 22%)" }}>
+              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--success-ink-deep))" }}>
                 You've applied.
               </span>{" "}
               You're applicant #{viewerAppPosition} of {applicationCount}.
@@ -919,12 +930,26 @@ const JobDetailDialog = ({
             }
           />
           )}
-          {/* Apply gate — when the job requires a credential tier and the
-              viewer's tier is below that threshold, replace the Apply button
-              with a locked state that routes them to /profile to get verified.
-              Falls back transparently when get_user_credential_tier isn't
-              deployed yet (viewerTier defaults to 0 on PGRST202). */}
-          {(job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0) ? (
+          {/* Own-job guard — a poster can reach their own job via a shared
+              link or Quick Apply toast, so swap the Apply CTA for a plain
+              "your post" marker. The Dashboard apply handler also rejects
+              self-applications, but hiding the button avoids the dead-end tap. */}
+          {viewerUserId === job.customer_id ? (
+            <div
+              className="flex-1 rounded-ds-md h-11 sm:h-12 px-3 flex items-center justify-center gap-2 text-center"
+              style={{
+                background: "hsl(var(--bark) / 0.06)",
+                border: "0.5px solid hsl(var(--bark) / 0.18)",
+              }}
+            >
+              <span
+                className="font-display italic font-semibold text-ds-14"
+                style={{ color: "hsl(var(--ink-deep))" }}
+              >
+                This is your post
+              </span>
+            </div>
+          ) : (job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0) ? (
             <div
               className="flex-1 rounded-ds-md p-3 text-center"
               style={{
@@ -949,7 +974,7 @@ const JobDetailDialog = ({
               </p>
               <p
                 className="font-serif italic text-ds-12 mt-0.5"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Get verified to apply for this job
               </p>

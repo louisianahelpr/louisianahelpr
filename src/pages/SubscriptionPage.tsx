@@ -18,9 +18,10 @@ import {
   Sparkles, Briefcase, Star, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import BackButton from "@/components/BackButton";
+import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   TIER_PERKS,
   getPaysSelfBack,
@@ -72,6 +73,7 @@ const PERK_ROWS: Array<{ label: string; key: keyof typeof TIER_PERKS.free }> = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function SubscriptionPage() {
+  usePageTitle("Subscription — Helpr");
   const { profile } = useCurrentUser();
   const currentTier = toSubscriptionTier(profile?.subscription_tier);
 
@@ -116,24 +118,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {/* Page header */}
-      <div className="px-4 pt-safe-top pt-4 pb-2 flex items-center gap-3">
-        <BackButton />
-        <div>
-          <h1
-            className="font-display italic font-bold leading-none"
-            style={{ fontSize: "1.55rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Subscription
-          </h1>
-          <p
-            className="font-serif italic mt-0.5"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.72)" }}
-          >
-            Choose the plan that fits your goals
-          </p>
-        </div>
-      </div>
+      <PageHeader title="Membership" meta="Lower the commission on the jobs you complete" />
 
       <div className="px-4 space-y-4 mt-2 pb-8">
         {/* ── Current plan card ─────────────────────────────────────────── */}
@@ -143,7 +128,7 @@ export default function SubscriptionPage() {
             background:
               "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
               "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%), " +
-              "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.76) 100%)",
+              "var(--surface-premium)",
             border: "0.5px solid hsl(var(--bark) / 0.22)",
             boxShadow:
               "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
@@ -175,7 +160,7 @@ export default function SubscriptionPage() {
           </h2>
           <p
             className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {tierPerks.tagline}
           </p>
@@ -193,6 +178,20 @@ export default function SubscriptionPage() {
             </button>
           )}
         </div>
+
+        {/* Membership framing + billing disclosure. Helpr memberships lower
+            the marketplace commission on the real-world jobs a helper
+            completes (Apple Guideline 3.1.5(a) — physical/real-world
+            services), and are billed through Stripe, the same processor that
+            handles job payments. */}
+        <p
+          className="font-serif italic text-center px-2"
+          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.5 }}
+        >
+          A membership lowers the commission Helpr takes on the real-world jobs
+          you complete and adds visibility perks. Billed securely through
+          Stripe — manage or cancel anytime.
+        </p>
 
         {/* ── Tier cards ────────────────────────────────────────────────── */}
         {TIER_ORDER.map((tier) => {
@@ -272,7 +271,7 @@ export default function SubscriptionPage() {
                   {/* Tagline */}
                   <p
                     className="font-serif italic mt-0.5"
-                    style={{ fontSize: "0.73rem", color: "hsl(var(--olivewood) / 0.72)" }}
+                    style={{ fontSize: "0.73rem", color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {perks.tagline}
                   </p>
@@ -301,7 +300,7 @@ export default function SubscriptionPage() {
                       </>
                     ) : (
                       <>
-                        <PerkBullet color={color}>10% fee + verified business badge</PerkBullet>
+                        <PerkBullet color={color}>6% fee (save 6%) + verified business badge</PerkBullet>
                         <PerkBullet color={color}>Multi-tech team management</PerkBullet>
                         <PerkBullet color={color}>Featured badge + early access</PerkBullet>
                         <PerkBullet color={color}>Dedicated support SLA</PerkBullet>
@@ -310,16 +309,11 @@ export default function SubscriptionPage() {
                   </ul>
                 </div>
 
-                {/* Price column */}
+                {/* Price column — the free tier's name already reads "Free",
+                    so we omit a redundant "Free" price here and let only the
+                    paid tiers carry a price label. */}
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
-                  {isFree ? (
-                    <p
-                      className="font-display italic font-bold leading-none"
-                      style={{ fontSize: "1.1rem", color, letterSpacing: "-0.02em" }}
-                    >
-                      Free
-                    </p>
-                  ) : (
+                  {isFree ? null : (
                     <>
                       <p
                         className="font-display italic font-bold tabular-nums leading-none"
@@ -330,7 +324,7 @@ export default function SubscriptionPage() {
                       {perks.annualPrice && (
                         <p
                           className="font-serif italic leading-none text-right"
-                          style={{ fontSize: "0.65rem", color: "hsl(var(--olivewood) / 0.65)" }}
+                          style={{ fontSize: "0.65rem", color: "hsl(var(--olivewood) / 0.8)" }}
                         >
                           or ${perks.annualPrice}/mo
                           <br />annual
@@ -369,7 +363,7 @@ export default function SubscriptionPage() {
                   className="font-serif italic mt-2 pt-2"
                   style={{
                     fontSize: "0.72rem",
-                    color: "hsl(var(--olivewood) / 0.72)",
+                    color: "hsl(var(--olivewood) / 0.8)",
                     borderTop: "0.5px dashed hsl(var(--bark) / 0.14)",
                   }}
                 >
@@ -399,9 +393,9 @@ export default function SubscriptionPage() {
               Full feature comparison
             </span>
             {tableOpen ? (
-              <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+              <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             ) : (
-              <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
+              <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             )}
           </button>
 
@@ -410,7 +404,7 @@ export default function SubscriptionPage() {
               <table className="w-full text-left" style={{ borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderTop: "0.5px solid hsl(var(--bark) / 0.14)" }}>
-                    <th className="px-4 py-2 font-sans text-ds-11 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.55)", width: "38%" }}>
+                    <th className="px-4 py-2 font-sans text-ds-11 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.8)", width: "38%" }}>
                       Feature
                     </th>
                     {TIER_ORDER.map((t) => (
@@ -477,6 +471,14 @@ export default function SubscriptionPage() {
           </h2>
           {[
             {
+              q: "What does a membership do?",
+              a: "It lowers the commission Helpr deducts from the real-world jobs you get paid for — from 12% down to as low as 6% — and adds visibility perks like priority placement and a featured badge. The lower commission applies to every job you complete.",
+            },
+            {
+              q: "How am I billed?",
+              a: "Membership is billed securely through Stripe — the same processor that handles your job payments. You can manage or cancel your membership anytime from Manage plan.",
+            },
+            {
               q: "Can I cancel anytime?",
               a: "Yes — downgrade at any time. Your paid perks stay active through the end of your billing period, then you revert to Free.",
             },
@@ -532,9 +534,9 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
           {question}
         </span>
         {open ? (
-          <ChevronUp className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.55)" }} />
+          <ChevronUp className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
         ) : (
-          <ChevronDown className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.55)" }} />
+          <ChevronDown className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
         )}
       </button>
       {open && (

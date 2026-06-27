@@ -13,16 +13,17 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
-import PageTransition from "@/components/PageTransition";
-import OfflineBanner from "@/components/OfflineBanner";
+// OfflineBanner statically imports WifiOff from lucide-react, which would
+// otherwise pull the entire lucide chunk onto the critical initial load path.
+// It's only ever visible when the network drops (rare), so lazy-loading is safe.
+const OfflineBanner = lazy(() => import("@/components/OfflineBanner"));
 import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
-import { useDynamicTypeSync } from "@/lib/accessibility";
+import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
-import ScrollToTop from "@/components/ScrollToTop";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
@@ -45,7 +46,13 @@ const Sonner = lazy(() =>
 // critical-path reason as the toasters above — framer-motion isn't on
 // the landing-page hot path.
 const SuccessMomentHost = lazy(() => import("@/components/feedback/SuccessMomentHost"));
+// PageTransition and ScrollToTop both import framer-motion. Lazy-loading
+// them breaks the static App.tsx → framer-motion import chain so the
+// "motion" chunk stays off the synchronous critical path.
+const PageTransition = lazy(() => import("@/components/PageTransition"));
+const ScrollToTop = lazy(() => import("@/components/ScrollToTop"));
 const MobileNav = lazy(() => import("./components/MobileNav"));
+const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
@@ -76,6 +83,7 @@ const Legal = lazy(() => import("./pages/Legal"));
 const DataRights = lazy(() => import("./pages/DataRights"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Jobs = lazy(() => import("./pages/Jobs"));
+const JobDetail = lazy(() => import("./pages/JobDetail"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
 const DischargeConcierge = lazy(() => import("./pages/DischargeConcierge"));
@@ -104,7 +112,6 @@ const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
 const PetProfiles = lazy(() => import("./pages/PetProfiles"));
 const EvacuationMode = lazy(() => import("./pages/EvacuationMode"));
-const TimeCredits = lazy(() => import("./pages/TimeCredits"));
 const BenefitsPage = lazy(() => import("./pages/BenefitsPage"));
 
 // Lazy load less-critical global components
@@ -177,6 +184,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           exact guests it targets to /login. /browse remains the in-app
           (AppShell) guest experience; this is its marketing-page sibling. */}
       <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<PageTransition><Jobs /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Public, deep-linkable job preview. Shared links (ShareJobButton →
+          /jobs/{id}?ref=share) land here: guests get a read-only preview,
+          signed-in users are redirected into the dashboard apply flow. */}
+      <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<PageTransition><JobDetail /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /dashboard's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want
@@ -233,8 +244,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/parish/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Helpr Wrapped — auth-gated, HelprWrapped handles the redirect */}
       <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<HelprWrapped />)}</RouteErrorBoundary>} />
-      {/* Time banking — earn credits by helping, spend on posted jobs */}
-      <Route path="/time-credits" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><TimeCredits /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Benefits marketplace — partner perks for helpers */}
       <Route path="/benefits" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BenefitsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Pet care — manage pet profiles, vet notes, and evacuation mode */}
@@ -293,7 +302,7 @@ const SessionManager = () => {
   useSessionTimeout();
   useLoginTracking();
   useNativePushSetup();
-  useDynamicTypeSync();
+  const dynamicTypeScale = useDynamicTypeSync();
   useDarkMode(); // initializes data-theme from localStorage / system preference
   useCppVariantRouter();
   useAppShellViewport();
@@ -306,13 +315,18 @@ const SessionManager = () => {
   // auto-refetch. No-op on web.
   useAppLifecycle();
 
-  // Apply senior-mode CSS class on <html> whenever the loaded profile
-  // has senior_mode enabled (e.g. after sign-in or a page refresh).
+  // Apply senior-mode CSS class on <html> when EITHER the loaded profile has
+  // senior_mode enabled, OR the OS reports a large accessibility text size
+  // (Dynamic Type). The profile flag is a manual opt-in; the Dynamic Type
+  // bridge (LH-22) honors the user's system-level text-size choice without
+  // them having to flip the in-app toggle. They're OR'd so the two can't
+  // clobber each other.
   const { profile } = useCurrentUser();
   useEffect(() => {
-    const enabled = !!(profile as unknown as { senior_mode?: boolean })?.senior_mode;
-    document.documentElement.classList.toggle("senior-mode", enabled);
-  }, [profile]);
+    const profileSenior = !!(profile as unknown as { senior_mode?: boolean })?.senior_mode;
+    const osLargeText = dynamicTypeScale >= OS_LARGE_TEXT_THRESHOLD;
+    document.documentElement.classList.toggle("senior-mode", profileSenior || osLargeText);
+  }, [profile, dynamicTypeScale]);
 
 
   return null;
@@ -416,10 +430,10 @@ const App = () => (
             the page content (AppShell reads the offset to reserve space).
             See src/lib/offlineBannerLayout.tsx. */}
         <OfflineBannerLayoutProvider>
-          <ScrollToTop />
+          <Suspense fallback={null}><ScrollToTop /></Suspense>
           <SessionManager />
           <NativeLaunchRouter />
-          <OfflineBanner />
+          <Suspense fallback={null}><OfflineBanner /></Suspense>
           <Suspense fallback={null}>
             <StrikeBanner />
           </Suspense>
@@ -431,6 +445,7 @@ const App = () => (
           </main>
           <Suspense fallback={null}>
             <MobileNav />
+            <DesktopSidebarNav />
             <PermissionRationaleDialog />
           </Suspense>
           <SpeedInsightsRouted />

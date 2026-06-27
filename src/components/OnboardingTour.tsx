@@ -402,7 +402,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
               <DialogPrimitive.Description asChild>
                 <p
                   className="font-serif italic text-[0.92rem] leading-relaxed max-w-[360px] mx-auto"
-                  style={{ color: "hsl(var(--olivewood) / 0.78)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {currentStep.description}
                 </p>

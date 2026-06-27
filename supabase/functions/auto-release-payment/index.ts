@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getHelperFeePercent } from "../_shared/helperFees.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -103,7 +104,9 @@ serve(async (req) => {
         .update({ status: "completed", payment_status: "payout_pending", payout_scheduled_at: payoutTime })
         .eq("id", job.id);
 
-      const helperFeePercent = 10;
+      // Estimate only — the real transfer in process-scheduled-payouts resolves
+      // the tier again at payout time. Keep this preview consistent with it.
+      const helperFeePercent = await getHelperFeePercent(supabaseAdmin, job.helper_id, 10);
       const helperCommission = job.budget * helperFeePercent / 100;
       const helperPayout = job.budget - helperCommission + (job.urgent_fee ?? 0);
       if (job.helper_id) {

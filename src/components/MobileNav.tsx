@@ -20,6 +20,8 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
+import { getBlockedUserIds } from "@/lib/userBlocks";
+import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
 import { safeStorage } from "@/lib/safeStorage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
@@ -245,21 +247,41 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   useEffect(() => {
     if (!user) return;
 
-    const loadCounts = () => {
-      supabase
+    const loadCounts = async () => {
+      // Mirror the inbox's own hide rules (Messages.tsx) so the badge can't
+      // claim "1" while the inbox renders empty: the inbox drops system
+      // messages, threads with a blocked sender, AND locally-archived threads,
+      // so the count must too. Archived threads are a client-only (safeStorage)
+      // concept, so we can't filter them in SQL — we fetch the lightweight
+      // unread rows and drop archived ones in JS (LH-54).
+      const blockedSet = await getBlockedUserIds(user.id);
+      const base = supabase
         .from("messages")
-        .select("*", { count: "exact", head: true })
+        .select("job_id, sender_id, created_at")
         .eq("receiver_id", user.id)
-        .eq("read", false)
-        .then(({ count, error }) => {
-          // Only overwrite the seeded value on a successful response —
-          // a failed query (offline, transient) must NOT zero the badge
-          // and surprise the user. The cache stays the floor.
-          if (error) return;
-          const next = count || 0;
-          setUnreadCount(next);
-          writeCachedUnread(next);
-        });
+        .eq("read", false);
+      // `is_system` is a real column but missing from the generated types,
+      // so the dynamic .not() filters need an untyped handle.
+      let query: any = base;
+      query = query.not("is_system", "is", true);
+      if (blockedSet.size > 0) {
+        query = query.not("sender_id", "in", `(${[...blockedSet].join(",")})`);
+      }
+      const { data, error } = await query;
+      // Only overwrite the seeded value on a successful response —
+      // a failed query (offline, transient) must NOT zero the badge
+      // and surprise the user. The cache stays the floor.
+      if (error) return;
+      // Exclude unread messages whose thread the user archived (and that the
+      // archive hasn't auto-resurfaced — `isArchived` checks the message's own
+      // timestamp against the archive moment, exactly like the inbox). For a
+      // received message the other participant is the sender.
+      const next = (data ?? []).filter(
+        (m: { job_id: string | null; sender_id: string | null; created_at: string }) =>
+          !isArchived(user.id, m.job_id ?? "", m.sender_id ?? "", m.created_at),
+      ).length;
+      setUnreadCount(next);
+      writeCachedUnread(next);
     };
 
     loadCounts();
@@ -275,8 +297,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       )
       .subscribe();
 
+    // Archiving/unarchiving a thread changes which unread messages the badge
+    // should count, but it's a local action with no `messages` write — so the
+    // realtime channel above never fires. Recompute on the archive event too
+    // (LH-54).
+    const onArchiveChanged = () => loadCounts();
+    window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
     };
   }, [user?.id]);
 
@@ -365,7 +395,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [navigate, user, unreadCount]);
 
-  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending", "/saved-helpers", "/community"];
+  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending", "/saved-helpers", "/community",
+    // Standalone settings sub-pages keep the bottom tab bar so they share the
+    // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
+    "/pets", "/subscription", "/home-history", "/work-record", "/pay-it-forward", "/benefits", "/family", "/wrapped", "/str-settings", "/help", "/data-rights"];
   // /admin is a distinct console shell (its own full-height layout, header,
   // back button, and logout) — the consumer Posts/Jobs/Messages/Profile bar
   // doesn't belong there, so it's a no-nav page, not an auth tab route.
@@ -503,32 +536,27 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         ariaLabel={locked ? `${label} — locked until your account is approved` : label}
         ariaCurrent={isActive ? "page" : undefined}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
-        style={{ color: isActive ? "hsl(var(--olivewood))" : "hsl(48 9% 47%)" }}
+        style={{ color: isActive ? "hsl(var(--bark))" : "hsl(48 9% 47%)" }}
       >
         {/* Sliding active pill — single shared layoutId across all items
             so the pill animates between tabs when you switch. Sits BEHIND
-            the icon + label content. Uses the same elevated vocabulary
-            (inset rim light + layered Bark-tinted drop shadow) as the
-            Post button + FAB so the active tab reads as a lifted lens. */}
+            the icon + label content. Deliberately QUIET: a soft neutral-ink
+            chip with no brand color and no drop shadow, so it never competes
+            with the bark-green Post FAB. The Post FAB is the single loud
+            focal point in the bar; the active tab is signalled by the bolder
+            mid-bark icon/label + the burnt-sienna underline dot, with this
+            chip just a subtle "you are here" backing. (Active was near-black
+            olivewood, which read as a heavy dark blob; bark is a lighter
+            recognizable brand green. Was also a bark-green glass lens with a
+            layered drop shadow that rivalled the FAB — that broke hierarchy.) */}
         {isActive && (
           <motion.span
             layoutId="mobile-nav-pill"
             className="absolute inset-x-2 inset-y-1 rounded-full pointer-events-none"
             style={{
-              // Olive-green glass lens — the brand's action color (bark/olive),
-              // lit from above. Selected reads as the brand green, not cream.
-              // The pill is a soft bark wash; the icon + label sit on top in a
-              // deeper olivewood so the contrast stays crisp (no olive-on-olive
-              // mud).
-              background:
-                "radial-gradient(120% 120% at 30% 18%, hsl(var(--bark) / 0.20) 0%, hsl(var(--bark) / 0.14) 50%, hsl(var(--bark) / 0.22) 100%)",
-              border: "0.5px solid hsl(var(--bark) / 0.30)",
-              boxShadow:
-                "inset 0 1px 1.5px 0 hsl(45 40% 98% / 0.55), " +
-                "inset 0 -1.5px 2px 0 hsl(var(--bark) / 0.18), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.16), " +
-                "0 6px 14px -4px hsl(var(--olivewood) / 0.24), " +
-                "0 12px 22px -8px hsl(var(--olivewood) / 0.18)",
+              background: "hsl(var(--bark) / 0.07)",
+              border: "0.5px solid hsl(var(--bark) / 0.08)",
+              boxShadow: "inset 0 1px 1px 0 hsl(0 0% 100% / 0.45)",
             }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
             aria-hidden
@@ -538,7 +566,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           <Icon
             className="w-[22px] h-[22px] transition-all duration-200"
             strokeWidth={isActive ? 2.3 : 1.8}
-            fill={isActive ? "hsl(var(--olivewood) / 0.20)" : "none"}
+            fill={isActive ? "hsl(var(--bark) / 0.16)" : "none"}
           />
           {/* No per-tab padlock for guests — three padlocks in a row read
               as a barrier wall on a first-time guest's home screen. The tab
@@ -566,7 +594,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             fontSize: "0.66rem",
             fontWeight: isActive ? 700 : 500,
             letterSpacing: isActive ? "0.01em" : "0.02em",
-            color: isActive ? "hsl(var(--olivewood))" : undefined,
+            color: isActive ? "hsl(var(--bark))" : undefined,
           }}
         >
           {label}
@@ -600,7 +628,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
   return (
     <>
-      <nav ref={ref} aria-label="Bottom navigation" className="fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <nav ref={ref} aria-label="Bottom navigation" className="mobile-nav-frame fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         {/* Frosted curtain — full-width backdrop-blur layer behind the
             nav so any content scrolling up the page softly blurs as it
             passes through this band, not just under the centered pill.
@@ -637,7 +665,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             // gradually across the band instead of snapping on partway up.
             maskImage: "linear-gradient(to top, black 35%, transparent 100%)",
             WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)",
-            background: "linear-gradient(to top, hsla(40, 28%, 99%, 0.6), hsla(40, 28%, 99%, 0))",
+            background: "linear-gradient(to top, var(--nav-curtain-top), var(--nav-curtain-fade))",
           }}
         />
         <div className="relative mx-3 mb-3 flex items-end gap-3.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl md:mx-auto md:px-8 xl:px-12">
@@ -648,16 +676,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           <div
             className="flex-1 rounded-full transition-shadow duration-300"
             style={{
-              backgroundColor: "hsla(0, 0%, 100%, 0.4)",
+              backgroundColor: "var(--nav-pill-bg)",
               backdropFilter: "blur(40px) saturate(180%)",
               WebkitBackdropFilter: "blur(40px) saturate(180%)",
               // Stronger high-contrast white edge along the top — mimics
               // the Apple Dock's "glass-catching-light" rim. Sides + bottom
-              // stay softer.
-              borderTop: "1px solid hsla(0, 0%, 100%, 0.85)",
-              borderLeft: "1px solid hsla(0, 0%, 100%, 0.55)",
-              borderRight: "1px solid hsla(0, 0%, 100%, 0.55)",
-              borderBottom: "1px solid hsla(0, 0%, 100%, 0.45)",
+              // stay softer. Rim opacities drop in dark mode via the tokens.
+              borderTop: "1px solid var(--nav-rim-strong)",
+              borderLeft: "1px solid var(--nav-rim-soft)",
+              borderRight: "1px solid var(--nav-rim-soft)",
+              borderBottom: "1px solid var(--nav-rim-bottom)",
               // Bumped to match the elevated treatment used on the Post
               // button + FAB — bright top rim, subtle inset bottom, and
               // a more pronounced multi-stop spreading drop shadow.
@@ -665,8 +693,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               // a big ambient drop. No hard line — all very soft, very
               // wide spreads.
               boxShadow: scrolled
-                ? "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.06), 0 2px 4px hsl(var(--olivewood) / 0.08), 0 22px 44px -10px hsl(var(--olivewood) / 0.20), 0 50px 90px -20px hsl(var(--olivewood) / 0.24)"
-                : "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.05), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 18px 36px -8px hsl(var(--olivewood) / 0.16), 0 40px 72px -16px hsl(var(--olivewood) / 0.20)",
+                ? "inset 0 1px 1px 0 var(--nav-inset-hi), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.06), 0 2px 4px hsl(var(--olivewood) / 0.08), 0 22px 44px -10px hsl(var(--olivewood) / 0.20), 0 50px 90px -20px hsl(var(--olivewood) / 0.24)"
+                : "inset 0 1px 1px 0 var(--nav-inset-hi), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.05), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 18px 36px -8px hsl(var(--olivewood) / 0.16), 0 40px 72px -16px hsl(var(--olivewood) / 0.20)",
             }}
           >
             <div className="flex items-stretch h-14 px-2">
@@ -709,7 +737,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 onClick={handlePostClick}
                 onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
                 onFocus={() => !isGuest && prefetchRoute("/post-job")}
-                aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
+                aria-label={isGuest ? "Post a new task — sign up required" : "Post a new task"}
                 className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
                 style={{
                   // Lit-from-top orb — a radial highlight in the upper-left

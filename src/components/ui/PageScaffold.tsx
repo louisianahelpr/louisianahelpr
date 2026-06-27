@@ -106,10 +106,16 @@ export function PageScaffold({
   const titleCardClass = titleCardClassName
     ? `${TITLE_CARD_CLASS} ${titleCardClassName}`
     : TITLE_CARD_CLASS;
+  // The app-shell frame caps desktop width (.app-shell-frame, 680px), so the
+  // old lg/xl/2xl column ramps never took effect — they were dead classes.
+  // A single max-w lets the frame govern width on every breakpoint.
+  // On the desktop website (html.web-desktop) the `ds-desktop-wide` class
+  // lifts the centered-column cap (see index.css) so the content can spread
+  // into a true multi-column layout instead of staying in a phone column. On
+  // mobile/native the class is a no-op (no CSS rule fires), so the existing
+  // max-w-xl / max-w-3xl caps govern exactly as before.
   const columnWidth =
-    maxWidth === "narrow"
-      ? "max-w-3xl lg:max-w-5xl"
-      : "max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl";
+    (maxWidth === "narrow" ? "max-w-xl" : "max-w-3xl") + " ds-desktop-wide";
 
   const panelStyle: CSSProperties = {
     // Bottom corners flat + bottom border dropped so the panel bleeds

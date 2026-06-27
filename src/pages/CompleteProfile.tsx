@@ -306,27 +306,34 @@ const CompleteProfile = () => {
       if (avatarUrl) updates.avatar_url = avatarUrl;
       if (idDocumentPath) updates.id_document_url = idDocumentPath;
 
-      const { error: updateErr } = await withTimeout(
-        Promise.resolve(supabase.from("profiles").update(updates).eq("user_id", user.id)),
+      // Read the persisted row back in the same round-trip. ProtectedRoute's
+      // Big-7 completeness gate re-evaluates the instant we navigate to
+      // /dashboard, so the cache MUST hold the authoritative saved row — not
+      // an optimistic guess that a stale background refetch could clobber.
+      const { data: savedRow, error: updateErr } = await withTimeout(
+        Promise.resolve(
+          supabase.from("profiles").update(updates).eq("user_id", user.id).select("*").maybeSingle(),
+        ),
         "Profile save",
       );
       if (updateErr) throw updateErr;
 
       queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: any) => ({
         ...(current ?? {}),
-        profile: {
+        // Prefer the row Postgres actually persisted; fall back to a merged
+        // optimistic shape only if the read-back came back empty.
+        profile: savedRow ?? {
           ...(current?.profile ?? profile ?? {}),
           ...updates,
           user_id: user.id,
         },
         isAdmin: current?.isAdmin ?? false,
       }));
-      // Force a fresh DB read so ProtectedRoute re-evaluates against the
-      // *persisted* row, not just our optimistic cache. The small delay
-      // gives Postgres + the realtime channel a beat to settle so the
-      // very next route render reads the new values.
-      await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
-      await new Promise((r) => setTimeout(r, 800));
+      // No invalidate + sleep here: that triggered a background refetch that
+      // could resolve the pre-update row mid-navigation (read-after-write
+      // race), failing the completeness gate and bouncing the user straight
+      // back to /complete-profile (LH-29). The authoritative row above is the
+      // single source of truth; staleTime keeps it from refetching on arrival.
       hapticSuccess();
       toast.success("Profile complete — welcome to Helpr!");
       navigate("/dashboard", { replace: true });
@@ -398,10 +405,10 @@ const CompleteProfile = () => {
             >
               Almost there.
             </h1>
-            <p className="mt-3 font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="mt-3 font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
-            <p className="mt-2 text-[0.7rem] font-sans" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+            <p className="mt-2 text-[0.7rem] font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               All fields marked <span style={{ color: "hsl(var(--burnt-sienna))" }}>*</span> are required.
             </p>
           </div>
@@ -613,7 +620,7 @@ const CompleteProfile = () => {
                   profile gate, but we set expectations that it can be
                   refined any time from Profile so the user doesn't feel
                   like this needs to be the bio of a lifetime. */}
-              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Don't sweat it — you can polish this any time from your profile.
               </p>
             </div>
@@ -654,7 +661,7 @@ const CompleteProfile = () => {
               </label>
             </div>
 
-            <label className="flex items-start gap-2.5 text-ds-11 cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <label className="flex items-start gap-2.5 text-ds-11 cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               <Checkbox
                 checked={acceptedPolicies}
                 onCheckedChange={(v) => setAcceptedPolicies(v === true)}

@@ -450,7 +450,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 onClick={() => navigate("/post-job")}
                 className="text-ds-13"
               >
-                Post a job instead
+                Post a task instead
               </Button>
             }
           />
@@ -467,13 +467,13 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
             title={helpers.length === 0 ? "No saved helprs yet." : "Nothing matches that search."}
             body={
               helpers.length === 0
-                ? "After your next job, tap the heart on the helpr's profile — they'll land here for one-tap rebooking."
+                ? "After your next task, tap the heart on the helpr's profile — they'll land here for one-tap rebooking."
                 : "Try a different search term — your saved list is intact."
             }
             action={
               helpers.length === 0 ? (
                 <BarkPillButton onClick={() => navigate("/post-job")}>
-                  Post a job
+                  Post a task
                 </BarkPillButton>
               ) : (
                 <BarkPillButton onClick={() => setSearch("")}>
@@ -522,7 +522,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                       >
                         {formatName(h.full_name)}
                       </Link>
-                      <div className="flex items-center gap-x-2 gap-y-0.5 mt-1 font-serif italic flex-wrap" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                      <div className="flex items-center gap-x-2 gap-y-0.5 mt-1 font-serif italic flex-wrap" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                         {h.completed_jobs_together > 0 && (
                           <span className="flex items-center gap-1 text-primary">
                             <Star className="w-3 h-3 fill-primary" />
@@ -539,7 +539,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                         )}
                       </div>
                       {h.skills && (
-                        <p className="font-serif italic mt-1.5 line-clamp-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                        <p className="font-serif italic mt-1.5 line-clamp-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                           {h.skills}
                         </p>
                       )}

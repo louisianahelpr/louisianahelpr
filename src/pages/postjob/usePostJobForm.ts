@@ -23,6 +23,7 @@ import type { SampleJob } from "@/data/sampleJobs";
 import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
+import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
 import { validateResult } from "@/lib/validateResult";
 import { jobRowSchema } from "@/lib/schemas";
 import type { Database } from "@/integrations/supabase/types";
@@ -66,7 +67,11 @@ export function usePostJobForm() {
   const [category, setCategory] = useState<string>("other");
   const [streetAddress, setStreetAddress] = useState("");
   const [city, setCity] = useState("");
-  const [addrState, setAddrState] = useState("");
+  // State is locked to LA (Helpr is Louisiana-only) and the field is rendered
+  // read-only, so seed it with "LA" — otherwise the empty real value fails the
+  // `!addrState.trim()` submit gate while the UI shows "LA", silently blocking
+  // the poster with a toast that scrolls to an uneditable field (LH-53).
+  const [addrState, setAddrState] = useState("LA");
   const [zipCode, setZipCode] = useState("");
   const [parish, setParish] = useState<string | null>(null);
   const [dateNeeded, setDateNeeded] = useState("");
@@ -494,6 +499,7 @@ export function usePostJobForm() {
     e.preventDefault();
     if (!title.trim()) { toast.error("Task title is required"); scrollToField("title"); return; }
     if (!description.trim()) { toast.error("Description is required"); scrollToField("description"); return; }
+    if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting"); scrollToField("description"); return; }
     if (!category) { toast.error("Category is required"); scrollToField("category-picker"); return; }
     // Photo is optional — a photo dramatically improves applicant count and
     // quote accuracy, so it's strongly nudged in the UI, but tasks like
@@ -915,7 +921,7 @@ export function usePostJobForm() {
   // Section completion for the 3-step progress bar. Photos are optional
   // (strongly nudged, never required), so the Details chapter is "done"
   // once title, description, and category are set.
-  const detailsComplete = !!(title.trim() && description.trim() && category);
+  const detailsComplete = !!(title.trim() && description.trim() && category && !hasUnfilledPlaceholders(description));
   const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && estimatedHours && parseFloat(estimatedHours) >= 0.5);
   // In accept_bids mode the budget is optional — helpers set their own price.
   const budgetComplete =
@@ -939,13 +945,27 @@ export function usePostJobForm() {
   // real market; otherwise fall back to the static guide.
   const suggested = category && categoryPricing[category] ? categoryPricing[category] : null;
   const presetRange = priceStats ?? suggested;
+  // Snap each preset to the nearest $25 ($25 floor) so the quick-tap pills
+  // read as clean round numbers instead of raw market values like $38.
+  // A bump pass keeps the three values distinct and ascending when two
+  // snap to the same multiple (e.g. 38 & 60 → 50 & 50 → 50 & 75).
   const budgetPresets = presetRange
-    ? Array.from(new Set([
-        presetRange.min,
-        priceStats?.median ?? Math.round((presetRange.min + presetRange.max) / 2),
-        presetRange.max,
-      ]))
-    : [25, 50, 100];
+    ? (() => {
+        const snap25 = (n: number) => Math.max(25, Math.round(n / 25) * 25);
+        const raw = [
+          presetRange.min,
+          priceStats?.median ?? Math.round((presetRange.min + presetRange.max) / 2),
+          presetRange.max,
+        ]
+          .map(snap25)
+          .sort((a, b) => a - b);
+        return raw.reduce<number[]>((acc, v) => {
+          const prev = acc[acc.length - 1];
+          acc.push(prev != null && v <= prev ? prev + 25 : v);
+          return acc;
+        }, []);
+      })()
+    : [25, 50, 75];
 
   const handlePostJobBack = () => {
     if (step === "checkout") {

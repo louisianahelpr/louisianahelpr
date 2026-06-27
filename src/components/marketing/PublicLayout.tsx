@@ -45,7 +45,7 @@ const PublicLayout = ({
   children,
   showCtaBand = true,
   ctaHeadline = "Ready to start?",
-  ctaSubcopy = "Join thousands of Louisiana neighbors already getting things done on Helpr.",
+  ctaSubcopy = "Join your Louisiana neighbors getting things done on Helpr.",
   ctaLabel = "Get started",
   ctaTo = "/signup",
   noNavSpacer = false,
@@ -93,7 +93,7 @@ const PublicLayout = ({
             </h2>
             <p
               className="font-serif italic text-ds-15 leading-relaxed mt-2 max-w-lg mx-auto"
-              style={{ color: "hsl(var(--olivewood) / 0.78)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {ctaSubcopy}
             </p>

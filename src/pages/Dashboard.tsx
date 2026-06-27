@@ -6,7 +6,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
@@ -18,6 +17,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
+import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
+import { Skeleton } from "@/components/ui/skeleton";
 import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -37,8 +38,10 @@ const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 const JitVerifySheet = lazy(() => import("@/components/dashboard/JitVerifySheet").then(m => ({ default: m.JitVerifySheet })));
-const JobMapView = lazy(() => import("@/components/dashboard/JobMapView").then(m => ({ default: m.JobMapView })));
 const WelcomeModal = lazy(() => import("@/components/dashboard/WelcomeModal"));
+// Map column for the web-desktop two-pane (leaflet is heavy — lazy so the
+// phone/native feed never pays for it).
+const BrowseMap = lazy(() => import("@/components/BrowseMap").then(m => ({ default: m.BrowseMap })));
 import SectionBoundary from "@/components/SectionBoundary";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -106,7 +109,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   usePageTitle("Dashboard — Helpr");
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   // Capture ?ref= attribution from deep-links (push notifications, share
   // links, etc.) so analytics can attribute which surface drove the open.
   useJobRef();
@@ -189,6 +192,11 @@ const Dashboard = () => {
   // resetting to "list" on next mount matches user expectation that
   // the default landing surface is the curated feed.
   const [view, setView] = usePersistedBrowseView("list");
+
+  // Web desktop (≥1024px, non-native) composes the feed and the map
+  // side by side, so the list/map toggle is meaningless there and the
+  // feed is locked to "list" — the map always occupies its own column.
+  const isWebDesktop = useIsWebDesktop();
 
   // Feed density — comfortable (full cards) or compact (48px rows). Read from
   // any persisted preference; the in-toolbar toggle was removed for a cleaner
@@ -768,7 +776,18 @@ const Dashboard = () => {
     const el = containerRef.current;
     if (el) detailScrollSnapshotRef.current = el.scrollTop;
     setDetailJob(value);
-  }, [containerRef]);
+    // Mirror the open job into the URL (?job=<id>, replacing the entry so we
+    // don't spam history). This is what lets a jump to a sub-route from inside
+    // the dialog — e.g. the Helper Pro "Learn more" → /subscription — return to
+    // the open job on Back, instead of dropping onto the bare dashboard.
+    if (value && typeof value !== "function") {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("job", value.id);
+        return next;
+      }, { replace: true });
+    }
+  }, [containerRef, setSearchParams]);
 
   // Close the detail dialog and restore the feed scroll position captured
   // at open time. We restore after a microtask to outlast any layout-shift
@@ -776,6 +795,11 @@ const Dashboard = () => {
   // open captures a fresh value.
   const closeDetailJob = useCallback(() => {
     setDetailJob(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("job");
+      return next;
+    }, { replace: true });
     const snapshot = detailScrollSnapshotRef.current;
     detailScrollSnapshotRef.current = null;
     if (snapshot == null) return;
@@ -787,7 +811,26 @@ const Dashboard = () => {
         if (el) el.scrollTop = snapshot;
       });
     });
-  }, [containerRef]);
+  }, [containerRef, setSearchParams]);
+
+  // Re-open the detail dialog from the URL on mount (?job=<id>). Add-only and
+  // one-shot: it restores the dialog after returning from a sub-route like
+  // /subscription, but never clears the param (close handles that), so it can't
+  // race the open/close writers above. Retries until the job feed has loaded.
+  const restoredJobParam = useRef(false);
+  useEffect(() => {
+    if (restoredJobParam.current) return;
+    const id = searchParams.get("job");
+    if (!id) {
+      restoredJobParam.current = true;
+      return;
+    }
+    const match = allJobs.find((j) => j.id === id);
+    if (match) {
+      setDetailJob(match);
+      restoredJobParam.current = true;
+    }
+  }, [searchParams, allJobs]);
 
   const handleDismissConfirm = useCallback(() => {
     if (!confirmDismissJobId) return;
@@ -922,6 +965,7 @@ const Dashboard = () => {
               helperAvailability={helperAvailability}
               view={view}
               setView={setView}
+              hideViewToggle={isWebDesktop}
               onClearAllFilters={() => {
                 // After clearing filters, snap the feed back to the top
                 // so the user lands on the fresh unfiltered head of the
@@ -938,14 +982,14 @@ const Dashboard = () => {
                 page-level ErrorBoundary above still catches anything
                 that escapes this. */}
             <SectionBoundary label="the job feed">
-              {/* Split-screen layout on lg+ viewports: job list (420px
-                  fixed left) + Leaflet map (right). Completely hidden on
-                  mobile — no layout changes touch the Capacitor native
-                  app which is always <1024px. */}
+              {/* The job feed fills the frame. The map is reached via the
+                  toolbar list/map toggle (BrowseMap inside BrowseTasksFeed),
+                  not a side panel — a fixed split-screen map clipped at the
+                  edge of the centered phone-width frame. */}
               <div className="flex flex-1 min-h-0 overflow-hidden">
-                <div className="flex-1 lg:w-[420px] lg:flex-none lg:border-r lg:border-[hsl(var(--olivewood)/0.1)] min-w-0 overflow-hidden flex flex-col">
+                <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
                   <BrowseTasksFeed
-                    view={view}
+                    view={isWebDesktop ? "list" : view}
                     density={density}
                     filters={filters}
                     user={user}
@@ -985,17 +1029,25 @@ const Dashboard = () => {
                     setHoveredJobId={setHoveredJobId}
                   />
                 </div>
-                {/* Map panel — desktop only. Lazy-loaded so the Leaflet
-                    bundle isn't paid for by mobile users. */}
-                <div className="hidden lg:flex lg:flex-1 lg:relative min-h-0">
-                  <Suspense fallback={<Skeleton className="flex-1 rounded-none" />}>
-                    <JobMapView
-                      jobs={filters.filteredJobs}
-                      hoveredJobId={hoveredJobId}
-                      onJobClick={openDetailJob}
-                    />
-                  </Suspense>
-                </div>
+                {/* Web-desktop only: the map rides alongside the feed in its
+                    own column rather than hiding behind a toggle. The page
+                    frame is full-width here (PageScaffold desktop), so the
+                    map has real room and doesn't clip at a phone-width edge
+                    the way the old side-map did (#12). */}
+                {isWebDesktop && (
+                  <div
+                    className="w-[48%] shrink-0 min-h-0 flex flex-col pl-3 pt-2"
+                    style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}
+                  >
+                    <Suspense fallback={<Skeleton className="h-full w-full rounded-2xl" />}>
+                      <BrowseMap
+                        onJobAction={handleApplyRequest}
+                        ctaLabel="Apply"
+                        currentUserId={user?.id}
+                      />
+                    </Suspense>
+                  </div>
+                )}
               </div>
             </SectionBoundary>
 

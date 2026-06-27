@@ -12,6 +12,7 @@
  */
 
 import { useState } from "react";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +23,7 @@ import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -254,7 +256,7 @@ function CaregiverCard({
           <p className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
             {name}
           </p>
-          <p className="text-ds-12 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+          <p className="text-ds-12 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {isPending ? "Invite sent — waiting for your approval" : "Manages your jobs"}
           </p>
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -300,12 +302,11 @@ function InviteForm({ myUserId }: { myUserId: string }) {
   const inviteMut = useMutation({
     mutationFn: async () => {
       const token = crypto.randomUUID();
-      // Look up the care recipient by email or phone
-      const isEmail = contact.includes("@");
+      // Look up the care recipient by email (case-insensitive)
       const lookupRes = await supabase
         .from("profiles")
         .select("user_id")
-        .eq(isEmail ? "email" : "phone", contact)
+        .ilike("email", contact.trim())
         .maybeSingle();
       if (lookupRes.error) throw lookupRes.error;
 
@@ -313,7 +314,7 @@ function InviteForm({ myUserId }: { myUserId: string }) {
         // No existing account — store a pending invite with token only;
         // when they sign up and visit the link, they can accept.
         throw new Error(
-          "No account found for that email or phone. Ask them to sign up first, then share the invite link."
+          "No account found for that email. Ask them to sign up first, then share the invite link."
         );
       }
 
@@ -374,16 +375,18 @@ function InviteForm({ myUserId }: { myUserId: string }) {
       <p className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
         Invite a family member
       </p>
-      <p className="text-ds-12 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
-        Enter their email or phone. They'll get an invite link to approve your access.
+      <p className="text-ds-12 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        Enter their email. They'll get an invite link to approve your access.
       </p>
       <Input
         value={contact}
         onChange={(e) => setContact(e.target.value)}
-        placeholder="Email or phone number"
-        type="text"
+        placeholder="Email address"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
         className="h-11"
-        aria-label="Contact email or phone number"
+        aria-label="Family member email address"
       />
       <div className="flex gap-2">
         <select
@@ -459,6 +462,8 @@ export default function FamilyDashboard() {
 
   const qc = useQueryClient();
 
+  const [pendingRevokeId, setPendingRevokeId] = useState<string | null>(null);
+
   const revokeMut = useMutation({
     mutationFn: async (relationshipId: string) => {
       const res = unwrap(
@@ -470,6 +475,7 @@ export default function FamilyDashboard() {
       return res;
     },
     onSuccess: () => {
+      setPendingRevokeId(null);
       hapticSuccess();
       toast.success("Access removed.");
       void qc.invalidateQueries({ queryKey: ["care_relationships", userId] });
@@ -483,9 +489,22 @@ export default function FamilyDashboard() {
   const asCaregiver = relQuery.data?.asCaregiver ?? [];
   const asRecipient = relQuery.data?.asRecipient ?? [];
 
+  // Resolve the display name for the confirm-dialog without re-fetching.
+  // profileMap only contains counterpart profiles (never self), so
+  // whichever of the two ID slots isn't the current user will have a hit.
+  const pendingRevokeRel = pendingRevokeId
+    ? [...asCaregiver, ...asRecipient].find((r) => r.id === pendingRevokeId)
+    : null;
+  const pendingRevokeName =
+    (pendingRevokeRel
+      ? (profileMap[pendingRevokeRel.care_recipient_id]?.full_name ??
+         profileMap[pendingRevokeRel.caregiver_id]?.full_name)
+      : null) ?? "this person";
+
   return (
+    <>
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Family & care" onBack={() => navigate(-1)} />
+      <PageHeader title="Family & care" onBack={() => navigate(-1)} showBrand rightSlot={<NotificationPanel />} />
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
 
@@ -517,7 +536,7 @@ export default function FamilyDashboard() {
             )}
 
             {!relQuery.isLoading && !relQuery.isError && asCaregiver.length === 0 && (
-              <p className="text-ds-13 font-serif italic px-1" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+              <p className="text-ds-13 font-serif italic px-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 You're not managing jobs for anyone yet.
               </p>
             )}
@@ -527,7 +546,7 @@ export default function FamilyDashboard() {
                 key={rel.id}
                 relationship={rel}
                 recipientProfile={profileMap[rel.care_recipient_id]}
-                onRevokeAccess={(id) => revokeMut.mutate(id)}
+                onRevokeAccess={setPendingRevokeId}
               />
             ))}
 
@@ -544,7 +563,7 @@ export default function FamilyDashboard() {
                 Your family helper
               </h2>
             </div>
-            <p className="text-ds-12 font-serif italic -mt-1 px-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+            <p className="text-ds-12 font-serif italic -mt-1 px-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               These people can view and post jobs on your behalf.
             </p>
             {asRecipient.map((rel) => (
@@ -552,7 +571,7 @@ export default function FamilyDashboard() {
                 key={rel.id}
                 relationship={rel}
                 caregiverProfile={profileMap[rel.caregiver_id]}
-                onRevokeAccess={(id) => revokeMut.mutate(id)}
+                onRevokeAccess={setPendingRevokeId}
               />
             ))}
           </section>
@@ -567,7 +586,7 @@ export default function FamilyDashboard() {
           }}
         >
           <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "hsl(var(--bark) / 0.5)" }} />
-          <p className="text-ds-12 font-serif italic leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+          <p className="text-ds-12 font-serif italic leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Family members you invite can view jobs, post new jobs, and message helpers on your behalf.
             You can remove their access at any time.
           </p>
@@ -575,5 +594,22 @@ export default function FamilyDashboard() {
 
       </div>
     </div>
+
+    <BrandConfirmDialog
+      open={pendingRevokeId !== null}
+      onOpenChange={(open) => { if (!open) setPendingRevokeId(null); }}
+      title="Remove access?"
+      description={`${pendingRevokeName} will no longer be able to view or post jobs on your behalf.`}
+      primaryLabel={revokeMut.isPending ? "Removing…" : "Remove access"}
+      primaryTone="sienna"
+      primaryHaptic="warning"
+      primaryDisabled={revokeMut.isPending}
+      onPrimary={(e) => {
+        e.preventDefault();
+        if (pendingRevokeId) revokeMut.mutate(pendingRevokeId);
+      }}
+      secondaryLabel="Keep access"
+    />
+    </>
   );
 }

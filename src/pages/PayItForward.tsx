@@ -18,6 +18,7 @@ import { hapticSuccess, hapticMedium } from "@/lib/haptics";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -57,10 +58,10 @@ const MAX_NOTE_LENGTH = 140;
 // ─── Status pill ──────────────────────────────────────────────────────────────
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string; bg: string }> = {
-    available: { label: "Available", color: "hsl(155 50% 30%)", bg: "hsl(155 50% 35% / 0.12)" },
+    available: { label: "Available", color: "hsl(var(--pif-green))", bg: "hsl(var(--pif-tint) / 0.12)" },
     redeemed: { label: "Redeemed", color: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.10)" },
     reserved: { label: "Reserved", color: "hsl(var(--gold-warm))", bg: "hsl(var(--gold-warm) / 0.12)" },
-    expired: { label: "Expired", color: "hsl(var(--olivewood) / 0.6)", bg: "hsl(var(--olivewood) / 0.08)" },
+    expired: { label: "Expired", color: "hsl(var(--olivewood) / 0.8)", bg: "hsl(var(--olivewood) / 0.08)" },
   };
   const s = map[status] ?? map.available;
   return (
@@ -89,25 +90,25 @@ function CreditCard({
       className="rounded-ds-md p-4"
       style={{
         background:
-          "radial-gradient(circle at 15% 0%, hsla(0,0%,100%,0.55) 0%, transparent 55%), " +
-          "linear-gradient(180deg, hsl(155 50% 97%) 0%, hsl(155 40% 94%) 100%)",
-        border: "0.5px solid hsl(155 50% 35% / 0.22)",
+          "radial-gradient(circle at 15% 0%, var(--pif-sheen) 0%, transparent 55%), " +
+          "linear-gradient(180deg, hsl(var(--pif-card-from)) 0%, hsl(var(--pif-card-to)) 100%)",
+        border: "0.5px solid hsl(var(--pif-tint) / 0.22)",
         boxShadow:
           "inset 0 1px 1px 0 rgba(255,255,255,0.5), " +
-          "0 1px 3px hsl(155 50% 35% / 0.08)",
+          "0 1px 3px hsl(var(--pif-tint) / 0.08)",
       }}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
           <p
             className="font-display italic font-bold leading-tight"
-            style={{ fontSize: "1.35rem", color: "hsl(155 50% 28%)", letterSpacing: "-0.02em" }}
+            style={{ fontSize: "1.35rem", color: "hsl(var(--pif-ink))", letterSpacing: "-0.02em" }}
           >
             ${Number(credit.amount).toFixed(0)}
           </p>
           <p
             className="font-serif italic mt-0.5"
-            style={{ fontSize: "0.75rem", color: "hsl(155 40% 40%)" }}
+            style={{ fontSize: "0.75rem", color: "hsl(var(--pif-green-soft))" }}
           >
             from {donorFirst}
             {credit.parish ? ` · ${credit.parish}` : ""}
@@ -119,7 +120,7 @@ function CreditCard({
       {credit.category && credit.category !== "Any" && (
         <p
           className="font-sans text-ds-11 font-semibold uppercase mb-2"
-          style={{ color: "hsl(155 40% 40%)", letterSpacing: "0.06em" }}
+          style={{ color: "hsl(var(--pif-green-soft))", letterSpacing: "0.06em" }}
         >
           For: {credit.category}
         </p>
@@ -141,7 +142,7 @@ function CreditCard({
           onClick={() => onRedeem(credit.id)}
           className="w-full rounded-ds-sm font-display italic font-semibold text-ds-13"
           style={{
-            background: "hsl(155 50% 30%)",
+            background: "hsl(var(--pif-green))",
             color: "#fff",
             border: "none",
           }}
@@ -160,7 +161,7 @@ function EmptyState({ message }: { message: string }) {
       className="rounded-ds-md p-4 text-center"
       style={{ background: "hsl(var(--bark) / 0.04)", border: "0.5px dashed hsl(var(--bark) / 0.18)" }}
     >
-      <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+      <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         {message}
       </p>
     </div>
@@ -318,7 +319,6 @@ export default function PayItForward() {
       queryClient.invalidateQueries({ queryKey: ["pif-received", user?.id] });
       const credit = availableCredits.find((c) => c.id === creditId);
       const budget = credit?.amount ?? 0;
-      hapticMedium();
       toast.success("Credit redeemed!", {
         description: `$${budget.toFixed(0)} pre-filled as your job budget.`,
         icon: "🎉",
@@ -347,16 +347,16 @@ export default function PayItForward() {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Pay It Forward" onBack={() => navigate(-1)} />
+      <PageHeader title="Pay It Forward" onBack={() => navigate(-1)} showBrand rightSlot={<NotificationPanel />} />
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="flex items-center gap-3">
           <span
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: "hsl(155 50% 35% / 0.12)" }}
+            style={{ background: "hsl(var(--pif-tint) / 0.12)" }}
           >
-            <Heart className="w-5 h-5" style={{ color: "hsl(155 50% 30%)" }} />
+            <Heart className="w-5 h-5" style={{ color: "hsl(var(--pif-green))" }} />
           </span>
           <div>
             <h1
@@ -365,7 +365,7 @@ export default function PayItForward() {
             >
               Pay It Forward
             </h1>
-            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.70)" }}>
+            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Help a neighbor who needs it
             </p>
           </div>
@@ -375,15 +375,15 @@ export default function PayItForward() {
         <div
           className="rounded-ds-md p-4"
           style={{
-            background: "hsl(155 50% 35% / 0.06)",
-            border: "0.5px solid hsl(155 50% 35% / 0.18)",
+            background: "hsl(var(--pif-tint) / 0.06)",
+            border: "0.5px solid hsl(var(--pif-tint) / 0.18)",
           }}
         >
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(155 50% 30%)" }} />
+            <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--pif-green))" }} />
             <p
               className="font-display italic font-semibold text-ds-14"
-              style={{ color: "hsl(155 50% 28%)" }}
+              style={{ color: "hsl(var(--pif-ink))" }}
             >
               What is this?
             </p>
@@ -399,8 +399,8 @@ export default function PayItForward() {
           className="rounded-ds-md p-4 space-y-4"
           style={{
             background:
-              "radial-gradient(circle at 20% 0%, hsla(0,0%,100%,0.55) 0%, transparent 60%), " +
-              "linear-gradient(180deg, hsla(38,50%,96%,0.92) 0%, hsla(38,30%,92%,0.74) 100%)",
+              "radial-gradient(circle at 20% 0%, var(--pif-sheen) 0%, transparent 60%), " +
+              "linear-gradient(180deg, hsl(var(--pif-form-from) / 0.92) 0%, hsl(var(--pif-form-to) / 0.74) 100%)",
             border: "0.5px solid hsl(var(--bark) / 0.22)",
             boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.6)",
           }}
@@ -414,7 +414,7 @@ export default function PayItForward() {
 
           {/* Amount chips */}
           <div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Amount
             </p>
             <div className="flex gap-2 flex-wrap">
@@ -452,7 +452,7 @@ export default function PayItForward() {
 
           {/* Category */}
           <div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Category suggestion — optional
             </p>
             <div className="flex gap-1.5 flex-wrap">
@@ -475,7 +475,7 @@ export default function PayItForward() {
 
           {/* Parish */}
           <div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Parish
             </p>
             <select
@@ -500,10 +500,10 @@ export default function PayItForward() {
           {/* Personal note */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Personal note — optional
               </p>
-              <span className="font-sans tabular-nums text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.5)" }}>
+              <span className="font-sans tabular-nums text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {note.length}/{MAX_NOTE_LENGTH}
               </span>
             </div>
@@ -513,7 +513,7 @@ export default function PayItForward() {
               placeholder="Hoping this helps someone near me…"
               rows={2}
               maxLength={MAX_NOTE_LENGTH}
-              className="rounded-ds-sm bg-white/60 border-border/60 font-serif italic text-ds-13 leading-relaxed"
+              className="rounded-ds-sm bg-background/60 border-border/60 font-serif italic text-ds-13 leading-relaxed"
             />
           </div>
 
@@ -521,10 +521,10 @@ export default function PayItForward() {
           {showSuccess ? (
             <div
               className="flex items-center gap-2 py-3 px-4 rounded-ds-sm"
-              style={{ background: "hsl(155 50% 35% / 0.10)", border: "0.5px solid hsl(155 50% 35% / 0.22)" }}
+              style={{ background: "hsl(var(--pif-tint) / 0.10)", border: "0.5px solid hsl(var(--pif-tint) / 0.22)" }}
             >
-              <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: "hsl(155 50% 30%)" }} />
-              <p className="font-serif italic text-ds-13" style={{ color: "hsl(155 50% 28%)" }}>
+              <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--pif-green))" }} />
+              <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--pif-ink))" }}>
                 Credit donated — a neighbor will see it soon!
               </p>
             </div>
@@ -534,7 +534,7 @@ export default function PayItForward() {
               disabled={!canDonate || donateMutation.isPending}
               className="w-full rounded-ds-sm font-display italic font-semibold"
               style={{
-                background: canDonate ? "hsl(155 50% 30%)" : "hsl(var(--bark) / 0.15)",
+                background: canDonate ? "hsl(var(--pif-green))" : "hsl(var(--bark) / 0.15)",
                 color: canDonate ? "#fff" : "hsl(var(--bark) / 0.5)",
                 border: "none",
               }}

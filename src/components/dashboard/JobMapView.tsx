@@ -13,6 +13,7 @@ import { divIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { getCity } from "@/lib/locationUtils";
+import { formatCategory } from "@/lib/format";
 
 // ---------------------------------------------------------------------------
 // Category → raw HSL hex for SVG inline styles (categoryColors uses
@@ -201,10 +202,10 @@ export function JobMapView({ jobs, hoveredJobId, onJobClick }: JobMapViewProps) 
                 style={{ background: categoryColor(cat) }}
               />
               <span
-                className="font-sans capitalize"
+                className="font-sans"
                 style={{ fontSize: "0.68rem", color: "rgba(0,0,0,0.65)" }}
               >
-                {cat.replace(/_/g, " ")}
+                {formatCategory(cat)}
               </span>
             </div>
           ))}

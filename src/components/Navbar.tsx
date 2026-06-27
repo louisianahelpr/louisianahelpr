@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Sparkles, Briefcase, Building2, ArrowRight } from "lucide-react";
 import { useState, useEffect, forwardRef } from "react";
@@ -8,6 +8,7 @@ import HelprMark from "@/components/HelprMark";
 import { cn } from "@/lib/utils";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { isDesktopRailRoute, useIsWebDesktop } from "@/components/DesktopSidebarNav";
 
 const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -17,6 +18,16 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
   // page (/for-business, /legal, /) should see an "Open app" CTA instead of
   // the logged-out "Log in / Get started" pair.
   const { user } = useAuthReady();
+  // On the wide desktop *website*, a signed-in visitor already has the
+  // persistent left rail (DesktopSidebarNav) on app/marketing routes the rail
+  // covers (e.g. /jobs, /browse). Showing this top marketing nav too would
+  // stack two navs with a redundant "Open app" CTA — so step aside and let the
+  // rail be the sole chrome. Guests keep the marketing nav (the rail's
+  // destinations are all auth-gated), and the rail itself stays hidden on
+  // native + narrow viewports, so this only suppresses the genuine overlap.
+  const isWebDesktop = useIsWebDesktop();
+  const location = useLocation();
+  const railOwnsNav = isWebDesktop && !!user && isDesktopRailRoute(location.pathname);
   // This nav is `position: fixed; top: 0`, so the global OfflineBanner (also
   // fixed at top:0) would overlay it. The `#root` padding that reserves space
   // for the banner on document-scroll pages can't move a fixed element, so
@@ -32,6 +43,9 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  if (railOwnsNav) return null;
+
   return (
     <nav
       ref={ref}

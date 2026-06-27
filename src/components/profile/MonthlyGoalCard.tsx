@@ -146,7 +146,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
               setEditing(true);
             }}
             className="p-1 rounded-full"
-            style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             aria-label="Edit monthly goal"
           >
             <Pencil className="w-3.5 h-3.5" />

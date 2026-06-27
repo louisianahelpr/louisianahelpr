@@ -61,7 +61,7 @@ const DashboardStatusBanners = ({
             <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
               Verification in progress — browse and apply now.
             </p>
-            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Review usually finishes in 24–48 hours. You'll just need it cleared before you can accept a job. Tap to track status.
             </p>
           </button>
@@ -72,17 +72,18 @@ const DashboardStatusBanners = ({
           accepted or in-progress job. Keeps commitments front-of-mind
           without forcing a trip to Activity > My Jobs. */}
       {upcomingJob && (
-        // De-filled + SINGLE-LINE: a thin tinted/bordered row (the FAB is
-        // the screen's only primary fill). Label + title + date all sit on
-        // one line, so this is a slim reminder strip rather than a card —
-        // it must not steal vertical space from the feed below.
+        // SINGLE-LINE reminder, full column width so it shares the same
+        // left/right edges as the greeting + Browse cards bracketing it
+        // (the FAB is the screen's only primary fill). Label + title + date
+        // stay on one line — slim by height, but a properly-aligned box, not
+        // a narrower/fainter lesser-tier strip.
         <button
           type="button"
           onClick={onUpcomingClick}
-          className="mx-4 mb-3 w-[calc(100%-2rem)] rounded-2xl px-3 py-2 text-left flex items-center gap-2 transition-transform active:scale-[0.99]"
+          className="w-full rounded-2xl px-4 py-2.5 text-left flex items-center gap-2 transition-transform active:scale-[0.99]"
           style={{
-            background: "hsl(var(--bark) / 0.06)",
-            border: "1px solid hsl(var(--bark) / 0.18)",
+            background: "hsl(var(--bark) / 0.10)",
+            border: "1px solid hsl(var(--bark) / 0.28)",
           }}
         >
           <span
@@ -94,7 +95,7 @@ const DashboardStatusBanners = ({
           <span className="flex-1 min-w-0 truncate text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
             <span className="font-semibold">{upcomingJob.title}</span>
             {upcomingJob.date_needed && (
-              <span style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+              <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {" · "}
                 {new Date(upcomingJob.date_needed).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                 {upcomingJob.start_time ? ` ${upcomingJob.start_time.slice(0, 5)}` : ""}

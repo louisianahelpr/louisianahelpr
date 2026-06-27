@@ -52,7 +52,7 @@ const SectionCard = ({
         <div
           className="absolute inset-0 flex flex-col items-center justify-center"
           style={{
-            background: "hsla(var(--parchment) / 0.85)",
+            background: "hsl(var(--parchment) / 0.85)",
             backdropFilter: "blur(8px)",
             borderRadius: "inherit",
           }}
@@ -66,7 +66,7 @@ const SectionCard = ({
           </p>
           <p
             className="font-serif italic text-ds-12 mb-3 text-center max-w-[200px] mt-1"
-            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Upgrade to Helper Pro to unlock earnings insights
           </p>

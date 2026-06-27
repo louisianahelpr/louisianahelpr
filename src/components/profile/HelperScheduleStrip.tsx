@@ -211,7 +211,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
             </h3>
             <p
               className="font-serif italic mt-1"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Go browse — accepted jobs will land on this strip.
             </p>
@@ -296,7 +296,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                         fontSize: "0.6rem",
                         color: isToday
                           ? "hsl(var(--burnt-sienna))"
-                          : "hsl(var(--olivewood) / 0.7)",
+                          : "hsl(var(--olivewood) / 0.8)",
                         letterSpacing: "0.14em",
                       }}
                     >
@@ -353,7 +353,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                               </span>
                               <span
                                 className="block truncate font-serif italic"
-                                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                               >
                                 {time ?? "Anytime"}
                               </span>
@@ -423,7 +423,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                         className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-serif italic"
                         style={{
                           fontSize: "0.72rem",
-                          color: "hsl(var(--olivewood) / 0.7)",
+                          color: "hsl(var(--olivewood) / 0.8)",
                         }}
                       >
                         <span className="inline-flex items-center gap-1">

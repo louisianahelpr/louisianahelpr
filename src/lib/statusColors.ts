@@ -71,7 +71,7 @@ export const JOB_STATUS_COLORS: Record<JobStatus, StatusColor> = {
   // the difference between "agreed" and "done".
   completed:          { bg: "hsl(var(--bark) / 0.18)",      text: "hsl(var(--bark))" },
   // Muted, no judgment — terminal but quiet.
-  cancelled:          { bg: "hsl(var(--olivewood) / 0.10)", text: "hsl(var(--olivewood) / 0.7)" },
+  cancelled:          { bg: "hsl(var(--olivewood) / 0.10)", text: "hsl(var(--olivewood) / 0.8)" },
   // Gentle attention — the poster asked for a change.
   revision_requested: { bg: "hsl(var(--gold-warm) / 0.14)", text: "hsl(var(--gold-warm))" },
   // Serious but warm, NOT red-alarm — kept in the brand sienna family.
@@ -116,7 +116,7 @@ const STATUS_COLOR_CLASSES: Record<JobStatus, string> = {
   accepted:           "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]",
   in_progress:        "bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--burnt-sienna))]",
   completed:          "bg-[hsl(var(--bark)/0.18)] text-[hsl(var(--bark))]",
-  cancelled:          "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.7)]",
+  cancelled:          "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.8)]",
   revision_requested: "bg-[hsl(var(--gold-warm)/0.14)] text-[hsl(var(--gold-warm))]",
   disputed:           "bg-[hsl(var(--burnt-sienna)/0.18)] text-[hsl(var(--burnt-sienna))]",
 };

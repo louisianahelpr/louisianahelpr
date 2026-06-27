@@ -1,7 +1,30 @@
 import React from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { report } from "@/lib/errorLogger";
+import {
+  isChunkLoadError,
+  hardReloadBypassCache,
+  recoverFromChunkError,
+} from "@/lib/chunkReload";
+
+// Inline SVGs instead of lucide-react so this class component (which must be
+// statically imported) doesn't pull the entire lucide chunk onto the critical
+// initial load path. Paths are the canonical lucide v1.x TriangleAlert and
+// RefreshCw shapes.
+interface IconProps { className?: string; strokeWidth?: number }
+const AlertTriangle = ({ className, strokeWidth = 2 }: IconProps) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+    <path d="M12 9v4" /><path d="M12 17h.01" />
+  </svg>
+);
+const RefreshCw = ({ className, strokeWidth = 2 }: IconProps) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+    <path d="M8 16H3v5" />
+  </svg>
+);
 
 interface Props {
   children: React.ReactNode;
@@ -15,62 +38,6 @@ interface State {
   hasError: boolean;
   error: Error | null;
 }
-
-/**
- * Detect "stale chunk" errors caused by a deploy/HMR happening between
- * page load and the user clicking a lazy route. The fix is a hard reload
- * (with a one-shot guard so we never loop).
- */
-const isChunkLoadError = (err: unknown): boolean => {
-  const msg = err instanceof Error ? err.message : String(err ?? "");
-  return (
-    /Failed to fetch dynamically imported module/i.test(msg) ||
-    /Importing a module script failed/i.test(msg) ||
-    /ChunkLoadError/i.test(msg) ||
-    /Loading chunk \d+ failed/i.test(msg) ||
-    // Stale React module after HMR / deploy: the previous render's React
-    // dispatcher was unmounted while a lazy chunk finished loading, so any
-    // hook call (useContext, useState, etc.) sees a null dispatcher. A
-    // hard reload re-binds every module to the same React instance.
-    /dispatcher\.use[A-Z]\w*/i.test(msg) ||
-    /Cannot read propert(y|ies) of null \(reading 'use[A-Z]\w*'\)/i.test(msg) ||
-    /null is not an object \(evaluating '[\w.]*dispatcher/i.test(msg) ||
-    // Invalid hook call — same root cause (mismatched React instances).
-    /Invalid hook call/i.test(msg)
-  );
-};
-
-const RELOAD_FLAG = "helpr_chunk_reload_at";
-
-/**
- * Force-reload that purges any cached service-worker / Cache Storage entry
- * before navigating. Required when a chunk load error happens because the
- * SW is serving a stale module map; a plain `location.reload()` would just
- * hand back the same stale page.
- */
-const hardReloadBypassCache = async () => {
-  try {
-    if ("serviceWorker" in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister().catch(() => null)));
-    }
-  } catch {
-    /* swallow — proceed to caches + reload */
-  }
-  try {
-    if ("caches" in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k).catch(() => null)));
-    }
-  } catch {
-    /* swallow — proceed to reload */
-  }
-  // Add a cache-buster query param so the browser fetches fresh HTML
-  // instead of serving the cached response.
-  const url = new URL(window.location.href);
-  url.searchParams.set("_v", String(Date.now()));
-  window.location.replace(url.toString());
-};
 
 class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
@@ -93,14 +60,9 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
 
     // Auto-recover from stale chunk errors. Purge SW + caches first so
-    // the reload actually picks up the new bundle.
+    // the reload actually picks up the new bundle (one-shot 10s guard).
     if (isChunkLoadError(error)) {
-      const last = Number(sessionStorage.getItem(RELOAD_FLAG) || "0");
-      // Only reload if we haven't already tried in the last 10s.
-      if (Date.now() - last > 10_000) {
-        sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
-        void hardReloadBypassCache();
-      }
+      recoverFromChunkError();
     }
   }
 

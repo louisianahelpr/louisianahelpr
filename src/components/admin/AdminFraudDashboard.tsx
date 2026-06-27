@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
+import { formatCategory } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -133,7 +134,7 @@ const AdminFraudDashboard = () => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-ds-13 text-foreground">{flag.user_name}</span>
                   <Badge className={flagColor[flag.flag_type] || "bg-muted text-muted-foreground"}>
-                    {flag.flag_type.replace(/_/g, " ")}
+                    {formatCategory(flag.flag_type)}
                   </Badge>
                 </div>
                 {flag.details && (

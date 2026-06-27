@@ -89,5 +89,8 @@ function notifyAdminsOfEmailFailure(targetUserId: string, emailTitle: string, er
           report(err, { severity: "warning", tags: { source: "notifyAdminsOfEmailFailure" } });
         });
       }
+    })
+    .catch((err) => {
+      report(err, { severity: "warning", tags: { source: "notifyAdminsOfEmailFailure.query" } });
     });
 }

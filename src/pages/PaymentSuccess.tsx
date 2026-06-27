@@ -176,10 +176,10 @@ const PaymentSuccess = () => {
                 <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                   ${formatPrice(escrowAmount)}
                 </span>{" "}
-                is held safely in escrow.
+                is held securely — released when you confirm the work is done.
               </>
             ) : (
-              <>Held safely in escrow.</>
+              <>Held securely until you confirm the work is done.</>
             )}
           </p>
         </div>

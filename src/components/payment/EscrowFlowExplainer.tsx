@@ -51,9 +51,9 @@ export function EscrowFlowExplainer() {
         {[
           {
             icon: Lock,
-            label: "Held safely in escrow",
+            label: "Held securely until you approve",
             body:
-              "When you pay, Stripe holds the full amount in a protected escrow account — your helpr can't withdraw it yet.",
+              "When you pay, Stripe holds the full amount in a protected account — your helpr can't withdraw it yet.",
           },
           {
             icon: CheckCircle2,

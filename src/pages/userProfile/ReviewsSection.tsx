@@ -22,6 +22,7 @@ type Props = {
   onStartResponding: (reviewId: string, initial: string) => void;
   onCancelResponding: () => void;
   onSaveResponse: (reviewId: string) => void;
+  savingResponse: boolean;
   reviewsHasMore: boolean;
   loadMoreReviews: () => void;
   loadingMoreReviews: boolean;
@@ -44,6 +45,7 @@ export const ReviewsSection = ({
   onStartResponding,
   onCancelResponding,
   onSaveResponse,
+  savingResponse,
   reviewsHasMore,
   loadMoreReviews,
   loadingMoreReviews,
@@ -265,10 +267,11 @@ export const ReviewsSection = ({
                     <button
                       type="button"
                       onClick={() => onSaveResponse(r.id)}
-                      className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold text-white"
+                      disabled={savingResponse}
+                      className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold text-white disabled:opacity-50"
                       style={{ backgroundColor: "hsl(var(--burnt-sienna))" }}
                     >
-                      Save
+                      {savingResponse ? "Saving…" : "Save"}
                     </button>
                     <button
                       type="button"

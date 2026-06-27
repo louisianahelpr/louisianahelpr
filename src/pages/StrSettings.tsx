@@ -128,9 +128,10 @@ interface ConnectionCardProps {
   onSync: (id: string) => void;
   onRemove: (id: string) => void;
   syncing: boolean;
+  removing: boolean;
 }
 
-function ConnectionCard({ conn, onSync, onRemove, syncing }: ConnectionCardProps) {
+function ConnectionCard({ conn, onSync, onRemove, syncing, removing }: ConnectionCardProps) {
   const hasError = !!conn.last_sync_error;
   const statusColor = hasError ? "hsl(var(--burnt-sienna))" : "hsl(var(--sage))";
   const StatusIcon = hasError ? AlertCircle : CheckCircle;
@@ -223,8 +224,10 @@ function ConnectionCard({ conn, onSync, onRemove, syncing }: ConnectionCardProps
           {syncing ? "Syncing…" : "Sync now"}
         </Button>
         <button
+          type="button"
           aria-label="Remove calendar connection"
-          className="flex items-center justify-center rounded-ds-md"
+          disabled={removing}
+          className="flex items-center justify-center rounded-ds-md disabled:opacity-50"
           style={{
             width: 40, height: 36,
             background: "hsl(var(--burnt-sienna) / 0.08)",
@@ -233,7 +236,11 @@ function ConnectionCard({ conn, onSync, onRemove, syncing }: ConnectionCardProps
           }}
           onClick={() => onRemove(conn.id)}
         >
-          <Trash2 className="w-4 h-4" />
+          {removing ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Trash2 className="w-4 h-4" />
+          )}
         </button>
       </div>
     </div>
@@ -433,6 +440,7 @@ export default function StrSettings() {
   usePageTitle("Host Automation — Helpr");
   const [addOpen, setAddOpen] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
 
@@ -555,10 +563,14 @@ export default function StrSettings() {
       if (error) throw error;
     },
     onSuccess: () => {
+      setRemovingId(null);
       toast.success("Calendar removed");
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },
-    onError: () => toast.error("Failed to remove calendar"),
+    onError: () => {
+      setRemovingId(null);
+      toast.error("Couldn't remove that calendar — try again?");
+    },
   });
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -633,8 +645,9 @@ export default function StrSettings() {
                 key={conn.id}
                 conn={conn}
                 onSync={handleSync}
-                onRemove={(id) => removeConnection(id)}
+                onRemove={(id) => { setRemovingId(id); removeConnection(id); }}
                 syncing={syncingId === conn.id}
+                removing={removingId === conn.id}
               />
             ))}
           </div>

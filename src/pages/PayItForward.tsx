@@ -319,7 +319,6 @@ export default function PayItForward() {
       queryClient.invalidateQueries({ queryKey: ["pif-received", user?.id] });
       const credit = availableCredits.find((c) => c.id === creditId);
       const budget = credit?.amount ?? 0;
-      hapticMedium();
       toast.success("Credit redeemed!", {
         description: `$${budget.toFixed(0)} pre-filled as your job budget.`,
         icon: "🎉",

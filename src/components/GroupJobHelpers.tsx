@@ -4,6 +4,7 @@ import { formatName } from "@/lib/utils";
 import { Users, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { applicationStatusLabel } from "@/lib/statusLabels";
+import { report } from "@/lib/errorLogger";
 
 type GroupHelper = {
   id: string;
@@ -60,6 +61,7 @@ export function GroupJobHelpers({
       .eq("job_id", jobId);
     if (error) {
       console.error("[GroupJobHelpers] failed to load group helpers:", error);
+      report(error, { severity: "warning", tags: { source: "GroupJobHelpers.load" } });
       toast.error("Couldn't load group helprs");
       return;
     }
@@ -72,6 +74,7 @@ export function GroupJobHelpers({
         .in("user_id", helperIds);
       if (profilesError) {
         console.error("[GroupJobHelpers] failed to load helper profiles:", profilesError);
+        report(profilesError, { severity: "warning", tags: { source: "GroupJobHelpers.profiles" } });
       }
       const nameMap = new Map(profiles?.map((p) => [p.user_id, formatName(p.full_name, "Helpr")]) || []);
       setHelpers(
@@ -102,6 +105,7 @@ export function GroupJobHelpers({
 
     if (error) {
       console.error("[GroupJobHelpers] failed to remove helper:", error);
+      report(error, { tags: { source: "GroupJobHelpers.remove" } });
       toast.error("Couldn't remove helpr");
       // Revert: re-add the removed helper, or reload if we lost the snapshot.
       if (removed) {

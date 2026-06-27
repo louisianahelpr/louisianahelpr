@@ -393,6 +393,7 @@ const Messages = () => {
     // "Say hello." empty state, which would wrongly imply 0 messages.
     if (error) {
       console.error("[Messages] openConvo failed:", error);
+      report(error, { tags: { source: "Messages.openConvo" } });
       setChatLoadError(true);
       return;
     }
@@ -426,6 +427,7 @@ const Messages = () => {
             if (markError) {
               // Revert the optimistic read flags so the badge re-appears.
               console.error("[Messages] mark-as-read failed:", markError);
+              report(markError, { severity: "warning", tags: { source: "Messages.markRead" } });
               const unreadSet = new Set(unreadIds);
               setMessages((prev) =>
                 prev.map((m) => (unreadSet.has(m.id) ? { ...m, read: false } : m)),
@@ -459,6 +461,7 @@ const Messages = () => {
 
     if (error) {
       console.error("[Messages] refreshActiveThread failed:", error);
+      report(error, { severity: "warning", tags: { source: "Messages.refreshThread" } });
       toast.error("Couldn't refresh this conversation.");
       return;
     }
@@ -497,6 +500,7 @@ const Messages = () => {
     // leave the "Load earlier" affordance so the user can retry.
     if (error) {
       console.error("[Messages] loadOlderMessages failed:", error);
+      report(error, { severity: "warning", tags: { source: "Messages.loadOlder" } });
       toast.error("Couldn't load earlier messages. Tap to try again.");
       setLoadingMore(false);
       return;

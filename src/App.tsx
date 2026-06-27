@@ -13,7 +13,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
-import PageTransition from "@/components/PageTransition";
 import OfflineBanner from "@/components/OfflineBanner";
 import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
@@ -22,7 +21,6 @@ import { useNativePushSetup } from "@/lib/nativePush";
 import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
-import ScrollToTop from "@/components/ScrollToTop";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
@@ -45,6 +43,11 @@ const Sonner = lazy(() =>
 // critical-path reason as the toasters above — framer-motion isn't on
 // the landing-page hot path.
 const SuccessMomentHost = lazy(() => import("@/components/feedback/SuccessMomentHost"));
+// PageTransition and ScrollToTop both import framer-motion. Lazy-loading
+// them breaks the static App.tsx → framer-motion import chain so the
+// "motion" chunk stays off the synchronous critical path.
+const PageTransition = lazy(() => import("@/components/PageTransition"));
+const ScrollToTop = lazy(() => import("@/components/ScrollToTop"));
 const MobileNav = lazy(() => import("./components/MobileNav"));
 const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const PermissionRationaleDialog = lazy(() =>
@@ -424,7 +427,7 @@ const App = () => (
             the page content (AppShell reads the offset to reserve space).
             See src/lib/offlineBannerLayout.tsx. */}
         <OfflineBannerLayoutProvider>
-          <ScrollToTop />
+          <Suspense fallback={null}><ScrollToTop /></Suspense>
           <SessionManager />
           <NativeLaunchRouter />
           <OfflineBanner />

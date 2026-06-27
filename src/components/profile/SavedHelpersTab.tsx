@@ -450,7 +450,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 onClick={() => navigate("/post-job")}
                 className="text-ds-13"
               >
-                Post a job instead
+                Post a task instead
               </Button>
             }
           />
@@ -467,13 +467,13 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
             title={helpers.length === 0 ? "No saved helprs yet." : "Nothing matches that search."}
             body={
               helpers.length === 0
-                ? "After your next job, tap the heart on the helpr's profile — they'll land here for one-tap rebooking."
+                ? "After your next task, tap the heart on the helpr's profile — they'll land here for one-tap rebooking."
                 : "Try a different search term — your saved list is intact."
             }
             action={
               helpers.length === 0 ? (
                 <BarkPillButton onClick={() => navigate("/post-job")}>
-                  Post a job
+                  Post a task
                 </BarkPillButton>
               ) : (
                 <BarkPillButton onClick={() => setSearch("")}>

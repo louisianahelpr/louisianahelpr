@@ -241,10 +241,10 @@ const Footer = () => (
 
       {/* Bottom: copyright */}
       <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 border-t border-[hsl(var(--olivewood))]/15">
-        <p className="text-ds-11 text-[hsl(var(--olivewood))]/70">
+        <p className="text-ds-11 text-[hsl(var(--olivewood))]/80">
           © {new Date().getFullYear()} Helpr LLC. All rights reserved. · Louisiana, USA
         </p>
-        <p className="text-ds-11 text-[hsl(var(--olivewood))]/70 flex items-center gap-1.5">
+        <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 flex items-center gap-1.5">
           Made with{" "}
           <Heart
             className="w-3 h-3"

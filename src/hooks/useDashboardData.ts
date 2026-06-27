@@ -12,6 +12,7 @@ import { report } from "@/lib/errorLogger";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
 // initial paint stays cheap as the marketplace grows; later pages are fetched
@@ -185,9 +186,10 @@ export function useDashboardData() {
       // — so a typical browsing helper saw only jobs they posted themselves
       // or were directly offered. Effectively empty, more confusing than the
       // honest ErrorState.)
-      // Early access: Pro/Elite helpers see jobs immediately; free-tier helpers
-      // are excluded from jobs posted in the last 10 minutes. This creates a
-      // 10-minute head start for paid subscribers.
+      // Early access: subscription tiers shave time off a 20-minute delay on
+      // brand-new jobs (free=20, Basic=15, Pro=10, Elite=0). Subscribers get a
+      // head start; the exact delay comes from earlyAccessDelayMs so this
+      // server cutoff and the client gate in useDashboardFilters stay in sync.
       //
       // profile is read from the outer useDashboardData scope (always
       // current-user's profile). Default to free-tier when profile is
@@ -197,12 +199,15 @@ export function useDashboardData() {
       const currentSubActive = currentSubExpiresAt
         ? new Date(currentSubExpiresAt) > new Date()
         : false;
-      const isEarlyAccessUser =
-        currentSubActive &&
-        (currentSubTier === "pro" || currentSubTier === "elite");
-      // For free-tier: only show jobs posted more than 10 minutes ago
-      // (created_at older than 10 min ago). For Pro/Elite: no cutoff.
-      const freeTierCutoff = new Date(Date.now() - 10 * 60_000).toISOString();
+      // Graduated early-access cutoff — same formula the client gate in
+      // useDashboardFilters uses, so the two layers never disagree. An
+      // inactive/absent subscription falls through to the free (20-min)
+      // delay; Elite resolves to a 0ms delay (cutoff === now), which passes
+      // every already-created job and is equivalent to "no filter".
+      const effectiveTier = currentSubActive ? currentSubTier : null;
+      const earlyAccessCutoff = new Date(
+        Date.now() - earlyAccessDelayMs(effectiveTier),
+      ).toISOString();
 
       let rawJobsRes: any[];
       try {
@@ -219,11 +224,10 @@ export function useDashboardData() {
           )
           .neq("payment_status", "abandoned");
 
-        // Free-tier helpers cannot see jobs < 10 min old.
-        // Pro/Elite skip this filter so they see all open jobs immediately.
-        const filteredQuery = isEarlyAccessUser
-          ? baseQuery
-          : baseQuery.lte("created_at", freeTierCutoff);
+        // Graduated early-access gate: each tier shaves time off the 20-min
+        // free delay (Elite = 0). Elite's cutoff === now passes all open
+        // jobs immediately; lower tiers exclude the most-recent window.
+        const filteredQuery = baseQuery.lte("created_at", earlyAccessCutoff);
 
         rawJobsRes = unwrap(await withTimeout(filteredQuery
           .order("boosted_at", { ascending: false, nullsFirst: false })

@@ -299,6 +299,11 @@ function RecenterControl({ center, zoom }: { center: [number, number]; zoom: num
 
 export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta }: BrowseMapProps) {
   const [jobs, setJobs] = useState<MapJob[]>([]);
+  // Total open jobs in the feed, including ones the map can't plot because
+  // they lack geocoded coordinates. Lets the badge read "N of M" so a user
+  // who sees 21 in the feed but 19 pins understands the 2 missing jobs are
+  // un-mappable, not lost.
+  const [totalOpen, setTotalOpen] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   // Initialize from localStorage so the user's last choice survives
   // app restarts (and Capacitor cold starts).
@@ -322,6 +327,17 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
 
   useEffect(() => {
     let cancelled = false;
+    // Total open jobs (same surface the feed counts) — the denominator for
+    // the "N of M" badge. Best-effort: a failure just leaves the badge as a
+    // plain pin count rather than bricking the map.
+    supabase
+      .from("open_jobs_browse")
+      .select("id", { count: "exact", head: true })
+      .neq("payment_status", "abandoned")
+      .then(({ count, error }) => {
+        if (cancelled || error) return;
+        setTotalOpen(count ?? null);
+      });
     supabase
       .rpc("get_open_jobs_for_map")
       .then(({ data, error }) => {
@@ -415,7 +431,9 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
             WebkitBackdropFilter: "blur(8px)",
           }}
         >
-          {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
+          {totalOpen !== null && totalOpen > jobs.length
+            ? `${jobs.length} of ${totalOpen} mapped`
+            : `${jobs.length} ${jobs.length === 1 ? "job" : "jobs"}`}
         </div>
         <div
           role="group"

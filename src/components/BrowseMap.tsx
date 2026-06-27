@@ -21,7 +21,6 @@ import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Crosshair, BellRing, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { formatPrice } from "@/lib/format";
 import "leaflet/dist/leaflet.css";
 
 // Above this many open jobs, default to Heat view so the user sees

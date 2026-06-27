@@ -78,6 +78,7 @@ export function DeleteAccountDialog({
         </AlertDialogHeader>
         <Input
           autoFocus
+          aria-label={`Type ${CONFIRM_PHRASE} to confirm account deletion`}
           value={deleteConfirmText}
           onChange={(e) => setDeleteConfirmText(e.target.value)}
           placeholder={CONFIRM_PHRASE}

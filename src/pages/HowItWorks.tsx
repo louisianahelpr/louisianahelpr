@@ -33,7 +33,7 @@ const POSTER_STEPS = [
   {
     icon: Lock,
     title: "Choose and pay securely",
-    body: "Pick your Helpr. Payment is held in Helpr Escrow until you confirm the work is done — never released early.",
+    body: "Pick your Helpr. Payment is held securely until you confirm the work is done — never released early.",
   },
   {
     icon: Star,
@@ -68,7 +68,7 @@ const HELPER_STEPS = [
 const TRUST_ITEMS = [
   {
     icon: Lock,
-    label: "Helpr Escrow",
+    label: "Protected payment",
     body: "Payment always protected. Funds release only after the poster confirms the work is done.",
   },
   {

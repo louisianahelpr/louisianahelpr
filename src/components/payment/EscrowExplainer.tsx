@@ -75,7 +75,7 @@ export function EscrowExplainer({
         }}
       >
         <Lock className="w-3 h-3" strokeWidth={2.25} aria-hidden />
-        Held in escrow until complete
+        Held securely until complete
       </span>
 
       <Popover open={open} onOpenChange={setOpen}>
@@ -110,8 +110,8 @@ export function EscrowExplainer({
               className="text-ds-11 leading-snug"
               style={{ color: "hsl(var(--bark))" }}
             >
-              Your payment is held safely in escrow until the job is
-              verified complete — then it&apos;s released to your helpr.
+              Your payment is held securely until the job is verified
+              complete — then it&apos;s released to your helpr.
               You&apos;re never charged for unfinished work.
             </p>
           </div>

@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 const TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes of inactivity
 
@@ -14,6 +13,7 @@ export const useSessionTimeout = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           await supabase.auth.signOut();
+          const { toast } = await import("sonner");
           toast.info("You've been logged out due to inactivity");
           window.location.href = "/login";
         }

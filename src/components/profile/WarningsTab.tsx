@@ -1,6 +1,5 @@
 import { AlertTriangle, Shield, CheckCircle2 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatJobDate } from "@/lib/format";
 
@@ -90,7 +89,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <h2 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: palette.title, letterSpacing: "-0.02em" }}>
                     {title}
                   </h2>
-                  <p className="font-serif italic max-w-sm mx-auto" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                  <p className="font-serif italic max-w-sm mx-auto" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                     {body}
                   </p>
                 </div>
@@ -105,21 +104,17 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
             return renderHero(CheckCircle2, "primary", "Status", "Good standing", "No warnings or violations on record. Keep it up.");
           })()}
 
-          {/* Violation history */}
-          <div className="space-y-2 pt-2">
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-              History
-            </p>
-            {violations.length === 0 ? (
-              <EmptyState
-                variant="inline"
-                icon={CheckCircle2}
-                eyebrow="All clear"
-                title="No warnings — keep it up."
-                body="Your record is spotless. Treat helprs and posters with respect and it stays that way."
-              />
-            ) : (
-              violations.map((v) => (
+          {/* Violation history — only when there's actual history. With
+              zero violations the "Good standing" status hero above already
+              renders the same CheckCircle2 "no warnings, keep it up"
+              message, so a second all-clear EmptyState here was a duplicate
+              card; we skip the whole History block in that case. */}
+          {violations.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                History
+              </p>
+              {violations.map((v) => (
                 <div key={v.id} className="rounded-ds-md liquid-glass p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
@@ -134,7 +129,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                         {v.violation_type.replace(/_/g, " ")}
                       </span>
                     </div>
-                    <span className="font-serif italic whitespace-nowrap shrink-0" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                    <span className="font-serif italic whitespace-nowrap shrink-0" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                       {v.created_at ? formatJobDate(v.created_at) : "—"}
                     </span>
                   </div>
@@ -144,9 +139,9 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                     </p>
                   )}
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>

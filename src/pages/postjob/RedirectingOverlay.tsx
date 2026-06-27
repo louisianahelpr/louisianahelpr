@@ -9,7 +9,7 @@ export function RedirectingOverlay() {
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4"
-      style={{ background: "hsla(38, 18%, 97%, 0.94)", backdropFilter: "blur(6px)" }}
+      style={{ background: "hsl(var(--surface-band) / 0.94)", backdropFilter: "blur(6px)" }}
       aria-live="assertive"
       aria-label="Redirecting to secure checkout"
     >

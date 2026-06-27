@@ -82,3 +82,8 @@ src/test/edge/*.gen.ts
 # globally-ignored on the maintainer's machine; pinning it here makes the
 # ignore portable so a fresh checkout doesn't accidentally track scratch.
 .remember/
+
+# Prod-targeted seed scripts that embed the prod project ID and a plaintext
+# test-account password. Kept local-only — sibling fixtures like
+# scripts/seed-cowork-test-jobs.sql that are safe-for-history stay tracked.
+scripts/seed_test_data.sql

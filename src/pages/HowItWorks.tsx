@@ -33,7 +33,7 @@ const POSTER_STEPS = [
   {
     icon: Lock,
     title: "Choose and pay securely",
-    body: "Pick your Helpr. Payment is held in Helpr Escrow until you confirm the work is done — never released early.",
+    body: "Pick your Helpr. Payment is held securely until you confirm the work is done — never released early.",
   },
   {
     icon: Star,
@@ -68,7 +68,7 @@ const HELPER_STEPS = [
 const TRUST_ITEMS = [
   {
     icon: Lock,
-    label: "Helpr Escrow",
+    label: "Protected payment",
     body: "Payment always protected. Funds release only after the poster confirms the work is done.",
   },
   {
@@ -392,20 +392,17 @@ const HowItWorks = () => {
           </h2>
           <p
             className="font-serif italic text-ds-15 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Join thousands of Louisiana neighbors already on the platform.
+            Join your Louisiana neighbors on the platform.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button
               onClick={() => navigate("/post-job")}
               size="lg"
+              variant="bark"
               className="rounded-full px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
-              style={{
-                background: "hsl(var(--burnt-sienna))",
-                color: "hsl(var(--parchment))",
-              }}
             >
               Post a job
               <ArrowRight className="w-4 h-4" strokeWidth={2} />

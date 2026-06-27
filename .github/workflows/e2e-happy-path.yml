@@ -74,7 +74,7 @@ jobs:
 
       - name: Install dependencies
         if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
-        # See test.yml — Lovable can drift the lockfile, so use `install` not `ci`.
+        # See test.yml — use `install` not `ci` to tolerate lockfile drift.
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Install Playwright Chromium browser

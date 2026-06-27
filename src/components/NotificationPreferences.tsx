@@ -262,7 +262,7 @@ const NotificationPreferences = () => {
         {saving && (
           <Loader2
             className="w-3.5 h-3.5 animate-spin absolute left-1/2 -translate-x-1/2 top-1.5 z-10"
-            style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             aria-label="Saving"
           />
         )}
@@ -280,7 +280,7 @@ const NotificationPreferences = () => {
             >
               Push Notifications
             </Label>
-            <p className="font-serif italic text-[0.7rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic text-[0.7rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Master switch for everything below
             </p>
           </div>
@@ -361,7 +361,7 @@ const NotificationPreferences = () => {
             >
               Daily match digest
             </Label>
-            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Batch non-urgent matches into one push per day. Urgent jobs still fire instantly.
             </p>
           </div>
@@ -417,7 +417,7 @@ const NotificationPreferences = () => {
               >
                 Quiet hours
               </Label>
-              <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 Mute non-critical pushes overnight. Security alerts still fire.
               </p>
             </div>
@@ -506,7 +506,7 @@ const NotificationPreferences = () => {
             >
               Send a test
             </Label>
-            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               {pushTokenCount === 0
                 ? "No devices registered yet — open the app on your phone first."
                 : `Push to ${pushTokenCount} registered device${pushTokenCount === 1 ? "" : "s"}.`}

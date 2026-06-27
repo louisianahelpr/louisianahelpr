@@ -48,7 +48,7 @@ jobs:
         uses: treosh/lighthouse-ci-action@v12
         # Advisory only — never blocks a PR. Two failure modes hit us:
         # 1. Assertion failures (handled by `warn` levels in .lighthouserc.json)
-        # 2. Collector runtime errors like NO_FCP when Lovable's preview is
+        # 2. Collector runtime errors like NO_FCP when the site is
         #    sleeping/slow — happens independently of the PR's diff.
         # Reports still upload via temporaryPublicStorage for trend review.
         continue-on-error: true
@@ -58,10 +58,10 @@ jobs:
           # the Lighthouse-CI complexity. Landing + browse + signup cover
           # the highest-traffic first-paint surfaces.
           urls: |
-            https://louisianahelpr.lovable.app
-            https://louisianahelpr.lovable.app/browse
-            https://louisianahelpr.lovable.app/login
-            https://louisianahelpr.lovable.app/signup
+            https://www.louisianahelpr.com
+            https://www.louisianahelpr.com/browse
+            https://www.louisianahelpr.com/login
+            https://www.louisianahelpr.com/signup
           # Mobile emulation by default. Soft-fail on perf so flaky LH runs
           # don't block PRs, but reports are uploaded for review.
           uploadArtifacts: true

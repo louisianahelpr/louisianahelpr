@@ -71,6 +71,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
     const { error: updateError } = await supabase.from("jobs").update(updateField).eq("id", jobId);
     if (updateError) {
       console.error("[PhotoProof] failed to save photo URLs:", updateError);
+      report(updateError, { tags: { source: "PhotoProof.save" } });
       toast.error("Photos uploaded but couldn't be saved to the job. Please try again.");
       setUploading(false);
       return;
@@ -103,14 +104,14 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
               <Camera className="w-3 h-3" /> Proof of work
             </span>
             <DialogTitle
-              className="font-display italic font-bold leading-tight mt-1"
+              className="font-display italic font-bold leading-tight mt-2"
               style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
             >
               {type === "before" ? "Before" : "After"} photos
             </DialogTitle>
             <p
               className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {type === "before"
                 ? "Snap a few shots before you start so everyone has a baseline."
@@ -158,7 +159,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                     <img loading="lazy" decoding="async" src={src} alt={`Photo ${i + 1} preview`} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
-                      <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+                      <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                     </div>
                   )}
                   <button

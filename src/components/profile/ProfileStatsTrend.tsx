@@ -178,7 +178,7 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
                           color: "hsl(var(--parchment))",
                           boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
                         }
-                      : { color: "hsl(var(--olivewood) / 0.7)" }
+                      : { color: "hsl(var(--olivewood) / 0.8)" }
                   }
                   aria-pressed={active}
                   aria-label={`Show last ${WINDOW_LABEL[w]}`}
@@ -203,13 +203,13 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
             ) : data.every((d) => d.jobs === 0 && d.earned === 0) ? (
               <p
                 className="font-serif italic text-center py-6"
-                style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 No completed jobs in the last {WINDOW_LABEL[win]}.
               </p>
             ) : (
               <div className="h-[120px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minHeight={120}>
                   <AreaChart data={data} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
                     <defs>
                       <linearGradient id="profileStatsFill" x1="0" y1="0" x2="0" y2="1">
@@ -217,16 +217,16 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
                         <stop offset="100%" stopColor="hsl(20, 60%, 50%)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="hsl(70, 22%, 24%)" strokeOpacity={0.06} vertical={false} />
+                    <CartesianGrid stroke="hsl(var(--olivewood))" strokeOpacity={0.06} vertical={false} />
                     <XAxis
                       dataKey="label"
-                      tick={{ fontSize: 9, fill: "hsl(70, 22%, 24%)" }}
+                      tick={{ fontSize: 9, fill: "hsl(var(--olivewood))" }}
                       axisLine={false}
                       tickLine={false}
                       interval="preserveStartEnd"
                     />
                     <YAxis
-                      tick={{ fontSize: 9, fill: "hsl(70, 22%, 24%)" }}
+                      tick={{ fontSize: 9, fill: "hsl(var(--olivewood))" }}
                       axisLine={false}
                       tickLine={false}
                       width={32}
@@ -239,7 +239,7 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
                           : [String(value), "Jobs"]
                       }
                       contentStyle={{
-                        background: "hsla(0, 0%, 100%, 0.95)",
+                        background: "hsl(var(--ivory-sand) / 0.95)",
                         border: "0.5px solid hsl(var(--olivewood) / 0.18)",
                         borderRadius: 8,
                         fontSize: "0.72rem",

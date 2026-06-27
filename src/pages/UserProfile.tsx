@@ -90,6 +90,7 @@ const UserProfile = () => {
   // Response-to-review state: which review is being responded to, and the draft text.
   const [respondingToReview, setRespondingToReview] = useState<string | null>(null);
   const [responseText, setResponseText] = useState("");
+  const [savingResponse, setSavingResponse] = useState(false);
   // Local reviews state for optimistic updates after saving a response.
   const [localReviews, setLocalReviews] = useState<any[] | null>(null);
 
@@ -268,7 +269,12 @@ const UserProfile = () => {
       // record_profile_view (returns false on any error). Self-view guard is
       // enforced in the SQL function; double-guard here to avoid the RPC call.
       if (userId !== currentUserId) {
-        void (supabase.rpc as any)("record_profile_view", { p_viewed_user_id: userId }).catch(() => {/* silent */});
+        // `supabase.rpc(...)` returns a Postgrest builder — a thenable, NOT a
+        // real Promise, so it has no `.catch`. Calling `.catch` on it throws
+        // synchronously and rejects the whole queryFn (bricking every other
+        // user's profile with "couldn't load this"). Wrap in Promise.resolve
+        // to get a real Promise before swallowing.
+        void Promise.resolve((supabase.rpc as any)("record_profile_view", { p_viewed_user_id: userId })).catch(() => {/* silent */});
       }
 
       const postedJobs = postedRes.data || [];
@@ -596,6 +602,11 @@ const UserProfile = () => {
   }, [reviews.length, userId, loadingMoreReviews, reviewsFromQuery]);
   const postedJobs = (data?.postedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
   const workedJobs = (data?.workedJobs ?? []) as Array<{ id: string; title: string; status: string; category: string; budget: number; created_at: string; latitude: number | null; longitude: number | null }>;
+  // The "Completed" stat tile is a trust signal — it must count only jobs
+  // actually finished as a helper, not every job taken. workedJobs includes
+  // In Progress / Accepted rows, so filter to completed before counting or
+  // listing under that label.
+  const completedWorkedJobs = workedJobs.filter((j) => j.status === "completed");
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
   const cancellationRate = data?.cancellationRate ?? { total: 0, cancelled: 0, rate: null as number | null };
   const mutualJobsCount = data?.mutualJobsCount ?? 0;
@@ -652,6 +663,7 @@ const UserProfile = () => {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <PageHeader
+          showBrand
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -683,6 +695,7 @@ const UserProfile = () => {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <PageHeader
+          showBrand
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -701,6 +714,7 @@ const UserProfile = () => {
     return (
       <div className="min-h-screen bg-premium-page pb-safe-nav">
         <PageHeader
+          showBrand
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -748,6 +762,7 @@ const UserProfile = () => {
   // Save or update the reviewee's public response to a review they received.
   const handleSaveResponse = async (reviewId: string) => {
     if (!responseText.trim()) return;
+    setSavingResponse(true);
     try {
       const { error } = await (supabase.rpc as any)("respond_to_review", {
         _review_id: reviewId,
@@ -774,12 +789,15 @@ const UserProfile = () => {
       toast.success("Response saved.");
     } catch {
       toast.error("Couldn't save your response — try again?");
+    } finally {
+      setSavingResponse(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
+        showBrand
         eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
         title={isOwnProfile ? "Profile Review" : "Profile"}
         meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -872,7 +890,7 @@ const UserProfile = () => {
           <ProfileStatsGrid
             stats={stats}
             postedJobsCount={postedJobs.length}
-            workedJobsCount={workedJobs.length}
+            workedJobsCount={completedWorkedJobs.length}
             isOwnProfile={isOwnProfile}
             showReviews={showReviews}
             showPostedJobs={showPostedJobs}
@@ -979,6 +997,7 @@ const UserProfile = () => {
               }}
               onCancelResponding={() => setRespondingToReview(null)}
               onSaveResponse={handleSaveResponse}
+              savingResponse={savingResponse}
               reviewsHasMore={reviewsHasMore}
               loadMoreReviews={loadMoreReviews}
               loadingMoreReviews={loadingMoreReviews}
@@ -989,7 +1008,7 @@ const UserProfile = () => {
           {showPostedJobs && <JobsList jobs={postedJobs} variant="posted" />}
 
           {/* Worked Jobs expanded inline */}
-          {showWorkedJobs && <JobsList jobs={workedJobs} variant="worked" />}
+          {showWorkedJobs && <JobsList jobs={completedWorkedJobs} variant="worked" />}
 
           {profile.hourly_rate && (
             <div className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">

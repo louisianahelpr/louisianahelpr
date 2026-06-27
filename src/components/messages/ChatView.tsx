@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Dispatch, Ref, SetStateAction } from "react";
+import type { Dispatch, ReactNode, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronsDown, AlertTriangle, MessageSquare, Loader2, RotateCw, X, Lock } from "lucide-react";
@@ -73,6 +73,40 @@ interface ChatViewProps {
    *  the messages so both participants see status changes in the same
    *  scroll. NOT real message rows. */
   jobSystemEvents: JobSystemEvent[];
+  /** When true, render only the chat body (no AppShell / fixed-viewport
+   *  lock, no centered max-width column) so the desktop Messages page can
+   *  host it as the right pane of a list+thread split. Defaults to false —
+   *  mobile/native render the full standalone shell exactly as before. */
+  embedded?: boolean;
+}
+
+/**
+ * Shell wrapper for the chat surface. Standalone (mobile/native) it owns
+ * the AppShell fixed-viewport lock + centered column; embedded (desktop
+ * two-pane) it's just a flex column that fills its parent pane.
+ */
+function ChatPaneShell({ embedded, children }: { embedded: boolean; children: ReactNode }) {
+  if (embedded) {
+    return <div className="flex-1 min-h-0 flex flex-col">{children}</div>;
+  }
+  return (
+    // Fixed-viewport lock + safe-area-top header inset come from AppShell,
+    // the single shell primitive. `scrollable={false}` because the chat
+    // body manages its own scroll (chatContainerRef); the message input
+    // bleeds to the safe-area bottom rather than reserving dock space.
+    <AppShell
+      header={<DashboardHeader />}
+      scrollable={false}
+      reserveBottomNav={false}
+      className="bg-premium-page"
+    >
+      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-0 flex-1 min-h-0 flex flex-col">
+        <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col">
+          {children}
+        </div>
+      </main>
+    </AppShell>
+  );
 }
 
 /**
@@ -112,6 +146,7 @@ export function ChatView({
   onSnoozeMute,
   onUnmute,
   jobSystemEvents,
+  embedded = false,
 }: ChatViewProps) {
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
@@ -414,20 +449,17 @@ export function ChatView({
   })();
 
   return (
-    // Fixed-viewport lock + safe-area-top header inset come from AppShell,
-    // the single shell primitive. `scrollable={false}` because the chat
-    // body manages its own scroll (chatContainerRef); the message input
-    // bleeds to the safe-area bottom rather than reserving dock space.
-    <AppShell
-      header={<DashboardHeader />}
-      scrollable={false}
-      reserveBottomNav={false}
-      className="bg-premium-page"
-    >
-      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-0 flex-1 min-h-0 flex flex-col">
-        <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col">
+    <ChatPaneShell embedded={embedded}>
         <div
-          className="flex flex-col flex-1 min-h-0 transition-[padding] duration-150"
+          className={
+            // Embedded (desktop split) the pane can be very wide, so cap the
+            // conversation to a natural reading column and center it — bubbles
+            // spanning the full pane read as sparse. Standalone already gets a
+            // centered max-width column from ChatPaneShell, so no cap here.
+            embedded
+              ? "flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"
+              : "flex flex-col flex-1 min-h-0 transition-[padding] duration-150"
+          }
           // Only pad for the keyboard here. The sticky composer already adds
           // its own safe-area-inset-bottom — padding it on the wrapper too
           // double-counts the inset and leaves a dead gap below the composer.
@@ -436,6 +468,7 @@ export function ChatView({
           <ChatHeader
             activeConvo={activeConvo}
             isOtherOnline={isOtherOnline}
+            hideBack={embedded}
             onBack={() => { setActiveConvo(null); setDraft(""); setLightboxPhoto(null); navigate("/messages", { replace: true }); }}
             onOpenMuteSheet={() => setMuteSheetOpen(true)}
             onToggleMute={onToggleMute}
@@ -511,7 +544,7 @@ export function ChatView({
                   </p>
                   <p
                     className="font-serif italic text-[0.82rem] max-w-[260px]"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Tap Retry. If it sticks, our end is having a hiccup —
                     not yours.
@@ -528,7 +561,7 @@ export function ChatView({
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center"
                   style={{
-                    backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                    backgroundColor: "hsl(var(--ivory-sand) / 0.55)",
                     border: "1px solid hsl(var(--olivewood) / 0.10)",
                     boxShadow:
                       "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
@@ -547,7 +580,7 @@ export function ChatView({
                   </p>
                   <p
                     className="font-serif italic text-[0.82rem] max-w-[260px]"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Send the first message to get the job moving.
                   </p>
@@ -578,7 +611,7 @@ export function ChatView({
                       style={{
                         fontSize: "0.62rem",
                         letterSpacing: "0.16em",
-                        color: "hsl(var(--olivewood) / 0.65)",
+                        color: "hsl(var(--olivewood) / 0.8)",
                       }}
                     >
                       {item.label}
@@ -620,7 +653,7 @@ export function ChatView({
                         style={{
                           fontSize: "8.5px",
                           letterSpacing: "0.12em",
-                          color: "hsl(var(--olivewood) / 0.5)",
+                          color: "hsl(var(--olivewood) / 0.8)",
                         }}
                       >
                         {new Date(ev.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
@@ -639,7 +672,7 @@ export function ChatView({
                   <div key={item.key} className="flex justify-center py-1.5">
                     <span
                       className="text-ds-11 font-serif italic px-3 py-0.5 rounded-full"
-                      style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {m.content}
                     </span>
@@ -746,7 +779,16 @@ export function ChatView({
                state; the error card above is the only action: Retry. */
             null
           ) : (
-            <>
+            /* Composer dock — quick-reply chips and the input share ONE
+               frosted glass panel so they read as a single sticky unit.
+               The chips used to sit in a transparent wrapper above the
+               dock, leaving a seam where scrolling message bubbles bled
+               up behind them; folding them inside the glass closes that
+               gap and keeps the backdrop consistent. */
+            <div
+              className="pt-2 pb-3 glass-header sticky bottom-0"
+              style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
+            >
               {/* First-message chips — three ice-breaker suggestions shown
                   ONLY when the thread is brand-new (zero messages) and the
                   user hasn't already picked one this session. Dismissed
@@ -759,6 +801,7 @@ export function ChatView({
                     setDraft(text);
                     setChipsDismissed(true);
                   }}
+                  className="pt-0 pb-2"
                 />
               )}
 
@@ -785,7 +828,7 @@ export function ChatView({
                 if (draft.trim() || userSentLast) return null;
 
                 return (
-                  <div className="pt-1">
+                  <div className="pb-1">
                     <QuickReplies
                       onSelect={(msg) => setDraft(msg)}
                       onSend={(msg) => { void sendMessage(msg); }}
@@ -796,34 +839,26 @@ export function ChatView({
                 );
               })()}
 
-              {/* Rich message input */}
-              <div
-                className="pt-2 pb-3 glass-header sticky bottom-0"
-                style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
-              >
-                <RichMessageInput
-                  value={draft}
-                  onChange={setDraft}
-                  onSend={async (content, attachment) => {
-                    // RichMessageInput clears its (controlled) text right
-                    // after onSend returns. If the content scan in the page
-                    // blocks the message (`sendMessage` resolves `false`),
-                    // restore the typed text so a blocked message isn't
-                    // silently lost — the user keeps what they wrote and a
-                    // toast explains why it didn't send.
-                    const accepted = await sendMessage(content, attachment);
-                    if (!accepted && content.trim()) setDraft(content);
-                  }}
-                  onTyping={broadcastTyping}
-                  jobId={activeConvo.jobId}
-                  senderId={userId || undefined}
-                />
-              </div>
-            </>
+              <RichMessageInput
+                value={draft}
+                onChange={setDraft}
+                onSend={async (content, attachment) => {
+                  // RichMessageInput clears its (controlled) text right
+                  // after onSend returns. If the content scan in the page
+                  // blocks the message (`sendMessage` resolves `false`),
+                  // restore the typed text so a blocked message isn't
+                  // silently lost — the user keeps what they wrote and a
+                  // toast explains why it didn't send.
+                  const accepted = await sendMessage(content, attachment);
+                  if (!accepted && content.trim()) setDraft(content);
+                }}
+                onTyping={broadcastTyping}
+                jobId={activeConvo.jobId}
+                senderId={userId || undefined}
+              />
+            </div>
           )}
         </div>
-        </div>
-      </main>
       <PhotoLightbox
         photos={lightboxPhoto ? [lightboxPhoto] : []}
         lightboxIndex={lightboxPhoto ? 0 : null}
@@ -853,6 +888,6 @@ export function ChatView({
         onReport={(id) => setReportTarget({ type: "message", id })}
         onDelete={setDeleteMessageConfirm}
       />
-    </AppShell>
+    </ChatPaneShell>
   );
 }

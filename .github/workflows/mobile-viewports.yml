@@ -10,7 +10,7 @@ permissions:
 #   - phone-cluster overflow on the landing page at 320
 #
 # Spec lives at e2e/mobile-viewports.spec.ts. Tests run against the
-# deployed Lovable preview by default; override with PLAYWRIGHT_BASE_URL.
+# production site by default; override with PLAYWRIGHT_BASE_URL.
 #
 # Cost-conscious:
 # - Runs on every PR (required branch-protection check — a `paths:`
@@ -66,7 +66,7 @@ jobs:
 
       - name: Install dependencies
         if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
-        # See test.yml — Lovable can drift the lockfile, so use `install` not `ci`.
+        # Use `install` not `ci` to tolerate minor lockfile drift.
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Install Playwright Chromium browser
@@ -76,9 +76,9 @@ jobs:
       - name: Run mobile-viewport tests
         if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         env:
-          # Default to the Lovable preview. Override at workflow_dispatch
+          # Default to the production site. Override at workflow_dispatch
           # time if you want to point at a Vercel preview or local tunnel.
-          PLAYWRIGHT_BASE_URL: https://louisianahelpr.lovable.app
+          PLAYWRIGHT_BASE_URL: https://www.louisianahelpr.com
         run: npx playwright test e2e/mobile-viewports.spec.ts --reporter=list
 
       - name: Upload screenshots on failure

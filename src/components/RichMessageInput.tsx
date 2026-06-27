@@ -141,7 +141,7 @@ export const RichMessageInput = ({
     if (recorder.state === "stopped") {
       // Send the completed note
       if (!recorder.blob || !jobId || !senderId) {
-        toast.error("Missing chat context for voice note.");
+        toast.error("Couldn't start a voice note — try reopening the chat");
         recorder.discard();
         return;
       }
@@ -169,7 +169,7 @@ export const RichMessageInput = ({
 
   const stageFile = (file: File): boolean => {
     if (file.size > MESSAGE_ATTACHMENT_MAX_BYTES) {
-      toast.error(`File must be under ${Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB`);
+      toast.error(`That file's too large — keep attachments under ${Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)} MB`);
       return false;
     }
     setStagedFile(file);
@@ -235,7 +235,7 @@ export const RichMessageInput = ({
   const uploadStaged = async (): Promise<SendAttachment | null> => {
     if (!stagedFile) return null;
     if (!jobId || !senderId) {
-      toast.error("Missing chat context for upload");
+      toast.error("Couldn't upload that — try reopening the chat");
       return null;
     }
     setUploading(true);
@@ -272,7 +272,7 @@ export const RichMessageInput = ({
           const { latitude, longitude } = pos.coords;
           onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`);
         } catch {
-          toast.error("Location access denied");
+          toast.error("Location access denied — allow it in Settings to share your location");
         }
         return;
       }
@@ -284,7 +284,7 @@ export const RichMessageInput = ({
             resolve();
           },
           () => {
-            toast.error("Location access denied");
+            toast.error("Location access denied — allow it in Settings to share your location");
             resolve();
           },
         );
@@ -651,7 +651,7 @@ export const RichMessageInput = ({
           </div>
           <p
             className="mt-3 font-serif italic text-[0.74rem] leading-relaxed text-center"
-            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Up to {Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB ·
             photos and PDFs only.

@@ -77,12 +77,12 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             <Zap className="w-3 h-3" /> Skip the wait
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Cash out instantly.
           </DialogTitle>
-          <DialogDescription className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+          <DialogDescription className="font-serif italic pt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
             In your debit card in ~30 minutes.
           </DialogDescription>
         </DialogHeader>
@@ -110,7 +110,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
               style={{
                 background:
                   "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-                  "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.74) 100%)",
+                  "var(--surface-premium)",
                 border: "0.5px solid hsl(var(--bark) / 0.22)",
                 boxShadow:
                   "inset 0 1px 1px 0 rgba(255,255,255,0.6), " +
@@ -123,11 +123,11 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
               >
                 Breakdown
               </p>
-              <div className="flex justify-between text-[0.8rem]" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
+              <div className="flex justify-between text-[0.8rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span className="font-serif italic">Available balance</span>
                 <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{fmt(quote.gross_cents)}</span>
               </div>
-              <div className="flex justify-between text-[0.8rem]" style={{ color: "hsl(var(--olivewood) / 0.78)" }}>
+              <div className="flex justify-between text-[0.8rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span className="font-serif italic">− Instant fee (3% + $1, min $2)</span>
                 <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>−{fmt(quote.fee_cents)}</span>
               </div>
@@ -149,8 +149,8 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
               className="rounded-ds-md flex items-start gap-2.5 px-3 py-2.5"
               style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}
             >
-              <Clock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
-              <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.78)" }}>
+              <Clock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+              <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 Arrives in ~30 minutes. Prefer to wait? Standard payouts are{" "}
                 <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>free</strong> and take 1–2 business days.
               </p>

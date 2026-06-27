@@ -196,6 +196,7 @@ const AdminParishTaxRates = () => {
                     <Input
                       type="number"
                       step="0.01"
+                      aria-label={`State tax rate for ${rate.parish_name}`}
                       value={edit?.state_rate ?? rate.state_rate}
                       onChange={(e) => setEdit(rate.id, "state_rate", e.target.value)}
                     />
@@ -205,6 +206,7 @@ const AdminParishTaxRates = () => {
                     <Input
                       type="number"
                       step="0.01"
+                      aria-label={`Local tax rate for ${rate.parish_name}`}
                       value={edit?.local_rate ?? rate.local_rate}
                       onChange={(e) => setEdit(rate.id, "local_rate", e.target.value)}
                     />

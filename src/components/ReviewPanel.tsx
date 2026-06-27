@@ -75,7 +75,7 @@ const StarRow = ({
           {optional && (
             <span
               className="font-serif italic"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--olivewood) / 0.55)", letterSpacing: "0.04em" }}
+              style={{ fontSize: "0.62rem", color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.04em" }}
             >
               Optional
             </span>
@@ -83,7 +83,7 @@ const StarRow = ({
         </p>
         <p
           className="font-serif italic mt-0.5"
-          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}
+          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {sublabel}
         </p>
@@ -285,14 +285,14 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             Your turn
           </span>
           <DialogTitle
-            className="font-display italic font-bold leading-tight mt-1"
+            className="font-display italic font-bold leading-tight mt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             Rate {revieweeName}.
           </DialogTitle>
           <p
             className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.7)" }}
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Reviews are how other neighbors decide who to trust.
           </p>
@@ -310,7 +310,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           ))}
           <p
             className="font-serif italic"
-            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.65)" }}
+            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Only the Overall rating is needed — the rest are optional. You can skip them and still post your review.
           </p>
@@ -355,7 +355,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             rows={3}
-            className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
+            className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
           />
 
           {/* Photo attachments — up to 3 photos */}
@@ -400,14 +400,14 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                   }}
                 >
                   <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} />
-                  <span className="font-serif italic" style={{ fontSize: "0.58rem", color: "hsl(var(--olivewood) / 0.65)" }}>
+                  <span className="font-serif italic" style={{ fontSize: "0.58rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                     {photoFiles.length === 0 ? "Add photo" : "Add more"}
                   </span>
                 </button>
               )}
             </div>
             {photoFiles.length > 0 && (
-              <p className="font-serif italic" style={{ fontSize: "0.68rem", color: "hsl(var(--olivewood) / 0.55)" }}>
+              <p className="font-serif italic" style={{ fontSize: "0.68rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 {photoFiles.length}/{MAX_PHOTOS} photo{photoFiles.length !== 1 ? "s" : ""} attached
               </p>
             )}
@@ -467,12 +467,12 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               Five stars — nice
             </span>
             <DialogTitle
-              className="font-display italic font-bold leading-tight mt-1"
+              className="font-display italic font-bold leading-tight mt-2"
               style={{ fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.5rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
             >
               Send {revieweeName} a tip?
             </DialogTitle>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Goes straight to the helpr — no platform cut. Most posters tip 10–15% for great work.
             </p>
           </DialogHeader>
@@ -552,6 +552,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
         // Surface the failure instead of silently rendering an empty
         // "no reviews yet" state that looks like real data.
         console.error("[ReviewList] failed to load reviews:", error);
+        report(error, { severity: "warning", tags: { source: "ReviewPanel.load" } });
         setLoadFailed(true);
         setLoaded(true);
         return;

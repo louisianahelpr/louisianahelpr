@@ -1,9 +1,37 @@
 import React from "react";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { report } from "@/lib/errorLogger";
+import {
+  isChunkLoadError,
+  hardReloadBypassCache,
+  recoverFromChunkError,
+} from "@/lib/chunkReload";
+
+// Inline SVGs instead of lucide-react so these class components (statically
+// imported in App.tsx) don't pull the entire lucide chunk onto the critical
+// initial load path. Paths match lucide v1.x TriangleAlert, RefreshCw, House.
+interface IconProps { className?: string; strokeWidth?: number }
+const AlertTriangle = ({ className, strokeWidth = 2 }: IconProps) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+    <path d="M12 9v4" /><path d="M12 17h.01" />
+  </svg>
+);
+const RefreshCw = ({ className, strokeWidth = 2 }: IconProps) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+    <path d="M8 16H3v5" />
+  </svg>
+);
+const Home = ({ className, strokeWidth = 2 }: IconProps) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+    <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+  </svg>
+);
 
 /**
  * Per-route error boundary. Sits inside `<Routes>` so a crash on one page
@@ -42,6 +70,16 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Stale-chunk crashes (a deploy changed the chunk hashes mid-session)
+    // aren't real route bugs — they reach this boundary when the user
+    // navigates to a lazy route whose chunk 404s. Auto-recover with a
+    // one-shot hard reload and skip the Sentry noise. Without this, the
+    // user lands on the generic "This page hit a problem" fallback and is
+    // stuck until they manually refresh.
+    if (isChunkLoadError(error)) {
+      recoverFromChunkError();
+      return;
+    }
     // `report()` fans out to Sentry, PostHog, and the Supabase error_logs
     // table. The `route` tag lands on the Sentry event so we can slice
     // issue volume by route in the dashboard.
@@ -62,25 +100,37 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
   }
 
   handleReset = () => {
+    // A stale-chunk crash can't be cleared by re-rendering the same dead
+    // chunk reference — force a cache-busting reload instead.
+    if (isChunkLoadError(this.state.error)) {
+      void hardReloadBypassCache();
+      return;
+    }
     this.setState({ hasError: false, error: null });
   };
 
   render() {
     if (!this.state.hasError) return this.props.children;
 
+    const chunkError = isChunkLoadError(this.state.error);
+
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5 p-8 text-center">
         <div
           className="w-16 h-16 rounded-full flex items-center justify-center"
           style={{
-            background: "hsl(var(--burnt-sienna) / 0.12)",
-            color: "hsl(var(--burnt-sienna))",
-            border: "0.5px solid hsl(var(--burnt-sienna) / 0.24)",
+            background: chunkError ? "hsl(var(--bark) / 0.12)" : "hsl(var(--burnt-sienna) / 0.12)",
+            color: chunkError ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
+            border: `0.5px solid ${chunkError ? "hsl(var(--bark) / 0.22)" : "hsl(var(--burnt-sienna) / 0.24)"}`,
             boxShadow:
               "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 6px 18px -6px hsl(var(--olivewood) / 0.20)",
           }}
         >
-          <AlertTriangle className="h-7 w-7" strokeWidth={1.75} />
+          {chunkError ? (
+            <RefreshCw className="h-7 w-7" strokeWidth={1.75} />
+          ) : (
+            <AlertTriangle className="h-7 w-7" strokeWidth={1.75} />
+          )}
         </div>
         <div className="space-y-1.5 max-w-md">
           <span
@@ -91,7 +141,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
               letterSpacing: "0.18em",
             }}
           >
-            A hiccup
+            {chunkError ? "Fresh paint" : "A hiccup"}
           </span>
           <h3
             className="font-display italic font-bold leading-tight"
@@ -101,16 +151,18 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
               letterSpacing: "-0.025em",
             }}
           >
-            This page hit a problem.
+            {chunkError ? "Update ready." : "This page hit a problem."}
           </h3>
           <p
             className="font-serif italic leading-relaxed"
             style={{
               fontSize: "0.92rem",
-              color: "hsl(var(--olivewood) / 0.75)",
+              color: "hsl(var(--olivewood) / 0.8)",
             }}
           >
-            We've logged it. Try again or head back home.
+            {chunkError
+              ? "A newer version of the app was just released. Reload to pick it up."
+              : "We've logged it. Try again or head back home."}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -120,7 +172,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
             className="rounded-ds-md"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Try again
+            {chunkError ? "Reload" : "Try again"}
           </Button>
           <Button
             variant="outline"

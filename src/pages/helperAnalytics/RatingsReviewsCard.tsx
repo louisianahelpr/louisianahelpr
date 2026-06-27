@@ -87,13 +87,13 @@ const RatingsReviewsCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Rati
                               ? "hsl(var(--burnt-sienna) / 0.75)"
                               : star === 3
                               ? "hsl(var(--bark) / 0.55)"
-                              : "hsl(var(--olivewood) / 0.45)",
+                              : "hsl(var(--bark) / 0.32)",
                           }}
                         />
                       </div>
                       <span
                         className="text-ds-11 tabular-nums w-5 text-left"
-                        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                       >
                         {count}
                       </span>
@@ -109,7 +109,7 @@ const RatingsReviewsCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Rati
                   color:
                     analytics.avgRating! >= analytics.PLATFORM_AVERAGE_RATING
                       ? "hsl(var(--bark))"
-                      : "hsl(var(--olivewood) / 0.6)",
+                      : "hsl(var(--olivewood) / 0.8)",
                 }}
               >
                 {analytics.avgRating! >= analytics.PLATFORM_AVERAGE_RATING

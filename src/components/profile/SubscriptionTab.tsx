@@ -204,7 +204,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             background:
               "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 55%), " +
               "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.12) 0%, transparent 60%), " +
-              "linear-gradient(180deg, hsla(38, 50%, 96%, 0.92) 0%, hsla(38, 30%, 92%, 0.78) 100%)",
+              "var(--surface-premium)",
             border: "0.5px solid hsl(var(--bark) / 0.22)",
             boxShadow:
               "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
@@ -249,7 +249,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               {expiresAt && (
                 <p
                   className="font-serif italic mt-1"
-                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Renews{" "}
                   <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -428,7 +428,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     )}
                     <span
                       className="font-serif italic truncate"
-                      style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                      style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {tier.forWhom}
                     </span>
@@ -544,14 +544,14 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               <PauseCircle className="w-3 h-3" /> Take a breather
             </span>
             <DialogTitle
-              className="font-display italic font-bold leading-tight mt-1"
+              className="font-display italic font-bold leading-tight mt-2"
               style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
             >
               Pause 1 month free instead?
             </DialogTitle>
             <p
               className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Keep your spot — request a one-month, no-charge pause on your {(currentTier ?? "plan")}. We'll confirm by email and your plan resumes after the pause. Cancel anytime if you've changed your mind.
             </p>
@@ -626,14 +626,14 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               Before you go
             </span>
             <DialogTitle
-              className="font-display italic font-bold leading-tight mt-1"
+              className="font-display italic font-bold leading-tight mt-2"
               style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
             >
               Thinking of cancelling?
             </DialogTitle>
             <p
               className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.78)" }}
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Quick — what's holding you back? It helps us improve, and we might be able to fix it.
             </p>

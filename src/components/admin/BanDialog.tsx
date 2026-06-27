@@ -286,6 +286,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
               </SelectContent>
             </Select>
             <Textarea
+              aria-label="Reason note"
               value={reasonNote}
               onChange={(e) => setReasonNote(e.target.value)}
               placeholder={reasonCategory === "other"

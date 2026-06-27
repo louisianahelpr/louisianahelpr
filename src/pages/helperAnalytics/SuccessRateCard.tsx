@@ -28,7 +28,7 @@ const SuccessRateCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Success
               >
                 {analytics.successRate}%
               </p>
-              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 of your applications lead to a hire
               </p>
               <p
@@ -36,7 +36,7 @@ const SuccessRateCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Success
                 style={{
                   color: analytics.successRate >= analytics.PLATFORM_AVERAGE_SUCCESS_RATE
                     ? "hsl(var(--bark))"
-                    : "hsl(var(--olivewood) / 0.6)",
+                    : "hsl(var(--olivewood) / 0.8)",
                 }}
               >
                 {analytics.successRate >= analytics.PLATFORM_AVERAGE_SUCCESS_RATE

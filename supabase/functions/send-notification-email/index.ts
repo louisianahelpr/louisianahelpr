@@ -29,25 +29,14 @@ const TYPE_MAP: Record<string, { prefCol: string; category: string }> = {
   promotion:         { prefCol: 'email_promotions',       category: 'promotions' },
 }
 
-// Send through the Lovable Resend connector gateway. Falls back to direct
-// Resend API if LOVABLE_API_KEY is missing (e.g., local edge dev).
+// Send directly through the Resend API.
 async function sendWithResend(apiKey: string, params: { to: string; from: string; subject: string; html: string; text: string }) {
-  const lovableKey = Deno.env.get('LOVABLE_API_KEY')
-  const url = lovableKey
-    ? 'https://connector-gateway.lovable.dev/resend/emails'
-    : 'https://api.resend.com/emails'
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-  }
-  if (lovableKey) {
-    headers['Authorization'] = `Bearer ${lovableKey}`
-    headers['X-Connection-Api-Key'] = apiKey
-  } else {
-    headers['Authorization'] = `Bearer ${apiKey}`
+    'Authorization': `Bearer ${apiKey}`,
   }
 
-  const res = await fetch(url, {
+  const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers,
     body: JSON.stringify({

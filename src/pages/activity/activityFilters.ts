@@ -39,7 +39,10 @@ const DERIVED_NOT_SELECTED = "bg-destructive/15 text-destructive border-destruct
 const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivewood))] border-[hsl(var(--olivewood)/0.18)]";
 
 export const POSTED_STATUS_FILTERS: StatusFilter[] = [
-  { key: "all",          label: "All",                          color: ALL_FILTER_COLOR },
+  // "Active" — the default landing view. Folds every non-terminal status
+  // (open / accepted / in_progress / revision / direct_offer) into one
+  // flat list, replacing the old grouped "All" view.
+  { key: "active",       label: "Active",                       color: ALL_FILTER_COLOR },
   { key: "open",         label: jobStatusLabel("open"),         color: jobStatusColorClasses("open") },
   { key: "direct_offer", label: "Direct Offers",                color: DERIVED_DIRECT_OFFER },
   // "Awaiting Helpr's Response" — the poster sent an offer; the helpr hasn't confirmed yet.
@@ -47,6 +50,10 @@ export const POSTED_STATUS_FILTERS: StatusFilter[] = [
   { key: "accepted",     label: jobStatusLabel("accepted"),     color: jobStatusColorClasses("accepted") },
   { key: "in_progress",  label: jobStatusLabel("in_progress"),  color: jobStatusColorClasses("in_progress") },
   { key: "completed",    label: jobStatusLabel("completed"),    color: jobStatusColorClasses("completed") },
+  // Cancelled is a terminal bucket like Completed, so it gets its own
+  // filter rather than living only inside the grouped "All" view. It
+  // folds disputed in, mirroring `bucketPostedJob`.
+  { key: "cancelled",    label: jobStatusLabel("cancelled"),    color: jobStatusColorClasses("cancelled") },
 ];
 
 export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
@@ -110,9 +117,11 @@ export function useActivityFilters({
       // groups instead. Search still applies in both modes.
       let statusMatch: boolean;
       if (statusFilter === "all") statusMatch = true;
+      else if (statusFilter === "active") statusMatch = bucketPostedJob(j) === "active";
       else if (statusFilter === "direct_offer") statusMatch = !!j.offered_to_helper_id && j.direct_offer_status === "pending";
       else if (statusFilter === "offered") statusMatch = j.status === "accepted" && !j.helper_confirmed_at;
       else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!j.helper_confirmed_at;
+      else if (statusFilter === "cancelled") statusMatch = j.status === "cancelled" || j.status === "disputed";
       else statusMatch = j.status === statusFilter && !(statusFilter === "open" && j.direct_offer_status === "pending");
       if (!statusMatch) return false;
       // Search filter
@@ -164,13 +173,17 @@ export function useActivityFilters({
   }, [appliedApps]);
 
   const postedCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: postedJobs.length, open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0 };
+    const counts: Record<string, number> = { all: postedJobs.length, active: 0, open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0 };
     postedJobs.forEach((j) => {
+      if (bucketPostedJob(j) === "active") counts.active++;
       if (j.offered_to_helper_id && j.direct_offer_status === "pending") counts.direct_offer++;
       if (j.status === "accepted" && !j.helper_confirmed_at) counts.offered++;
       else if (j.status === "accepted" && !!j.helper_confirmed_at) counts.accepted++;
       else counts[j.status] = (counts[j.status] || 0) + 1;
     });
+    // The Cancelled filter folds disputed in (mirroring bucketPostedJob),
+    // so its chip count must include both terminal-negative states.
+    counts.cancelled = (counts.cancelled || 0) + (counts.disputed || 0);
     return counts;
   }, [postedJobs]);
 

@@ -1,8 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Minimal Playwright config for the e2e/ smoke suite. Replaces the
-// broken `createLovableConfig` import (lovable-agent-playwright-config
-// was never actually installed in package.json).
+// Minimal Playwright config for the e2e/ smoke suite.
 //
 // Two project entries:
 //   - chromium     — runs against a deployed env (PLAYWRIGHT_BASE_URL),

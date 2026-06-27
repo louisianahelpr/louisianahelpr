@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { hapticLight } from "@/lib/haptics";
 import { categorySkills, universalSkills } from "@/lib/skillsGuide";
+import { formatCategory } from "@/lib/format";
 import { X, Plus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
@@ -125,7 +126,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
           </button>
         )}
         {atMax && (
-          <span className="text-ds-10 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+          <span className="text-ds-10 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Max {MAX_SKILLS} skills
           </span>
         )}
@@ -133,7 +134,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
 
       {/* Current skills */}
       {!isLoading && skills.length === 0 && (
-        <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+        <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Add skills so clients know what you're great at.
         </p>
       )}
@@ -158,8 +159,9 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
               <button
                 type="button"
                 aria-label={`Remove ${skill.skill}`}
+                disabled={removeMutation.isPending}
                 onClick={() => { hapticLight(); removeMutation.mutate(skill.id); }}
-                className="ml-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
+                className="ml-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity active:opacity-60 disabled:opacity-40"
                 style={{ background: "hsl(var(--bark) / 0.16)" }}
               >
                 <X className="w-2.5 h-2.5" strokeWidth={2.5} />
@@ -192,14 +194,14 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
                   border: `0.5px solid hsl(var(--bark) / ${selectedCategory === cat ? "0.6" : "0.18"})`,
                 }}
               >
-                {cat.replace(/_/g, " ")}
+                {formatCategory(cat)}
               </button>
             ))}
           </div>
 
           {/* Skill chips to add */}
           {allAvailable.length === 0 ? (
-            <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+            <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               All skills in this category already added.
             </p>
           ) : (

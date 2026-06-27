@@ -155,4 +155,31 @@ describe("useDynamicTypeSync", () => {
     expect(parseFloat(written)).toBeCloseTo(1.25, 2);
     document.documentElement.style.removeProperty("font-size");
   });
+
+  it("derives the scale from the -apple-system-body probe when supported (iOS path)", () => {
+    // Simulate WKWebView: CSS.supports('-apple-system-body') === true and the
+    // probe span computes to 21px (Dynamic Type "xxLarge"). jsdom ships no
+    // CSS.supports, so we install one for this case and remove it after.
+    const cssObj = CSS as unknown as { supports?: (p: string, v?: string) => boolean };
+    const hadSupports = "supports" in cssObj;
+    cssObj.supports = (prop: string, value?: string) =>
+      prop === "font" && value === "-apple-system-body";
+
+    const gcsSpy = vi
+      .spyOn(window, "getComputedStyle")
+      .mockImplementation(
+        (el: Element) =>
+          ({
+            fontSize: el instanceof HTMLSpanElement ? "21px" : "16px",
+          }) as CSSStyleDeclaration,
+      );
+
+    renderHook(() => useDynamicTypeSync());
+    // 21 / 17 ≈ 1.235
+    const written = document.documentElement.style.getPropertyValue("--user-text-scale");
+    expect(parseFloat(written)).toBeCloseTo(21 / 17, 2);
+
+    gcsSpy.mockRestore();
+    if (!hadSupports) delete cssObj.supports;
+  });
 });

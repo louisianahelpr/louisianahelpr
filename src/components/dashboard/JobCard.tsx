@@ -62,8 +62,8 @@ interface JobCardProps {
    * Long-press handler — when defined, a 500ms press on the card opens
    * a quick-action sheet (Save / Hide / Share / Report) instead of the
    * detail dialog. The dashboard owner (Dashboard.tsx) supplies this;
-   * guest mode leaves it undefined so the card behaves the same way it
-   * did before (tap → /signup).
+   * guest mode leaves it undefined so a tap opens the read-only preview
+   * dialog instead.
    */
   onLongPress?: (jobId: string) => void;
   /**
@@ -189,9 +189,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     prefetchJobDialog(job.id, job.customer_id),
   );
 
-  // In the guest variant the card is wrapped in a /signup <Link> by the
-  // caller (Jobs.tsx), so the card root must NOT be a nested interactive
-  // element — drop role/tabIndex/handlers and let the Link own the tap.
+  // In the guest variant the card is wrapped in an outer interactive
+  // element by the caller (a <button> in Jobs.tsx that opens the preview),
+  // so the card root must NOT be a nested interactive element — drop
+  // role/tabIndex/handlers and let the wrapper own the tap.
   // With onLongPress supplied, the press/release handlers from
   // useLongPress own both tap (fires onSelect on short release) and
   // long-press (fires the quick-action sheet at threshold). Without it

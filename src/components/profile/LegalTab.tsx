@@ -6,6 +6,11 @@ import {
 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
+
+// Pull tier pricing/fees from the single source of truth so the Legal copy
+// can never drift from the Subscription page or the in-feed fee math (LH-30).
+const fmtMo = (n: number | null) => (n == null ? "free" : `$${n.toFixed(2)}/mo`);
 
 // This tab reuses the shared PolicySection / PolicyRowItem from
 // CollapsedPolicy.tsx — the same accordion primitives the /legal page
@@ -123,8 +128,8 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           body={
             <>
               <p><strong className="text-foreground">Poster Service Fee:</strong> 10% added at checkout on top of the job budget.</p>
-              <p><strong className="text-foreground">Helpr Platform Fee:</strong> 10% deducted from the helpr's payout.</p>
-              <p><strong className="text-foreground">Total Platform Take:</strong> 20% per transaction (10% from each side).</p>
+              <p><strong className="text-foreground">Helpr Platform Fee:</strong> deducted from the helpr's payout based on plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.pro.platformFeePercent}% on Helper Pro, {TIER_PERKS.elite.platformFeePercent}% on Helpr Elite.</p>
+              <p><strong className="text-foreground">Total Platform Take:</strong> the 10% poster service fee plus the helpr's plan-based fee above.</p>
               <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent.</p>
               <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
               <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the helpr — no platform fee on tips.</p>
@@ -147,10 +152,11 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           title="Subscription Tiers"
           body={
             <>
-              <p><strong className="text-foreground">Basic ⭐ ($5/mo):</strong> Standard access with basic features.</p>
-              <p><strong className="text-foreground">Pro 🔥 ($10/mo):</strong> Priority job access and enhanced visibility.</p>
-              <p><strong className="text-foreground">Elite 💎 ($15/mo):</strong> Top-tier access with maximum visibility and early job access.</p>
-              <p><strong className="text-foreground">Annual Plans:</strong> Available at ~10x monthly rate (save ~17%).</p>
+              <p><strong className="text-foreground">Free ⭐:</strong> Standard access with a {TIER_PERKS.free.platformFeePercent}% platform fee on earnings.</p>
+              <p><strong className="text-foreground">{TIER_PERKS.pro.name} 🔥 ({fmtMo(TIER_PERKS.pro.price)}):</strong> Priority placement, instant book, advanced analytics, and a reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
+              <p><strong className="text-foreground">{TIER_PERKS.elite.name} 💎 ({fmtMo(TIER_PERKS.elite.price)}):</strong> Everything in Pro plus a featured badge, early job access, dedicated support, and the lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
+              <p><strong className="text-foreground">{TIER_PERKS.business.name} 🏢 ({fmtMo(TIER_PERKS.business.price)}):</strong> Team management, a verified business badge, and priority support.</p>
+              <p><strong className="text-foreground">Annual Plans:</strong> Billed yearly at a discount (about 2 months free).</p>
               <p><strong className="text-foreground">Billing:</strong> One-time, monthly, or annual. Stripe handles billing dates automatically.</p>
             </>
           }

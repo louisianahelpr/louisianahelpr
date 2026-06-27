@@ -5,17 +5,7 @@
  * user — so it is hidden in production and only rendered in dev/preview
  * (non-PROD) builds.
  */
-
-const formatBuiltAt = (iso: string): string => {
-  try {
-    return new Date(iso).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-};
+import { formatShortDate } from "@/lib/format";
 
 const BuildStamp = () => {
   // Hide the raw build hash from real users on the auth screen; it is only
@@ -32,7 +22,7 @@ const BuildStamp = () => {
         lineHeight: 1.4,
       }}
     >
-      build {__APP_COMMIT__} · {formatBuiltAt(__APP_BUILT_AT__)}
+      build {__APP_COMMIT__} · {formatShortDate(__APP_BUILT_AT__)}
     </p>
   );
 };

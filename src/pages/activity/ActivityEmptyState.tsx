@@ -75,8 +75,8 @@ export function ActivityEmptyState({
   // keep them on the same side they're filtering.
   const isCrossTabSuggestion = isTrulyEmpty;
   const ctaLabel = isCrossTabSuggestion
-    ? (isPosted ? "Browse tasks" : "Post a Job")
-    : (isPosted ? "Post a Job" : "Browse tasks");
+    ? (isPosted ? "Browse tasks" : "Post a task")
+    : (isPosted ? "Post a task" : "Browse tasks");
   const ctaTo = isCrossTabSuggestion
     ? (isPosted ? "/dashboard" : "/post-job")
     : (isPosted ? "/post-job" : "/dashboard");

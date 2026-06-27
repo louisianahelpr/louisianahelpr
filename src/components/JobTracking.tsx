@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Navigation, MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, ShieldCheck, AlertTriangle, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { parseLocalDate } from "@/lib/dateUtils";
+import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { report } from "@/lib/errorLogger";
 import {
@@ -113,6 +114,7 @@ export function JobTracking({
       .limit(1);
     if (error) {
       console.error("[JobTracking] failed to load tracking:", error);
+      report(error, { severity: "warning", tags: { source: "JobTracking.load" } });
       toast.error("Couldn't load job tracking");
       return;
     }
@@ -530,7 +532,7 @@ export function JobTracking({
 
         const isLocked = jobDay ? today < jobDay : false;
         const lockMessage = jobDay && isLocked
-          ? `Actions available on ${jobDay.toLocaleDateString([], { month: 'short', day: 'numeric' })}`
+          ? `Actions available on ${formatShortDate(jobDay)}`
           : null;
 
         return (

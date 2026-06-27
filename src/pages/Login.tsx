@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Mail, Lock, Check, Clock } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock, Check, Clock, ShieldCheck } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
@@ -15,6 +15,7 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import BuildStamp from "@/components/BuildStamp";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
+import { safeInternalRedirect } from "@/lib/authRedirects";
 import {
   getLastAuthMethod,
   setLastAuthMethod,
@@ -84,6 +85,15 @@ const signInWithTimeout = async (email: string, password: string) => {
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // A safe ?redirect= target set by ProtectedRoute when it bounced a
+  // logged-out user off a gated route. We use it ONLY to explain the bounce
+  // in the header copy. Sign-in always lands on the home dashboard — the
+  // app's main tabs (My Posts, etc.) should never be the post-login landing;
+  // the user explicitly wants "log in → home". Deep content links surface
+  // their own in-app routing once the user is home.
+  const redirectTarget = safeInternalRedirect(searchParams.get("redirect"));
+  const postLoginDest = "/dashboard";
   const queryClient = useQueryClient();
   usePageMeta({
     title: "Log In — Helpr",
@@ -100,6 +110,12 @@ const Login = () => {
   const [attemptState, setAttemptState] = useState<LoginAttemptState>(() =>
     readAttemptState(),
   );
+  // When the signed-in user has a verified TOTP factor, the session lands at
+  // AAL1 and we hold them here until they clear a 6-digit challenge (AAL2)
+  // before routing into the app.
+  const [mfaChallenge, setMfaChallenge] = useState<{ factorId: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaVerifying, setMfaVerifying] = useState(false);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   // Quiet last-method hint — only shown when we have a non-error reading
@@ -163,18 +179,38 @@ const Login = () => {
       return;
     }
 
-    // Remember the user's chosen method so the next visit shows a quiet
-    // "Last time you used email and password" hint.
+    // Two-step gate: if the account has a verified TOTP factor, the password
+    // sign-in only reaches AAL1. Hold the user on a 6-digit challenge until
+    // the session is elevated to AAL2 before letting them into the app.
+    try {
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const factor = factors?.totp.find((f) => f.status === "verified");
+        if (factor) {
+          setLoading(false);
+          setMfaCode("");
+          setMfaChallenge({ factorId: factor.id });
+          return;
+        }
+      }
+    } catch { /* AAL probe failed — fall through and complete sign-in */ }
+
+    await finishLogin();
+  };
+
+  // Post-authentication routing, shared by the plain password path and the
+  // post-MFA path. Remembers the method, warms the user cache, greets by
+  // first name, then routes into the app.
+  const finishLogin = async () => {
     setLastAuthMethod("email");
     void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
     setLoading(false);
     hapticSuccess();
-    // Personalized greeting — fetch the user's first name for a warmer
-    // welcome. Falls back to plain "Welcome back" if the profile isn't
-    // accessible yet (race window during signup confirmation).
     let firstName = "";
     try {
-      const userId = data.session?.user?.id;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
       if (userId) {
         const { data: prof } = await supabase
           .from("profiles")
@@ -185,7 +221,31 @@ const Login = () => {
       }
     } catch { /* fall through to generic copy */ }
     toast.success(firstName ? `Welcome back, ${firstName}.` : "Welcome back.");
-    navigate("/dashboard", { replace: true });
+    navigate(postLoginDest, { replace: true });
+  };
+
+  const handleVerifyMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaChallenge || mfaCode.trim().length !== 6 || mfaVerifying) return;
+    setMfaVerifying(true);
+    const { error } = await supabase.auth.mfa.challengeAndVerify({
+      factorId: mfaChallenge.factorId,
+      code: mfaCode.trim(),
+    });
+    setMfaVerifying(false);
+    if (error) {
+      hapticError();
+      toast.error("That code didn't match. Check your app and try again.");
+      return;
+    }
+    setMfaChallenge(null);
+    await finishLogin();
+  };
+
+  const cancelMfa = async () => {
+    setMfaChallenge(null);
+    setMfaCode("");
+    await supabase.auth.signOut();
   };
 
   return (
@@ -208,15 +268,73 @@ const Login = () => {
           className="font-sans"
           style={{
             fontSize: "0.95rem",
-            color: "hsl(var(--olivewood) / 0.7)",
+            color: "hsl(var(--olivewood) / 0.8)",
             letterSpacing: "0.01em",
           }}
         >
-          Pick up right where you left off.
+          {redirectTarget ? "Sign in to continue." : "Pick up right where you left off."}
         </p>
       </div>
 
       <div className="liquid-glass px-6 sm:px-8 py-8 space-y-6">
+        {mfaChallenge ? (
+          <div className="space-y-5">
+            <div className="flex flex-col items-center text-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-primary" strokeWidth={1.75} />
+              </div>
+              <h2
+                className="font-display italic font-bold leading-tight"
+                style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.5rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+              >
+                Two-step verification
+              </h2>
+              <p
+                className="font-serif italic"
+                style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                Enter the 6-digit code from your authenticator app to finish signing in.
+              </p>
+            </div>
+            <form onSubmit={handleVerifyMfa} className="space-y-3.5">
+              <div className="space-y-2">
+                <Label htmlFor="mfa-login-code" className="text-ds-13 font-sans font-medium">
+                  Authentication code
+                </Label>
+                <Input
+                  id="mfa-login-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  enterKeyHint="done"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  autoFocus
+                  className="tracking-[0.3em] text-center font-mono rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)]"
+                />
+              </div>
+              <Button
+                variant="bark"
+                type="submit"
+                className="w-full rounded-ds-md"
+                size="lg"
+                disabled={mfaVerifying || mfaCode.length !== 6}
+              >
+                {mfaVerifying ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying…</> : "Verify"}
+              </Button>
+              <button
+                type="button"
+                onClick={cancelMfa}
+                className="w-full text-center text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                Use a different account
+              </button>
+            </form>
+          </div>
+        ) : (
+        <>
         {lastMethod && (
           // Quiet hint that helps returning users pick the right button
           // without revealing anything sensitive — just nudges them toward
@@ -250,8 +368,8 @@ const Login = () => {
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
             <div className="relative">
               <Mail
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 strokeWidth={1.75}
               />
               <Input
@@ -267,7 +385,7 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className={`pl-10 ${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]`}
+                className={`pl-10 ${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
               />
               {emailValid && (
                 <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -278,8 +396,8 @@ const Login = () => {
             <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
             <div className="relative">
               <Lock
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 strokeWidth={1.75}
               />
               <Input
@@ -291,7 +409,7 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]"
+                className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]"
               />
               <button
                 type="button"
@@ -307,7 +425,7 @@ const Login = () => {
             <Link
               to="/forgot-password"
               className="text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity"
-              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Forgot password?
             </Link>
@@ -337,7 +455,7 @@ const Login = () => {
         <SocialAuthButtons mode="signin" />
 
         <div className="space-y-1.5 pt-1">
-          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             New to Helpr?{" "}
             <Link
               to="/signup"
@@ -347,7 +465,7 @@ const Login = () => {
               Create an account
             </Link>
           </p>
-          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Have a business?{" "}
             <Link
               to="/signup?type=business"
@@ -358,6 +476,8 @@ const Login = () => {
             </Link>
           </p>
         </div>
+        </>
+        )}
       </div>
 
       <p className="text-center text-ds-11 font-sans leading-relaxed px-2 mt-2.5" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>

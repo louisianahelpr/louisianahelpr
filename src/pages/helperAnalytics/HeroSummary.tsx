@@ -32,14 +32,14 @@ const HeroSummary = ({ analytics, isLoading }: HeroSummaryProps) => {
             <span className="text-ds-14 font-normal ml-2 text-muted-foreground">gross earned</span>
           </p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-ds-13">
-            <span style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                 {analytics?.completedCount ?? 0}
               </span>{" "}
               jobs completed
             </span>
             {analytics && analytics.netEarnings > 0 && (
-              <span style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+              <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span className="font-semibold" style={{ color: "hsl(var(--bark))" }}>
                   {fmtDollars(analytics.netEarnings)}
                 </span>{" "}

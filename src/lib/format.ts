@@ -63,3 +63,27 @@ export function formatCategory(category: string): string {
   if (spaced.length === 0) return spaced;
   return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
 }
+
+/**
+ * Season-aware label for the year-in-review feature.
+ *
+ * "Wrapped" frames the feature as a completed year-in-review, but it's shown
+ * year-round — calling a half-finished year "Wrapped" in June reads as a bug.
+ * Only call it "Wrapped" once the year is actually wrapping up (December);
+ * the rest of the year it's "so far" — an in-progress tally.
+ *
+ * @param now - injectable clock for tests; defaults to the current date.
+ * @returns `{ year, isYearEnd, noun, title }` where `noun` is "Wrapped" in
+ *   December else "so far", and `title` is `"${year} ${noun}"`.
+ */
+export function wrappedSeasonLabel(now: Date = new Date()): {
+  year: number;
+  isYearEnd: boolean;
+  noun: string;
+  title: string;
+} {
+  const year = now.getFullYear();
+  const isYearEnd = now.getMonth() === 11; // December
+  const noun = isYearEnd ? "Wrapped" : "so far";
+  return { year, isYearEnd, noun, title: `${year} ${noun}` };
+}

@@ -312,8 +312,9 @@ export function ProfileLanding({
   // architecture grouping — every row keeps the exact tab `key` / `href`
   // it had before, so nothing is dropped or re-targeted. Surfaces that
   // don't map cleanly to a bucket are folded into their nearest one
-  // (family/pets → Account; host/community/benefits → Work;
-  // credits/records/referrals → Money; warnings/support → Legal).
+  // (family/pets/home record → Account; insights/host/community/benefits
+  // → Work; credits/referrals/earnings docs → Money; warnings/support →
+  // Legal).
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
       title: "Account",
@@ -344,12 +345,21 @@ export function ProfileLanding({
           tint: "var(--sage)",
           href: "/pets",
         },
+        {
+          key: "home-history",
+          label: "Home History",
+          icon: <ClipboardList className="w-5 h-5" />,
+          desc: "Your home's permanent maintenance record",
+          tint: "var(--sage)",
+          href: "/home-history",
+        },
       ],
     },
     {
       title: "Work",
       items: [
         { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & weekly hours", tint: "var(--burnt-sienna)" },
+        { key: "analytics", label: "Analytics", icon: <BarChart2 className="w-5 h-5" />, desc: "Trends, categories & hire rate", tint: "var(--stormy-sky)", href: "/analytics" },
         { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: "var(--burnt-sienna)" },
         {
           key: "credentials",
@@ -399,24 +409,7 @@ export function ProfileLanding({
           incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
         },
         { key: "subscription", label: "Upgrade plan", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
-        { key: "analytics", label: "Analytics", icon: <BarChart2 className="w-5 h-5" />, desc: "Trends, categories & hire rate", tint: "var(--stormy-sky)", href: "/analytics" },
-        {
-          key: "time-credits",
-          label: "Time Credits",
-          icon: <Crown className="w-5 h-5" />,
-          desc: "Earn credits by helping, spend them on your own jobs",
-          tint: "var(--gold-warm)",
-          href: "/time-credits",
-        },
         { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--gold-warm)" },
-        {
-          key: "home-history",
-          label: "Home History",
-          icon: <ClipboardList className="w-5 h-5" />,
-          desc: "Your home's permanent maintenance record",
-          tint: "var(--sage)",
-          href: "/home-history",
-        },
         {
           key: "work-record",
           label: "Work Record",
@@ -511,10 +504,7 @@ export function ProfileLanding({
           </button>
         </div>
 
-        {/* pr-[132px] reserves space for the Share icon (40px) + gap (6px)
-            + Edit pill (~86px) so the name/location row never wraps into
-            those controls on narrow phones. */}
-        <div className="flex flex-row items-center gap-4 pr-[132px]">
+        <div className="flex flex-row items-center gap-4">
           {/* Avatar — a real focal point on this applicant-facing page.
               Tier-styled ring uses gold for elite, sienna for pro,
               bark for everyone else. ID-verified checkmark sits on the
@@ -587,7 +577,13 @@ export function ProfileLanding({
 
           {/* Name + tier + location, vertically centered against the avatar */}
           <div className="flex-1 min-w-0 text-left">
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Only the name line clears the absolutely-positioned Share
+                icon (40px) + gap (6px) + Edit pill (~86px) at top-right via
+                pr-[132px]. The location + badges sit BELOW the buttons'
+                bottom edge, so they take the full column width instead of
+                being needlessly crushed (which forced "New Orleans, LA" to
+                wrap mid-phrase). */}
+            <div className="flex items-center gap-2 flex-wrap pr-[132px]">
               <h1
                 className="font-display italic font-bold leading-tight"
                 style={{
@@ -632,7 +628,7 @@ export function ProfileLanding({
               // stays intact (it travels as one shrink-0 group).
               <p className="text-ds-11 text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5 mt-1">
                 <MapPin className="w-3 h-3 shrink-0" />
-                <span className="truncate max-w-full min-w-0">{profile.location}</span>
+                <span className="break-words">{profile.location}</span>
                 {memberSinceLabel && (
                   <span className="shrink-0 inline-flex items-center gap-1">
                     <span className="opacity-50">·</span>
@@ -776,7 +772,7 @@ export function ProfileLanding({
                 values={earningsSparkline}
                 label="Your earnings over the last 6 weeks"
               />
-              <ChevronRightIcon className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.4)" }} />
+              <ChevronRightIcon className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             </div>
           </button>
         )}
@@ -806,7 +802,7 @@ export function ProfileLanding({
               type="button"
               onClick={() => onSelectTab("profile")}
               className="w-full text-left font-serif italic text-ds-13 leading-snug active:opacity-70 transition-opacity"
-              style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >+ Add a short bio so applicants know who they're hiring.</button>
           )}
         </div>
@@ -958,11 +954,11 @@ export function ProfileLanding({
                 <p className="text-ds-13 font-semibold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
                   My QR Code
                 </p>
-                <p className="text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.72)" }}>
+                <p className="text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Share with your poster to verify at the door
                 </p>
               </div>
-              <ChevronRightIcon className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.4)" }} />
+              <ChevronRightIcon className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             </button>
           </div>
         )}
@@ -1094,7 +1090,7 @@ export function ProfileLanding({
                                 ) : (
                                   <p
                                     className="font-serif italic text-ds-11 leading-snug"
-                                    style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                                   >
                                     {r.jobTitle}
                                   </p>
@@ -1406,7 +1402,7 @@ export function ProfileLanding({
                         color:
                           theme === value
                             ? "hsl(var(--bark))"
-                            : "hsl(var(--olivewood) / 0.55)",
+                            : "hsl(var(--olivewood) / 0.8)",
                       }}
                     >
                       <Icon className="w-4 h-4" strokeWidth={2} />
@@ -1482,8 +1478,8 @@ export function ProfileLanding({
             className="rounded-ds-lg overflow-hidden"
             style={{
               background:
-                "linear-gradient(135deg, hsl(155 50% 35% / 0.06) 0%, hsl(155 50% 35% / 0.02) 100%)",
-              border: "0.5px solid hsl(155 50% 35% / 0.18)",
+                "linear-gradient(135deg, hsl(var(--pif-tint) / 0.06) 0%, hsl(var(--pif-tint) / 0.02) 100%)",
+              border: "0.5px solid hsl(var(--pif-tint) / 0.18)",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255,255,255,0.40), 0 2px 8px -2px hsl(var(--olivewood) / 0.06)",
             }}
@@ -1491,11 +1487,11 @@ export function ProfileLanding({
             <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2">
               <ShieldCheck
                 className="w-4 h-4 shrink-0"
-                style={{ color: "hsl(155 50% 32%)" }}
+                style={{ color: "hsl(var(--pif-green))" }}
               />
               <p
                 className="text-ds-13 font-semibold leading-tight"
-                style={{ color: "hsl(155 50% 25%)" }}
+                style={{ color: "hsl(var(--pif-ink))" }}
               >
                 Your protections
               </p>
@@ -1509,12 +1505,12 @@ export function ProfileLanding({
                 <div key={line} className="flex items-start gap-2">
                   <CheckCircle2
                     className="w-3.5 h-3.5 mt-0.5 shrink-0"
-                    style={{ color: "hsl(155 50% 38%)" }}
+                    style={{ color: "hsl(var(--pif-tint))" }}
                     strokeWidth={2.25}
                   />
                   <p
                     className="font-serif italic text-ds-12 leading-snug"
-                    style={{ color: "hsl(155 40% 35%)" }}
+                    style={{ color: "hsl(var(--pif-green))" }}
                   >
                     {line}
                   </p>
@@ -1529,7 +1525,7 @@ export function ProfileLanding({
           <button
             type="button"
             onClick={() => onNavigate("/wrapped")}
-            aria-label={`View your ${new Date().getFullYear()} Helpr Wrapped`}
+            aria-label="View your year so far on Helpr"
             className="w-full rounded-ds-lg overflow-hidden active:scale-[0.99] transition-transform text-left"
             style={{
               background:
@@ -1549,18 +1545,18 @@ export function ProfileLanding({
                   className="text-ds-13 font-semibold leading-tight"
                   style={{ color: "hsl(var(--ink-deep))" }}
                 >
-                  Your {new Date().getFullYear()} Wrapped
+                  Your year so far
                 </p>
                 <p
                   className="text-ds-11 font-serif italic mt-0.5"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   See your year on Helpr
                 </p>
               </div>
               <MoreHorizontal
                 className="w-4 h-4 shrink-0"
-                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               />
             </div>
           </button>
@@ -1624,7 +1620,7 @@ export function ProfileLanding({
                 <QrCode className="w-12 h-12" style={{ color: "hsl(var(--bark) / 0.3)" }} />
               </div>
             )}
-            <p className="text-ds-12 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <p className="text-ds-12 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Share with your poster so they can verify you at the door.
             </p>
             <button

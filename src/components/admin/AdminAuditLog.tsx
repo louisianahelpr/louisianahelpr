@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
+import { formatCategory } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -164,7 +165,7 @@ const AdminAuditLog = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-ds-13 text-foreground">{entry.admin_name}</span>
                     <Badge className={actionColor[entry.action] || "bg-muted text-muted-foreground"}>
-                      {entry.action.replace(/_/g, " ")}
+                      {formatCategory(entry.action)}
                     </Badge>
                     {entry.target_type && (
                       <span className="text-ds-11 text-muted-foreground">→ {entry.target_type}</span>

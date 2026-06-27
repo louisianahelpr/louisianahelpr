@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 
 /**
  * Routes that use document-scroll (long-form content, SEO landing pages).
@@ -73,7 +74,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/parish",     // /parish/:slug — individual parish community pages
   "/wrapped",    // Helpr Wrapped year-in-review
   "/impact",     // Public impact transparency page — long-form, document-scroll
-  "/time-credits", // Time banking — earn credits, redeem discounts (document-scroll)
   "/benefits",    // Benefits marketplace — partner perks (document-scroll)
 
   // Public vertical landing pages (PageHeader + min-h-screen document-scroll)
@@ -111,9 +111,30 @@ const isDocumentScrollRoute = (pathname: string) => {
 };
 
 /**
+ * Minimum viewport width (px) at which the desktop-web multi-column layout
+ * kicks in. Matches Tailwind's `lg` breakpoint so `lg:` utilities and this
+ * gate stay in lockstep.
+ */
+const WEB_DESKTOP_QUERY = "(min-width: 1024px)";
+
+/**
  * Toggles the `app-shell` class on <html> based on the current route.
  * When present, the html/body/#root are locked to 100dvh with overflow:hidden,
  * forcing pages to use AppShell's internal scroll container.
+ *
+ * ALSO toggles a `web-desktop` class on <html> when the app is running in a
+ * wide *browser* viewport (NOT the native iOS/Android shell). This is the
+ * single gate the desktop multi-column website layout hangs off of:
+ *
+ *   web-desktop  ⟺  !isNativePlatform  &&  matchMedia('(min-width: 1024px)')
+ *
+ * `isNativePlatform` is a module constant resolved from
+ * `Capacitor.isNativePlatform()` at boot, so in the packaged iOS/Android app
+ * it is `true` and `web-desktop` can NEVER be set — the native UI is byte-for-
+ * byte identical to today. On a phone-width browser the media query is false,
+ * so mobile-web is also unchanged. Only a wide browser viewport gets the new
+ * desktop chrome + columns. The listener tracks live viewport resizes so the
+ * class flips when a desktop browser window is narrowed past the breakpoint.
  */
 export const useAppShellViewport = () => {
   const { pathname } = useLocation();
@@ -125,8 +146,43 @@ export const useAppShellViewport = () => {
     } else {
       html.classList.add("app-shell");
     }
+    // Mirror the DesktopSidebarNav's own visibility gate onto <html> so the
+    // CSS that insets document-scroll pages from the fixed left rail turns
+    // on/off with the rail itself. app-shell pages inset via .app-shell-frame
+    // instead, so the inset rule excludes them — but the class is still set
+    // here (route-only; the `web-desktop` half of the gate lives in CSS).
+    html.classList.toggle("desktop-rail", isDesktopRailRoute(pathname));
     return () => {
       // Don't strip on unmount — the next route effect will set it correctly.
     };
   }, [pathname]);
+
+  // Web-desktop detection. Independent of route (the chrome/layout applies on
+  // every signed-in fixed-shell page), so it lives in its own effect that runs
+  // once and self-updates via the matchMedia change event.
+  useEffect(() => {
+    const html = document.documentElement;
+
+    // Hard gate: native app is NEVER web-desktop. Bail before touching the
+    // class so a native build can't accidentally flip it via any code path.
+    if (isNativePlatform || typeof window.matchMedia !== "function") {
+      html.classList.remove("web-desktop");
+      return;
+    }
+
+    const mql = window.matchMedia(WEB_DESKTOP_QUERY);
+    const apply = (matches: boolean) => {
+      html.classList.toggle("web-desktop", matches);
+    };
+    apply(mql.matches);
+
+    const onChange = (e: MediaQueryListEvent) => apply(e.matches);
+    // addEventListener is the modern API; older Safari needs addListener.
+    if (typeof mql.addEventListener === "function") {
+      mql.addEventListener("change", onChange);
+      return () => mql.removeEventListener("change", onChange);
+    }
+    mql.addListener(onChange);
+    return () => mql.removeListener(onChange);
+  }, []);
 };

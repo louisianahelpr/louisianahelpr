@@ -233,7 +233,7 @@ export async function installSupabaseMocks(
   });
 
   // Also intercept any other backend hosts we don't depend on for smoke.
-  // PostHog, Sentry, Vercel analytics, Lovable tagger, etc. shouldn't
+  // PostHog, Sentry, Vercel analytics, etc. shouldn't
   // make tests fail when they 4xx — let them through if they're harmless
   // but block any cross-origin write attempts that might add latency.
   await page.route("**/*.posthog.com/**", (r) => r.fulfill({ status: 200, body: "{}", contentType: "application/json" }));

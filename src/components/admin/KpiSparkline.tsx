@@ -31,7 +31,7 @@ export const KpiSparkline = ({ data, tone = "primary" }: KpiSparklineProps) => {
 
   return (
     <div className="h-7 -mx-1 mt-2 pointer-events-none" aria-hidden>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minHeight={28}>
         <AreaChart data={series} margin={{ top: 1, right: 0, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">

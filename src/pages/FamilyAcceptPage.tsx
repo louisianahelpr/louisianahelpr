@@ -163,7 +163,7 @@ export default function FamilyAcceptPage() {
             <p className="font-display italic font-semibold text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
               Invite unavailable
             </p>
-            <p className="text-ds-13 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+            <p className="text-ds-13 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {error}
             </p>
             <Button variant="outline" className="w-full mt-1" onClick={() => navigate("/")}>
@@ -185,7 +185,7 @@ export default function FamilyAcceptPage() {
             <p className="font-display italic font-semibold text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
               Access granted!
             </p>
-            <p className="text-ds-13 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+            <p className="text-ds-13 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {caregiverName} can now help manage your jobs on Louisiana Helpr.
             </p>
             <Button className="w-full mt-1" onClick={() => navigate("/family")}>
@@ -211,7 +211,7 @@ export default function FamilyAcceptPage() {
               <p className="font-display italic font-semibold text-ds-18" style={{ color: "hsl(var(--ink-deep))" }}>
                 {caregiverName} wants to help manage your jobs
               </p>
-              <p className="text-ds-13 font-serif italic mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+              <p className="text-ds-13 font-serif italic mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 They'll be able to help you with Louisiana Helpr on your behalf.
               </p>
             </div>
@@ -224,7 +224,7 @@ export default function FamilyAcceptPage() {
                 border: "0.5px solid hsl(var(--sand) / 0.6)",
               }}
             >
-              <p className="text-ds-12 font-sans font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--olivewood) / 0.5)" }}>
+              <p className="text-ds-12 font-sans font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 What they can do
               </p>
               {permissions.map((p) => (
@@ -237,7 +237,7 @@ export default function FamilyAcceptPage() {
               ))}
             </div>
 
-            <p className="text-ds-11 font-serif italic text-center" style={{ color: "hsl(var(--olivewood) / 0.5)" }}>
+            <p className="text-ds-11 font-serif italic text-center" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               You can remove their access at any time from your Family & care page.
             </p>
 

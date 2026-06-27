@@ -47,6 +47,10 @@ jobs:
     name: Tag release and upload source maps
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Skip entirely when Sentry secrets haven't been wired up yet — the
+    # action throws a hard error on missing SENTRY_ORG, which marks every
+    # push to main as red even for repos that don't use Sentry.
+    if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT != '' }}
 
     env:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -73,13 +77,25 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund --legacy-peer-deps
 
+      - name: Check Sentry secrets
+        id: check-secrets
+        run: |
+          if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_ORG" ] || [ -z "$SENTRY_PROJECT" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Sentry secrets not configured — skipping release tagging. Add SENTRY_AUTH_TOKEN, SENTRY_ORG, and SENTRY_PROJECT to repository Settings → Secrets and variables → Actions."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build production bundle
+        if: steps.check-secrets.outputs.configured == 'true'
         # VITE_SENTRY_RELEASE flows through to `import.meta.env` so the
         # client's Sentry.init() reports the same release tag we create
         # below — that's what makes crash dedup work across deploys.
         run: npm run build
 
       - name: Create Sentry release and upload source maps
+        if: steps.check-secrets.outputs.configured == 'true'
         uses: getsentry/action-release@v3.7.0
         with:
           # Use the commit SHA as the release name so it's unique per build

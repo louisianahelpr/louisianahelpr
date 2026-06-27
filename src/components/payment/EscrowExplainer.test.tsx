@@ -35,7 +35,7 @@ describe("EscrowExplainer suppression logic", () => {
     localStorage.setItem(ESCROW_EXPLAINER_SEEN_KEY, "1");
     render(<EscrowExplainer />);
     expect(
-      screen.getByText("Held in escrow until complete"),
+      screen.getByText("Held securely until complete"),
     ).toBeInTheDocument();
   });
 
@@ -43,7 +43,7 @@ describe("EscrowExplainer suppression logic", () => {
     expect(localStorage.getItem(ESCROW_EXPLAINER_SEEN_KEY)).toBeNull();
     render(<EscrowExplainer />);
     // Radix renders open content into a portal; query by the tooltip body.
-    expect(screen.getByText(/held safely in escrow/i)).toBeInTheDocument();
+    expect(screen.getByText(/your payment is held securely/i)).toBeInTheDocument();
   });
 
   it("stamps localStorage once the popover has been seen", () => {
@@ -61,10 +61,10 @@ describe("EscrowExplainer suppression logic", () => {
     render(<EscrowExplainer />);
     // The pill is still there, but the popover body is not in the DOM.
     expect(
-      screen.getByText("Held in escrow until complete"),
+      screen.getByText("Held securely until complete"),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(/held safely in escrow/i),
+      screen.queryByText(/your payment is held securely/i),
     ).not.toBeInTheDocument();
   });
 

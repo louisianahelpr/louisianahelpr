@@ -104,6 +104,7 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
             Provide a reason for denying this application.
           </p>
           <Textarea
+            aria-label="Reason for denial"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason for denial (optional)…"

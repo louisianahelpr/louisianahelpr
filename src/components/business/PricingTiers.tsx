@@ -86,7 +86,7 @@ export function PricingTiers() {
         <span className="text-display-eyebrow">Pricing</span>
         <h2
           id="pricing-heading"
-          className="font-display italic font-bold leading-tight mt-1"
+          className="font-display italic font-bold leading-tight mt-2"
           style={{
             fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2rem)",
             color: "hsl(var(--ink-deep))",

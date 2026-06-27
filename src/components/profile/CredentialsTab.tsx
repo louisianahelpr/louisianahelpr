@@ -233,7 +233,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
             </h3>
             <p
               className="font-serif italic mt-1 leading-snug"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.78)" }}
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Re-upload a clearer copy and we'll review it within one business day. Until then, your verified badge isn't visible to posters.
             </p>
@@ -247,8 +247,12 @@ export function CredentialsTab({ userId }: { userId: string }) {
         //   license only  → "Licensed"
         //   insurance only → "Insured"
         //   both          → "Licensed & Insured"
-        const licVerified = data.license_status === "verified";
-        const insVerified = data.insurance_status === "verified";
+        // A credential only counts as live when its toggle is on AND admin
+        // verified it — same predicate CredentialBadge enforces. Reading
+        // status alone would surface "Verified" for a row whose toggle is
+        // off (stale/admin data, or toggle-off without an uploaded doc).
+        const licVerified = data.is_licensed && data.license_status === "verified";
+        const insVerified = data.is_insured && data.insurance_status === "verified";
         const eyebrow =
           licVerified && insVerified
             ? "Licensed & Insured"
@@ -284,15 +288,15 @@ export function CredentialsTab({ userId }: { userId: string }) {
                 <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                   Professional credentials
                 </h2>
-                <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+                <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                   Proof of license and insurance earns verified badges on your profile.
                 </p>
               </div>
             </div>
             <div className="pt-1">
               {anyVerified ||
-              data.license_status === "pending" ||
-              data.insurance_status === "pending" ? (
+              (data.is_licensed && data.license_status === "pending") ||
+              (data.is_insured && data.insurance_status === "pending") ? (
                 <CredentialBadge credentials={data} size="md" />
               ) : (
                 <span
@@ -323,26 +327,26 @@ export function CredentialsTab({ userId }: { userId: string }) {
               style={{
                 fontSize: "0.62rem",
                 color:
-                  data.license_status === "verified"
+                  licensedOn && data.license_status === "verified"
                     ? "hsl(var(--bark))"
-                    : data.license_status === "rejected"
+                    : licensedOn && data.license_status === "rejected"
                       ? "hsl(var(--destructive))"
                       : "hsl(var(--burnt-sienna) / 0.78)",
                 letterSpacing: "0.18em",
               }}
             >
-              {data.license_status === "verified"
+              {licensedOn && data.license_status === "verified"
                 ? "Verified"
-                : data.license_status === "pending"
+                : licensedOn && data.license_status === "pending"
                   ? "Under review"
-                  : data.license_status === "rejected"
+                  : licensedOn && data.license_status === "rejected"
                     ? "Action needed"
                     : "Optional"}
             </p>
             <Label htmlFor="lic-toggle" className="font-display italic font-bold leading-tight cursor-pointer text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               I am licensed
             </Label>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               {licensedOn
                 ? "Upload your professional license to earn the verified badge."
                 : "Toggle on if you hold a professional license — upload to verify."}
@@ -419,26 +423,26 @@ export function CredentialsTab({ userId }: { userId: string }) {
               style={{
                 fontSize: "0.62rem",
                 color:
-                  data.insurance_status === "verified"
+                  insuredOn && data.insurance_status === "verified"
                     ? "hsl(var(--bark))"
-                    : data.insurance_status === "rejected"
+                    : insuredOn && data.insurance_status === "rejected"
                       ? "hsl(var(--destructive))"
                       : "hsl(var(--burnt-sienna) / 0.78)",
                 letterSpacing: "0.18em",
               }}
             >
-              {data.insurance_status === "verified"
+              {insuredOn && data.insurance_status === "verified"
                 ? "Verified"
-                : data.insurance_status === "pending"
+                : insuredOn && data.insurance_status === "pending"
                   ? "Under review"
-                  : data.insurance_status === "rejected"
+                  : insuredOn && data.insurance_status === "rejected"
                     ? "Action needed"
                     : "Optional"}
             </p>
             <Label htmlFor="ins-toggle" className="font-display italic font-bold leading-tight cursor-pointer text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               I am insured
             </Label>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+            <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               {insuredOn
                 ? "Upload your Certificate of Insurance (COI) to earn the verified badge."
                 : "Toggle on if you carry professional insurance — upload to verify."}
@@ -509,8 +513,8 @@ export function CredentialsTab({ userId }: { userId: string }) {
         className="rounded-ds-md flex items-start gap-2.5 px-3 py-2.5"
         style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}
       >
-        <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.6)" }} />
-        <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+        <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+        <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
           Documents are reviewed by Helpr admins before badges go live. We never share them publicly.
         </p>
       </div>

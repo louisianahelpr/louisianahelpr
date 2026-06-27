@@ -652,25 +652,6 @@ export function useActivityActions({
           }
         }
 
-        // Time banking — award 60 min credit to the helper on completion.
-        // Fire-and-forget; never blocks the completion flow.
-        // Swallows gracefully if time_credits table isn't deployed yet (42P01).
-        if (isHelper && user) {
-          const postedJob =
-            postedJobs.find((j) => j.id === jobId) ||
-            appliedApps.find((a) => a.job_id === jobId)?.job;
-          void supabase
-            .from("time_credits")
-            .insert({
-              user_id: user.id,
-              amount_minutes: 60,
-              credit_type: "job_completed",
-              job_id: jobId,
-              description: `1 hour earned for completing${postedJob?.title ? ` "${postedJob.title}"` : " a job"}`,
-            })
-            .then(() => {}, () => {});
-        }
-
         // Home-autopilot: auto-create/update a maintenance reminder for
         // the poster so they know when to re-book this category of work.
         // Fire-and-forget; PGRST202 (table not deployed) degrades silently.

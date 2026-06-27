@@ -177,7 +177,7 @@ export function ActivitySectionedView<TItem>({
                 <ChevronDown
                   className="w-4 h-4 shrink-0 transition-transform"
                   style={{
-                    color: "hsl(var(--olivewood) / 0.6)",
+                    color: "hsl(var(--olivewood) / 0.8)",
                     transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
                   }}
                   aria-hidden="true"
@@ -189,12 +189,18 @@ export function ActivitySectionedView<TItem>({
                 {count === 0 ? (
                   <p
                     className="text-ds-12 px-3 py-4 text-center font-serif italic"
-                    style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Nothing in {sectionLabels[key].toLowerCase()} yet.
                   </p>
                 ) : (
-                  <div className="space-y-3">
+                  // Single column on phones / native (the primary target).
+                  // Only the wide *browser* desktop (html.web-desktop, never
+                  // the native shell — see useAppShellViewport) splits these
+                  // into two columns; on phone width the cards otherwise
+                  // stretch to ~900px and read half-empty. The grid + its
+                  // space-y reset live in index.css under `.ds-activity-grid`.
+                  <div className="space-y-3 ds-activity-grid">
                     {bucketItems.map((item) => (
                       <div key={getKey(item)}>{renderItem(item)}</div>
                     ))}

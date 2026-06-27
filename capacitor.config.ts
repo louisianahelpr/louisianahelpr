@@ -5,16 +5,14 @@ import type { CapacitorConfig } from '@capacitor/cli';
 // and is NOT a web wrapper. To ship updates: run `npm run build:ios &&
 // npx cap sync ios`, then archive a new build in Xcode for TestFlight.
 //
-// Local dev hot-reload (optional, dev only): set CAP_DEV_URL=https://<sandbox>.lovableproject.com
+// Local dev hot-reload (optional, dev only): set CAP_DEV_URL=https://<host>
 // before `npx cap sync`. This is stripped for production builds.
 const rawDevUrl = process.env.CAP_DEV_URL;
 const devServerUrl =
-  rawDevUrl && /^https:\/\/[^/]+\.(lovableproject|lovable)\.(app|dev)/.test(rawDevUrl)
-    ? rawDevUrl
-    : undefined;
+  rawDevUrl && /^https:\/\/[^/]+/.test(rawDevUrl) ? rawDevUrl : undefined;
 if (rawDevUrl && !devServerUrl) {
   console.warn(
-    `[capacitor.config] Ignoring CAP_DEV_URL="${rawDevUrl}" — only Lovable sandbox URLs are allowed.`,
+    `[capacitor.config] Ignoring CAP_DEV_URL="${rawDevUrl}" — must be an https URL.`,
   );
 }
 

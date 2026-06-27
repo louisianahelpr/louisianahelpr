@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   CheckCircle2, Star, MessageSquare, Users, AlertTriangle,
   RefreshCw, ThumbsUp, ThumbsDown, Send, XCircle,
-  Paperclip, FileText, Trash2, Pencil, Check, X, ChevronRight,
+  Paperclip, FileText, Trash2, Pencil, Check, X,
   ChevronUp, ChevronDown, ClipboardList, Eye, CalendarPlus,
 } from "lucide-react";
 import { downloadIcs } from "@/lib/icalExport";
@@ -33,6 +33,7 @@ import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
+import { formatPrice, formatShortDate } from "@/lib/format";
 
 /** Negotiation/bid columns added by a later migration that hasn't been
     regenerated into the Supabase types yet (the PGRST202 migration-lag
@@ -247,7 +248,7 @@ function AppliedJobCardInner({
         >
           <JobCardTitleBar
             title={job.title || "Task"}
-            amount={payout.toFixed(2)}
+            amount={formatPrice(payout)}
             amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
           />
 
@@ -273,18 +274,23 @@ function AppliedJobCardInner({
               expiresAt={isPending && !job.helper_id ? job.expires_at : null}
             />
 
-            {/* Description preview — collapsed to keep cards compact.
-                Full details live on the job page (chevron link below). */}
+            {/* Description preview — clamped while collapsed to keep cards
+                compact, un-clamped once the card is expanded so the full
+                brief shows inline (this card IS the detail surface for an
+                applied job; there is no separate signed-in detail page). */}
             {!isMinimalCard && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-              <p className="text-ds-11 text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
+              <p className={`text-ds-11 text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
             )}
             {!isMinimalCard && (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); navigate(`/dashboard?job=${job.id}`); }}
+                onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
+                aria-expanded={isExpanded}
                 className="inline-flex items-center gap-0.5 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
               >
-                View details <ChevronRight className="w-3 h-3" />
+                {isExpanded
+                  ? <>Hide details <ChevronUp className="w-3 h-3" /></>
+                  : <>View details <ChevronDown className="w-3 h-3" /></>}
               </button>
             )}
 
@@ -301,7 +307,7 @@ function AppliedJobCardInner({
                     the poster cancelled after the helper was selected and a
                     fee was assessed. Subtle pill; only when data is present. */}
                 {isCancelled && job.cancellation_fee != null && job.cancellation_fee > 0 && (() => {
-                  const feeAmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(job.cancellation_fee);
+                  const feeAmt = `$${formatPrice(job.cancellation_fee)}`;
                   const status = job.cancellation_fee_status;
                   if (!status) return null;
                   const statusCopy: Record<string, string> = {
@@ -317,16 +323,16 @@ function AppliedJobCardInner({
                       className="inline-flex items-center gap-1 text-ds-11 font-medium px-2 py-0.5 rounded-full"
                       style={{
                         background: isCharged
-                          ? "hsl(142 35% 96%)"
+                          ? "hsl(var(--charged-tint))"
                           : isPending
                           ? "hsl(var(--gold-warm) / 0.12)"
                           : "hsl(var(--olivewood) / 0.08)",
                         color: isCharged
-                          ? "hsl(142 38% 28%)"
+                          ? "hsl(var(--charged-ink))"
                           : isPending
-                          ? "hsl(36 72% 28%)"
+                          ? "hsl(var(--amber-ink))"
                           : "hsl(var(--olivewood))",
-                        border: `0.5px solid ${isCharged ? "hsl(142 35% 78%)" : isPending ? "hsl(var(--gold-warm) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
+                        border: `0.5px solid ${isCharged ? "hsl(var(--charged-border))" : isPending ? "hsl(var(--gold-warm) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
                       }}
                     >
                       {label}
@@ -362,6 +368,7 @@ function AppliedJobCardInner({
                     <Textarea
                       value={editMessageText}
                       onChange={(e) => setEditMessageText(e.target.value)}
+                      aria-label="Edit your application message"
                       placeholder="Introduce yourself or share relevant experience…"
                       rows={3}
                       className="text-ds-11"
@@ -527,7 +534,7 @@ function AppliedJobCardInner({
                 <span
                   className="flex items-center gap-0.5 text-ds-10 font-medium"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  title={`Poster viewed on ${new Date(bidApp.poster_viewed_at).toLocaleDateString()}`}
+                  title={`Poster viewed on ${formatShortDate(bidApp.poster_viewed_at)}`}
                 >
                   <Eye className="w-3 h-3" aria-hidden="true" /> Seen
                 </span>
@@ -576,7 +583,7 @@ function AppliedJobCardInner({
                 <div
                   className="rounded-ds-md p-3"
                   style={{
-                    background: "hsla(0, 0%, 100%, 0.65)",
+                    background: "hsl(var(--ivory-sand) / 0.65)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.12)",
                   }}
                 >
@@ -880,7 +887,7 @@ function AppliedJobCardInner({
                     {disputeStatus === "escalated" ? "Admin reviewing" : "Dispute open"}
                   </span>
                   <p
-                    className="font-display italic font-bold leading-tight mt-1"
+                    className="font-display italic font-bold leading-tight mt-2"
                     style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                   >
                     {disputeStatus === "escalated"
@@ -1064,7 +1071,7 @@ function AppliedJobCardInner({
               {job.is_recurring && (
                 <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                   <RefreshCw className="w-3 h-3 text-primary" />
-                  <span>{job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}{job.recurrence_end_date && ` until ${new Date(job.recurrence_end_date).toLocaleDateString()}`}</span>
+                  <span>{job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}</span>
                 </div>
               )}
               {job.is_group_job && (

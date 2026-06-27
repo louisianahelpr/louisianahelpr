@@ -5,6 +5,17 @@ export interface PostingTemplate {
   quickTips: string[];       // shown below the description field
 }
 
+// Template descriptions ship with bracketed fill-ins like
+// "[home/apartment/office]" or "[size]". They are starters, not postable
+// copy — a job posted with them unedited reads as spam to helprs. This
+// detects any leftover "[…]" token so the post flow can block until the
+// poster swaps in their real details (LH-23).
+export const PLACEHOLDER_PATTERN = /\[[^\]]+\]/;
+
+export function hasUnfilledPlaceholders(text: string): boolean {
+  return PLACEHOLDER_PATTERN.test(text);
+}
+
 export const categoryTemplates: Record<string, PostingTemplate> = {
   cleaning: {
     title: "House cleaning needed",
@@ -17,7 +28,7 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
       "When do you need it done?",
     ],
     quickTips: [
-      "Posts with a room count get 3× more applicants",
+      "Adding a room count helps helprs gauge the job and apply",
       "Mention if you have pets",
     ],
   },

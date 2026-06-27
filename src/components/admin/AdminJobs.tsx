@@ -699,6 +699,7 @@ const AdminJobs = () => {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-13 text-muted-foreground pointer-events-none">$</span>
                 <input
                   type="number"
+                  aria-label="Refund amount"
                   inputMode="decimal"
                   step="0.01"
                   min="0"

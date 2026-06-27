@@ -33,7 +33,7 @@ const INITIAL: State = {
   invites: "",
   paymentMethod: "card",
   firstJobTitle: "",
-  firstJobBudget: "12500",
+  firstJobBudget: "125",
 };
 
 const STEPS = [
@@ -91,7 +91,7 @@ const BusinessOnboarding = () => {
               <Building2 className="w-4 h-4" /> Tell us about your company
             </h2>
             <p className="text-ds-12 text-muted-foreground mb-4">
-              Anything you set here you can change later in /business/team.
+              Anything you set here you can change later in Team settings.
             </p>
             <div className="space-y-3">
               <div>
@@ -112,7 +112,7 @@ const BusinessOnboarding = () => {
               <Users className="w-4 h-4" /> Invite your team
             </h2>
             <p className="text-ds-12 text-muted-foreground mb-4">
-              Enter one email per line. You can add more from /business/team later.
+              Enter one email per line. You can add more from Team settings later.
             </p>
             <Textarea
               rows={5}
@@ -163,8 +163,11 @@ const BusinessOnboarding = () => {
                 <Input id="o-job-title" placeholder="Weekly office cleaning" value={state.firstJobTitle} onChange={(e) => setState((s) => ({ ...s, firstJobTitle: e.target.value }))} />
               </div>
               <div>
-                <Label htmlFor="o-job-budget">Budget (cents)</Label>
-                <Input id="o-job-budget" type="number" min={0} value={state.firstJobBudget} onChange={(e) => setState((s) => ({ ...s, firstJobBudget: e.target.value }))} />
+                <Label htmlFor="o-job-budget">Budget</Label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input id="o-job-budget" className="pl-7" type="number" min={0} step="1" inputMode="decimal" placeholder="125" value={state.firstJobBudget} onChange={(e) => setState((s) => ({ ...s, firstJobBudget: e.target.value }))} />
+                </div>
               </div>
             </div>
           </>

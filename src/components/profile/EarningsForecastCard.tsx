@@ -198,7 +198,7 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
             </h3>
             <p
               className="font-serif italic mt-1"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Pick up a task before Sunday and we'll project your earnings here.
             </p>
@@ -273,7 +273,7 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
         {formatUsd(projectedTotal)}
         <span
           className="font-serif italic font-normal ml-1.5"
-          style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.7)" }}
+          style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
           by Sunday
         </span>
@@ -281,7 +281,7 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
 
       <p
         className="font-serif italic mt-1.5"
-        style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}
+        style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
       >
         Estimate — assumes all {inProgressCount === 0 ? "scheduled" : `${inProgressCount} `}
         {inProgressCount === 0 ? "" : inProgressCount === 1 ? "scheduled job" : "scheduled jobs"} complete.
@@ -295,13 +295,13 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
           <div className="flex items-center justify-between text-ds-10">
             <span
               className="font-serif italic"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Earned so far · {formatUsd(earnedSoFar)}
             </span>
             <span
               className="font-serif italic tabular-nums"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {pct}%
             </span>

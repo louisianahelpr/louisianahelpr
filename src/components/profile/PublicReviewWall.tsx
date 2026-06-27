@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
 import { queryKeys } from "@/lib/queryKeys";
+import { formatCategory } from "@/lib/format";
 
 /**
  * PublicReviewWall — a vertical stack of the helper's most recent
@@ -152,7 +153,7 @@ function ReviewQuote({
               border: "0.5px solid hsl(var(--bark) / 0.18)",
             }}
           >
-            {review.jobCategory.replace(/_/g, " ")}
+            {formatCategory(review.jobCategory)}
           </span>
         )}
       </div>
@@ -187,7 +188,7 @@ function ReviewQuote({
 
       <p
         className="font-sans text-ds-11"
-        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         <span className="font-semibold text-[hsl(var(--ink-deep)/0.78)]">
           {review.reviewerName}
@@ -305,7 +306,7 @@ export function PublicReviewWall({
       >
         <Star
           className="w-5 h-5 mx-auto"
-          style={{ color: "hsl(var(--olivewood) / 0.4)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           aria-hidden="true"
         />
         <p

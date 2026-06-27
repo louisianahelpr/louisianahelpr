@@ -93,6 +93,15 @@ export function EscrowProgressBar({
             const isCurrent = stepNumber === currentStep;
             const isFuture = stepNumber > currentStep;
 
+            // The final step ("Released") is a past-tense terminal, not a
+            // gate the job waits at: reaching it means the payout already
+            // transferred and escrow is closed. So when it's the current
+            // step it has been *achieved* — render it as complete (check +
+            // "complete" label) rather than a hollow pending number.
+            const isLastStep = index === ESCROW_STEPS.length - 1;
+            const terminalReached = isLastStep && isCurrent;
+            const showAsComplete = isCompleted || terminalReached;
+
             // Color decisions: completed + current both use --bark
             // (the brand olive); only the future nodes mute to a
             // soft olivewood/30. Completed nodes carry the checkmark;
@@ -105,11 +114,11 @@ export function EscrowProgressBar({
               ? "hsl(var(--olivewood) / 0.30)"
               : "hsl(var(--bark))";
             const nodeFg = isFuture
-              ? "hsl(var(--olivewood) / 0.45)"
+              ? "hsl(var(--olivewood) / 0.8)"
               : "hsl(var(--parchment))";
             const labelColor = isFuture
-              ? "hsl(var(--olivewood) / 0.45)"
-              : isCurrent
+              ? "hsl(var(--olivewood) / 0.8)"
+              : isCurrent && !terminalReached
                 ? "hsl(var(--bark))"
                 : "hsl(var(--olivewood))";
 
@@ -117,7 +126,6 @@ export function EscrowProgressBar({
             // an absolutely-positioned hairline so its color can lag
             // behind the current node (a connector is "filled" only
             // when the step on either side is already complete).
-            const isLast = index === ESCROW_STEPS.length - 1;
             const connectorFilled = stepNumber < currentStep;
 
             return (
@@ -125,7 +133,7 @@ export function EscrowProgressBar({
                 key={step.label}
                 className="relative flex flex-col items-center flex-1 min-w-0"
               >
-                {!isLast && (
+                {!isLastStep && (
                   <span
                     aria-hidden
                     className="absolute top-1/2 left-1/2 h-px"
@@ -144,13 +152,13 @@ export function EscrowProgressBar({
                     <motion.button
                       type="button"
                       aria-label={`${step.label} — step ${stepNumber} of 4${
-                        isCompleted
+                        showAsComplete
                           ? " (complete)"
                           : isCurrent
                             ? " (current)"
                             : ""
                       }`}
-                      aria-current={isCurrent ? "step" : undefined}
+                      aria-current={isCurrent && !terminalReached ? "step" : undefined}
                       initial={
                         reduced
                           ? false
@@ -175,7 +183,7 @@ export function EscrowProgressBar({
                         color: nodeFg,
                       }}
                     >
-                      {isCompleted ? (
+                      {showAsComplete ? (
                         <Check
                           className="w-3 h-3"
                           strokeWidth={3}

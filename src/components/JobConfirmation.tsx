@@ -126,7 +126,7 @@ export function JobConfirmation({
         </p>
         <p
           className="font-serif italic"
-          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.65)" }}
+          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
           {hoursUntilJob > 0 && ` · ${urgencyText} away`}
@@ -138,7 +138,7 @@ export function JobConfirmation({
             style={
               myConfirmed
                 ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))", border: "0.5px solid hsl(var(--bark) / 0.22)" }
-                : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.75)" }
+                : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.8)" }
             }
           >
             {myConfirmed ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
@@ -149,7 +149,7 @@ export function JobConfirmation({
             style={
               otherConfirmed
                 ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))", border: "0.5px solid hsl(var(--bark) / 0.22)" }
-                : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.75)" }
+                : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.8)" }
             }
           >
             {otherConfirmed ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
@@ -188,14 +188,14 @@ export function JobConfirmation({
               <ShieldCheck className="w-3 h-3" /> Locking it in
             </span>
             <DialogTitle
-              className="font-display italic font-bold leading-tight mt-1"
+              className="font-display italic font-bold leading-tight pt-2"
               style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
             >
               Commit to this job?
             </DialogTitle>
             <p
-              className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.75)" }}
+              className="font-serif italic pt-1"
+              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
               The other party will see you're locked in for the scheduled date.
             </p>

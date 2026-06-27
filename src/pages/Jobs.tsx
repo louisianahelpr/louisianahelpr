@@ -1,10 +1,10 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowRight, Search, Lock, Briefcase } from "lucide-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -18,6 +18,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { VirtualList } from "@/components/VirtualList";
 import { categoryLabels } from "@/components/activity/activityConstants";
 import { queryKeys } from "@/lib/queryKeys";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import JobCard from "@/components/dashboard/JobCard";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useJobRef } from "@/hooks/useJobRef";
@@ -54,9 +55,9 @@ const ALL_CATEGORIES = Object.keys(categoryLabels);
 
 const PAGE_SIZE = 30;
 
-// Cards per virtualized row — matches the lg:grid-cols-3 grid so each
-// VirtualList row holds a full grid line.
-const CARDS_PER_ROW = 3;
+// One card per virtualized row — the browse list is a single column at
+// every width (product preference), so each VirtualList row holds one card.
+const CARDS_PER_ROW = 1;
 
 // Cap the staggered entrance animation to roughly the first screenful of
 // cards. Beyond this the per-card animationDelay would compound layout
@@ -112,6 +113,7 @@ const Jobs = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   // The job a guest tapped to preview — opens the read-only JobDetailDialog.
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useCurrentUser();
 
@@ -151,6 +153,46 @@ const Jobs = () => {
     [pagesData],
   );
 
+  // Mirror the open job into the URL (?job=<id>) so a jump to a sub-route from
+  // inside the dialog — e.g. the Helper Pro "Learn more" → /subscription —
+  // returns to the open job on Back, instead of dropping onto the bare feed.
+  const openDetailJob = useCallback((job: EnrichedJob) => {
+    setDetailJob(job);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("job", job.id);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const closeDetailJob = useCallback(() => {
+    setDetailJob(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("job");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // Re-open the detail dialog from the URL on mount (?job=<id>). One-shot and
+  // add-only: it restores the dialog after returning from /subscription, but
+  // never clears the param (close handles that), so it can't race the writers
+  // above. Retries until the open-jobs feed has loaded.
+  const restoredJobParam = useRef(false);
+  useEffect(() => {
+    if (restoredJobParam.current) return;
+    const id = searchParams.get("job");
+    if (!id) {
+      restoredJobParam.current = true;
+      return;
+    }
+    const match = jobs.find((j) => j.id === id);
+    if (match) {
+      setDetailJob(toEnrichedJob(match));
+      restoredJobParam.current = true;
+    }
+  }, [searchParams, jobs]);
+
   useEffect(() => {
     if (!DEBUG_AUTH) return;
     console.log("[auth] Jobs page", {
@@ -176,8 +218,8 @@ const Jobs = () => {
     });
   }, [jobs, search, selectedCategory]);
 
-  // Chunk the filtered jobs into grid rows so the window-scroll VirtualList
-  // (single-column row primitive) still renders the original 3-up grid.
+  // Wrap each job in its own single-item row so the window-scroll
+  // VirtualList (single-column row primitive) renders one card per row.
   const rows = useMemo<PublicJob[][]>(() => {
     const out: PublicJob[][] = [];
     for (let i = 0; i < filtered.length; i += CARDS_PER_ROW) {
@@ -194,7 +236,7 @@ const Jobs = () => {
           last action isn't kissing the dock. pb-32 was barely 2px
           short on notched phones. */}
       <div className="pt-20 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)] md:pb-safe-nav px-5">
-        <div className="container mx-auto max-w-5xl">
+        <div className="container mx-auto max-w-2xl">
           {/* Header — title + live count vertically centered with a "Live" pill on the right. */}
           <div className="flex items-center justify-between gap-4 mb-6 md:mb-8 mt-2 md:mt-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="flex flex-col leading-none min-w-0">
@@ -207,7 +249,7 @@ const Jobs = () => {
               <h1 className="text-page-title leading-tight truncate mt-1">
                 Browse tasks
               </h1>
-              <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span className="font-semibold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{filtered.length}</span>{" "}
                 {filtered.length === 1 ? "task" : "tasks"}{" "}
                 <span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
@@ -258,8 +300,8 @@ const Jobs = () => {
 
           {/* Jobs Grid */}
           {jobsLoading ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="Loading jobs">
-              {Array.from({ length: 6 }).map((_, i) => (
+            <div className="grid grid-cols-1 gap-4" aria-label="Loading jobs">
+              {Array.from({ length: 4 }).map((_, i) => (
                 <JobCardSkeleton key={i} />
               ))}
             </div>
@@ -298,30 +340,41 @@ const Jobs = () => {
               />
             </div>
           ) : (
-            // Virtualized grid: each VirtualList row is one grid line of up
-            // to CARDS_PER_ROW cards. The window virtualizer keeps the DOM
-            // small on long lists while preserving the 1/2/3-up layout.
+            // Virtualized single-column list: each VirtualList row is one
+            // card. The window virtualizer keeps the DOM small on long lists.
             <VirtualList
               items={rows}
               getKey={(row, i) => `row-${i}-${row[0]?.id ?? "empty"}`}
               estimateSize={250}
               overscan={3}
               renderItem={(row, rowIndex) => (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+                <div className="grid grid-cols-1 gap-4 pb-4">
                   {row.map((job, colIndex) => {
                     const flatIndex = rowIndex * CARDS_PER_ROW + colIndex;
                     const enriched = toEnrichedJob(job);
                     return (
                       // Tapping a card opens a read-only detail preview (guest
                       // mode). Phones have no hover state, so the whole card is
-                      // a plain tappable button. Apply/message/save are gated
-                      // inside the dialog behind a single sign-up CTA.
-                      <button
+                      // tappable. This is a <div role="button">, NOT a real
+                      // <button>: the JobPrice chip inside renders its own
+                      // <button> (tap-to-reveal earnings), and a <button> may
+                      // not nest inside a <button> (validateDOMNesting). The
+                      // role="button" + key handler give the same semantics
+                      // without the invalid nesting — matching the authed feed,
+                      // where JobCard's root is likewise a div role="button".
+                      <div
                         key={job.id}
-                        type="button"
-                        onClick={() => setDetailJob(enriched)}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openDetailJob(enriched)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            openDetailJob(enriched);
+                          }
+                        }}
                         aria-label={`View details for ${job.title}`}
-                        className="block w-full text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-in fade-in slide-in-from-bottom-2 duration-300"
+                        className="block w-full text-left rounded-2xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-in fade-in slide-in-from-bottom-2 duration-300"
                         style={
                           flatIndex < MAX_STAGGER_CARDS
                             ? { animationDelay: `${flatIndex * 40}ms`, animationFillMode: "both" }
@@ -331,13 +384,13 @@ const Jobs = () => {
                         <JobCard
                           job={enriched}
                           variant="guest"
-                          effectiveFee={10}
+                          effectiveFee={TIER_PERKS.free.platformFeePercent}
                           onApply={noop}
                           onReport={noop}
                           onSelect={noop}
                           index={flatIndex}
                         />
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -387,8 +440,8 @@ const Jobs = () => {
           <JobDetailDialog
             guest
             job={detailJob}
-            effectiveFee={10}
-            onClose={() => setDetailJob(null)}
+            effectiveFee={TIER_PERKS.free.platformFeePercent}
+            onClose={closeDetailJob}
             onApply={noop}
             onReport={noop}
           />

@@ -70,7 +70,7 @@ export function ProfileCompletionCard({
       done: hasPhoto,
       points: 25,
       action: "edit-profile",
-      hint: "Profiles with photos get 3× more offers",
+      hint: "A photo helps posters recognize and trust you",
       icon: <Camera className="w-3.5 h-3.5" />,
     },
     {
@@ -162,7 +162,7 @@ export function ProfileCompletionCard({
             </p>
             <p
               className="font-serif italic text-ds-11 mt-0.5"
-              style={{ color: "hsl(var(--olivewood) / 0.72)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Complete these to get more job offers
             </p>
@@ -232,7 +232,7 @@ export function ProfileCompletionCard({
               ) : (
                 <span
                   className="w-3 h-3 flex items-center justify-center"
-                  style={{ color: "hsl(var(--olivewood) / 0.50)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {item.icon}
                 </span>
@@ -245,7 +245,7 @@ export function ProfileCompletionCard({
                 className="text-ds-13 leading-tight font-medium"
                 style={{
                   color: item.done
-                    ? "hsl(var(--olivewood) / 0.50)"
+                    ? "hsl(var(--olivewood) / 0.8)"
                     : "hsl(var(--ink-deep))",
                   textDecoration: item.done ? "line-through" : "none",
                   textDecorationColor: "hsl(var(--olivewood) / 0.35)",
@@ -256,7 +256,7 @@ export function ProfileCompletionCard({
               {!item.done && (
                 <p
                   className="font-serif italic text-ds-11 mt-0.5 leading-tight"
-                  style={{ color: "hsl(var(--olivewood) / 0.60)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {item.hint}
                 </p>
@@ -279,7 +279,7 @@ export function ProfileCompletionCard({
               {!item.done && (
                 <ChevronRight
                   className="w-3.5 h-3.5"
-                  style={{ color: "hsl(var(--olivewood) / 0.40)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   strokeWidth={2.25}
                 />
               )}

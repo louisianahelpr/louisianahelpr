@@ -8,11 +8,9 @@ import {
   Briefcase,
   Check,
   Plus,
-  Search,
   Sparkles,
   Mic,
   GripVertical,
-  ShieldCheck,
   Award,
   BadgeCheck,
   Users2,
@@ -26,7 +24,7 @@ import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
-import { categoryTemplates } from "@/lib/postingTemplates";
+import { categoryTemplates, hasUnfilledPlaceholders } from "@/lib/postingTemplates";
 
 export const categories = [
   { value: "cleaning", label: "Cleaning" },
@@ -38,7 +36,7 @@ export const categories = [
   { value: "delivery", label: "Delivery" },
   { value: "pet_care", label: "Pet Care" },
   { value: "assembly", label: "Assembly" },
-  { value: "storm_prep", label: "Storm Prep" },
+  { value: "storm_prep", label: "Storm" },
   { value: "other", label: "Other" },
 ];
 
@@ -54,10 +52,12 @@ const CREDENTIAL_TIER_CATEGORIES = new Set([
   "assembly",
 ]);
 
-// The four tier options rendered in the "Who can apply?" segmented control.
+// The tier options rendered in the "Who can apply?" segmented control.
+// No "ID-Verified" tier: every helper accepted for a job is already
+// ID-verified, so it would never actually narrow the applicant pool.
+// The only meaningful gates for trade work are licensing and insurance.
 const CREDENTIAL_TIERS = [
   { value: 0, label: "Open", sub: "Anyone can apply", Icon: Users2 },
-  { value: 1, label: "ID-Verified", sub: "ID-verified helpers", Icon: ShieldCheck },
   { value: 2, label: "Licensed", sub: "Licensed pros only", Icon: Award },
   { value: 3, label: "Licensed + Insured", sub: "Licensed & insured", Icon: BadgeCheck },
 ] as const;
@@ -77,23 +77,6 @@ const titlePlaceholders: Record<string, string> = {
   assembly: "e.g. Assemble an IKEA wardrobe",
   storm_prep: "e.g. Board up windows before the storm",
   other: "e.g. Help me with a quick task",
-};
-
-// Per-category search aliases — common synonyms a poster might type
-// into the filter input. The category label itself is always matched
-// implicitly so this only carries the *additional* terms.
-const categorySearchAliases: Record<string, string[]> = {
-  cleaning: ["clean", "tidy", "housekeep", "maid", "vacuum", "mop", "dust"],
-  yard_work: ["yard", "lawn", "mow", "mowing", "garden", "landscape", "trim", "edge", "leaves", "rake"],
-  moving: ["move", "movers", "haul", "load", "lift", "furniture"],
-  errands: ["errand", "grocery", "shopping", "pickup", "pharmacy", "store"],
-  handyman: ["handy", "repair", "fix", "mount", "drill", "install"],
-  painting: ["paint", "wall", "color", "interior", "exterior", "roller"],
-  delivery: ["deliver", "drop off", "transport", "courier"],
-  pet_care: ["pet", "dog", "cat", "walk", "sit", "feed", "boarding"],
-  assembly: ["assemble", "ikea", "furniture", "build", "put together"],
-  storm_prep: ["storm", "hurricane", "flood", "board", "window", "shutter", "generator", "sandbag", "debris", "prep"],
-  other: ["misc", "other", "miscellaneous", "general"],
 };
 
 // Category-specific description prompts — tells the poster what detail
@@ -220,27 +203,22 @@ export function DetailsSection({
   });
   const startTitleDictation = dictation.start;
 
-  // Filter input for the category grid — speeds selection once the
-  // category list outgrows what fits comfortably in a single screen
-  // height. Matches against the label AND a small alias list so typing
-  // "lawn" hits Yard Work, "ikea" hits Assembly, etc.
-  const [categoryQuery, setCategoryQuery] = useState("");
-
   // Hurricane season: June–Nov (months 5–10, 0-indexed). Used to surface
   // the Storm Prep seasonal pick above the regular category grid.
   const isHurricaneSeason = useMemo(() => {
     const month = new Date().getMonth();
     return month >= 5 && month <= 10;
   }, []);
-  const visibleCategories = useMemo(() => {
-    const q = categoryQuery.trim().toLowerCase();
-    if (!q) return categories;
-    return categories.filter((c) => {
-      if (c.label.toLowerCase().includes(q)) return true;
-      const aliases = categorySearchAliases[c.value] ?? [];
-      return aliases.some((a) => a.toLowerCase().includes(q));
-    });
-  }, [categoryQuery]);
+  // During hurricane season the Storm pick lives in the seasonal banner
+  // above the grid, so drop its grid chip to avoid showing Storm twice;
+  // off-season it stays in the grid so the category is always reachable.
+  const visibleCategories = useMemo(
+    () =>
+      isHurricaneSeason
+        ? categories.filter((c) => c.value !== "storm_prep")
+        : categories,
+    [isHurricaneSeason],
+  );
 
   return (
     <SectionCard
@@ -278,43 +256,6 @@ export function DetailsSection({
             </button>
           )}
         </div>
-        {/* Filterable picker — search input above the grid. Matches the
-            category label OR a small alias list ("lawn" → Yard Work,
-            "ikea" → Assembly) so posters who don't see their exact
-            category at a glance can still jump to it in one tap. The
-            input is search-styled (role inferred from type="search")
-            so iOS shows the rounded magnifier-decorated keyboard. */}
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
-            style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-            aria-hidden
-          />
-          <Input
-            type="search"
-            value={categoryQuery}
-            onChange={(e) => setCategoryQuery(e.target.value)}
-            placeholder="Search categories"
-            aria-label="Search categories"
-            autoCorrect="off"
-            autoCapitalize="none"
-            className="pl-9 text-[14px]"
-          />
-          {categoryQuery && (
-            <button
-              type="button"
-              onClick={() => setCategoryQuery("")}
-              aria-label="Clear category search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full active:scale-90 transition-transform"
-            >
-              <X
-                className="w-3.5 h-3.5"
-                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
-                strokeWidth={2.5}
-              />
-            </button>
-          )}
-        </div>
         {/* Hurricane-season pick — only surfaces June–Nov.
             Appears above the grid so it's the first thing a poster sees
             during active season. Tapping it selects storm_prep just like
@@ -328,23 +269,23 @@ export function DetailsSection({
               setCategory("storm_prep");
             }}
             aria-pressed={category === "storm_prep"}
-            aria-label="Storm Prep — seasonal pick"
-            className="w-full rounded-ds-md p-2.5 flex items-center gap-2 transition-all active:scale-[0.97]"
-            style={{
-              background: category === "storm_prep" ? "hsl(210 25% 15% / 0.85)" : "hsl(210 25% 15% / 0.4)",
-              border: `0.5px solid hsl(210 25% 40% / ${category === "storm_prep" ? "0.7" : "0.3"})`,
-            }}
+            aria-label="Storm — seasonal pick"
+            className={`w-full rounded-ds-md p-2.5 flex items-center gap-2 transition-all active:scale-[0.97] border-[0.5px] ${
+              category === "storm_prep"
+                ? "bg-[hsl(210_35%_82%)] border-[hsl(210_30%_58%)] dark:bg-[hsl(210_30%_26%)] dark:border-[hsl(210_28%_46%)]"
+                : "bg-[hsl(210_30%_92%)] border-[hsl(210_24%_78%)] dark:bg-[hsl(210_28%_18%)] dark:border-[hsl(210_24%_32%)]"
+            }`}
           >
-            <CloudLightning className="w-4 h-4 shrink-0" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={2} />
-            <span className="font-display italic font-semibold text-ds-14 leading-tight" style={{ color: "hsl(210 30% 90%)" }}>
-              Storm Prep
+            <CloudLightning className="w-4 h-4 shrink-0 text-[hsl(210_45%_44%)] dark:text-[hsl(210_55%_70%)]" strokeWidth={2} />
+            <span className="font-display italic font-semibold text-ds-14 leading-tight text-[hsl(210_28%_36%)] dark:text-[hsl(210_32%_80%)]">
+              Storm
             </span>
             {category === "storm_prep" && (
-              <Check className="w-3.5 h-3.5 ml-1 shrink-0" style={{ color: "hsl(210 60% 70%)" }} strokeWidth={3} />
+              <Check className="w-3.5 h-3.5 ml-1 shrink-0 text-[hsl(210_45%_44%)] dark:text-[hsl(210_55%_70%)]" strokeWidth={3} />
             )}
             <span
-              className="ml-auto text-ds-10 font-sans font-semibold uppercase px-1.5 py-0.5 rounded-ds-sm shrink-0"
-              style={{ background: "hsl(210 60% 40% / 0.4)", color: "hsl(210 60% 80%)", letterSpacing: "0.06em" }}
+              className="ml-auto text-ds-10 font-sans font-semibold uppercase px-1.5 py-0.5 rounded-ds-sm shrink-0 bg-[hsl(210_42%_78%)] text-[hsl(210_38%_30%)] dark:bg-[hsl(210_45%_32%)] dark:text-[hsl(210_55%_84%)]"
+              style={{ letterSpacing: "0.06em" }}
             >
               In season
             </span>
@@ -357,19 +298,7 @@ export function DetailsSection({
             doesn't bury the Photos + later sections under one picker.
             Active chip keeps the brand-color ring + adds a check so
             the selection reads instantly. */}
-        <div id="category-picker" className="grid grid-cols-2 gap-2">
-          {visibleCategories.length === 0 && (
-            <div
-              className="col-span-2 px-3 py-3 rounded-xl text-center text-[0.78rem] font-serif italic"
-              style={{
-                color: "hsl(var(--olivewood) / 0.75)",
-                background: "hsl(var(--parchment) / 0.45)",
-                border: "0.5px dashed hsl(var(--olivewood) / 0.25)",
-              }}
-            >
-              No matches — try a broader term, or pick &ldquo;Other&rdquo;.
-            </div>
-          )}
+        <div id="category-picker" className="grid grid-cols-2 lg:grid-cols-3 gap-2">
           {visibleCategories.map((c) => {
             const colors = categoryColors[c.value];
             const active = category === c.value;
@@ -391,7 +320,7 @@ export function DetailsSection({
                 style={
                   active
                     ? {
-                        background: "hsl(var(--parchment) / 0.7)",
+                        background: "hsl(var(--card))",
                         border: "0.5px solid hsl(var(--bark) / 0.35)",
                         boxShadow:
                           "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
@@ -399,13 +328,17 @@ export function DetailsSection({
                           "0 6px 16px -4px hsl(var(--bark) / 0.22)",
                       }
                     : {
-                        // Inactive chip surface was nearly invisible on the
-                        // parchment page — bumped fill opacity AND raised
-                        // the olivewood border so unselected categories
-                        // read as a real, tappable choice instead of a ghost.
-                        background: "hsl(var(--parchment) / 0.7)",
-                        border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-                        boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+                        // These chips sit INSIDE the white Details card, not
+                        // on the page — so they must be RECESSED to read as
+                        // separate tiles. Fill with --parchment (the page /
+                        // recessed tone, always darker than --card in BOTH
+                        // themes: light 87% vs 98.5%, dark 9% vs 13%) so each
+                        // box visibly sinks below the card surface. Filling
+                        // with --card here paints the card's own colour
+                        // (white-on-white) and the boxes vanish.
+                        background: "hsl(var(--parchment))",
+                        border: "0.5px solid hsl(var(--border) / 0.7)",
+                        boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.3)",
                       }
                 }
               >
@@ -553,6 +486,14 @@ export function DetailsSection({
           maxLength={DESCRIPTION_MAX}
           autoCapitalize="sentences"
         />
+        {/* Placeholder guard — a template starter still carries "[…]"
+            fill-ins. Flag them inline so the poster swaps in real details
+            before the (now-disabled) submit button unlocks (LH-23). */}
+        {hasUnfilledPlaceholders(description) && (
+          <p className="text-[0.7rem] font-sans font-semibold leading-snug" style={{ color: "hsl(var(--destructive))" }}>
+            Replace the [bracketed] placeholders with your own details — they can't be posted as-is.
+          </p>
+        )}
         {/* Category-aware prompt — tells the poster exactly what a helpr
             needs to quote accurately. Vague posts get fewer applicants. */}
         <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
@@ -573,7 +514,7 @@ export function DetailsSection({
           return (
             <p
               className="text-[0.68rem] font-serif italic leading-snug"
-              style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Tip: {unmet.join(" · ")}
             </p>
@@ -634,7 +575,7 @@ export function DetailsSection({
                       style={{
                         color: active
                           ? "hsl(var(--bark))"
-                          : "hsl(var(--olivewood) / 0.6)",
+                          : "hsl(var(--olivewood) / 0.8)",
                       }}
                       strokeWidth={2.25}
                       aria-hidden
@@ -657,8 +598,8 @@ export function DetailsSection({
                       style={{
                         fontSize: "0.67rem",
                         color: active
-                          ? "hsl(var(--olivewood) / 0.75)"
-                          : "hsl(var(--olivewood) / 0.55)",
+                          ? "hsl(var(--olivewood) / 0.8)"
+                          : "hsl(var(--olivewood) / 0.8)",
                       }}
                     >
                       {sub}
@@ -733,7 +674,7 @@ export function DetailsSection({
                       <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover pointer-events-none" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
-                        <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+                        <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                       </div>
                     )}
                     {/* Per-image upload progress — bottom-edge bar. */}
@@ -836,7 +777,7 @@ export function DetailsSection({
                     <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
-                      <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.5)" }} />
+                      <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                     </div>
                   )}
                   {uploading && (
@@ -918,9 +859,9 @@ export function DetailsSection({
       {onVideoSelect && (
         <div className="mt-4">
           <p className="font-display italic font-semibold text-ds-14 mb-1" style={{ color: "hsl(var(--ink-deep))" }}>
-            Show them the job <span className="font-sans text-ds-11 not-italic font-normal" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>(optional)</span>
+            Show them the job <span className="font-sans text-ds-11 not-italic font-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>(optional)</span>
           </p>
-          <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             A short video of the space gets you more accurate quotes and fewer surprises.
           </p>
           {scopeVideoUrl ? (
@@ -944,7 +885,7 @@ export function DetailsSection({
               style={{ border: "1.5px dashed hsl(var(--bark) / 0.3)", background: "hsl(var(--bark) / 0.03)" }}
             >
               <Video className="w-6 h-6 mx-auto mb-1" style={{ color: "hsl(var(--bark) / 0.5)" }} />
-              <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+              <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Upload a video (30s max)
               </span>
               <input type="file" accept="video/*" className="hidden" onChange={onVideoSelect} />

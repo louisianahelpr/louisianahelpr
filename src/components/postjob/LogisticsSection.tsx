@@ -208,8 +208,19 @@ export function LogisticsSection({
             aria-label="State (Louisiana)"
             className="px-3 text-[14px] bg-muted/50 text-muted-foreground cursor-default"
           />
-          <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} inputMode="numeric" autoComplete="postal-code" aria-label="Zip code" className="px-3 text-[14px]" />
+          <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} inputMode="numeric" autoComplete="postal-code" aria-label="Zip code" aria-invalid={streetAddress.trim().length > 0 && !zipCode.trim()} className="px-3 text-[14px]" />
         </div>
+        {/* Address-gate hint — the submit button stays disabled until Zip is
+            filled, but the Zip sits to the side of the read-only State field,
+            so a poster who typed a street address could be silently blocked
+            with no idea why (LH-53). State is locked to LA, so Zip is the only
+            field a poster can still be missing here; name it inline using the
+            same error treatment as the description placeholder guard (LH-23). */}
+        {streetAddress.trim().length > 0 && !zipCode.trim() && (
+          <p className="text-[0.7rem] font-sans font-semibold leading-snug" style={{ color: "hsl(var(--destructive))" }}>
+            Add the zip code to continue.
+          </p>
+        )}
         {/* Parish is silently looked up from zip for Louisiana sales tax (admin-only). */}
         <p className="text-ds-11 text-muted-foreground flex items-center gap-1.5">
           <Shield className="w-3 h-3 shrink-0" />

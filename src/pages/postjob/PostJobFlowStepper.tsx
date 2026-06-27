@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { Fragment } from "react";
 import type { Step } from "./usePostJobForm";
 
 interface PostJobFlowStepperProps {
@@ -30,15 +31,15 @@ export function PostJobFlowStepper({ step }: PostJobFlowStepperProps) {
     <div
       role="group"
       aria-label={`Post a task — step ${activeIndex + 1} of ${FLOW.length}: ${FLOW[Math.max(activeIndex, 0)].label}`}
-      className="flex items-center"
+      className="flex w-full items-center"
     >
       {FLOW.map((s, i) => {
         const done = i < activeIndex;
         const active = i === activeIndex;
         return (
-          <div key={s.id} className="flex flex-1 items-center">
+          <Fragment key={s.id}>
             <div
-              className="flex min-h-[44px] items-center gap-1.5 pr-1"
+              className="flex min-h-[44px] shrink-0 items-center gap-1.5"
               aria-current={active ? "step" : undefined}
             >
               <span
@@ -57,7 +58,7 @@ export function PostJobFlowStepper({ step }: PostJobFlowStepperProps) {
                         }
                       : {
                           background: "hsla(0, 0%, 100%, 0.45)",
-                          color: "hsl(var(--olivewood) / 0.55)",
+                          color: "hsl(var(--olivewood) / 0.8)",
                           boxShadow: "inset 0 0 0 1px hsl(var(--olivewood) / 0.22)",
                         }
                 }
@@ -72,7 +73,7 @@ export function PostJobFlowStepper({ step }: PostJobFlowStepperProps) {
                     ? "hsl(var(--bark))"
                     : active
                       ? "hsl(var(--ink-deep))"
-                      : "hsl(var(--olivewood) / 0.5)",
+                      : "hsl(var(--olivewood) / 0.8)",
                 }}
               >
                 {s.label}
@@ -88,7 +89,7 @@ export function PostJobFlowStepper({ step }: PostJobFlowStepperProps) {
                 }}
               />
             )}
-          </div>
+          </Fragment>
         );
       })}
     </div>

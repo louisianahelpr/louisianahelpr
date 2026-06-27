@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,8 @@ import {
   ImagePlus,
   X,
   Loader2,
+  BookOpen,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -205,7 +208,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           <h1 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             Message sent
           </h1>
-          <p className="font-serif italic max-w-sm" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic max-w-sm" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Our team will review and get back to you soon.
           </p>
         </div>
@@ -245,12 +248,34 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                 {c.label}
               </p>
-              <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                 {c.description}
               </p>
             </button>
           ))}
         </div>
+      )}
+
+      {/* Self-serve KB — parity with the web footer's Help Center link so
+          app users can search the FAQ before opening a ticket (LH-46). */}
+      {!selected && (
+        <Link
+          to="/help"
+          className="flex items-center gap-3 rounded-2xl liquid-glass p-4 transition-all active:scale-[0.98] hover:-translate-y-0.5"
+        >
+          <div className="w-9 h-9 rounded-full flex items-center justify-center bg-primary/10 text-primary shrink-0">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+              Browse the Help Center
+            </p>
+            <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+              Search answers about jobs, payments, and your account
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        </Link>
       )}
 
       {selected && (

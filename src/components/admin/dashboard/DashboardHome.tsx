@@ -67,12 +67,12 @@ export const DashboardHome = ({
           Operations
         </span>
         <h1
-          className="font-display italic font-bold leading-tight mt-1"
+          className="font-display italic font-bold leading-tight mt-2"
           style={{ fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
         >
           Welcome back
         </h1>
-        <p className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+        <p className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           {hasAlerts ? "There are items needing attention today." : "Everything looks calm on the platform."}
         </p>
       </div>

@@ -40,7 +40,7 @@ export function unwrap<T>(result: { data: T; error: { message: string } | null }
  */
 export async function functionErrorMessage(
   error: unknown,
-  fallback = "Something went wrong. Please try again.",
+  fallback = "Couldn't complete that action — please try again.",
 ): Promise<string> {
   const ctx = (error as { context?: unknown } | null)?.context;
   if (ctx instanceof Response) {

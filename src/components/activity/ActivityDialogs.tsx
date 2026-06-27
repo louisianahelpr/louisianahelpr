@@ -98,7 +98,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       setRevisionNote("");
       props.onRevisionRequested();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to request revision");
+      toast.error(err instanceof Error ? err.message : "Couldn't request a revision — try again?");
     } finally {
       setRequestingRevision(false);
     }

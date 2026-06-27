@@ -11,6 +11,7 @@ import {
   Mail,
   MapPin,
   ChevronDown,
+  X,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -116,7 +117,7 @@ const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: "How do I get my first application accepted?",
-        a: "A complete profile (photo, bio, skills) gets 3× more views. Respond fast — posters notice quick turnaround.",
+        a: "A complete profile (photo, bio, skills) helps posters trust you faster. Respond fast — posters notice quick turnaround.",
       },
       {
         q: "When do I get paid?",
@@ -183,8 +184,8 @@ const FAQ_SECTIONS: FaqSection[] = [
 
 // ─── FaqAccordionItem ─────────────────────────────────────────────────────────
 
-const FaqAccordionItem = ({ q, a }: FaqItem) => {
-  const [open, setOpen] = useState(false);
+const FaqAccordionItem = ({ q, a, defaultOpen = false }: FaqItem & { defaultOpen?: boolean }) => {
+  const [open, setOpen] = useState(defaultOpen);
 
   return (
     <div
@@ -250,6 +251,27 @@ const LouisianaOutline = () => (
 
 const HelpCenter = () => {
   const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  // Client-side KB search: the whole knowledge base is the static
+  // FAQ_SECTIONS array, so we filter in-memory rather than round-trip a
+  // backend. A topic-name match surfaces the entire section (so clicking a
+  // topic card reads as "show me everything about X"); otherwise we match
+  // individual question/answer text.
+  const q = query.trim().toLowerCase();
+  const filteredSections = q
+    ? FAQ_SECTIONS.map((section) => {
+        const topicMatch = section.topic.toLowerCase().includes(q);
+        const items = topicMatch
+          ? section.items
+          : section.items.filter(
+              (i) => i.q.toLowerCase().includes(q) || i.a.toLowerCase().includes(q),
+            );
+        return { ...section, items };
+      }).filter((section) => section.items.length > 0)
+    : FAQ_SECTIONS;
+  const searching = q.length > 0;
+  const noResults = searching && filteredSections.length === 0;
 
   usePageMeta({
     title: "Help Center — Louisiana Helpr",
@@ -296,85 +318,111 @@ const HelpCenter = () => {
             How can we help?
           </h2>
 
-          {/* Decorative search input — visual only */}
+          {/* Functional KB search — filters FAQ_SECTIONS as you type */}
           <div
             className="flex items-center gap-3 rounded-ds-md px-4 py-3"
             style={{
               background: "hsl(var(--parchment) / 0.80)",
               border: "1px solid hsl(var(--olivewood) / 0.22)",
             }}
-            aria-hidden
           >
             <Search
               className="w-4 h-4 shrink-0"
-              style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               strokeWidth={1.75}
+              aria-hidden
             />
-            <span
-              className="font-sans text-ds-14"
-              style={{ color: "hsl(var(--olivewood) / 0.50)" }}
-            >
-              Search help articles...
-            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search help articles..."
+              aria-label="Search help articles"
+              className="flex-1 min-w-0 bg-transparent border-0 outline-none font-sans text-ds-14 placeholder:text-[hsl(var(--olivewood)/0.8)]"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            />
+            {searching && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="shrink-0 transition-opacity hover:opacity-70"
+              >
+                <X
+                  className="w-4 h-4"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  strokeWidth={1.75}
+                />
+              </button>
+            )}
           </div>
 
           <p
             className="font-sans text-ds-12"
-            style={{ color: "hsl(var(--olivewood) / 0.60)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Browse by topic below or scroll to popular questions.
+            {searching
+              ? noResults
+                ? "No matching articles — try different words or email us below."
+                : "Showing matching articles."
+              : "Browse by topic below or scroll to popular questions."}
           </p>
         </div>
 
-        {/* ── Topic cards grid ── */}
-        <section aria-labelledby="topics-heading">
-          <h2
-            id="topics-heading"
-            className="font-display italic font-semibold text-ds-18 mb-4"
-            style={{ color: "hsl(var(--ink-deep))" }}
-          >
-            Browse by topic
-          </h2>
+        {/* ── Topic cards grid (hidden while searching) ── */}
+        {!searching && (
+          <section aria-labelledby="topics-heading">
+            <h2
+              id="topics-heading"
+              className="font-display italic font-semibold text-ds-18 mb-4"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
+              Browse by topic
+            </h2>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {TOPICS.map(({ icon: Icon, label, desc, color, bg }) => (
-              <div
-                key={label}
-                className="rounded-xl p-4 space-y-2 cursor-default"
-                style={{
-                  background:
-                    "linear-gradient(135deg, hsl(var(--parchment) / 0.70) 0%, hsl(var(--parchment) / 0.40) 100%)",
-                  border: "1px solid hsl(var(--olivewood) / 0.12)",
-                  boxShadow:
-                    "inset 0 1px 0 hsl(255 100% 100% / 0.35), 0 1px 4px -1px hsl(var(--olivewood) / 0.08)",
-                }}
-              >
-                <div
-                  className="w-9 h-9 rounded-ds-sm flex items-center justify-center"
-                  style={{ background: bg }}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {TOPICS.map(({ icon: Icon, label, desc, color, bg }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setQuery(label)}
+                  aria-label={`Show ${label} articles`}
+                  className="text-left rounded-xl p-4 space-y-2 transition-transform active:scale-[0.98] hover:opacity-90"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(var(--parchment) / 0.70) 0%, hsl(var(--parchment) / 0.40) 100%)",
+                    border: "1px solid hsl(var(--olivewood) / 0.12)",
+                    boxShadow:
+                      "inset 0 1px 0 hsl(255 100% 100% / 0.35), 0 1px 4px -1px hsl(var(--olivewood) / 0.08)",
+                  }}
                 >
-                  <Icon
-                    className="w-4 h-4"
-                    style={{ color }}
-                    strokeWidth={1.75}
-                  />
-                </div>
-                <p
-                  className="font-sans font-semibold text-ds-13 leading-tight"
-                  style={{ color: "hsl(var(--ink-deep))" }}
-                >
-                  {label}
-                </p>
-                <p
-                  className="font-sans text-ds-11 leading-snug"
-                  style={{ color: "hsl(var(--olivewood))" }}
-                >
-                  {desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+                  <div
+                    className="w-9 h-9 rounded-ds-sm flex items-center justify-center"
+                    style={{ background: bg }}
+                  >
+                    <Icon
+                      className="w-4 h-4"
+                      style={{ color }}
+                      strokeWidth={1.75}
+                    />
+                  </div>
+                  <p
+                    className="font-sans font-semibold text-ds-13 leading-tight"
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  >
+                    {label}
+                  </p>
+                  <p
+                    className="font-sans text-ds-11 leading-snug"
+                    style={{ color: "hsl(var(--olivewood))" }}
+                  >
+                    {desc}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Popular questions accordion ── */}
         <section aria-labelledby="faq-heading">
@@ -383,41 +431,77 @@ const HelpCenter = () => {
             className="font-display italic font-semibold text-ds-18 mb-5"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
-            Popular questions
+            {searching ? "Matching articles" : "Popular questions"}
           </h2>
 
-          <div className="space-y-4">
-            {FAQ_SECTIONS.map((section) => (
-              <div
-                key={section.topic}
-                className="liquid-glass rounded-xl overflow-hidden"
+          {noResults ? (
+            <div
+              className="rounded-xl p-6 text-center space-y-1"
+              style={{
+                background: "hsl(var(--parchment) / 0.5)",
+                border: "1px solid hsl(var(--olivewood) / 0.14)",
+              }}
+            >
+              <p
+                className="font-sans font-semibold text-ds-14"
+                style={{ color: "hsl(var(--ink-deep))" }}
               >
-                {/* Topic header */}
-                <div
-                  className="px-5 py-3"
-                  style={{
-                    background:
-                      "linear-gradient(90deg, hsl(var(--parchment) / 0.55) 0%, transparent 100%)",
-                    borderBottom: "1px solid hsl(var(--olivewood) / 0.10)",
-                  }}
+                No results for &ldquo;{query.trim()}&rdquo;
+              </p>
+              <p
+                className="font-sans text-ds-12"
+                style={{ color: "hsl(var(--olivewood))" }}
+              >
+                Try a different word, or email{" "}
+                <a
+                  href="mailto:admin@louisianahelpr.com"
+                  className="font-semibold underline"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
                 >
-                  <p
-                    className="font-sans font-semibold uppercase text-[0.65rem] tracking-widest"
-                    style={{ color: "hsl(var(--burnt-sienna) / 0.80)" }}
+                  admin@louisianahelpr.com
+                </a>
+                .
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredSections.map((section) => (
+                <div
+                  key={section.topic}
+                  className="liquid-glass rounded-xl overflow-hidden"
+                >
+                  {/* Topic header */}
+                  <div
+                    className="px-5 py-3"
+                    style={{
+                      background:
+                        "linear-gradient(90deg, hsl(var(--parchment) / 0.55) 0%, transparent 100%)",
+                      borderBottom: "1px solid hsl(var(--olivewood) / 0.10)",
+                    }}
                   >
-                    {section.topic}
-                  </p>
-                </div>
+                    <p
+                      className="font-sans font-semibold uppercase text-[0.65rem] tracking-widest"
+                      style={{ color: "hsl(var(--burnt-sienna) / 0.80)" }}
+                    >
+                      {section.topic}
+                    </p>
+                  </div>
 
-                {/* Items */}
-                <div className="px-5">
-                  {section.items.map((item) => (
-                    <FaqAccordionItem key={item.q} q={item.q} a={item.a} />
-                  ))}
+                  {/* Items — auto-expand while searching so hits are visible */}
+                  <div className="px-5">
+                    {section.items.map((item) => (
+                      <FaqAccordionItem
+                        key={`${item.q}-${q}`}
+                        q={item.q}
+                        a={item.a}
+                        defaultOpen={searching}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ── Contact section ── */}
@@ -457,11 +541,11 @@ const HelpCenter = () => {
                 strokeWidth={1.75}
               />
               <a
-                href="mailto:support@louisianahelpr.com"
+                href="mailto:admin@louisianahelpr.com"
                 className="font-sans font-semibold text-ds-13 transition-opacity hover:opacity-75"
                 style={{ color: "hsl(var(--burnt-sienna))" }}
               >
-                support@louisianahelpr.com
+                admin@louisianahelpr.com
               </a>
             </div>
             <div className="flex items-center gap-2">
@@ -481,7 +565,7 @@ const HelpCenter = () => {
 
           <p
             className="font-serif italic text-ds-13 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             We review every message and aim to respond within one business day.
             For urgent safety or dispute concerns, flag it in the subject line.

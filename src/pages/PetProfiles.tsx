@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -192,7 +193,7 @@ function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormProps) {
                       color:
                         form.species === s.value
                           ? "hsl(var(--bark))"
-                          : "hsl(var(--olivewood) / 0.72)",
+                          : "hsl(var(--olivewood) / 0.8)",
                       border:
                         form.species === s.value
                           ? "1px solid hsl(var(--bark) / 0.35)"
@@ -492,7 +493,7 @@ const PetProfiles = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="My Pets" />
+      <PageHeader title="My Pets" showBrand rightSlot={<NotificationPanel />} />
 
       <div className="px-4 pt-4 space-y-3">
         {isLoading && (
@@ -519,7 +520,7 @@ const PetProfiles = () => {
             title="No pets yet"
             body="Add your pets' profiles so helpers know their needs."
             action={
-              <Button onClick={openAdd}>
+              <Button variant="outline" onClick={openAdd}>
                 <Plus className="w-4 h-4 mr-1" /> Add a pet
               </Button>
             }
@@ -684,16 +685,20 @@ const PetProfiles = () => {
           );
         })}
 
-        {/* Add button */}
-        <Button
-          className="w-full"
-          variant="outline"
-          size="lg"
-          onClick={openAdd}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add a pet
-        </Button>
+        {/* Add button — only when at least one pet exists. The empty
+            state already renders its own "Add a pet" CTA, so showing this
+            standalone one too would surface two identical CTAs at once. */}
+        {!!pets?.length && (
+          <Button
+            className="w-full"
+            variant="outline"
+            size="lg"
+            onClick={openAdd}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add a pet
+          </Button>
+        )}
 
         {/* Evacuation promo */}
         <div

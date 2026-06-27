@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { getHelperFeePercent } from "../_shared/helperFees.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -63,7 +64,13 @@ serve(async (req) => {
 
       const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
-      const jobHelperFeePercent = job.helper_fee_percent ?? 10;
+      // Resolve the helper's live subscription tier at payout time; fall back to
+      // the fee frozen on the job (or the legacy 10%) if the profile read fails.
+      const jobHelperFeePercent = await getHelperFeePercent(
+        supabaseAdmin,
+        job.helper_id,
+        job.helper_fee_percent ?? 10,
+      );
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
       let helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
 
@@ -202,6 +209,8 @@ serve(async (req) => {
 
         await supabaseAdmin.from("jobs").update({
           payment_status: "released",
+          helper_fee_percent: jobHelperFeePercent,
+          platform_fee_amount: Math.round(perHelperBudget * jobHelperFeePercent) / 100,
         }).eq("id", job.id);
 
         // Note: the onboarding-fee flag was already flipped atomically

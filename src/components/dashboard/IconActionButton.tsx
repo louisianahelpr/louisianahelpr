@@ -68,7 +68,7 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
       backdropFilter: "blur(20px) saturate(150%)",
       WebkitBackdropFilter: "blur(20px) saturate(150%)",
       border: pressed ? pressedBorder : "0.5px solid var(--glass-border)",
-      color: pressed ? pressedColor : "hsl(var(--olivewood) / 0.6)",
+      color: pressed ? pressedColor : "hsl(var(--olivewood) / 0.8)",
       boxShadow: RESTING_SHADOW,
       transition: "all 0.2s ease, box-shadow 0.3s ease",
       // Custom props consumed by the hover: utilities in className.

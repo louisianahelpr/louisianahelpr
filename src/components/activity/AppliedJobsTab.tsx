@@ -10,6 +10,7 @@ import { Briefcase } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { VirtualList } from "@/components/VirtualList";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { type Application, type AppliedApp, type Job } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
@@ -58,6 +59,10 @@ export const AppliedJobsTab = ({
   groupByStatus = false,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
+  // Wide browser desktop only (never native / phone-web): swap the
+  // window-virtualized flat list for a plain two-column grid so the
+  // per-status views match the sectioned view's desktop layout.
+  const isWebDesktop = useIsWebDesktop();
   const [disputeResponse, setDisputeResponse] = useState("");
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
@@ -88,10 +93,10 @@ export const AppliedJobsTab = ({
 
   const confirmWithdraw = useCallback(async () => {
     if (!withdrawTarget) return;
-    if (!withdrawReason) { hapticError(); toast.error("Pick a reason first"); return; }
+    if (!withdrawReason) { hapticError(); toast.error("Pick a reason to continue"); return; }
     if (withdrawReason === "other" && withdrawDetail.trim().length < 3) {
       hapticError();
-      toast.error("Add a short reason");
+      toast.error("Add a bit more detail");
       return;
     }
     const { appId, jobTitle, jobId } = withdrawTarget;
@@ -107,6 +112,7 @@ export const AppliedJobsTab = ({
       // Best-effort log — fire-and-forget, never blocks the toast.
       logWithdrawReason(appId, { reason: withdrawReason, detail: withdrawDetail }, jobId);
       toast.success(`Withdrawn from "${jobTitle}".`);
+      onRefresh();
     }
     setWithdrawingAppId(null);
     setWithdrawTarget(null);
@@ -115,7 +121,7 @@ export const AppliedJobsTab = ({
   }, [withdrawTarget, userId, withdrawReason, withdrawDetail]);
 
   const handleAddAttachment = useCallback(async (appId: string, jobId: string, currentUrls: string[], file: File) => {
-    if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("That file's too large — keep it under 5 MB"); return; }
     setUploadingAttachment(appId);
     const ext = file.name.split('.').pop();
     const path = `${userId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -229,6 +235,12 @@ export const AppliedJobsTab = ({
       renderItem={renderAppliedCard}
       labels={{ cancelled: "Closed" }}
     />
+  ) : isWebDesktop ? (
+    <div className="ds-activity-grid">
+      {apps.map((app) => (
+        <div key={app.id}>{renderAppliedCard(app)}</div>
+      ))}
+    </div>
   ) : (
     <VirtualList
       items={apps}

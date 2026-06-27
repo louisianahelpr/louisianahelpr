@@ -32,11 +32,22 @@ export async function fetchAnalytics(userId: string) {
       .select("rating, created_at")
       .eq("reviewee_id", userId)
       .order("created_at", { ascending: false }),
-    // Platform-wide benchmarks (PGRST202 silently ignored — fallback values used).
-    (supabase.rpc as any)("get_platform_benchmarks"),
-    // Repeat hire percent — PGRST202 silently ignored (card hidden on error or < 3 jobs).
-    (supabase.rpc as any)("get_user_repeat_hire_percent", { p_user_id: userId }),
-    // Profile view count — PGRST202 silently falls back to 0 if not yet deployed.
+    // Platform-wide benchmarks — fallback values used on any failure. The
+    // .catch() matters: an optional RPC that *rejects* (transport error, or a
+    // Postgres exception inside the function) would otherwise fail the whole
+    // Promise.all and brick the page with the error state. Normalizing the
+    // rejection into the resolved {error} shape routes it through the existing
+    // per-card fallback instead.
+    (supabase.rpc as any)("get_platform_benchmarks").catch(() => ({
+      data: null,
+      error: { code: "PGRST202" },
+    })),
+    // Repeat hire percent — card hidden on error or < 3 jobs.
+    (supabase.rpc as any)("get_user_repeat_hire_percent", { p_user_id: userId }).catch(() => ({
+      data: null,
+      error: { code: "PGRST202" },
+    })),
+    // Profile view count — falls back to 0 if not yet deployed or on failure.
     (supabase.rpc as any)("get_monthly_profile_view_count", { p_user_id: userId })
       .catch(() => ({ data: null, error: { code: "PGRST202" } })),
   ]);

@@ -51,9 +51,9 @@ export function EscrowFlowExplainer() {
         {[
           {
             icon: Lock,
-            label: "Held safely in escrow",
+            label: "Held securely until you approve",
             body:
-              "When you pay, Stripe holds the full amount in a protected escrow account — your helpr can't withdraw it yet.",
+              "When you pay, Stripe holds the full amount in a protected account — your helpr can't withdraw it yet.",
           },
           {
             icon: CheckCircle2,
@@ -115,7 +115,7 @@ export function EscrowFlowExplainer() {
 
       <p
         className="text-ds-11 font-serif italic leading-snug pt-1"
-        style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         If the job isn&apos;t completed, the held payment is refunded to
         your original payment method.

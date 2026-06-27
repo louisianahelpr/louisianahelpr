@@ -104,7 +104,7 @@ const SignupPending = () => {
           <h1 className="text-page-title leading-tight mt-1">
             Check your inbox.
           </h1>
-          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             We've sent a verification link to your email. Click it to confirm your account.
           </p>
         </div>
@@ -121,7 +121,7 @@ const SignupPending = () => {
             {stepIcon(MailCheck)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Verify your email</p>
-              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Click the link in your inbox to confirm your email address.
               </p>
             </div>
@@ -131,7 +131,7 @@ const SignupPending = () => {
             {stepIcon(LogIn)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Sign in</p>
-              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Come back and log in with the email and password you just set.
               </p>
             </div>
@@ -141,7 +141,7 @@ const SignupPending = () => {
             {stepIcon(Sparkles)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
-              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 You're all set — post tasks and accept jobs the moment you're in.
               </p>
             </div>
@@ -160,7 +160,7 @@ const SignupPending = () => {
             </button>
           ) : (
             <div className="space-y-3">
-              <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {prefillEmail ? "Confirm your email to resend the verification link:" : "Enter your email to resend the verification link:"}
               </p>
               <div className="relative">
@@ -175,7 +175,7 @@ const SignupPending = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className={`${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.7)]`}
+                  className={`${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
                 />
                 {emailValid && (
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -203,7 +203,7 @@ const SignupPending = () => {
               <Link
                 to="/signup"
                 className="block text-center text-ds-11 font-sans hover:underline pt-1 inline-flex items-center justify-center gap-1"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 <ArrowLeft className="w-4 h-4" aria-hidden /> Wrong address? Start over
               </Link>
@@ -212,7 +212,7 @@ const SignupPending = () => {
         </div>
       </div>
 
-      <p className="text-center text-ds-11 font-sans pt-5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+      <p className="text-center text-ds-11 font-sans pt-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Already verified?{" "}
         <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
           Sign in

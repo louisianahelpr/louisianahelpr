@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
+import { PenLine, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
 import { sampleJobs } from "@/data/sampleJobs";
 import { useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryColors } from "@/components/activity/activityConstants";
+import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { formatPrice } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 
@@ -42,10 +43,13 @@ function shortRelativeDate(iso: string): string {
  * Purely presentational — all transitions/handlers come from usePostJobForm.
  */
 export function EntryChoice({ form }: EntryChoiceProps) {
-  // A small, curated set of quick-start templates so the user can pre-fill
-  // in one tap without first entering the form. Drawn from the shared
-  // sampleJobs data (the same source the in-form template row uses).
+  // Quick-start templates pre-fill the form in one tap. We show the first
+  // four by default and reveal the rest on "Show all" — the full set now
+  // lives entirely on this entry step (the in-form template picker was
+  // removed), so there's no longer a link that pushed into an empty form.
   const quickTemplates = sampleJobs.slice(0, 4);
+  const [showAllTemplates, setShowAllTemplates] = useState(false);
+  const visibleTemplates = showAllTemplates ? sampleJobs : quickTemplates;
 
   // Last 3 jobs this poster has created — shown as "Repost" tiles so a
   // returning user can spin up a near-duplicate request in one tap. The
@@ -82,7 +86,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
           aria-hidden
         >
-          <Sparkles className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+          <PenLine className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
         </span>
         <span className="min-w-0 flex-1">
           <span
@@ -91,11 +95,11 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           >
             Start fresh
           </span>
-          <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Build your request from a blank form.
           </span>
         </span>
-        <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.5)" }} aria-hidden />
+        <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden />
       </button>
 
       {/* 2 — LOAD DRAFT (only when a saved draft exists) */}
@@ -119,11 +123,11 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             >
               Pick up your draft
             </span>
-            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Continue the request you saved earlier.
             </span>
           </span>
-          <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.5)" }} aria-hidden />
+          <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden />
         </button>
       )}
 
@@ -150,13 +154,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               >
                 Repost a recent task
               </span>
-              <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Quickest way to ask for the same help again.
               </span>
             </span>
             <ChevronDown
               className="w-5 h-5 shrink-0 transition-transform duration-200"
-              style={{ color: "hsl(var(--olivewood) / 0.5)", transform: repostOpen ? "rotate(180deg)" : undefined }}
+              style={{ color: "hsl(var(--olivewood) / 0.8)", transform: repostOpen ? "rotate(180deg)" : undefined }}
               aria-hidden
             />
           </button>
@@ -200,14 +204,14 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                         </span>
                         <span
                           className="block font-serif italic mt-0.5 text-ds-11 tabular-nums"
-                          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                         >
                           {shortRelativeDate(job.created_at)} · ${formatPrice(job.budget)}
                         </span>
                       </span>
                       <ChevronRight
                         className="w-4 h-4 shrink-0"
-                        style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                         aria-hidden
                       />
                     </button>
@@ -241,13 +245,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             >
               Use a template
             </span>
-            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Start from a common task and tweak the details.
             </span>
           </span>
           <ChevronDown
             className="w-5 h-5 shrink-0 transition-transform duration-200"
-            style={{ color: "hsl(var(--olivewood) / 0.5)", transform: templatesOpen ? "rotate(180deg)" : undefined }}
+            style={{ color: "hsl(var(--olivewood) / 0.8)", transform: templatesOpen ? "rotate(180deg)" : undefined }}
             aria-hidden
           />
         </button>
@@ -256,7 +260,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           <>
             {/* Quick-start template cards — one tap pre-fills the form. */}
             <div className="grid grid-cols-2 gap-2.5 mt-3">
-              {quickTemplates.map((sample) => (
+              {visibleTemplates.map((sample) => (
                 <button
                   key={sample.id}
                   type="button"
@@ -287,7 +291,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                   </p>
                   <p
                     className="font-serif italic mt-1 text-ds-11 tabular-nums"
-                    style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     typical ${sample.typical_price} · ~
                     {sample.typical_duration_minutes < 60
@@ -298,17 +302,33 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               ))}
             </div>
 
-            <button
-              type="button"
-              onClick={() => form.useTemplate()}
-              className="mt-3 text-ds-11 font-sans font-semibold active:scale-95 transition-transform"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Browse all templates in the form →
-            </button>
+            {sampleJobs.length > quickTemplates.length && (
+              <button
+                type="button"
+                onClick={() => setShowAllTemplates((v) => !v)}
+                aria-expanded={showAllTemplates}
+                className="mt-3 text-ds-11 font-sans font-semibold active:scale-95 transition-transform"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                {showAllTemplates
+                  ? "Show fewer"
+                  : `Show all ${sampleJobs.length} templates`}
+              </button>
+            )}
           </>
         )}
       </div>
+
+      {/* 5 — AI JOB BUILDER (self-contained collapsible card). Lives on the
+          entry step so all the "ways to start a post" sit together; once it
+          generates fields we advance into the form to review them. */}
+      <AiJobBuilder
+        locationContext=""
+        onGenerated={(job) => {
+          form.applyAiJob(job);
+          form.setStep("form");
+        }}
+      />
     </div>
   );
 }

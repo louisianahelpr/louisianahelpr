@@ -151,7 +151,7 @@ export const ProfileHeaderCard = ({
         {profile.location && (
           <p
             className="font-serif italic flex items-center justify-center gap-1 mt-0.5"
-            style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.75)" }}
+            style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
             <MapPin className="w-3 h-3" />{profile.location}
           </p>
@@ -165,15 +165,15 @@ export const ProfileHeaderCard = ({
             className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full text-ds-11"
             style={{
               background: lastActiveLabel.isLive
-                ? "hsl(140 50% 38% / 0.10)"
+                ? "hsl(var(--live) / 0.10)"
                 : "hsl(var(--olivewood) / 0.08)",
               border: `0.5px solid ${
                 lastActiveLabel.isLive
-                  ? "hsl(140 50% 38% / 0.35)"
+                  ? "hsl(var(--live) / 0.35)"
                   : "hsl(var(--olivewood) / 0.20)"
               }`,
               color: lastActiveLabel.isLive
-                ? "hsl(140 60% 28%)"
+                ? "hsl(var(--live))"
                 : "hsl(var(--olivewood))",
             }}
           >
@@ -181,10 +181,10 @@ export const ProfileHeaderCard = ({
               className="w-1.5 h-1.5 rounded-full"
               style={{
                 background: lastActiveLabel.isLive
-                  ? "hsl(140 60% 42%)"
-                  : "hsl(var(--olivewood) / 0.65)",
+                  ? "hsl(var(--live))"
+                  : "hsl(var(--olivewood) / 0.8)",
                 boxShadow: lastActiveLabel.isLive
-                  ? "0 0 0 3px hsl(140 60% 42% / 0.18)"
+                  ? "0 0 0 3px hsl(var(--live) / 0.18)"
                   : "none",
               }}
               aria-hidden
@@ -216,7 +216,7 @@ export const ProfileHeaderCard = ({
         )}
         {/* Response Metrics inline */}
         {responseMetrics.totalApplications > 0 && (
-          <div className="flex items-center justify-center gap-3 mt-2 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <div className="flex items-center justify-center gap-3 mt-2 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {responseMetrics.avgResponseHours !== null && (
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
@@ -252,7 +252,7 @@ export const ProfileHeaderCard = ({
             Skipped silently when the schema doesn't yield a usable
             signal (no arrived_at timestamps recorded yet). */}
         {(onTimeArrivalRate !== null || revisionFrequency !== null) && (
-          <div className="flex items-center justify-center gap-3 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <div className="flex items-center justify-center gap-3 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {onTimeArrivalRate !== null && (
               <span className="flex items-center gap-1">
                 <Timer className="w-3 h-3" />
@@ -345,7 +345,7 @@ export const ProfileHeaderCard = ({
           }
           if (jobsNearbyCount === null) return null;
           return (
-            <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            <div className="mt-1.5 flex items-center justify-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               <MapPin className="w-3 h-3" />
               <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
                 {jobsNearbyCount}
@@ -360,7 +360,7 @@ export const ProfileHeaderCard = ({
             rate". Color shifts olive→amber→sienna at 5%/15% so the
             signal degrades gracefully rather than feeling punitive. */}
         {cancellationRate.rate !== null && (
-          <div className="flex items-center justify-center gap-1 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          <div className="flex items-center justify-center gap-1 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             <span
               className="font-display italic font-bold tabular-nums"
               style={{
@@ -375,7 +375,7 @@ export const ProfileHeaderCard = ({
               {cancellationRate.rate.toFixed(0)}%
             </span>
             <span>cancel rate</span>
-            <span style={{ color: "hsl(var(--olivewood) / 0.45)" }}>· {cancellationRate.cancelled}/{cancellationRate.total} jobs</span>
+            <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>· {cancellationRate.cancelled}/{cancellationRate.total} jobs</span>
           </div>
         )}
         {/* "No disputes on record" trust signal — shown only when
@@ -388,7 +388,7 @@ export const ProfileHeaderCard = ({
           <div className="flex items-center justify-center mt-1.5">
             <span
               className="font-serif italic"
-              style={{ fontSize: "0.78rem", color: "hsl(155 50% 35%)" }}
+              style={{ fontSize: "0.78rem", color: "hsl(var(--success-ink))" }}
             >
               ✓ No disputes on record
             </span>
@@ -399,7 +399,7 @@ export const ProfileHeaderCard = ({
           <div className="flex items-center justify-center mt-1.5">
             <span
               className="inline-flex items-center gap-1 font-serif italic"
-              style={{ fontSize: "0.78rem", color: "hsl(278 22% 48%)" }}
+              style={{ fontSize: "0.78rem", color: "hsl(var(--petcare-ink))" }}
             >
               <ClipboardList className="w-3 h-3" />
               Cared for {petCareSignal.distinctPets} {petCareSignal.distinctPets === 1 ? "pet" : "pets"} · {petCareSignal.reportCount} {petCareSignal.reportCount === 1 ? "report" : "reports"} sent
@@ -407,7 +407,7 @@ export const ProfileHeaderCard = ({
           </div>
         )}
         {profile.phone && (
-          <p className="font-serif italic mt-1.5 flex items-center justify-center gap-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.7)" }}>
+          <p className="font-serif italic mt-1.5 flex items-center justify-center gap-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
             <Phone className="w-3 h-3" />{profile.phone}
           </p>
         )}
@@ -459,7 +459,7 @@ export const ProfileHeaderCard = ({
               deployed (PGRST202 returns null from the query). */}
           {hasSubmittedCredentials && (
             <span
-              className="inline-flex items-center rounded-full font-medium border bg-amber-50 text-amber-700 border-amber-300/50 text-ds-11 px-2.5 py-1 gap-1"
+              className="inline-flex items-center rounded-full font-medium border bg-amber-50 text-amber-700 border-amber-300/50 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30 text-ds-11 px-2.5 py-1 gap-1"
               title="Credential submitted — verification in progress"
             >
               <Clock className="w-3.5 h-3.5" />

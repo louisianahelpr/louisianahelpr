@@ -12,6 +12,7 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { VirtualList } from "@/components/VirtualList";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
@@ -203,6 +204,10 @@ export const PostedJobsTab = ({
   onActionComplete, groupByStatus = false,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
+  // Wide browser desktop only (never native / phone-web): swap the
+  // window-virtualized flat list for a plain two-column grid so the
+  // per-status views match the sectioned view's desktop layout.
+  const isWebDesktop = useIsWebDesktop();
 
   // Sort order for the applicants comparison panel.
   // "recommended" = multi-factor score desc (default)
@@ -629,27 +634,6 @@ export const PostedJobsTab = ({
     }
   }, [expandedJobId]);
 
-  // Aggregate stats for the at-a-glance summary strip — computed once
-  // from the full (unfiltered) jobs array so the numbers reflect the
-  // poster's total history, not just the current filter view.
-  const posterStats = useMemo(() => {
-    const postedTotal = jobs.length;
-    const completedTotal = jobs.filter((j) => j.status === "completed").length;
-    const cancelledTotal = jobs.filter((j) => j.status === "cancelled").length;
-    const activeTotal = jobs.filter((j) =>
-      ["open", "accepted", "in_progress"].includes(j.status),
-    ).length;
-    const finishedTotal = postedTotal - activeTotal;
-    const completionRate =
-      finishedTotal > 0
-        ? Math.round((completedTotal / finishedTotal) * 100)
-        : null;
-    const totalSpent = jobs
-      .filter((j) => j.status === "completed")
-      .reduce((sum, j) => sum + (j.budget ?? 0), 0);
-    return { postedTotal, completedTotal, cancelledTotal, activeTotal, completionRate, totalSpent };
-  }, [jobs]);
-
   // Filter the incoming jobs through the dismissed set so a previously
   // hidden cancelled job stays hidden across re-renders. Cancelled jobs
   // are the only ones that can be dismissed; a non-cancelled job in the
@@ -732,7 +716,7 @@ export const PostedJobsTab = ({
         body="Post your first task and we'll match you with ID-verified Louisiana helprs nearby."
         action={
           <Button onClick={() => navigate("/post-job")} className="rounded-ds-md btn-press">
-            <Wrench className="w-4 h-4 mr-1.5" /> Post a job
+            <Wrench className="w-4 h-4 mr-1.5" /> Post a task
           </Button>
         }
       />
@@ -759,6 +743,12 @@ export const PostedJobsTab = ({
       title="No matches in this view"
       body="Nothing here fits that filter yet — try a different status from the filter button to see more."
     />
+  ) : isWebDesktop ? (
+    <div className="ds-activity-grid">
+      {visibleJobs.map((job) => (
+        <div key={job.id}>{renderJobCard(job)}</div>
+      ))}
+    </div>
   ) : (
     <VirtualList
       items={visibleJobs}
@@ -773,51 +763,6 @@ export const PostedJobsTab = ({
 
   return (
     <div className="space-y-4">
-      {/* Aggregate stats summary strip — visible whenever there are posts.
-          Scrolls horizontally on narrow screens; chips snap to the start
-          edge so partial reveal cues the user to scroll further. */}
-      {jobs.length > 0 && (
-        <div
-          className="flex gap-3 overflow-x-auto pb-0.5 no-scrollbar -mx-1 px-1"
-          style={{ scrollSnapType: "x mandatory" }}
-        >
-          {[
-            { label: "Posted", value: posterStats.postedTotal.toString() },
-            { label: "Completed", value: posterStats.completedTotal.toString() },
-            posterStats.completionRate !== null
-              ? { label: "Done rate", value: `${posterStats.completionRate}%` }
-              : null,
-            posterStats.totalSpent > 0
-              ? { label: "Total spent", value: `$${posterStats.totalSpent.toFixed(0)}` }
-              : null,
-            posterStats.activeTotal > 0
-              ? { label: "Active", value: posterStats.activeTotal.toString() }
-              : null,
-          ]
-            .filter((s): s is { label: string; value: string } => s !== null)
-            .map((stat) => (
-              <div
-                key={stat.label}
-                className="shrink-0 rounded-ds-md px-3 py-2 text-center"
-                style={{
-                  background: "hsl(var(--parchment) / 0.5)",
-                  border: "1px solid hsl(var(--olivewood) / 0.1)",
-                  scrollSnapAlign: "start",
-                  minWidth: "5.5rem",
-                }}
-              >
-                <p
-                  className="text-ds-17 font-bold leading-none"
-                  style={{ color: "hsl(var(--ink-deep))" }}
-                >
-                  {stat.value}
-                </p>
-                <p className="text-ds-11 mt-0.5 text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
-        </div>
-      )}
-
       {listView}
 
       {/* Sticky bottom bulk-dismiss bar — surfaces only in selection
@@ -1234,7 +1179,7 @@ export const PostedJobsTab = ({
                                         className="flex items-center gap-1.5 mt-1 w-full"
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        <span className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>$</span>
+                                        <span className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>$</span>
                                         <input
                                           type="number"
                                           min="1"
@@ -1301,11 +1246,11 @@ export const PostedJobsTab = ({
                               {(bidApp.stake_amount ?? 0) > 0 && (
                                 <span
                                   className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
-                                  style={{ color: "hsl(155 50% 35%)" }}
+                                  style={{ color: "hsl(var(--pif-tint))" }}
                                 >
                                   <span
                                     className="w-1.5 h-1.5 rounded-full shrink-0"
-                                    style={{ background: "hsl(155 50% 35%)" }}
+                                    style={{ background: "hsl(var(--pif-tint))" }}
                                     aria-hidden="true"
                                   />
                                   ${bidApp.stake_amount} staked
@@ -1367,7 +1312,7 @@ export const PostedJobsTab = ({
                               </span>
                             )}
                             {app.status === "rejected" && (
-                              <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.7)]">
+                              <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.8)]">
                                 <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--olivewood)/0.7)]" aria-hidden="true" />
                                 Declined
                               </span>
@@ -1407,6 +1352,7 @@ export const PostedJobsTab = ({
                               <div className="flex gap-2 items-start">
                                 <textarea
                                   autoFocus
+                                  aria-label="Private note"
                                   value={noteDraft}
                                   onChange={(e) => setNoteDraft(e.target.value)}
                                   onKeyDown={(e) => {
@@ -1488,7 +1434,7 @@ export const PostedJobsTab = ({
                     Decline applicant
                   </p>
                   <h2
-                    className="font-display italic font-bold leading-tight mt-1"
+                    className="font-display italic font-bold leading-tight mt-2"
                     style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
                   >
                     Decline {targetName}?
@@ -1499,7 +1445,7 @@ export const PostedJobsTab = ({
                 <div role="group" aria-label="Decline reason">
                   <p
                     className="font-serif italic mb-2"
-                    style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.7)" }}
+                    style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Choose a reason (optional)
                   </p>
@@ -1549,7 +1495,7 @@ export const PostedJobsTab = ({
                     maxLength={DECLINE_NOTE_MAX}
                     placeholder="The helper will see this as a notification…"
                     rows={2}
-                    className="rounded-ds-md bg-white/60 border-border/60 focus-visible:bg-white focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed resize-none"
+                    className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed resize-none"
                   />
                   <p
                     className="text-ds-11 text-right tabular-nums"

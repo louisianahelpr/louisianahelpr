@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { isDesktopRailRoute } from "@/components/DesktopSidebarNav";
+import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 
 /**
  * Routes that use document-scroll (long-form content, SEO landing pages).

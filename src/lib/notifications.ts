@@ -74,7 +74,11 @@ function notifyAdminsOfEmailFailure(targetUserId: string, emailTitle: string, er
     .from("user_roles")
     .select("user_id")
     .eq("role", "admin")
-    .then(({ data: admins }) => {
+    .then(({ data: admins, error }) => {
+      if (error) {
+        report(error, { severity: "warning", tags: { source: "notifyAdminsOfEmailFailure.query" } });
+        return;
+      }
       if (!admins?.length) return;
       for (const admin of admins) {
         supabase.functions.invoke("create-notification", {
@@ -89,8 +93,5 @@ function notifyAdminsOfEmailFailure(targetUserId: string, emailTitle: string, er
           report(err, { severity: "warning", tags: { source: "notifyAdminsOfEmailFailure" } });
         });
       }
-    })
-    .catch((err) => {
-      report(err, { severity: "warning", tags: { source: "notifyAdminsOfEmailFailure.query" } });
     });
 }

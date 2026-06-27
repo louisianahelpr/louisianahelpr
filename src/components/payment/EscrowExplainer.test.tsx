@@ -43,7 +43,7 @@ describe("EscrowExplainer suppression logic", () => {
     expect(localStorage.getItem(ESCROW_EXPLAINER_SEEN_KEY)).toBeNull();
     render(<EscrowExplainer />);
     // Radix renders open content into a portal; query by the tooltip body.
-    expect(screen.getByText(/held securely/i)).toBeInTheDocument();
+    expect(screen.getByText(/your payment is held securely/i)).toBeInTheDocument();
   });
 
   it("stamps localStorage once the popover has been seen", () => {
@@ -64,7 +64,7 @@ describe("EscrowExplainer suppression logic", () => {
       screen.getByText("Held securely until complete"),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(/held securely/i),
+      screen.queryByText(/your payment is held securely/i),
     ).not.toBeInTheDocument();
   });
 

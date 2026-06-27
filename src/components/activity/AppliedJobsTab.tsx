@@ -112,6 +112,7 @@ export const AppliedJobsTab = ({
       // Best-effort log — fire-and-forget, never blocks the toast.
       logWithdrawReason(appId, { reason: withdrawReason, detail: withdrawDetail }, jobId);
       toast.success(`Withdrawn from "${jobTitle}".`);
+      onRefresh();
     }
     setWithdrawingAppId(null);
     setWithdrawTarget(null);

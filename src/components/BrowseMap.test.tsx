@@ -21,6 +21,23 @@ const rpcResolver = { value: [] as Array<Record<string, unknown>> };
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: vi.fn(() => Promise.resolve({ data: rpcResolver.value, error: null })),
+    // BrowseMap also reads the total open-jobs count via
+    // `supabase.from("open_jobs_browse").select(...).neq(...).then(...)`
+    // to populate the "N of M" denominator. The chain returns a thenable
+    // that resolves with `{ count, error }` so .then() callers don't crash.
+    from: vi.fn(() => {
+      const result = { count: rpcResolver.value.length, error: null };
+      const chain: {
+        select: () => typeof chain;
+        neq: () => typeof chain;
+        then: (resolve: (v: typeof result) => unknown) => Promise<unknown>;
+      } = {
+        select: vi.fn(() => chain),
+        neq: vi.fn(() => chain),
+        then: (resolve) => Promise.resolve(resolve(result)),
+      };
+      return chain;
+    }),
   },
 }));
 

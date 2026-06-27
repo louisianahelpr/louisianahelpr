@@ -123,7 +123,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <SectionHeading>The task</SectionHeading>
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Title</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
+              <Input aria-label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
             </div>
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Description</Label>
@@ -145,7 +145,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <SectionHeading>When &amp; where</SectionHeading>
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Location</Label>
-              <Input value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
+              <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">

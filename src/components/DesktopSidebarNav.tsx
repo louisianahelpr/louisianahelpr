@@ -17,6 +17,8 @@ import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
+import { AUTH_PREFIXES, NO_NAV_PREFIXES, isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+export { AUTH_PREFIXES, NO_NAV_PREFIXES, isDesktopRailRoute };
 
 /**
  * DesktopSidebarNav — the persistent left-rail navigation shown ONLY on the
@@ -50,27 +52,6 @@ const NAV_ITEMS: Array<{
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" },
   { path: "/profile", icon: User, label: "Profile" },
 ];
-
-// Routes where the signed-in app chrome (and therefore this rail) should show.
-// Mirrors MobileNav's `authPages` allow-list so the rail tracks the same
-// surfaces. Kept deliberately broad — the CSS class `web-desktop` already
-// constrains us to the desktop website.
-export const AUTH_PREFIXES = [
-  "/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile",
-  "/messages", "/support", "/schedule", "/availability", "/user", "/earnings",
-  "/jobs", "/browse", "/job-history", "/saved-helpers", "/community",
-];
-export const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin"];
-
-/**
- * True when the desktop sidebar rail owns navigation for `pathname` — i.e. a
- * route the rail covers and isn't explicitly excluded. The marketing Navbar
- * uses this to step aside on those routes so the two navs never stack.
- */
-export function isDesktopRailRoute(pathname: string) {
-  if (NO_NAV_PREFIXES.some((p) => pathname.startsWith(p))) return false;
-  return AUTH_PREFIXES.some((p) => pathname.startsWith(p));
-}
 
 export function useIsWebDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);

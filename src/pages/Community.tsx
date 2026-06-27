@@ -11,7 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { hapticLight, hapticSuccess } from "@/lib/haptics";
+import { hapticError, hapticLight, hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -597,6 +597,8 @@ const Community = () => {
     },
     onError: (err: any) => {
       report(err, { tags: { source: "Community.likeMutation" } });
+      hapticError();
+      toast.error("Couldn't like this post — please try again.");
     },
     onSettled: () => setLikingId(null),
   });

@@ -158,8 +158,9 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
               <button
                 type="button"
                 aria-label={`Remove ${skill.skill}`}
+                disabled={removeMutation.isPending}
                 onClick={() => { hapticLight(); removeMutation.mutate(skill.id); }}
-                className="ml-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
+                className="ml-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity active:opacity-60 disabled:opacity-40"
                 style={{ background: "hsl(var(--bark) / 0.16)" }}
               >
                 <X className="w-2.5 h-2.5" strokeWidth={2.5} />

@@ -15,7 +15,6 @@
  */
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -154,7 +153,7 @@ export function useNativePushSetup() {
         // while the app is in the foreground, so surface an in-app toast —
         // otherwise an actively-browsing user gets no signal on a new
         // message / job match. Tapping routes to the link in the payload.
-        await PushNotifications.addListener("pushNotificationReceived", (notification) => {
+        await PushNotifications.addListener("pushNotificationReceived", async (notification) => {
           track(AhaEvent.PushReceivedForeground, {
             title: notification.title,
             data: notification.data,
@@ -168,6 +167,7 @@ export function useNativePushSetup() {
           const linkWithRef = hasInternalLink
             ? appendRef(link as string, "notif")
             : link;
+          const { toast } = await import("sonner");
           toast(notification.title || "New notification", {
             description: notification.body || undefined,
             action: hasInternalLink

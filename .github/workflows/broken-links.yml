@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check critical legal/support pages
         # These are the URLs Apple reviewers click. If any 404, we fail loud.

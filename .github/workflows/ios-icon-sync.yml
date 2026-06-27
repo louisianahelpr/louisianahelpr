@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # Need write access to push the regenerated PNGs back to the branch.
           token: ${{ secrets.GITHUB_TOKEN }}

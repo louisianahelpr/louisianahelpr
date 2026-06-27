@@ -77,7 +77,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
             className="font-serif italic mt-1.5 text-[0.88rem] leading-snug"
             style={{ color: "hsl(var(--olivewood) / 0.80)" }}
           >
-            You can post jobs <em>and</em> earn — no setup needed.
+            Post a task <em>or</em> earn helping — no setup needed.
           </DialogDescription>
         </div>
 
@@ -111,7 +111,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
                 className="font-serif italic mt-0.5 text-[0.72rem] leading-snug"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Post your first job in 2 min.
+                Post your first task in 2 min.
               </p>
             </div>
             <span
@@ -121,7 +121,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
                 color: "hsl(var(--bark))",
               }}
             >
-              Post a job
+              Post a task
             </span>
           </button>
 

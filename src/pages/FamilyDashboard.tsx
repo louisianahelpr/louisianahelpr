@@ -12,6 +12,7 @@
  */
 
 import { useState } from "react";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -461,6 +462,8 @@ export default function FamilyDashboard() {
 
   const qc = useQueryClient();
 
+  const [pendingRevokeId, setPendingRevokeId] = useState<string | null>(null);
+
   const revokeMut = useMutation({
     mutationFn: async (relationshipId: string) => {
       const res = unwrap(
@@ -472,6 +475,7 @@ export default function FamilyDashboard() {
       return res;
     },
     onSuccess: () => {
+      setPendingRevokeId(null);
       hapticSuccess();
       toast.success("Access removed.");
       void qc.invalidateQueries({ queryKey: ["care_relationships", userId] });
@@ -485,7 +489,20 @@ export default function FamilyDashboard() {
   const asCaregiver = relQuery.data?.asCaregiver ?? [];
   const asRecipient = relQuery.data?.asRecipient ?? [];
 
+  // Resolve the display name for the confirm-dialog without re-fetching.
+  // profileMap only contains counterpart profiles (never self), so
+  // whichever of the two ID slots isn't the current user will have a hit.
+  const pendingRevokeRel = pendingRevokeId
+    ? [...asCaregiver, ...asRecipient].find((r) => r.id === pendingRevokeId)
+    : null;
+  const pendingRevokeName =
+    (pendingRevokeRel
+      ? (profileMap[pendingRevokeRel.care_recipient_id]?.full_name ??
+         profileMap[pendingRevokeRel.caregiver_id]?.full_name)
+      : null) ?? "this person";
+
   return (
+    <>
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="Family & care" onBack={() => navigate(-1)} showBrand rightSlot={<NotificationPanel />} />
 
@@ -529,7 +546,7 @@ export default function FamilyDashboard() {
                 key={rel.id}
                 relationship={rel}
                 recipientProfile={profileMap[rel.care_recipient_id]}
-                onRevokeAccess={(id) => revokeMut.mutate(id)}
+                onRevokeAccess={setPendingRevokeId}
               />
             ))}
 
@@ -554,7 +571,7 @@ export default function FamilyDashboard() {
                 key={rel.id}
                 relationship={rel}
                 caregiverProfile={profileMap[rel.caregiver_id]}
-                onRevokeAccess={(id) => revokeMut.mutate(id)}
+                onRevokeAccess={setPendingRevokeId}
               />
             ))}
           </section>
@@ -577,5 +594,22 @@ export default function FamilyDashboard() {
 
       </div>
     </div>
+
+    <BrandConfirmDialog
+      open={pendingRevokeId !== null}
+      onOpenChange={(open) => { if (!open) setPendingRevokeId(null); }}
+      title="Remove access?"
+      description={`${pendingRevokeName} will no longer be able to view or post jobs on your behalf.`}
+      primaryLabel={revokeMut.isPending ? "Removing…" : "Remove access"}
+      primaryTone="sienna"
+      primaryHaptic="warning"
+      primaryDisabled={revokeMut.isPending}
+      onPrimary={(e) => {
+        e.preventDefault();
+        if (pendingRevokeId) revokeMut.mutate(pendingRevokeId);
+      }}
+      secondaryLabel="Keep access"
+    />
+    </>
   );
 }

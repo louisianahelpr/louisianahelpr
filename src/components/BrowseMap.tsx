@@ -17,6 +17,7 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import { divIcon, point as leafletPoint } from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Crosshair, BellRing, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";

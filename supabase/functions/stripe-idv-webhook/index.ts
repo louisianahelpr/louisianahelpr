@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -197,8 +198,19 @@ serve(async (req) => {
   } catch (err) {
     // Return 200 (not 500) so Stripe stops retrying. Processing errors are
     // logged for investigation; retrying a DB/logic error won't fix it.
+    const message = err instanceof Error ? err.message : String(err);
     console.error("[stripe-idv-webhook] Processing error:", err);
-    return new Response(JSON.stringify({ received: true, error: (err as Error).message }), {
+    postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "warning",
+      title: "Stripe IDV webhook processing error",
+      message: `Failed to process IDV event \`${(event as Stripe.Event | undefined)?.type ?? "unknown"}\`: ${message}`,
+      fields: {
+        "Event ID": (event as Stripe.Event | undefined)?.id ?? "—",
+        Error: message.slice(0, 200),
+      },
+    });
+    return new Response(JSON.stringify({ received: true, error: message }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

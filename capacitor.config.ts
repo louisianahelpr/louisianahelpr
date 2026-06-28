@@ -42,30 +42,23 @@ const config: CapacitorConfig = {
     // the CSS env() padding be the single source of truth for the inset.
     contentInset: 'never',
     // -------------------------------------------------------------------------
-    // Info.plist keys — source-of-truth reminder for the committed native file.
-    // These values are already present in ios/App/App/Info.plist so GitHub →
-    // Xcode/Fastlane builds populate automatically without manual Xcode entry.
-    // Apple will reject the build if camera / location / photo / contacts
-    // permissions are requested without matching usage strings.
+    // Info.plist reference — current values are committed in
+    // ios/App/App/Info.plist. NSUsageDescription strings are maintained in
+    // fastlane/ios_app_metadata.yml (permission_strings block) and synced by
+    // `npm run sync:ios-metadata`. Edit them there, not here.
     //
-    //   <key>NSCameraUsageDescription</key>
-    //   <string>Helpr needs camera access so you can take before/after photos of jobs and upload your ID for verification.</string>
-    //   <key>NSLocationWhenInUseUsageDescription</key>
-    //   <string>Helpr uses your location to show jobs near you and confirm helper arrival.</string>
-    //   <key>NSPhotoLibraryUsageDescription</key>
-    //   <string>Allows you to upload photos from your library to show job details and progress.</string>
-    //   <key>NSPhotoLibraryAddUsageDescription</key>
-    //   <string>Allows Helpr to save downloaded receipts and shared images to your photo library.</string>
-    //   <key>NSContactsUsageDescription</key>
-    //   <string>Helpr can access contacts only if you choose to invite a friend by phone or email.</string>
+    // Key structural entries for reference:
     //   <key>ITSAppUsesNonExemptEncryption</key>
     //   <false/>
     //   <key>UIRequiresFullScreen</key>
     //   <false/>
-    //   NOTE: Do NOT set UIStatusBarStyle / UIViewControllerBasedStatusBarAppearance
-    //   in Info.plist. The Capacitor StatusBar plugin owns this at runtime
-    //   (see plugins.StatusBar below + src/lib/nativeInit.ts). Mixing both
-    //   leads to the bar flickering between styles on launch.
+    //   NOTE: Do NOT set UIStatusBarStyle in Info.plist — a static style value
+    //   conflicts with the Capacitor StatusBar plugin's runtime setStyle calls
+    //   (see plugins.StatusBar below + src/lib/nativeInit.ts) and causes the
+    //   status bar to flicker between styles on launch.
+    //   UIViewControllerBasedStatusBarAppearance IS set to <false/> in
+    //   Info.plist, which is required for the StatusBar plugin to control the
+    //   bar via UIApplication on older iOS versions.
     //   <key>UISupportedInterfaceOrientations</key>
     //   <array><string>UIInterfaceOrientationPortrait</string></array>
     //   <key>UISupportedInterfaceOrientations~ipad</key>

@@ -24,6 +24,13 @@ const pick = (key) => {
   return match[1].trim();
 };
 const pickBool = (key) => pick(key) === "true";
+// Reads a double-quoted single-line value from the permission_strings block.
+// The standard pick() regex fails on strings containing apostrophes, so this
+// uses a stricter double-quote-only pattern that captures the full value.
+const pickPermission = (key) => {
+  const match = yaml.match(new RegExp(`^[ \\t]*${key}:[ \\t]+"([^"]+)"\\s*$`, "m"));
+  return match ? match[1] : null;
+};
 
 const metadata = {
   bundleId: pick("bundle_id"),
@@ -86,6 +93,24 @@ upsertPlistString("CFBundleDisplayName", metadata.displayName);
 upsertPlistString("CFBundleName", metadata.productName);
 upsertPlistString("LSApplicationCategoryType", metadata.category);
 upsertPlistBool("ITSAppUsesNonExemptEncryption", metadata.usesNonExemptEncryption);
+
+// Sync permission strings from the YAML permission_strings block.
+// This upserts (never removes) so unknown keys added by Capacitor plugins
+// are preserved. Keys absent from the YAML are silently skipped.
+const PERMISSION_KEYS = [
+  "NSCameraUsageDescription",
+  "NSContactsUsageDescription",
+  "NSFaceIDUsageDescription",
+  "NSLocationWhenInUseUsageDescription",
+  "NSMicrophoneUsageDescription",
+  "NSPhotoLibraryAddUsageDescription",
+  "NSPhotoLibraryUsageDescription",
+];
+for (const key of PERMISSION_KEYS) {
+  const value = pickPermission(key);
+  if (value) upsertPlistString(key, value);
+}
+
 write(plistPath, plist);
 
 let capacitorTs = read(capacitorTsPath);

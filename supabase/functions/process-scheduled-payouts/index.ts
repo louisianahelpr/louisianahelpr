@@ -197,7 +197,14 @@ serve(async (req) => {
           console.warn("Could not link charge:", e);
         }
 
-        await stripe.transfers.create(transferParams);
+        // Idempotency key prevents double-pay if the cron fires twice before
+        // the first run's payment_status flip is visible (overlapping runs,
+        // retry on timeout). Stripe returns the existing transfer on a
+        // duplicate call with the same key instead of creating a new one.
+        // Mirrors the `release-payout-${job.id}` pattern in release-payout.
+        await stripe.transfers.create(transferParams, {
+          idempotencyKey: `scheduled-payout-${job.id}`,
+        });
         console.log(`Payout: $${helperPayout.toFixed(2)} to helper ${job.helper_id} for job ${job.id} (onboarding fee deducted: $${onboardingFeeDollars.toFixed(2)})`);
 
         await supabaseAdmin.from("jobs").update({

@@ -116,7 +116,7 @@ const MonthlyGoalCard = ({
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="e.g. 1000"
-              className="flex-1 rounded-xl px-3 py-2 text-ds-16 font-semibold outline-none border"
+              className="flex-1 rounded-ds-md px-3 py-2 text-ds-16 font-semibold outline-none border"
               style={{
                 background: "hsl(var(--parchment) / 0.5)",
                 borderColor: "hsl(var(--olivewood) / 0.20)",
@@ -128,7 +128,7 @@ const MonthlyGoalCard = ({
             <button
               type="button"
               onClick={handleSave}
-              className="flex-1 rounded-xl py-2 text-ds-13 font-semibold"
+              className="flex-1 rounded-ds-md py-2 text-ds-13 font-semibold"
               style={{
                 background: "hsl(var(--burnt-sienna))",
                 color: "hsl(var(--parchment))",
@@ -139,7 +139,7 @@ const MonthlyGoalCard = ({
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="px-4 rounded-xl py-2 text-ds-13 font-semibold"
+              className="px-4 rounded-ds-md py-2 text-ds-13 font-semibold"
               style={{
                 background: "hsl(var(--olivewood) / 0.10)",
                 color: "hsl(var(--olivewood) / 0.8)",

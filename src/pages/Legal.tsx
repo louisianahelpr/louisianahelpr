@@ -1090,7 +1090,7 @@ const Legal = () => {
           <TabsTrigger
             key={t}
             value={t}
-            className="relative h-9 inline-flex items-center justify-center gap-1.5 rounded-xl text-ds-13 font-sans font-semibold leading-none transition-colors duration-200"
+            className="relative h-9 inline-flex items-center justify-center gap-1.5 rounded-ds-md text-ds-13 font-sans font-semibold leading-none transition-colors duration-200"
             style={{ color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
           >
             {/* A single lifted pill that slides between tabs via framer's
@@ -1101,7 +1101,7 @@ const Legal = () => {
               <motion.span
                 layoutId="legalTabPill"
                 transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
-                className="absolute inset-0 rounded-xl"
+                className="absolute inset-0 rounded-ds-md"
                 style={{
                   // Match the app's primary bark CTA (button.tsx `bark`
                   // variant) so the selected tab reads as a primary button:
@@ -1136,7 +1136,7 @@ const Legal = () => {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search all policies…"
-        className="w-full h-10 rounded-xl pl-9 pr-9 text-ds-13 font-sans bg-card outline-none transition-shadow focus:ring-2"
+        className="w-full h-10 rounded-ds-md pl-9 pr-9 text-ds-13 font-sans bg-card outline-none transition-shadow focus:ring-2"
         style={{
           border: "1px solid hsl(var(--bark) / 0.18)",
           color: "hsl(var(--ink-deep))",

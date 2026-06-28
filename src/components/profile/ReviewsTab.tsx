@@ -393,7 +393,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             <button
               onClick={onLoadMore}
               disabled={loadingMore}
-              className="w-full py-3 text-ds-13 font-medium rounded-xl border disabled:opacity-50 mt-2"
+              className="w-full py-3 text-ds-13 font-medium rounded-ds-md border disabled:opacity-50 mt-2"
               style={{
                 borderColor: "hsl(var(--olivewood) / 0.2)",
                 color: "hsl(var(--olivewood))",

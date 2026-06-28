@@ -334,7 +334,7 @@ const HowItWorks = () => {
           {TRUST_ITEMS.map(({ icon: Icon, label, body }) => (
             <div
               key={label}
-              className="rounded-xl p-4 space-y-2"
+              className="rounded-2xl p-4 space-y-2"
               style={{
                 background:
                   "linear-gradient(135deg, hsl(var(--parchment) / 0.65) 0%, hsl(var(--sage) / 0.08) 100%)",

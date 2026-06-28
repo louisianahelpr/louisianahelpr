@@ -170,7 +170,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
-                className="btn-press rounded-xl h-10 px-3 gap-1.5 font-sans font-semibold text-ds-13"
+                className="btn-press rounded-ds-md h-10 px-3 gap-1.5 font-sans font-semibold text-ds-13"
                 style={{
                   background: "hsl(var(--bark) / 0.08)",
                   border: "1px solid hsl(var(--bark) / 0.22)",

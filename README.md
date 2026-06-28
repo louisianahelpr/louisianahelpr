@@ -13,17 +13,17 @@ A dual-sided gig marketplace exclusively for Louisiana. Connects **Posters** (ho
 - **Real-time messaging** — in-app chat with attachments per job
 - **Job lifecycle tracking** — Offered → Accepted → On the way → Arrived → Working → Complete
 - **Reviews & ratings** — gated to completed jobs only
-- **Push notifications** — web push (PWA) and native (iOS/Android) via Capacitor
+- **Push notifications** — web push (PWA) and native (iOS) via Capacitor
 - **Subscriptions** — Basic / Pro / Elite tiers for helprs
 - **Admin dashboard** — moderation, disputes, analytics, broadcasts, ID review queue
-- **Native mobile** — iOS + Android builds via Capacitor with Fastlane CI/CD
+- **Native mobile** — iOS builds via Capacitor with Fastlane CI/CD
 
 ## Tech stack
 
 - **Frontend:** Vite, React 18, TypeScript, Tailwind CSS, shadcn/ui, framer-motion
 - **Backend:** Supabase — Postgres + RLS, Auth, Storage, Edge Functions
 - **Payments:** Stripe Connect (Express), Stripe Identity, Stripe Checkout with automatic tax
-- **Mobile:** Capacitor 8 (iOS + Android), Fastlane for App Store / Play Store releases
+- **Mobile:** Capacitor 8 (iOS), Fastlane for App Store releases
 - **PWA:** vite-plugin-pwa with workbox
 
 ## Local development
@@ -65,7 +65,6 @@ npx cap sync
 
 # Open native IDEs
 npx cap open ios       # requires macOS + Xcode
-npx cap open android   # requires Android Studio
 ```
 
 App ID: `com.Helpr`. See `docs/CICD_AND_ASO.md` and `fastlane/` for release automation.
@@ -74,7 +73,7 @@ App ID: `com.Helpr`. See `docs/CICD_AND_ASO.md` and `fastlane/` for release auto
 
 The web app deploys to Vercel on push to `main`. Supabase edge functions deploy
 via `.github/workflows/functions-deploy.yml` when `supabase/functions/**` changes.
-Native iOS/Android releases go through Fastlane (see `docs/CICD_AND_ASO.md`).
+Native iOS releases go through Fastlane (see `docs/CICD_AND_ASO.md`).
 
 ## Contributing
 

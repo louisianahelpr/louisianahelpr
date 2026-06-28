@@ -14,7 +14,7 @@ coarsened/absent everywhere). Ship once the 3 must-fix Highs are closed.
 
 **Other quick wins:**
 - [ ] **F-MONEY-02** — add `idempotencyKey: escrow-${jobId}` at `create-payment/index.ts:209`.
-- [ ] **F-SCR-01** — delete orphans `src/pages/LocalPricingGuide.tsx` + `src/pages/VerifyHelper.tsx`.
+- [x] **F-SCR-01** — delete orphans `src/pages/LocalPricingGuide.tsx` + `src/pages/VerifyHelper.tsx` (both already removed).
 - [ ] **F-SEC-08** — enable HaveIBeenPwned leaked-password protection in Supabase Auth.
 - [ ] **F-SEO-01** — regenerate `public/sitemap.xml` from the public-route table (~20 public pages missing).
 
@@ -96,9 +96,9 @@ coarsened/absent everywhere). Ship once the 3 must-fix Highs are closed.
    stripped) + `scripts/generate-ios-icons.mjs` exists. Cowork needs to:
    `node scripts/generate-ios-icons.mjs` → drag `ios/App/App/AlternateIcons/`
    into Xcode as folder reference → re-add `CFBundleAlternateIcons` to
-   Info.plist. Once that lands, flip `APP_ICON_PICKER_ENABLED=true` in
-   `src/lib/featureFlags.ts` and the dormant picker UI in
-   `src/components/profile/AppIconPicker.tsx` activates.
+   Info.plist. Once that lands, `src/lib/featureFlags.ts` and
+   `src/components/profile/AppIconPicker.tsx` both need to be created —
+   neither exists yet.
 
 5. **Static pre-render of landing page** — single biggest remaining perf
    win (real-user mobile FCP is 10.98s vs <3s target). Scaffold at
@@ -728,7 +728,7 @@ history during a failed `ALTER DATABASE` for vault GUCs.
 - [x] Health dashboard: open jobs by parish, helper supply ratio, time-to-first-application — Marketplace Pulse panel shipped commit e9dc12d7 in AdminHealth
 
 ### iOS
-- [ ] `npm run sync:ios` after each marketplace schema change; verify `ThemeColors.swift` parity
+- [ ] `npm run sync:ios` after each marketplace schema change
 - [ ] App Store metadata refresh once Stripe + verification ship
 
 ### Tech debt

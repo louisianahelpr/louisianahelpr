@@ -387,7 +387,7 @@ const HelpCenter = () => {
                   type="button"
                   onClick={() => setQuery(label)}
                   aria-label={`Show ${label} articles`}
-                  className="text-left rounded-xl p-4 space-y-2 transition-transform active:scale-[0.98] hover:opacity-90"
+                  className="text-left rounded-2xl p-4 space-y-2 transition-transform active:scale-[0.98] hover:opacity-90"
                   style={{
                     background:
                       "linear-gradient(135deg, hsl(var(--parchment) / 0.70) 0%, hsl(var(--parchment) / 0.40) 100%)",
@@ -436,7 +436,7 @@ const HelpCenter = () => {
 
           {noResults ? (
             <div
-              className="rounded-xl p-6 text-center space-y-1"
+              className="rounded-2xl p-6 text-center space-y-1"
               style={{
                 background: "hsl(var(--parchment) / 0.5)",
                 border: "1px solid hsl(var(--olivewood) / 0.14)",
@@ -468,7 +468,7 @@ const HelpCenter = () => {
               {filteredSections.map((section) => (
                 <div
                   key={section.topic}
-                  className="liquid-glass rounded-xl overflow-hidden"
+                  className="liquid-glass overflow-hidden"
                 >
                   {/* Topic header */}
                   <div

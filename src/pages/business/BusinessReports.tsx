@@ -292,6 +292,7 @@ const BusinessReports = () => {
         <div className="flex gap-2 mb-3">
           <Input
             type="email"
+            aria-label="Add recipient email"
             placeholder="finance@yourcompany.com"
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}

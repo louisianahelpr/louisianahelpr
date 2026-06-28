@@ -224,9 +224,9 @@ const AdminBroadcasts = () => {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Type</Label>
+              <Label htmlFor="broadcast-type">Type</Label>
               <Select value={type} onValueChange={setType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="broadcast-type" aria-label="Broadcast type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="info">Info</SelectItem>
                   <SelectItem value="warning">Warning</SelectItem>
@@ -236,9 +236,9 @@ const AdminBroadcasts = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Duration</Label>
+              <Label htmlFor="broadcast-duration">Duration</Label>
               <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="broadcast-duration" aria-label="Broadcast duration"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">1 hour</SelectItem>
                   <SelectItem value="6">6 hours</SelectItem>

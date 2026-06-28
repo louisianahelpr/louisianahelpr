@@ -210,7 +210,7 @@ serve(async (req) => {
         Error: message.slice(0, 200),
       },
     });
-    return new Response(JSON.stringify({ received: true, error: message }), {
+    return new Response(JSON.stringify({ received: true, error: "processing_error" }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

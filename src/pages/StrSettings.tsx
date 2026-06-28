@@ -344,10 +344,11 @@ function AddCalendarForm({
       {/* Property name + address */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <Label htmlFor="str-property-name" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
             Property name
           </Label>
           <Input
+            id="str-property-name"
             placeholder="e.g. Lakehouse"
             value={form.property_name}
             onChange={(e) => set("property_name", e.target.value)}
@@ -355,10 +356,11 @@ function AddCalendarForm({
           />
         </div>
         <div>
-          <Label style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <Label htmlFor="str-property-address" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
             City / Address
           </Label>
           <Input
+            id="str-property-address"
             placeholder="e.g. New Orleans, LA"
             value={form.property_address}
             onChange={(e) => set("property_address", e.target.value)}
@@ -391,10 +393,11 @@ function AddCalendarForm({
         </div>
         {form.auto_create_cleaning && (
           <div>
-            <Label style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <Label htmlFor="str-cleaning-budget" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
               Cleaning budget ($)
             </Label>
             <Input
+              id="str-cleaning-budget"
               type="number"
               min={10}
               max={999}
@@ -409,10 +412,11 @@ function AddCalendarForm({
 
       {/* Notes */}
       <div>
-        <Label style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+        <Label htmlFor="str-cleaning-notes" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
           Cleaning notes (optional)
         </Label>
         <Input
+          id="str-cleaning-notes"
           placeholder="Door code, special instructions…"
           value={form.cleaning_notes}
           onChange={(e) => set("cleaning_notes", e.target.value)}

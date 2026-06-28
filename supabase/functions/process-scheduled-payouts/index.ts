@@ -197,11 +197,52 @@ serve(async (req) => {
           console.warn("Could not link charge:", e);
         }
 
-        await stripe.transfers.create(transferParams);
+        // Idempotency key prevents double-pay if the cron fires twice before
+        // the first run's payment_status flip is visible (overlapping runs,
+        // retry on timeout). Stripe returns the existing transfer on a
+        // duplicate call with the same key instead of creating a new one.
+        const transfer = await stripe.transfers.create(transferParams, {
+          idempotencyKey: `scheduled-payout-${job.id}`,
+        });
         console.log(`Payout: $${helperPayout.toFixed(2)} to helper ${job.helper_id} for job ${job.id} (onboarding fee deducted: $${onboardingFeeDollars.toFixed(2)})`);
+
+        // Write the payout_transfers ledger row immediately after the transfer
+        // and BEFORE the payment_status flip. Without this, a crash between
+        // stripe.transfers.create() and jobs.update() below leaves the job in
+        // 'payout_pending' with no ledger row. On the next cron run,
+        // release-payout's duplicate-transfer guard (which queries
+        // payout_transfers) finds nothing and issues a second Stripe transfer
+        // under a different idempotency key — doubling the payout.
+        const { error: ledgerErr } = await supabaseAdmin
+          .from("payout_transfers")
+          .insert({
+            job_id: job.id,
+            helper_id: job.helper_id,
+            stripe_transfer_id: transfer.id,
+            stripe_account_id: helperProfile.stripe_account_id,
+            amount_cents: Math.round(helperPayout * 100),
+            platform_fee_cents: Math.round(helperCommission * 100),
+            status: "pending",
+            initiated_by: "system",
+            metadata: {
+              source: "scheduled_payout",
+              onboarding_fee_cents: owesOnboardingFee ? onboardingFeeCents : 0,
+            },
+          });
+        if (ledgerErr && (ledgerErr as any).code !== "23505") {
+          // 23505 = unique_violation: idempotent retry returned the same transfer.id
+          // (already logged on a previous partial run). Any other error is logged
+          // loudly — the transfer already sent so the missing row needs manual fix.
+          console.error(
+            `[process-scheduled-payouts] Ledger insert failed for job ${job.id} (transfer ${transfer.id}):`,
+            ledgerErr,
+          );
+        }
 
         await supabaseAdmin.from("jobs").update({
           payment_status: "released",
+          helper_fee_percent: jobHelperFeePercent,
+          platform_fee_amount: Math.round(perHelperBudget * jobHelperFeePercent) / 100,
         }).eq("id", job.id);
 
         // Note: the onboarding-fee flag was already flipped atomically

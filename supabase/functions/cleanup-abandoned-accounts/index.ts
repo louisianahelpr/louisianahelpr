@@ -4,7 +4,7 @@
 //
 // Run on a daily cron via pg_cron + pg_net.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {

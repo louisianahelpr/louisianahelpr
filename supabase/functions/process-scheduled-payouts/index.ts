@@ -166,7 +166,29 @@ serve(async (req) => {
         continue;
       }
 
-      // ── Step 4: Transfer to helper (charge is confirmed captured) ──
+      // ── Step 4: Guard against duplicate transfers ──
+      // release-payout (called by auto-release-payment Phase 2 or an admin)
+      // and this cron both target the same payout_pending jobs. If they run
+      // concurrently, the job's payment_status may not yet be flipped to
+      // "released" when both read it, so both would pass the payment_status
+      // filter above. They use DIFFERENT Stripe idempotency keys
+      // ("release-payout-X" vs "scheduled-payout-X"), so Stripe would create
+      // two distinct transfers — doubling the helper's payout. Checking
+      // payout_transfers here closes the race window: if a row already exists
+      // (pending or paid), the other path already sent the transfer and we skip.
+      const { data: existingPayout } = await supabaseAdmin
+        .from("payout_transfers")
+        .select("stripe_transfer_id, status")
+        .eq("job_id", job.id)
+        .in("status", ["pending", "paid"])
+        .maybeSingle();
+      if (existingPayout) {
+        console.log(`[process-scheduled-payouts] Payout already exists for job ${job.id} (${existingPayout.stripe_transfer_id}/${existingPayout.status}); skipping.`);
+        results.push({ job_id: job.id, status: "already_transferred", transfer_id: existingPayout.stripe_transfer_id });
+        continue;
+      }
+
+      // ── Step 5: Transfer to helper (charge is confirmed captured) ──
       // Re-use the PI object from Step 3 verification above (already retrieved)
       try {
         const transferParams: any = {

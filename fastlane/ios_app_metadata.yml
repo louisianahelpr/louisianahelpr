@@ -47,21 +47,15 @@ app_store:
   support_url: https://louisianahelpr.com/support
 
 # All NSUsageDescription strings the binary advertises. App Store review
-# rejects builds whose runtime prompts don't match these. Edit copy here
-# and the sync lane will rewrite Info.plist verbatim.
+# rejects builds whose runtime prompts don't match these. Edit copy here —
+# `npm run sync:ios-metadata` writes these verbatim into Info.plist.
+# Values must be double-quoted single-line strings so the sync script can
+# parse them. Keys are synced in alphabetical order; add new ones here first.
 permission_strings:
-  NSCameraUsageDescription: >-
-    Helpr needs camera access so you can take before and after job photos
-    and upload verification documents.
-  NSContactsUsageDescription: >-
-    Helpr can access contacts only if you choose to invite a friend by
-    phone or email.
-  NSLocationWhenInUseUsageDescription: >-
-    Helpr uses your location to show nearby jobs and confirm helpr
-    arrival.
-  NSPhotoLibraryAddUsageDescription: >-
-    Helpr can save downloaded receipts and shared images to your photo
-    library.
-  NSPhotoLibraryUsageDescription: >-
-    Helpr needs photo library access so you can upload job details,
-    progress photos, and verification documents.
+  NSCameraUsageDescription: "Helpr needs camera access so you can take before and after job photos and upload verification documents."
+  NSContactsUsageDescription: "Helpr can access contacts only if you choose to invite a friend by phone or email."
+  NSFaceIDUsageDescription: "Helpr uses Face ID to confirm it's you before cashing out your earnings."
+  NSLocationWhenInUseUsageDescription: "Helpr uses your location to show nearby jobs and confirm helpr arrival."
+  NSMicrophoneUsageDescription: "Record voice notes to send in chat."
+  NSPhotoLibraryAddUsageDescription: "Helpr can save downloaded receipts and shared images to your photo library."
+  NSPhotoLibraryUsageDescription: "Helpr needs photo library access so you can upload job details, progress photos, and verification documents."

@@ -610,7 +610,8 @@ serve(async (req) => {
             await stripe.refunds.create({ payment_intent: paymentIntentId });
           }
         } catch (e) {
-          console.error("Refund error:", e);
+          console.error("[create-payment] admin_refund_dispute — refund error:", e);
+          throw e;
         }
       }
 

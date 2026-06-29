@@ -18,6 +18,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { payoutStatusLabel } from "@/lib/statusLabels";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -608,7 +609,7 @@ const AdminPayoutBatches = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-ds-13 text-foreground truncate">{helperName}</span>
-                      <Badge className={`${tone} text-ds-10 capitalize`}>{t.status}</Badge>
+                      <Badge className={`${tone} text-ds-10`}>{payoutStatusLabel(t.status)}</Badge>
                       {t.initiated_by && t.initiated_by !== "system" && (
                         <Badge variant="outline" className="text-ds-10 capitalize">{t.initiated_by}</Badge>
                       )}

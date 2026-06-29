@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Zap, Settings, FileText, FileSpreadsheet, ExternalLink, Info, Printer, FileCheck2, X } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { formatJobDate, formatCategory } from "@/lib/format";
-import { jobStatusLabel } from "@/lib/statusLabels";
+import { formatJobDate } from "@/lib/format";
+import { jobStatusLabel, payoutStatusLabel } from "@/lib/statusLabels";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -711,7 +711,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                             {formatCents(p.amount, p.currency)}
                           </span>
                           <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${payoutStatusColors[p.status] || "bg-secondary text-secondary-foreground"}`}>
-                            {formatCategory(p.status)}
+                            {payoutStatusLabel(p.status)}
                           </span>
                         </div>
                         <p className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -762,7 +762,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                         <h3 className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                           {jobTitle}
                         </h3>
-                        <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium capitalize ${tone}`}>{t.status}</span>
+                        <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${tone}`}>{payoutStatusLabel(t.status)}</span>
                       </div>
                       <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                         {date}

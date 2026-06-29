@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, Flag, CheckCircle2, History as HistoryIcon } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { jobStatusLabel } from "@/lib/statusLabels";
+import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
 import { safeStorage } from "@/lib/safeStorage";
 import { logAdminAction } from "@/lib/adminAudit";
 
@@ -427,8 +427,8 @@ const AdminJobs = () => {
                 </div>
                 <div className="flex flex-col gap-1 items-end flex-shrink-0">
                   <StatusBadge status={job.status} className="text-ds-11" />
-                  <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${paymentColors[job.payment_status || "unpaid"] || ""}`}>
-                    {job.payment_status || "unpaid"}
+                  <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium ${paymentColors[job.payment_status || "unpaid"] || ""}`}>
+                    {paymentStatusLabel(job.payment_status ?? "unpaid")}
                   </span>
                 </div>
               </div>
@@ -509,8 +509,8 @@ const AdminJobs = () => {
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary" className="capitalize">{categoryLabels[detailJob.category] || detailJob.category}</Badge>
                 <StatusBadge status={detailJob.status} className="text-ds-11" />
-                <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium capitalize ${paymentColors[detailJob.payment_status || "unpaid"]}`}>
-                  {detailJob.payment_status || "unpaid"}
+                <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium ${paymentColors[detailJob.payment_status || "unpaid"]}`}>
+                  {paymentStatusLabel(detailJob.payment_status ?? "unpaid")}
                 </span>
               </div>
 

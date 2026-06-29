@@ -10,8 +10,11 @@ export type SlackAlertSeverity = 'critical' | 'warning' | 'info'
 
 export type SlackAlertKind =
   | 'dispute_filed'
+  | 'dispute_won'
+  | 'dispute_lost'
   | 'fraud_flag'
   | 'payout_failed'
+  | 'payout_reversed'
   | 'auto_suspended'
   | 'stripe_webhook_error'
   | 'custom'

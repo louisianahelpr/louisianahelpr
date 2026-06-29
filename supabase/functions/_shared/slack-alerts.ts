@@ -1,17 +1,20 @@
 // Server-side Slack ops alert dispatcher for edge functions.
-// Posts directly to the Slack Web API (no extra HTTP hop through the
-// slack-ops-alert function). Designed to be fire-and-forget:
+// Posts directly to the Lovable connector gateway (no extra HTTP hop
+// through the slack-ops-alert function). Designed to be fire-and-forget:
 // callers should NOT await this for latency-sensitive paths, and
 // failures NEVER throw — Slack outages must not break platform flows.
 
-const SLACK_API_URL = 'https://slack.com/api'
+const GATEWAY_URL = 'https://connector-gateway.lovable.dev/slack/api'
 
 export type SlackAlertSeverity = 'critical' | 'warning' | 'info'
 
 export type SlackAlertKind =
   | 'dispute_filed'
+  | 'dispute_won'
+  | 'dispute_lost'
   | 'fraud_flag'
   | 'payout_failed'
+  | 'payout_reversed'
   | 'auto_suspended'
   | 'stripe_webhook_error'
   | 'custom'
@@ -40,8 +43,9 @@ const SEVERITY_COLOR: Record<SlackAlertSeverity, string> = {
 
 export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
   try {
+    const lovableKey = Deno.env.get('LOVABLE_API_KEY')
     const slackKey = Deno.env.get('SLACK_API_KEY')
-    if (!slackKey) return
+    if (!lovableKey || !slackKey) return
 
     const severity = input.severity ?? 'warning'
     const channel = input.channel || Deno.env.get('SLACK_OPS_CHANNEL') || '#ops-alerts'
@@ -73,11 +77,12 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
       })
     }
 
-    const res = await fetch(`${SLACK_API_URL}/chat.postMessage`, {
+    const res = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${slackKey}`,
-        'Content-Type': 'application/json; charset=utf-8',
+        Authorization: `Bearer ${lovableKey}`,
+        'X-Connection-Api-Key': slackKey,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         channel,

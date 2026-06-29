@@ -84,3 +84,40 @@ export function applicationStatusLabel(status: string | null | undefined): strin
   if (!status) return "";
   return APPLICATION_STATUS_LABELS[status as ApplicationStatus] ?? humanize(status);
 }
+
+/**
+ * Canonical labels for Stripe payout statuses and the `payout_transfers`
+ * ledger status column. "in_transit" must never leak as "In_transit" via
+ * CSS `capitalize` — route all payout-status rendering through here.
+ */
+export const PAYOUT_STATUS_LABELS: Record<string, string> = {
+  paid: "Paid",
+  in_transit: "In transit",
+  pending: "Pending",
+  failed: "Failed",
+  canceled: "Canceled",
+  reversed: "Reversed",
+};
+
+export function payoutStatusLabel(status: string | null | undefined): string {
+  if (!status) return "";
+  return PAYOUT_STATUS_LABELS[status] ?? humanize(status);
+}
+
+/**
+ * Canonical labels for the `jobs.payment_status` column.
+ * "payout_pending" and "escrow" must never render raw in UI.
+ */
+export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  unpaid: "Unpaid",
+  escrow: "In escrow",
+  payout_pending: "Payout pending",
+  released: "Released",
+  refunded: "Refunded",
+  cancelled: "Cancelled",
+};
+
+export function paymentStatusLabel(status: string | null | undefined): string {
+  if (!status) return "";
+  return PAYMENT_STATUS_LABELS[status] ?? humanize(status);
+}

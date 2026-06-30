@@ -130,10 +130,12 @@ serve(async (req) => {
           }).eq("id", job.id);
           const refundAmount = Math.round((job.budget - cancellationFee) * 100);
           if (refundAmount > 0) {
-            await stripe.refunds.create({
-              payment_intent: paymentIntentId,
-              amount: refundAmount,
-            });
+            // Idempotency key prevents a double-refund if the cron overlaps or
+            // retries before the payment_status flip at the end of this block.
+            await stripe.refunds.create(
+              { payment_intent: paymentIntentId, amount: refundAmount },
+              { idempotencyKey: `cancel-refund-${job.id}` },
+            );
           }
 
           // Transfer cancellation fee to helper minus platform commission
@@ -177,7 +179,11 @@ serve(async (req) => {
                   }
                 } catch (_e) { /* ignore */ }
 
-                await stripe.transfers.create(transferParams);
+                // Idempotency key prevents double-payment if the cron overlaps
+                // or retries before payment_status is flipped to "refunded".
+                await stripe.transfers.create(transferParams, {
+                  idempotencyKey: `cancel-fee-${job.id}`,
+                });
                 console.log(`Cancellation fee $${cancellationFee}: platform kept $${platformCut}, transferred $${helperPayout} to helper ${job.helper_id} for job ${job.id}`);
 
                 await supabaseAdmin.from("notifications").insert({

@@ -796,8 +796,13 @@ serve(async (req) => {
           .select("job_id, helper_id")
           .maybeSingle();
 
-        // 2. Find the helper (prefer ledger row → metadata → destination acct).
-        const transferJobId = (transfer.metadata as any)?.job_id ?? ledgerRow?.job_id;
+        // 2. Find the helper and associated job.
+        // Only flip payment_status to "released" for transfers that have a
+        // payout_transfers ledger row. Cancellation-fee transfers issued by
+        // void-cancelled-payments carry job_id in their metadata but never
+        // write a ledger row — using metadata here would incorrectly overwrite
+        // a job's "refunded" status with "released".
+        const transferJobId = ledgerRow?.job_id;
         const { data: paidHelper } = await supabase
           .from("profiles")
           .select("user_id, full_name")

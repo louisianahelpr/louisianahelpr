@@ -36,7 +36,7 @@ export const ESCROW_STEPS = [
   {
     label: "Working",
     description:
-      "Your helpr has accepted the job and work is in progress. Funds are still held in escrow.",
+      "Your helpr has accepted the job and work is underway. Your payment is still held safely — it won't move until you confirm the work is done.",
   },
   {
     label: "Verified",
@@ -46,7 +46,7 @@ export const ESCROW_STEPS = [
   {
     label: "Released",
     description:
-      "The payout has been transferred to the helpr. Escrow is closed.",
+      "The payout has been sent to your helpr. Payment is complete.",
   },
 ] as const;
 

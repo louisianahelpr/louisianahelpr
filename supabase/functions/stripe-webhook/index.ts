@@ -260,13 +260,16 @@ serve(async (req) => {
           }
         }
 
-        // Store payment intent ID on the job
+        // Store payment intent ID on the job.
+        // Skip for tip and job_boost checkouts — they embed job_id in metadata
+        // for their own handlers above, but their Stripe payment intents must NOT
+        // overwrite the job's escrow PI or flip payment_status to "escrow".
         const jobId = (session.metadata as any)?.job_id;
         const piId = typeof session.payment_intent === "string"
           ? session.payment_intent
           : (session.payment_intent as any)?.id;
 
-        if (jobId && piId) {
+        if (jobId && piId && sessionType !== "tip" && kind !== "job_boost") {
           const isRepay = (session.metadata as any)?.repay === "true";
           const updateData: any = {
             stripe_payment_intent_id: piId,

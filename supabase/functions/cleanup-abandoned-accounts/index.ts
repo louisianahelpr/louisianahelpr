@@ -38,7 +38,11 @@ Deno.serve(async (req) => {
     while (true) {
       const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
       if (error) throw error;
-      for (const u of data.users) {
+      // Defensive: supabase-js typings guarantee data.users but guard at runtime
+      // in case a future SDK version changes the response shape.
+      const users = data?.users;
+      if (!users) throw new Error(`auth.admin.listUsers page ${page} returned unexpected shape: ${JSON.stringify(data)}`);
+      for (const u of users) {
         if (u.created_at < cutoff) {
           candidates.push({
             id: u.id,
@@ -48,7 +52,7 @@ Deno.serve(async (req) => {
           });
         }
       }
-      if (data.users.length < perPage) break;
+      if (users.length < perPage) break;
       page++;
       if (page > 50) break; // hard safety cap (10k users / cycle)
     }
@@ -138,9 +142,10 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    console.error("cleanup-abandoned-accounts failed", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("cleanup-abandoned-accounts failed:", msg, e);
     return new Response(
-      JSON.stringify({ ok: false, error: "Internal server error" }),
+      JSON.stringify({ ok: false, error: msg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

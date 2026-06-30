@@ -85,7 +85,7 @@ describe("useMyBusiness", () => {
       role: "owner",
       is_owner: true,
       seat_tier: "team",
-      seat_limit: 10,
+      seat_limit: 3,
       extended_role: "owner",
       require_approval_above: null,
       require_2fa: false,
@@ -108,7 +108,7 @@ describe("useMyBusiness", () => {
     const { result } = renderHook(() => useMyBusiness(), { wrapper: wrap });
     await waitFor(() => expect(result.current.business?.role).toBe("member"));
     expect(result.current.business?.is_owner).toBe(false);
-    expect(result.current.business?.seat_limit).toBe(5);
+    expect(result.current.business?.seat_limit).toBe(2);
   });
 
   it("falls back to seat_tier='starter' when the businesses row has no tier", async () => {
@@ -124,15 +124,15 @@ describe("useMyBusiness", () => {
     const { result } = renderHook(() => useMyBusiness(), { wrapper: wrap });
     await waitFor(() => expect(result.current.business).not.toBeNull());
     expect(result.current.business?.seat_tier).toBe("starter");
-    expect(result.current.business?.seat_limit).toBe(2);
+    expect(result.current.business?.seat_limit).toBe(1);
   });
 
   it("maps every known seat tier to its correct limit", async () => {
     const cases: Array<["starter" | "crew" | "team" | "enterprise", number]> = [
-      ["starter", 2],
-      ["crew", 5],
-      ["team", 10],
-      ["enterprise", 25],
+      ["starter", 1],
+      ["crew", 2],
+      ["team", 3],
+      ["enterprise", 4],
     ];
     for (const [tier, expected] of cases) {
       mocks.fromMock.mockClear();

@@ -581,8 +581,10 @@ export default function StrSettings() {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       {/* Page header */}
-      <div className="px-4 pt-safe-top pt-4 pb-2 flex items-center gap-3">
-        <BackButton />
+      <div className="px-4 pt-safe-top pt-4 pb-2">
+        <div className="mb-2">
+          <BackButton />
+        </div>
         <div>
           <h1
             className="font-display italic font-bold leading-none"

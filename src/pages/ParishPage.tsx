@@ -13,18 +13,7 @@ import { cn } from "@/lib/utils";
 import { formatName } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { formatCategory } from "@/lib/format";
-
-// Map URL slug → canonical parish name stored in the `parish` column of jobs
-const SLUG_TO_PARISH: Record<string, string> = {
-  orleans: "Orleans",
-  jefferson: "Jefferson",
-  "east-baton-rouge": "East Baton Rouge",
-  "st-tammany": "St. Tammany",
-  caddo: "Caddo",
-  calcasieu: "Calcasieu",
-  lafayette: "Lafayette",
-  ouachita: "Ouachita",
-};
+import { PARISH_BY_SLUG } from "@/lib/parishes";
 
 function formatBudget(budget: number) {
   return budget >= 1000 ? `$${(budget / 1000).toFixed(1)}k` : `$${budget}`;
@@ -43,7 +32,7 @@ const ParishPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
-  const parishName = slug ? (SLUG_TO_PARISH[slug] ?? null) : null;
+  const parishName = slug ? (PARISH_BY_SLUG[slug] ?? null) : null;
   const displayParishName = parishName ? `${parishName} Parish` : "Parish";
 
   usePageTitle(`${parishName ?? "Parish"} Parish — Helpr Community`);
@@ -140,7 +129,7 @@ const ParishPage = () => {
             variant="inline"
             icon={MapPin}
             title="We don't recognize that parish"
-            body="Try one of the eight supported Louisiana parishes."
+            body="Try browsing all 64 Louisiana parishes."
             action={
               <Button onClick={() => navigate("/parishes")} variant="outline" size="sm" className="rounded-full squircle">
                 Browse parishes
@@ -236,7 +225,7 @@ const ParishPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="rounded-full squircle"
+                className="rounded-ds-md"
                 onClick={() => navigate("/post-job")}
               >
                 Post the first job in {displayParishName}
@@ -402,7 +391,7 @@ const ParishPage = () => {
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full squircle flex-1 min-w-0"
+              className="rounded-ds-md flex-1 min-w-0"
               onClick={() => navigate("/jobs")}
             >
               Browse all jobs
@@ -410,7 +399,7 @@ const ParishPage = () => {
             <Button
               variant="bark"
               size="sm"
-              className="rounded-full squircle flex-1 min-w-0"
+              className="rounded-ds-md flex-1 min-w-0"
               onClick={() => navigate("/post-job")}
             >
               Post a task

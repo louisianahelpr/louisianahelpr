@@ -453,6 +453,24 @@ export const ProfileHeaderCard = ({
             size="md"
           />
           <CredentialBadge credentials={profile as any} size="md" />
+          {/* Background-Checked badge — flipped to "verified" by the
+              verification trigger once a paid background screening clears
+              (see create-bgc-payment + sync_credential_from_check). Public:
+              shown to any viewer as a trust signal. */}
+          {(profile as any).background_check_status === "verified" && (
+            <span
+              className="inline-flex items-center rounded-full font-semibold border text-ds-11 px-2.5 py-1 gap-1"
+              style={{
+                background: "hsl(var(--sage) / 0.16)",
+                color: "hsl(var(--success-ink))",
+                borderColor: "hsl(var(--sage) / 0.4)",
+              }}
+              title="Background check passed — verified by Helpr"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Background-Checked
+            </span>
+          )}
           {/* Verification in progress — shown only when the user has
               submitted a credential to a vendor but it hasn't resolved
               yet. Hides gracefully if helper_credentials table isn't

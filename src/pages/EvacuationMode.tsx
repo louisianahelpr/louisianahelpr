@@ -293,8 +293,10 @@ const EvacuationMode = () => {
           borderBottom: "1px solid hsl(var(--burnt-sienna) / 0.20)",
         }}
       >
-        <div className="flex items-start gap-3">
+        <div className="mb-2">
           <BackButton />
+        </div>
+        <div className="flex items-start gap-3">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
             style={{ background: "hsl(var(--burnt-sienna) / 0.15)" }}

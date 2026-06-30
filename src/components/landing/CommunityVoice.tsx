@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
 
 /**
  * CommunityVoice — combines the testimonial pull quote (left column) with
@@ -36,19 +34,19 @@ const testimonials = [
 const faqs = [
   {
     q: "How do I know my Helpr is trustworthy?",
-    a: "Every Helpr submits a government-issued ID and is reviewed by our team before being activated. You also see their ratings, reviews, and how many jobs they've completed for other Louisiana neighbors — all before you choose.",
+    a: "Every Helpr verifies their identity through Stripe Identity — a government-ID and photo match — before they can take their first job. You also see their ratings, reviews, and how many jobs they've completed for other Louisiana neighbors — all before you choose.",
   },
   {
     q: "What if the job isn't done right?",
-    a: "Payment is held in escrow until you confirm the work. If something's off, message your Helpr directly through the app or open a dispute and our team helps settle it — no awkward Venmo standoffs.",
+    a: "Payment stays in escrow until you confirm the work, so nothing is released until you're satisfied. If something's off, message your Helpr directly and work it out — most things get sorted with a quick conversation. If you genuinely can't reach a resolution on your own, open a dispute and our team will step in to help.",
   },
   {
     q: "How much does Helpr cost?",
-    a: "Posting a job is free. Helprs receive 88–92% of the agreed price depending on their plan — free accounts pay a 12% platform fee, while Pro and Elite members pay 10% and 8% respectively. Posters pay a small service fee at checkout. No surprise charges.",
+    a: "Posting is free — you only pay when you hire someone. At checkout you'll see the agreed price plus a small service fee, and that's the whole bill: no subscriptions, no surprise charges. Your Helpr keeps the large majority of what you pay (88–92%, depending on their plan), so the person doing the work is paid fairly.",
   },
   {
     q: "How fast will someone respond?",
-    a: "Most jobs get applications within the first hour. Helprs in your parish get a notification the moment your job is live, and you can review applicants the same day.",
+    a: "Most jobs get applications within the first hour. Helprs in your parish are notified the moment your job goes live, so you can compare applicants and pick someone the same day.",
   },
 ];
 
@@ -60,7 +58,6 @@ const avatars = [
 ];
 
 const CommunityVoice = () => {
-  const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
 
   // Auto-advance testimonials every 5 seconds
@@ -72,14 +69,6 @@ const CommunityVoice = () => {
   }, []);
 
   const active = testimonials[activeIndex];
-
-  const goToPostJob = async () => {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    navigate(session?.user ? "/post-job" : "/signup");
-  };
 
   return (
   <section className="px-5 sm:px-8 lg:px-12 py-16 sm:py-20 lg:py-24">
@@ -219,33 +208,6 @@ const CommunityVoice = () => {
             ))}
           </ul>
 
-          {/* Inline closing CTA — single line below the FAQ. Catches the
-              engaged scroller without competing with the hero buttons or
-              adding a heavy "card" section. */}
-          <p
-            className="mt-6 sm:mt-7 text-center md:text-left font-serif italic text-ds-15 sm:text-ds-17 observe-fade-up"
-            style={{
-              color: "hsl(var(--stormy-sky))",
-              transitionDelay: "550ms",
-            }}
-          >
-            Still have questions?{" "}
-            <button
-              type="button"
-              onClick={goToPostJob}
-              className="font-sans font-semibold inline-flex items-center gap-1 transition-colors duration-200 hover:opacity-80"
-              style={{
-                fontStyle: "normal",
-                color: "hsl(var(--burnt-sienna))",
-                textDecoration: "underline",
-                textUnderlineOffset: "3px",
-                textDecorationThickness: "1px",
-              }}
-            >
-              Post your first task
-              <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
-            </button>
-          </p>
         </div>
       </div>
     </div>

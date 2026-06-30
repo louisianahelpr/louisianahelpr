@@ -46,9 +46,11 @@ export function CompactJobCard({
     : null;
   // Net "you earn" when a fee tier is known; gross budget otherwise. Uses
   // the shared JobPrice math so this row agrees with the comfortable card.
+  // Bid jobs have no fixed take-home, so they always show the gross budget.
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+  const isBidMode = job.pricing_mode === "accept_bids";
   const priceAmount =
-    effectiveFee != null
+    effectiveFee != null && !isBidMode
       ? computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpers).netEarnings
       : job.budget;
 
@@ -64,7 +66,7 @@ export function CompactJobCard({
           background: isHighlighted ? "hsl(var(--bark) / 0.07)" : "transparent",
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
-        aria-label={`${job.title}, ${effectiveFee != null ? "you earn " : ""}$${formatPrice(priceAmount)}${city ? `, ${city}` : ""}`}
+        aria-label={`${job.title}, ${isBidMode ? "open to bids, budget " : effectiveFee != null ? "you earn " : ""}$${formatPrice(priceAmount)}${city ? `, ${city}` : ""}`}
       >
         {/* Category dot */}
         <span

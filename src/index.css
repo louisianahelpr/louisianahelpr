@@ -1734,20 +1734,22 @@ button,
   z-index: -1;
 }
 
-/* Status-pill pulse glow — breathing white halo + faint green ring that
-   expands and fades. Reads as a "live" heartbeat without being noisy. */
+/* Status-pill pulse glow — breathing white halo + faint burnt-sienna ring
+   that expands and fades. Reads as a "live" heartbeat without the clashing
+   saturated-green glow (the brand's live accent is burnt-sienna, matching
+   the "Live" indicator in the phone mockups). */
 @keyframes status-glow-pulse {
   0%, 100% {
     box-shadow:
       0 0 22px rgba(255, 255, 255, 0.5),
-      0 0 0 0 hsl(120, 50%, 55%, 0.4),
+      0 0 0 0 hsl(var(--burnt-sienna) / 0.35),
       inset 0 1px 0 rgba(255, 255, 255, 0.7),
       0 1px 2px rgba(46, 47, 34, 0.06);
   }
   50% {
     box-shadow:
       0 0 38px rgba(255, 255, 255, 0.85),
-      0 0 0 8px hsl(120, 50%, 55%, 0),
+      0 0 0 8px hsl(var(--burnt-sienna) / 0),
       inset 0 1px 0 rgba(255, 255, 255, 0.85),
       0 1px 2px rgba(46, 47, 34, 0.06);
   }
@@ -2226,5 +2228,52 @@ button,
 .senior-mode .text-ds-14 { font-size: 1rem; }
 .senior-mode button, .senior-mode a {
   min-height: 48px;
+}
+
+/* ── Landing hero motion ────────────────────────────────────────────────────
+   Brings the marketing hero "to life": a staggered entrance for the copy +
+   CTAs, a gentle float on the phone cluster, and a slow drift on the warm
+   glow behind it. The phone cluster's mouse-parallax TILT is applied inline
+   from React (HeroSection) on an inner wrapper, so float (outer, translateY)
+   and tilt (inner, rotate) never fight over the same transform.
+   All of it honors prefers-reduced-motion via the guard at the bottom. */
+@keyframes hero-rise {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+/* Start hidden so there's no flash of un-animated content before the
+   delayed entrance fires. */
+.hero-rise {
+  opacity: 0;
+  animation: hero-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+.hero-phones-float {
+  animation: hero-float 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes hero-glow-drift {
+  0%, 100% { transform: scale(1);    opacity: 0.55; }
+  50%      { transform: scale(1.08); opacity: 0.8; }
+}
+.hero-glow {
+  animation: hero-glow-drift 9s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise {
+    opacity: 1;
+    animation: none;
+  }
+  .hero-phones-float,
+  .hero-glow {
+    animation: none;
+  }
 }
 

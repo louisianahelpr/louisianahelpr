@@ -374,7 +374,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 Instant
               </span>
             );
-          if ((job as { pricing_mode?: string }).pricing_mode === "accept_bids")
+          if (job.pricing_mode === "accept_bids")
             return (
               <span
                 className={corner}
@@ -408,6 +408,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             urgentFee={job.urgent_fee ?? 0}
             helpersNeeded={helpersCount}
             showBudget={showBudget}
+            pricingMode={job.pricing_mode}
             variant="chip"
             className="shrink-0"
           />

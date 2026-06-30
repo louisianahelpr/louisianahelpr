@@ -313,12 +313,9 @@ const HowItWorks = () => {
           </div>
 
           <Button
+            variant="bark"
             size="lg"
             className="w-full rounded-ds-md font-sans font-semibold gap-2"
-            style={{
-              background: "hsl(var(--sage))",
-              color: "hsl(var(--parchment))",
-            }}
             onClick={() => navigate("/dashboard")}
           >
             Find work nearby
@@ -402,7 +399,7 @@ const HowItWorks = () => {
               onClick={() => navigate("/post-job")}
               size="lg"
               variant="bark"
-              className="rounded-full px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
+              className="rounded-ds-md px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
             >
               Post a task
               <ArrowRight className="w-4 h-4" strokeWidth={2} />
@@ -411,7 +408,7 @@ const HowItWorks = () => {
               onClick={() => navigate("/dashboard")}
               size="lg"
               variant="outline"
-              className="rounded-full px-8 font-sans font-semibold w-full sm:w-auto"
+              className="rounded-ds-md px-8 font-sans font-semibold w-full sm:w-auto"
               style={{
                 borderColor: "hsl(var(--olivewood) / 0.3)",
                 color: "hsl(var(--ink-deep))",

@@ -3,17 +3,7 @@ import { MapPin, ArrowRight } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
-
-const PARISHES = [
-  { slug: "orleans", name: "Orleans" },
-  { slug: "jefferson", name: "Jefferson" },
-  { slug: "east-baton-rouge", name: "East Baton Rouge" },
-  { slug: "st-tammany", name: "St. Tammany" },
-  { slug: "caddo", name: "Caddo" },
-  { slug: "calcasieu", name: "Calcasieu" },
-  { slug: "lafayette", name: "Lafayette" },
-  { slug: "ouachita", name: "Ouachita" },
-];
+import { LOUISIANA_PARISHES } from "@/lib/parishes";
 
 const ParishesPage = () => {
   usePageTitle("Louisiana Parishes — Helpr Community");
@@ -23,12 +13,12 @@ const ParishesPage = () => {
       <PageHeader
         eyebrow="Louisiana Helpr Community"
         title="Browse by Parish"
-        meta="Find local jobs and helpers in your corner of Louisiana"
+        meta={`Find local jobs and helpers across all ${LOUISIANA_PARISHES.length} Louisiana parishes`}
       />
 
       <main className="container mx-auto px-5 py-6 max-w-2xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {PARISHES.map(({ slug, name }) => (
+          {LOUISIANA_PARISHES.map(({ slug, name }) => (
             <Link
               key={slug}
               to={`/parish/${slug}`}

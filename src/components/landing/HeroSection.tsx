@@ -145,7 +145,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[90vh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-20 lg:pt-24 pb-8">
+    <section className="relative min-h-[100svh] flex flex-col px-5 sm:px-8 lg:px-12 xl:px-16 2xl:px-24 pt-20 sm:pt-20 lg:pt-24 pb-5">
       {/* Status light — proof-of-life pill anchored to the top-right of the
           entire hero section. Pulsing glow halo (status-pill-glow) reads
           as a "live" heartbeat for the whole platform. */}
@@ -166,25 +166,38 @@ const HeroSection = () => {
             Louisiana" otherwise (so we never flash a deflating "0 jobs
             open"). Count is fetched lazily via public RPC after first
             paint to keep LCP fast. */}
+        {/* Burnt-sienna (not the green --live token) so the pill's dot +
+            glow match the brand's "Live" heartbeat and don't read as a
+            clashing green glow. */}
         <span
           className="w-1.5 h-1.5 rounded-full animate-pulse"
           style={{
-            backgroundColor: "hsl(var(--live))",
-            boxShadow: "0 0 6px hsl(var(--live) / 0.6)",
+            backgroundColor: "hsl(var(--burnt-sienna))",
+            boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.6)",
           }}
         />
         {animatedCount !== null
           ? `${animatedCount} ${animatedCount === 1 ? "job" : "jobs"} open`
           : "Live in Louisiana"}
       </span>
+
+      {/* Hero content — centered in the section. */}
+      <div className="flex-1 flex flex-col justify-center pt-8 sm:pt-10 lg:pt-12">
       <div
-        className="container mx-auto max-w-6xl relative w-full"
+        className="mx-auto w-full max-w-7xl relative"
         style={{ zIndex: 1 }}
       >
         {/* Asymmetric 60/40 hero — branding on the left, phone cluster on
             the right. items-center vertically centers the phones against
-            the taller left column so they sit in the middle of the row. */}
-        <div className="grid md:grid-cols-12 gap-10 md:gap-12 lg:gap-16 items-center">
+            the taller left column so they sit in the middle of the row.
+            Container is capped at max-w-7xl (not full-bleed) and the gap is
+            kept moderate so the two halves sit a comfortable distance apart
+            on wide screens — a wider container + larger gap pooled all the
+            unused track-space into a dead void down the page center.
+            The split only engages at lg (1024px); below that the 60/40
+            columns don't have room and crush both halves toward the
+            center, so we stack instead (the mobile composition). */}
+        <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
 
           {/* LEFT 60% — branding only. Buttons moved below the marquee.
               `min-w-0` overrides the CSS-grid default of `min-width: auto`,
@@ -193,7 +206,7 @@ const HeroSection = () => {
               <sm step). Without it the grid item — and every child of it
               (h1, subhead, CTAs) — bursts 8px past the 320 px viewport even
               though the section has `px-5`. */}
-          <div className="md:col-span-7 min-w-0">
+          <div className="lg:col-span-7 min-w-0">
             <span className="text-display-eyebrow">Made in Louisiana</span>
 
             {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on "Partner."
@@ -204,7 +217,7 @@ const HeroSection = () => {
                 line-box width of ~308 px against a 280 px content column. */}
             <h1
               ref={headlineRef}
-              className="font-display font-black leading-[1.0] text-balance break-words mt-4 sm:mt-5 text-[2.25rem] sm:text-5xl lg:text-6xl xl:text-7xl"
+              className="font-display font-black leading-[1.0] text-balance break-words mt-5 sm:mt-6 text-[2.25rem] sm:text-5xl lg:text-6xl xl:text-7xl"
               style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
             >
               Louisiana&rsquo;s Local Task{" "}
@@ -220,7 +233,7 @@ const HeroSection = () => {
 
             {/* Subhead — open-air leading, both-sides marketplace explanation */}
             <p
-              className="font-serif italic mt-6 sm:mt-7 max-w-xl text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
+              className="font-serif italic mt-7 sm:mt-9 max-w-2xl text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
               style={{
                 color: "hsl(var(--stormy-sky))",
                 fontWeight: 600,
@@ -233,11 +246,11 @@ const HeroSection = () => {
             </p>
 
             {/* CTAs — stacked vertically directly under the subhead. */}
-            <div className="mt-8 sm:mt-10 flex flex-col gap-3 max-w-sm">
+            <div className="mt-10 sm:mt-12 flex flex-col gap-3.5 max-w-sm">
               <Button
                 asChild
                 size="xl"
-                className="btn-liquid-fill group h-14 sm:h-[3.75rem] lg:h-16 px-7 rounded-2xl tracking-tight w-full"
+                className="btn-grad-primary group h-14 sm:h-[3.75rem] lg:h-16 px-7 rounded-2xl tracking-tight w-full transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
                 style={{
                   fontFamily: "Montserrat, system-ui, sans-serif",
                   fontWeight: 600,
@@ -245,11 +258,9 @@ const HeroSection = () => {
                   lineHeight: 1,
                   letterSpacing: "-0.005em",
                   color: "hsl(var(--parchment))",
-                  background: "hsl(var(--bark))",
-                  backgroundImage: "none",
-                  border: "1px solid hsl(var(--bark))",
+                  border: "1px solid hsl(66 25% 19%)",
                   boxShadow:
-                    "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px rgba(0,0,0,0.1)",
+                    "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 12px 32px -8px hsl(var(--bark) / 0.35)",
                 }}
               >
                 <Link to="/signup" onClick={goToPostJob}>
@@ -287,60 +298,29 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* RIGHT 40% — fanned cluster of 3 phone mockups + App Store
-              badges below. The badges close the "this is an app, where do
-              I download it?" loop that the phone mockups open.
-              `min-w-0` for the same reason as the LEFT column — the inner
-              `PhoneCluster` has fixed-width phone children whose min-content
-              would otherwise stretch this grid track past the container. */}
-          <div className="md:col-span-5 md:mt-4 min-w-0">
+          {/* RIGHT 40% — fanned cluster of 3 phone mockups. `min-w-0` for the
+              same reason as the LEFT column — the inner `PhoneCluster` has
+              fixed-width phone children whose min-content would otherwise
+              stretch this grid track past the container. */}
+          <div className="lg:col-span-5 lg:mt-4 min-w-0 flex flex-col items-center justify-center">
             <PhoneCluster />
-            {/* App Store badges — `flex-wrap` lets each pill drop onto its
-                own row on the tightest viewports (320 px iPhone-SE-1 and
-                similar) where two side-by-side badges + container padding
-                otherwise total ~330 px and push past the viewport. */}
-            <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center md:justify-end gap-3">
-              <a
-                href="https://apps.apple.com/us/app/helpr/id6754470134"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="liquid-glass inline-flex items-center gap-2 px-3.5 py-2 rounded-ds-md transition-transform duration-200 hover:-translate-y-0.5"
-                style={{ color: "hsl(var(--ink-deep))" }}
-                aria-label="Download Helpr on the App Store"
-              >
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden>
-                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-                </svg>
-                <div className="text-left leading-none">
-                  <span
-                    className="font-mono uppercase block"
-                    style={{
-                      fontSize: "0.55rem",
-                      color: "hsl(var(--stormy-sky))",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    Download on the
-                  </span>
-                  <span
-                    className="font-display font-bold tracking-tight block"
-                    style={{ fontSize: "0.95rem", marginTop: "1px" }}
-                  >
-                    App Store
-                  </span>
-                </div>
-              </a>
-            </div>
           </div>
 
         </div>
+      </div>
+      </div>
 
-        {/* Category marquee — full-width row beneath the asymmetric grid,
-            underlining the entire hero block. (City strip moved to a
-            separator between Hero and How-It-Works in Index.tsx.) */}
-        <div className="mt-16 sm:mt-20 lg:mt-24">
-          <CategoryBento onSelect={goToPostJob} />
-        </div>
+      {/* ── Category bar ──────────────────────────────────────────────
+          Anchored below the hero copy as a full-bleed browse-affordance
+          rail (negative margins cancel the section padding so it spans
+          edge-to-edge). A hairline top divider separates it from the hero.
+          `pr` clearance on desktop keeps the scrolling pills from running
+          under the status pill. */}
+      <div
+        className="-mx-5 sm:-mx-8 lg:-mx-12 xl:-mx-16 2xl:-mx-24 px-5 sm:px-8 lg:px-12 xl:px-16 2xl:px-24 pt-6 sm:pt-8 mt-8 sm:mt-10 lg:pr-44"
+        style={{ borderTop: "1px solid hsl(46 20% 30% / 0.08)" }}
+      >
+        <CategoryBento onSelect={goToPostJob} />
       </div>
     </section>
   );

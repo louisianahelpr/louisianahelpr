@@ -42,32 +42,38 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false,
         className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pt-3 pb-2"
         style={!showTopBar ? { paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" } : undefined}
       >
-        <div className="flex items-start gap-3 mb-1">
-          {!hideBack && <BackButton onClick={onBack} />}
-          <div className="flex flex-col leading-none min-w-0 flex-1">
-            {eyebrow && (
-              <span
-                className="font-serif italic uppercase text-[0.62rem]"
-                style={{
-                  color: "hsl(var(--burnt-sienna) / 0.78)",
-                  letterSpacing: "0.18em",
-                }}
-              >
-                {eyebrow}
-              </span>
-            )}
-            <h1 className="text-page-title leading-tight mt-1 truncate">
-              {title}
-            </h1>
-            {meta && (
-              <span
-                className="font-serif italic mt-0.5 text-[0.78rem]"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                {meta}
-              </span>
-            )}
+        {/* Back button sits on its own row above the title so the page reads
+            with a proper standalone heading — not a title crammed in beside the
+            chevron. Keeps the back affordance in a consistent top-left spot
+            across every page that uses PageHeader. */}
+        {!hideBack && (
+          <div className="mb-2">
+            <BackButton onClick={onBack} />
           </div>
+        )}
+        <div className="flex flex-col leading-none min-w-0 mb-1">
+          {eyebrow && (
+            <span
+              className="font-serif italic uppercase text-[0.62rem]"
+              style={{
+                color: "hsl(var(--burnt-sienna) / 0.78)",
+                letterSpacing: "0.18em",
+              }}
+            >
+              {eyebrow}
+            </span>
+          )}
+          <h1 className="text-page-title leading-tight mt-1 text-balance">
+            {title}
+          </h1>
+          {meta && (
+            <span
+              className="font-serif italic mt-0.5 text-[0.78rem]"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+            >
+              {meta}
+            </span>
+          )}
         </div>
       </div>
     </>

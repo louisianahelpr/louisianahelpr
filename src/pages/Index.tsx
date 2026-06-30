@@ -192,16 +192,8 @@ const Index = () => {
         </Suspense>
       </div>
 
-      {/* City strip — sense-of-place transition between hero and process. */}
-      <div className="px-5 sm:px-8 lg:px-12 py-3 sm:py-4">
-        <p
-          className="text-center font-serif italic text-ds-11 sm:text-ds-13 tracking-[0.18em] uppercase"
-          style={{ color: "hsl(var(--burnt-sienna))", opacity: 0.55 }}
-        >
-          Serving New Orleans · Baton Rouge · Lafayette · Shreveport · Lake
-          Charles
-        </p>
-      </div>
+      {/* City strip now lives inside the hero-footer band (HeroSection),
+          grouped with the App Store download + category marquee. */}
 
       <HowItWorksSection />
       <CommunityVoice />

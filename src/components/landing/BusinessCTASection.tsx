@@ -63,14 +63,12 @@ const BusinessCTASection = () => (
           <Button
             asChild
             size="lg"
-            className="btn-liquid-fill group shrink-0 rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+            className="btn-grad-primary group shrink-0 rounded-2xl font-sans font-semibold transition-[transform,filter] duration-200 hover:brightness-110 active:scale-[0.98] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
             style={{
               color: "hsl(var(--parchment))",
-              backgroundColor: "hsl(var(--bark))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--bark))",
+              border: "1px solid hsl(66 25% 19%)",
               boxShadow:
-                "inset 0 1px 0 0 rgba(255,255,255,0.25), 0 8px 24px -8px rgba(0,0,0,0.18)",
+                "inset 0 1px 0 0 hsl(var(--parchment) / 0.22), 0 8px 24px -8px hsl(var(--bark) / 0.35)",
             }}
           >
             <Link to="/for-business">

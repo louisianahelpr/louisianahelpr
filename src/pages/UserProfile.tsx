@@ -24,6 +24,7 @@ import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
 import { CareerMilestones } from "@/components/profile/CareerMilestones";
 import { ProfileCompletionCard } from "@/components/profile/ProfileCompletionCard";
 import { ProfileHeaderCard } from "./userProfile/ProfileHeaderCard";
+import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
 import { ProfileStatsGrid } from "./userProfile/ProfileStatsGrid";
 import { RatingBreakdown } from "./userProfile/RatingBreakdown";
 import { PosterReputationCard } from "./userProfile/PosterReputationCard";
@@ -124,7 +125,7 @@ const UserProfile = () => {
         prof = unwrap(
           await supabase
             .from("profiles")
-            .select("user_id, full_name, avatar_url, bio, location, skills, hourly_rate, subscription_tier, portfolio_urls, created_at")
+            .select("user_id, full_name, avatar_url, bio, location, skills, hourly_rate, subscription_tier, portfolio_urls, created_at, background_check_status")
             .eq("user_id", userId!)
             .maybeSingle(),
         );
@@ -167,7 +168,7 @@ const UserProfile = () => {
         // relies on), so a direct select is fine.
         supabase
           .from("profiles")
-          .select("id_document_url, approval_status, idv_status, stripe_account_id")
+          .select("id_document_url, approval_status, idv_status, stripe_account_id, background_check_status")
           .eq("user_id", userId!)
           .maybeSingle(),
         // Count-only queries — `head: true` skips row payload, so these
@@ -433,6 +434,7 @@ const UserProfile = () => {
         // objects don't round-trip JSON). Re-hydrate at the call site.
         lastActiveIso: lastActiveAt ? lastActiveAt.toISOString() : null,
         isIdVerified: !!idCheckRes.data?.id_document_url,
+        backgroundCheckStatus: (idCheckRes.data?.background_check_status ?? "none") as string,
         // Verification-ladder inputs — passed straight through to
         // HelperTierBadge. Null-safe if the row read was blocked.
         tierProfile: {
@@ -614,6 +616,7 @@ const UserProfile = () => {
   const revisionFrequency = data?.revisionFrequency ?? null;
   const lastActiveAt = data?.lastActiveIso ? new Date(data.lastActiveIso) : null;
   const isIdVerified = data?.isIdVerified ?? false;
+  const backgroundCheckStatus = data?.backgroundCheckStatus ?? "none";
   const tierProfile = data?.tierProfile ?? null;
   const posterReputation = data?.posterReputation ?? null;
   const postedTotalCount = data?.postedTotalCount ?? 0;
@@ -884,6 +887,12 @@ const UserProfile = () => {
               reviewCount={stats.reviewCount}
               userId={userId}
             />
+          )}
+
+          {/* Paid background-check → public Background-Checked badge.
+              Own profile only; self-hides into a confirmation once verified. */}
+          {isOwnProfile && (
+            <BackgroundCheckCard status={backgroundCheckStatus} />
           )}
 
           {/* Stats */}

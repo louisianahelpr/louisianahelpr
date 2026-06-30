@@ -40,9 +40,16 @@ const ScrollToTop = () => {
   const [visible, setVisible] = useState(false);
   // The AppShell scroll container currently being watched.
   const scrollerRef = useRef<HTMLElement | null>(null);
+  // Last pathname we reset for. A query-only change (e.g. a URL-driven tab
+  // switcher calling setSearchParams) mints a fresh location.key but keeps the
+  // pathname — those must NOT scroll the page to the top.
+  const prevPathnameRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {
     if (hash) return; // Let the browser handle anchor scrolling
+
+    const samePathname = prevPathnameRef.current === pathname;
+    prevPathnameRef.current = pathname;
 
     const mainEl = document.getElementById("main-content");
     const saved = scrollPositions.get(key);
@@ -59,6 +66,12 @@ const ScrollToTop = () => {
       };
       apply();
       requestAnimationFrame(apply);
+      return;
+    }
+
+    // Query-only change on the same page (e.g. a URL-driven tab switcher) —
+    // keep the user's scroll position; don't yank them to the top.
+    if (samePathname) {
       return;
     }
 

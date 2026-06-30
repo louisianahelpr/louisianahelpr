@@ -53,7 +53,7 @@ export interface VariantConfig {
 
 const SHARED_FEATURES: FeatureBullet[] = [
   { icon: ShieldCheck, text: "Stripe ID-verified helprs" },
-  { icon: Users, text: "2 team seats free, upgrade anytime" },
+  { icon: Users, text: "1 team seat free, upgrade anytime" },
   { icon: CreditCard, text: "Owner's card billed for all jobs" },
   { icon: Sparkles, text: "Recurring jobs, statewide coverage" },
   { icon: CheckCircle2, text: "Flat platform fee, no contracts" },

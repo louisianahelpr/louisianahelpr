@@ -69,7 +69,7 @@ const TAB_TAGLINES: Record<TabKey, string> = {
 
 const TAB_LABELS: Record<TabKey, string> = {
   terms: "Terms",
-  community: "Community",
+  community: "Rules",
   privacy: "Privacy",
 };
 
@@ -1060,9 +1060,9 @@ const Legal = () => {
   // history.back(), which works for authenticated users from /profile?tab=legal
   // and unauthenticated visitors from the signup agreement checkbox.
   const headerRow = (
-    <div className="flex items-start gap-3">
-      <div data-print-hide><BackButton /></div>
-      <div className="flex flex-col leading-none min-w-0 flex-1">
+    <div>
+      <div data-print-hide className="mb-2"><BackButton /></div>
+      <div className="flex flex-col leading-none min-w-0">
         <span
           className="font-serif italic uppercase text-[0.62rem]"
           style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}

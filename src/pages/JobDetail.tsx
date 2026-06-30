@@ -50,7 +50,7 @@ const JobDetail = () => {
       const { data, error } = await supabase
         .from("open_jobs_browse")
         .select(
-          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boost_expires_at, expires_at, start_time, recurrence_interval",
+          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boost_expires_at, expires_at, start_time, recurrence_interval, pricing_mode",
         )
         .eq("id", id!)
         .maybeSingle();

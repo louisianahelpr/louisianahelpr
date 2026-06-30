@@ -87,6 +87,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   // Growth / business-development pages — public, long-form, document-scroll
   "/become-a-partner", // Partner intake form for service businesses
   "/enterprise",       // B2B / enterprise integration page
+  "/local-guide",      // Public pricing guide (footer Resources)
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

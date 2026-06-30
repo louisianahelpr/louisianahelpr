@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   Rocket,
@@ -11,6 +11,10 @@ import {
   Mail,
   MapPin,
   ChevronDown,
+  ChevronRight,
+  BookOpen,
+  Tag,
+  Scale,
   X,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -288,10 +292,10 @@ const HelpCenter = () => {
       <PageHeader
         eyebrow="Support"
         title="Help Center"
-        onBack={() => navigate(-1)}
+        onBack={() => navigate("/")}
       />
 
-      <div className="mx-auto max-w-2xl px-5 lg:px-8 pb-16 space-y-10">
+      <div className="mx-auto max-w-2xl px-5 lg:px-8 pb-2 space-y-10">
 
         {/* ── Decorative search header ── */}
         <div
@@ -502,6 +506,87 @@ const HelpCenter = () => {
               ))}
             </div>
           )}
+        </section>
+
+        {/* ── More resources ── */}
+        <section aria-labelledby="resources-heading" className="space-y-4">
+          <h2
+            id="resources-heading"
+            className="font-display italic font-bold text-ds-20 lg:text-ds-24 tracking-[-0.02em]"
+            style={{ color: "hsl(var(--ink-deep))" }}
+          >
+            Still have a question?
+          </h2>
+          <p
+            className="font-sans text-ds-13 -mt-2"
+            style={{ color: "hsl(var(--olivewood))" }}
+          >
+            Browse these guides for the full picture, or reach our team below.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-2.5">
+            {[
+              {
+                icon: BookOpen,
+                label: "How Helpr works",
+                desc: "Post, hire, and get paid — end to end.",
+                to: "/how-it-works",
+              },
+              {
+                icon: Tag,
+                label: "Pricing guide",
+                desc: "Fair-price ranges for common Louisiana jobs.",
+                to: "/local-guide",
+              },
+              {
+                icon: Scale,
+                label: "Rules & safety",
+                desc: "Community rules, disputes, and protections.",
+                to: "/legal?tab=community",
+              },
+              {
+                icon: Briefcase,
+                label: "Browse jobs",
+                desc: "See what neighbors need help with right now.",
+                to: "/jobs",
+              },
+            ].map((r) => (
+              <Link
+                key={r.label}
+                to={r.to}
+                className="liquid-glass group flex items-center gap-3 px-4 py-3 transition-transform active:scale-[0.98] hover:opacity-95"
+              >
+                <div
+                  className="w-9 h-9 rounded-ds-md flex items-center justify-center shrink-0"
+                  style={{ background: "hsl(var(--bark) / 0.1)" }}
+                >
+                  <r.icon
+                    className="w-4 h-4"
+                    style={{ color: "hsl(var(--bark))" }}
+                    strokeWidth={1.75}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="font-sans font-semibold text-ds-13 leading-snug"
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  >
+                    {r.label}
+                  </p>
+                  <p
+                    className="font-sans text-ds-11 leading-snug"
+                    style={{ color: "hsl(var(--olivewood))" }}
+                  >
+                    {r.desc}
+                  </p>
+                </div>
+                <ChevronRight
+                  className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+                  style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                  strokeWidth={2}
+                />
+              </Link>
+            ))}
+          </div>
         </section>
 
         {/* ── Contact section ── */}

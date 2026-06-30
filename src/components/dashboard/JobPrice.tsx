@@ -32,6 +32,13 @@ export interface JobPriceProps {
    * line. Show for free-tier helpers, not already-subscribed users.
    */
   showProUpsell?: boolean;
+  /**
+   * The job's pricing mode. When `"accept_bids"` the posted budget is only a
+   * reference — the helper proposes their own price — so the net "You earn"
+   * figure would misread. In that mode JobPrice shows the gross budget under
+   * an "Open to bids" label and suppresses the net-take-home breakdown.
+   */
+  pricingMode?: string;
   className?: string;
 }
 
@@ -69,6 +76,7 @@ export function JobPrice({
   variant = "chip",
   showBudget = false,
   showProUpsell = false,
+  pricingMode,
   className,
 }: JobPriceProps) {
   const [expanded, setExpanded] = useState(false);
@@ -82,7 +90,11 @@ export function JobPrice({
     helpersNeeded,
   );
 
-  const amount = showBudget ? budget : netEarnings;
+  // Bid jobs have no fixed take-home, so we never show the helper-side net
+  // figure or its breakdown — only the poster's budget as a reference.
+  const isBidMode = pricingMode === "accept_bids";
+  const useGross = showBudget || isBidMode;
+  const amount = useGross ? budget : netEarnings;
   const earnings = formatPrice(amount);
 
   // ──────────────────────────────────────────────────────────────────────
@@ -120,10 +132,18 @@ export function JobPrice({
     // <button> (guest Browse), and a <button> may not nest inside a
     // <button> (validateDOMNesting). A non-interactive element keeps the
     // markup valid while the outer card stays the single tap target.
-    if (showBudget) {
+    if (useGross) {
       return (
         <div className={chipClass} style={chipSurface}>
           {amountNode}
+          {isBidMode && (
+            <span
+              className="font-serif italic uppercase leading-none mt-0.5"
+              style={{ fontSize: "7px", letterSpacing: "0.08em", color: "hsl(var(--bark) / 0.75)" }}
+            >
+              Open to bids
+            </span>
+          )}
         </div>
       );
     }
@@ -201,7 +221,7 @@ export function JobPrice({
         className="text-[0.6rem] font-serif italic uppercase tracking-[0.18em] flex items-center gap-1"
         style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
       >
-        <DollarSign className="w-3 h-3" /> {showBudget ? "Budget" : "You earn"}
+        <DollarSign className="w-3 h-3" /> {isBidMode ? "Open to bids" : showBudget ? "Budget" : "You earn"}
       </p>
       <p
         className="font-display font-bold tabular-nums leading-none mt-1"
@@ -209,8 +229,17 @@ export function JobPrice({
       >
         ${amount.toFixed(2)}
       </p>
+      {/* Bid mode: the budget is a reference, not a payout — say so plainly. */}
+      {isBidMode && (
+        <p
+          className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+        >
+          Poster&rsquo;s budget · you set your bid
+        </p>
+      )}
       {/* Always-visible micro-breakdown so helpers see the math at a glance. */}
-      {!showBudget && (
+      {!useGross && (
         <p
           className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -222,7 +251,7 @@ export function JobPrice({
       {/* Only pitch the Pro fee reduction when the fee actually shown is above
           the Pro rate (10%) — otherwise "reduces your fee to 10%" contradicts
           a fee line already reading 10% or lower. */}
-      {!showBudget && showProUpsell && effectiveFee > 10 && (
+      {!useGross && showProUpsell && effectiveFee > 10 && (
         <p className="font-serif italic text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           <span style={{ color: "hsl(var(--burnt-sienna))" }}>Helper Pro</span> reduces your fee to 10%
           {" "}·{" "}

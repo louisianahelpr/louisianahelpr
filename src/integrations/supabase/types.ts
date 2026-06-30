@@ -2394,6 +2394,7 @@ export type Database = {
           availability: string | null
           avatar_url: string | null
           ban_status: string | null
+          background_check_status: string
           bio: string | null
           created_at: string
           date_of_birth: string | null
@@ -2468,6 +2469,7 @@ export type Database = {
           availability?: string | null
           avatar_url?: string | null
           ban_status?: string | null
+          background_check_status?: string
           bio?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -2542,6 +2544,7 @@ export type Database = {
           availability?: string | null
           avatar_url?: string | null
           ban_status?: string | null
+          background_check_status?: string
           bio?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -3828,6 +3831,7 @@ export type Database = {
           parent_job_id: string | null
           payment_status: string | null
           photos: string[] | null
+          pricing_mode: string | null
           recurrence_end_date: string | null
           recurrence_interval: string | null
           special_requirements: string | null
@@ -3861,6 +3865,7 @@ export type Database = {
           parent_job_id?: string | null
           payment_status?: string | null
           photos?: string[] | null
+          pricing_mode?: string | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
           special_requirements?: string | null

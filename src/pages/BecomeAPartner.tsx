@@ -14,6 +14,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
@@ -100,6 +101,14 @@ const BENEFIT_CARDS = [
   },
 ];
 
+const PARTNER_VALUE_PROPS = [
+  "Free to join — no monthly fees and no pay-per-lead charges",
+  "Keep 88–92% of every job; secure Stripe payouts after the work is approved",
+  "You set your own rates, schedule, and service area",
+  "Escrow protection on every job, so you always get paid for completed work",
+  "Ratings and reviews build your reputation across Louisiana",
+];
+
 const inputClass =
   "w-full rounded-ds-md px-3 py-2.5 text-ds-14 text-foreground border focus:outline-none focus:ring-2 transition-all";
 const inputStyle = {
@@ -127,9 +136,16 @@ const BecomeAPartner = () => {
     ? `${Math.max(helperCount, 1).toLocaleString()}+`
     : "500+";
 
+  const formatResponseTime = (mins: number) => {
+    const total = Math.round(mins);
+    if (total < 60) return `${total} min`;
+    const hrs = Math.floor(total / 60);
+    const rem = total % 60;
+    return rem > 0 ? `${hrs} hr ${rem} min` : `${hrs} hr`;
+  };
   const responseMinutes = platformStats?.avg_response_minutes ?? null;
   const responseStat = responseMinutes !== null
-    ? `${Math.round(Number(responseMinutes))} min`
+    ? formatResponseTime(Number(responseMinutes))
     : "30 min";
 
   const socialProof = [
@@ -227,23 +243,24 @@ const BecomeAPartner = () => {
       <div className="mx-auto max-w-2xl px-4 pt-2 pb-16 space-y-10">
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
-        <section
-          className="rounded-ds-xl px-5 py-7 text-center"
-          style={{
-            background:
-              "linear-gradient(135deg, hsl(var(--bark) / 0.09), hsl(var(--gold-warm) / 0.07))",
-            border: "1px solid hsl(var(--bark) / 0.14)",
-          }}
-        >
+        <section className="liquid-glass px-5 py-7 text-center">
           <div
-            className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-            style={{ background: "hsl(var(--bark) / 0.12)" }}
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{
+              background: "hsl(var(--bark))",
+              color: "hsl(var(--parchment))",
+              boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
+            }}
           >
-            <Briefcase className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} />
+            <Briefcase className="w-7 h-7" strokeWidth={1.75} />
           </div>
           <h2
-            className="font-display font-bold italic text-ds-24 leading-tight mb-2"
-            style={{ color: "hsl(var(--ink-deep))" }}
+            className="font-display font-bold italic leading-[1.05] mb-2 text-balance"
+            style={{
+              fontSize: "clamp(1.75rem, 4vw + 0.5rem, 2.5rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.025em",
+            }}
           >
             Grow your business with Helpr
           </h2>
@@ -296,11 +313,7 @@ const BecomeAPartner = () => {
             {BENEFIT_CARDS.map(({ icon: Icon, title, body, color }) => (
               <div
                 key={title}
-                className="rounded-ds-lg px-4 py-4 flex items-start gap-3"
-                style={{
-                  background: `hsl(${color} / 0.06)`,
-                  border: `1px solid hsl(${color} / 0.14)`,
-                }}
+                className="liquid-glass px-4 py-4 flex items-start gap-3"
               >
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
@@ -321,6 +334,36 @@ const BecomeAPartner = () => {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Concrete value props — the financial/operational wins service
+              businesses ask about first (lead fees, payout speed, schedule
+              control, take-home), which the cards above don't spell out. */}
+          <div
+            className="rounded-ds-lg px-5 py-5 mt-3"
+            style={{
+              background: "hsl(var(--bark) / 0.05)",
+              border: "1px solid hsl(var(--bark) / 0.14)",
+            }}
+          >
+            <p
+              className="text-ds-13 font-bold mb-3"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
+              What partnering gets you
+            </p>
+            <ul className="space-y-2.5">
+              {PARTNER_VALUE_PROPS.map((vp) => (
+                <li key={vp} className="flex items-start gap-2.5">
+                  <CheckCircle2
+                    className="w-4 h-4 mt-0.5 shrink-0"
+                    strokeWidth={2.25}
+                    style={{ color: "hsl(var(--bark))" }}
+                  />
+                  <span className="text-ds-13 text-foreground leading-snug">{vp}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
@@ -556,27 +599,30 @@ const BecomeAPartner = () => {
                   Credentials (check all that apply)
                 </p>
                 <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 w-4 h-4 rounded accent-[hsl(var(--bark))] shrink-0"
+                  <Checkbox
+                    className="mt-0.5 shrink-0"
                     checked={form.has_insurance}
-                    onChange={(e) => set("has_insurance", e.target.checked)}
+                    onCheckedChange={(v) => set("has_insurance", v === true)}
                   />
                   <span className="text-ds-13 text-foreground leading-snug">
                     We carry general liability insurance
                   </span>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 w-4 h-4 rounded accent-[hsl(var(--bark))] shrink-0"
+                  <Checkbox
+                    className="mt-0.5 shrink-0"
                     checked={form.has_license}
-                    onChange={(e) => set("has_license", e.target.checked)}
+                    onCheckedChange={(v) => set("has_license", v === true)}
                   />
                   <span className="text-ds-13 text-foreground leading-snug">
                     We hold applicable trade licenses
                   </span>
                 </label>
+                <p className="text-ds-11 text-muted-foreground leading-snug pt-1">
+                  No need to upload anything yet — we'll request your license and
+                  insurance documents during onboarding once your application is
+                  approved.
+                </p>
               </div>
 
               {/* Referral source */}
@@ -601,10 +647,10 @@ const BecomeAPartner = () => {
 
               <Button
                 type="submit"
+                variant="bark"
                 size="lg"
                 className="w-full"
                 disabled={submitting}
-                style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
               >
                 {submitting ? "Submitting…" : "Apply to become a partner"}
               </Button>
@@ -617,14 +663,7 @@ const BecomeAPartner = () => {
         )}
 
         {/* ── Social proof strip ──────────────────────────────────────────── */}
-        <section
-          className="rounded-ds-xl px-4 py-5"
-          style={{
-            background:
-              "linear-gradient(135deg, hsl(var(--bark) / 0.06), hsl(var(--gold-warm) / 0.05))",
-            border: "1px solid hsl(var(--bark) / 0.12)",
-          }}
-        >
+        <section className="liquid-glass px-4 py-5">
           <div className="flex items-center justify-around gap-2 flex-wrap">
             {socialProof.map(({ stat, label }) => (
               <div key={label} className="text-center px-2">

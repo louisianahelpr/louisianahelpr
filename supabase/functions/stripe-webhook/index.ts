@@ -260,6 +260,61 @@ serve(async (req) => {
           }
         }
 
+        // Handle paid background-check completion — payment captured, so kick
+        // off the screening through the existing verification engine. The
+        // helper's public badge flips to "verified" via the
+        // sync_credential_from_check() trigger once the vendor/admin marks the
+        // check passed. Created from create-bgc-payment.
+        if (kind === "background_check") {
+          const bgcUserId = (session.metadata as any)?.user_id;
+          if (!bgcUserId) {
+            logStep("WARNING: background_check checkout with no user_id");
+          } else {
+            // Mark the public profile flag as pending so the helper (and
+            // viewers) see "in progress" immediately after payment.
+            const { error: pendErr } = await supabase
+              .from("profiles")
+              .update({ background_check_status: "pending" })
+              .eq("user_id", bgcUserId);
+            if (pendErr) logStep("ERROR setting bgc pending", { error: pendErr.message });
+
+            // Record the credential attempt + a check run for the admin queue.
+            const { data: cred, error: credErr } = await supabase
+              .from("helper_credentials")
+              .insert({
+                user_id: bgcUserId,
+                credential_type: "background_check",
+                status: "submitted",
+              })
+              .select("id")
+              .single();
+            if (credErr) {
+              logStep("ERROR creating bgc credential", { error: credErr.message });
+            } else if (cred) {
+              const { error: checkErr } = await supabase
+                .from("verification_checks")
+                .insert({
+                  credential_id: cred.id,
+                  user_id: bgcUserId,
+                  vendor: "manual",
+                  check_type: "background",
+                  status: "initiated",
+                });
+              if (checkErr) logStep("ERROR creating bgc check", { error: checkErr.message });
+            }
+
+            await supabase.from("notifications").insert({
+              user_id: bgcUserId,
+              title: "🛡️ Background check started",
+              message:
+                "Thanks — your payment went through and your background check is in progress. We'll add your Background-Checked badge as soon as it clears.",
+              type: "success",
+              link: "/profile",
+            });
+            logStep("Background check initiated", { userId: bgcUserId });
+          }
+        }
+
         // Store payment intent ID on the job.
         // Skip for tip and job_boost checkouts — they embed job_id in metadata
         // for their own handlers above, but their Stripe payment intents must NOT

@@ -124,23 +124,24 @@ const EnterprisePage = () => {
       <div className="mx-auto max-w-2xl px-4 pt-2 pb-16 space-y-10">
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
-        <section
-          className="rounded-ds-xl px-5 py-7 text-center"
-          style={{
-            background:
-              "linear-gradient(135deg, hsl(var(--stormy-sky) / 0.08), hsl(var(--olivewood) / 0.06))",
-            border: "1px solid hsl(var(--stormy-sky) / 0.14)",
-          }}
-        >
+        <section className="liquid-glass px-5 py-7 text-center">
           <div
-            className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-            style={{ background: "hsl(var(--stormy-sky) / 0.10)" }}
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{
+              background: "hsl(var(--stormy-sky))",
+              color: "hsl(var(--parchment))",
+              boxShadow: "0 8px 20px -8px hsl(var(--stormy-sky) / 0.5)",
+            }}
           >
-            <Building2 className="w-6 h-6" style={{ color: "hsl(var(--stormy-sky))" }} />
+            <Building2 className="w-7 h-7" strokeWidth={1.75} />
           </div>
           <h2
-            className="font-display font-bold italic text-ds-24 leading-tight mb-2"
-            style={{ color: "hsl(var(--ink-deep))" }}
+            className="font-display font-bold italic leading-[1.05] mb-2 text-balance"
+            style={{
+              fontSize: "clamp(1.75rem, 4vw + 0.5rem, 2.5rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.025em",
+            }}
           >
             Automate your contractor dispatch
           </h2>
@@ -150,8 +151,9 @@ const EnterprisePage = () => {
             on their way.
           </p>
           <Button
+            variant="bark"
+            size="lg"
             className="mt-5"
-            style={{ background: "hsl(var(--stormy-sky))", color: "hsl(var(--parchment))" }}
             onClick={() => {
               document.getElementById("enterprise-contact")?.scrollIntoView({ behavior: "smooth" });
             }}
@@ -170,14 +172,7 @@ const EnterprisePage = () => {
           </h3>
           <div className="space-y-3">
             {USE_CASES.map(({ icon: Icon, tag, title, body, href, color }) => (
-              <div
-                key={tag}
-                className="rounded-ds-lg px-4 py-4"
-                style={{
-                  background: `hsl(${color} / 0.05)`,
-                  border: `1px solid hsl(${color} / 0.14)`,
-                }}
-              >
+              <div key={tag} className="liquid-glass px-4 py-4">
                 <div className="flex items-start gap-3">
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
@@ -233,11 +228,7 @@ const EnterprisePage = () => {
             {HOW_IT_WORKS.map(({ step, icon: Icon, title, body }) => (
               <div
                 key={step}
-                className="rounded-ds-lg px-4 py-4 flex items-start gap-4"
-                style={{
-                  background: "hsl(var(--olivewood) / 0.04)",
-                  border: "1px solid hsl(var(--olivewood) / 0.12)",
-                }}
+                className="liquid-glass px-4 py-4 flex items-start gap-4"
               >
                 <div className="shrink-0 flex flex-col items-center gap-1">
                   <span
@@ -324,13 +315,7 @@ const EnterprisePage = () => {
             Request API access
           </h3>
 
-          <div
-            className="rounded-ds-xl px-5 py-6 space-y-4"
-            style={{
-              background: "hsl(var(--parchment) / 0.70)",
-              border: "1px solid hsl(var(--olivewood) / 0.15)",
-            }}
-          >
+          <div className="liquid-glass px-5 py-6 space-y-4">
             <div>
               <label
                 className="block text-ds-13 font-semibold text-foreground mb-1.5"
@@ -391,12 +376,7 @@ const EnterprisePage = () => {
               href={buildMailto()}
               className="block"
             >
-              <Button
-                type="button"
-                size="lg"
-                className="w-full"
-                style={{ background: "hsl(var(--stormy-sky))", color: "hsl(var(--parchment))" }}
-              >
+              <Button type="button" variant="bark" size="lg" className="w-full">
                 Request API Access
               </Button>
             </a>
@@ -407,13 +387,7 @@ const EnterprisePage = () => {
         </section>
 
         {/* ── Trust strip ──────────────────────────────────────────────────── */}
-        <section
-          className="rounded-ds-xl px-5 py-5"
-          style={{
-            background: "hsl(var(--olivewood) / 0.05)",
-            border: "1px solid hsl(var(--olivewood) / 0.12)",
-          }}
-        >
+        <section className="liquid-glass px-5 py-5">
           <p
             className="font-serif italic uppercase text-ds-9 text-center mb-4"
             style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.18em" }}
@@ -432,20 +406,6 @@ const EnterprisePage = () => {
             ))}
           </div>
         </section>
-
-        {/* ── Bottom CTA ───────────────────────────────────────────────────── */}
-        <div className="text-center space-y-3 pt-2">
-          <p className="text-ds-13 text-muted-foreground">
-            Looking to join as an individual or small business?
-          </p>
-          <a
-            href="/become-a-partner"
-            className="inline-flex items-center gap-1.5 text-ds-13 font-semibold"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            Become a Helpr Partner <ChevronRight className="w-3.5 h-3.5" />
-          </a>
-        </div>
       </div>
     </PublicLayout>
   );

@@ -35,12 +35,21 @@ const ELEV_OUTLINE =
   "shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.08),0_2px_6px_hsl(var(--ink-deep)/0.10),0_4px_12px_-2px_hsl(var(--ink-deep)/0.06)] " +
   "active:scale-[0.97] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.10)]";
 
+// Premium hover shared by ALL green primary CTAs (default / hero / bark) so the
+// hover never drifts between buttons (some used to only brighten, others also
+// slid an arrow). One effect everywhere: brighten + a 1px lift + a soft
+// bark-tinted glow. The `active:` press (scale + shadow collapse) from
+// ELEV_FILLED still wins on tap because Tailwind orders `active` after `hover`.
+const GREEN_CTA_HOVER =
+  "hover:brightness-110 hover:-translate-y-px " +
+  "hover:shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_6px_18px_-6px_hsl(var(--bark)/0.55),0_12px_28px_-12px_hsl(var(--ink-deep)/0.22)]";
+
 const buttonVariants = cva(
   // transition covers transform + box-shadow so the press collapse and
   // spring-back animate together. duration-150 on the press (fast, snappy)
   // and the spring easing bounces back on release without needing two
   // separate durations — cubic-bezier(0.34,1.56,0.64,1) is our brand spring.
-  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-ds-md text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow] duration-[150ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
+  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-ds-md text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter] duration-[150ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -55,7 +64,8 @@ const buttonVariants = cva(
         //
         // Depth: all 4 treatments (filled primary CTA).
         default:
-          "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] hover:brightness-110 " +
+          "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] " +
+          GREEN_CTA_HOVER + " " +
           ELEV_FILLED,
         // Destructive: shadow + highlight + press, NO gradient — keep red
         // flat-looking so it doesn't get accidentally pressed.
@@ -77,7 +87,8 @@ const buttonVariants = cva(
         // so it gets all 4 treatments (gradient + highlight + 2-layer shadow
         // + active press), plus its existing shimmer sweep.
         hero:
-          "relative overflow-hidden btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] text-base hover:brightness-110 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out " +
+          "relative overflow-hidden btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] text-base before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out " +
+          GREEN_CTA_HOVER + " " +
           ELEV_FILLED,
         // Hero-outline: outline family, shadow #1 only.
         "hero-outline":
@@ -91,7 +102,8 @@ const buttonVariants = cva(
         // Depth: all 4 treatments — this is THE primary CTA the TestFlight
         // feedback flagged as flat.
         bark:
-          "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border border-[hsl(66_24%_20%)] [font-family:Montserrat,system-ui,sans-serif] font-semibold tracking-[0.01em] hover:brightness-110 " +
+          "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border border-[hsl(66_24%_20%)] [font-family:Montserrat,system-ui,sans-serif] font-semibold tracking-[0.01em] " +
+          GREEN_CTA_HOVER + " " +
           ELEV_FILLED,
       },
       size: {

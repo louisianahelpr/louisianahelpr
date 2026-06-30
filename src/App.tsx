@@ -104,8 +104,10 @@ const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
 const ImpactPage = lazy(() => import("./pages/ImpactPage"));
+const CommunityThanks = lazy(() => import("./pages/CommunityThanks"));
 const BecomeAPartner = lazy(() => import("./pages/BecomeAPartner"));
 const EnterprisePage = lazy(() => import("./pages/EnterprisePage"));
+const LocalGuide = lazy(() => import("./pages/LocalGuide"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
@@ -170,7 +172,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/support" element={<Navigate to="/profile?tab=support" replace />} />
+      {/* /support is linked from the public marketing footer, so it must
+          resolve WITHOUT auth. The old target (/profile?tab=support) forced
+          a sign-in. /help (HelpCenter) is the public contact surface — email,
+          hours, FAQ — reachable by guests and signed-in users alike. Authed
+          users still get the in-app support tab from inside Profile. */}
+      <Route path="/support" element={<Navigate to="/help" replace />} />
 
       <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
@@ -194,12 +201,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           a no-account preview, though the marketing landing remains canonical. */}
       <Route path="/browse" element={<RouteErrorBoundary>{routeEl(<PageTransition><DashboardGuest /></PageTransition>, <GuestBrowseSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
-      {/* /community is a legacy/external-link redirect stub — the content
-          lives as a tab inside /legal. Without this redirect, old search
-          indexes and external links 404. The sitemap lists the canonical
-          /legal URL, not this stub. Mirrors the /rules → /legal?tab=community
-          pattern above. */}
-      <Route path="/community" element={<Navigate to="/legal?tab=community" replace />} />
+      {/* /community is the public "thank-you" community page (CommunityThanks).
+          The community *guidelines/rules* live as a tab inside /legal and are
+          reached via /rules → /legal?tab=community; this page is the warm,
+          gratitude-focused marketing surface the footer/landing points to. */}
+      <Route path="/community" element={<RouteErrorBoundary>{routeEl(<PageTransition><CommunityThanks /></PageTransition>)}</RouteErrorBoundary>} />
 
       {/* Settings-style pages live inside the Profile shell so the
           shared back button + safe-area top padding stay consistent.
@@ -238,6 +244,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Growth / business-development pages — no auth required */}
       <Route path="/become-a-partner" element={<RouteErrorBoundary>{routeEl(<PageTransition><BecomeAPartner /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/enterprise" element={<RouteErrorBoundary>{routeEl(<PageTransition><EnterprisePage /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/local-guide" element={<RouteErrorBoundary>{routeEl(<PageTransition><LocalGuide /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/how-it-works" element={<RouteErrorBoundary>{routeEl(<PageTransition><HowItWorks /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/parishes" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishesPage /></PageTransition>)}</RouteErrorBoundary>} />

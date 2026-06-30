@@ -33,10 +33,10 @@ export interface BusinessMembership {
 }
 
 const SEAT_LIMITS: Record<SeatTier, number> = {
-  starter: 2,
-  crew: 5,
-  team: 10,
-  enterprise: 25,
+  starter: 1,
+  crew: 2,
+  team: 3,
+  enterprise: 4,
 };
 
 const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | null> => {

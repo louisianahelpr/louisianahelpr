@@ -177,11 +177,6 @@ const Footer = () => (
                 Our Impact
               </Link>
             </li>
-            <li>
-              <Link to="/community" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Community
-              </Link>
-            </li>
           </ul>
         </div>
 

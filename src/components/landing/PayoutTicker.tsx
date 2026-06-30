@@ -181,8 +181,8 @@ const PayoutTicker = () => {
           aria-hidden="true"
           className="w-1.5 h-1.5 rounded-full shrink-0"
           style={{
-            backgroundColor: "hsl(var(--live))",
-            boxShadow: "0 0 6px hsl(var(--live) / 0.55)",
+            backgroundColor: "hsl(var(--burnt-sienna))",
+            boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.55)",
           }}
         />
         {/* The text row keys on index so React re-mounts the inner

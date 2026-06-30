@@ -7,8 +7,8 @@ import {
   CheckCircle,
   type LucideIcon,
 } from "lucide-react";
-import ConnectedHIcon from "@/components/ConnectedHIcon";
 import { getCategoryIcon } from "@/lib/categoryIcons";
+import helprEmblem from "@/assets/helpr-logo-96.webp";
 
 /**
  * PhoneCluster — three iPhone-shaped mockups arranged in a fanned showcase.
@@ -122,11 +122,15 @@ const WelcomeScreen = ({ scale = 1 }: { scale?: number }) => (
           boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)",
         }}
       >
-        <ConnectedHIcon
+        <img
+          src={helprEmblem}
+          alt="Helpr"
+          draggable={false}
+          className="select-none"
           style={{
-            width: `${22 * scale}px`,
-            height: `${22 * scale}px`,
-            color: "hsl(var(--ink-deep))",
+            width: `${26 * scale}px`,
+            height: `${26 * scale}px`,
+            objectFit: "contain",
           }}
         />
       </div>
@@ -226,11 +230,15 @@ const DashboardScreen = ({ scale = 1 }: { scale?: number }) => {
               border: "0.5px solid rgba(255, 255, 255, 0.6)",
             }}
           >
-            <ConnectedHIcon
+            <img
+              src={helprEmblem}
+              alt="Helpr"
+              draggable={false}
+              className="select-none"
               style={{
-                width: `${12 * scale}px`,
-                height: `${12 * scale}px`,
-                color: "hsl(var(--ink-deep))",
+                width: `${14 * scale}px`,
+                height: `${14 * scale}px`,
+                objectFit: "contain",
               }}
             />
           </span>
@@ -598,16 +606,15 @@ const PhoneCluster = () => {
   return (
     <div
       ref={clusterRef}
-      // `overflow-hidden` clips the rotated phone bounding boxes so they
-      // can't leak past the cluster's right edge at narrow viewports
-      // (320 px iPhone-SE-1) and trigger the responsive audit's
-      // "element overflows viewport" rule. The rotation transforms are
-      // purely decorative — clipping a sub-pixel of the side phones'
-      // shadow doesn't change the visual.
-      className="relative mx-auto md:mx-0 md:ml-auto h-[320px] md:h-[460px] md:overflow-hidden"
+      // `overflow-x-clip` guards against the rotated phone bounding boxes
+      // leaking past the cluster's right edge (the responsive audit's
+      // "element overflows viewport" rule) WITHOUT clipping them
+      // vertically — full vertical bleed lets the fanned phones show their
+      // top notch and bottom home-indicator instead of being cropped.
+      className="relative mx-auto md:mx-0 md:ml-auto h-[320px] md:h-[480px] md:overflow-x-clip md:px-2"
       style={{
         width: "100%",
-        maxWidth: "460px",
+        maxWidth: "500px",
         perspective: "1200px",
         ["--tilt-x" as string]: "0deg",
         ["--tilt-y" as string]: "0deg",
@@ -621,8 +628,8 @@ const PhoneCluster = () => {
         <div
           className="absolute z-10"
           style={{
-            left: "0%",
-            top: "12%",
+            left: "8%",
+            top: "13%",
             transform:
               "translateY(calc(var(--scroll-t) * -28px)) rotateX(var(--tilt-x)) rotateY(calc(var(--tilt-y) + var(--scroll-t) * -1.5deg))",
             transformStyle: "preserve-3d",
@@ -632,7 +639,7 @@ const PhoneCluster = () => {
           }}
         >
           <div className="phone-float-a">
-            <PhoneFrame width={150} rotate={-3}>
+            <PhoneFrame width={146} rotate={-7}>
               <WelcomeScreen scale={0.78} />
             </PhoneFrame>
           </div>
@@ -667,8 +674,8 @@ const PhoneCluster = () => {
         <div
           className="absolute z-10"
           style={{
-            right: "2%",
-            top: "12%",
+            right: "8%",
+            top: "13%",
             transform:
               "translateY(calc(var(--scroll-t) * -28px)) rotateX(var(--tilt-x)) rotateY(calc(var(--tilt-y) + var(--scroll-t) * 1.5deg))",
             transformStyle: "preserve-3d",
@@ -678,7 +685,7 @@ const PhoneCluster = () => {
           }}
         >
           <div className="phone-float-c">
-            <PhoneFrame width={150} rotate={13}>
+            <PhoneFrame width={146} rotate={7}>
               <HowItWorksScreen scale={0.78} />
             </PhoneFrame>
           </div>

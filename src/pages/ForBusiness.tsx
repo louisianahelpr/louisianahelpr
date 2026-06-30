@@ -1,18 +1,195 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
   Building2,
+  Check,
 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import BackButton from "@/components/BackButton";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { resolveVariant, VARIANTS, type VariantKey } from "@/components/business/variants";
-import TrustStrip from "@/components/business/TrustStrip";
 import TrustedByBanner from "@/components/business/TrustedByBanner";
+import FeaturedBusinesses from "@/components/business/FeaturedBusinesses";
 import ComplianceSection from "@/components/business/ComplianceSection";
-import CaseStudyCarousel from "@/components/business/CaseStudyCarousel";
-import PricingTiers from "@/components/business/PricingTiers";
+
+const SEAT_TIERS = [
+  {
+    name: "Starter",
+    seats: "1",
+    price: "Free",
+    featured: false,
+    headline: "No monthly fee — pay only per job",
+    features: [
+      "1 team seat included",
+      "Unlimited job posts",
+      "ID-verified helprs in every parish",
+      "Stripe escrow on every job",
+      "W-9 / 1099 paperwork handled for you",
+      "Email support",
+    ],
+  },
+  {
+    name: "Crew",
+    seats: "2",
+    price: "$10",
+    featured: false,
+    headline: "For growing teams posting regularly",
+    features: [
+      "Everything in Starter, plus:",
+      "2 team seats included",
+      "Reusable job templates",
+      "Recurring job scheduling",
+      "Job history, receipts & exports",
+      "Priority email support",
+    ],
+  },
+  {
+    name: "Team",
+    seats: "3",
+    price: "$20",
+    featured: true,
+    headline: "Most popular — built for weekly posting",
+    features: [
+      "Everything in Crew, plus:",
+      "3 team seats included",
+      "Per-property billing splits",
+      "Saved recurring schedules",
+      "Team spend tracking & roles",
+      "Priority support response",
+    ],
+  },
+  {
+    name: "Enterprise",
+    seats: "4+",
+    price: "$40",
+    featured: false,
+    headline: "For multi-location operators",
+    features: [
+      "Everything in Team, plus:",
+      "4+ team seats included",
+      "SSO (SAML / Google Workspace)",
+      "Per-location billing & cost centers",
+      "Custom invoicing & net-30 terms",
+      "Dedicated success manager",
+    ],
+  },
+] as const;
+
+/**
+ * A single team-seat tier row that reveals its plan details inline on hover
+ * (desktop) and on tap (touch). Radix HoverCard doesn't fire on touch, so this
+ * uses controlled state driven by both pointer-enter/leave and click — making
+ * the reveal work identically on the web landing page and inside the iOS app.
+ * It never navigates; the details are the payoff, not a sign-in redirect.
+ */
+const TierRow = ({ tier }: { tier: (typeof SEAT_TIERS)[number] }) => {
+  const [open, setOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      className="rounded-ds-sm overflow-hidden"
+      style={{
+        background: tier.featured
+          ? "hsl(var(--burnt-sienna) / 0.08)"
+          : "hsl(var(--parchment))",
+        border: tier.featured
+          ? "1.5px solid hsl(var(--burnt-sienna) / 0.5)"
+          : "1px solid hsl(var(--olivewood) / 0.28)",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full text-left flex items-center justify-between text-ds-11 px-3 py-2 transition-colors cursor-pointer hover:brightness-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--bark))]"
+      >
+        <span className="font-semibold flex items-center gap-1.5">
+          {tier.name}
+          {tier.featured && (
+            <span
+              className="text-[9px] font-bold uppercase tracking-wide rounded-full px-1.5 py-0.5"
+              style={{
+                background: "hsl(var(--burnt-sienna))",
+                color: "hsl(var(--parchment))",
+              }}
+            >
+              Popular
+            </span>
+          )}
+        </span>
+        <span className="text-muted-foreground flex items-center gap-1.5">
+          {tier.seats} ·{" "}
+          <span className="text-foreground font-bold">{tier.price}</span>
+          <motion.span
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="inline-flex"
+          >
+            <ArrowRight className="w-3 h-3 rotate-90 opacity-50" />
+          </motion.span>
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div
+              className="px-3 pb-3 pt-1 border-t"
+              style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}
+            >
+              <p
+                className="text-ds-11 font-semibold mt-2 mb-2"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                {tier.headline}
+              </p>
+              <ul className="space-y-1.5">
+                {tier.features.map((f) => {
+                  const isCarryOver = f.startsWith("Everything in");
+                  return (
+                    <li
+                      key={f}
+                      className={
+                        isCarryOver
+                          ? "text-ds-11 font-semibold italic leading-snug"
+                          : "flex items-start gap-2 text-ds-11 leading-snug"
+                      }
+                      style={{
+                        color: isCarryOver
+                          ? "hsl(var(--olivewood))"
+                          : "hsl(var(--ink-deep))",
+                      }}
+                    >
+                      {!isCarryOver && (
+                        <Check
+                          className="w-3.5 h-3.5 mt-0.5 shrink-0"
+                          strokeWidth={2.5}
+                          style={{ color: "hsl(var(--burnt-sienna))" }}
+                        />
+                      )}
+                      <span>{f}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 /**
  * /for-business — marketing conversion page.
@@ -54,10 +231,10 @@ const ForBusiness = () => {
         <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
           {/* LEFT — Pitch (3 cols) */}
           <div className="lg:col-span-3 space-y-5">
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="mb-2">
               <BackButton to="/" />
-              <span className="text-display-eyebrow">{variant.eyebrow}</span>
             </div>
+            <span className="text-display-eyebrow">{variant.eyebrow}</span>
 
             <TrustedByBanner />
 
@@ -93,16 +270,21 @@ const ForBusiness = () => {
                     role="tab"
                     aria-selected={active}
                     onClick={() => switchVariant(key)}
-                    className="text-ds-11 font-semibold rounded-full px-3 py-1.5 transition-colors"
-                    style={{
-                      background: active
-                        ? "hsl(var(--bark))"
-                        : "hsl(var(--bark) / 0.08)",
-                      color: active
-                        ? "hsl(var(--parchment))"
-                        : "hsl(var(--ink-deep))",
-                      border: "1px solid hsl(var(--olivewood) / 0.12)",
-                    }}
+                    className={
+                      active
+                        ? "btn-grad-primary squircle text-ds-11 font-semibold rounded-ds-md px-4 py-2 transition-all duration-200 !text-[hsl(var(--parchment))] border border-[hsl(66_24%_20%)]"
+                        : "squircle text-ds-11 font-semibold rounded-ds-md px-4 py-2 transition-all duration-200"
+                    }
+                    style={
+                      active
+                        ? undefined
+                        : {
+                            background: "hsl(var(--parchment))",
+                            color: "hsl(var(--ink-deep))",
+                            border: "1px solid hsl(var(--olivewood) / 0.18)",
+                            boxShadow: "0 2px 6px -2px hsl(var(--olivewood) / 0.25)",
+                          }
+                    }
                   >
                     {v.eyebrow.replace(/^For /, "")}
                   </button>
@@ -231,32 +413,13 @@ const ForBusiness = () => {
                     Team seats
                   </p>
                   <div className="grid grid-cols-1 gap-2">
-                    {[
-                      { name: "Starter", seats: "2", price: "Free", featured: false },
-                      { name: "Crew", seats: "5", price: "$10", featured: false },
-                      { name: "Team", seats: "10", price: "$20", featured: true },
-                      { name: "Enterprise", seats: "15", price: "$40", featured: false },
-                    ].map((tier) => (
-                      <div
-                        key={tier.name}
-                        className={`flex items-center justify-between text-ds-11 rounded-ds-sm px-3 py-2 transition-colors ${
-                          tier.featured
-                            ? "border border-primary/40 bg-primary/10"
-                            : "border border-border/50 bg-background/50 hover:border-border"
-                        }`}
-                      >
-                        <span className="font-semibold">{tier.name}</span>
-                        <span className="text-muted-foreground">
-                          {tier.seats} ·{" "}
-                          <span className="text-foreground font-bold">
-                            {tier.price}
-                          </span>
-                        </span>
-                      </div>
+                    {SEAT_TIERS.map((tier) => (
+                      <TierRow key={tier.name} tier={tier} />
                     ))}
                   </div>
                   <p className="text-ds-11 text-muted-foreground mt-3 leading-relaxed text-center">
-                    Owner's card charged per job — no monthly fees on Starter.
+                    Tap a plan for details · Owner's card charged per job — no
+                    monthly fees on Starter.
                   </p>
                 </div>
               </div>
@@ -264,20 +427,18 @@ const ForBusiness = () => {
           </div>
         </div>
 
-        {/* Trust strip — quick scannable claims. */}
-        <TrustStrip />
-
         {/* Demo video + ROI calculator pulled until the real video is
             recorded and the ROI baseline assumptions are validated. */}
 
-        {/* Case studies — variant-aware highlight + 2 baseline cards. */}
-        <CaseStudyCarousel highlight={variant.caseStudy} />
+        {/* Case studies removed until we have real customer stories to tell —
+            fabricated testimonials undercut trust. */}
+
+        {/* Verified-business name strip — data-gated, hidden until enough
+            real verified businesses exist (no fabricated social proof). */}
+        <FeaturedBusinesses />
 
         {/* Compliance disclosure — identity verification, escrow, W-9/1099. */}
         <ComplianceSection />
-
-        {/* Pricing tiers — marketing summary, leads back to /signup. */}
-        <PricingTiers />
       </div>
     </PublicLayout>
   );

@@ -49,6 +49,7 @@ interface PublicJob {
   created_at: string;
   expires_at: string | null;
   boost_expires_at: string | null;
+  pricing_mode?: string | null;
 }
 
 const ALL_CATEGORIES = Object.keys(categoryLabels);
@@ -96,6 +97,7 @@ const toEnrichedJob = (job: PublicJob): EnrichedJob => ({
   recurrence_interval: job.recurrence_interval,
   is_group_job: job.is_group_job ?? false,
   helpers_needed: job.helpers_needed,
+  pricing_mode: job.pricing_mode ?? undefined,
   isBoosted: !!job.boost_expires_at && new Date(job.boost_expires_at) > new Date(),
 });
 
@@ -286,7 +288,7 @@ const Jobs = () => {
                       onClick={() => setSelectedCategory(isActive ? null : key)}
                       className={`inline-flex items-center min-h-[36px] px-3.5 py-2 rounded-ds-md text-ds-11 font-semibold whitespace-nowrap shrink-0 transition-all duration-200 btn-press squircle border ${
                         isActive
-                          ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
+                          ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] border-[hsl(var(--bark)/0.40)]"
                           : "bg-white/60 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
                       }`}
                     >

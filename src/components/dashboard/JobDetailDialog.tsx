@@ -745,6 +745,7 @@ const JobDetailDialog = ({
             effectiveFee={commissionPercent}
             urgentFee={job.urgent_fee ?? 0}
             helpersNeeded={helpers}
+            pricingMode={job.pricing_mode}
             showProUpsell={!viewerSubscriptionTier || viewerSubscriptionTier === "free"}
           />
         </div>

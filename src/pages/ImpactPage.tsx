@@ -54,19 +54,22 @@ const TESTIMONIALS = [
   },
 ];
 
-// ─── Louisiana parish coordinates (approximate centers) ──────────────────────
-// These 8 are the parishes currently shown in /parishes. Each one gets a dot
-// on the SVG map scaled to the 200×250 approximate bounds of Louisiana's shape.
+// ─── Representative active parishes plotted on the map ───────────────────────
+// Dot positions (cx, cy) are derived from each parish centroid via the same
+// lon/lat → SVG transform used for the Louisiana silhouette path below
+// (x = (94.05 − lon)·40, y = (33.02 − lat)·44), so dots land in their true
+// geographic spot. lx/ly/anchor place each label clear of its neighbors in
+// the crowded southeast corner.
 
 const PARISH_DOTS = [
-  { slug: "orleans",    label: "Orleans",    cx: 137, cy: 195 },
-  { slug: "jefferson",  label: "Jefferson",  cx: 128, cy: 200 },
-  { slug: "east-baton-rouge", label: "EBR", cx: 113, cy: 160 },
-  { slug: "caddo",      label: "Caddo",      cx:  48, cy:  48 },
-  { slug: "lafayette",  label: "Lafayette",  cx:  92, cy: 165 },
-  { slug: "calcasieu",  label: "Calcasieu",  cx:  54, cy: 168 },
-  { slug: "ouachita",   label: "Ouachita",   cx:  98, cy:  52 },
-  { slug: "st-tammany", label: "St. Tammany",cx: 148, cy: 178 },
+  { slug: "caddo",            label: "Caddo",       cx: 16,  cy: 22,  lx: 16,  ly: 14,  anchor: "middle" as const },
+  { slug: "ouachita",         label: "Ouachita",    cx: 77,  cy: 24,  lx: 77,  ly: 16,  anchor: "middle" as const },
+  { slug: "east-baton-rouge", label: "Baton Rouge", cx: 116, cy: 113, lx: 116, ly: 129, anchor: "middle" as const },
+  { slug: "calcasieu",        label: "Calcasieu",   cx: 33,  cy: 123, lx: 33,  ly: 139, anchor: "middle" as const },
+  { slug: "lafayette",        label: "Lafayette",   cx: 81,  cy: 123, lx: 81,  ly: 139, anchor: "middle" as const },
+  { slug: "st-tammany",       label: "St. Tammany", cx: 162, cy: 110, lx: 162, ly: 102, anchor: "middle" as const },
+  { slug: "orleans",          label: "Orleans",     cx: 159, cy: 135, lx: 169, ly: 138, anchor: "start" as const },
+  { slug: "jefferson",        label: "Jefferson",   cx: 150, cy: 142, lx: 150, ly: 158, anchor: "middle" as const },
 ];
 
 // ─── AnimatedStat — IntersectionObserver-triggered count-up ──────────────────
@@ -139,36 +142,69 @@ const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon }
 const LouisianaMap = () => (
   <div className="mx-auto max-w-sm w-full observe-fade-up" style={{ transitionDelay: "100ms" }}>
     <svg
-      viewBox="0 0 200 250"
+      viewBox="0 0 212 184"
       className="w-full h-auto"
       aria-label="Map of Louisiana showing active parishes"
       role="img"
     >
-      {/* Simplified Louisiana outline — very rough trapezoid shape */}
+      {/* Louisiana silhouette. Four signature features keep it recognizable:
+          (1) the straight northern Arkansas border, (2) the wavy Sabine-River
+          west edge, (3) the Florida-parishes bulge east of the Mississippi,
+          and (4) the pointed Mississippi-delta "toe" at the southeast. Curves
+          (Q) soften the jagged Gulf coast into a clean stylized outline while
+          every parish dot stays inside the landmass. */}
       <path
-        d="M30,30 L170,30 L175,100 L165,160 L150,185 L140,215
-           Q130,230 120,225 Q105,232 95,220 Q85,210 80,200
-           L55,175 L40,160 L30,110 Z"
+        d="M9,11 L117,11
+           Q121,33 118,52 Q116,64 107,75
+           Q130,78 152,80 Q172,82 183,97
+           Q187,110 179,122 Q189,132 199,143 Q208,153 205,172
+           Q193,167 181,164 Q167,169 153,165 Q150,151 139,150
+           Q116,151 93,150 Q67,150 42,146 L21,143
+           Q25,117 21,93 Q17,68 15,43 Q12,26 9,11 Z"
         fill="hsl(var(--parchment) / 0.7)"
         stroke="hsl(var(--olivewood) / 0.25)"
         strokeWidth="1.5"
         strokeLinejoin="round"
+        strokeLinecap="round"
       />
       {/* Parish active dots */}
-      {PARISH_DOTS.map((p) => (
+      {PARISH_DOTS.map((p, i) => (
         <g key={p.slug}>
-          {/* Pulse ring */}
-          <circle cx={p.cx} cy={p.cy} r="9" fill="hsl(var(--burnt-sienna) / 0.15)" />
+          {/* Pulse ring — expands + fades on a staggered loop so the map reads
+              as "live." SMIL animation is inert under prefers-reduced-motion in
+              modern engines; the static base ring below keeps the marker legible
+              either way. The 0.5s per-dot stagger ripples across the state. */}
+          <circle cx={p.cx} cy={p.cy} r="4" fill="hsl(var(--burnt-sienna) / 0.25)">
+            <animate
+              attributeName="r"
+              values="4;9;4"
+              dur="2.6s"
+              begin={`${i * 0.5}s`}
+              repeatCount="indefinite"
+              calcMode="spline"
+              keyTimes="0;0.5;1"
+              keySplines="0.4 0 0.6 1;0.4 0 0.6 1"
+            />
+            <animate
+              attributeName="fill-opacity"
+              values="0.5;0;0.5"
+              dur="2.6s"
+              begin={`${i * 0.5}s`}
+              repeatCount="indefinite"
+            />
+          </circle>
+          {/* Static base ring — always visible, anchors the marker. */}
+          <circle cx={p.cx} cy={p.cy} r="6.5" fill="hsl(var(--burnt-sienna) / 0.12)" />
           {/* Solid dot */}
-          <circle cx={p.cx} cy={p.cy} r="5" fill="hsl(var(--burnt-sienna))" />
+          <circle cx={p.cx} cy={p.cy} r="4" fill="hsl(var(--burnt-sienna))" />
           {/* Label */}
           <text
-            x={p.cx}
-            y={p.cy + 18}
-            textAnchor="middle"
+            x={p.lx}
+            y={p.ly}
+            textAnchor={p.anchor}
             style={{
-              fontSize: "7px",
-              fill: "hsl(var(--olivewood) / 0.75)",
+              fontSize: "6.5px",
+              fill: "hsl(var(--olivewood) / 0.85)",
               fontFamily: "inherit",
               fontWeight: 600,
             }}
@@ -468,7 +504,7 @@ const ImpactPage = () => {
               onClick={goToPostJob}
               size="lg"
               variant="bark"
-              className="rounded-full px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
+              className="rounded-ds-md px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
             >
               Post a job
               <ArrowRight className="w-4 h-4" strokeWidth={2} />
@@ -477,7 +513,7 @@ const ImpactPage = () => {
               onClick={() => navigate("/jobs")}
               size="lg"
               variant="outline"
-              className="rounded-full px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
+              className="rounded-ds-md px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
               style={{ borderColor: "hsl(var(--olivewood) / 0.3)", color: "hsl(var(--ink-deep))" }}
             >
               Browse jobs

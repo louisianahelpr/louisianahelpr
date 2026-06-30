@@ -413,7 +413,7 @@ const ParishPage = () => {
               className="rounded-full squircle flex-1 min-w-0"
               onClick={() => navigate("/post-job")}
             >
-              Post a job
+              Post a task
               <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Button>
           </div>

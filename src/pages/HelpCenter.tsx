@@ -108,7 +108,7 @@ const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "Can I cancel after someone applies?",
-        a: "Yes, before accepting an applicant. Once you accept and payment is held in escrow, a cancellation fee applies.",
+        a: "Yes, before accepting an applicant. Once you accept and payment is held securely, a cancellation fee applies.",
       },
     ],
   },
@@ -142,7 +142,7 @@ const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What if there's a dispute?",
-        a: "Open a dispute from the job detail screen. Our team reviews both sides and can release escrow to either party.",
+        a: "Open a dispute from the job detail screen. Our team reviews both sides and can release the payment to either party.",
       },
     ],
   },

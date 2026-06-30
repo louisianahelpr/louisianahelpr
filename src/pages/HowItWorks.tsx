@@ -250,7 +250,7 @@ const HowItWorks = () => {
             className="w-full rounded-ds-md font-sans font-semibold gap-2"
             onClick={() => navigate("/post-job")}
           >
-            Post a job now
+            Post a task now
             <ArrowRight className="w-4 h-4" strokeWidth={2} />
           </Button>
         </section>
@@ -404,7 +404,7 @@ const HowItWorks = () => {
               variant="bark"
               className="rounded-full px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
             >
-              Post a job
+              Post a task
               <ArrowRight className="w-4 h-4" strokeWidth={2} />
             </Button>
             <Button

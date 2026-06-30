@@ -142,10 +142,12 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
+    // Log the real error to Supabase edge-function logs (operator-visible) without
+    // leaking stack traces / SQL details in the HTTP response body (CodeQL CWE-209).
     const msg = e instanceof Error ? e.message : String(e);
     console.error("cleanup-abandoned-accounts failed:", msg, e);
     return new Response(
-      JSON.stringify({ ok: false, error: msg }),
+      JSON.stringify({ ok: false, error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -875,7 +875,7 @@ export const PostedJobsTab = ({
                     </p>
                   </div>
                   <ShareJobButton
-                    job={{ id: selectedJob.id, title: selectedJob.title, budget: selectedJob.budget, category: selectedJob.category }}
+                    job={{ id: selectedJob.id, title: selectedJob.title, budget: selectedJob.budget, pricingMode: selectedJob.pricing_mode, category: selectedJob.category }}
                   />
                 </div>
               ) : (

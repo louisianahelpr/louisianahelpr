@@ -47,7 +47,7 @@ const LocalGuide = () => {
         onBack={() => navigate(-1)}
       />
 
-      <div className="mx-auto max-w-2xl px-4 pt-2 pb-16 space-y-10">
+      <div className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pt-2 pb-16 space-y-10">
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <section className="liquid-glass px-5 py-7 text-center">
@@ -85,7 +85,7 @@ const LocalGuide = () => {
           >
             Typical ranges by category
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {categories.map(([slug, { min, max, label }]) => {
               const Icon = getCategoryIcon(slug);
               const smart = getSmartPrice(slug);
@@ -134,7 +134,7 @@ const LocalGuide = () => {
           >
             How pricing works
           </h3>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             {HOW_PRICING_WORKS.map(({ icon: Icon, title, body }) => (
               <div key={title} className="liquid-glass px-4 py-4 flex items-start gap-3">
                 <div
@@ -162,11 +162,11 @@ const LocalGuide = () => {
           <Button
             variant="bark"
             size="lg"
-            className="w-full sm:w-auto gap-2"
+            className="group w-full sm:w-auto gap-2"
             onClick={() => navigate("/post-job")}
           >
             Post a job now
-            <ArrowRight className="w-4 h-4" strokeWidth={2} />
+            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2} />
           </Button>
         </div>
       </div>

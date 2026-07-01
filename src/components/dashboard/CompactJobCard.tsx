@@ -66,7 +66,7 @@ export function CompactJobCard({
           background: isHighlighted ? "hsl(var(--bark) / 0.07)" : "transparent",
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
-        aria-label={`${job.title}, ${isBidMode ? "open to bids, budget " : effectiveFee != null ? "you earn " : ""}$${formatPrice(priceAmount)}${city ? `, ${city}` : ""}`}
+        aria-label={`${job.title}, ${isBidMode ? "open to bids" : `${effectiveFee != null ? "you earn " : ""}$${formatPrice(priceAmount)}`}${city ? `, ${city}` : ""}`}
       >
         {/* Category dot */}
         <span
@@ -113,13 +113,23 @@ export function CompactJobCard({
           )}
         </span>
 
-        {/* Price — net "you earn" when a fee tier is known, else gross. */}
-        <span
-          className="shrink-0 font-sans font-semibold text-ds-13 tabular-nums"
-          style={{ color: "hsl(var(--bark))" }}
-        >
-          ${formatPrice(priceAmount)}
-        </span>
+        {/* Price — net "you earn" when a fee tier is known, else gross. Bid
+            jobs have no posted price, so show an "Open to bids" tag instead. */}
+        {isBidMode ? (
+          <span
+            className="shrink-0 font-serif italic uppercase text-ds-11 leading-none"
+            style={{ letterSpacing: "0.08em", color: "hsl(var(--bark) / 0.85)" }}
+          >
+            Open to bids
+          </span>
+        ) : (
+          <span
+            className="shrink-0 font-sans font-semibold text-ds-13 tabular-nums"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            ${formatPrice(priceAmount)}
+          </span>
+        )}
 
         {/* Time ago */}
         {timeAgo && (

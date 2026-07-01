@@ -240,7 +240,7 @@ const BecomeAPartner = () => {
         onBack={() => navigate(-1)}
       />
 
-      <div className="mx-auto max-w-2xl px-4 pt-2 pb-16 space-y-10">
+      <div className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pt-2 pb-16 space-y-10">
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <section className="liquid-glass px-5 py-7 text-center">
@@ -301,73 +301,13 @@ const BecomeAPartner = () => {
           </div>
         </section>
 
-        {/* ── Benefit cards ───────────────────────────────────────────────── */}
-        <section>
-          <h3
-            className="font-serif italic uppercase text-ds-9 mb-4"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            Why Helpr Partners
-          </h3>
-          <div className="space-y-3">
-            {BENEFIT_CARDS.map(({ icon: Icon, title, body, color }) => (
-              <div
-                key={title}
-                className="liquid-glass px-4 py-4 flex items-start gap-3"
-              >
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                  style={{ background: `hsl(${color} / 0.12)` }}
-                >
-                  <Icon className="w-4.5 h-4.5" style={{ color: `hsl(${color})` }} />
-                </div>
-                <div>
-                  <p
-                    className="text-ds-14 font-bold leading-tight"
-                    style={{ color: "hsl(var(--ink-deep))" }}
-                  >
-                    {title}
-                  </p>
-                  <p className="text-ds-13 text-muted-foreground mt-1 leading-snug">
-                    {body}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Concrete value props — the financial/operational wins service
-              businesses ask about first (lead fees, payout speed, schedule
-              control, take-home), which the cards above don't spell out. */}
-          <div
-            className="rounded-ds-lg px-5 py-5 mt-3"
-            style={{
-              background: "hsl(var(--bark) / 0.05)",
-              border: "1px solid hsl(var(--bark) / 0.14)",
-            }}
-          >
-            <p
-              className="text-ds-13 font-bold mb-3"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              What partnering gets you
-            </p>
-            <ul className="space-y-2.5">
-              {PARTNER_VALUE_PROPS.map((vp) => (
-                <li key={vp} className="flex items-start gap-2.5">
-                  <CheckCircle2
-                    className="w-4 h-4 mt-0.5 shrink-0"
-                    strokeWidth={2.25}
-                    style={{ color: "hsl(var(--bark))" }}
-                  />
-                  <span className="text-ds-13 text-foreground leading-snug">{vp}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* ── Application form / Success state ────────────────────────────── */}
+        {/* ── Application form (left) + why-partner info (right) ──────────────
+            Two-column on desktop, mirroring the /for-business layout: the
+            action (form) leads in the wide left column, the persuasion/trust
+            content rides along in a sticky right sidebar. Stacks on mobile. */}
+        <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
+          {/* LEFT — application form / success state */}
+          <div className="lg:col-span-3">
         {submitted ? (
           <section
             className="rounded-ds-xl px-5 py-8 text-center"
@@ -661,35 +601,104 @@ const BecomeAPartner = () => {
             </form>
           </section>
         )}
+          </div>
 
-        {/* ── Social proof strip ──────────────────────────────────────────── */}
-        <section className="liquid-glass px-4 py-5">
-          <div className="flex items-center justify-around gap-2 flex-wrap">
-            {socialProof.map(({ stat, label }) => (
-              <div key={label} className="text-center px-2">
-                <p
-                  className="font-display font-bold italic text-ds-20"
-                  style={{ color: "hsl(var(--bark))" }}
-                >
-                  {stat}
-                </p>
-                <p className="text-ds-11 text-muted-foreground mt-0.5">{label}</p>
+          {/* RIGHT — why partner + trust, sticky sidebar on desktop */}
+          <aside className="lg:col-span-2 space-y-6 lg:sticky lg:top-6">
+            <section>
+              <h3
+                className="font-serif italic uppercase text-ds-9 mb-4"
+                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Why Helpr Partners
+              </h3>
+              <div className="grid grid-cols-1 gap-3">
+                {BENEFIT_CARDS.map(({ icon: Icon, title, body, color }) => (
+                  <div
+                    key={title}
+                    className="liquid-glass px-4 py-4 flex items-start gap-3"
+                  >
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                      style={{ background: `hsl(${color} / 0.12)` }}
+                    >
+                      <Icon className="w-4.5 h-4.5" style={{ color: `hsl(${color})` }} />
+                    </div>
+                    <div>
+                      <p
+                        className="text-ds-14 font-bold leading-tight"
+                        style={{ color: "hsl(var(--ink-deep))" }}
+                      >
+                        {title}
+                      </p>
+                      <p className="text-ds-13 text-muted-foreground mt-1 leading-snug">
+                        {body}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-center gap-1.5 mt-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Star
-                key={i}
-                className="w-3.5 h-3.5 fill-current"
-                style={{ color: "hsl(var(--gold-warm))" }}
-              />
-            ))}
-            <span className="text-ds-12 text-muted-foreground ml-1">
-              Trusted by Louisiana service businesses
-            </span>
-          </div>
-        </section>
+
+              {/* Concrete value props — financial/operational wins service
+                  businesses ask about first. */}
+              <div
+                className="rounded-ds-lg px-5 py-5 mt-3"
+                style={{
+                  background: "hsl(var(--bark) / 0.05)",
+                  border: "1px solid hsl(var(--bark) / 0.14)",
+                }}
+              >
+                <p
+                  className="text-ds-13 font-bold mb-3"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
+                  What partnering gets you
+                </p>
+                <ul className="space-y-2.5">
+                  {PARTNER_VALUE_PROPS.map((vp) => (
+                    <li key={vp} className="flex items-start gap-2.5">
+                      <CheckCircle2
+                        className="w-4 h-4 mt-0.5 shrink-0"
+                        strokeWidth={2.25}
+                        style={{ color: "hsl(var(--bark))" }}
+                      />
+                      <span className="text-ds-13 text-foreground leading-snug">{vp}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+
+            {/* Social proof strip */}
+            <section className="liquid-glass px-4 py-5">
+              <div className="flex items-center justify-around gap-2 flex-wrap">
+                {socialProof.map(({ stat, label }) => (
+                  <div key={label} className="text-center px-2">
+                    <p
+                      className="font-display font-bold italic text-ds-20"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      {stat}
+                    </p>
+                    <p className="text-ds-11 text-muted-foreground mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-center gap-1.5 mt-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Star
+                    key={i}
+                    className="w-3.5 h-3.5 fill-current"
+                    style={{ color: "hsl(var(--gold-warm))" }}
+                  />
+                ))}
+                <span className="text-ds-12 text-muted-foreground ml-1">
+                  Trusted by Louisiana service businesses
+                </span>
+              </div>
+            </section>
+          </aside>
+        </div>
       </div>
     </PublicLayout>
   );

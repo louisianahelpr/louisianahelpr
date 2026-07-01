@@ -161,11 +161,11 @@ const HowItWorks = () => {
         title="How Louisiana Helpr works"
       />
 
-      <div className="mx-auto max-w-2xl px-5 lg:px-8 pb-16 space-y-10">
+      <div className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pb-16 space-y-10">
 
         {/* ── Hero subtext ── */}
         <div
-          className="rounded-2xl p-6 lg:p-8 space-y-3 relative overflow-hidden"
+          className="rounded-2xl p-6 lg:p-8 space-y-3 relative overflow-hidden max-w-3xl mx-auto w-full"
           style={{
             background:
               "linear-gradient(135deg, hsl(var(--parchment) / 0.55) 0%, hsl(var(--sage) / 0.18) 100%)",
@@ -205,7 +205,7 @@ const HowItWorks = () => {
         {/* ── Post a job section ── */}
         <section
           id="post-a-job"
-          className="liquid-glass rounded-2xl p-5 lg:p-7 space-y-5 scroll-mt-20"
+          className="liquid-glass rounded-2xl p-5 lg:p-7 space-y-5 scroll-mt-20 max-w-3xl mx-auto w-full"
         >
           {/* Section header */}
           <div className="flex items-center gap-3">
@@ -247,11 +247,11 @@ const HowItWorks = () => {
           <Button
             variant="bark"
             size="lg"
-            className="w-full rounded-ds-md font-sans font-semibold gap-2"
+            className="group w-full rounded-ds-md font-sans font-semibold gap-2"
             onClick={() => navigate("/post-job")}
           >
             Post a task now
-            <ArrowRight className="w-4 h-4" strokeWidth={2} />
+            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2} />
           </Button>
         </section>
 
@@ -273,7 +273,7 @@ const HowItWorks = () => {
         {/* ── Earn as a helper section ── */}
         <section
           id="earn-as-a-helper"
-          className="liquid-glass rounded-2xl p-5 lg:p-7 space-y-5 scroll-mt-20"
+          className="liquid-glass rounded-2xl p-5 lg:p-7 space-y-5 scroll-mt-20 max-w-3xl mx-auto w-full"
         >
           {/* Section header */}
           <div className="flex items-center gap-3">

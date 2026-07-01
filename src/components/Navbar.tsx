@@ -65,11 +65,10 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
       }}
     >
       <div
-        className="w-full flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8"
-        style={{
-          paddingLeft: "max(1rem, env(safe-area-inset-left))",
-          paddingRight: "max(1rem, env(safe-area-inset-right))",
-        }}
+        className="w-full flex items-center justify-between h-12
+          pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))]
+          sm:pl-[max(2rem,env(safe-area-inset-left))] sm:pr-[max(2rem,env(safe-area-inset-right))]
+          lg:pl-[max(3rem,env(safe-area-inset-left))] lg:pr-[max(3rem,env(safe-area-inset-right))]"
       >
         {/* Use the shared HelprMark so the public Navbar wordmark
             ("Helpr · LA") matches the authenticated DashboardHeader
@@ -132,11 +131,12 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
               >
                 <Link
                   to="/dashboard"
+                  className="group"
                   onMouseEnter={() => prefetchRoute("/dashboard")}
                   onFocus={() => prefetchRoute("/dashboard")}
                 >
                   Open app
-                  <ArrowRight className="ml-1.5 w-4 h-4" strokeWidth={1.75} />
+                  <ArrowRight className="ml-1.5 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
                 </Link>
               </Button>
             ) : (
@@ -145,7 +145,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                   asChild
                   variant="ghost"
                   size="sm"
-                  className="rounded-ds-md btn-press"
+                  className="rounded-ds-md btn-press transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
                 >
                   <Link
                     to="/login"

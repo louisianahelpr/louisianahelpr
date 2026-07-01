@@ -231,10 +231,12 @@ const ForBusiness = () => {
         <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
           {/* LEFT — Pitch (3 cols) */}
           <div className="lg:col-span-3 space-y-5">
-            <div className="mb-2">
-              <BackButton to="/" />
+            <div className="flex items-center gap-3">
+              <div className="shrink-0">
+                <BackButton to="/" />
+              </div>
+              <span className="text-display-eyebrow">{variant.eyebrow}</span>
             </div>
-            <span className="text-display-eyebrow">{variant.eyebrow}</span>
 
             <TrustedByBanner />
 
@@ -310,49 +312,6 @@ const ForBusiness = () => {
               ))}
             </div>
 
-            {/* Built for */}
-            <div className="liquid-glass p-5">
-              <p className="text-ds-13 font-semibold mb-3 flex items-center gap-2" style={{ color: "hsl(var(--ink-deep))" }}>
-                <span className="w-1 h-4 rounded-full" style={{ background: "hsl(var(--burnt-sienna))" }} />
-                Built for
-              </p>
-              <ul className="text-ds-11 text-muted-foreground grid sm:grid-cols-2 gap-x-4 gap-y-1.5">
-                <li>
-                  <span className="text-foreground font-medium">
-                    Property managers
-                  </span>{" "}
-                  — turnovers
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Realtors</span>{" "}
-                  — staging, open houses
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">
-                    Event venues
-                  </span>{" "}
-                  — setup &amp; breakdown
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">
-                    Offices &amp; retail
-                  </span>{" "}
-                  — recurring cleans
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">
-                    Restaurants
-                  </span>{" "}
-                  — deep cleans, overflow
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">
-                    Airbnb hosts
-                  </span>{" "}
-                  — same-day turnovers
-                </li>
-              </ul>
-            </div>
           </div>
 
           {/* RIGHT — CTA card (2 cols) */}

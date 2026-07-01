@@ -1060,8 +1060,8 @@ const Legal = () => {
   // history.back(), which works for authenticated users from /profile?tab=legal
   // and unauthenticated visitors from the signup agreement checkbox.
   const headerRow = (
-    <div>
-      <div data-print-hide className="mb-2"><BackButton /></div>
+    <div className="flex items-center gap-3">
+      <div data-print-hide className="shrink-0"><BackButton /></div>
       <div className="flex flex-col leading-none min-w-0">
         <span
           className="font-serif italic uppercase text-[0.62rem]"

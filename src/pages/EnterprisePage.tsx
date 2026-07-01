@@ -121,7 +121,7 @@ const EnterprisePage = () => {
         onBack={() => navigate(-1)}
       />
 
-      <div className="mx-auto max-w-2xl px-4 pt-2 pb-16 space-y-10">
+      <div className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pt-2 pb-16 space-y-10">
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <section className="liquid-glass px-5 py-7 text-center">
@@ -170,7 +170,7 @@ const EnterprisePage = () => {
           >
             Built for your industry
           </h3>
-          <div className="space-y-3">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {USE_CASES.map(({ icon: Icon, tag, title, body, href, color }) => (
               <div key={tag} className="liquid-glass px-4 py-4">
                 <div className="flex items-start gap-3">
@@ -224,7 +224,7 @@ const EnterprisePage = () => {
           >
             How it works
           </h3>
-          <div className="space-y-3">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {HOW_IT_WORKS.map(({ step, icon: Icon, title, body }) => (
               <div
                 key={step}

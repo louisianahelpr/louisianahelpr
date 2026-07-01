@@ -288,7 +288,7 @@ const ImpactPage = () => {
 
       {/* ── Section 1: Animated hero stats ── */}
       <section className="px-5 sm:px-8 lg:px-12 py-12 sm:py-16">
-        <div className="container mx-auto max-w-5xl">
+        <div className="container mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl">
           <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 rounded-ds-md overflow-hidden"
             style={{ border: "0.5px solid hsl(var(--olivewood) / 0.12)", background: "hsl(var(--parchment) / 0.65)" }}
           >
@@ -326,7 +326,7 @@ const ImpactPage = () => {
       {/* ── Section 2: Month momentum ── */}
       {(stats?.jobs_this_month ?? 0) > 0 && (
         <section className="px-5 sm:px-8 lg:px-12 pb-8">
-          <div className="container mx-auto max-w-5xl">
+          <div className="container mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl">
             <div
               className="rounded-ds-md px-5 py-4 flex items-center gap-3 observe-fade-up"
               style={{
@@ -356,7 +356,7 @@ const ImpactPage = () => {
 
       {/* ── Section 3: Parish map ── */}
       <section className="px-5 sm:px-8 lg:px-12 py-12 sm:py-16">
-        <div className="container mx-auto max-w-5xl">
+        <div className="container mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl">
           <div className="grid md:grid-cols-2 gap-10 items-center">
             <div className="observe-fade-up">
               <span className="text-display-eyebrow">Where we operate</span>
@@ -394,7 +394,7 @@ const ImpactPage = () => {
 
       {/* ── Section 4: Community voices ── */}
       <section className="px-5 sm:px-8 lg:px-12 py-12 sm:py-16">
-        <div className="container mx-auto max-w-5xl">
+        <div className="container mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl">
           {/* eyebrow */}
           <div className="text-center mb-10 observe-fade-up">
             <span className="text-display-eyebrow">Community voices</span>

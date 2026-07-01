@@ -295,7 +295,7 @@ const HelpCenter = () => {
         onBack={() => navigate("/")}
       />
 
-      <div className="mx-auto max-w-2xl px-5 lg:px-8 pb-2 space-y-10">
+      <div className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pb-2 space-y-10">
 
         {/* ── Decorative search header ── */}
         <div
@@ -384,7 +384,7 @@ const HelpCenter = () => {
               Browse by topic
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {TOPICS.map(({ icon: Icon, label, desc, color, bg }) => (
                 <button
                   key={label}
@@ -429,7 +429,7 @@ const HelpCenter = () => {
         )}
 
         {/* ── Popular questions accordion ── */}
-        <section aria-labelledby="faq-heading">
+        <section aria-labelledby="faq-heading" className="max-w-3xl">
           <h2
             id="faq-heading"
             className="font-display italic font-semibold text-ds-18 mb-5"
@@ -523,7 +523,7 @@ const HelpCenter = () => {
           >
             Browse these guides for the full picture, or reach our team below.
           </p>
-          <div className="grid sm:grid-cols-2 gap-2.5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {[
               {
                 icon: BookOpen,

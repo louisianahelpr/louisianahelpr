@@ -463,9 +463,9 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
                   variant="bark"
                   size="sm"
                   onClick={() => handleGoToStep(currentStep.action)}
-                  className="rounded-ds-md"
+                  className="group rounded-ds-md"
                 >
-                  {currentStep.action ? "Go there" : "Next"} <ArrowRight className="w-4 h-4 ml-1" />
+                  {currentStep.action ? "Go there" : "Next"} <ArrowRight className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" />
                 </Button>
               ) : (
                 <Button

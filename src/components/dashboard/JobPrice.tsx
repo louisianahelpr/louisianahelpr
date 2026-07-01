@@ -126,6 +126,22 @@ export function JobPrice({
       border: "0.5px solid hsl(var(--bark) / 0.28)",
     };
 
+    // Bid jobs have NO posted price — the whole point is that helpers propose
+    // their own number — so the chip shows only an "Open to bids" label and
+    // never a dollar figure or reference budget.
+    if (isBidMode) {
+      return (
+        <div className={chipClass} style={chipSurface}>
+          <span
+            className="font-serif italic uppercase leading-tight"
+            style={{ fontSize: "0.6rem", letterSpacing: "0.1em", color: "hsl(var(--bark) / 0.85)" }}
+          >
+            Open to bids
+          </span>
+        </div>
+      );
+    }
+
     // Guest/poster surfaces show a static budget with no net breakdown to
     // reveal, so the chip is purely presentational. Render a plain <div>,
     // NOT a <button> — these surfaces wrap the whole card in an outer
@@ -136,14 +152,6 @@ export function JobPrice({
       return (
         <div className={chipClass} style={chipSurface}>
           {amountNode}
-          {isBidMode && (
-            <span
-              className="font-serif italic uppercase leading-none mt-0.5"
-              style={{ fontSize: "7px", letterSpacing: "0.08em", color: "hsl(var(--bark) / 0.75)" }}
-            >
-              Open to bids
-            </span>
-          )}
         </div>
       );
     }
@@ -223,19 +231,29 @@ export function JobPrice({
       >
         <DollarSign className="w-3 h-3" /> {isBidMode ? "Open to bids" : showBudget ? "Budget" : "You earn"}
       </p>
-      <p
-        className="font-display font-bold tabular-nums leading-none mt-1"
-        style={{ fontSize: "1.5rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
-      >
-        ${amount.toFixed(2)}
-      </p>
-      {/* Bid mode: the budget is a reference, not a payout — say so plainly. */}
+      {/* Bid jobs have no posted price — helpers propose their own — so we show
+          a plain prompt instead of the big dollar figure + reference budget. */}
+      {isBidMode ? (
+        <p
+          className="font-display font-bold leading-none mt-1"
+          style={{ fontSize: "1.15rem", color: "hsl(var(--bark))", letterSpacing: "-0.01em" }}
+        >
+          Send your bid
+        </p>
+      ) : (
+        <p
+          className="font-display font-bold tabular-nums leading-none mt-1"
+          style={{ fontSize: "1.5rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+        >
+          ${amount.toFixed(2)}
+        </p>
+      )}
       {isBidMode && (
         <p
-          className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
+          className="font-sans text-ds-10 tracking-[0.02em] mt-1"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          Poster&rsquo;s budget · you set your bid
+          No set price · you name your price
         </p>
       )}
       {/* Always-visible micro-breakdown so helpers see the math at a glance. */}

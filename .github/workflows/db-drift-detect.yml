@@ -141,7 +141,7 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
-            const body = `${{ steps.drift.outputs.body }}`;
+            const body = ${{ toJSON(steps.drift.outputs.body) }};
             const title = `🔴 Migration drift: ${{ steps.drift.outputs.missing_prod }} unapplied / ${{ steps.drift.outputs.missing_repo }} unrecorded`;
 
             // Find existing open drift issue (label "migration-drift") to update

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { getAppUrl } from "../_shared/appUrl.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -33,11 +34,9 @@ serve(async (req) => {
     }
 
     const customerId = customers.data[0].id;
-    const origin = req.headers.get("origin") || "http://localhost:3000";
-
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/profile`,
+      return_url: `${getAppUrl()}/profile`,
     });
 
     return new Response(JSON.stringify({ url: portalSession.url }), {

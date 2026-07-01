@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { getAppUrl } from "../_shared/appUrl.ts";
 
 // tier -> Stripe Price ID (monthly recurring USD)
 const TIER_TO_PRICE: Record<string, string> = {
@@ -59,8 +60,8 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/business-team?seats=success`,
-      cancel_url: `${req.headers.get("origin")}/business-team?seats=cancel`,
+      success_url: `${getAppUrl()}/business-team?seats=success`,
+      cancel_url: `${getAppUrl()}/business-team?seats=cancel`,
       metadata: {
         kind: "business_seats",
         business_id: biz.id,

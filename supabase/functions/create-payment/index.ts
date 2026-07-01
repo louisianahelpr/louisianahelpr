@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { getAppUrl } from "../_shared/appUrl.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -214,8 +215,8 @@ serve(async (req) => {
         mode: "payment",
         automatic_tax: { enabled: true },
         payment_intent_data: paymentIntentExtras,
-        success_url: `${req.headers.get("origin")}/payment-success?job_id=${jobId}`,
-        cancel_url: `${req.headers.get("origin")}/post-job`,
+        success_url: `${getAppUrl()}/payment-success?job_id=${jobId}`,
+        cancel_url: `${getAppUrl()}/post-job`,
         metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false" },
       }, {
         // Idempotency: a double-submit (double-tap, retried request) for the same
@@ -468,8 +469,8 @@ serve(async (req) => {
             destination: helperProfile.stripe_account_id,
           },
         } : undefined,
-        success_url: `${req.headers.get("origin")}/my-posts?tip=success`,
-        cancel_url: `${req.headers.get("origin")}/my-posts`,
+        success_url: `${getAppUrl()}/my-posts?tip=success`,
+        cancel_url: `${getAppUrl()}/my-posts`,
         metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" },
       });
 

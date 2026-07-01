@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { getAppUrl } from "../_shared/appUrl.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -143,8 +144,8 @@ serve(async (req) => {
           duration_hours: String(BOOST_DURATION_HOURS),
         },
       },
-      success_url: `${req.headers.get("origin")}/dashboard?boosted=${job_id}`,
-      cancel_url: `${req.headers.get("origin")}/dashboard?boost_cancelled=${job_id}`,
+      success_url: `${getAppUrl()}/dashboard?boosted=${job_id}`,
+      cancel_url: `${getAppUrl()}/dashboard?boost_cancelled=${job_id}`,
       metadata: {
         kind: "job_boost",
         job_id,

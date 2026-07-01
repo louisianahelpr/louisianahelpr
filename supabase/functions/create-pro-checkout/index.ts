@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { getAppUrl } from "../_shared/appUrl.ts";
 
 // billing_cycle: "monthly" | "annual" | "one_time"
 const PRICE_MAP: Record<string, Record<string, string>> = {
@@ -83,8 +84,8 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: isOneTime ? "payment" : "subscription",
-      success_url: `${req.headers.get("origin")}/profile?pro=success`,
-      cancel_url: `${req.headers.get("origin")}/profile?pro=cancel`,
+      success_url: `${getAppUrl()}/profile?pro=success`,
+      cancel_url: `${getAppUrl()}/profile?pro=cancel`,
       metadata: { tier, billing_cycle },
       automatic_tax: { enabled: true },
     };

@@ -105,7 +105,6 @@ const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
 const ImpactPage = lazy(() => import("./pages/ImpactPage"));
 const CommunityThanks = lazy(() => import("./pages/CommunityThanks"));
-const BecomeAPartner = lazy(() => import("./pages/BecomeAPartner"));
 const EnterprisePage = lazy(() => import("./pages/EnterprisePage"));
 const LocalGuide = lazy(() => import("./pages/LocalGuide"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
@@ -242,7 +241,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Public impact transparency page — no auth required */}
       <Route path="/impact" element={<RouteErrorBoundary>{routeEl(<PageTransition><ImpactPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Growth / business-development pages — no auth required */}
-      <Route path="/become-a-partner" element={<RouteErrorBoundary>{routeEl(<PageTransition><BecomeAPartner /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* /become-a-partner retired: partner === business. Redirect legacy links. */}
+      <Route path="/become-a-partner" element={<Navigate to="/for-business" replace />} />
       <Route path="/enterprise" element={<RouteErrorBoundary>{routeEl(<PageTransition><EnterprisePage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/local-guide" element={<RouteErrorBoundary>{routeEl(<PageTransition><LocalGuide /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/how-it-works" element={<RouteErrorBoundary>{routeEl(<PageTransition><HowItWorks /></PageTransition>)}</RouteErrorBoundary>} />

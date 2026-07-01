@@ -94,11 +94,6 @@ const Footer = () => (
               </Link>
             </li>
             <li>
-              <Link to="/become-a-partner" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Become a Partner
-              </Link>
-            </li>
-            <li>
               <Link to="/enterprise" className="hover:text-[hsl(var(--olivewood))] transition-colors">
                 Enterprise
               </Link>

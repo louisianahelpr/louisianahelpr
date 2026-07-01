@@ -8,7 +8,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 
 /**
  * PublicLayout — shared chrome for the public marketing / SEO surface
- * (landing, /jobs, /for-business, /enterprise, /become-a-partner,
+ * (landing, /jobs, /for-business, /enterprise,
  * /how-it-works, /help, /discharge, /parishes, /parish/:slug,
  * /insurance-claim).
  *

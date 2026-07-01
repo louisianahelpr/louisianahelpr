@@ -49,9 +49,8 @@ const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredenti
 const AdminBusinessVerificationQueue = lazy(() => import("@/components/admin/AdminBusinessVerificationQueue"));
 const AdminBusinessAccounts = lazy(() => import("@/components/admin/AdminBusinessAccounts"));
 const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminExceptionQueue"));
-const AdminPartnerApplications = lazy(() => import("@/components/admin/AdminPartnerApplications"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions" | "partner_applications";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions";
 
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -73,7 +72,6 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
       { id: "business_verify", label: "Business Verification", icon: Building2 },
       { id: "business_accounts", label: "Business Accounts", icon: Building2 },
-      { id: "partner_applications", label: "Partner Applications", icon: Users },
       { id: "jobs", label: "Jobs", icon: Briefcase },
       { id: "geography", label: "Geography", icon: MapPin },
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
@@ -402,7 +400,6 @@ const Admin = () => {
     exceptions: "Exception Queue",
     business_verify: "Business Verification",
     business_accounts: "Business Accounts",
-    partner_applications: "Partner Applications",
   };
 
   const renderContent = () => {
@@ -431,7 +428,6 @@ const Admin = () => {
       case "exceptions": return <AdminExceptionQueue />;
       case "business_verify": return <AdminBusinessVerificationQueue />;
       case "business_accounts": return <AdminBusinessAccounts />;
-      case "partner_applications": return <AdminPartnerApplications />;
       case "geography": return <AdminParishActivity />;
       case "marketing": return <AdminMarketing />;
       default: return (

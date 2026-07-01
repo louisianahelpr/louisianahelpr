@@ -85,7 +85,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/help",         // Help Center — static FAQ / support page
 
   // Growth / business-development pages — public, long-form, document-scroll
-  "/become-a-partner", // Partner intake form for service businesses
   "/enterprise",       // B2B / enterprise integration page
   "/local-guide",      // Public pricing guide (footer Resources)
 ];

@@ -82,7 +82,7 @@ const AdminUserRowBase = ({
       <div className="flex items-start gap-3">
         <div className="relative flex-shrink-0">
           {p.avatar_url ? (
-            <img loading="lazy" decoding="async" src={p.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-border" />
+            <img loading="lazy" decoding="async" src={p.avatar_url} alt={`${formatName(p.full_name, "User")} profile photo`} className="w-10 h-10 rounded-full object-cover border border-border" />
           ) : (
             <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-ds-11 font-medium">
               {formatName(p.full_name, "?")[0]?.toUpperCase()}
@@ -90,8 +90,8 @@ const AdminUserRowBase = ({
           )}
           {isOnline && (
             <span
+              aria-label="Active in last 24h"
               className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary border-2 border-card"
-              title="Active in last 24h"
             />
           )}
         </div>

@@ -68,7 +68,7 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
               const fileName = url.split("/").pop() || "Document";
               return isImage ? (
                 <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md overflow-hidden border border-border hover:border-primary transition-colors block group">
-                  <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <img loading="lazy" decoding="async" src={url} alt={`Portfolio item ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </a>
               ) : (
                 <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">

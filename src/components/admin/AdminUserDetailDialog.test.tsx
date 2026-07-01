@@ -129,7 +129,7 @@ describe("AdminUserDetailDialog", () => {
   it("wires the edit-email pencil to setEditEmailProfile", () => {
     const props = makeProps(pendingProfile);
     render(<AdminUserDetailDialog {...props} />);
-    fireEvent.click(screen.getByTitle("Edit email"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit email" }));
     expect(props.setEditEmailProfile).toHaveBeenCalledWith(pendingProfile);
   });
 

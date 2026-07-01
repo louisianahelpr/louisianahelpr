@@ -501,7 +501,13 @@ serve(async (req) => {
       if (job.stripe_payment_intent_id) {
         const pi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
         if (pi.status === "succeeded") {
-          await stripe.refunds.create({ payment_intent: job.stripe_payment_intent_id });
+          // Idempotency key prevents a double-refund on concurrent cancel
+          // requests (double-tap, network retry) from both succeeding before
+          // the payment_status flip below makes the second 409 out.
+          await stripe.refunds.create(
+            { payment_intent: job.stripe_payment_intent_id },
+            { idempotencyKey: `cancel-escrow-${jobId}` },
+          );
         }
       }
 

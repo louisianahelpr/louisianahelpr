@@ -715,9 +715,10 @@ describe("create-payment edge function", () => {
         }),
       );
       expect(res.status).toBe(200);
-      expect(stripeMock.refunds.create).toHaveBeenCalledWith({
-        payment_intent: "pi_live",
-      });
+      expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+        { payment_intent: "pi_live" },
+        { idempotencyKey: "cancel-escrow-job-1" },
+      );
       const jobUpdate = scenario.writes.find(
         (w) => w.table === "jobs" && w.op === "update",
       );

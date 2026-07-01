@@ -100,7 +100,12 @@ const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon, 
     return () => obs.disconnect();
   }, []);
 
-  const countTarget = inView ? (value ?? 0) : 0;
+  // A null `value` means the impact RPC is still loading (or unavailable).
+  // Never count up to 0 in that window — a "0 jobs completed" flash misreads
+  // as a broken/empty platform. Hold a neutral placeholder until real data
+  // lands, then animate from 0 to the resolved figure.
+  const hasValue = value !== null;
+  const countTarget = inView && hasValue ? value : 0;
   const displayValue = useCountUp(countTarget, { durationMs: 1500 });
 
   const formatted =
@@ -122,13 +127,26 @@ const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon, 
       >
         {icon}
       </div>
-      <p
-        className="font-display font-bold italic tracking-tight"
-        style={{ fontSize: "clamp(2rem, 5vw, 3rem)", color: `hsl(var(--${tone}))`, lineHeight: 1 }}
-        aria-label={`${prefix}${formatted}${suffix} ${label}`}
-      >
-        {prefix}{formatted}{suffix}
-      </p>
+      {hasValue ? (
+        <p
+          className="font-display font-bold italic tracking-tight"
+          style={{ fontSize: "clamp(2rem, 5vw, 3rem)", color: `hsl(var(--${tone}))`, lineHeight: 1 }}
+          aria-label={`${prefix}${formatted}${suffix} ${label}`}
+        >
+          {prefix}{formatted}{suffix}
+        </p>
+      ) : (
+        <div
+          className="rounded-ds-sm"
+          style={{
+            width: "3.75rem",
+            height: "clamp(2rem, 5vw, 3rem)",
+            background: `hsl(var(--${tone}) / 0.14)`,
+          }}
+          role="status"
+          aria-label={`Loading ${label}`}
+        />
+      )}
       <p
         className="font-sans font-semibold uppercase"
         style={{ fontSize: "0.63rem", letterSpacing: "0.18em", color: "hsl(var(--olivewood) / 0.8)" }}

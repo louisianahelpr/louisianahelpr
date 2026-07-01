@@ -78,7 +78,7 @@ const PublicLayout = ({
           className="relative px-5 sm:px-8 lg:px-12 pt-4 pb-10"
         >
           <div
-            className="mx-auto max-w-4xl rounded-ds-lg px-6 py-9 lg:px-10 lg:py-11 text-center"
+            className="mx-auto max-w-5xl rounded-ds-lg px-6 py-9 lg:px-10 lg:py-11 text-center"
             style={{
               background:
                 "linear-gradient(135deg, hsl(var(--bark) / 0.08) 0%, hsl(var(--burnt-sienna) / 0.07) 100%)",

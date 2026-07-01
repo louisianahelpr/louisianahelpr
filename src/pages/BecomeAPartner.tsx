@@ -250,7 +250,7 @@ const BecomeAPartner = () => {
         onBack={() => navigate(-1)}
       />
 
-      <div className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pt-2 pb-16 space-y-10">
+      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 xl:px-12 pt-2 pb-16 space-y-10">
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <section className="liquid-glass px-5 py-7 text-center">

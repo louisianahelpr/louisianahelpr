@@ -1062,14 +1062,29 @@ const Legal = () => {
   const headerRow = (
     <div className="flex items-center gap-3">
       <div data-print-hide className="shrink-0"><BackButton /></div>
+      <div
+        aria-hidden
+        className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+        style={{
+          background: "hsl(var(--bark))",
+          color: "hsl(var(--parchment))",
+          boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
+        }}
+      >
+        <Scale className="w-5 h-5" strokeWidth={1.75} />
+      </div>
       <div className="flex flex-col leading-none min-w-0">
-        <span
-          className="font-serif italic uppercase text-[0.62rem]"
-          style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+        <span className="text-display-eyebrow">Compliance &amp; disclosures</span>
+        <h1
+          className="font-display italic font-bold leading-tight mt-1 text-balance"
+          style={{
+            fontSize: "clamp(1.6rem, 2.5vw + 0.5rem, 2.1rem)",
+            color: "hsl(var(--ink-deep))",
+            letterSpacing: "-0.025em",
+          }}
         >
-          Compliance &amp; disclosures
-        </span>
-        <h1 className="text-page-title leading-tight mt-1">Legal</h1>
+          Legal
+        </h1>
       </div>
     </div>
   );
@@ -1250,7 +1265,7 @@ const Legal = () => {
           contentClassName="bg-premium-page"
         >
           <div className="px-5 pt-3">
-            <div className="max-w-2xl mx-auto space-y-4">
+            <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
               {headerRow}
               {tabBar}
               {body}
@@ -1271,7 +1286,7 @@ const Legal = () => {
           className="container mx-auto px-5 pb-8"
           style={{ paddingTop: "calc(3.5rem + env(safe-area-inset-top, 0px) + 1rem)" }}
         >
-          <div className="max-w-2xl mx-auto space-y-4">
+          <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
             {headerRow}
             <div
               className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"

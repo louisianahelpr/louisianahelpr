@@ -30,7 +30,7 @@ interface PageHeaderProps {
 }
 
 const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, string> = {
-  default: "max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12",
+  default: "max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 xl:px-12",
   "2xl": "max-w-2xl px-5 lg:px-8",
   "5xl": "max-w-5xl px-5 lg:px-8",
 };

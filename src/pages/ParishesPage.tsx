@@ -26,7 +26,7 @@ const ParishesPage = () => {
         meta={`Find local jobs and helpers across all ${LOUISIANA_PARISHES.length} Louisiana parishes`}
       />
 
-      <main className="container mx-auto px-5 lg:px-8 xl:px-12 py-6 max-w-5xl lg:max-w-6xl 2xl:max-w-7xl space-y-6">
+      <main className="container mx-auto px-5 lg:px-8 xl:px-12 py-6 max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] space-y-6">
         {/* Premium hero — elevated badge, two-tone display headline, serif subhead */}
         <section className="liquid-glass px-5 py-7 text-center">
           <div

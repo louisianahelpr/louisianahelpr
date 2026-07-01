@@ -307,7 +307,7 @@ const HelpCenter = () => {
         onBack={() => navigate("/")}
       />
 
-      <div className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pb-2 space-y-10">
+      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 xl:px-12 pb-2 space-y-10">
 
         {/* ── Decorative search header ── */}
         <div

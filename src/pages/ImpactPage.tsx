@@ -61,15 +61,15 @@ const TESTIMONIALS = [
 // geographic spot. lx/ly/anchor place each label clear of its neighbors in
 // the crowded southeast corner.
 
-const PARISH_DOTS = [
-  { slug: "caddo",            label: "Caddo",       cx: 16,  cy: 22,  lx: 16,  ly: 14,  anchor: "middle" as const },
-  { slug: "ouachita",         label: "Ouachita",    cx: 77,  cy: 24,  lx: 77,  ly: 16,  anchor: "middle" as const },
-  { slug: "east-baton-rouge", label: "Baton Rouge", cx: 116, cy: 113, lx: 116, ly: 129, anchor: "middle" as const },
-  { slug: "calcasieu",        label: "Calcasieu",   cx: 33,  cy: 123, lx: 33,  ly: 139, anchor: "middle" as const },
-  { slug: "lafayette",        label: "Lafayette",   cx: 81,  cy: 123, lx: 81,  ly: 139, anchor: "middle" as const },
-  { slug: "st-tammany",       label: "St. Tammany", cx: 162, cy: 110, lx: 162, ly: 102, anchor: "middle" as const },
-  { slug: "orleans",          label: "Orleans",     cx: 159, cy: 135, lx: 169, ly: 138, anchor: "start" as const },
-  { slug: "jefferson",        label: "Jefferson",   cx: 150, cy: 142, lx: 150, ly: 158, anchor: "middle" as const },
+const SERVED_PARISHES = [
+  "Caddo",
+  "Ouachita",
+  "Baton Rouge",
+  "Calcasieu",
+  "Lafayette",
+  "St. Tammany",
+  "Orleans",
+  "Jefferson",
 ];
 
 // ─── AnimatedStat — IntersectionObserver-triggered count-up ──────────────────
@@ -81,9 +81,11 @@ interface AnimatedStatProps {
   suffix?: string;
   formatFn?: (n: number) => string;
   icon: React.ReactNode;
+  /** Design token (e.g. "bark", "burnt-sienna") tinting this stat's icon + number. */
+  tone: string;
 }
 
-const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon }: AnimatedStatProps) => {
+const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon, tone }: AnimatedStatProps) => {
   const [inView, setInView] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -98,7 +100,12 @@ const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon }
     return () => obs.disconnect();
   }, []);
 
-  const countTarget = inView ? (value ?? 0) : 0;
+  // A null `value` means the impact RPC is still loading (or unavailable).
+  // Never count up to 0 in that window — a "0 jobs completed" flash misreads
+  // as a broken/empty platform. Hold a neutral placeholder until real data
+  // lands, then animate from 0 to the resolved figure.
+  const hasValue = value !== null;
+  const countTarget = inView && hasValue ? value : 0;
   const displayValue = useCountUp(countTarget, { durationMs: 1500 });
 
   const formatted =
@@ -114,19 +121,32 @@ const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon }
       className="flex flex-col items-center text-center gap-2 px-4 py-6"
     >
       <div
-        className="w-11 h-11 rounded-ds-sm flex items-center justify-center mb-1"
-        style={{ background: "hsl(var(--burnt-sienna) / 0.10)", color: "hsl(var(--burnt-sienna))" }}
+        className="w-9 h-9 rounded-ds-sm flex items-center justify-center mb-1"
+        style={{ background: `hsl(var(--${tone}) / 0.10)`, color: `hsl(var(--${tone}))` }}
         aria-hidden
       >
         {icon}
       </div>
-      <p
-        className="font-display font-bold italic tracking-tight"
-        style={{ fontSize: "clamp(2rem, 5vw, 3rem)", color: "hsl(var(--ink-deep))", lineHeight: 1 }}
-        aria-label={`${prefix}${formatted}${suffix} ${label}`}
-      >
-        {prefix}{formatted}{suffix}
-      </p>
+      {hasValue ? (
+        <p
+          className="font-display font-bold italic tracking-tight"
+          style={{ fontSize: "clamp(2rem, 5vw, 3rem)", color: `hsl(var(--${tone}))`, lineHeight: 1 }}
+          aria-label={`${prefix}${formatted}${suffix} ${label}`}
+        >
+          {prefix}{formatted}{suffix}
+        </p>
+      ) : (
+        <div
+          className="rounded-ds-sm"
+          style={{
+            width: "3.75rem",
+            height: "clamp(2rem, 5vw, 3rem)",
+            background: `hsl(var(--${tone}) / 0.14)`,
+          }}
+          role="status"
+          aria-label={`Loading ${label}`}
+        />
+      )}
       <p
         className="font-sans font-semibold uppercase"
         style={{ fontSize: "0.63rem", letterSpacing: "0.18em", color: "hsl(var(--olivewood) / 0.8)" }}
@@ -137,85 +157,37 @@ const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon }
   );
 };
 
-// ─── Louisiana SVG map with parish dots ───────────────────────────────────────
+// ─── Served-parish chips ──────────────────────────────────────────────────────
+// A verifiable list of the parishes we operate in, tinted with the brand
+// palette. Replaces an earlier hand-drawn Louisiana silhouette that never
+// read as an accurate outline — real parish names carry the "where we
+// operate" message without pretending to be a map.
 
-const LouisianaMap = () => (
-  <div className="mx-auto max-w-sm w-full observe-fade-up" style={{ transitionDelay: "100ms" }}>
-    <svg
-      viewBox="0 0 212 184"
-      className="w-full h-auto"
-      aria-label="Map of Louisiana showing active parishes"
-      role="img"
-    >
-      {/* Louisiana silhouette. Four signature features keep it recognizable:
-          (1) the straight northern Arkansas border, (2) the wavy Sabine-River
-          west edge, (3) the Florida-parishes bulge east of the Mississippi,
-          and (4) the pointed Mississippi-delta "toe" at the southeast. Curves
-          (Q) soften the jagged Gulf coast into a clean stylized outline while
-          every parish dot stays inside the landmass. */}
-      <path
-        d="M9,11 L117,11
-           Q121,33 118,52 Q116,64 107,75
-           Q130,78 152,80 Q172,82 183,97
-           Q187,110 179,122 Q189,132 199,143 Q208,153 205,172
-           Q193,167 181,164 Q167,169 153,165 Q150,151 139,150
-           Q116,151 93,150 Q67,150 42,146 L21,143
-           Q25,117 21,93 Q17,68 15,43 Q12,26 9,11 Z"
-        fill="hsl(var(--parchment) / 0.7)"
-        stroke="hsl(var(--olivewood) / 0.25)"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      {/* Parish active dots */}
-      {PARISH_DOTS.map((p, i) => (
-        <g key={p.slug}>
-          {/* Pulse ring — expands + fades on a staggered loop so the map reads
-              as "live." SMIL animation is inert under prefers-reduced-motion in
-              modern engines; the static base ring below keeps the marker legible
-              either way. The 0.5s per-dot stagger ripples across the state. */}
-          <circle cx={p.cx} cy={p.cy} r="4" fill="hsl(var(--burnt-sienna) / 0.25)">
-            <animate
-              attributeName="r"
-              values="4;9;4"
-              dur="2.6s"
-              begin={`${i * 0.5}s`}
-              repeatCount="indefinite"
-              calcMode="spline"
-              keyTimes="0;0.5;1"
-              keySplines="0.4 0 0.6 1;0.4 0 0.6 1"
-            />
-            <animate
-              attributeName="fill-opacity"
-              values="0.5;0;0.5"
-              dur="2.6s"
-              begin={`${i * 0.5}s`}
-              repeatCount="indefinite"
-            />
-          </circle>
-          {/* Static base ring — always visible, anchors the marker. */}
-          <circle cx={p.cx} cy={p.cy} r="6.5" fill="hsl(var(--burnt-sienna) / 0.12)" />
-          {/* Solid dot */}
-          <circle cx={p.cx} cy={p.cy} r="4" fill="hsl(var(--burnt-sienna))" />
-          {/* Label */}
-          <text
-            x={p.lx}
-            y={p.ly}
-            textAnchor={p.anchor}
+const PARISH_TINTS = ["bark", "burnt-sienna", "olivewood", "gold-warm", "success-ink"];
+
+const ParishGrid = () => (
+  <div className="observe-fade-up" style={{ transitionDelay: "100ms" }}>
+    <div className="flex flex-wrap gap-2.5">
+      {SERVED_PARISHES.map((name, i) => {
+        const tint = PARISH_TINTS[i % PARISH_TINTS.length];
+        return (
+          <span
+            key={name}
+            className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-ds-13 font-semibold"
             style={{
-              fontSize: "6.5px",
-              fill: "hsl(var(--olivewood) / 0.85)",
-              fontFamily: "inherit",
-              fontWeight: 600,
+              background: `hsl(var(--${tint}) / 0.08)`,
+              color: `hsl(var(--${tint}))`,
+              border: `1px solid hsl(var(--${tint}) / 0.18)`,
             }}
           >
-            {p.label}
-          </text>
-        </g>
-      ))}
-    </svg>
+            <MapPin className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+            {name}
+          </span>
+        );
+      })}
+    </div>
     <p
-      className="text-center font-serif italic mt-3"
+      className="font-serif italic mt-4"
       style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}
     >
       Active parishes with helpers &amp; jobs
@@ -288,7 +260,7 @@ const ImpactPage = () => {
 
       {/* ── Section 1: Animated hero stats ── */}
       <section className="px-5 sm:px-8 lg:px-12 py-12 sm:py-16">
-        <div className="container mx-auto max-w-5xl">
+        <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
           <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 rounded-ds-md overflow-hidden"
             style={{ border: "0.5px solid hsl(var(--olivewood) / 0.12)", background: "hsl(var(--parchment) / 0.65)" }}
           >
@@ -297,6 +269,7 @@ const ImpactPage = () => {
               label="Jobs Completed"
               value={stats?.total_jobs_completed ?? 0}
               suffix="+"
+              tone="bark"
             />
             <AnimatedStat
               icon={<DollarSign className="w-5 h-5" strokeWidth={2} />}
@@ -308,16 +281,19 @@ const ImpactPage = () => {
                 if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
                 return n.toLocaleString();
               }}
+              tone="burnt-sienna"
             />
             <AnimatedStat
               icon={<Users className="w-5 h-5" strokeWidth={2} />}
               label="Active Helpers"
               value={stats?.total_helpers_active ?? 0}
+              tone="olivewood"
             />
             <AnimatedStat
               icon={<MapPin className="w-5 h-5" strokeWidth={2} />}
               label="Parishes Served"
               value={stats?.total_parishes_served ?? 0}
+              tone="gold-warm"
             />
           </div>
         </div>
@@ -326,7 +302,7 @@ const ImpactPage = () => {
       {/* ── Section 2: Month momentum ── */}
       {(stats?.jobs_this_month ?? 0) > 0 && (
         <section className="px-5 sm:px-8 lg:px-12 pb-8">
-          <div className="container mx-auto max-w-5xl">
+          <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
             <div
               className="rounded-ds-md px-5 py-4 flex items-center gap-3 observe-fade-up"
               style={{
@@ -340,11 +316,11 @@ const ImpactPage = () => {
                 style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep) / 0.85)" }}
               >
                 This month alone:{" "}
-                <strong className="font-sans font-semibold not-italic" style={{ color: "hsl(var(--bark))" }}>
+                <strong className="font-display italic font-bold not-italic" style={{ color: "hsl(var(--bark))" }}>
                   {stats!.jobs_this_month.toLocaleString()} jobs
                 </strong>
                 {" · "}
-                <strong className="font-sans font-semibold not-italic" style={{ color: "hsl(var(--bark))" }}>
+                <strong className="font-display italic font-bold not-italic" style={{ color: "hsl(var(--burnt-sienna))" }}>
                   ${stats!.earnings_this_month.toLocaleString()} earned
                 </strong>
                 {" "}by Louisiana residents.
@@ -356,15 +332,18 @@ const ImpactPage = () => {
 
       {/* ── Section 3: Parish map ── */}
       <section className="px-5 sm:px-8 lg:px-12 py-12 sm:py-16">
-        <div className="container mx-auto max-w-5xl">
+        <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
           <div className="grid md:grid-cols-2 gap-10 items-center">
             <div className="observe-fade-up">
-              <span className="text-display-eyebrow">Where we operate</span>
+              <span className="text-display-eyebrow">
+                <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
+                Where we operate
+              </span>
               <h2
                 className="font-display font-bold italic mt-2 text-balance text-ds-24 sm:text-ds-28 tracking-[-0.02em]"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Rooted in Louisiana parishes.
+                Rooted in <span style={{ color: "hsl(var(--burnt-sienna))" }}>Louisiana</span> parishes.
               </h2>
               <p
                 className="mt-4 font-serif italic text-ds-15 leading-relaxed max-w-sm"
@@ -387,22 +366,25 @@ const ImpactPage = () => {
                 </a>
               </p>
             </div>
-            <LouisianaMap />
+            <ParishGrid />
           </div>
         </div>
       </section>
 
       {/* ── Section 4: Community voices ── */}
       <section className="px-5 sm:px-8 lg:px-12 py-12 sm:py-16">
-        <div className="container mx-auto max-w-5xl">
+        <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
           {/* eyebrow */}
           <div className="text-center mb-10 observe-fade-up">
-            <span className="text-display-eyebrow">Community voices</span>
+            <span className="text-display-eyebrow">
+              <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
+              Community voices
+            </span>
             <h2
               className="font-display font-bold italic mt-2 text-ds-24 sm:text-ds-28 tracking-[-0.02em]"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Real stories. Real neighbors.
+              Real stories. Real <span style={{ color: "hsl(var(--burnt-sienna))" }}>neighbors</span>.
             </h2>
           </div>
 
@@ -487,15 +469,12 @@ const ImpactPage = () => {
           </div>
 
           <h2
-            className="font-display font-bold italic text-ds-28 sm:text-ds-32 tracking-[-0.025em] text-balance"
-            style={{ color: "hsl(var(--ink-deep))" }}
+            className="font-display italic font-bold leading-[1.05] text-balance"
+            style={{ fontSize: "clamp(1.9rem, 4.5vw + 0.5rem, 3rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
           >
-            Ready to help or get helped?
+            Ready to <span style={{ color: "hsl(var(--burnt-sienna))" }}>help</span> or get helped?
           </h2>
-          <p
-            className="mt-4 font-serif italic text-ds-17 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
+          <p className="subhead-serif text-foreground text-ds-17 lg:text-ds-20 leading-relaxed max-w-xl mx-auto mt-4">
             Join your Louisiana neighbors on the platform.
           </p>
 

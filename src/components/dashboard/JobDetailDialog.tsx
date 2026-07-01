@@ -906,7 +906,7 @@ const JobDetailDialog = ({
           {viewerUserId !== job.customer_id && (
             <ShareJobButton
               variant="icon"
-              job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
+              job={{ id: job.id, title: job.title, budget: job.budget, pricingMode: job.pricing_mode, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
               ariaLabel="Share this job"
             />
           )}

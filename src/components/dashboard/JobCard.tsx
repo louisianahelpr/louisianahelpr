@@ -223,7 +223,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           },
           role: "button" as const,
           tabIndex: 0,
-          "aria-label": `View ${job.title} — $${formatPrice(job.budget)}`,
+          "aria-label": `View ${job.title} — ${job.pricing_mode === "accept_bids" ? "open to bids" : `$${formatPrice(job.budget)}`}`,
           onKeyDown: (e: KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -236,7 +236,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           onClick: handleTap,
           role: "button" as const,
           tabIndex: 0,
-          "aria-label": `View ${job.title} — $${formatPrice(job.budget)}`,
+          "aria-label": `View ${job.title} — ${job.pricing_mode === "accept_bids" ? "open to bids" : `$${formatPrice(job.budget)}`}`,
           onKeyDown: (e: KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();

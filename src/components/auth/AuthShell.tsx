@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { ReactNode } from "react";
 import HelprMark from "@/components/HelprMark";
+import BackButton from "@/components/BackButton";
 
 interface AuthShellProps {
   children: ReactNode;
@@ -40,7 +40,6 @@ const AuthShell = ({
   eyebrow = "Louisiana's Local Task Partner",
   hideBack = false,
   backTo,
-  backLabel,
   hideHeader = false,
   compactHeader = false,
   align = "start",
@@ -50,18 +49,11 @@ const AuthShell = ({
   const showFullHeader = !compactHeader && !hideHeader;
   const alignClass = align === "center" ? "items-center" : "items-start";
   const resolvedBackTo = backTo ?? (isNativePlatform ? "/browse" : "/");
-  const resolvedBackLabel = backLabel ?? (isNativePlatform ? "Back" : "Back to home");
 
-  const backLink = (
-    <Link
-      to={resolvedBackTo}
-      className="inline-flex items-center gap-1.5 text-ds-11 font-sans tracking-wide hover:opacity-80 active:opacity-60 active:scale-[0.97] transition-all"
-      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-    >
-      <ArrowLeft className="w-3.5 h-3.5" />
-      {resolvedBackLabel}
-    </Link>
-  );
+  // Use the standard frosted circular BackButton so back navigation looks
+  // identical across auth pages and the rest of the app. Preserve the
+  // resolved target (home on web, /browse on native, or an explicit `backTo`).
+  const backLink = <BackButton to={resolvedBackTo} />;
 
   return (
     <div className="min-h-screen bg-premium-page relative">

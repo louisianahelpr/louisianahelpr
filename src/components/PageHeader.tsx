@@ -18,9 +18,25 @@ interface PageHeaderProps {
    *  like Post a Task so the app's top nav is present, not just a bare
    *  back button. */
   showBrand?: boolean;
+  /**
+   * Constrains the header container so the back button + title sit directly
+   * above a page body that is a narrower, centered column. Without this the
+   * header spans the wide app container and the title floats far to the left
+   * of centered content. Pass the SAME max-width the page body uses
+   * (`max-w-2xl` → "2xl", `max-w-5xl` → "5xl") so the title reads as the
+   * page's main heading, aligned with the content beneath it.
+   */
+  width?: "default" | "2xl" | "5xl";
 }
 
-const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false, showBrand = false }: PageHeaderProps) => {
+const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, string> = {
+  default: "max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 xl:px-12",
+  "2xl": "max-w-2xl px-5 lg:px-8",
+  "5xl": "max-w-5xl px-5 lg:px-8",
+};
+
+const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false, showBrand = false, width = "default" }: PageHeaderProps) => {
+  const containerWidth = WIDTH_CLASS[width];
 
   // The sticky top bar renders when there's brand or a rightSlot to show.
   // Otherwise we skip the empty 48px bar and let the title block absorb the
@@ -31,7 +47,7 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false,
     <>
       {showTopBar && (
         <header className="glass-header sticky top-0 z-50">
-          <div className={`mx-auto flex h-14 max-w-5xl lg:max-w-6xl 2xl:max-w-7xl items-center gap-2 px-5 lg:px-8 xl:px-12 ${showBrand ? "justify-between" : "justify-end"}`}>
+          <div className={`mx-auto flex h-14 items-center gap-2 ${containerWidth} ${showBrand ? "justify-between" : "justify-end"}`}>
             {showBrand && <HelprMark to="/dashboard" size="md" />}
             {rightSlot && <div className="flex items-center gap-1 shrink-0">{rightSlot}</div>}
           </div>
@@ -39,41 +55,43 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false,
       )}
 
       <div
-        className="mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl px-5 lg:px-8 xl:px-12 pt-3 pb-2"
+        className={`mx-auto ${containerWidth} pt-3 pb-2`}
         style={!showTopBar ? { paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" } : undefined}
       >
-        {/* Back button sits on its own row above the title so the page reads
-            with a proper standalone heading — not a title crammed in beside the
-            chevron. Keeps the back affordance in a consistent top-left spot
-            across every page that uses PageHeader. */}
-        {!hideBack && (
-          <div className="mb-2">
-            <BackButton onClick={onBack} />
+        {/* Back button sits to the LEFT of the title block (not stacked above
+            it) so the chevron reads as a lead-in to the heading and the title
+            stays the dominant element. Vertically centered against the whole
+            eyebrow/title/meta stack. Consistent across every PageHeader page. */}
+        <div className="flex items-center gap-3">
+          {!hideBack && (
+            <div className="shrink-0">
+              <BackButton onClick={onBack} />
+            </div>
+          )}
+          <div className="flex flex-col leading-none min-w-0 mb-1">
+            {eyebrow && (
+              <span
+                className="font-serif italic uppercase text-[0.62rem]"
+                style={{
+                  color: "hsl(var(--burnt-sienna) / 0.78)",
+                  letterSpacing: "0.18em",
+                }}
+              >
+                {eyebrow}
+              </span>
+            )}
+            <h1 className="text-page-title leading-tight mt-1 text-balance">
+              {title}
+            </h1>
+            {meta && (
+              <span
+                className="font-serif italic mt-0.5 text-[0.78rem]"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                {meta}
+              </span>
+            )}
           </div>
-        )}
-        <div className="flex flex-col leading-none min-w-0 mb-1">
-          {eyebrow && (
-            <span
-              className="font-serif italic uppercase text-[0.62rem]"
-              style={{
-                color: "hsl(var(--burnt-sienna) / 0.78)",
-                letterSpacing: "0.18em",
-              }}
-            >
-              {eyebrow}
-            </span>
-          )}
-          <h1 className="text-page-title leading-tight mt-1 text-balance">
-            {title}
-          </h1>
-          {meta && (
-            <span
-              className="font-serif italic mt-0.5 text-[0.78rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              {meta}
-            </span>
-          )}
         </div>
       </div>
     </>

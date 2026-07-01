@@ -2277,3 +2277,15 @@ button,
   }
 }
 
+/* Global: any right-arrow icon inside a hovered link/button slides right.
+   lucide-react emits `.lucide-<icon-name>`, so ArrowRight === .lucide-arrow-right. */
+.lucide-arrow-right {
+  transition: transform 0.3s ease;
+}
+@media (hover: hover) {
+  a:hover .lucide-arrow-right,
+  button:hover .lucide-arrow-right {
+    transform: translateX(0.25rem);
+  }
+}
+

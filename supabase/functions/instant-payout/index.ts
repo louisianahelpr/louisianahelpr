@@ -128,9 +128,16 @@ serve(async (req) => {
           stripeAccount: profile.stripe_account_id,
           idempotencyKey: `instant-payout-transfer-${record.id}`,
         }
-      ).catch(async () => {
-        // Transfer may fail on older Connect setups; fall back to recording fee only
-        // (fee is still effectively retained since we only pay out netCents)
+      ).catch((feeErr: unknown) => {
+        // Log loudly — if this transfer fails, feeCents stay on the connected
+        // account and the platform does NOT collect the fee (the comment that
+        // said "fee is effectively retained" was wrong). The payout still
+        // proceeds so the helper isn't penalized for a platform-side failure.
+        console.error(
+          "[instant-payout] fee transfer to platform failed — fee not collected:",
+          feeErr instanceof Error ? feeErr.message : String(feeErr),
+          { helper_id: user.id, instant_payout_id: record.id, fee_cents: feeCents },
+        );
       });
 
       // Execute the instant payout for net amount.

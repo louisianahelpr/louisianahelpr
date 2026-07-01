@@ -90,6 +90,12 @@ export function rateLimitResponse(
   );
 }
 
+// appUrl.ts re-export — returns a stable test origin so redirect-URL assertions
+// are deterministic and don't depend on the Origin request header.
+export function getAppUrl(): string {
+  return "https://www.louisianahelpr.com";
+}
+
 /** Captures every Slack ops alert the function tried to post. */
 export const slackAlerts: unknown[] = [];
 

@@ -283,8 +283,9 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
         className="font-serif italic mt-1.5"
         style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
       >
-        Estimate — assumes all {inProgressCount === 0 ? "scheduled" : `${inProgressCount} `}
-        {inProgressCount === 0 ? "" : inProgressCount === 1 ? "scheduled job" : "scheduled jobs"} complete.
+        {inProgressCount === 0
+          ? "Estimate — assumes all scheduled jobs complete."
+          : `Estimate — assumes all ${inProgressCount} scheduled ${inProgressCount === 1 ? "job" : "jobs"} complete.`}
       </p>
 
       {/* Subtle progress bar — earned vs. projected. Only render when

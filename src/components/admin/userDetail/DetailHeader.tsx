@@ -27,7 +27,7 @@ export function DetailHeader({
     <div className="flex gap-3 sm:gap-4">
       {viewProfile.avatar_url ? (
         <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-          <img loading="lazy" decoding="async" src={viewProfile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-ds-md object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
+          <img loading="lazy" decoding="async" src={viewProfile.avatar_url} alt={`${formatName(viewProfile.full_name, "User")} profile photo`} className="w-20 h-20 sm:w-24 sm:h-24 rounded-ds-md object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
         </a>
       ) : (
         <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-ds-md bg-secondary flex items-center justify-center text-muted-foreground text-ds-24 font-medium flex-shrink-0">
@@ -50,8 +50,8 @@ export function DetailHeader({
           <p className="text-ds-11 sm:text-ds-11 text-muted-foreground truncate">{viewProfile.email || "No email"}</p>
           <button
             onClick={() => setEditEmailProfile(viewProfile)}
-            className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
-            title="Edit email"
+            className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0 p-1 -m-1 rounded"
+            aria-label="Edit email"
           >
             <Pencil className="w-3 h-3" />
           </button>

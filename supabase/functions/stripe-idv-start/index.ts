@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { getAppUrl } from "../_shared/appUrl.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -43,8 +44,6 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const origin = req.headers.get("origin") || "https://www.louisianahelpr.com";
-
     // Reuse existing pending session if it exists and is still usable
     if (profile?.idv_session_id && (profile.idv_status === "processing" || profile.idv_status === "pending")) {
       try {
@@ -75,7 +74,7 @@ serve(async (req) => {
           allowed_types: ["driving_license", "passport", "id_card"],
         },
       },
-      return_url: `${origin}/profile?idv=complete`,
+      return_url: `${getAppUrl()}/profile?idv=complete`,
     });
 
     await supabaseAdmin

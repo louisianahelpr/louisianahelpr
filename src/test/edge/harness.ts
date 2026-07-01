@@ -69,9 +69,9 @@ function rewriteSource(src: string): string {
   );
 
   // Shared helpers: `../_shared/rate-limit.ts`, `../_shared/slack-alerts.ts`,
-  // and `../_shared/cors.ts`
+  // `../_shared/cors.ts`, and `../_shared/appUrl.ts`
   out = out.replace(
-    /import\s+\{([^}]*)\}\s+from\s+["']\.\.\/_shared\/(rate-limit|slack-alerts|cors)\.ts["'];?/g,
+    /import\s+\{([^}]*)\}\s+from\s+["']\.\.\/_shared\/(rate-limit|slack-alerts|cors|appUrl)\.ts["'];?/g,
     `import {$1} from "${MOCK.shared}";`,
   );
 

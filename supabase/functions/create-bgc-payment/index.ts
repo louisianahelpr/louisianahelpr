@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { getAppUrl } from "../_shared/appUrl.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -98,8 +99,8 @@ serve(async (req) => {
           user_id: user.id,
         },
       },
-      success_url: `${req.headers.get("origin")}/profile?bgc=success`,
-      cancel_url: `${req.headers.get("origin")}/profile?bgc=cancelled`,
+      success_url: `${getAppUrl()}/profile?bgc=success`,
+      cancel_url: `${getAppUrl()}/profile?bgc=cancelled`,
       metadata: {
         kind: "background_check",
         user_id: user.id,

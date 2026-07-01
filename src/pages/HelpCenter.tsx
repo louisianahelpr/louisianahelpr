@@ -43,22 +43,22 @@ const TOPICS = [
     icon: Briefcase,
     label: "Finding Work",
     desc: "Apply, get hired, and grow your income.",
-    color: "hsl(var(--sage))",
-    bg: "hsl(var(--sage) / 0.15)",
+    color: "hsl(var(--success-ink))",
+    bg: "hsl(var(--success-ink) / 0.12)",
   },
   {
     icon: CreditCard,
     label: "Payments & Escrow",
     desc: "How money is held, released, and paid.",
-    color: "hsl(var(--olive))",
-    bg: "hsl(var(--olive) / 0.12)",
+    color: "hsl(var(--gold-warm))",
+    bg: "hsl(var(--gold-warm) / 0.15)",
   },
   {
     icon: ShieldCheck,
     label: "Trust & Safety",
     desc: "Verification, disputes, and reporting.",
-    color: "hsl(var(--burnt-sienna))",
-    bg: "hsl(var(--burnt-sienna) / 0.10)",
+    color: "hsl(var(--olivewood))",
+    bg: "hsl(var(--olivewood) / 0.12)",
   },
   {
     icon: Settings,
@@ -68,6 +68,17 @@ const TOPICS = [
     bg: "hsl(var(--olivewood) / 0.10)",
   },
 ];
+
+// Per-section accent tint so the FAQ topic labels read as a varied palette
+// (bark / sienna / olivewood / gold / sage) rather than one flat color.
+const SECTION_ACCENTS: Record<string, string> = {
+  "Getting Started": "hsl(var(--burnt-sienna))",
+  "Posting a Job": "hsl(var(--bark))",
+  "Finding Work": "hsl(var(--success-ink))",
+  "Payments & Escrow": "hsl(var(--gold-warm))",
+  "Trust & Safety": "hsl(var(--olivewood))",
+  "Account & Settings": "hsl(var(--burnt-sienna))",
+};
 
 // ─── FAQ data ─────────────────────────────────────────────────────────────────
 
@@ -243,8 +254,9 @@ const LouisianaOutline = () => (
   >
     <path
       d="M12,12 L68,12 L70,40 L66,64 L60,74 L56,86 Q52,92 48,90 Q42,93 38,88 Q32,84 32,80 L22,70 L16,64 L12,44 Z"
-      fill="hsl(var(--burnt-sienna) / 0.15)"
-      stroke="hsl(var(--burnt-sienna) / 0.5)"
+      fill="currentColor"
+      fillOpacity="0.22"
+      stroke="currentColor"
       strokeWidth="2"
       strokeLinejoin="round"
     />
@@ -315,12 +327,24 @@ const HelpCenter = () => {
             }}
           />
 
+          <span className="text-display-eyebrow">Support</span>
+
           <h2
-            className="font-display italic font-bold text-ds-24 tracking-[-0.025em] text-balance"
-            style={{ color: "hsl(var(--ink-deep))" }}
+            className="font-display italic font-bold leading-[1.05] text-balance"
+            style={{
+              fontSize: "clamp(1.9rem, 4.5vw + 0.5rem, 3rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.03em",
+            }}
           >
-            How can we help?
+            How can we{" "}
+            <span style={{ color: "hsl(var(--burnt-sienna))" }}>help?</span>
           </h2>
+
+          <p className="subhead-serif text-foreground text-ds-17 lg:text-ds-20 leading-relaxed max-w-xl">
+            Search answers about posting jobs, finding work, escrow, and your
+            account — or browse the topics below.
+          </p>
 
           {/* Functional KB search — filters FAQ_SECTIONS as you type */}
           <div
@@ -378,9 +402,13 @@ const HelpCenter = () => {
           <section aria-labelledby="topics-heading">
             <h2
               id="topics-heading"
-              className="font-display italic font-semibold text-ds-18 mb-4"
+              className="font-display italic font-semibold text-ds-18 mb-4 flex items-center"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
+              <span
+                className="inline-block w-1 h-4 rounded-full mr-2 align-middle"
+                style={{ background: "hsl(var(--burnt-sienna))" }}
+              />
               Browse by topic
             </h2>
 
@@ -432,9 +460,13 @@ const HelpCenter = () => {
         <section aria-labelledby="faq-heading" className="max-w-3xl">
           <h2
             id="faq-heading"
-            className="font-display italic font-semibold text-ds-18 mb-5"
+            className="font-display italic font-semibold text-ds-18 mb-5 flex items-center"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
+            <span
+              className="inline-block w-1 h-4 rounded-full mr-2 align-middle"
+              style={{ background: "hsl(var(--burnt-sienna))" }}
+            />
             {searching ? "Matching articles" : "Popular questions"}
           </h2>
 
@@ -469,7 +501,9 @@ const HelpCenter = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredSections.map((section) => (
+              {filteredSections.map((section) => {
+                const accent = SECTION_ACCENTS[section.topic] ?? "hsl(var(--burnt-sienna))";
+                return (
                 <div
                   key={section.topic}
                   className="liquid-glass overflow-hidden"
@@ -484,9 +518,13 @@ const HelpCenter = () => {
                     }}
                   >
                     <p
-                      className="font-sans font-semibold uppercase text-[0.65rem] tracking-widest"
-                      style={{ color: "hsl(var(--burnt-sienna) / 0.80)" }}
+                      className="font-sans font-semibold uppercase text-[0.65rem] tracking-widest flex items-center"
+                      style={{ color: accent }}
                     >
+                      <span
+                        className="inline-block w-1 h-3.5 rounded-full mr-2 align-middle"
+                        style={{ background: accent }}
+                      />
                       {section.topic}
                     </p>
                   </div>
@@ -503,7 +541,8 @@ const HelpCenter = () => {
                     ))}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
@@ -512,10 +551,15 @@ const HelpCenter = () => {
         <section aria-labelledby="resources-heading" className="space-y-4">
           <h2
             id="resources-heading"
-            className="font-display italic font-bold text-ds-20 lg:text-ds-24 tracking-[-0.02em]"
+            className="font-display italic font-bold text-ds-20 lg:text-ds-24 tracking-[-0.02em] flex items-center"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
-            Still have a question?
+            <span
+              className="inline-block w-1 h-4 rounded-full mr-2 align-middle"
+              style={{ background: "hsl(var(--burnt-sienna))" }}
+            />
+            Still have a{" "}
+            <span style={{ color: "hsl(var(--burnt-sienna))" }}>&nbsp;question?&nbsp;</span>
           </h2>
           <p
             className="font-sans text-ds-13 -mt-2"
@@ -530,24 +574,32 @@ const HelpCenter = () => {
                 label: "How Helpr works",
                 desc: "Post, hire, and get paid — end to end.",
                 to: "/how-it-works",
+                accent: "hsl(var(--bark))",
+                accentBg: "hsl(var(--bark) / 0.1)",
               },
               {
                 icon: Tag,
                 label: "Pricing guide",
                 desc: "Fair-price ranges for common Louisiana jobs.",
                 to: "/local-guide",
+                accent: "hsl(var(--gold-warm))",
+                accentBg: "hsl(var(--gold-warm) / 0.14)",
               },
               {
                 icon: Scale,
                 label: "Rules & safety",
                 desc: "Community rules, disputes, and protections.",
                 to: "/legal?tab=community",
+                accent: "hsl(var(--burnt-sienna))",
+                accentBg: "hsl(var(--burnt-sienna) / 0.1)",
               },
               {
                 icon: Briefcase,
                 label: "Browse jobs",
                 desc: "See what neighbors need help with right now.",
                 to: "/jobs",
+                accent: "hsl(var(--success-ink))",
+                accentBg: "hsl(var(--success-ink) / 0.12)",
               },
             ].map((r) => (
               <Link
@@ -557,11 +609,11 @@ const HelpCenter = () => {
               >
                 <div
                   className="w-9 h-9 rounded-ds-md flex items-center justify-center shrink-0"
-                  style={{ background: "hsl(var(--bark) / 0.1)" }}
+                  style={{ background: r.accentBg }}
                 >
                   <r.icon
                     className="w-4 h-4"
-                    style={{ color: "hsl(var(--bark))" }}
+                    style={{ color: r.accent }}
                     strokeWidth={1.75}
                   />
                 </div>
@@ -600,7 +652,16 @@ const HelpCenter = () => {
           }}
         >
           <div className="flex items-center gap-3">
-            <LouisianaOutline />
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+              style={{
+                background: "hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
+              }}
+            >
+              <LouisianaOutline />
+            </div>
             <div>
               <h2
                 id="contact-heading"

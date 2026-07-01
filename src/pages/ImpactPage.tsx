@@ -81,9 +81,11 @@ interface AnimatedStatProps {
   suffix?: string;
   formatFn?: (n: number) => string;
   icon: React.ReactNode;
+  /** Design token (e.g. "bark", "burnt-sienna") tinting this stat's icon + number. */
+  tone: string;
 }
 
-const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon }: AnimatedStatProps) => {
+const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon, tone }: AnimatedStatProps) => {
   const [inView, setInView] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -114,15 +116,15 @@ const AnimatedStat = ({ label, value, prefix = "", suffix = "", formatFn, icon }
       className="flex flex-col items-center text-center gap-2 px-4 py-6"
     >
       <div
-        className="w-11 h-11 rounded-ds-sm flex items-center justify-center mb-1"
-        style={{ background: "hsl(var(--burnt-sienna) / 0.10)", color: "hsl(var(--burnt-sienna))" }}
+        className="w-9 h-9 rounded-ds-sm flex items-center justify-center mb-1"
+        style={{ background: `hsl(var(--${tone}) / 0.10)`, color: `hsl(var(--${tone}))` }}
         aria-hidden
       >
         {icon}
       </div>
       <p
         className="font-display font-bold italic tracking-tight"
-        style={{ fontSize: "clamp(2rem, 5vw, 3rem)", color: "hsl(var(--ink-deep))", lineHeight: 1 }}
+        style={{ fontSize: "clamp(2rem, 5vw, 3rem)", color: `hsl(var(--${tone}))`, lineHeight: 1 }}
         aria-label={`${prefix}${formatted}${suffix} ${label}`}
       >
         {prefix}{formatted}{suffix}
@@ -297,6 +299,7 @@ const ImpactPage = () => {
               label="Jobs Completed"
               value={stats?.total_jobs_completed ?? 0}
               suffix="+"
+              tone="bark"
             />
             <AnimatedStat
               icon={<DollarSign className="w-5 h-5" strokeWidth={2} />}
@@ -308,16 +311,19 @@ const ImpactPage = () => {
                 if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
                 return n.toLocaleString();
               }}
+              tone="burnt-sienna"
             />
             <AnimatedStat
               icon={<Users className="w-5 h-5" strokeWidth={2} />}
               label="Active Helpers"
               value={stats?.total_helpers_active ?? 0}
+              tone="olivewood"
             />
             <AnimatedStat
               icon={<MapPin className="w-5 h-5" strokeWidth={2} />}
               label="Parishes Served"
               value={stats?.total_parishes_served ?? 0}
+              tone="gold-warm"
             />
           </div>
         </div>
@@ -340,11 +346,11 @@ const ImpactPage = () => {
                 style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep) / 0.85)" }}
               >
                 This month alone:{" "}
-                <strong className="font-sans font-semibold not-italic" style={{ color: "hsl(var(--bark))" }}>
+                <strong className="font-display italic font-bold not-italic" style={{ color: "hsl(var(--bark))" }}>
                   {stats!.jobs_this_month.toLocaleString()} jobs
                 </strong>
                 {" · "}
-                <strong className="font-sans font-semibold not-italic" style={{ color: "hsl(var(--bark))" }}>
+                <strong className="font-display italic font-bold not-italic" style={{ color: "hsl(var(--burnt-sienna))" }}>
                   ${stats!.earnings_this_month.toLocaleString()} earned
                 </strong>
                 {" "}by Louisiana residents.
@@ -359,12 +365,15 @@ const ImpactPage = () => {
         <div className="container mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl">
           <div className="grid md:grid-cols-2 gap-10 items-center">
             <div className="observe-fade-up">
-              <span className="text-display-eyebrow">Where we operate</span>
+              <span className="text-display-eyebrow">
+                <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
+                Where we operate
+              </span>
               <h2
                 className="font-display font-bold italic mt-2 text-balance text-ds-24 sm:text-ds-28 tracking-[-0.02em]"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Rooted in Louisiana parishes.
+                Rooted in <span style={{ color: "hsl(var(--burnt-sienna))" }}>Louisiana</span> parishes.
               </h2>
               <p
                 className="mt-4 font-serif italic text-ds-15 leading-relaxed max-w-sm"
@@ -397,12 +406,15 @@ const ImpactPage = () => {
         <div className="container mx-auto max-w-5xl lg:max-w-6xl 2xl:max-w-7xl">
           {/* eyebrow */}
           <div className="text-center mb-10 observe-fade-up">
-            <span className="text-display-eyebrow">Community voices</span>
+            <span className="text-display-eyebrow">
+              <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
+              Community voices
+            </span>
             <h2
               className="font-display font-bold italic mt-2 text-ds-24 sm:text-ds-28 tracking-[-0.02em]"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Real stories. Real neighbors.
+              Real stories. Real <span style={{ color: "hsl(var(--burnt-sienna))" }}>neighbors</span>.
             </h2>
           </div>
 
@@ -487,15 +499,12 @@ const ImpactPage = () => {
           </div>
 
           <h2
-            className="font-display font-bold italic text-ds-28 sm:text-ds-32 tracking-[-0.025em] text-balance"
-            style={{ color: "hsl(var(--ink-deep))" }}
+            className="font-display italic font-bold leading-[1.05] text-balance"
+            style={{ fontSize: "clamp(1.9rem, 4.5vw + 0.5rem, 3rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
           >
-            Ready to help or get helped?
+            Ready to <span style={{ color: "hsl(var(--burnt-sienna))" }}>help</span> or get helped?
           </h2>
-          <p
-            className="mt-4 font-serif italic text-ds-17 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
+          <p className="subhead-serif text-foreground text-ds-17 lg:text-ds-20 leading-relaxed max-w-xl mx-auto mt-4">
             Join your Louisiana neighbors on the platform.
           </p>
 

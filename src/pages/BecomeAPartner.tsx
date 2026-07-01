@@ -109,6 +109,16 @@ const PARTNER_VALUE_PROPS = [
   "Ratings and reviews build your reputation across Louisiana",
 ];
 
+// Rotate the checklist accents through the brand palette so "What partnering
+// gets you" reads varied and premium instead of a monochrome bark column.
+const VALUE_PROP_ACCENTS = [
+  "--bark",
+  "--burnt-sienna",
+  "--olivewood",
+  "--gold-warm",
+  "--bark",
+] as const;
+
 const inputClass =
   "w-full rounded-ds-md px-3 py-2.5 text-ds-14 text-foreground border focus:outline-none focus:ring-2 transition-all";
 const inputStyle = {
@@ -149,9 +159,9 @@ const BecomeAPartner = () => {
     : "30 min";
 
   const socialProof = [
-    { stat: helperStat, label: "active helpers in Louisiana" },
-    { stat: "4.9★", label: "average rating" },
-    { stat: responseStat, label: "median response time" },
+    { stat: helperStat, label: "active helpers in Louisiana", accent: "--bark" },
+    { stat: "4.9★", label: "average rating", accent: "--gold-warm" },
+    { stat: responseStat, label: "median response time", accent: "--burnt-sienna" },
   ];
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -257,14 +267,14 @@ const BecomeAPartner = () => {
           <h2
             className="font-display font-bold italic leading-[1.05] mb-2 text-balance"
             style={{
-              fontSize: "clamp(1.75rem, 4vw + 0.5rem, 2.5rem)",
+              fontSize: "clamp(1.9rem, 4.5vw + 0.5rem, 3rem)",
               color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.025em",
+              letterSpacing: "-0.03em",
             }}
           >
-            Grow your business with Helpr
+            Grow your <span style={{ color: "hsl(var(--burnt-sienna))" }}>business</span> with Helpr
           </h2>
-          <p className="text-ds-15 text-muted-foreground leading-relaxed max-w-md mx-auto">
+          <p className="subhead-serif text-foreground text-ds-15 lg:text-ds-17 leading-relaxed max-w-md mx-auto">
             Join Louisiana's local service marketplace. Bring your team, keep your brand.
           </p>
 
@@ -346,6 +356,7 @@ const BecomeAPartner = () => {
               className="font-serif italic uppercase text-ds-9 mb-4"
               style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
             >
+              <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
               Partner application
             </h3>
 
@@ -610,6 +621,7 @@ const BecomeAPartner = () => {
                 className="font-serif italic uppercase text-ds-9 mb-4"
                 style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
               >
+                <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
                 Why Helpr Partners
               </h3>
               <div className="grid grid-cols-1 gap-3">
@@ -655,12 +667,12 @@ const BecomeAPartner = () => {
                   What partnering gets you
                 </p>
                 <ul className="space-y-2.5">
-                  {PARTNER_VALUE_PROPS.map((vp) => (
+                  {PARTNER_VALUE_PROPS.map((vp, i) => (
                     <li key={vp} className="flex items-start gap-2.5">
                       <CheckCircle2
                         className="w-4 h-4 mt-0.5 shrink-0"
                         strokeWidth={2.25}
-                        style={{ color: "hsl(var(--bark))" }}
+                        style={{ color: `hsl(var(${VALUE_PROP_ACCENTS[i % VALUE_PROP_ACCENTS.length]}))` }}
                       />
                       <span className="text-ds-13 text-foreground leading-snug">{vp}</span>
                     </li>
@@ -672,11 +684,11 @@ const BecomeAPartner = () => {
             {/* Social proof strip */}
             <section className="liquid-glass px-4 py-5">
               <div className="flex items-center justify-around gap-2 flex-wrap">
-                {socialProof.map(({ stat, label }) => (
+                {socialProof.map(({ stat, label, accent }) => (
                   <div key={label} className="text-center px-2">
                     <p
                       className="font-display font-bold italic text-ds-20"
-                      style={{ color: "hsl(var(--bark))" }}
+                      style={{ color: `hsl(var(${accent}))` }}
                     >
                       {stat}
                     </p>

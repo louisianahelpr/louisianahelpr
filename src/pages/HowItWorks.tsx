@@ -70,16 +70,19 @@ const TRUST_ITEMS = [
     icon: Lock,
     label: "Protected payment",
     body: "Payment always protected. Funds release only after the poster confirms the work is done.",
+    accent: "bark",
   },
   {
     icon: ShieldCheck,
     label: "ID-verified helpers",
     body: "Every Helpr clears government-ID verification before their first job. Licensed trades are license-verified too.",
+    accent: "burnt-sienna",
   },
   {
     icon: HeartHandshake,
     label: "Louisiana team",
     body: "Real people reviewing disputes and answering questions — not bots. We're based in Louisiana.",
+    accent: "olivewood",
   },
 ];
 
@@ -90,18 +93,21 @@ interface StepCardProps {
   icon: React.ElementType;
   title: string;
   body: string;
+  /** Accent token (without the hsl(var()) wrapper) — varies per step so the
+   *  numbered rail reads rich rather than monochrome. */
+  accent: string;
 }
 
-const StepCard = ({ step, icon: Icon, title, body }: StepCardProps) => (
+const StepCard = ({ step, icon: Icon, title, body, accent }: StepCardProps) => (
   <div className="flex gap-4 items-start">
     {/* Step number + icon column */}
     <div className="flex flex-col items-center gap-2 shrink-0">
       <div
         className="w-10 h-10 rounded-full flex items-center justify-center font-sans font-bold text-ds-13"
         style={{
-          background: "hsl(var(--burnt-sienna))",
+          background: `hsl(var(--${accent}))`,
           color: "hsl(var(--parchment))",
-          boxShadow: "0 2px 8px hsl(var(--burnt-sienna) / 0.30)",
+          boxShadow: `0 2px 8px hsl(var(--${accent}) / 0.30)`,
         }}
       >
         {step}
@@ -119,15 +125,15 @@ const StepCard = ({ step, icon: Icon, title, body }: StepCardProps) => (
       <div className="flex items-center gap-2 mb-1">
         <Icon
           className="w-4 h-4 shrink-0"
-          style={{ color: "hsl(var(--burnt-sienna))" }}
+          style={{ color: `hsl(var(--${accent}))` }}
           strokeWidth={1.75}
         />
-        <p
-          className="font-sans font-semibold text-ds-15"
+        <h3
+          className="font-display italic font-bold text-ds-17 tracking-[-0.02em] leading-tight"
           style={{ color: "hsl(var(--ink-deep))" }}
         >
           {title}
-        </p>
+        </h3>
       </div>
       <p
         className="font-sans text-ds-13 leading-relaxed"
@@ -138,6 +144,15 @@ const StepCard = ({ step, icon: Icon, title, body }: StepCardProps) => (
     </div>
   </div>
 );
+
+// Per-step accent rotation — a deliberate mix of tokens so each rail reads
+// varied rather than one flat color.
+const STEP_ACCENTS = [
+  "bark",
+  "burnt-sienna",
+  "olivewood",
+  "gold-warm",
+] as const;
 
 // ─── HowItWorks ────────────────────────────────────────────────────────────────
 
@@ -165,7 +180,7 @@ const HowItWorks = () => {
 
         {/* ── Hero subtext ── */}
         <div
-          className="rounded-2xl p-6 lg:p-8 space-y-3 relative overflow-hidden max-w-3xl mx-auto w-full"
+          className="rounded-2xl p-6 lg:p-8 space-y-4 relative overflow-hidden max-w-3xl mx-auto w-full"
           style={{
             background:
               "linear-gradient(135deg, hsl(var(--parchment) / 0.55) 0%, hsl(var(--sage) / 0.18) 100%)",
@@ -180,23 +195,24 @@ const HowItWorks = () => {
                 "radial-gradient(ellipse 80% 60% at 90% 10%, hsl(var(--burnt-sienna) / 0.07) 0%, transparent 70%)",
             }}
           />
-          <p
-            className="font-serif italic text-ds-18 leading-relaxed text-balance"
-            style={{ color: "hsl(var(--ink-deep))" }}
+          <span className="text-display-eyebrow">
+            Whether you post or earn
+          </span>
+          <h2
+            className="font-display italic font-bold leading-[1.05] text-balance"
+            style={{
+              fontSize: "clamp(1.9rem, 4.5vw + 0.5rem, 3rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.03em",
+            }}
           >
-            Whether you need something done or want to earn — it takes about{" "}
-            <span
-              className="font-sans font-semibold not-italic"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
+            Get started in about{" "}
+            <span style={{ color: "hsl(var(--burnt-sienna))" }}>
               two minutes
-            </span>{" "}
-            to get started.
-          </p>
-          <p
-            className="font-sans text-ds-13 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood))" }}
-          >
+            </span>
+            .
+          </h2>
+          <p className="subhead-serif text-foreground text-ds-17 lg:text-ds-20 leading-relaxed max-w-xl">
             Every account can both post jobs and earn as a helper — no
             separate modes, no switching. Jump to whichever side fits your day.
           </p>
@@ -210,20 +226,24 @@ const HowItWorks = () => {
           {/* Section header */}
           <div className="flex items-center gap-3">
             <div
-              className="w-9 h-9 rounded-ds-md flex items-center justify-center shrink-0"
-              style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
+              className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+              style={{
+                background: "hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
+              }}
             >
-              <ClipboardList
-                className="w-4 h-4"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-                strokeWidth={1.75}
-              />
+              <ClipboardList className="w-7 h-7" strokeWidth={1.75} />
             </div>
             <div>
               <span
-                className="font-serif italic uppercase text-[0.6rem] tracking-widest"
+                className="font-serif italic uppercase text-[0.6rem] tracking-widest inline-flex items-center"
                 style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }}
               >
+                <span
+                  className="inline-block w-1 h-4 rounded-full mr-2 align-middle"
+                  style={{ background: "hsl(var(--burnt-sienna))" }}
+                />
                 For posters
               </span>
               <h2
@@ -239,7 +259,13 @@ const HowItWorks = () => {
           <div>
             {POSTER_STEPS.map((s, i) => (
               <div key={s.title} className={i === POSTER_STEPS.length - 1 ? "[&_.step-connector]:hidden" : ""}>
-                <StepCard step={i + 1} icon={s.icon} title={s.title} body={s.body} />
+                <StepCard
+                  step={i + 1}
+                  icon={s.icon}
+                  title={s.title}
+                  body={s.body}
+                  accent={STEP_ACCENTS[i % STEP_ACCENTS.length]}
+                />
               </div>
             ))}
           </div>
@@ -278,20 +304,24 @@ const HowItWorks = () => {
           {/* Section header */}
           <div className="flex items-center gap-3">
             <div
-              className="w-9 h-9 rounded-ds-md flex items-center justify-center shrink-0"
-              style={{ background: "hsl(var(--sage) / 0.18)" }}
+              className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+              style={{
+                background: "hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
+              }}
             >
-              <Banknote
-                className="w-4 h-4"
-                style={{ color: "hsl(var(--sage))" }}
-                strokeWidth={1.75}
-              />
+              <Banknote className="w-7 h-7" strokeWidth={1.75} />
             </div>
             <div>
               <span
-                className="font-serif italic uppercase text-[0.6rem] tracking-widest"
+                className="font-serif italic uppercase text-[0.6rem] tracking-widest inline-flex items-center"
                 style={{ color: "hsl(var(--sage) / 0.85)" }}
               >
+                <span
+                  className="inline-block w-1 h-4 rounded-full mr-2 align-middle"
+                  style={{ background: "hsl(var(--sage))" }}
+                />
                 For helpers
               </span>
               <h2
@@ -303,11 +333,18 @@ const HowItWorks = () => {
             </div>
           </div>
 
-          {/* Steps */}
+          {/* Steps — accent rotation offset from the poster rail so the two
+              columns don't mirror each other's colors. */}
           <div>
             {HELPER_STEPS.map((s, i) => (
               <div key={s.title} className={i === HELPER_STEPS.length - 1 ? "[&_.step-connector]:hidden" : ""}>
-                <StepCard step={i + 1} icon={s.icon} title={s.title} body={s.body} />
+                <StepCard
+                  step={i + 1}
+                  icon={s.icon}
+                  title={s.title}
+                  body={s.body}
+                  accent={STEP_ACCENTS[(i + 2) % STEP_ACCENTS.length]}
+                />
               </div>
             ))}
           </div>
@@ -328,7 +365,7 @@ const HowItWorks = () => {
           aria-label="Trust and safety"
           className="grid sm:grid-cols-3 gap-3"
         >
-          {TRUST_ITEMS.map(({ icon: Icon, label, body }) => (
+          {TRUST_ITEMS.map(({ icon: Icon, label, body, accent }) => (
             <div
               key={label}
               className="rounded-2xl p-4 space-y-2"
@@ -340,11 +377,11 @@ const HowItWorks = () => {
             >
               <div
                 className="w-8 h-8 rounded-ds-sm flex items-center justify-center"
-                style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
+                style={{ background: `hsl(var(--${accent}) / 0.10)` }}
               >
                 <Icon
                   className="w-4 h-4"
-                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                  style={{ color: `hsl(var(--${accent}))` }}
                   strokeWidth={1.75}
                 />
               </div>
@@ -385,7 +422,8 @@ const HowItWorks = () => {
             className="font-display italic font-bold text-ds-26 tracking-[-0.025em] text-balance"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
-            Ready to start?
+            Ready to{" "}
+            <span style={{ color: "hsl(var(--burnt-sienna))" }}>start</span>?
           </h2>
           <p
             className="font-serif italic text-ds-15 leading-relaxed"

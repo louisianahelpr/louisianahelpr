@@ -57,26 +57,29 @@ const HOW_IT_WORKS = [
     icon: Webhook,
     title: "Connect via API or webhook",
     body: "We send your team credentials and endpoint documentation the same day you're approved. One API key handles all job types.",
+    color: "var(--bark)",
   },
   {
     step: "02",
     icon: Settings2,
     title: "Define your triggers",
     body: "A claim opens, a discharge is scheduled, a work order is filed — configure exactly which events dispatch which job type.",
+    color: "var(--gold-warm)",
   },
   {
     step: "03",
     icon: Radio,
     title: "We dispatch and report",
     body: "A verified Helpr is on-site within your SLA window. Status updates post to your callback URL in real time.",
+    color: "var(--olivewood)",
   },
 ];
 
 const TRUST_ITEMS = [
-  "SOC 2 preparation in progress",
-  "Stripe escrow on every job",
-  "Licensed trade verification",
-  "Louisiana-based team + support",
+  { label: "SOC 2 preparation in progress", color: "var(--sage)" },
+  { label: "Stripe escrow on every job", color: "var(--burnt-sienna)" },
+  { label: "Licensed trade verification", color: "var(--gold-warm)" },
+  { label: "Louisiana-based team + support", color: "var(--olivewood)" },
 ];
 
 const API_SNIPPET = `POST /api/v1/jobs/dispatch
@@ -128,24 +131,26 @@ const EnterprisePage = () => {
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
             style={{
-              background: "hsl(var(--stormy-sky))",
+              background: "hsl(var(--bark))",
               color: "hsl(var(--parchment))",
-              boxShadow: "0 8px 20px -8px hsl(var(--stormy-sky) / 0.5)",
+              boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
             }}
           >
             <Building2 className="w-7 h-7" strokeWidth={1.75} />
           </div>
+          <span className="text-display-eyebrow">For enterprise partners</span>
           <h2
-            className="font-display font-bold italic leading-[1.05] mb-2 text-balance"
+            className="font-display italic font-bold leading-[1.05] text-balance mt-1.5 mb-2"
             style={{
-              fontSize: "clamp(1.75rem, 4vw + 0.5rem, 2.5rem)",
+              fontSize: "clamp(1.9rem, 4.5vw + 0.5rem, 3rem)",
               color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.025em",
+              letterSpacing: "-0.03em",
             }}
           >
-            Automate your contractor dispatch
+            Automate your{" "}
+            <span style={{ color: "hsl(var(--burnt-sienna))" }}>contractor dispatch</span>
           </h2>
-          <p className="text-ds-15 text-muted-foreground leading-relaxed max-w-md mx-auto">
+          <p className="subhead-serif text-foreground text-ds-17 lg:text-ds-20 leading-relaxed max-w-xl mx-auto">
             Connect Helpr to your workflows. When a claim opens, a patient is
             discharged, or a unit turns over — a verified contractor is already
             on their way.
@@ -168,6 +173,7 @@ const EnterprisePage = () => {
             className="font-serif italic uppercase text-ds-9 mb-4"
             style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
+            <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
             Built for your industry
           </h3>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -222,10 +228,11 @@ const EnterprisePage = () => {
             className="font-serif italic uppercase text-ds-9 mb-4"
             style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
+            <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
             How it works
           </h3>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {HOW_IT_WORKS.map(({ step, icon: Icon, title, body }) => (
+            {HOW_IT_WORKS.map(({ step, icon: Icon, title, body, color }) => (
               <div
                 key={step}
                 className="liquid-glass px-4 py-4 flex items-start gap-4"
@@ -233,13 +240,13 @@ const EnterprisePage = () => {
                 <div className="shrink-0 flex flex-col items-center gap-1">
                   <span
                     className="font-display font-bold italic text-ds-18 leading-none"
-                    style={{ color: "hsl(var(--stormy-sky) / 0.30)" }}
+                    style={{ color: `hsl(${color} / 0.35)` }}
                   >
                     {step}
                   </span>
                   <Icon
                     className="w-4.5 h-4.5"
-                    style={{ color: "hsl(var(--stormy-sky) / 0.60)" }}
+                    style={{ color: `hsl(${color})` }}
                   />
                 </div>
                 <div>
@@ -264,6 +271,7 @@ const EnterprisePage = () => {
             className="font-serif italic uppercase text-ds-9 mb-4"
             style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
+            <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
             Integration specs
           </h3>
           <div
@@ -312,6 +320,7 @@ const EnterprisePage = () => {
             className="font-serif italic uppercase text-ds-9 mb-4"
             style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
+            <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
             Request API access
           </h3>
 
@@ -392,16 +401,17 @@ const EnterprisePage = () => {
             className="font-serif italic uppercase text-ds-9 text-center mb-4"
             style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.18em" }}
           >
+            <span className="inline-block w-1 h-4 rounded-full mr-2 align-middle" style={{ background: "hsl(var(--burnt-sienna))" }} />
             Trust &amp; Compliance
           </p>
           <div className="grid grid-cols-2 gap-3">
-            {TRUST_ITEMS.map((item) => (
-              <div key={item} className="flex items-start gap-2">
+            {TRUST_ITEMS.map(({ label, color }) => (
+              <div key={label} className="flex items-start gap-2">
                 <CheckCircle2
                   className="w-4 h-4 shrink-0 mt-0.5"
-                  style={{ color: "hsl(var(--sage))" }}
+                  style={{ color: `hsl(${color})` }}
                 />
-                <span className="text-ds-12 text-muted-foreground leading-snug">{item}</span>
+                <span className="text-ds-12 text-muted-foreground leading-snug">{label}</span>
               </div>
             ))}
           </div>

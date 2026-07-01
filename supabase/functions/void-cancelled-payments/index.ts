@@ -128,7 +128,13 @@ serve(async (req) => {
             cancellation_fee: cancellationFee,
             cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
           }).eq("id", job.id);
-          const refundAmount = Math.round((job.budget - cancellationFee) * 100);
+          // Refund the entire captured amount minus the cancellation fee.
+          // pi.amount_received is what Stripe actually collected, which is
+          // larger than job.budget when a customer service fee, sales tax,
+          // urgent fee, or one-time onboarding fee was also charged at checkout.
+          // Using job.budget alone left those amounts stranded on the platform
+          // and never returned to the customer.
+          const refundAmount = (pi.amount_received ?? pi.amount) - Math.round(cancellationFee * 100);
           if (refundAmount > 0) {
             // Idempotency key prevents a double-refund if the cron overlaps or
             // retries before the payment_status flip at the end of this block.

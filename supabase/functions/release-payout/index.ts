@@ -130,9 +130,14 @@ serve(async (req) => {
 
   // Defense-in-depth: refuse payout on any dispute marker, even if
   // status somehow got back to 'completed'. dispute_status='resolved'
-  // means an admin closed the dispute in the helper's favor — that's OK.
-  // Anything else (open, pending, escalated) → block.
-  if (job.disputed_at !== null && (job.dispute_status === null || job.dispute_status !== "resolved")) {
+  // (admin closed in helper's favor) and 'auto_resolved' (72h expiry via
+  // auto-resolve-disputes, which queues this exact payout) are both closed
+  // states. Anything else (open, pending, escalated) → block.
+  if (
+    job.disputed_at !== null &&
+    (job.dispute_status === null ||
+      !["resolved", "auto_resolved"].includes(job.dispute_status))
+  ) {
     return jsonResponse(
       {
         error: "job has an active dispute marker; payout blocked",

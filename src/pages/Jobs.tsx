@@ -10,7 +10,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import PublicLayout from "@/components/marketing/PublicLayout";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 // Card-matching skeleton — mirrors the actual JobCard avatar/title/price
 // layout so the loading→loaded transition doesn't shift. See task #121.
@@ -110,7 +110,15 @@ const toEnrichedJob = (job: PublicJob): EnrichedJob => ({
 const noop = () => {};
 
 const Jobs = () => {
-  usePageTitle("Browse Jobs — Helpr");
+  usePageMeta({
+    title: "Browse Jobs — Helpr",
+    description:
+      "Browse open jobs across Louisiana — yard work, moving help, errands, and more. Every job is escrow-protected and posted by a verified neighbor.",
+    canonical: "https://www.louisianahelpr.com/jobs",
+    ogTitle: "Browse open jobs on Louisiana Helpr",
+    ogDescription:
+      "Find jobs near you and start earning. Helpr Escrow keeps every transaction safe.",
+  });
   // Capture ?ref= attribution from share/external links (e.g. ?ref=share
   // from the Share Sheet) so we can attribute traffic source for job views.
   useJobRef();

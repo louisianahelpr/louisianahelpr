@@ -472,6 +472,11 @@ serve(async (req) => {
         success_url: `${getAppUrl()}/my-posts?tip=success`,
         cancel_url: `${getAppUrl()}/my-posts`,
         metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" },
+      }, {
+        // Dedupe client retries (double-tap, network retry) without blocking a
+        // deliberate repeat tip later: same job+tipper+amount collapses to one
+        // session (and one pending `tips` row) within a 10-minute bucket.
+        idempotencyKey: `tip-${jobId}-${user.id}-${Math.round(amount * 100)}-${Math.floor(Date.now() / 600_000)}`,
       });
 
       await supabaseAdmin.from("tips").insert({
@@ -614,7 +619,12 @@ serve(async (req) => {
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
           if (pi.status === "succeeded") {
-            await stripe.refunds.create({ payment_intent: paymentIntentId });
+            // One full refund per disputed job — a retried/double-clicked call
+            // returns the original refund instead of erroring or duplicating.
+            await stripe.refunds.create(
+              { payment_intent: paymentIntentId },
+              { idempotencyKey: `refund-dispute-${jobId}` },
+            );
           }
         } catch (e) {
           console.error("[create-payment] admin_refund_dispute — refund error:", e);
@@ -692,6 +702,13 @@ serve(async (req) => {
                 admin_user_id: user.id,
                 partial: String(isPartial),
               },
+            }, {
+              // Full refund: one per job, ever. Partial: dedupe retries of the
+              // same amount within a 10-minute bucket while still allowing a
+              // deliberate second partial refund later.
+              idempotencyKey: isPartial
+                ? `refund-general-${jobId}-${requestedCents}-${Math.floor(Date.now() / 600_000)}`
+                : `refund-general-${jobId}-full`,
             });
           }
         } catch (e) {

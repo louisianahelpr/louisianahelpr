@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 
 /**
  * The single source of truth for "which reviews count toward a rating":
@@ -13,12 +14,14 @@ export async function fetchRatingStats(
 ): Promise<Map<string, { count: number; avg: number }>> {
   const ids = [...new Set(revieweeIds)].filter(Boolean);
   if (ids.length === 0) return new Map();
-  const { data } = await supabase
-    .from("reviews")
-    .select("reviewee_id, rating, jobs!inner(status)")
-    .in("reviewee_id", ids)
-    .lte("feedback_visible_at", new Date().toISOString())
-    .neq("jobs.status", "cancelled");
+  const data = unwrap(
+    await supabase
+      .from("reviews")
+      .select("reviewee_id, rating, jobs!inner(status)")
+      .in("reviewee_id", ids)
+      .lte("feedback_visible_at", new Date().toISOString())
+      .neq("jobs.status", "cancelled"),
+  );
   return aggregateRatings(data as { reviewee_id: string; rating: number }[] | null);
 }
 

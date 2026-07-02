@@ -17,12 +17,18 @@ type CancellationDialogProps = {
   hasHelper: boolean;
   helperId?: string | null;
   helperName?: string;
+  /** Commission % frozen on the job row (`jobs.helper_fee_percent`). The
+   * actual transfer resolves the helper's live tier server-side
+   * (void-cancelled-payments); this drives the client estimate so the
+   * breakdown matches the canonical `job.helper_fee_percent ?? 10` pattern
+   * instead of a hardcoded 10%. */
+  helperFeePercent?: number | null;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, helperId: _helperId, helperName, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, helperId: _helperId, helperName, helperFeePercent, open, onClose, onCancelled }: CancellationDialogProps) => {
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
@@ -45,14 +51,15 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
     ? "Less than 24 hours before job"
     : "24+ hours before job";
   const cancellationFee = Math.round(jobBudget * cancellationFeePercent) / 100;
-  const platformCut = Math.round(cancellationFee * 10) / 100;
+  const commissionPercent = helperFeePercent ?? 10;
+  const platformCut = Math.round(cancellationFee * commissionPercent) / 100;
   const helperPayout = Math.max(0, Math.round((cancellationFee - platformCut) * 100) / 100);
 
   const handleCancel = async () => {
     setCancelling(true);
     try {
       // Fetch authoritative job data to calculate fee server-side
-      const { data: jobData, error: fetchError } = await supabase.from("jobs").select("date_needed, budget, helper_id").eq("id", jobId).single();
+      const { data: jobData, error: fetchError } = await supabase.from("jobs").select("date_needed, budget, helper_id, helper_fee_percent").eq("id", jobId).single();
       if (fetchError || !jobData) throw new Error("Could not verify job details");
 
       const serverHasHelper = !!jobData.helper_id;
@@ -90,7 +97,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
       // Notify the helper about the cancellation and their compensation
       if (serverHasHelper && jobData.helper_id && serverFee > 0) {
-        const commissionPercent = 10;
+        const commissionPercent = jobData.helper_fee_percent ?? 10;
         const platformCut = Math.round(serverFee * (commissionPercent / 100) * 100) / 100;
         const helperPayout = Math.max(0, serverFee - platformCut);
 
@@ -262,7 +269,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                     <span className="font-semibold text-foreground">${cancellationFee.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">Platform fee (10%)</span>
+                    <span className="text-muted-foreground">Platform fee ({commissionPercent}%)</span>
                     <span className="text-muted-foreground">−${platformCut.toFixed(2)}</span>
                   </div>
                   <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">

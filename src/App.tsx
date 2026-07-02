@@ -101,7 +101,6 @@ const BusinessReports = lazy(() => import("./pages/business/BusinessReports"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
-const CommunityThanks = lazy(() => import("./pages/CommunityThanks"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
@@ -195,11 +194,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           a no-account preview, though the marketing landing remains canonical. */}
       <Route path="/browse" element={<RouteErrorBoundary>{routeEl(<PageTransition><DashboardGuest /></PageTransition>, <GuestBrowseSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
-      {/* /community is the public "thank-you" community page (CommunityThanks).
-          The community *guidelines/rules* live as a tab inside /legal and are
-          reached via /rules → /legal?tab=community; this page is the warm,
-          gratitude-focused marketing surface the footer/landing points to. */}
-      <Route path="/community" element={<RouteErrorBoundary>{routeEl(<PageTransition><CommunityThanks /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* The Community page was removed; keep old links landing somewhere sane. */}
+      <Route path="/community" element={<Navigate to="/" replace />} />
 
       {/* Settings-style pages live inside the Profile shell so the
           shared back button + safe-area top padding stay consistent.

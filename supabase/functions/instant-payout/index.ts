@@ -128,9 +128,21 @@ serve(async (req) => {
           stripeAccount: profile.stripe_account_id,
           idempotencyKey: `instant-payout-transfer-${record.id}`,
         }
-      ).catch(async () => {
-        // Transfer may fail on older Connect setups; fall back to recording fee only
-        // (fee is still effectively retained since we only pay out netCents)
+      ).catch(async (feeErr) => {
+        // The fee transfer can fail on older Connect setups. We deliberately
+        // continue and still pay out only netCents — the fee stays in the
+        // helper's connected balance rather than the platform account, so the
+        // helper is NOT double-charged. But the platform silently forgoes that
+        // fee revenue, so this must be logged + recorded for reconciliation
+        // instead of swallowed (was an empty catch — a silent broken promise).
+        const feeMsg = feeErr instanceof Error ? feeErr.message : "fee transfer failed";
+        console.error(
+          `[instant-payout] fee transfer NOT collected for instant_payout ${record.id} (helper ${user.id}, fee ${feeCents}¢): ${feeMsg}`
+        );
+        await supabaseAdmin
+          .from("instant_payouts")
+          .update({ error_message: `fee_uncollected: ${feeMsg}` })
+          .eq("id", record.id);
       });
 
       // Execute the instant payout for net amount.

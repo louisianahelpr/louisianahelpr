@@ -72,6 +72,11 @@ export function CityAutocomplete({ id, value, onChange, className }: CityAutocom
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
+          // Propagate every keystroke (and browser autofill, which fires
+          // onChange but never blurs) to the parent — deferring to blur
+          // left the parent value empty after Chrome autofill, so the
+          // profile checklist showed City ✗ despite a filled input.
+          onChange(e.target.value);
           setOpen(true);
         }}
         onFocus={() => {

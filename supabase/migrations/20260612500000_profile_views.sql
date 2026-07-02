@@ -7,13 +7,12 @@ CREATE TABLE IF NOT EXISTS public.profile_views (
   id         bigserial PRIMARY KEY,
   viewed_user_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   viewer_user_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  -- timestamp (no tz) keeps date_trunc IMMUTABLE, which Postgres requires for
-  -- generated columns. Supabase runs UTC so local ≡ UTC throughout.
   viewed_at       timestamp NOT NULL DEFAULT LOCALTIMESTAMP,
-  -- Bucket into 1-hour windows so ON CONFLICT handles dedup
-  hour_bucket     timestamp NOT NULL GENERATED ALWAYS AS (
-    date_trunc('hour', viewed_at)
-  ) STORED
+  -- Plain column (not GENERATED ALWAYS): date_trunc is STABLE not IMMUTABLE on
+  -- some Postgres/Supabase builds, which rejects GENERATED ALWAYS STORED.
+  -- A BEFORE INSERT trigger (added by a later migration) populates this to
+  -- date_trunc('hour', viewed_at) so the dedup index keeps working correctly.
+  hour_bucket     timestamp NOT NULL DEFAULT LOCALTIMESTAMP
 );
 
 -- Unique per viewer+viewed per hour → dedup without a separate lookup

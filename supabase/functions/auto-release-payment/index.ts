@@ -99,10 +99,27 @@ serve(async (req) => {
       // ── Step 3: Schedule the payout ──
       const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-      await supabaseAdmin
+      // Optimistic concurrency: guard on payment_status="escrow" so that if a
+      // Stripe chargeback webhook fires between our read (above) and this write,
+      // it can flip payment_status to "chargeback" before us. Without this WHERE
+      // clause our UPDATE blindly overwrites "chargeback" with "payout_pending",
+      // letting process-scheduled-payouts pay out a disputed/chargebacked job.
+      const { data: claimed, error: releaseErr } = await supabaseAdmin
         .from("jobs")
         .update({ status: "completed", payment_status: "payout_pending", payout_scheduled_at: payoutTime })
-        .eq("id", job.id);
+        .eq("id", job.id)
+        .eq("payment_status", "escrow")
+        .select("id");
+      if (releaseErr) {
+        console.error(`[auto-release-payment] jobs.update failed for job ${job.id}:`, releaseErr);
+        results.push({ job_id: job.id, status: "update_failed" });
+        continue;
+      }
+      if (!claimed || claimed.length === 0) {
+        console.log(`[auto-release-payment] job ${job.id} payment_status changed since read (chargeback race); skipping.`);
+        results.push({ job_id: job.id, status: "skipped_status_changed" });
+        continue;
+      }
 
       // Estimate only — the real transfer in process-scheduled-payouts resolves
       // the tier again at payout time. Keep this preview consistent with it.

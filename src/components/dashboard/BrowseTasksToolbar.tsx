@@ -1,15 +1,11 @@
-import { startTransition, useEffect, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion, useMotionValue, useTransform, animate, type PanInfo } from "framer-motion";
-import type { User as SupaUser } from "@supabase/supabase-js";
+import { startTransition, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Clock, MapPin, Search, SlidersHorizontal, X, List, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedSearches } from "@/components/SavedSearches";
 import { categoryLabels } from "@/components/dashboard/JobFilters";
 import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
-import { categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
-import { hapticLight } from "@/lib/haptics";
-import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 import {
   getRecentSearches,
@@ -17,180 +13,13 @@ import {
   clearRecentSearches,
   SEARCH_HISTORY_MIN_LENGTH,
 } from "@/lib/searchHistory";
-
-// Popular categories surfaced when the box is focused but empty — gives
-// a brand-new helper (no history yet) something to tap instead of a blank
-// dropdown, the way top apps seed an empty search with trending picks.
-// These are real category KEYS (not free text) so tapping one applies the
-// exact category filter — a fuzzy title/description search would miss jobs
-// whose wording doesn't contain the category word. Ordered by post volume.
-const POPULAR_CATEGORIES = [
-  "cleaning",
-  "handyman",
-  "moving",
-  "yard_work",
-  "pet_care",
-  "delivery",
-] as const;
-
-// Compact label for the active budget-range chip. Either bound can be
-// unset ("" = no floor / no cap), so render whichever side is present:
-//   min only → "$50+", max only → "≤ $250", both → "$50 – $250".
-function budgetChipLabel(minBudget: string, maxBudget: string): string {
-  if (minBudget && maxBudget) return `$${minBudget} – $${maxBudget}`;
-  if (minBudget) return `$${minBudget}+`;
-  if (maxBudget) return `≤ $${maxBudget}`;
-  return "Budget";
-}
+import { POPULAR_CATEGORIES, budgetChipLabel } from "./browseTasksToolbar/constants";
+import type { BrowseTasksToolbarProps, ChipDef } from "./browseTasksToolbar/types";
+import { SwipeableFilterChip } from "./browseTasksToolbar/SwipeableFilterChip";
+import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
 
 // Re-export so consumers can import from a single location.
 export type { FeedDensity };
-
-interface BrowseTasksToolbarProps {
-  /** Dashboard filter state + setters (from useDashboardFilters). */
-  filters: ReturnType<typeof useDashboardFilters>;
-  /** Signed-in user — gates the SavedSearches control. */
-  user: SupaUser | null;
-  /** Helper availability rows — only the count is read, to enable the
-   *  "match my hours" filter. */
-  helperAvailability: unknown[];
-  /** List vs Map view selection. */
-  view: "list" | "map";
-  setView: (next: "list" | "map") => void;
-  /** Hide the List⇄Map toggle. On the desktop web the feed and map sit
-   *  side by side, so the toggle is meaningless — both panes are visible. */
-  hideViewToggle?: boolean;
-  /** Called when the user clears all filters via the "Clear all" chip —
-   *  Dashboard uses this to scroll the feed back to the top so the user
-   *  doesn't end up mid-list in a freshly unfiltered feed. */
-  onClearAllFilters?: () => void;
-}
-
-// Per-chip horizontal swipe-to-remove threshold. A clean leftward drift
-// past this value commits the clear; anything less springs back to 0.
-const CHIP_SWIPE_THRESHOLD = -64;
-
-/**
- * Single filter chip with a horizontal swipe-left affordance. Pulling
- * the chip left past CHIP_SWIPE_THRESHOLD removes the underlying filter
- * (no confirm dialog — same model as the SwipeableJobCard dismiss).
- * The chip's body still renders the existing × button so tap remains
- * a first-class clear gesture.
- *
- * Memoised inline as a small functional component — there are at most
- * 5 chips and they re-render with their parent, so the lighter
- * inline component beats extracting to a separate file.
- */
-function SwipeableFilterChip({
-  children,
-  onClear,
-  ariaLabel,
-}: {
-  children: ReactNode;
-  onClear: () => void;
-  ariaLabel: string;
-}) {
-  const x = useMotionValue(0);
-  // Visual hint: the chip fades and tilts a touch as it crosses the
-  // commit threshold so the user feels the action arrive before it
-  // fires. Matches SwipeableJobCard's "you're crossing the line" cue.
-  const opacity = useTransform(x, [CHIP_SWIPE_THRESHOLD * 1.5, CHIP_SWIPE_THRESHOLD, 0], [0.35, 0.7, 1]);
-
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.x < CHIP_SWIPE_THRESHOLD) {
-      onClear();
-      return;
-    }
-    animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
-  };
-
-  return (
-    <motion.span
-      drag="x"
-      dragConstraints={{ left: -120, right: 0 }}
-      dragElastic={0.1}
-      onDragEnd={handleDragEnd}
-      style={{ x, opacity }}
-      role="group"
-      aria-label={ariaLabel}
-      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.22)] text-ds-11 font-medium touch-pan-y"
-    >
-      {children}
-    </motion.span>
-  );
-}
-
-/**
- * CategoryChipRow — a one-tap category picker. A horizontally
- * scrollable strip of every job category (plus a leading "All" chip)
- * that reads and writes the same `selectedCategory` filter the filter
- * sheet and active-filter recap chips use, so all three stay in sync.
- *
- * This is a *picker* (all categories, one selected), distinct from the
- * active-filter recap row below (which only echoes applied filters).
- * Tapping the already-active chip toggles back to "All" (null).
- */
-function CategoryChipRow({
-  selectedCategory,
-  setSelectedCategory,
-}: {
-  selectedCategory: string | null;
-  setSelectedCategory: (v: string | null) => void;
-}) {
-  // Each chip: ≥44px tall hit area (h-11), brand tokens via hsl(var(--…)),
-  // active state mirrors the bark-wash used by the filter-sheet chips.
-  const base =
-    "inline-flex items-center gap-1.5 shrink-0 h-11 px-3.5 rounded-ds-md text-ds-12 font-semibold tracking-tight border btn-press squircle motion-safe:transition-colors";
-  const active =
-    "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] border-[hsl(var(--bark)/0.40)]";
-  const idle =
-    "bg-white/70 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90";
-
-  return (
-    <div
-      className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 overflow-x-auto scrollbar-hide border-b border-border/30"
-      role="group"
-      aria-label="Filter by category"
-    >
-      <button
-        type="button"
-        onClick={() => {
-          hapticLight();
-          setSelectedCategory(null);
-        }}
-        aria-pressed={!selectedCategory}
-        className={`${base} ${!selectedCategory ? active : idle}`}
-      >
-        All
-      </button>
-      {Object.entries(categoryLabels).map(([key, label]) => {
-        const isActive = selectedCategory === key;
-        const titleColor = (categoryColors[key] || categoryColors.other).title;
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => {
-              hapticLight();
-              // Toggle: tapping the active chip clears back to "All".
-              setSelectedCategory(isActive ? null : key);
-            }}
-            aria-pressed={isActive}
-            className={`${base} ${isActive ? active : idle}`}
-          >
-            <CategoryIcon
-              category={key}
-              aria-hidden
-              className={`w-3 h-3 ${isActive ? "" : titleColor}`}
-              strokeWidth={2.25}
-            />
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 /**
  * BrowseTasksToolbar — the Dashboard feed's control strip: the
@@ -254,17 +83,6 @@ export function BrowseTasksToolbar({
     setSearchFocused(false);
   };
 
-  // Active-filter recap chip row — only render when 3+ filters are
-  // active simultaneously. With <3 active, the existing input controls
-  // already cover the same ground and a recap row would be redundant
-  // noise. Each chip's × reuses the same clear handler the existing
-  // single-filter chips use further down.
-  type ChipDef = {
-    key: string;
-    label: ReactNode;
-    onClear: () => void;
-    ariaLabel: string;
-  };
   // Human-readable description of the active location filter, reused in the
   // chip clear-button aria-labels so a screen reader hears WHICH location is
   // being cleared (e.g. "within 10 mi", "Orleans") rather than a generic

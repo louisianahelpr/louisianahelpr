@@ -1,11 +1,10 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense, type SetStateAction } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageScaffold } from "@/components/ui/PageScaffold";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
@@ -17,7 +16,6 @@ import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
-import type { EnrichedJob } from "@/components/dashboard/types";
 import DashboardGreetingCard from "@/components/dashboard/DashboardGreetingCard";
 import DashboardStatusBanners from "@/components/dashboard/DashboardStatusBanners";
 import PayItForwardTeaser from "@/components/dashboard/PayItForwardTeaser";
@@ -51,6 +49,8 @@ import { QuickApplyHandler } from "./dashboard/QuickApplyHandler";
 import { useDashboardSideQueries } from "./dashboard/useDashboardSideQueries";
 import { useSaveJob } from "./dashboard/useSaveJob";
 import { useApplyFlow } from "./dashboard/useApplyFlow";
+import { useDetailJob } from "./dashboard/useDetailJob";
+import { DismissJobDialog } from "./dashboard/DismissJobDialog";
 
 
 const Dashboard = () => {
@@ -120,18 +120,15 @@ const Dashboard = () => {
   }, []);
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
-  const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
+  // Detail-dialog open/close lifecycle (which job, feed-scroll restore, and
+  // ?job=<id> URL mirroring) lives in useDetailJob.
+  const { detailJob, openDetailJob, closeDetailJob } = useDetailJob({
+    containerRef, searchParams, setSearchParams, allJobs,
+  });
   // Quick-action sheet — opened by a long-press on a JobCard. Lets the
   // helpr save / hide / share / report without committing to opening
   // the full detail dialog. Null = sheet closed.
   const [quickActionJobId, setQuickActionJobId] = useState<string | null>(null);
-  // Scroll-position snapshot — captured the moment a detail dialog opens,
-  // then restored to the same scrollTop on close. Without it the dashboard
-  // feed silently snaps back to the top when the user dismisses the dialog,
-  // which feels broken on a long-scroll session. The container is the
-  // PullToRefreshWrapper's div (PageScaffold panel scroll surface) so the
-  // restore lands on the same surface the user was scrolling.
-  const detailScrollSnapshotRef = useRef<number | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   // List vs Map view. The map shows the same open jobs as the list,
   // pinned to neighborhood-rounded coords (privacy via the
@@ -199,71 +196,6 @@ const Dashboard = () => {
   const handleLongPressCard = useCallback((jobId: string) => {
     setQuickActionJobId(jobId);
   }, []);
-
-  // Open a job detail dialog while snapshotting the feed's scroll position
-  // so it can be restored when the dialog closes (see closeDetailJob).
-  // Accepts a setter-style arg matching React.Dispatch so the
-  // BrowseTasksFeed prop signature (Dispatch<SetStateAction<...>>) keeps
-  // its existing call sites untouched.
-  const openDetailJob = useCallback((value: SetStateAction<EnrichedJob | null>) => {
-    const el = containerRef.current;
-    if (el) detailScrollSnapshotRef.current = el.scrollTop;
-    setDetailJob(value);
-    // Mirror the open job into the URL (?job=<id>, replacing the entry so we
-    // don't spam history). This is what lets a jump to a sub-route from inside
-    // the dialog — e.g. the Helper Pro "Learn more" → /subscription — return to
-    // the open job on Back, instead of dropping onto the bare dashboard.
-    if (value && typeof value !== "function") {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("job", value.id);
-        return next;
-      }, { replace: true });
-    }
-  }, [containerRef, setSearchParams]);
-
-  // Close the detail dialog and restore the feed scroll position captured
-  // at open time. We restore after a microtask to outlast any layout-shift
-  // the closing dialog might cause, and clear the snapshot so a future
-  // open captures a fresh value.
-  const closeDetailJob = useCallback(() => {
-    setDetailJob(null);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("job");
-      return next;
-    }, { replace: true });
-    const snapshot = detailScrollSnapshotRef.current;
-    detailScrollSnapshotRef.current = null;
-    if (snapshot == null) return;
-    // Two rAFs: first lets React commit the dialog-close, second runs
-    // after the browser paints so the restored scrollTop sticks.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const el = containerRef.current;
-        if (el) el.scrollTop = snapshot;
-      });
-    });
-  }, [containerRef, setSearchParams]);
-
-  // Re-open the detail dialog from the URL on mount (?job=<id>). Add-only and
-  // one-shot: it restores the dialog after returning from a sub-route like
-  // /subscription, but never clears the param (close handles that), so it can't
-  // race the open/close writers above. Retries until the job feed has loaded.
-  const restoredJobParam = useRef(false);
-  useEffect(() => {
-    if (restoredJobParam.current) return;
-    const id = searchParams.get("job");
-    if (!id) {
-      restoredJobParam.current = true;
-      return;
-    }
-    const match = allJobs.find((j) => j.id === id);
-    if (match) {
-      setDetailJob(match);
-      restoredJobParam.current = true;
-    }
-  }, [searchParams, allJobs]);
 
   const handleDismissConfirm = useCallback(() => {
     if (!confirmDismissJobId) return;
@@ -561,22 +493,12 @@ const Dashboard = () => {
         </Suspense>
       )}
 
-      <AlertDialog open={!!confirmDismissJobId} onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}>
-        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg rounded-ds-sm p-4 sm:p-6">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-ds-15 sm:text-ds-17">Not interested?</AlertDialogTitle>
-            <AlertDialogDescription className="text-ds-13">
-              {confirmDismissJob
-                ? <>Remove <span className="font-semibold text-foreground">"{confirmDismissJob.title}"</span> from your feed? You won't see it again.</>
-                : "Remove this job from your feed?"}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row justify-end gap-2 sm:gap-2">
-            <AlertDialogCancel className="mt-0 h-9 px-3 text-ds-13">Keep it</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDismissConfirm} className="h-9 px-3 text-ds-13 bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DismissJobDialog
+        confirmDismissJobId={confirmDismissJobId}
+        confirmDismissJob={confirmDismissJob}
+        onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}
+        onConfirm={handleDismissConfirm}
+      />
       {payoutSetupDialogOpen && (
         <Suspense fallback={null}>
           <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />

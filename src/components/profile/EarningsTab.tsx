@@ -1,30 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { TrendingUp, Gift, Briefcase, Wallet, RefreshCw, Loader2, Banknote, Zap, Settings, FileText, FileSpreadsheet, ExternalLink, Info, Printer, FileCheck2, X } from "lucide-react";
+import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { formatJobDate } from "@/lib/format";
-import { jobStatusLabel, payoutStatusLabel } from "@/lib/statusLabels";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { report } from "@/lib/errorLogger";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
@@ -37,77 +15,18 @@ import { HelperStreakBadge } from "@/components/profile/HelperStreakBadge";
 import { MonthlyGoalCard } from "@/components/profile/MonthlyGoalCard";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
-import { jobStatusColorClasses } from "@/lib/statusColors";
-import { queryKeys } from "@/lib/queryKeys";
-import type { Database } from "@/integrations/supabase/types";
-
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
-
-interface PayoutLedgerRow {
-  id: string;
-  job_id: string;
-  amount_cents: number;
-  platform_fee_cents: number;
-  status: "pending" | "paid" | "failed" | "reversed";
-  created_at: string;
-  paid_at: string | null;
-  failed_at: string | null;
-  failure_reason: string | null;
-  stripe_transfer_id: string | null;
-  jobs: { title?: string } | null;
-}
-
-// Payout-status pills are a separate concern from job-status chips: this
-// table is the Stripe payout pipeline (`paid` / `in_transit` / `pending`
-// / `failed` / `canceled`), not the `job_status` enum. Job-status chips
-// in the earnings list below route through the canonical
-// `jobStatusColorClasses` from `@/lib/statusColors` so they paint the
-// same as every other status chip in the app.
-const payoutStatusColors: Record<string, string> = {
-  paid: "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))]",
-  in_transit: "bg-[hsl(var(--burnt-sienna)/0.10)] text-[hsl(var(--burnt-sienna))]",
-  pending: "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood))]",
-  failed: "bg-destructive/10 text-destructive",
-  canceled: "bg-destructive/10 text-destructive",
-};
-
-interface EarningsTabProps {
-  earningsJobs: Job[];
-  tips: { amount: number; job_id: string; created_at: string }[];
-  loading: boolean;
-  onBack: () => void;
-  helperId: string;
-  helperName: string;
-}
-
-interface StripePayout {
-  id: string;
-  amount: number;
-  currency: string;
-  status: string;
-  arrival_date: number;
-  method: string;
-  created: number;
-  description: string | null;
-}
-
-interface StripePayoutData {
-  connected: boolean;
-  payouts_enabled: boolean;
-  available: { amount: number; currency: string }[];
-  pending: { amount: number; currency: string }[];
-  instant_available?: { amount: number; currency: string }[];
-  payouts: StripePayout[];
-}
-
-const formatCents = (cents: number, currency = "usd") =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
-
-const formatDate = (unixSec: number) => formatJobDate(new Date(unixSec * 1000));
+import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
+import { buildPayoutsCsv } from "@/components/profile/earningsTab/earningsTabHelpers";
+import { useEarningsData } from "@/components/profile/earningsTab/useEarningsData";
+import { EarningsToolsMenu } from "@/components/profile/earningsTab/EarningsToolsMenu";
+import { ThresholdBanner } from "@/components/profile/earningsTab/ThresholdBanner";
+import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
+import { PayoutHistory } from "@/components/profile/earningsTab/PayoutHistory";
+import { RecentTransfers } from "@/components/profile/earningsTab/RecentTransfers";
+import { EarningHistory } from "@/components/profile/earningsTab/EarningHistory";
 
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const { profile } = useCurrentUser();
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -123,59 +42,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const PAGE = 25;
   const [historyVisible, setHistoryVisible] = useState(PAGE);
 
-  // React Query: caches Stripe payout data so re-opening the tab is instant.
-  const FALLBACK_STRIPE: StripePayoutData = {
-    connected: false, payouts_enabled: false, available: [], pending: [], payouts: [],
-  };
-  const { data: stripeData, isLoading: stripeLoading, isFetching, refetch } = useQuery<StripePayoutData>({
-    // User-scoped: the persisted IDB cache (24h) would otherwise rehydrate
-    // the prior helper's Stripe balance + payout history on a shared device.
-    queryKey: queryKeys.stripePayouts.byUser(helperId),
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke<StripePayoutData>("stripe-payouts", { body: {} });
-        if (error) throw error;
-        return data ?? FALLBACK_STRIPE;
-      } catch (err) {
-        report(err, { severity: "warning", tags: { source: "EarningsTab.fetchPayouts" } });
-        return FALLBACK_STRIPE;
-      }
-    },
-    enabled: !!helperId,
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
-  });
-
-  // payout_transfers ledger — the authoritative record of every
-  // stripe.transfers.create() call to this helper. RLS already restricts
-  // SELECT to `auth.uid() = helper_id` so no extra filter needed here.
-  const { data: payoutLedger = [] } = useQuery<PayoutLedgerRow[]>({
-    queryKey: queryKeys.payoutTransfers.byHelper(helperId),
-    queryFn: async () => {
-      if (!helperId) return [];
-      const { data, error } = await supabase.from("payout_transfers")
-        .select("id, job_id, amount_cents, platform_fee_cents, status, created_at, paid_at, failed_at, failure_reason, stripe_transfer_id, jobs(title)")
-        .eq("helper_id", helperId)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) {
-        report(error, { severity: "warning", tags: { source: "EarningsTab.fetchLedger" } });
-        return [];
-      }
-      return (data ?? []) as PayoutLedgerRow[];
-    },
-    enabled: !!helperId,
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
-  });
-
-  const refreshing = isFetching && !stripeLoading;
-  const handleRefresh = () => {
-    // Prefix invalidate — matches any user-scoped stripe-payouts key the
-    // current session may have cached.
-    qc.invalidateQueries({ queryKey: queryKeys.stripePayouts.all });
-    refetch();
-  };
+  const { stripeData, stripeLoading, payoutLedger, refreshing, handleRefresh } = useEarningsData(helperId);
 
   // ─── CSV EXPORT (1099 / Tax prep) ─────────────────────────
   const payoutYears = useMemo(() => {
@@ -196,9 +63,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   const handleExportCSV = () => {
     const year = Number(exportYear);
-    const rows = (stripeData?.payouts ?? []).filter(
-      (p) => new Date(p.arrival_date * 1000).getFullYear() === year
-    );
+    const { rows, csv } = buildPayoutsCsv(stripeData?.payouts ?? [], year);
 
     if (!rows.length) {
       toast({
@@ -208,36 +73,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       return;
     }
 
-    const escape = (val: string | number | null | undefined) => {
-      const s = val == null ? "" : String(val);
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-
-    const header = ["Arrival Date", "Description", "Status", "Method", "Currency", "Net Payout (USD)"];
-    const csvLines = [header.join(",")];
-    let total = 0;
-
-    rows.forEach((p) => {
-      const dollars = p.amount / 100;
-      total += dollars;
-      csvLines.push(
-        [
-          new Date(p.arrival_date * 1000).toISOString().slice(0, 10),
-          escape(p.description ?? `Stripe Payout ${p.id}`),
-          escape(p.status),
-          escape(p.method),
-          escape(p.currency.toUpperCase()),
-          dollars.toFixed(2),
-        ].join(",")
-      );
-    });
-
-    csvLines.push("");
-    csvLines.push(`Total Net Payouts,${total.toFixed(2)}`);
-    csvLines.push(`Tax Year,${year}`);
-    csvLines.push("Note,Net amounts paid to your bank. Excludes platform fees & sales tax (Helpr's responsibility).");
-
-    const blob = new Blob([csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -321,37 +157,11 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         meta="Payouts, tips, and tax exports"
         onBack={onBack}
         rightSlot={
-          <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-ds-sm hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Earnings settings"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="text-ds-11">Earnings tools</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setExportDialogOpen(true)}>
-              <FileText className="w-4 h-4 mr-2" /> Export for Taxes (PDF)
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleExportCSV}>
-              <FileSpreadsheet className="w-4 h-4 mr-2" /> Export Payouts CSV
-            </DropdownMenuItem>
-            {/* Lightweight "save as PDF" path — opens the browser print
-                dialog with a print-friendly stylesheet (below). Useful
-                on iOS, where Safari can save the print preview as a
-                PDF to Files without loading the jsPDF chunk. */}
-            <DropdownMenuItem onSelect={() => { window.print(); }}>
-              <Printer className="w-4 h-4 mr-2" /> Print / Save as PDF
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate("/profile?tab=payment")}>
-              <ExternalLink className="w-4 h-4 mr-2" /> Stripe Dashboard Access
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <EarningsToolsMenu
+            onExportPdf={() => setExportDialogOpen(true)}
+            onExportCsv={handleExportCSV}
+            onNavigatePayment={() => navigate("/profile?tab=payment")}
+          />
         }
       />
       {/* Hidden controlled export dialog (PDF + CSV by date range) */}
@@ -406,212 +216,28 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           doesn't nag after the helper has seen it. Tapping the CTA
           opens the existing PDF tax-export dialog (no new flow). */}
       {show1099Banner && (
-        <div
-          className="rounded-2xl p-4 flex items-start gap-3"
-          style={{
-            background:
-              "radial-gradient(70% 90% at 0% 0%, hsl(var(--gold-warm) / 0.16) 0%, transparent 60%), " +
-              "hsla(0, 0%, 100%, 0.6)",
-            border: "0.5px solid hsl(var(--gold-warm) / 0.34)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-              "0 8px 18px -6px hsl(var(--olivewood) / 0.10)",
-          }}
-        >
-          <span
-            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-            style={{
-              background: "hsl(var(--gold-warm) / 0.18)",
-              color: "hsl(var(--gold-warm))",
-            }}
-          >
-            <FileCheck2 className="w-4 h-4" />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p
-              className="font-serif italic uppercase"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-            >
-              Tax season prep
-            </p>
-            <h3
-              className="font-display italic font-bold leading-tight"
-              style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-            >
-              You've crossed the $600 mark for {ytdYear}.
-            </h3>
-            <p
-              className="font-serif italic mt-1 leading-snug"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              You may receive a 1099-K from Stripe. Download a payout statement now so you're not scrambling in April.
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setExportDialogOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-ds-sm px-3 py-1.5 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
-                style={{
-                  background: "hsl(var(--bark))",
-                  color: "hsl(var(--parchment))",
-                  border: "1px solid hsl(var(--bark))",
-                }}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                Download tax statement
-              </button>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={dismiss1099Banner}
-            aria-label="Dismiss"
-            className="shrink-0 -mr-1 -mt-1 w-10 h-10 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground active:bg-secondary/40 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        <ThresholdBanner
+          ytdYear={ytdYear}
+          onOpenExport={() => setExportDialogOpen(true)}
+          onDismiss={dismiss1099Banner}
+        />
       )}
 
       {/* ─── COMPACT DASHBOARD: Wallet + Stats ─── */}
       <section className="space-y-3">
         {/* Wallet card (Available + Pending side-by-side) */}
-        {stripeLoading ? (
-          <div className="rounded-2xl liquid-glass p-5 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Skeleton className="h-3 w-20 rounded" />
-                <Skeleton className="h-7 w-24 rounded" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-3 w-20 rounded" />
-                <Skeleton className="h-7 w-24 rounded" />
-              </div>
-            </div>
-            <Skeleton className="h-9 w-full rounded-md" />
-          </div>
-        ) : !stripeData?.connected ? (
-          <div className="rounded-2xl liquid-glass p-5 space-y-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Wallet className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                  Balance
-                </p>
-                <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
-                  Wallet
-                </h2>
-              </div>
-            </div>
-            <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-              Connect your payout account to see your live balance.
-            </p>
-            <Button size="sm" onClick={() => navigate("/profile?tab=payment")}>Set up payouts</Button>
-          </div>
-        ) : (
-          <div className="rounded-2xl liquid-glass p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Wallet className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="font-serif italic uppercase flex items-center gap-1.5" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                    Balance <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary not-italic" style={{ letterSpacing: "0.05em" }}>LIVE</span>
-                  </p>
-                  <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
-                    Wallet
-                  </h2>
-                </div>
-              </div>
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                aria-label="Refresh"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Banknote className="w-3 h-3 text-primary" />
-                  <span className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                    Available
-                  </span>
-                </div>
-                <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-                  {formatCents(availableTotal)}
-                </p>
-                <p className="font-serif italic mt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                  ready to pay out
-                </p>
-              </div>
-              <div className="border-l border-border/40 pl-4">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Loader2 className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-                  <span className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                    Pending
-                  </span>
-                </div>
-                <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-                  {formatCents(pendingTotal)}
-                </p>
-                <p className="font-serif italic mt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                  clearing soon
-                </p>
-              </div>
-            </div>
-
-            {(() => {
-              const instantAvailable = (stripeData.instant_available ?? []).reduce((s, b) => s + b.amount, 0);
-              if (instantAvailable <= 0) return null;
-              return (
-                <div className="mt-3 rounded-ds-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-ds-11 font-semibold text-foreground">Instant cash out</span>
-                      {!canUseInstantPayout && (
-                        <span
-                          className="text-[8.5px] font-bold uppercase tracking-wider px-1 py-0.5 rounded-full"
-                          style={{
-                            background: "hsl(var(--burnt-sienna) / 0.14)",
-                            color: "hsl(var(--burnt-sienna))",
-                            letterSpacing: "0.06em",
-                          }}
-                        >
-                          Pro
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-ds-15 font-bold text-foreground">{formatCents(instantAvailable)}</p>
-                    <p className="text-muted-foreground text-ds-11">
-                      {canUseInstantPayout ? "~30 min · 3% + $1 fee" : "Subscribe to unlock instant payouts"}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => canUseInstantPayout ? setPayoutDialogOpen(true) : setUpgradeOpen(true)}
-                    className="h-8 text-ds-11 gap-1.5 shrink-0"
-                  >
-                    <Zap className="w-3.5 h-3.5" /> Cash out
-                  </Button>
-                </div>
-              );
-            })()}
-
-            {!stripeData.payouts_enabled && (
-              <p className="mt-2 text-ds-11 text-destructive">
-                Payouts not yet enabled — finish setup to start receiving funds.
-              </p>
-            )}
-          </div>
-        )}
+        <WalletCard
+          stripeData={stripeData}
+          stripeLoading={stripeLoading}
+          refreshing={refreshing}
+          availableTotal={availableTotal}
+          pendingTotal={pendingTotal}
+          canUseInstantPayout={canUseInstantPayout}
+          onRefresh={handleRefresh}
+          onNavigatePayment={() => navigate("/profile?tab=payment")}
+          onCashOut={() => setPayoutDialogOpen(true)}
+          onUpgrade={() => setUpgradeOpen(true)}
+        />
 
         {/* Monthly earning goal — localStorage-backed; no DB migration needed */}
         {!loading && (
@@ -660,70 +286,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
         {/* Payout history — inline year picker, no big empty box */}
         {stripeData?.connected && (
-          <div className="pt-2">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div>
-                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                  Ledger
-                </p>
-                <h3 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
-                  Payout history
-                </h3>
-              </div>
-              <Select value={exportYear} onValueChange={setExportYear}>
-                <SelectTrigger className="h-7 w-[88px] text-ds-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {payoutYears.map((y) => (
-                    <SelectItem key={y} value={String(y)} className="text-ds-11">{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {stripeData.payouts.length === 0 ? (
-              // Inline empty state — keeps the visual weight of the
-              // surrounding section while setting expectations about
-              // *when* payouts will appear, instead of dead-ending on a
-              // bare "No payouts recorded" line.
-              <div className="text-center py-6 space-y-1.5">
-                <p
-                  className="font-display italic font-bold leading-tight"
-                  style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
-                >
-                  No payouts in {exportYear}.
-                </p>
-                <p
-                  className="font-serif italic"
-                  style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Payouts land within 2 business days of a completed job.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {stripeData.payouts.map((p) => (
-                  <div key={p.id} className="rounded-ds-md liquid-glass p-3 transition-all hover:-translate-y-0.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
-                            {formatCents(p.amount, p.currency)}
-                          </span>
-                          <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${payoutStatusColors[p.status] || "bg-secondary text-secondary-foreground"}`}>
-                            {payoutStatusLabel(p.status)}
-                          </span>
-                        </div>
-                        <p className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                          Arrives {formatDate(p.arrival_date)} · {p.method === "instant" ? "Instant" : "Standard"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <PayoutHistory
+            stripeData={stripeData}
+            exportYear={exportYear}
+            onExportYearChange={setExportYear}
+            payoutYears={payoutYears}
+          />
         )}
       </section>
 
@@ -736,190 +304,19 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
       {/* ─── ACTUAL PAYOUTS (from payout_transfers ledger) ─── */}
       {payoutLedger.length > 0 && (
-        <div>
-          <p className="font-serif italic uppercase mb-1" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-            Payouts
-          </p>
-          <h2 className="font-display italic font-bold leading-tight mb-3 text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-            Recent transfers
-          </h2>
-          <div className="space-y-2.5">
-            {payoutLedger.map((t) => {
-              const jobTitle = (t.jobs as { title?: string } | null)?.title ?? "Job";
-              const date = formatJobDate(t.created_at);
-              const amount = (t.amount_cents / 100).toFixed(2);
-              const fee = (t.platform_fee_cents / 100).toFixed(2);
-              const tone =
-                t.status === "paid" ? "bg-primary/10 text-primary"
-                : t.status === "failed" ? "bg-destructive/10 text-destructive"
-                : t.status === "reversed" ? "bg-muted text-muted-foreground"
-                : "bg-accent/20 text-accent"; // pending
-              return (
-                <div key={t.id} className="rounded-ds-md liquid-glass p-3.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                          {jobTitle}
-                        </h3>
-                        <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${tone}`}>{payoutStatusLabel(t.status)}</span>
-                      </div>
-                      <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                        {date}
-                        {t.stripe_transfer_id && (
-                          <span className="ml-2 text-ds-10 font-mono opacity-60" title="Stripe transfer ID">{t.stripe_transfer_id.slice(-8)}</span>
-                        )}
-                        {t.failure_reason && t.status === "failed" && (
-                          <span className="block mt-1 text-destructive text-ds-11">{t.failure_reason}</span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
-                        ${amount}
-                      </p>
-                      {Number(fee) > 0 && (
-                        <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                          fee ${fee}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <RecentTransfers payoutLedger={payoutLedger} />
       )}
 
       {/* ─── EARNING HISTORY ─── */}
-      {loading ? (
-        // Content-shaped skeleton: section eyebrow + heading, plus three
-        // job-row placeholders matching the eventual `.rounded-ds-md
-        // liquid-glass p-3.5` row geometry below (title row, status chip,
-        // meta line, right-aligned amount). Keeps the page from collapsing
-        // to a single line of "Loading…" text mid-fetch.
-        <div>
-          <Skeleton className="h-2.5 w-14 mb-1" />
-          <Skeleton className="h-6 w-40 mb-3" />
-          <div className="space-y-2.5">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="rounded-ds-md liquid-glass p-3.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-4 w-3/5" />
-                      <Skeleton className="h-4 w-14 rounded-full" />
-                    </div>
-                    <Skeleton className="h-3 w-2/5" />
-                  </div>
-                  <div className="text-right shrink-0 space-y-1.5">
-                    <Skeleton className="h-4 w-16 ml-auto" />
-                    <Skeleton className="h-2.5 w-12 ml-auto" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div>
-          <p className="font-serif italic uppercase mb-1" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-            History
-          </p>
-          <h2 className="font-display italic font-bold leading-tight mb-3 text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-            Earning history
-          </h2>
-          {earningsJobs.length === 0 ? (
-            <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-3 px-6 py-12">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{
-                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                  border: "1px solid hsl(var(--olivewood) / 0.10)",
-                  boxShadow:
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                    "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
-                }}
-              >
-                <Briefcase className="w-7 h-7" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-display-eyebrow">Quiet ledger</span>
-                <p
-                  className="font-display italic font-bold leading-tight"
-                  style={{
-                    fontSize: "clamp(1.05rem, 1.5vw + 0.4rem, 1.35rem)",
-                    color: "hsl(var(--ink-deep))",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  No earnings yet.
-                </p>
-                <p
-                  className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Apply to a job and your earnings will land here.
-                </p>
-              </div>
-              <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md mt-1">Browse jobs</Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {earningsJobs.slice(0, historyVisible).map((job) => {
-                const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-                const perHelper = job.budget / helpers;
-                const commissionPercent = job.helper_fee_percent ?? 10;
-                const commission = (perHelper * commissionPercent) / 100;
-                const payout = job.status === "completed" ? perHelper - commission + (job.urgent_fee ?? 0) : null;
-                const jobTips = tips.filter((t) => t.job_id === job.id);
-                const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
-                return (
-                  <div key={job.id} className="rounded-ds-md liquid-glass p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                            {job.title}
-                          </h3>
-                          <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${jobStatusColorClasses(job.status)}`}>{jobStatusLabel(job.status)}</span>
-                        </div>
-                        <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                          {job.location} <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span> {new Date(job.date_needed).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        {payout !== null && (
-                          <p className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
-                            ${payout.toFixed(2)}
-                          </p>
-                        )}
-                        {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
-                        {job.status === "in_progress" && (
-                          <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                            ${job.budget} budget
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {earningsJobs.length > historyVisible && (
-                <Button
-                  variant="outline"
-                  className="w-full rounded-ds-md"
-                  onClick={() => setHistoryVisible((n) => n + PAGE)}
-                >
-                  Load {Math.min(PAGE, earningsJobs.length - historyVisible)} more · {earningsJobs.length - historyVisible} remaining
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      <EarningHistory
+        earningsJobs={earningsJobs}
+        tips={tips}
+        loading={loading}
+        historyVisible={historyVisible}
+        page={PAGE}
+        onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
+        onBrowseJobs={() => navigate("/dashboard")}
+      />
 
       {/* Muted legal/tax disclosure — bottom of page */}
       <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">

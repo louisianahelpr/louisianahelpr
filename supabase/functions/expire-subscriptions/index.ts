@@ -56,7 +56,11 @@ serve(async (req) => {
       throw updateError;
     }
 
-    // Notify each user
+    // Notify each user. The tiers are already cleared above, so a failed
+    // notification must not fail the run (nor cause a re-run to double-clear —
+    // it won't, the WHERE filter no longer matches the now-null tiers) — but
+    // log it so a missing "subscription expired" alert is traceable rather
+    // than silently dropped.
     const notifications = expired.map(p => ({
       user_id: p.user_id,
       title: "Subscription expired",
@@ -65,7 +69,8 @@ serve(async (req) => {
       link: "/profile?tab=subscription",
     }));
 
-    await supabase.from("notifications").insert(notifications);
+    const { error: notifErr } = await supabase.from("notifications").insert(notifications);
+    if (notifErr) console.error(`[EXPIRE-SUBS] expiry notifications insert failed for ${userIds.length} user(s):`, notifErr);
 
     console.log(`[EXPIRE-SUBS] Cleared ${expired.length} expired subscription(s)`);
 

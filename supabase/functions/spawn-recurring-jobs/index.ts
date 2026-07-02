@@ -10,9 +10,16 @@
 //   - parent.recurrence_end_date is set and the next due date passes it
 //   - parent has been cancelled / expired (status check)
 //
-// Idempotent: each child is keyed (parent_job_id, date_needed). If a
-// previous run already inserted today's child, the duplicate-key check
-// skips it. Re-running is safe.
+// Idempotency (single-scheduler): each run counts existing children and
+// only spawns if the next-due slot falls within the lookahead window; once
+// today's child exists the count advances the next slot past the horizon, so
+// a sequential re-run no-ops. NOTE this is a read-then-write guard, not a DB
+// constraint — two *concurrent* invocations (scheduled run + manual admin
+// re-trigger overlapping) could both read the same count and double-insert.
+// The scheduled cron is single-threaded so this doesn't happen in practice;
+// a partial unique index on jobs(parent_job_id, date_needed) + upsert would
+// close it hard if the job ever runs concurrently. Children are 'open' with
+// no escrow, so a duplicate is a stray job, not a money event.
 
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -108,10 +115,9 @@ serve(async (req) => {
     }
 
     // Spawn child. Copy operationally-relevant parent fields, drop
-    // identity / state / recurrence-template fields. Idempotency:
-    // (parent_job_id, date_needed) is unique enough that re-running
-    // before the next interval naturally no-ops via the count check
-    // above (count would be > 0 advancing nextDueDate past horizon).
+    // identity / state / recurrence-template fields. A sequential re-run
+    // before the next interval no-ops because the count check above advances
+    // nextDueDate past the horizon (see the concurrency caveat in the header).
     const child: Record<string, unknown> = {
       customer_id: parent.customer_id,
       business_id: parent.business_id,

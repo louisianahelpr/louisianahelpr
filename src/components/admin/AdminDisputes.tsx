@@ -1,48 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { CheckCircle2, XCircle, Clock, AlertTriangle, Flame, Scale, History } from "lucide-react";
+import { CheckCircle2, AlertTriangle, History } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-
-interface DisputedJob {
-  id: string;
-  title: string;
-  budget: number;
-  status: string;
-  dispute_reason: string | null;
-  dispute_evidence_urls: string[];
-  disputed_at: string | null;
-  disputed_by: string | null;
-  customer_id: string;
-  helper_id: string | null;
-  stripe_payment_intent_id: string | null;
-}
-
-/** Row in the formal `public.disputes` table — null when the dispute
- *  predates the migration and we're reading from jobs.dispute_*. */
-interface DisputeRecord {
-  id: string;
-  job_id: string;
-  opener_id: string;
-  reason: string;
-  evidence_urls: string[];
-  status: "open" | "decided" | "withdrawn";
-  created_at: string;
-  decided_at: string | null;
-  decided_by: string | null;
-  decision_text: string | null;
-  payout_split: { poster?: number; helper?: number } | null;
-}
-
-type FilterTab = "open" | "decided";
-type AgeFilter = "all" | "0-24h" | "1-7d" | "7-30d" | ">30d";
-type PartyFilter = "all" | "poster" | "helper";
-type CategoryFilter = "all" | string;
+import { categoriseReason, CATEGORY_LABELS } from "./adminDisputes/adminDisputesHelpers";
+import { FilterChipGroup } from "./adminDisputes/FilterChipGroup";
+import { DisputeCard } from "./adminDisputes/DisputeCard";
+import type {
+  DisputedJob,
+  DisputeRecord,
+  FilterTab,
+  AgeFilter,
+  PartyFilter,
+  CategoryFilter,
+} from "./adminDisputes/types";
 
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
@@ -190,40 +163,6 @@ const AdminDisputes = () => {
     loadDisputes();
   }, [loadDisputes]);
 
-  // SLA badge — green/amber/red based on time since the dispute was filed.
-  // Past 5 days the customer can chargeback through their card issuer
-  // bypassing our resolution flow, so we surface that as a hot warning.
-  const slaBadge = (disputedAt: string | null) => {
-    if (!disputedAt) return null;
-    const hours = (Date.now() - new Date(disputedAt).getTime()) / 3600_000;
-    if (hours > 120) {
-      return (
-        <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-bold uppercase tracking-wide">
-          <Flame className="w-3 h-3" /> Chargeback risk · {Math.floor(hours / 24)}d
-        </span>
-      );
-    }
-    if (hours > 48) {
-      return (
-        <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold uppercase tracking-wide">
-          <AlertTriangle className="w-3 h-3" /> Stale · {Math.floor(hours / 24)}d
-        </span>
-      );
-    }
-    if (hours > 24) {
-      return (
-        <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 font-medium uppercase tracking-wide">
-          <Clock className="w-3 h-3" /> {Math.floor(hours)}h
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium uppercase tracking-wide">
-        <Clock className="w-3 h-3" /> Fresh · {Math.floor(hours)}h
-      </span>
-    );
-  };
-
   const resolveDispute = async (job: DisputedJob, action: "release" | "refund") => {
     setResolving(job.id);
     try {
@@ -355,31 +294,6 @@ const AdminDisputes = () => {
 
   if (loading) return <p className="text-muted-foreground">Loading disputes…</p>;
 
-  // Categorise the dispute reason into rough buckets driven by the
-  // keywords each helpr / poster types when filing. Cheap heuristic —
-  // it's better than nothing for triaging the queue but should be
-  // replaced with a structured `dispute_category` column long-term.
-  const categoriseReason = (reason: string | null | undefined): string => {
-    const r = (reason || "").toLowerCase();
-    if (!r) return "other";
-    if (/no[-\s]?show|didn'?t show|didnt show|never arrived/.test(r)) return "no_show";
-    if (/quality|incomplete|sloppy|poor|bad job|not done/.test(r)) return "quality";
-    if (/payment|charge|refund|money|paid/.test(r)) return "payment";
-    if (/damage|broke|broken|stained|ruined/.test(r)) return "damage";
-    if (/abusive|harass|rude|threat|safety/.test(r)) return "behaviour";
-    if (/late|delay|arrived/.test(r)) return "timing";
-    return "other";
-  };
-  const CATEGORY_LABELS: Record<string, string> = {
-    no_show: "No-show",
-    quality: "Work quality",
-    payment: "Payment",
-    damage: "Damage",
-    behaviour: "Behaviour",
-    timing: "Timing",
-    other: "Other",
-  };
-
   const passesAge = (j: DisputedJob): boolean => {
     if (ageFilter === "all" || !j.disputed_at) return true;
     const hours = (Date.now() - new Date(j.disputed_at).getTime()) / 3600_000;
@@ -406,202 +320,6 @@ const AdminDisputes = () => {
     ? baseList.filter((j) => passesAge(j) && passesParty(j) && passesCategory(j))
     : baseList;
   const list = filteredList;
-
-  // Renders one card. Shared between Open and Decided so the visual
-  // layout stays consistent; resolution actions only appear for Open.
-  const renderCard = (job: DisputedJob) => {
-    const record = disputeRecords[job.id];
-    const isActivePanel = activePanelJobId === job.id;
-    const helperName = job.helper_id ? profiles[job.helper_id] || "Unknown" : null;
-    const posterName = profiles[job.customer_id] || "Unknown";
-
-    return (
-      <div key={job.id} className="rounded-ds-md border border-destructive/30 bg-card p-4 space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-foreground">{job.title}</h3>
-              {filter === "open" && slaBadge(job.disputed_at)}
-              {filter === "decided" && (
-                <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-primary/15 text-primary font-semibold uppercase tracking-wide">
-                  <CheckCircle2 className="w-3 h-3" /> Decided
-                </span>
-              )}
-              {[job.customer_id, job.helper_id].some((id) => id && tiers[id] === "elite") && (
-                <span className="text-ds-10 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">💎 Priority</span>
-              )}
-            </div>
-            <p className="text-ds-11 text-muted-foreground">${job.budget}</p>
-            <p className="text-ds-11 text-muted-foreground mt-1">
-              Customer: <span className="font-medium text-foreground">{posterName}</span>
-              {helperName && <> · Helpr: <span className="font-medium text-foreground">{helperName}</span></>}
-            </p>
-            {job.disputed_at && (
-              <p className="text-ds-11 text-muted-foreground">
-                Disputed {new Date(job.disputed_at).toLocaleDateString()} by {profiles[job.disputed_by || ""] || "Unknown"}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Timeline — keeps both parties' contributions visible in one place. */}
-        <div className="space-y-2">
-          <div className="p-3 rounded-ds-sm bg-destructive/5 border border-destructive/20">
-            <p className="text-ds-13 text-foreground font-medium flex items-center gap-1">
-              <AlertTriangle className="w-3.5 h-3.5" /> Filed
-              {record && (
-                <span className="ml-1 text-ds-10 text-muted-foreground">
-                  · {new Date(record.created_at).toLocaleString()}
-                </span>
-              )}
-            </p>
-            {(record?.reason ?? job.dispute_reason) && (
-              <p className="text-ds-11 text-muted-foreground mt-1 italic">
-                "{record?.reason ?? job.dispute_reason}"
-              </p>
-            )}
-          </div>
-
-          {(record?.evidence_urls?.length ?? job.dispute_evidence_urls?.length ?? 0) > 0 && (
-            <div className="space-y-1">
-              <p className="text-ds-11 font-medium text-muted-foreground">Evidence photos:</p>
-              <div className="flex gap-2 flex-wrap">
-                {(record?.evidence_urls ?? job.dispute_evidence_urls ?? []).map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors">
-                    <img loading="lazy" decoding="async" src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {record?.decided_at && (
-            <div className="p-3 rounded-ds-sm bg-primary/5 border border-primary/20">
-              <p className="text-ds-13 text-foreground font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Decided
-                <span className="ml-1 text-ds-10 text-muted-foreground">
-                  · {new Date(record.decided_at).toLocaleString()}
-                </span>
-              </p>
-              {record.decision_text && (
-                <p className="text-ds-11 text-muted-foreground mt-1 italic">"{record.decision_text}"</p>
-              )}
-              {record.payout_split && (
-                <p className="text-ds-11 text-muted-foreground mt-1">
-                  Split: poster <span className="font-semibold text-foreground tabular-nums">{Math.round((record.payout_split.poster ?? 0) * 100)}%</span>
-                  {" · "}
-                  helper <span className="font-semibold text-foreground tabular-nums">{Math.round((record.payout_split.helper ?? 0) * 100)}%</span>
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {filter === "open" && !isActivePanel && (
-          <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-            <Button size="sm" onClick={() => openDecisionPanel(job)}>
-              <Scale className="w-4 h-4 mr-1" /> Decide…
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setConfirm({ job, action: "release" })} disabled={resolving === job.id}>
-              <CheckCircle2 className="w-4 h-4 mr-1" /> Quick: Release to Helpr
-            </Button>
-            <Button size="sm" variant="outline" className="text-destructive" onClick={() => setConfirm({ job, action: "refund" })} disabled={resolving === job.id}>
-              <XCircle className="w-4 h-4 mr-1" /> Quick: Refund Customer
-            </Button>
-          </div>
-        )}
-
-        {filter === "open" && isActivePanel && (
-          <div className="pt-2 border-t border-border space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-ds-11 font-medium">Decision note (recorded for both parties)</Label>
-              <Textarea
-                value={decisionText}
-                onChange={(e) => setDecisionText(e.target.value)}
-                placeholder="Explain the outcome — what tipped the call, what each party should expect."
-                rows={3}
-                maxLength={1000}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-ds-11 font-medium">Payout split</Label>
-              {/* Range input — 0 = 100% poster (full refund), 100 = 100% helper (full release). */}
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={5}
-                value={helperShare}
-                onChange={(e) => setHelperShare(Number(e.target.value))}
-                className="w-full accent-primary"
-                aria-label="Helper's share of the payout"
-              />
-              <div className="flex justify-between text-ds-11 tabular-nums">
-                <span className="text-muted-foreground">
-                  Poster <span className="font-semibold text-foreground">{100 - helperShare}%</span>
-                  <span className="ml-1 text-muted-foreground">(${((job.budget * (100 - helperShare)) / 100).toFixed(2)})</span>
-                </span>
-                <span className="text-muted-foreground">
-                  Helper <span className="font-semibold text-foreground">{helperShare}%</span>
-                  <span className="ml-1 text-muted-foreground">(${((job.budget * helperShare) / 100).toFixed(2)})</span>
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setHelperShare(0)}
-                disabled={submittingDecision}
-              >
-                Resolve for poster (0/100)
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setHelperShare(50)}
-                disabled={submittingDecision}
-              >
-                Split 50/50
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setHelperShare(100)}
-                disabled={submittingDecision}
-              >
-                Resolve for helper (100/0)
-              </Button>
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button
-                size="sm"
-                onClick={() => decide(job)}
-                disabled={submittingDecision || !decisionText.trim()}
-              >
-                {submittingDecision ? "Recording…" : "Record decision"}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setActivePanelJobId(null);
-                  setDecisionText("");
-                  setHelperShare(50);
-                }}
-                disabled={submittingDecision}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-4">
@@ -691,7 +409,27 @@ const AdminDisputes = () => {
           </p>
         </div>
       ) : (
-        list.map(renderCard)
+        list.map((job) => (
+          <DisputeCard
+            key={job.id}
+            job={job}
+            filter={filter}
+            disputeRecords={disputeRecords}
+            profiles={profiles}
+            tiers={tiers}
+            activePanelJobId={activePanelJobId}
+            resolving={resolving}
+            decisionText={decisionText}
+            helperShare={helperShare}
+            submittingDecision={submittingDecision}
+            openDecisionPanel={openDecisionPanel}
+            setConfirm={setConfirm}
+            setDecisionText={setDecisionText}
+            setHelperShare={setHelperShare}
+            setActivePanelJobId={setActivePanelJobId}
+            decide={decide}
+          />
+        ))
       )}
 
       <BrandConfirmDialog
@@ -719,41 +457,5 @@ const AdminDisputes = () => {
     </div>
   );
 };
-
-/**
- * FilterChipGroup — labelled segmented pill group used by the
- * disputes filters. Kept inline to avoid spawning yet another shared
- * component that nothing else uses.
- */
-const FilterChipGroup = ({ label, value, onChange, options }: {
-  label: string;
-  value: string;
-  onChange: (next: string) => void;
-  options: { id: string; label: string }[];
-}) => (
-  <div className="flex items-center gap-1.5 flex-wrap">
-    <span className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">
-      {label}
-    </span>
-    <div className="inline-flex items-center rounded-md bg-muted/60 p-0.5 flex-wrap">
-      {options.map((opt) => {
-        const active = value === opt.id;
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => onChange(opt.id)}
-            aria-pressed={active}
-            className={`px-2 h-6 rounded-sm text-ds-10 font-semibold transition-colors ${
-              active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  </div>
-);
 
 export default AdminDisputes;

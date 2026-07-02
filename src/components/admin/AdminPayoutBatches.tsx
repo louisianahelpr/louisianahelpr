@@ -4,13 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Send, Clock, CheckCircle2, AlertTriangle, ListChecks, Pause, Play } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { safeStorage } from "@/lib/safeStorage";
-import { formatDistanceToNow } from "date-fns";
+import { Send, CheckCircle2, AlertTriangle, Pause } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
@@ -18,55 +14,12 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { payoutStatusLabel } from "@/lib/statusLabels";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-
-interface PayoutBatch {
-  helper_id: string;
-  helper_name: string | null;
-  helper_email: string | null;
-  stripe_account_id: string | null;
-  job_count: number;
-  total_payout: number;
-  oldest_completed_at: string;
-}
-
-interface PayoutLedgerRow {
-  id: string;
-  helper_id: string;
-  amount_cents: number;
-  platform_fee_cents: number;
-  status: "pending" | "paid" | "failed" | "reversed";
-  created_at: string;
-  failure_reason: string | null;
-  stripe_transfer_id: string | null;
-  initiated_by: string | null;
-  jobs: { title?: string } | null;
-  profiles: { full_name?: string | null } | null;
-}
-
-const LEDGER_TONE: Record<string, string> = {
-  paid: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-  pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-  failed: "bg-destructive/10 text-destructive",
-  reversed: "bg-muted text-muted-foreground",
-};
-
-// Hold-for-review queue is stored client-side under a stable key so
-// every admin sees the same list. Persisting it server-side would
-// need a migration; for now the localStorage approach is enough since
-// it's a small triage queue that admins clear as they go.
-const HOLD_KEY = "helpr.admin_payout_holds.v1";
-const loadHolds = (): Record<string, { reason: string; addedAt: string; addedBy?: string }> => {
-  try {
-    const raw = safeStorage.getItem(HOLD_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-};
-const saveHolds = (h: Record<string, { reason: string; addedAt: string; addedBy?: string }>) => {
-  try { safeStorage.setItem(HOLD_KEY, JSON.stringify(h)); } catch { /* noop */ }
-};
+import type { PayoutBatch, PayoutLedgerRow } from "./adminPayoutBatches/types";
+import { loadHolds, saveHolds } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
+import { BatchRow } from "./adminPayoutBatches/BatchRow";
+import { LedgerList } from "./adminPayoutBatches/LedgerList";
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
@@ -365,98 +318,21 @@ const AdminPayoutBatches = () => {
         </div>
       ) : (
         <div className={`space-y-2 ${selected.size > 0 ? "pb-24" : ""}`}>
-          {visibleBatches.map((batch) => {
-            const ageDays = Math.floor((Date.now() - new Date(batch.oldest_completed_at).getTime()) / 86_400_000);
-            const isStale = ageDays >= 3;
-            const hold = holds[batch.helper_id];
-            const isHeld = !!hold;
-            return (
-              <div key={batch.helper_id} className="rounded-ds-md liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                {tab === "ready" && batch.stripe_account_id && (
-                  <Checkbox
-                    checked={selected.has(batch.helper_id)}
-                    onCheckedChange={() => toggleSelected(batch.helper_id)}
-                    aria-label={`Select ${batch.helper_name} for bulk payout`}
-                    className="mt-0.5"
-                  />
-                )}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-ds-13 text-foreground truncate">{batch.helper_name}</span>
-                    <Badge variant="secondary" className="text-ds-10">
-                      {batch.job_count} job{batch.job_count > 1 ? "s" : ""}
-                    </Badge>
-                    {!batch.stripe_account_id && (
-                      <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-ds-10">
-                        <AlertTriangle className="w-3 h-3 mr-0.5" /> No Stripe
-                      </Badge>
-                    )}
-                    {isStale && (
-                      <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-ds-10">
-                        <Clock className="w-3 h-3 mr-0.5" /> {ageDays}d old
-                      </Badge>
-                    )}
-                    {isHeld && (
-                      <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-ds-10">
-                        <Pause className="w-3 h-3 mr-0.5" /> On hold
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-ds-11 text-muted-foreground">{batch.helper_email}</p>
-                  <p className="text-ds-11 text-muted-foreground">
-                    Oldest job: {formatDistanceToNow(new Date(batch.oldest_completed_at), { addSuffix: true })}
-                  </p>
-                  {isHeld && hold.reason && (
-                    <p className="text-ds-11 text-amber-700 dark:text-amber-300 italic mt-1">
-                      Hold reason: {hold.reason}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right shrink-0 space-y-1">
-                  <p className="text-ds-17 font-bold text-primary">${Number(batch.total_payout).toFixed(2)}</p>
-                  {tab === "ready" ? (
-                    <div className="flex gap-1.5 justify-end flex-wrap">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setHoldReasonDraft({ helperId: batch.helper_id, reason: "" })}
-                        className="gap-1"
-                      >
-                        <Pause className="w-3 h-3" /> Hold
-                      </Button>
-                      <Button
-                        size="sm"
-                        disabled={paying === batch.helper_id || !batch.stripe_account_id}
-                        onClick={() => setConfirmBatch(batch)}
-                      >
-                        <Send className="w-3 h-3 mr-1" />
-                        {paying === batch.helper_id ? "Sending…" : "Pay out"}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-1.5 justify-end flex-wrap">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => releaseHold(batch.helper_id)}
-                        className="gap-1"
-                      >
-                        <Play className="w-3 h-3" /> Release
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive border-destructive/40 hover:bg-destructive/10 gap-1"
-                        onClick={() => setDenyDraft({ helperId: batch.helper_id, reason: "Compliance review failed" })}
-                      >
-                        Deny
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {visibleBatches.map((batch) => (
+            <BatchRow
+              key={batch.helper_id}
+              batch={batch}
+              tab={tab}
+              hold={holds[batch.helper_id]}
+              isSelected={selected.has(batch.helper_id)}
+              paying={paying}
+              onToggleSelected={toggleSelected}
+              onHold={(b) => setHoldReasonDraft({ helperId: b.helper_id, reason: "" })}
+              onPay={(b) => setConfirmBatch(b)}
+              onRelease={releaseHold}
+              onDeny={(b) => setDenyDraft({ helperId: b.helper_id, reason: "Compliance review failed" })}
+            />
+          ))}
         </div>
       )}
 
@@ -579,63 +455,7 @@ const AdminPayoutBatches = () => {
         secondaryLabel="Cancel"
       />
 
-      {/* ─── Recent transfers ledger ─── */}
-      {ledger.length > 0 && (
-        <div className="space-y-3 pt-4 border-t border-border/50">
-          <div className="flex items-center gap-2">
-            <ListChecks className="w-4 h-4 text-primary" />
-            <h3 className="text-ds-13 font-semibold text-foreground">Recent transfers</h3>
-            <Badge variant="secondary" className="text-ds-10">last {ledger.length}</Badge>
-          </div>
-          <p className="text-ds-11 text-muted-foreground">
-            Authoritative ledger from <code className="text-ds-10">payout_transfers</code>.
-            Written by <code className="text-ds-10">release-payout</code> on every
-            <code className="text-ds-10"> stripe.transfers.create()</code> call.
-          </p>
-          <div className="space-y-1.5">
-            {ledger.map((t) => {
-              const helperName = formatName(t.profiles?.full_name, "Unknown Helpr");
-              const jobTitle = t.jobs?.title ?? "—";
-              const amount = (t.amount_cents / 100).toFixed(2);
-              const fee = (t.platform_fee_cents / 100).toFixed(2);
-              const tone = LEDGER_TONE[t.status] ?? "bg-muted text-muted-foreground";
-              return (
-                <div key={t.id} className="rounded-ds-sm liquid-glass p-3 flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-ds-13 text-foreground truncate">{helperName}</span>
-                      <Badge className={`${tone} text-ds-10`}>{payoutStatusLabel(t.status)}</Badge>
-                      {t.initiated_by && t.initiated_by !== "system" && (
-                        <Badge variant="outline" className="text-ds-10 capitalize">{t.initiated_by}</Badge>
-                      )}
-                    </div>
-                    <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">
-                      {jobTitle}
-                      {t.stripe_transfer_id && (
-                        <span className="ml-2 font-mono opacity-60" title="Stripe transfer ID">
-                          {t.stripe_transfer_id.slice(-8)}
-                        </span>
-                      )}
-                    </p>
-                    {t.failure_reason && t.status === "failed" && (
-                      <p className="text-ds-11 text-destructive mt-0.5 break-words">{t.failure_reason}</p>
-                    )}
-                    <p className="text-ds-10 text-muted-foreground mt-0.5">
-                      {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-ds-13 font-semibold text-foreground tabular-nums">${amount}</p>
-                    {Number(fee) > 0 && (
-                      <p className="text-ds-10 text-muted-foreground">fee ${fee}</p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <LedgerList ledger={ledger} />
 
       <BrandConfirmDialog
         open={!!confirmBatch}

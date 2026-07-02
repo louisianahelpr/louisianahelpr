@@ -94,7 +94,12 @@ export function CityAutocomplete({ id, value, onChange, className }: CityAutocom
         placeholder="City"
         required
         maxLength={100}
-        autoComplete="off"
+        // address-level2 is the WHATWG token for the city field: it lets the
+        // OS keyboard / password-manager offer the user's saved city for
+        // one-tap entry (the "off" value blocked that). Our own listbox only
+        // opens when the query has matches, so it doesn't fight the native
+        // suggestion bar.
+        autoComplete="address-level2"
         aria-label="City"
         // aria-expanded + aria-autocomplete + aria-controls are only
         // valid on role="combobox" (axe `aria-allowed-attr`). Setting

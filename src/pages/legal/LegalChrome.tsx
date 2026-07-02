@@ -1,0 +1,83 @@
+import { useContext, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { ListChecks } from "lucide-react";
+import { PolicySearchContext } from "@/components/policy/CollapsedPolicy";
+
+// While a policy search is active, editorial chrome (the TLDR summary,
+// the privacy callout, the "contact support" footer) is noise — it isn't
+// a search result. These helpers collapse it so the results read as a
+// tight list of matching sections.
+export const HideOnSearch = ({ children }: { children: ReactNode }) => {
+  const query = useContext(PolicySearchContext);
+  return query.trim() ? null : <>{children}</>;
+};
+
+export const TldrCard = ({ items }: { items: string[] }) => {
+  const query = useContext(PolicySearchContext);
+  if (query.trim()) return null;
+  return (
+  <div
+    className="rounded-2xl p-5 space-y-3"
+    style={{
+      // Bumped contrast vs the cream PolicySection surface below so
+      // the TLDR reads as a discrete summary card, not another row.
+      // Slightly tinted bark backdrop + inset highlight + bottom shadow
+      // gives the card a soft lift over the page.
+      background: "hsl(var(--bark) / 0.10)",
+      border: "1px solid hsl(var(--bark) / 0.28)",
+      boxShadow:
+        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+        "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+        "0 8px 18px -8px hsl(var(--olivewood) / 0.12)",
+    }}
+  >
+    <div className="flex items-center gap-2">
+      <ListChecks className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+      <span
+        className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
+        style={{ color: "hsl(var(--burnt-sienna))" }}
+      >
+        The short version
+      </span>
+    </div>
+    <ul className="space-y-1.5 text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
+      {items.map((item, i) => (
+        <li key={i} className="flex gap-2.5 leading-relaxed">
+          <span
+            className="shrink-0 w-1.5 h-1.5 rounded-full mt-[8px]"
+            style={{ background: "hsl(var(--bark))" }}
+          />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+  );
+};
+
+// Footer card closing every policy tab: a support link paired with the tab's
+// revision date (relocated here from the old header chip), so each policy ends
+// with a single quiet "ask + when this changed" line instead of bare text.
+export const PolicyFooter = ({ updated }: { updated: string }) => (
+  <div
+    data-print-hide
+    className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+    style={{
+      background: "hsl(var(--bark) / 0.05)",
+      border: "1px solid hsl(var(--bark) / 0.16)",
+    }}
+  >
+    <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
+      Questions?{" "}
+      <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+        Contact support
+      </Link>
+    </p>
+    <span
+      className="shrink-0 text-ds-11 font-sans tabular-nums"
+      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+    >
+      Updated {updated}
+    </span>
+  </div>
+);

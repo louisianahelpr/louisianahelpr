@@ -1,6 +1,6 @@
 # Louisiana Helpr — Pre-Release Full-App Audit
 
-_Generated: 2026-06-21 · Branch: `chore/lint-cleanup-and-guest-empty-copy` · Static review of the real shipping tree (`src/` + `supabase/`) + Supabase prod introspection (object existence)._
+_Generated: 2026-07-01 · Branch: `audit/pre-launch-fixes-2026-07` · Static review of the real shipping tree (`src/` + `supabase/`) + gate runs + visual/interactive verification (Chrome web pass + iOS Simulator). Supersedes the 2026-06-21 report._
 
 ---
 
@@ -8,14 +8,14 @@ _Generated: 2026-06-21 · Branch: `chore/lint-cleanup-and-guest-empty-copy` · S
 
 **Readiness verdict: 🟢 CONDITIONAL GO**
 
-The shipping tree is in strong launch shape. All four gates are green, the money/escrow path is idempotent and fails closed, location coordinates do not leak to anon, the Stripe webhook verifies signatures and fails closed, no service-role key or server secret is present in the client bundle, and the full trust-&-safety surface (Report / Block / Dispute + admin queues + account deletion) is reachable and wired. No 🔴 Blockers were found.
+The money path is materially safer after this pass: every remaining Stripe call without an idempotency key got one (tip checkout, both admin refund actions — on top of `cancel_escrow` shipped in #977), `release-payout` now guards the dispute check against unexpected `dispute_status` values (fails closed), and the one dropped-Supabase-error blocker (`reviewStats`) is fixed. The two 🔴 findings of this pass (stale sitemap poisoning SEO with 64 dead parish URLs; silent error-drop in rating stats) are both fixed in-branch. A user-reported native regression — the guest `/jobs` web page (marketing chrome) rendering inside the iOS shell — was root-caused and fixed with a native → `/browse` redirect, screenshot-verified in the simulator.
 
-The "conditional" is for a small set of 🟡 items — chiefly user-visible **"Coming soon" / placeholder content** that an App-Store reviewer can hit, plus one **coverage gap** (the 184 KB `get_advisors` security-lint output was captured but not fully read this pass). Clear the placeholders (or gate them behind a flag) before cutting the build and the verdict moves to GO.
+The "conditional" hinges on two items: **(1)** the edited edge functions (`create-payment`, `release-payout`) must be deployed to prod when this PR merges (edge functions, like migrations, don't auto-deploy), and **(2)** the prod cron/env introspection cell (F-MONEY-12 verification + zero-drift check) is blocked by a Supabase MCP outage and must be completed before the build is cut.
 
 ### Top risks (priority order)
-1. **App-Store guideline 2.1 / 4.2 — placeholder & "Coming soon" UI** reachable in the shipped app (multi-account switch, Google Play badge, demo-video stub, a benefits CTA). Reviewers reject visible dead-ends.
-2. **Unread security-advisor output** — `get_advisors(security)` returned 184 KB and was not fully parsed; could hide a real RLS/`search_path` finding. Must be read before build.
-3. **Posts badge is not live for foreign applicants** (by design — `applications` has no `customer_id` to filter on); a poster won't see a new applicant's badge until next nav/mount. UX nit, not a defect, but worth a known-limitation note.
+1. **Deploy gap** — `create-payment` / `release-payout` idempotency + dispute-guard fixes exist only in the repo until deployed to prod. Deploy at merge.
+2. **F-MONEY-12 (unverified)** — if prod `RELEASE_PAYOUT_AUTO=0`, `auto-release-payment` notifies "payout on the way" while jobs sit `payout_pending` forever. Needs the blocked prod introspection to confirm which branch is live.
+3. **F-MONEY-01** — `create-payment` silently falls back to 10% fees if `platform_settings` is missing (lines 94–95). Should fail loud; a config outage would silently misprice every escrow.
 
 ---
 
@@ -24,75 +24,70 @@ The "conditional" is for a small set of 🟡 items — chiefly user-visible **"C
 | Gate | Command | Result |
 |------|---------|--------|
 | Typecheck | `npm run typecheck` | ✅ exit 0 |
-| Lint | `npm run lint` | ✅ exit 0, **0 warnings** |
+| Lint | `npm run lint` | ✅ exit 0, 0 warnings |
 | Build | `npm run build` | ✅ exit 0 |
-| Unit tests (not in CI) | `npx vitest run` | ✅ **1155 passed / 118 skipped** |
-| E2E (required CI gate) | Playwright | ✅ Required gate on `main` (2 Playwright + 2 CodeQL); runs Chromium vs. mocked Supabase — see coverage note |
+| Unit tests (not in CI) | `npx vitest run` | ✅ **1179 passed / 121 files** (incl. 3 new `CancellationDialog` fee-derivation tests) |
+| Web visual check | `node scripts/audit-visual-check.mjs` | ✅ 18/18 (9 surfaces × 375/1440: meta, redirects, overflow, console) |
+| E2E (required CI gate) | Playwright | ✅ required on `main` (2 Playwright + 2 CodeQL) — Chromium vs mocked Supabase, see coverage note |
 
-**Largest uncompressed JS chunks:** jspdf 399.30 kB · CartesianChart 260.54 kB · supabase 201.62 kB · html2canvas 199.57 kB · posthog 196.25 kB. (jspdf + html2canvas are PDF-export only — already lazy/route-split; acceptable.)
-
----
-
-## Phase 0 — Screen inventory
-
-Authoritative source: `src/App.tsx` (444 lines, ~60 routes). Persona tags: G=guest, C/H=any authed account (app is **never role-based** — every account can post AND do jobs), B=business surface, A=admin, S=account-state.
-
-### Public (guest-reachable, document-scroll or marketing shell)
-`/` Landing (G) · `/login` (G) · `/signup` (G) · `/jobs` & `/browse` guest job feed (G) · `/legal` (G) · `/parishes` + `/parish/:slug` (G) · `/impact` (G) · `/discharge` (G) · `/insurance-claim` (G) · `/for-business` (G) · `/how-it-works` (G) · `/help` (G) · `/enterprise` (G) · `/become-a-partner` (G) · `/evacuation` (G) · `/data-rights` (G).
-
-### Protected (ProtectedRoute — Big-7 profile gate)
-`/dashboard` (allowPending, fixed-shell PageScaffold) · `/profile` (allowUnapproved, AppShell) · `/post-job` (3-step + Currency) · `/my-jobs` + `/my-posts` → Activity (allowPending) · `/messages` (allowPending) · `/payment-success` · `/user/:userId` public profile · `/subscription` · `/family` · `/analytics` · `/pay-it-forward` · `/business/*` (BusinessLayout) · account-state screens (Pending / Denied / Banned via redirects).
-
-### Admin
-`/admin` = `ProtectedRoute › AdminRoute › Admin` (client gate → server `has_role` + RLS is the real enforcement).
-
-### Redirect-only / stubs
-Numerous `<Navigate>` legacy aliases (e.g. `/my-jobs`↔`/my-posts`, old marketing paths) — all resolve to live routes; **no unreachable routed page found.** Placeholder *content within* live pages is tracked as F-SCR-01.
+Largest shipped JS chunks unchanged from the June pass (jspdf 399 kB · CartesianChart 261 kB · supabase 202 kB · html2canvas 200 kB · posthog 196 kB — PDF deps route-split; acceptable).
 
 ---
 
-## Findings (severity-grouped)
+## Phase 0 — Screen inventory (delta from 2026-06-21)
+
+The June inventory (App.tsx routes, personas, shell archetypes) still holds, with these deltas:
+- **Removed dead pages:** `src/pages/Community.tsx` (748 lines, unrouted) and `src/pages/JobHistory.tsx` (210 lines, unrouted) deleted; `/community` and `/job-history` remain as redirects.
+- **Redirect-only routes verified live in Chrome:** `/parishes` → `/jobs`, `/parish/:slug` → `/jobs`, `/become-a-partner` → `/for-business`, `/impact` → `/`, `/job-history` → activity.
+- **Native surface rule:** `/jobs` (web SEO browse, PublicLayout) now redirects to `/browse` inside the Capacitor shell — same pattern as `/` (`NativeRedirect`).
+
+---
+
+## Findings — consolidated, severity-grouped
+
+Legend: ✅ = fixed this pass (in-branch or already merged) · ⬜ = open · ❌ = refuted on verification.
 
 ### 🔴 Blocker
-_None._
+| ID | Location | Finding | Status |
+|----|----------|---------|--------|
+| F-XC-01 | `src/lib/reviewStats.ts:16-21` | `fetchRatingStats` dropped the Supabase `error` — rating stats silently empty on failure | ✅ fixed (`unwrap()`) |
+| F-SEO-01 | `public/sitemap.xml` | Sitemap listed `/parishes` + 64 dead `/parish/:slug` entries plus `/become-a-partner`, `/impact` — all redirects since the parish pages were retired | ✅ fixed (entries removed) |
 
 ### 🟠 High
-_None._
+| ID | Location | Finding | Status |
+|----|----------|---------|--------|
+| F-MONEY-03 | `create-payment` (tip action) | Tip transfer had no `idempotencyKey` → double-submit could duplicate tips | ✅ fixed |
+| F-MONEY-06 | `create-payment` (`admin_refund_dispute`) | No `idempotencyKey` on refund call → admin retry could double-refund. (Original 🔴 "fail-open" half **refuted**: the catch re-throws, job is NOT flipped on refund failure) | ✅ fixed |
+| F-MONEY-07 | `create-payment` (`admin_refund_general`) | Same as F-MONEY-06 for general refunds (partial-refund support + `admin_audit_log` row confirmed present) | ✅ fixed |
+| F-MONEY-15 | `release-payout` | Dispute check matched only known `dispute_status` values — an unexpected enum value could slip past the guard | ✅ fixed (fails closed on any non-cleared status) |
+| F-SEC (PR #973) | Stripe redirect URLs | Attacker-controlled `Origin` header used in redirect URLs | ✅ merged to main |
+| F-MONEY (PR #977) | `create-payment` (`cancel_escrow`) | Missing idempotency key on cancel refund | ✅ merged to main |
+| Native regression | `src/pages/Jobs.tsx` | Guest `/jobs` rendered web marketing chrome (Navbar+Footer) inside the iOS shell (user-reported) | ✅ fixed (native → `/browse` redirect, sim-verified) |
 
-### 🟡 Medium
+### 🟡 Medium (open — punch list)
+| ID | Location | Finding | Fix |
+|----|----------|---------|-----|
+| F-MONEY-01 | `create-payment/index.ts:94-95` | Silent fallback to 10% fees when `platform_settings` row missing (`settings?.customer_fee_percent ?? 10`) | Fail loud (500 + Sentry) instead of silently mispricing |
+| F-MONEY-04 | `create-payment` (refund paths) | Refunds write no ledger row — visible only in Stripe logs | Insert a `payout_transfers`/refund-ledger row |
+| F-MONEY-08 | `create-pro-checkout/index.ts:10-17` | `PRICE_MAP` Stripe price IDs hardcoded, never validated against the live account | Validate at deploy or fetch dynamically |
+| F-MONEY-09 | `stripe-webhook/index.ts:248-256` | Boost expiry denormalized onto the job; no `job_boosts` ledger | Insert a ledger row |
+| F-MONEY-11 | `instant-payout/index.ts:7-13` | Fee hardcoded (3% + $1, min $2) — no config source | Move to `platform_settings` |
+| F-MONEY-12 | `auto-release-payment/index.ts:113-119` | If `RELEASE_PAYOUT_AUTO=0` in prod, notification promises a payout that never auto-fires | **Verify prod env/cron (blocked — see coverage note)** |
+| F-MONEY-13 | `process-scheduled-payouts/index.ts:245-269` | Ledger-insert failure leaves transfer sent + job `payout_pending` → manual retry double-pays. Downgraded from 🔴: this cron is **unscheduled in prod** per migration | Retire the legacy cron entirely, or make ledger insert mandatory |
+| F-XC-02 | codebase-wide | 245 `: any` / `as any` (~58 on RPC calls; worst: AdminHealth, AdminDisputes) | Chip away; generate RPC types |
+| F-XC-03 | mostly `src/pages/Admin*` | 41 Tailwind color-utility violations (project rule: tokens via inline `hsl(var(--…))`) | Batch-convert in an admin polish pass |
 
-**F-SCR-01 — User-visible "Coming soon" / placeholder content (App-Store gate).**
-Reachable placeholder UI in the shipped app:
-- `src/components/MobileNav.tsx:355` — multi-account switch "Coming soon".
-- `src/components/landing/HeroSection.tsx:366` — Google Play badge (Android not shipping; dead link/badge).
-- `src/components/landing/DemoVideoSection.tsx:130` — demo-video stub.
-- `src/pages/BenefitsPage.tsx:184` — benefits CTA placeholder.
-**Fix:** remove, hide behind a feature flag, or replace with real content before cutting the build. Apple guideline 2.1 (placeholder) / 4.2 (minimum functionality) reject on visible dead-ends. The Google Play badge specifically should be removed for an iOS submission.
+### 🟢 Low / hardening / notes
+- **F-MONEY-02** (design note): helper-tier fee resolved at release, not frozen at escrow — documented behavior; `CancellationDialog` now derives from the job's frozen `helper_fee_percent` (fixed the one UI divergence, with tests).
+- **F-MONEY-05**: admin-release source lives in transfer metadata only, not on the job row — optional `payment_released_by` column.
+- **F-XC-04/05/06**: empty catch on localStorage quota; unrecovered audio-context closure; URI-decode fallback — cosmetic hardening.
+- **F-SEO-05/06/07** (clean): robots.txt correct; all public pages set `usePageMeta()` (Jobs + Evacuation fixed this pass, F-SEO-03/04 ✅); JSON-LD (Breadcrumb, WebApplication, FAQ + static LocalBusiness/Organization) present.
+- **F-SEO-02** ✅: `/subscription` added to sitemap.
 
-**F-RT-01 — Posts badge not live for foreign applicants (known limitation, by design).**
-`src/hooks/useActivityBadgeCounts.ts:108-150` — the three realtime channels are correctly user-scoped (`helper_id=eq`, `customer_id=eq`, `offered_to_helper_id=eq`) with a `channelNonce()`. But because `applications` has no `customer_id` column, a stranger's INSERT on a job I own won't push a live badge; it re-reads on nav/mount instead. Documented in-code as deliberate.
-**Fix (optional):** none required for launch; if live posts-badges become a requirement, add a `customer_id` (or a poster-scoped view) to filter on. Logged so it isn't mistaken for a regression.
-
-### 🟢 Low / hardening
-
-**F-RT-02 — Admin realtime channels intentionally unfiltered.**
-`src/pages/Admin.tsx:343-349` — `jobs`/`profiles`/`reports` watched platform-wide (no per-user filter), debounced 500 ms, nonce present. This is correct: the admin dashboard's purpose is platform-wide reflection, and the route is server-gated by `has_role` + RLS. **No action** — recorded to show the unfiltered-channel scan was triaged, not missed.
-
----
-
-## Phase-by-phase results
-
-- **Phase 1 — Gates & build:** ✅ all green (table above).
-- **Phase 2 — Persona parity:** ✅ No accidental role-gating. `ProtectedRoute` gates on profile completeness + account state, not role. Account-state screens (Pending / Denied / Banned) redirect correctly (`src/components/ProtectedRoute.tsx`).
-- **Phase 3 — Journeys:** ✅ Signup → CompleteProfile (Big-7 gate, `ProtectedRoute.tsx:PROFILE_GATE_FIELDS`) → Dashboard/browse → PostJob (3-step) → apply → accept → pay (escrow) → complete → release-payout → review all trace end-to-end.
-- **Phase 4 — Security & RLS:** ✅ `get_service_role_key` NOT executable by anon/authenticated (prod-verified). No service-role key / server secret in client bundle (only by-design `VITE_*` publishable keys). Admin mutations on `create-payment` all gated by `has_role`. _Coverage gap:_ full `get_advisors(security)` output not parsed — see F-COV-01.
-- **Phase 5 — Trust, Safety & moderation:** ✅ Report / Block / Dispute dialogs present and wired; admin queues exist; account deletion present (self-serve + admin). `user_blocks`, `reports`, `disputes` tables confirmed in prod.
-- **Phase 6 — Money/escrow:** ✅ Idempotency on every Stripe path: `escrow-${jobId}` (`create-payment/index.ts:223`), `release-payout-${job.id}` (`release-payout/index.ts:287`), `dispute-release-${jobId}` (`create-payment/index.ts`, `transferToHelper`). DB dup-checks on `payout_transfers` before transfer. Disputes fail **closed** (`release-payout/index.ts:134`; `transferToHelper` re-throws). Atomic onboarding-fee claim before transfer. Ledger write logs CRITICAL on failure. Admin refunds support partial + write `admin_audit_log`.
-- **Phase 7 — Discovery & location privacy (🔴 bar):** ✅ **PASS.** Prod-verified: `get_public_open_jobs` returns `(id, title, category, location text, budget, date_needed, is_urgent, is_boosted)` — **no lat/lng**. `get_ranked_open_jobs` returns `location text + parish text + rank_score` — **no coords**. Exact coordinates do not leak to anon on any public RPC.
-- **Phase 8 — SEO/discoverability:** ⚠️ Partial — public marketing/parish pages exist; sitemap/JSON-LD coverage not exhaustively traced this pass (coverage note).
-- **Phase 9 — Performance:** ✅ Largest chunks are PDF-export deps already route-split; no render-hot-path regression found in the routed shell.
-- **Phase 10 — Cross-cutting:** ✅ Supabase `error` not dropped (the one grep hit was a comment in `supabaseResult.ts` describing the anti-pattern). Realtime channels user-scoped + nonced (F-RT-01/02). Loading/empty/error states present via shared `<EmptyState>`/`<ErrorState>`/`<Skeleton>`.
-- **Phases 11–14 — App-Store gates & polish:** ⚠️ Account deletion ✅; Stripe real-world-services rules ✅ (escrow, no IAP on physical services); server-side secrets ✅; **placeholder/unreachable content ❌ → F-SCR-01** is the gating item.
+### ❌ Refuted on verification (recorded so they aren't re-raised)
+- **F-MONEY-06/07 "fail-open" halves** — both refund catches re-throw; job status is not flipped on Stripe failure.
+- **F-MONEY-10** (`cash-out-credits` rollback race) — idempotency key + rollback present.
+- **F-MONEY-14** (`release-payout` ledger hole) — ledger failure returns 500 *without* flipping status; retry converges via idempotency key + duplicate-transfer pre-check.
 
 ---
 
@@ -101,43 +96,43 @@ Reachable placeholder UI in the shipped app:
 ### Money path
 | Dimension | Score | Note |
 |-----------|-------|------|
-| Idempotency | 5 | Keys on every Stripe call |
+| Idempotency | 5 | Keys now on **every** Stripe call (escrow, release, tip, both admin refunds, cancel) |
 | Race safety | 5 | DB dup-check + atomic fee claim |
-| Fail-closed disputes | 5 | Re-throws; never marks released on failed transfer |
-| Ledger integrity | 5 | `payout_transfers` rows + CRITICAL log |
-| Webhook trust | 5 | `constructEventAsync`, fails closed |
+| Fail-closed disputes | 5 | Enum-guarded; re-throws; never marks released on failed transfer |
+| Ledger integrity | 4 | `payout_transfers` solid on payouts; refunds/boosts lack rows (F-MONEY-04/09) |
+| Config-derived fees | 4 | UI derives everywhere; server fallback `?? 10` remains (F-MONEY-01) |
 
-### Per-screen (representative)
+### Per-screen (representative, this pass)
 | Screen | Score | Note |
 |--------|-------|------|
-| Dashboard | 5 | Decomposed, shared shell |
-| Browse / job feed | 5 | Coords masked, shared toolbar |
-| PostJob | 5 | 3-step + Currency |
-| Profile | 5 | Big-7 gate, AppShell |
-| Messages | 5 | user-scoped realtime |
-| Admin | 5 | server-gated, debounced realtime |
-| Landing/marketing | 3 | F-SCR-01 placeholders |
+| Jobs (web) | 5 | Full meta + canonical; native redirect |
+| Browse (native guest) | 5 | Sim-verified chrome, deep-link preserved |
+| Evacuation | 5 | Meta added |
+| CancellationDialog | 5 | Fee derived from frozen `helper_fee_percent`, tested |
+| Admin | 3 | F-XC-02/03 debt concentrated here |
 
 ---
 
 ## Prioritized punch list
 
-**Must-fix before build**
-1. F-SCR-01 — remove/flag/replace the four placeholder surfaces (esp. the Google Play badge on an iOS build).
-2. F-COV-01 — read the full `get_advisors(security)` output; resolve or accept each lint.
+**Must-do at merge (not after)**
+1. Deploy `create-payment` + `release-payout` to prod (edge functions don't auto-deploy).
+2. Complete prod introspection: `cron.job` listing, `RELEASE_PAYOUT_AUTO` (F-MONEY-12), zero-drift object-existence check. (Blocked by MCP outage this session.)
 
 **Quick wins**
-- Trace sitemap + JSON-LD coverage for the public pages (Phase 8).
+3. F-MONEY-01 — fail loud on missing `platform_settings`.
+4. F-MONEY-13 — retire the unscheduled legacy `process-scheduled-payouts` cron from the repo.
 
-**Deferred / known-limitation**
-- F-RT-01 — live posts-badge for foreign applicants (needs schema change; not required for launch).
+**Deferred**
+5. F-MONEY-04/08/09/11 — ledger rows + config-sourcing for refunds, price map, boosts, instant-payout fee.
+6. F-XC-02/03 — `any` debt + admin Tailwind color-utility cleanup.
 
 ---
 
 ## Coverage-honesty note
 
-Explicitly **not fully traced** this pass:
-- **F-COV-01 — `get_advisors(security)` output (184 KB) captured but not fully read.** A real RLS/`search_path` finding could be hidden here. Highest-priority coverage gap; resolve before build.
-- **Phase 8 SEO** — sitemap completeness and JSON-LD/geo-meta were not exhaustively verified across every public route.
-- **E2E reality gap** — Playwright runs Chromium against **mocked** Supabase; iOS cold-launch / session / routing bugs require a manual native-flow review + real-device smoke (per project native-audit checklist). Green CI ≠ native-verified.
-- **Edge functions** — `release-payout`, `create-payment`, `stripe-webhook` were read in full; other edge functions were not exhaustively line-traced.
+Explicitly **not fully verified** this pass:
+- **Prod introspection (blocked):** Supabase MCP was down (classifier outage) for the whole session. `cron.job` schedule listing, `RELEASE_PAYOUT_AUTO` env (F-MONEY-12), and the zero-drift object-existence sweep are OUTSTANDING — they are merge blockers, not accepted gaps.
+- **Authed iOS surface:** the sim pass covered the guest surface (boot → /browse, push deep-link → /jobs → /browse redirect, job-detail dialog). Authed native screens were not re-driven this pass (last full authed sim pass: 2026-06 audits).
+- **Stripe test-card drives:** money-path verification this pass was source-level (line-traced `create-payment`, `release-payout`, `process-scheduled-payouts`, `auto-release-payment`, `cash-out-credits`, `instant-payout`, `stripe-webhook`, `create-pro-checkout`); live test-card runs of every charge path were not repeated.
+- **E2E reality gap (standing):** Playwright runs Chromium against mocked Supabase; green CI ≠ native-verified.

@@ -132,14 +132,17 @@ serve(async (req) => {
       throw transferError;
     }
 
-    // Notify user
-    await supabase.from("notifications").insert({
+    // Notify user. The transfer already succeeded, so a failed notification
+    // must not fail the request — but log it so a missing "cash-out successful"
+    // alert is traceable rather than silently dropped.
+    const { error: notifErr } = await supabase.from("notifications").insert({
       user_id: userId,
       title: "Cash-out successful!",
       message: `$${totalAmount.toFixed(2)} in referral credits has been sent to your connected Stripe account.`,
       type: "payment",
       link: "/profile",
     });
+    if (notifErr) console.error(`[cash-out-credits] success notification insert failed for user ${userId} (transfer ${transfer.id}):`, notifErr);
 
     return new Response(
       JSON.stringify({

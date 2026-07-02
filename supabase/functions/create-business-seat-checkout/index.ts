@@ -3,13 +3,13 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
+import { BUSINESS_SEAT_TIER_TO_PRICE } from "../_shared/businessSeatTiers.ts";
 
-// tier -> Stripe Price ID (monthly recurring USD)
-const TIER_TO_PRICE: Record<string, string> = {
-  crew: "price_1TQKGYKp2H4b7tECTmOd0rp7", // 5 seats — $10/mo
-  team: "price_1TQKGZKp2H4b7tECwr664UEh", // 10 seats — $20/mo
-  enterprise: "price_1TQKGaKp2H4b7tECp6ZNxarR", // 15 seats — $40/mo
-};
+// tier -> Stripe Price ID (monthly recurring USD), derived from the single
+// source of truth so the checkout can never drift from the displayed tiers.
+// ⚠️ The referenced Stripe Price objects still charge the OLD amounts until a
+// human updates them in the Stripe dashboard — see _shared/businessSeatTiers.ts.
+const TIER_TO_PRICE: Record<string, string> = BUSINESS_SEAT_TIER_TO_PRICE;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

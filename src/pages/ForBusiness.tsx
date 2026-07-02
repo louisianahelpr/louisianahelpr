@@ -22,13 +22,17 @@ import { resolveVariant, VARIANTS, type VariantKey } from "@/components/business
 import TrustedByBanner from "@/components/business/TrustedByBanner";
 import FeaturedBusinesses from "@/components/business/FeaturedBusinesses";
 import ComplianceSection from "@/components/business/ComplianceSection";
+import { BUSINESS_SEAT_TIERS, type BusinessSeatTierKey } from "@/lib/businessSeatTiers";
 
-const SEAT_TIERS = [
-  {
-    name: "Starter",
-    seats: "1",
-    price: "Free",
-    featured: false,
+// Marketing copy (headline + feature bullets) per tier — pure prose that lives
+// here. The seat count, name, price, and featured flag are DERIVED from the
+// canonical config (BUSINESS_SEAT_TIERS) so they can never drift from the
+// in-app seat plan or the checkout function.
+const SEAT_TIER_COPY: Record<
+  BusinessSeatTierKey,
+  { headline: string; features: readonly string[] }
+> = {
+  starter: {
     headline: "No monthly fee — pay only per job",
     features: [
       "1 team seat included",
@@ -39,11 +43,7 @@ const SEAT_TIERS = [
       "Email support",
     ],
   },
-  {
-    name: "Crew",
-    seats: "2",
-    price: "$20",
-    featured: false,
+  crew: {
     headline: "For growing teams posting regularly",
     features: [
       "Everything in Starter, plus:",
@@ -54,11 +54,7 @@ const SEAT_TIERS = [
       "Priority email support",
     ],
   },
-  {
-    name: "Team",
-    seats: "3",
-    price: "$30",
-    featured: true,
+  team: {
     headline: "Most popular — built for weekly posting",
     features: [
       "Everything in Crew, plus:",
@@ -69,11 +65,7 @@ const SEAT_TIERS = [
       "Priority support response",
     ],
   },
-  {
-    name: "Enterprise",
-    seats: "4+",
-    price: "$40",
-    featured: false,
+  enterprise: {
     headline: "For multi-location operators",
     features: [
       "Everything in Team, plus:",
@@ -84,7 +76,15 @@ const SEAT_TIERS = [
       "Dedicated success manager",
     ],
   },
-] as const;
+};
+
+const SEAT_TIERS = BUSINESS_SEAT_TIERS.map((tier) => ({
+  name: tier.name,
+  seats: tier.seats,
+  price: tier.priceLabel,
+  featured: tier.featured,
+  ...SEAT_TIER_COPY[tier.key],
+}));
 
 /**
  * Industry verticals — the enterprise deep-dives now live under Business

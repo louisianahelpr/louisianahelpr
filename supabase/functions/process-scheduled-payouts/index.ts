@@ -82,8 +82,11 @@ serve(async (req) => {
         .eq("user_id", job.helper_id)
         .single();
       if (helperProfileErr) {
+        // Fail closed: a transient DB read error must not masquerade as "helper
+        // never set up their payout account" (which would fire a misleading
+        // notification and permanently stall the payout until manual intervention).
         console.error(`[process-scheduled-payouts] helper profile read failed for ${job.helper_id} (job ${job.id}):`, helperProfileErr);
-        results.push({ job_id: job.id, status: "helper_profile_read_failed" });
+        results.push({ job_id: job.id, status: "helper_profile_read_error", error: helperProfileErr.message });
         continue;
       }
 
@@ -95,7 +98,7 @@ serve(async (req) => {
       let owesOnboardingFee = false;
       let onboardingFeeDollars = 0;
       if (!helperProfile?.onboarding_fee_paid && onboardingFeeCents > 0) {
-        const { data: claimed } = await supabaseAdmin
+        const { data: claimed, error: claimErr } = await supabaseAdmin
           .from("profiles")
           .update({
             onboarding_fee_paid: true,
@@ -104,6 +107,14 @@ serve(async (req) => {
           .eq("user_id", job.helper_id)
           .eq("onboarding_fee_paid", false)
           .select("user_id");
+        if (claimErr) {
+          // Fail closed: can't distinguish "lost the race" from "DB error" without
+          // the result, so proceeding would risk silently skipping fee collection
+          // or double-deducting on a retry. Skip this job and retry next cron run.
+          console.error(`[process-scheduled-payouts] onboarding-fee claim failed for ${job.helper_id} (job ${job.id}):`, claimErr);
+          results.push({ job_id: job.id, status: "onboarding_fee_claim_error", error: claimErr.message });
+          continue;
+        }
 
         if (claimed && claimed.length > 0) {
           owesOnboardingFee = true;

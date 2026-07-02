@@ -1,13 +1,7 @@
 import { useCallback, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Paperclip, MapPin, X, ShieldAlert, FileText, Loader2, Mic, MicOff, Camera, Image as ImageIcon, FilePlus2, Square, AudioLines } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Send, Paperclip, MapPin, X, FileText, Loader2, Mic, MicOff, Square, AudioLines } from "lucide-react";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
@@ -25,37 +19,11 @@ import {
   isPdfMime,
   MESSAGE_ATTACHMENT_MAX_BYTES,
 } from "@/lib/messageAttachments";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AttachSourceSheet } from "@/components/richMessageInput/AttachSourceSheet";
+import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
+import type { SendAttachment, RichMessageInputProps } from "@/components/richMessageInput/types";
 
-export type SendAttachment = {
-  path: string;
-  mime: string;
-  size: number;
-  /** Duration in seconds — only set for voice notes. */
-  duration?: number;
-};
-
-interface RichMessageInputProps {
-  onSend: (content: string, attachment?: SendAttachment) => void;
-  onTyping?: () => void;
-  disabled?: boolean;
-  /** Optional controlled value — when provided, parent owns the text state. */
-  value?: string;
-  onChange?: (value: string) => void;
-  /** Job ID for the active conversation — required for attachment uploads. */
-  jobId?: string;
-  /** Sender ID (current user) — required for attachment uploads (path scoping). */
-  senderId?: string;
-}
+export type { SendAttachment } from "@/components/richMessageInput/types";
 
 export const RichMessageInput = ({
   onSend, onTyping, disabled, value, onChange, jobId, senderId,
@@ -552,139 +520,19 @@ export const RichMessageInput = ({
         <input ref={fileRef} type="hidden" />
       </div>
 
-      {/* Quick-attach bottom sheet — three explicit sources (Camera,
-          Library, Files). The user picks where the attachment comes
-          from in one tap rather than fighting an OS picker that may
-          default to the wrong tab. iMessage convention: a sheet with
-          named source buttons, not a single "open" intent. */}
-      <Sheet open={attachSheetOpen} onOpenChange={setAttachSheetOpen}>
-        <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
-          <SheetHeader className="!text-left space-y-1.5">
-            <span
-              className="font-serif italic uppercase inline-flex items-center gap-1.5"
-              style={{
-                fontSize: "0.62rem",
-                color: "hsl(var(--burnt-sienna) / 0.78)",
-                letterSpacing: "0.18em",
-              }}
-            >
-              <Paperclip className="w-3 h-3" /> Send an attachment
-            </span>
-            <SheetTitle
-              className="font-display italic font-bold leading-tight"
-              style={{
-                fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.025em",
-              }}
-            >
-              Where from?
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={pickFromCamera}
-              className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
-              style={{
-                background: "hsla(0, 0%, 100%, 0.65)",
-                border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-              }}
-            >
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{
-                  background: "hsl(var(--bark) / 0.10)",
-                  border: "1px solid hsl(var(--bark) / 0.22)",
-                }}
-              >
-                <Camera className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-              </div>
-              <span className="font-sans text-[12.5px] font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-                Camera
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={pickFromLibrary}
-              className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
-              style={{
-                background: "hsla(0, 0%, 100%, 0.65)",
-                border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-              }}
-            >
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{
-                  background: "hsl(var(--gold-warm) / 0.18)",
-                  border: "1px solid hsl(var(--gold-warm) / 0.32)",
-                }}
-              >
-                <ImageIcon className="w-4 h-4" style={{ color: "hsl(var(--gold-warm))" }} />
-              </div>
-              <span className="font-sans text-[12.5px] font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-                Library
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={pickFromFiles}
-              className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
-              style={{
-                background: "hsla(0, 0%, 100%, 0.65)",
-                border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-              }}
-            >
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{
-                  background: "hsl(var(--burnt-sienna) / 0.12)",
-                  border: "1px solid hsl(var(--burnt-sienna) / 0.28)",
-                }}
-              >
-                <FilePlus2 className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
-              </div>
-              <span className="font-sans text-[12.5px] font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-                Files
-              </span>
-            </button>
-          </div>
-          <p
-            className="mt-3 font-serif italic text-[0.74rem] leading-relaxed text-center"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Up to {Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB ·
-            photos and PDFs only.
-          </p>
-        </SheetContent>
-      </Sheet>
+      <AttachSourceSheet
+        open={attachSheetOpen}
+        onOpenChange={setAttachSheetOpen}
+        onPickCamera={pickFromCamera}
+        onPickLibrary={pickFromLibrary}
+        onPickFiles={pickFromFiles}
+      />
 
-      <AlertDialog open={!!pendingViolation} onOpenChange={(open) => !open && setPendingViolation(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-destructive" />
-              This violates platform rules
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2 pt-2">
-              <span className="block">
-                We detected <strong className="text-foreground">{pendingViolation?.toLowerCase()}</strong> in your message.
-              </span>
-              <span className="block text-ds-11">
-                Payments and conversations outside Helpr aren't protected by our dispute policy or escrow.
-                Sending anyway will hide the message from the recipient and add a fraud flag to your account.
-                Two flags within 24 hours triggers an automatic 7-day suspension.
-              </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Edit message</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSendAnyway} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Send anyway
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ViolationDialog
+        pendingViolation={pendingViolation}
+        onOpenChange={(open) => !open && setPendingViolation(null)}
+        onConfirm={confirmSendAnyway}
+      />
     </div>
   );
 };

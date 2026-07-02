@@ -10,7 +10,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { Camera, Check, ChevronDown, FileText, Loader2, ShieldCheck, X } from "lucide-react";
+import { Camera, Check, FileText, Loader2, ShieldCheck, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
@@ -19,36 +19,16 @@ import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
-
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-
-const sanitizeExt = (name: string) => {
-  const ext = name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
-  return ext.slice(0, 5);
-};
-
-const withTimeout = async <T,>(promise: Promise<T>, label: string, ms = 60000): Promise<T> => {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(`${label} timed out. Please check your connection and try again.`)), ms);
-  });
-
-  try {
-    return await Promise.race([promise, timeout]);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
-};
-
-const formatPhone = (raw: string) => {
-  const digits = raw.replace(/\D/g, "").slice(0, 10);
-  if (digits.length === 0) return "";
-  if (digits.length < 4) return `(${digits}`;
-  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-};
+import { ChecklistCard } from "./completeProfile/ChecklistCard";
+import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
+import type { ProfileCompletionUpdates } from "./completeProfile/types";
+import {
+  ALLOWED_IMAGE_TYPES,
+  ALLOWED_DOC_TYPES,
+  MAX_FILE_SIZE,
+  withTimeout,
+  formatPhone,
+} from "./completeProfile/constants";
 
 const CompleteProfile = () => {
   usePageTitle("Complete your profile — Helpr");
@@ -245,54 +225,10 @@ const CompleteProfile = () => {
       // "Acquiring an exclusive Navigator LockManager lock ... lock stolen" errors.
 
       // Upload files directly to Storage in parallel (much faster than base64-through-edge-function)
-      let avatarUrl: string | null = null;
-      let idDocumentPath: string | null = null;
-
-      const uploads: Promise<void>[] = [];
-
-      if (avatarFile) {
-        const ext = sanitizeExt(avatarFile.name);
-        const path = `${user.id}/avatar.${ext}`;
-        uploads.push(
-          supabase.storage
-            .from("avatars")
-            .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type })
-            .then(({ error }) => {
-              if (error) throw error;
-              const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-              avatarUrl = `${data.publicUrl}?t=${Date.now()}`;
-            })
-        );
-      }
-
-      if (idFile) {
-        const ext = sanitizeExt(idFile.name);
-        const path = `${user.id}/id-document-${Date.now()}.${ext}`;
-        uploads.push(
-          supabase.storage
-            .from("id-documents")
-            .upload(path, idFile, { contentType: idFile.type })
-            .then(({ error }) => {
-              if (error) throw error;
-              idDocumentPath = path;
-            })
-        );
-      }
-
-      if (uploads.length) await withTimeout(Promise.all(uploads), "File upload");
+      const { avatarUrl, idDocumentPath } = await uploadProfileFiles(user.id, avatarFile, idFile);
 
       // Single, lightweight DB update — no large JSON over the wire
-      const updates: {
-        full_name: string;
-        phone: string;
-        bio: string;
-        location: string;
-        date_of_birth: string;
-        approval_status: string;
-        accepted_terms_at: string;
-        avatar_url?: string;
-        id_document_url?: string;
-      } = {
+      const updates: ProfileCompletionUpdates = {
         full_name: fullName,
         phone: phone.trim(),
         bio: bio.trim(),
@@ -413,61 +349,11 @@ const CompleteProfile = () => {
             </p>
           </div>
 
-          {/* Live "Big 7" checklist — collapsible on small viewports to save
-              vertical space on SE (375px). The header always shows progress
-              so the user isn't flying blind even when the list is folded.
-              On sm+ screens it's always expanded. */}
-          <div className="squircle mb-5 rounded-ds-lg border border-border/60 bg-card/80 backdrop-blur-md shadow-[var(--card-shadow)] p-4">
-            <button
-              type="button"
-              aria-expanded={checklistExpanded}
-              aria-controls="profile-checklist"
-              onClick={() => setChecklistExpanded((v) => !v)}
-              className="w-full flex items-center justify-between sm:cursor-default"
-            >
-              <p className="text-ds-13 font-semibold text-foreground">Verification checklist</p>
-              <div className="flex items-center gap-2">
-                <p className="text-ds-11 text-muted-foreground">
-                  {checklist.filter((c) => c.done).length}/{checklist.length}
-                </p>
-                {/* Chevron only visible on small screens where the list is togglable */}
-                <ChevronDown
-                  className={cn(
-                    "w-4 h-4 text-muted-foreground transition-transform sm:hidden",
-                    checklistExpanded ? "rotate-180" : "",
-                  )}
-                  aria-hidden
-                />
-              </div>
-            </button>
-            {/* Always visible on sm+; toggled by button on xs */}
-            <ul
-              id="profile-checklist"
-              className={cn(
-                "space-y-1.5 mt-3 sm:block",
-                checklistExpanded ? "block" : "hidden",
-              )}
-            >
-              {checklist.map((item) => (
-                <li key={item.label} className="flex items-center gap-2.5 text-ds-13">
-                  <span
-                    className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
-                      item.done
-                        ? "bg-success/15 text-success"
-                        : "bg-destructive/10 text-destructive",
-                    )}
-                    aria-hidden
-                  >
-                    {item.done ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
-                  </span>
-                  <span className={cn(item.done ? "text-muted-foreground line-through" : "text-foreground")}>
-                    {item.label}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <ChecklistCard
+            checklist={checklist}
+            expanded={checklistExpanded}
+            onToggle={() => setChecklistExpanded((v) => !v)}
+          />
 
           <form
             onSubmit={handleSubmit}

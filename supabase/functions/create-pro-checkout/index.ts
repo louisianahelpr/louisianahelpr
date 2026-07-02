@@ -99,7 +99,9 @@ serve(async (req) => {
       sessionParams.payment_intent_data = { metadata: { tier, billing_cycle: "one_time" } };
     }
 
-    const session = await stripe.checkout.sessions.create(sessionParams);
+    const session = await stripe.checkout.sessions.create(sessionParams, {
+      idempotencyKey: `pro:${user.id}:${tier}`,
+    });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

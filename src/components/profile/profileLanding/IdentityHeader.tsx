@@ -1,9 +1,8 @@
 import { useState, useRef } from "react";
 import {
-  MapPin, Star, Edit, ChevronRight as ChevronRightIcon, ChevronDown,
-  BadgeCheck, Camera, Crown, QrCode, Share2, Video, Play, X,
+  MapPin, ChevronRight as ChevronRightIcon, ChevronDown,
+  BadgeCheck, Camera, Crown, QrCode, Video, Play,
 } from "lucide-react";
-import { shareNative } from "@/lib/nativeShare";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPrice } from "@/lib/format";
@@ -14,6 +13,11 @@ import { SkillsManager } from "@/components/profile/SkillsManager";
 import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
 import { hapticLight } from "@/lib/haptics";
 import type { Profile, ReviewPreview } from "./types";
+import { formatVideoDuration } from "./identityHeader/identityHeaderHelpers";
+import { IdentityActionRow } from "./identityHeader/IdentityActionRow";
+import { IdentityTrustStrip } from "./identityHeader/IdentityTrustStrip";
+import { IntroVideoOverlay } from "./identityHeader/IntroVideoOverlay";
+import { RecentReviewsList } from "./identityHeader/RecentReviewsList";
 
 interface IdentityHeaderProps {
   profile: Profile | null;
@@ -103,40 +107,13 @@ export function IdentityHeader({
       >
         {/* Action row — Edit pill (right) + Share icon (left of Edit).
             Both sit in the top-right corner without crowding the header. */}
-        <div className="absolute top-3.5 right-3 flex items-center gap-1.5">
-          {/* Share profile — only shown when we have a userId to build
-              the deep-link from. Opens the OS share sheet on native. */}
-          {userId && (
-            <button
-              type="button"
-              aria-label="Share your profile"
-              onClick={() => {
-                const ratingText = avgRating
-                  ? avgRating.toFixed(1) + "★"
-                  : "New helper";
-                void shareNative({
-                  title: `${displayName} on Helpr`,
-                  text: `${displayName} · ${completedCount} job${completedCount === 1 ? "" : "s"} · ${ratingText}\n\nHire me on Helpr:`,
-                  url: `https://www.louisianahelpr.com/user/${userId}`,
-                  dialogTitle: "Share your profile",
-                });
-              }}
-              className="h-10 w-10 rounded-full bg-[hsl(var(--bark)/0.10)] hover:bg-[hsl(var(--bark)/0.16)] active:scale-95 inline-flex items-center justify-center text-[hsl(var(--bark))] transition-all"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <button
-            onClick={() => onSelectTab("profile")}
-            aria-label="Edit profile"
-            // h-10 hits the iOS/Android 40pt minimum tap target; nudged
-            // down half a step so it doesn't crowd the status bar inset.
-            className="h-10 pl-2.5 pr-3 rounded-full bg-[hsl(var(--bark)/0.10)] hover:bg-[hsl(var(--bark)/0.16)] active:scale-95 inline-flex items-center gap-1 text-[hsl(var(--bark))] transition-all"
-          >
-            <Edit className="w-3.5 h-3.5" />
-            <span className="text-ds-11 font-sans font-semibold">Edit</span>
-          </button>
-        </div>
+        <IdentityActionRow
+          userId={userId}
+          displayName={displayName}
+          avgRating={avgRating}
+          completedCount={completedCount}
+          onSelectTab={onSelectTab}
+        />
 
         <div className="flex flex-row items-center gap-4">
           {/* Avatar — a real focal point on this applicant-facing page.
@@ -319,62 +296,16 @@ export function IdentityHeader({
             breathe in three even columns instead of a cramped inline
             line. A failed stats load shows a small inline error here, so
             a partial failure stays scoped to this strip. */}
-        <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-          {statsError ? (
-            <ProfileSectionError
-              section="your profile stats"
-              onRetry={() => onRetryStats?.()}
-            />
-          ) : (
-            /* Buttons use `h-full py-2` so the middle column's vertical
-               `border-x border-border/50` divider spans the full height
-               of the trust strip; previously the borders only matched
-               the (variable) intrinsic height of the middle column. */
-            <div className="grid grid-cols-3 items-stretch">
-              <button
-                onClick={() => onSelectTab("reviews")}
-                className="flex flex-col items-center justify-center gap-0.5 py-2 h-full active:opacity-60 transition-opacity"
-              >
-                <span className="inline-flex items-center gap-1">
-                  <Star
-                    className="w-3.5 h-3.5 text-primary"
-                    fill={reviewCount > 0 ? "currentColor" : "none"}
-                  />
-                  {/* "New" until the first review lands — a 5.0 with 0
-                      reviews is a default, not an earned rating. */}
-                  {reviewCount > 0 ? (
-                    <span className="text-ds-15 font-bold text-foreground leading-none">
-                      {avgRating ? avgRating.toFixed(1) : "5.0"}
-                    </span>
-                  ) : (
-                    <span className="text-ds-13 font-bold text-foreground leading-none">New</span>
-                  )}
-                </span>
-                <span className="text-ds-9 font-sans font-medium uppercase tracking-wider text-muted-foreground">
-                  {reviewCount > 0 ? `${reviewCount} ${reviewCount === 1 ? "review" : "reviews"}` : "Rating"}
-                </span>
-              </button>
-              <button
-                onClick={() => { if (completedCount > 0) { onLoadInlineJobs(); onSelectTab("completed_jobs"); } }}
-                className="flex flex-col items-center justify-center gap-0.5 py-2 h-full border-x border-border/50 active:opacity-60 transition-opacity"
-              >
-                <span className="text-ds-15 font-bold text-foreground leading-none">{completedCount}</span>
-                <span className="text-ds-9 font-sans font-medium uppercase tracking-wider text-muted-foreground">
-                  Jobs done
-                </span>
-              </button>
-              <button
-                onClick={() => { if (postedCount > 0) { onLoadInlineJobs(); onSelectTab("posted_jobs"); } }}
-                className="flex flex-col items-center justify-center gap-0.5 py-2 h-full active:opacity-60 transition-opacity"
-              >
-                <span className="text-ds-15 font-bold text-foreground leading-none">{postedCount}</span>
-                <span className="text-ds-9 font-sans font-medium uppercase tracking-wider text-muted-foreground">
-                  Jobs posted
-                </span>
-              </button>
-            </div>
-          )}
-        </div>
+        <IdentityTrustStrip
+          statsError={statsError}
+          avgRating={avgRating}
+          reviewCount={reviewCount}
+          completedCount={completedCount}
+          postedCount={postedCount}
+          onSelectTab={onSelectTab}
+          onLoadInlineJobs={onLoadInlineJobs}
+          onRetryStats={onRetryStats}
+        />
 
         {/* Earnings sparkline teaser — a tiny last-6-weeks take-home
             trend that taps through to the full Earnings screen. Only
@@ -466,8 +397,7 @@ export function IdentityHeader({
                   Intro video
                   {(profile as any).intro_video_duration_seconds != null && (
                     <span className="ml-2 text-ds-10 font-medium text-muted-foreground">
-                      {Math.floor((profile as any).intro_video_duration_seconds / 60)}:
-                      {String((profile as any).intro_video_duration_seconds % 60).padStart(2, "0")}
+                      {formatVideoDuration((profile as any).intro_video_duration_seconds)}
                     </span>
                   )}
                 </p>
@@ -536,29 +466,7 @@ export function IdentityHeader({
         {/* ── Intro video fullscreen overlay ──────────────────────────
             Only mounts when the user has a video and taps the thumbnail. */}
         {videoOpen && profile?.intro_video_url && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{ background: "rgba(0,0,0,0.88)" }}
-            onClick={() => setVideoOpen(false)}
-          >
-            <button
-              type="button"
-              aria-label="Close video"
-              onClick={() => setVideoOpen(false)}
-              className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(255,255,255,0.15)" }}
-            >
-              <X className="w-5 h-5 text-white" />
-            </button>
-            <video
-              src={profile.intro_video_url}
-              controls
-              autoPlay
-              playsInline
-              className="w-full max-w-sm rounded-ds-md max-h-[70dvh] object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
+          <IntroVideoOverlay url={profile.intro_video_url} onClose={() => setVideoOpen(false)} />
         )}
 
         {/* Your skills — the helper adds/manages skills on their own
@@ -659,81 +567,7 @@ export function IdentityHeader({
                         onRetry={() => onRetryReviews?.()}
                       />
                     ) : reviewsPreview.length > 0 ? (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
-                            Recent reviews
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => onSelectTab("reviews")}
-                            className="text-ds-11 font-semibold active:opacity-70"
-                            style={{ color: "hsl(var(--bark))" }}
-                          >
-                            See all →
-                          </button>
-                        </div>
-                        <div className="space-y-2">
-                          {reviewsPreview.map((r, i) => {
-                            const days = Math.max(
-                              0,
-                              Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000),
-                            );
-                            const when =
-                              days < 1 ? "today" :
-                              days < 7 ? `${days}d ago` :
-                              days < 30 ? `${Math.floor(days / 7)}w ago` :
-                              days < 365 ? `${Math.floor(days / 30)}mo ago` :
-                              `${Math.floor(days / 365)}y ago`;
-                            return (
-                              <button
-                                key={`${r.created_at}-${i}`}
-                                type="button"
-                                onClick={() => onSelectTab("reviews")}
-                                className="w-full text-left rounded-xl p-2.5 active:scale-[0.99] active:opacity-80 transition-all"
-                                style={{
-                                  background: "hsla(0, 0%, 100%, 0.55)",
-                                  border: "1px solid hsl(var(--olivewood) / 0.10)",
-                                }}
-                              >
-                                <div className="flex items-center gap-2 mb-1">
-                                  <div className="flex items-center gap-0.5">
-                                    {[1, 2, 3, 4, 5].map((n) => (
-                                      <Star
-                                        key={n}
-                                        className="w-3 h-3"
-                                        style={{
-                                          color: n <= r.rating ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
-                                          fill: n <= r.rating ? "hsl(var(--burnt-sienna))" : "transparent",
-                                        }}
-                                      />
-                                    ))}
-                                  </div>
-                                  <span className="text-ds-11 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
-                                    {r.reviewerName}
-                                  </span>
-                                  <span className="text-ds-10 text-muted-foreground shrink-0">· {when}</span>
-                                </div>
-                                {r.feedback?.trim() ? (
-                                  <p
-                                    className="font-serif italic text-ds-13 leading-snug line-clamp-2"
-                                    style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                                  >
-                                    "{r.feedback}"
-                                  </p>
-                                ) : (
-                                  <p
-                                    className="font-serif italic text-ds-11 leading-snug"
-                                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                                  >
-                                    {r.jobTitle}
-                                  </p>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
+                      <RecentReviewsList reviewsPreview={reviewsPreview} onSelectTab={onSelectTab} />
                     ) : null}
                   </div>
                 )}

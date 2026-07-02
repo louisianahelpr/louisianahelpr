@@ -123,15 +123,6 @@ const StepCard = ({ step, title, body, accent }: StepCardProps) => (
   </div>
 );
 
-// Per-step accent rotation — a deliberate mix of tokens so each rail reads
-// varied rather than one flat color.
-const STEP_ACCENTS = [
-  "bark",
-  "burnt-sienna",
-  "olivewood",
-  "gold-warm",
-] as const;
-
 // ─── HowItWorks ────────────────────────────────────────────────────────────────
 
 const HowItWorks = () => {

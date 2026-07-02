@@ -10,12 +10,14 @@ _Generated: 2026-07-01 · Branch: `audit/pre-launch-fixes-2026-07` · Static rev
 
 The money path is materially safer after this pass: every remaining Stripe call without an idempotency key got one (tip checkout, both admin refund actions — on top of `cancel_escrow` shipped in #977), `release-payout` now guards the dispute check against unexpected `dispute_status` values (fails closed), and the one dropped-Supabase-error blocker (`reviewStats`) is fixed. The two 🔴 findings of this pass (stale sitemap poisoning SEO with 64 dead parish URLs; silent error-drop in rating stats) are both fixed in-branch. A user-reported native regression — the guest `/jobs` web page (marketing chrome) rendering inside the iOS shell — was root-caused and fixed with a native → `/browse` redirect, screenshot-verified in the simulator.
 
-The "conditional" hinges on two items: **(1)** the edited edge functions (`create-payment`, `release-payout`) must be deployed to prod when this PR merges (edge functions, like migrations, don't auto-deploy), and **(2)** the prod cron/env introspection cell (F-MONEY-12 verification + zero-drift check) is blocked by a Supabase MCP outage and must be completed before the build is cut.
+The former "conditional" items are **closed**: both edited edge functions (`create-payment`, `release-payout`) were deployed to prod via the Supabase CLI during this pass, and the prod introspection completed (via the Management API after the MCP outage): all 27 cron jobs enumerated, `process-scheduled-payouts` confirmed **absent** from `cron.job` (validates F-MONEY-13's downgrade), `RELEASE_PAYOUT_AUTO` confirmed `= 1` (secret hash matches `sha256("1")` — resolves F-MONEY-12: the payout notification is truthful), and the zero-drift object-existence check passed for every recent migration (8/8 functions, `open_jobs_browse` view, `partner_applications` correctly dropped, `background_check_status` column present).
+
+The remaining "conditional" is the open 🟡 punch list — chiefly F-MONEY-01 — none of which is launch-gating on its own.
 
 ### Top risks (priority order)
-1. **Deploy gap** — `create-payment` / `release-payout` idempotency + dispute-guard fixes exist only in the repo until deployed to prod. Deploy at merge.
-2. **F-MONEY-12 (unverified)** — if prod `RELEASE_PAYOUT_AUTO=0`, `auto-release-payment` notifies "payout on the way" while jobs sit `payout_pending` forever. Needs the blocked prod introspection to confirm which branch is live.
-3. **F-MONEY-01** — `create-payment` silently falls back to 10% fees if `platform_settings` is missing (lines 94–95). Should fail loud; a config outage would silently misprice every escrow.
+1. **F-MONEY-01** — `create-payment` silently falls back to 10% fees if `platform_settings` is missing (lines 94–95). Should fail loud; a config outage would silently misprice every escrow.
+2. **F-MONEY-04** — refunds leave no DB ledger row; reconciliation depends on Stripe logs alone.
+3. **F-MONEY-13 residue** — the unscheduled `process-scheduled-payouts` function still exists in the repo with its ledger hole; retire it so it can't be re-scheduled as-is.
 
 ---
 
@@ -72,8 +74,7 @@ Legend: ✅ = fixed this pass (in-branch or already merged) · ⬜ = open · ❌
 | F-MONEY-08 | `create-pro-checkout/index.ts:10-17` | `PRICE_MAP` Stripe price IDs hardcoded, never validated against the live account | Validate at deploy or fetch dynamically |
 | F-MONEY-09 | `stripe-webhook/index.ts:248-256` | Boost expiry denormalized onto the job; no `job_boosts` ledger | Insert a ledger row |
 | F-MONEY-11 | `instant-payout/index.ts:7-13` | Fee hardcoded (3% + $1, min $2) — no config source | Move to `platform_settings` |
-| F-MONEY-12 | `auto-release-payment/index.ts:113-119` | If `RELEASE_PAYOUT_AUTO=0` in prod, notification promises a payout that never auto-fires | **Verify prod env/cron (blocked — see coverage note)** |
-| F-MONEY-13 | `process-scheduled-payouts/index.ts:245-269` | Ledger-insert failure leaves transfer sent + job `payout_pending` → manual retry double-pays. Downgraded from 🔴: this cron is **unscheduled in prod** per migration | Retire the legacy cron entirely, or make ledger insert mandatory |
+| F-MONEY-13 | `process-scheduled-payouts/index.ts:245-269` | Ledger-insert failure leaves transfer sent + job `payout_pending` → manual retry double-pays. Downgraded from 🔴: **prod-verified absent from `cron.job`** (never fires) | Retire the legacy function from the repo so it can't be re-scheduled as-is |
 | F-XC-02 | codebase-wide | 245 `: any` / `as any` (~58 on RPC calls; worst: AdminHealth, AdminDisputes) | Chip away; generate RPC types |
 | F-XC-03 | mostly `src/pages/Admin*` | 41 Tailwind color-utility violations (project rule: tokens via inline `hsl(var(--…))`) | Batch-convert in an admin polish pass |
 
@@ -84,10 +85,16 @@ Legend: ✅ = fixed this pass (in-branch or already merged) · ⬜ = open · ❌
 - **F-SEO-05/06/07** (clean): robots.txt correct; all public pages set `usePageMeta()` (Jobs + Evacuation fixed this pass, F-SEO-03/04 ✅); JSON-LD (Breadcrumb, WebApplication, FAQ + static LocalBusiness/Organization) present.
 - **F-SEO-02** ✅: `/subscription` added to sitemap.
 
-### ❌ Refuted on verification (recorded so they aren't re-raised)
+### ❌ Refuted / resolved on verification (recorded so they aren't re-raised)
 - **F-MONEY-06/07 "fail-open" halves** — both refund catches re-throw; job status is not flipped on Stripe failure.
 - **F-MONEY-10** (`cash-out-credits` rollback race) — idempotency key + rollback present.
+- **F-MONEY-12** (`auto-release-payment` false-promise notification) — prod-verified `RELEASE_PAYOUT_AUTO = 1` (secret hash matches `sha256("1")`); Phase-2 auto-payout IS live, notification is truthful.
 - **F-MONEY-14** (`release-payout` ledger hole) — ledger failure returns 500 *without* flipping status; retry converges via idempotency key + duplicate-transfer pre-check.
+
+### Prod introspection results (2026-07-01, via Management API)
+- **`cron.job`:** 27 active jobs enumerated — `auto-release-payment` every 30 min, `auto-expire-jobs` hourly, `auto-resolve-disputes` 6-hourly, `expire-subscriptions` daily, `process-email-queue` 5-min, sweeps as expected. **`process-scheduled-payouts` and `stripe-payouts` are NOT scheduled** (F-MONEY-13 downgrade validated).
+- **Zero-drift check:** all objects from the 12 most recent migrations exist (8/8 recent functions incl. `business_spend_summary`, `get_ranked_open_jobs`; `open_jobs_browse` view; `partner_applications` dropped as intended; `profiles.background_check_status` present).
+- **Edge functions:** `create-payment` and `release-payout` (this branch's hardened versions) **deployed to prod** via `supabase functions deploy` during this pass — prod does not lag the repo.
 
 ---
 
@@ -115,17 +122,17 @@ Legend: ✅ = fixed this pass (in-branch or already merged) · ⬜ = open · ❌
 
 ## Prioritized punch list
 
-**Must-do at merge (not after)**
-1. Deploy `create-payment` + `release-payout` to prod (edge functions don't auto-deploy).
-2. Complete prod introspection: `cron.job` listing, `RELEASE_PAYOUT_AUTO` (F-MONEY-12), zero-drift object-existence check. (Blocked by MCP outage this session.)
+**Done this pass (formerly must-do at merge)**
+- ✅ `create-payment` + `release-payout` deployed to prod.
+- ✅ Prod introspection complete (cron listing, `RELEASE_PAYOUT_AUTO=1`, zero-drift check).
 
 **Quick wins**
-3. F-MONEY-01 — fail loud on missing `platform_settings`.
-4. F-MONEY-13 — retire the unscheduled legacy `process-scheduled-payouts` cron from the repo.
+1. F-MONEY-01 — fail loud on missing `platform_settings`.
+2. F-MONEY-13 — retire the unscheduled legacy `process-scheduled-payouts` function from the repo.
 
 **Deferred**
-5. F-MONEY-04/08/09/11 — ledger rows + config-sourcing for refunds, price map, boosts, instant-payout fee.
-6. F-XC-02/03 — `any` debt + admin Tailwind color-utility cleanup.
+3. F-MONEY-04/08/09/11 — ledger rows + config-sourcing for refunds, price map, boosts, instant-payout fee.
+4. F-XC-02/03 — `any` debt + admin Tailwind color-utility cleanup.
 
 ---
 

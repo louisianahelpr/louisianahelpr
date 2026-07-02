@@ -6,7 +6,8 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -345,6 +346,17 @@ const Jobs = () => {
       ),
     },
   ], [pricingMode, selectedCategory]);
+
+  // Native app: /jobs is the WEB SEO browse surface — it carries the marketing
+  // Navbar + Footer per the "every web page carries chrome" rule, which must
+  // NOT leak into the iOS/Android shell. The native guest browse is /browse
+  // (DashboardGuest), same as the "/" NativeRedirect. Send native visitors
+  // there, preserving a ?job= deep link (DashboardGuest re-opens it from the
+  // URL); authed users bounce onward to /dashboard via DashboardGuest's guard.
+  if (Capacitor.isNativePlatform()) {
+    const nativeJobId = searchParams.get("job");
+    return <Navigate to={nativeJobId ? `/browse?job=${nativeJobId}` : "/browse"} replace />;
+  }
 
   return (
     <PublicLayout showCtaBand={false} noNavSpacer>

@@ -2,197 +2,27 @@ import { useEffect, useMemo, useState, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
 import {
-  Home,
-  Send,
-  MessageSquare,
-  User,
   Plus,
-  ClipboardList,
-  CheckCheck,
-  Filter,
-  Inbox,
-  Briefcase,
-  Users as UsersIcon,
   type LucideIcon,
 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { channelNonce } from "@/lib/realtimeChannel";
-import { getBlockedUserIds } from "@/lib/userBlocks";
-import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
-import { safeStorage } from "@/lib/safeStorage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
-import { useLongPress } from "@/hooks/useLongPress";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
-import { setAppIconBadge } from "@/lib/appBadge";
+import { TabButton } from "@/components/mobileNav/TabButton";
+import { GateSheet } from "@/components/mobileNav/GateSheet";
+import { QuickActionSheet, type QuickActionTab } from "@/components/mobileNav/QuickActionSheet";
+import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-
-/**
- * Durable cache key for the Messages badge count. We mirror the last-known
- * count to localStorage (+ Capacitor Preferences via safeStorage's `helpr_`
- * prefix) so the badge doesn't flicker to 0 on a cold start with no network.
- * The number is re-validated as soon as the live query lands, but the
- * cached value is what paints on the FIRST frame.
- */
-const UNREAD_CACHE_KEY = "helpr_nav_unread_count";
-
-/** Read the cached unread count, defaulting to 0 if missing/malformed. */
-function readCachedUnread(): number {
-  try {
-    const raw = safeStorage.getItem(UNREAD_CACHE_KEY);
-    if (!raw) return 0;
-    const n = Number.parseInt(raw, 10);
-    return Number.isFinite(n) && n >= 0 ? n : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function writeCachedUnread(n: number) {
-  try {
-    safeStorage.setItem(UNREAD_CACHE_KEY, String(Math.max(0, n)));
-  } catch {
-    /* best-effort */
-  }
-}
-
-/**
- * Quick-action row used inside the long-press action sheet. Generic
- * icon + label + tap target — kept here (rather than promoted to a
- * shared component) because no other surface in the app currently
- * needs this exact shape.
- */
-interface QuickActionRowProps {
-  icon: LucideIcon;
-  label: string;
-  onClick: () => void;
-}
-const QuickActionRow = ({ icon: Icon, label, onClick }: QuickActionRowProps) => (
-  <button
-    onClick={onClick}
-    className="flex items-center gap-3 rounded-ds-md px-4 py-3 text-left transition-colors min-h-[48px] hover:bg-[hsl(var(--olivewood)/0.06)] active:bg-[hsl(var(--olivewood)/0.10)]"
-    style={{ color: "hsl(var(--ink-deep))" }}
-  >
-    <Icon className="w-5 h-5" strokeWidth={1.8} />
-    <span className="font-display italic font-semibold text-[0.95rem]">{label}</span>
-  </button>
-);
-
-/**
- * Internal tab button — extracted from MobileNav so we can call
- * `useLongPress` once per tab (hooks can't be called inside a `.map()`
- * loop). Renders the same `<button>` shell the inline version did; layout
- * + visual treatment is unchanged. Long-press fires `onLongPress` after
- * ~500ms; short taps fall through to `onTap`. When `longPressEnabled` is
- * false (guest-locked tabs, no actions defined) we strip the long-press
- * handlers so the gesture stays a plain tap.
- */
-interface TabButtonProps {
-  onTap: () => void;
-  onLongPress: () => void;
-  longPressEnabled: boolean;
-  onPrefetch: () => void;
-  ariaLabel: string;
-  ariaCurrent: "page" | undefined;
-  className: string;
-  style?: React.CSSProperties;
-  children: React.ReactNode;
-}
-
-const TabButton = ({
-  onTap,
-  onLongPress,
-  longPressEnabled,
-  onPrefetch,
-  ariaLabel,
-  ariaCurrent,
-  className,
-  style,
-  children,
-}: TabButtonProps) => {
-  // `useLongPress` returns props to spread on the element. When long-press
-  // isn't enabled, we ignore the press handlers and wire onClick directly
-  // so the tab keeps behaving as a normal button.
-  const longPress = useLongPress({
-    threshold: 500,
-    onLongPress,
-    onTap,
-  });
-
-  if (!longPressEnabled) {
-    return (
-      <button
-        onClick={onTap}
-        onMouseEnter={onPrefetch}
-        onFocus={onPrefetch}
-        onTouchStart={onPrefetch}
-        aria-label={ariaLabel}
-        aria-current={ariaCurrent}
-        className={className}
-        style={style}
-      >
-        {children}
-      </button>
-    );
-  }
-
-  return (
-    <button
-      // useLongPress drives both onTouch* and onMouse*, including `release`
-      // which fires the short-tap callback if the threshold wasn't crossed.
-      // We DON'T set onClick here — the hook's onTouchEnd / onMouseUp paths
-      // already cover both pointer types, and a duplicate onClick would
-      // either double-fire on touch (web → both touchend + a synthetic
-      // click) or fight with the tap-on-release logic.
-      //
-      // Edge case: a mouse user without onClick wouldn't get a keyboard
-      // Enter activation (Enter dispatches click, not mousedown). We wire
-      // an explicit onKeyDown so the tab is still keyboard-operable.
-      {...longPress}
-      onTouchStart={(e) => {
-        longPress.onTouchStart(e);
-        onPrefetch();
-      }}
-      onMouseEnter={onPrefetch}
-      onFocus={onPrefetch}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onTap();
-        }
-      }}
-      aria-label={ariaLabel}
-      aria-current={ariaCurrent}
-      aria-haspopup="menu"
-      className={className}
-      style={style}
-    >
-      {children}
-    </button>
-  );
-};
-
-const leftItems = [
-  { path: "/dashboard", icon: Home, label: "Home" },
-  { path: "/my-posts", icon: Send, label: "Posts", badgeKey: "posts" as const },
-];
-
-const rightItems = [
-  { path: "/my-jobs", icon: ClipboardList, label: "Jobs", badgeKey: "jobs" as const },
-  { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
-  { path: "/profile", icon: User, label: "Profile" },
-];
+  leftItems,
+  rightItems,
+  authPages,
+  noNavPages,
+  tabStacks,
+} from "@/components/mobileNav/mobileNavHelpers";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
@@ -205,12 +35,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // redirect — see ProtectedRoute (the route has no `allowPending`).
   const isPendingApproval =
     !isGuest && profile?.approval_status === "pending";
-  // Seed the badge from the durable cache so a navigation/cold-start
-  // without network still paints the last-known count on the first frame —
-  // no flicker-to-0 while the live query resolves. The live query
-  // (loadCounts) overwrites this on success and also writes back to the
-  // cache so the next session is up to date.
-  const [unreadCount, setUnreadCount] = useState<number>(() => readCachedUnread());
+  // Messages badge unread count (durable-cache seeded), its live query +
+  // realtime channel + archive listener, the native app-icon badge mirror,
+  // and the best-effort mark-all-read action — all owned by this hook.
+  const { unreadCount, markAllRead } = useNavUnreadCount(user);
   // Lightweight "actionable activity" counts for the Posts / Jobs tab
   // badges (new applicants on your posts; pending direct offers to you).
   // Count-only queries — deliberately not the heavy useActivityData hook.
@@ -219,7 +47,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // Long-press quick-action sheet — one sheet, with content keyed by which
   // tab was long-pressed. Keeps the markup compact instead of one sheet per
   // tab. `null` = closed.
-  const [quickActionTab, setQuickActionTab] = useState<null | "/dashboard" | "/messages" | "/my-posts" | "/my-jobs" | "/profile">(null);
+  const [quickActionTab, setQuickActionTab] = useState<QuickActionTab>(null);
   // Scroll-aware shadow lift — when content is actually scrolled under the
   // nav, deepen the drop shadow so the bar reads as floating above the
   // page rather than glued to the bottom edge.
@@ -244,81 +72,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (!user) return;
-
-    const loadCounts = async () => {
-      // Mirror the inbox's own hide rules (Messages.tsx) so the badge can't
-      // claim "1" while the inbox renders empty: the inbox drops system
-      // messages, threads with a blocked sender, AND locally-archived threads,
-      // so the count must too. Archived threads are a client-only (safeStorage)
-      // concept, so we can't filter them in SQL — we fetch the lightweight
-      // unread rows and drop archived ones in JS (LH-54).
-      const blockedSet = await getBlockedUserIds(user.id);
-      const base = supabase
-        .from("messages")
-        .select("job_id, sender_id, created_at")
-        .eq("receiver_id", user.id)
-        .eq("read", false);
-      // `is_system` is a real column but missing from the generated types,
-      // so the dynamic .not() filters need an untyped handle.
-      let query: any = base;
-      query = query.not("is_system", "is", true);
-      if (blockedSet.size > 0) {
-        query = query.not("sender_id", "in", `(${[...blockedSet].join(",")})`);
-      }
-      const { data, error } = await query;
-      // Only overwrite the seeded value on a successful response —
-      // a failed query (offline, transient) must NOT zero the badge
-      // and surprise the user. The cache stays the floor.
-      if (error) return;
-      // Exclude unread messages whose thread the user archived (and that the
-      // archive hasn't auto-resurfaced — `isArchived` checks the message's own
-      // timestamp against the archive moment, exactly like the inbox). For a
-      // received message the other participant is the sender.
-      const next = (data ?? []).filter(
-        (m: { job_id: string | null; sender_id: string | null; created_at: string }) =>
-          !isArchived(user.id, m.job_id ?? "", m.sender_id ?? "", m.created_at),
-      ).length;
-      setUnreadCount(next);
-      writeCachedUnread(next);
-    };
-
-    loadCounts();
-
-    const channel = supabase
-      // Nonce so a quick remount doesn't collide with the prior channel —
-      // Supabase dedupes by name and would silently drop the new sub.
-      .channel(`unread-nav-${user.id}-${channelNonce()}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
-        () => loadCounts()
-      )
-      .subscribe();
-
-    // Archiving/unarchiving a thread changes which unread messages the badge
-    // should count, but it's a local action with no `messages` write — so the
-    // realtime channel above never fires. Recompute on the archive event too
-    // (LH-54).
-    const onArchiveChanged = () => loadCounts();
-    window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
-
-    return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
-    };
-  }, [user?.id]);
-
-  // Mirror the live unread count onto the native springboard (app-icon)
-  // badge, so the home-screen icon carries the unread number like every
-  // other messaging app — even while the app is backgrounded. No-op on web
-  // and best-effort on native (see setAppIconBadge). A signed-out/guest user
-  // has nothing to badge, so force it to zero.
-  useEffect(() => {
-    void setAppIconBadge(user ? unreadCount : 0);
-  }, [user, unreadCount]);
-
   // Long-press quick-action handlers. Each one closes the sheet and runs
   // the action; the action itself may navigate, fire a toast, or trigger a
   // backend mutation. Wrapped in `useMemo` so the inline lambdas (and the
@@ -338,39 +91,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       navigate("/dashboard?filters=open");
     };
 
-    // Messages — best-effort mark-all-read. Optimistically zero the badge
-    // (so the dot disappears in the same frame as the tap); on error the
-    // realtime subscription will flip it back when the next live count
-    // lands. Doesn't touch individual thread state — we run the same
-    // update predicate the inbox uses.
-    const markAllRead = async () => {
+    // Messages — best-effort mark-all-read. Closes the sheet, then defers to
+    // the unread-count hook's mark-all-read (optimistic zero + rollback on
+    // error). Doesn't touch individual thread state.
+    const markAllReadAction = async () => {
       close();
-      if (!user) return;
-      const prevCount = unreadCount;
-      setUnreadCount(0);
-      writeCachedUnread(0);
-      const { error } = await supabase
-        .from("messages")
-        .update({ read: true })
-        .eq("receiver_id", user.id)
-        .eq("read", false);
-      if (error) {
-        // Roll the badge back so the user sees the unread state honestly.
-        setUnreadCount(prevCount);
-        writeCachedUnread(prevCount);
-        toast.error("Couldn't mark messages read — give it another try.");
-        return;
-      }
-      // Keep the bell in sync with the messages badge: each chat message also
-      // spawned a type='message' notifications row, so clear those too or the
-      // bell would keep counting messages the user just marked read.
-      void supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("user_id", user.id)
-        .eq("type", "message")
-        .eq("read", false);
-      toast.success("All messages marked read.");
+      await markAllRead();
     };
 
     // Posts / Jobs — jump directly to the relevant Activity tab (posted vs
@@ -397,21 +123,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
     return {
       browseFilters,
-      markAllRead,
+      markAllRead: markAllReadAction,
       goPosted,
       goApplied,
       switchAccountPlaceholder,
     };
-  }, [navigate, user, unreadCount]);
+  }, [navigate, markAllRead]);
 
-  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/account-pending", "/saved-helpers",
-    // Standalone settings sub-pages keep the bottom tab bar so they share the
-    // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
-    "/pets", "/subscription", "/home-history", "/work-record", "/pay-it-forward", "/benefits", "/family", "/wrapped", "/str-settings", "/help", "/data-rights"];
-  // /admin is a distinct console shell (its own full-height layout, header,
-  // back button, and logout) — the consumer Posts/Jobs/Messages/Profile bar
-  // doesn't belong there, so it's a no-nav page, not an auth tab route.
-  const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-denied", "/admin"];
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 
@@ -429,16 +147,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // Hide nav when in an active message conversation
   const params = new URLSearchParams(location.search);
   if (location.pathname === "/messages" && params.has("chat")) return null;
-
-  // Map each tab root to sub-routes that belong to its stack.
-  // Tapping the tab while inside one of these returns the user to the tab root.
-  const tabStacks: Record<string, string[]> = {
-    "/dashboard": ["/jobs"],
-    "/my-posts": ["/activity", "/post-job"],
-    "/my-jobs": ["/earnings"],
-    "/messages": [],
-    "/profile": ["/support", "/user", "/admin", "/schedule", "/availability", "/saved-helpers"],
-  };
 
   const isInStack = (tabPath: string) => {
     if (location.pathname === tabPath) return true;
@@ -777,120 +485,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         </div>
       </nav>
 
-      <Sheet open={gateOpen} onOpenChange={setGateOpen}>
-        {/* Hug the content: the sheet has no fixed height, so it already sizes
-            to fit — but the shared bottom-sheet base padding (1.5rem) stacked
-            on the iOS home-indicator inset leaves a dead band below the thin
-            "Keep browsing" link. Trim the bottom padding to a single 1rem over
-            the safe-area inset so the sheet's edge sits just under that link. */}
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl pb-[calc(1rem_+_env(safe-area-inset-bottom,0px))]"
-        >
-          <SheetHeader className="text-left">
-            <SheetTitle>Create your free account</SheetTitle>
-            <SheetDescription>
-              Join Helpr to post jobs, message Helprs, and track your activity. It only takes a minute.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex flex-col gap-3 mt-6">
-            <Button
-              size="lg"
-              className="w-full"
-              onClick={() => {
-                setGateOpen(false);
-                navigate("/signup");
-              }}
-            >
-              Create free account
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setGateOpen(false);
-                navigate("/login");
-              }}
-            >
-              I already have an account
-            </Button>
-            <button
-              onClick={() => setGateOpen(false)}
-              className="text-ds-11 text-muted-foreground py-2 hover:text-foreground transition-colors"
-            >
-              Keep browsing
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <GateSheet open={gateOpen} onOpenChange={setGateOpen} />
 
-      {/* Quick-action sheet — opens from a long-press on a tab. The sheet's
-          content is keyed by which tab triggered it; a single sheet keeps
-          the markup compact and the animation singular. Closing by tapping
-          outside, swiping down, or selecting an action all hit the same
-          `setQuickActionTab(null)` path. */}
-      <Sheet open={quickActionTab !== null} onOpenChange={(o) => { if (!o) setQuickActionTab(null); }}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
-          {quickActionTab === "/dashboard" && (
-            <>
-              <SheetHeader className="text-left">
-                <SheetTitle>Browse jobs</SheetTitle>
-                <SheetDescription>Quick filters for the feed.</SheetDescription>
-              </SheetHeader>
-              <div className="flex flex-col gap-2 mt-6">
-                <QuickActionRow icon={Filter} label="Open filter chips" onClick={quickActions.browseFilters} />
-              </div>
-            </>
-          )}
-          {quickActionTab === "/messages" && (
-            <>
-              <SheetHeader className="text-left">
-                <SheetTitle>Messages</SheetTitle>
-                <SheetDescription>Inbox quick actions.</SheetDescription>
-              </SheetHeader>
-              <div className="flex flex-col gap-2 mt-6">
-                <QuickActionRow icon={CheckCheck} label="Mark all read" onClick={quickActions.markAllRead} />
-              </div>
-            </>
-          )}
-          {quickActionTab === "/my-posts" && (
-            <>
-              <SheetHeader className="text-left">
-                <SheetTitle>Posts</SheetTitle>
-                <SheetDescription>Jump straight to a tab.</SheetDescription>
-              </SheetHeader>
-              <div className="flex flex-col gap-2 mt-6">
-                <QuickActionRow icon={Inbox} label="Posted jobs" onClick={quickActions.goPosted} />
-                <QuickActionRow icon={Briefcase} label="Applied jobs" onClick={quickActions.goApplied} />
-              </div>
-            </>
-          )}
-          {quickActionTab === "/my-jobs" && (
-            <>
-              <SheetHeader className="text-left">
-                <SheetTitle>Jobs</SheetTitle>
-                <SheetDescription>Jump straight to a tab.</SheetDescription>
-              </SheetHeader>
-              <div className="flex flex-col gap-2 mt-6">
-                <QuickActionRow icon={Inbox} label="Posted jobs" onClick={quickActions.goPosted} />
-                <QuickActionRow icon={Briefcase} label="Applied jobs" onClick={quickActions.goApplied} />
-              </div>
-            </>
-          )}
-          {quickActionTab === "/profile" && (
-            <>
-              <SheetHeader className="text-left">
-                <SheetTitle>Profile</SheetTitle>
-                <SheetDescription>Account quick actions.</SheetDescription>
-              </SheetHeader>
-              <div className="flex flex-col gap-2 mt-6">
-                <QuickActionRow icon={UsersIcon} label="Switch account" onClick={quickActions.switchAccountPlaceholder} />
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+      <QuickActionSheet
+        quickActionTab={quickActionTab}
+        onClose={() => setQuickActionTab(null)}
+        quickActions={quickActions}
+      />
     </>
   );
 });

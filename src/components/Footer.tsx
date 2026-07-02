@@ -89,11 +89,6 @@ const Footer = () => (
           </h3>
           <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
-              <Link to="/how-it-works" className="link-standard">
-                How It Works
-              </Link>
-            </li>
-            <li>
               <Link to="/for-business" className="link-standard">
                 Business
               </Link>

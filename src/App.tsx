@@ -101,7 +101,6 @@ const BusinessReports = lazy(() => import("./pages/business/BusinessReports"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
-const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
@@ -237,7 +236,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* /enterprise retired until we're bigger — the industry verticals now
           live under Business. Redirect legacy links so they don't 404. */}
       <Route path="/enterprise" element={<Navigate to="/for-business" replace />} />
-      <Route path="/how-it-works" element={<RouteErrorBoundary>{routeEl(<PageTransition><HowItWorks /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* The standalone How It Works page was folded into the landing section
+          (poster/Helpr toggle) — keep old links landing on that anchor. */}
+      <Route path="/how-it-works" element={<Navigate to="/#how-it-works" replace />} />
       <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Retired public discovery pages — redirect legacy links.
           Jobs are discovered via the landing strip + /jobs; parish/impact/

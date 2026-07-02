@@ -1272,7 +1272,7 @@ const Legal = () => {
   return (
     <PublicLayout showCtaBand={false}>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <div className="container mx-auto px-5 pb-8 pt-1">
+        <div className="container mx-auto px-5 pb-8 pt-3">
           <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
             {headerRow}
             <div

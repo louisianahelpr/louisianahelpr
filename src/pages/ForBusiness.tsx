@@ -7,6 +7,10 @@ import {
   Stethoscope,
   ShieldCheck,
   Home,
+  UtensilsCrossed,
+  HardHat,
+  Store,
+  PartyPopper,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -84,9 +88,11 @@ const SEAT_TIERS = [
 
 /**
  * Industry verticals — the enterprise deep-dives now live under Business
- * (the standalone /enterprise page was retired until we're bigger). The first
- * two link to their dedicated concierge pages; Property Management is a teaser
- * without a page yet, so it renders as a non-interactive card.
+ * (the standalone /enterprise page was retired until we're bigger). Two link
+ * to their dedicated concierge pages (Healthcare → /discharge, Insurance →
+ * /insurance-claim); the rest are teasers without a page yet, so they render
+ * as non-interactive cards. Laid out as a horizontal snap-scroll rail (same
+ * pattern as the landing category chips), so more verticals fit than a grid.
  */
 const INDUSTRIES = [
   {
@@ -108,6 +114,41 @@ const INDUSTRIES = [
     tag: "Property Management",
     title: "Turns, maintenance & tenant requests",
     body: "Unit turns and work orders routed through one verified, insured workforce.",
+    href: undefined,
+  },
+  {
+    icon: UtensilsCrossed,
+    tag: "Restaurants",
+    title: "Callout cover & deep cleans",
+    body: "Cover a no-show shift, book a hood-to-floor deep clean, or staff a private event in hours.",
+    href: undefined,
+  },
+  {
+    icon: HardHat,
+    tag: "Construction",
+    title: "Day labor for the punch list",
+    body: "Extra hands, demo crews, and site cleanup when a job runs long — no W-2 paperwork.",
+    href: undefined,
+  },
+  {
+    icon: Store,
+    tag: "Retail",
+    title: "Floor resets & seasonal help",
+    body: "Merchandising resets, stockroom cleanouts, and overflow staffing for the busy weeks.",
+    href: undefined,
+  },
+  {
+    icon: PartyPopper,
+    tag: "Events & Hospitality",
+    title: "Setup, teardown & day-of crew",
+    body: "Load-in, breakdown, and extra hands booked by the shift for one-off or recurring events.",
+    href: undefined,
+  },
+  {
+    icon: Building2,
+    tag: "Offices & Facilities",
+    title: "Recurring cleans & small fixes",
+    body: "Scheduled office cleaning, moves, and light maintenance routed to one verified workforce.",
     href: undefined,
   },
 ] as const;
@@ -235,7 +276,7 @@ const TierRow = ({ tier }: { tier: (typeof SEAT_TIERS)[number] }) => {
 const ForBusiness = () => {
   const navigate = useNavigate();
   const { user } = useAuthReady();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const variantParam = searchParams.get("v");
   const variant = resolveVariant(variantParam);
 
@@ -250,21 +291,11 @@ const ForBusiness = () => {
     ogDescription: variant.seo.description,
   });
 
-  const switchVariant = (next: VariantKey) => {
-    const params = new URLSearchParams(searchParams);
-    if (next === "generic") {
-      params.delete("v");
-    } else {
-      params.set("v", next);
-    }
-    setSearchParams(params, { replace: true });
-  };
-
   return (
     <PublicLayout showCtaBand={false}>
       <PageHeader
-        eyebrow={variant.eyebrow}
-        title={`${variant.heroLead} ${variant.heroAccent}`}
+        eyebrow="For business"
+        title="The best help for Louisiana businesses."
         onBack={() => navigate("/")}
       />
       <div className="relative container mx-auto px-5 lg:px-8 xl:px-12 pb-6 lg:pb-8 max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] space-y-6 lg:space-y-8">
@@ -277,41 +308,31 @@ const ForBusiness = () => {
               {variant.subhead}
             </p>
 
-            {/* Vertical switcher — small pill row. Keeps the URL as the source
-             * of truth so refresh/back/share all work. */}
+            {/* Who-we-serve chips — decorative, non-interactive. They name the
+             * verticals we cover (the tailored ?v= landings are still indexed
+             * for SEO, but the on-page chips don't switch the hero copy). */}
             <div
-              role="group"
-              aria-label="Industry"
+              role="list"
+              aria-label="Industries we serve"
               className="flex flex-wrap gap-2 pt-1"
             >
-              {(Object.keys(VARIANTS) as VariantKey[]).map((key) => {
-                const v = VARIANTS[key];
-                const active = variant.key === key;
-                return (
-                  <button
+              {(Object.keys(VARIANTS) as VariantKey[])
+                .filter((key) => key !== "generic")
+                .map((key) => (
+                  <span
                     key={key}
-                    aria-pressed={active}
-                    onClick={() => switchVariant(key)}
-                    className={
-                      active
-                        ? "btn-grad-primary squircle text-ds-11 font-semibold rounded-ds-md px-4 py-2 transition-all duration-200 !text-[hsl(var(--parchment))] border border-[hsl(66_24%_20%)]"
-                        : "squircle text-ds-11 font-semibold rounded-ds-md px-4 py-2 transition-all duration-200"
-                    }
-                    style={
-                      active
-                        ? undefined
-                        : {
-                            background: "hsl(var(--parchment))",
-                            color: "hsl(var(--ink-deep))",
-                            border: "1px solid hsl(var(--olivewood) / 0.18)",
-                            boxShadow: "0 2px 6px -2px hsl(var(--olivewood) / 0.25)",
-                          }
-                    }
+                    role="listitem"
+                    className="squircle text-ds-11 font-semibold rounded-ds-md px-4 py-2"
+                    style={{
+                      background: "hsl(var(--parchment))",
+                      color: "hsl(var(--ink-deep))",
+                      border: "1px solid hsl(var(--olivewood) / 0.18)",
+                      boxShadow: "0 2px 6px -2px hsl(var(--olivewood) / 0.25)",
+                    }}
                   >
-                    {v.eyebrow.replace(/^For /, "")}
-                  </button>
-                );
-              })}
+                    {VARIANTS[key].eyebrow.replace(/^For /, "")}
+                  </span>
+                ))}
             </div>
 
             {/* Feature grid */}
@@ -429,7 +450,11 @@ const ForBusiness = () => {
             </h2>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Horizontal snap-scroll rail — same pattern as the landing
+              category chips (LandingJobsStrip): `overflow-x-auto snap-x` with
+              `shrink-0`-width cards, hidden scrollbar. Lets many verticals sit
+              in one row on desktop and swipe on touch, instead of a tall grid. */}
+          <div className="flex gap-3.5 overflow-x-auto snap-x snap-mandatory pb-3 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {INDUSTRIES.map(({ icon: Icon, tag, title, body, href }) => {
               const inner = (
                 <>
@@ -469,12 +494,15 @@ const ForBusiness = () => {
                 <Link
                   key={tag}
                   to={href}
-                  className="liquid-glass group flex flex-col p-5 transition-transform duration-200 hover:-translate-y-0.5"
+                  className="liquid-glass group snap-start shrink-0 w-[17rem] flex flex-col p-5 transition-transform duration-200 hover:-translate-y-0.5"
                 >
                   {inner}
                 </Link>
               ) : (
-                <div key={tag} className="liquid-glass flex flex-col p-5">
+                <div
+                  key={tag}
+                  className="liquid-glass snap-start shrink-0 w-[17rem] flex flex-col p-5"
+                >
                   {inner}
                 </div>
               );

@@ -76,7 +76,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/insurance-claim", // Insurance Claim Concierge
 
   // Public marketing / informational pages (document-scroll)
-  "/how-it-works", // How It Works — conversion page for new visitors
   "/help",         // Help Center — static FAQ / support page
 ];
 

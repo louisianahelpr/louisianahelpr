@@ -16,7 +16,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Crown, CheckCircle, Minus, ChevronDown, ChevronUp,
-  Sparkles, Briefcase, Star, Loader2,
+  Sparkles, Briefcase, Star, Loader2, HelpCircle, ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
@@ -476,38 +476,38 @@ export default function SubscriptionPage() {
           )}
         </div>
 
-        {/* ── FAQ ───────────────────────────────────────────────────────── */}
-        <div className="space-y-3 max-w-3xl mx-auto w-full">
-          <h2
-            className="font-display italic font-bold"
-            style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
+        {/* ── Questions? → Help Center ──────────────────────────────────────
+            The membership FAQ now lives in the Help Center's "Membership &
+            Billing" section, so every FAQ answer has one home. Link out
+            instead of duplicating the questions here. */}
+        <div className="max-w-3xl mx-auto w-full">
+          <button
+            onClick={() => navigate("/help")}
+            className="w-full flex items-center justify-between gap-3 rounded-ds-md px-4 py-3.5 text-left transition-colors hover:bg-white/40"
+            style={{
+              background: "hsla(0, 0%, 100%, 0.55)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              border: "0.5px solid hsl(var(--bark) / 0.16)",
+            }}
           >
-            Common questions
-          </h2>
-          {[
-            {
-              q: "What does a membership do?",
-              a: "It lowers the commission Helpr deducts from the real-world jobs you get paid for — from 12% down to as low as 6% — and adds visibility perks like priority placement and a featured badge. The lower commission applies to every job you complete.",
-            },
-            {
-              q: "How am I billed?",
-              a: "Membership is billed securely through Stripe — the same processor that handles your job payments. You can manage or cancel your membership anytime from Manage membership.",
-            },
-            {
-              q: "Can I cancel anytime?",
-              a: "Yes — downgrade at any time. Your paid perks stay active through the end of your billing period, then you revert to Free.",
-            },
-            {
-              q: "Does my fee reduction apply immediately?",
-              a: "Yes. On your very next accepted job, the lower platform fee applies — no waiting period.",
-            },
-            {
-              q: "What's the difference between Pro and Elite?",
-              a: "Elite adds the featured crown badge (visible to all posters), 10-minute early job access before other helpers see it, and dedicated priority support — on top of everything Pro offers.",
-            },
-          ].map(({ q, a }) => (
-            <FaqItem key={q} question={q} answer={a} />
-          ))}
+            <span className="flex items-center gap-2.5">
+              <HelpCircle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
+              <span
+                className="font-display italic font-bold"
+                style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.014em" }}
+              >
+                Questions about membership?
+              </span>
+            </span>
+            <span
+              className="font-sans font-semibold text-ds-13 shrink-0 inline-flex items-center gap-1"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              Help Center
+              <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+            </span>
+          </button>
         </div>
       </div>
     </>
@@ -531,45 +531,5 @@ function PerkBullet({ color, children }: { color: string; children: React.ReactN
       <CheckCircle className="w-3 h-3 mt-0.5 shrink-0" style={{ color }} strokeWidth={2.5} />
       {children}
     </li>
-  );
-}
-
-function FaqItem({ question, answer }: { question: string; answer: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div
-      className="rounded-ds-md overflow-hidden"
-      style={{
-        background: "hsla(0, 0%, 100%, 0.55)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        border: "0.5px solid hsl(var(--bark) / 0.16)",
-      }}
-    >
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
-      >
-        <span
-          className="font-display italic font-bold"
-          style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.014em" }}
-        >
-          {question}
-        </span>
-        {open ? (
-          <ChevronUp className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-        ) : (
-          <ChevronDown className="shrink-0 w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-        )}
-      </button>
-      {open && (
-        <p
-          className="px-4 pb-3 font-serif italic leading-snug"
-          style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.80)" }}
-        >
-          {answer}
-        </p>
-      )}
-    </div>
   );
 }

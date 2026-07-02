@@ -404,7 +404,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [navigate, user, unreadCount]);
 
-  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/job-history", "/account-pending", "/saved-helpers", "/community",
+  const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/account-pending", "/saved-helpers",
     // Standalone settings sub-pages keep the bottom tab bar so they share the
     // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
     "/pets", "/subscription", "/home-history", "/work-record", "/pay-it-forward", "/benefits", "/family", "/wrapped", "/str-settings", "/help", "/data-rights"];
@@ -435,7 +435,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const tabStacks: Record<string, string[]> = {
     "/dashboard": ["/jobs"],
     "/my-posts": ["/activity", "/post-job"],
-    "/my-jobs": ["/job-history", "/earnings"],
+    "/my-jobs": ["/earnings"],
     "/messages": [],
     "/profile": ["/support", "/user", "/admin", "/schedule", "/availability", "/saved-helpers"],
   };

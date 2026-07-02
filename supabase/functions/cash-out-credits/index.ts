@@ -117,7 +117,18 @@ serve(async (req) => {
       );
     } catch (transferError) {
       // Transfer failed — release the claim so the user keeps their credits.
-      await rollbackClaim();
+      // If the rollback itself fails, the credits stay redeemed=true with no
+      // payout — log critically so ops can manually reset the row(s).
+      await rollbackClaim().catch((rollbackErr: unknown) => {
+        console.error(
+          "[cash-out-credits] CRITICAL: credit rollback failed — credits may be permanently lost",
+          {
+            creditIds,
+            rollbackError: rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr),
+            userId,
+          },
+        );
+      });
       throw transferError;
     }
 

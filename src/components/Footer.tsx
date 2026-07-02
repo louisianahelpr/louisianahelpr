@@ -104,11 +104,6 @@ const Footer = () => (
               </Link>
             </li>
             <li>
-              <Link to="/community" className="link-standard">
-                Community
-              </Link>
-            </li>
-            <li>
               <Link to="/help" className="link-standard">
                 Help Center
               </Link>

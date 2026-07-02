@@ -41,7 +41,8 @@ serve(async (req) => {
       });
     }
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data, error: userErr } = await supabaseClient.auth.getUser(token);
+    if (userErr) console.error("[create-payment] auth.getUser error:", userErr.message);
     const user = data.user;
     if (!user?.email) throw new Error("Not authenticated");
 
@@ -225,14 +226,21 @@ serve(async (req) => {
         idempotencyKey: `escrow-${jobId}`,
       });
 
-      // Store both fee structures on the job
-      await supabaseAdmin.from("jobs").update({
+      // Store both fee structures on the job. Fail the request if this write
+      // fails: without stripe_session_id the double-payment guard is blind and
+      // the frozen fee percents are lost — the unused Checkout Session is
+      // harmless, so failing loudly here costs nothing.
+      const { error: escrowUpdateErr } = await supabaseAdmin.from("jobs").update({
         stripe_session_id: session.id,
         platform_fee_percent: customerFeePercent,
         platform_fee_amount: helperFeeAmount,
         customer_fee_amount: customerFeeAmount,
         helper_fee_percent: helperFeePercent,
       }).eq("id", jobId);
+      if (escrowUpdateErr) {
+        console.error(`[create-payment] escrow session ${session.id} created for job ${jobId} but jobs.update failed:`, escrowUpdateErr);
+        throw new Error("Could not record the payment session — please try again");
+      }
 
       return new Response(JSON.stringify({ url: session.url }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
@@ -446,12 +454,19 @@ serve(async (req) => {
 
       const helperId = job.helper_id;
 
-      // Check if helper has a connected Stripe account for direct tip transfer
-      const { data: helperProfile } = await supabaseAdmin
+      // Check if helper has a connected Stripe account for direct tip transfer.
+      // A read ERROR must fail the request — treating it as "no Connect account"
+      // would silently reroute the tip to the platform balance instead of the
+      // helper. Only a genuine missing row (PGRST116) may fall through.
+      const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
         .eq("user_id", helperId)
-        .single();
+        .maybeSingle();
+      if (helperProfileErr) {
+        console.error(`[create-payment] tip — helper profile read failed for ${helperId}:`, helperProfileErr);
+        throw new Error("Could not verify the helper's payout account — please try again");
+      }
 
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
@@ -472,12 +487,37 @@ serve(async (req) => {
         success_url: `${getAppUrl()}/my-posts?tip=success`,
         cancel_url: `${getAppUrl()}/my-posts`,
         metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" },
+      }, {
+        // Dedupe client retries (double-tap, network retry) without blocking a
+        // deliberate repeat tip later: same job+tipper+amount collapses to one
+        // session (and one pending `tips` row) within a 10-minute bucket.
+        idempotencyKey: `tip-${jobId}-${user.id}-${Math.round(amount * 100)}-${Math.floor(Date.now() / 600_000)}`,
       });
 
-      await supabaseAdmin.from("tips").insert({
-        job_id: jobId, tipper_id: user.id, helper_id: helperId,
-        amount, stripe_session_id: session.id, payment_status: "pending",
-      });
+      // Ledger row for the webhook to reconcile against. The idempotency key
+      // above can return an EXISTING session on a retry, so dedupe on
+      // stripe_session_id — never a second pending row for the same session.
+      // Both the lookup and the insert must fail the request: a paid tip with
+      // no ledger row silently pools on the platform balance.
+      const { data: existingTip, error: tipLookupErr } = await supabaseAdmin
+        .from("tips")
+        .select("id")
+        .eq("stripe_session_id", session.id)
+        .maybeSingle();
+      if (tipLookupErr) {
+        console.error(`[create-payment] tip — ledger lookup failed for session ${session.id}:`, tipLookupErr);
+        throw new Error("Could not record the tip — please try again");
+      }
+      if (!existingTip) {
+        const { error: tipInsertErr } = await supabaseAdmin.from("tips").insert({
+          job_id: jobId, tipper_id: user.id, helper_id: helperId,
+          amount, stripe_session_id: session.id, payment_status: "pending",
+        });
+        if (tipInsertErr) {
+          console.error(`[create-payment] tip — ledger insert failed for session ${session.id} (job ${jobId}):`, tipInsertErr);
+          throw new Error("Could not record the tip — please try again");
+        }
+      }
 
       return new Response(JSON.stringify({ url: session.url }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
@@ -511,12 +551,22 @@ serve(async (req) => {
         }
       }
 
-      await supabaseAdmin.from("jobs").update({
+      // The refund is already out — a failed status flip here must be LOUD,
+      // or the job stays "in progress" on a refunded payment (helper still
+      // sees it, auto-release could treat it as payable).
+      const { error: cancelUpdateErr } = await supabaseAdmin.from("jobs").update({
         payment_status: "cancelled",
         status: "cancelled",
         cancelled_at: new Date().toISOString(),
         cancelled_by: user.id,
       }).eq("id", jobId);
+      if (cancelUpdateErr) {
+        console.error(`CRITICAL: refund issued for job ${jobId} (pi ${job.stripe_payment_intent_id}) but jobs.update to cancelled failed — manual reconciliation needed:`, cancelUpdateErr);
+        return new Response(JSON.stringify({
+          error: "refund issued but job status update failed — contact support",
+          stripe_payment_intent_id: job.stripe_payment_intent_id,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
@@ -564,12 +614,21 @@ serve(async (req) => {
         await transferToHelper(stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id, feeAmt / dpHelpersCount, user.id);
       }
 
-      await supabaseAdmin.from("jobs").update({
+      // Transfer already sent — a failed flip would leave the job "disputed"
+      // (permanently blocked by release-payout's dispute guard) while the
+      // notifications below assert it was resolved. Fail loudly instead.
+      const { error: releaseUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "completed",
         payment_status: "released",
         helper_fee_percent: disputeFeePercent,
         platform_fee_amount: feeAmt,
       }).eq("id", jobId);
+      if (releaseUpdateErr) {
+        console.error(`CRITICAL: dispute transfer sent for job ${jobId} but jobs.update to released failed — manual reconciliation needed:`, releaseUpdateErr);
+        return new Response(JSON.stringify({
+          error: "transfer sent but job status update failed — manual reconciliation needed",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
+      }
 
       // Notify both parties
       if (job.helper_id) {
@@ -614,7 +673,13 @@ serve(async (req) => {
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
           if (pi.status === "succeeded") {
-            await stripe.refunds.create({ payment_intent: paymentIntentId });
+            // A retried/double-clicked call within Stripe's ~24h key lifetime
+            // returns the original refund. After key expiry, a repeat attempt
+            // is rejected by Stripe with charge_already_refunded — still loud.
+            await stripe.refunds.create(
+              { payment_intent: paymentIntentId },
+              { idempotencyKey: `refund-dispute-${jobId}` },
+            );
           }
         } catch (e) {
           console.error("[create-payment] admin_refund_dispute — refund error:", e);
@@ -622,10 +687,17 @@ serve(async (req) => {
         }
       }
 
-      await supabaseAdmin.from("jobs").update({
+      // Refund is out — same fail-loud rule as admin_release_dispute above.
+      const { error: refundUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "cancelled",
         payment_status: "refunded",
       }).eq("id", jobId);
+      if (refundUpdateErr) {
+        console.error(`CRITICAL: refund issued for disputed job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, refundUpdateErr);
+        return new Response(JSON.stringify({
+          error: "refund issued but job status update failed — manual reconciliation needed",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
+      }
 
       // Notify both parties
       await supabaseAdmin.from("notifications").insert({
@@ -692,6 +764,14 @@ serve(async (req) => {
                 admin_user_id: user.id,
                 partial: String(isPartial),
               },
+            }, {
+              // Full refund: deduped within Stripe's ~24h key lifetime; after
+              // expiry a repeat is rejected with charge_already_refunded.
+              // Partial: dedupe retries of the same amount within a 10-minute
+              // bucket while still allowing a deliberate second partial later.
+              idempotencyKey: isPartial
+                ? `refund-general-${jobId}-${requestedCents}-${Math.floor(Date.now() / 600_000)}`
+                : `refund-general-${jobId}-full`,
             });
           }
         } catch (e) {
@@ -704,13 +784,19 @@ serve(async (req) => {
       // refunds leave the job state intact — the customer still owes the
       // remaining work or the helper still earned the unrefunded portion.
       if (!isPartial) {
-        await supabaseAdmin.from("jobs").update({
+        const { error: generalRefundUpdateErr } = await supabaseAdmin.from("jobs").update({
           status: "cancelled",
           payment_status: "refunded",
           cancellation_reason: reason ? `[ADMIN REFUND] ${reason}` : "[ADMIN REFUND] Issued by support",
           cancelled_at: new Date().toISOString(),
           cancelled_by: user.id,
         }).eq("id", jobId);
+        if (generalRefundUpdateErr) {
+          console.error(`CRITICAL: general refund issued for job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, generalRefundUpdateErr);
+          return new Response(JSON.stringify({
+            error: "refund issued but job status update failed — manual reconciliation needed",
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
+        }
       }
 
       await supabaseAdmin.from("admin_audit_log").insert({
@@ -797,25 +883,37 @@ async function transferToHelper(
   platformFeeAmount = 0,
   initiatedByUserId: string | null = null
 ) {
-  // Get helper's connected account
-  const { data: helperProfile } = await supabaseAdmin
+  // Get helper's connected account. Distinguish a READ ERROR from a missing
+  // account so a transient failure doesn't send admins chasing "helper never
+  // onboarded" when the truth is "the profiles read blipped".
+  const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
     .from("profiles")
     .select("stripe_account_id")
     .eq("user_id", helperId)
-    .single();
+    .maybeSingle();
+  if (helperProfileErr) {
+    console.error(`[create-payment] transferToHelper — profile read failed for ${helperId}:`, helperProfileErr);
+    throw new Error("Could not verify the helpr's payout account — please try again");
+  }
 
   if (!helperProfile?.stripe_account_id) {
     throw new Error("Helpr must set up their payout account before payment can be released. Please ask the helpr to connect their payout account in their profile settings.");
   }
 
   // DB-level idempotency: if a payout ledger row already exists for this job
-  // the money already went out — don't send a second transfer.
-  const { data: existingTransfer } = await supabaseAdmin
+  // the money already went out — don't send a second transfer. A FAILED read
+  // must fail closed: it is indistinguishable from "no prior transfer" and
+  // proceeding could double-pay once the Stripe idempotency key expires.
+  const { data: existingTransfer, error: existingTransferErr } = await supabaseAdmin
     .from("payout_transfers")
     .select("stripe_transfer_id, status")
     .eq("job_id", jobId)
     .in("status", ["pending", "paid"])
     .maybeSingle();
+  if (existingTransferErr) {
+    console.error(`[create-payment] transferToHelper — duplicate-transfer check failed for job ${jobId}:`, existingTransferErr);
+    throw new Error("Could not verify payout status — please try again");
+  }
   if (existingTransfer) {
     console.log(`Payout already exists for job ${jobId} (${existingTransfer.stripe_transfer_id}); skipping duplicate transfer.`);
     return;

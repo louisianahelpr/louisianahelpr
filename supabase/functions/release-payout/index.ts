@@ -151,11 +151,17 @@ serve(async (req) => {
   // Helper must have an active Connect account with payouts enabled.
   // Also pull onboarding_fee_paid — if false and they haven't paid via a
   // prior post, deduct the one-time $2 fee from this payout below.
-  const { data: helper } = await supabaseAdmin
+  const { data: helper, error: helperErr } = await supabaseAdmin
     .from("profiles")
     .select("stripe_account_id, full_name, onboarding_fee_paid")
     .eq("user_id", job.helper_id)
-    .single();
+    .maybeSingle();
+  if (helperErr) {
+    // Fail closed, but with the REAL cause — a transient read error must not
+    // masquerade as "helper never onboarded".
+    console.error(`[release-payout] helper profile read failed for ${job.helper_id}:`, helperErr);
+    return jsonResponse({ error: "helper profile read failed — retry" }, 500);
+  }
 
   if (!helper?.stripe_account_id) {
     return jsonResponse(
@@ -164,14 +170,19 @@ serve(async (req) => {
     );
   }
 
-  // Block duplicate transfers — DB UNIQUE(stripe_transfer_id) is the
-  // hard guarantee, but we check first so we can surface a clean error.
-  const { data: existing } = await supabaseAdmin
+  // Block duplicate transfers. This read is the real dedupe (a fresh
+  // transfers.create gets a NEW id, so UNIQUE(stripe_transfer_id) can't
+  // stop a second send) — a failed read must fail closed, never proceed.
+  const { data: existing, error: existingErr } = await supabaseAdmin
     .from("payout_transfers")
     .select("id, stripe_transfer_id, status")
     .eq("job_id", job.id)
     .in("status", ["pending", "paid"])
     .maybeSingle();
+  if (existingErr) {
+    console.error(`[release-payout] duplicate-transfer check failed for job ${job.id}:`, existingErr);
+    return jsonResponse({ error: "duplicate-transfer check failed — retry" }, 500);
+  }
   if (existing) {
     return jsonResponse(
       {
@@ -187,8 +198,20 @@ serve(async (req) => {
   });
 
   // Confirm Connect account is actually payable. Cheaper than letting Stripe
-  // reject the transfer with a vague error message later.
-  const account = await stripe.accounts.retrieve(helper.stripe_account_id);
+  // reject the transfer with a vague error message later. There is no outer
+  // try/catch in this handler, so catch here — a Stripe API hiccup would
+  // otherwise become an unhandled rejection with zero diagnostics.
+  let account;
+  try {
+    account = await stripe.accounts.retrieve(helper.stripe_account_id);
+  } catch (e) {
+    const err = e as { message?: string; type?: string; code?: string };
+    console.error(
+      `[release-payout] accounts.retrieve failed for ${helper.stripe_account_id} (job ${job.id}):`,
+      { message: err?.message, type: err?.type, code: err?.code },
+    );
+    return jsonResponse({ error: "could not verify helper Connect account — retry" }, 502);
+  }
   if (!account.payouts_enabled || !account.charges_enabled) {
     return jsonResponse(
       {
@@ -241,7 +264,7 @@ serve(async (req) => {
   // fee and we leave the helper's payout alone. If the claim succeeds,
   // we own the deduction.
   if (!helper.onboarding_fee_paid && onboardingFeeCents > 0) {
-    const { data: claimed } = await supabaseAdmin
+    const { data: claimed, error: claimErr } = await supabaseAdmin
       .from("profiles")
       .update({
         onboarding_fee_paid: true,
@@ -250,15 +273,35 @@ serve(async (req) => {
       .eq("user_id", job.helper_id)
       .eq("onboarding_fee_paid", false)
       .select("user_id");
+    if (claimErr) {
+      // Fail closed BEFORE the transfer — treating a failed claim as "lost
+      // the race" would silently skip collecting the fee, forever.
+      console.error(`[release-payout] onboarding-fee claim failed for ${job.helper_id}:`, claimErr);
+      return jsonResponse({ error: "onboarding-fee claim failed — retry" }, 500);
+    }
 
     if (claimed && claimed.length > 0) {
       if (payoutCents <= onboardingFeeCents) {
         // Edge case: claim succeeded but payout is too small to cover.
         // Roll back the claim and refuse so admin can reconcile manually.
-        await supabaseAdmin
+        const { error: rollbackErr } = await supabaseAdmin
           .from("profiles")
           .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
           .eq("user_id", job.helper_id);
+        if (rollbackErr) {
+          // The flag now claims the fee was paid when it wasn't — say so in
+          // the response so the manual reconciler knows the flag is lying.
+          console.error(`CRITICAL: onboarding-fee rollback failed for ${job.helper_id} — onboarding_fee_paid=true but fee NOT collected:`, rollbackErr);
+          return jsonResponse(
+            {
+              error:
+                "first payout does not cover the platform onboarding fee AND the fee-flag rollback failed — onboarding_fee_paid is incorrectly true; manual reconciliation needed",
+              payout_cents: payoutCents,
+              fee_cents: onboardingFeeCents,
+            },
+            422,
+          );
+        }
         return jsonResponse(
           {
             error:
@@ -346,7 +389,11 @@ serve(async (req) => {
     );
   }
 
-  await supabaseAdmin
+  // Same fail-loud contract as the ledger write above: the transfer is out,
+  // so a silent failure here strands the job in payout_pending forever (the
+  // cron re-selects it every run and 409s on the ledger check — no double
+  // pay, but no resolution either) while the notification below claims paid.
+  const { error: releasedErr } = await supabaseAdmin
     .from("jobs")
     .update({
       payment_status: "released",
@@ -357,6 +404,19 @@ serve(async (req) => {
       helper_fee_percent: helperFeePercent,
     })
     .eq("id", job.id);
+  if (releasedErr) {
+    console.error(
+      `CRITICAL: transfer ${transfer.id} sent for job ${job.id} but jobs.update to released failed:`,
+      releasedErr,
+    );
+    return jsonResponse(
+      {
+        error: "transfer sent but job status update failed — manual reconciliation needed",
+        stripe_transfer_id: transfer.id,
+      },
+      500,
+    );
+  }
 
   // Note: onboarding-fee flag was already flipped atomically above,
   // before the transfer ran, so no follow-up write is needed here.

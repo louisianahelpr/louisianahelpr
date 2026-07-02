@@ -73,12 +73,19 @@ export async function getHelperFeePercent(
       .select("subscription_tier, subscription_expires_at")
       .eq("user_id", helperId)
       .single();
-    if (error || !data) return fallbackPercent;
+    if (error || !data) {
+      // Falling back IS silently changing the fee (an Elite helper's 8% becomes
+      // the 10-12% fallback) — the fallback is the right call for a payout path
+      // (never block money on a transient read), but it must be findable.
+      console.warn(`[helperFees] tier read failed for ${helperId}, using fallback ${fallbackPercent}%:`, error);
+      return fallbackPercent;
+    }
     const expired = data.subscription_expires_at
       ? new Date(data.subscription_expires_at).getTime() < Date.now()
       : false;
     return feePercentForTier(expired ? "free" : data.subscription_tier);
-  } catch {
+  } catch (e) {
+    console.warn(`[helperFees] tier read threw for ${helperId}, using fallback ${fallbackPercent}%:`, e);
     return fallbackPercent;
   }
 }

@@ -88,14 +88,16 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       const { error } = await supabase.from("jobs").update(updateData).eq("id", jobId);
       if (error) throw error;
 
-      // Auto-void/refund the held Stripe payment
-      try {
-        await supabase.functions.invoke("void-cancelled-payments", { body: {} });
-      } catch (voidErr) {
-        report(voidErr, { severity: "warning", tags: { source: "CancellationDialog.autoVoid" } });
-      }
+      // The held Stripe payment is NOT voided here: void-cancelled-payments
+      // only accepts cron/service-role auth (a client JWT gets a 401 — a
+      // previous invoke from here failed on every call and was removed). The
+      // hourly cron sweeps jobs with cancellation_fee_status='pending' and
+      // processes the refund, so it lands within ~an hour of cancelling.
 
-      // Notify the helper about the cancellation and their compensation
+      // Notify the helper about the cancellation and their compensation.
+      // The amount is an ESTIMATE from the job-frozen fee percent — the
+      // actual transfer (void-cancelled-payments) resolves the helper's live
+      // tier, which can differ (e.g. Elite 8% vs frozen 10%).
       if (serverHasHelper && jobData.helper_id && serverFee > 0) {
         const commissionPercent = jobData.helper_fee_percent ?? 10;
         const platformCut = Math.round(serverFee * (commissionPercent / 100) * 100) / 100;
@@ -104,7 +106,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         await createNotification({
           user_id: jobData.helper_id,
           title: "Job cancelled — you'll be compensated",
-          message: `"${jobTitle}" was cancelled by the poster. You'll receive $${helperPayout.toFixed(2)} as a cancellation fee (${serverFeePercent}% of the budget minus platform fee).`,
+          message: `"${jobTitle}" was cancelled by the poster. You'll receive approximately $${helperPayout.toFixed(2)} as a cancellation fee (${serverFeePercent}% of the budget minus platform fee), processed within the hour.`,
           type: "payment",
           link: "/my-jobs",
         });
@@ -176,7 +178,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           if (notifyErr) report(notifyErr, { tags: { source: "CancellationDialog.notifyAdmins" } });
         }
       } else {
-        toast.success("Job cancelled.");
+        toast.success("Job cancelled. Any held payment will be refunded within the hour.");
       }
 
       onCancelled();

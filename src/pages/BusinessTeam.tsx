@@ -8,44 +8,32 @@
 // owns the new team-level toggles (approval threshold, 2FA, default
 // payment method, monthly budget).
 //
+// The Members tab UI, the seat-tier table, the members query, and the
+// shared types now live under src/pages/businessTeam/ (behavior-
+// preserving split); this file owns state, effects, and handlers.
+//
 // All new schema bits ship in migration 20260609170000_business_team_roles.sql.
 // Migrations don't auto-deploy on prod, so every new RPC / column has a
 // PGRST202 / PGRST204 fallback inline.
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BusinessLayout from "@/components/business/BusinessLayout";
-import {
-  UserPlus,
-  Trash2,
-  Loader2,
-  Crown,
-  Mail,
-  Sparkles,
-  CreditCard,
-  Send,
-  Check,
-  FileSpreadsheet,
-  ShieldAlert,
-} from "lucide-react";
+import { Sparkles, ShieldAlert } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticError } from "@/lib/haptics";
 import { useMyBusiness, type SeatTier, type ExtendedRole } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BusinessVerificationCard from "@/components/business/BusinessVerificationCard";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { ErrorState } from "@/components/ui/ErrorState";
 import BusinessNoAccountState from "@/components/business/BusinessNoAccountState";
 import { queryKeys } from "@/lib/queryKeys";
 import BulkInviteDialog from "@/components/business/BulkInviteDialog";
@@ -54,31 +42,11 @@ import ApprovalsTab from "@/components/business/ApprovalsTab";
 import ActivityFeedTab from "@/components/business/ActivityFeedTab";
 import SettingsTab from "@/components/business/SettingsTab";
 import ReassignMemberDialog, { type ReassignTarget } from "@/components/business/ReassignMemberDialog";
-import { ROLE_LABEL, ROLE_SPECS, canApprove, canManageTeam } from "@/components/business/roles";
-
-interface Member {
-  id: string;
-  user_id: string | null;
-  invited_email: string | null;
-  role: "owner" | "member";
-  extended_role: ExtendedRole;
-  status: "pending" | "active" | "removed";
-  invited_at: string;
-  joined_at: string | null;
-  full_name?: string;
-  email?: string;
-}
-
-const TIERS: Array<{ id: SeatTier; name: string; seats: number; price: string; priceCents: number }> = [
-  { id: "starter", name: "Starter", seats: 1, price: "Free", priceCents: 0 },
-  { id: "crew", name: "Crew", seats: 2, price: "$10/mo", priceCents: 1000 },
-  { id: "team", name: "Team", seats: 3, price: "$20/mo", priceCents: 2000 },
-  { id: "enterprise", name: "Enterprise", seats: 4, price: "$40/mo", priceCents: 4000 },
-];
-
-const TIER_RANK: Record<SeatTier, number> = { starter: 0, crew: 1, team: 2, enterprise: 3 };
-
-type TabValue = "members" | "approvals" | "spend" | "activity" | "settings";
+import { ROLE_LABEL, canApprove, canManageTeam } from "@/components/business/roles";
+import { TIERS } from "./businessTeam/businessTeamHelpers";
+import { useTeamMembers } from "./businessTeam/useTeamMembers";
+import MembersTab from "./businessTeam/MembersTab";
+import type { Member, TabValue } from "./businessTeam/types";
 
 const BusinessTeam = () => {
   usePageTitle("Manage Team — Helpr Business");
@@ -147,64 +115,7 @@ const BusinessTeam = () => {
     isLoading: membersLoading,
     isError: membersError,
     refetch: refetchMembers,
-  } = useQuery({
-    queryKey: queryKeys.business.members(business?.business_id),
-    queryFn: async (): Promise<Member[]> => {
-      if (!business) return [];
-      // Try the wide select with extended_role; fall back to the
-      // pre-migration column set when the column doesn't exist yet.
-      const wide = await supabase
-        .from("business_members")
-        .select(
-          "id, user_id, invited_email, role, extended_role, status, invited_at, joined_at" as any,
-        )
-        .eq("business_id", business.business_id)
-        .neq("status", "removed")
-        .order("invited_at", { ascending: true });
-
-      let rows: any[] | null = wide.data as any[] | null;
-      if (wide.error) {
-        const code = (wide.error as { code?: string }).code;
-        if (code !== "42703" && code !== "PGRST204") throw wide.error;
-        const narrow = await supabase
-          .from("business_members")
-          .select("id, user_id, invited_email, role, status, invited_at, joined_at")
-          .eq("business_id", business.business_id)
-          .neq("status", "removed")
-          .order("invited_at", { ascending: true });
-        if (narrow.error) throw narrow.error;
-        rows = narrow.data;
-      }
-
-      const userIds = (rows ?? []).map((m: any) => m.user_id).filter(Boolean);
-      let profiles: any[] = [];
-      if (userIds.length > 0) {
-        const { data: p, error: pErr } = await supabase
-          .from("profiles")
-          .select("user_id, full_name, email")
-          .in("user_id", userIds);
-        if (pErr) throw pErr;
-        profiles = p ?? [];
-      }
-
-      return (rows ?? []).map((m: any) => {
-        const profile = profiles.find((p) => p.user_id === m.user_id);
-        const isOwnerRole = m.role === "owner";
-        const ext: ExtendedRole = m.extended_role
-          ? (m.extended_role as ExtendedRole)
-          : isOwnerRole
-            ? "owner"
-            : "poster";
-        return {
-          ...m,
-          extended_role: ext,
-          full_name: profile?.full_name,
-          email: profile?.email,
-        };
-      });
-    },
-    enabled: !!business,
-  });
+  } = useTeamMembers(business);
 
   if (businessLoading) {
     return (
@@ -454,276 +365,34 @@ const BusinessTeam = () => {
           </TabsList>
 
           <TabsContent value="members" className="space-y-5">
-            {isAdminOrOwner && (
-              <Card className="p-5">
-                <div className="flex items-center justify-between gap-3 mb-1">
-                  <h2 className="font-semibold flex items-center gap-2">
-                    <UserPlus className="w-4 h-4" /> Invite a team member
-                  </h2>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setBulkOpen(true)}
-                    disabled={remainingSlots <= 0}
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" /> Bulk CSV
-                  </Button>
-                </div>
-                <p className="text-ds-11 text-muted-foreground mb-4">
-                  They'll get full access to post and manage jobs on behalf of {business.business_name}.
-                  All jobs are billed to your card on file.
-                </p>
-                <form onSubmit={handleInvite} className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <Label htmlFor="invite-email" className="sr-only">
-                      Email
-                    </Label>
-                    <Input
-                      id="invite-email"
-                      type="email"
-                      placeholder="teammate@company.com"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      disabled={remainingSlots <= 0}
-                      className={inviteEmailValid ? "pr-10" : undefined}
-                    />
-                    {inviteEmailValid && (
-                      <Check
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none"
-                        strokeWidth={2.5}
-                        aria-hidden
-                      />
-                    )}
-                  </div>
-                  <Button type="submit" disabled={inviting || remainingSlots <= 0 || !inviteEmailValid}>
-                    {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Invite"}
-                  </Button>
-                </form>
-                {remainingSlots <= 0 && (
-                  <p className="text-ds-11 text-destructive mt-2">
-                    You've reached your {SEAT_LIMIT}-seat limit. Upgrade your plan below to add more
-                    members.
-                  </p>
-                )}
-              </Card>
-            )}
-
-            {business.is_owner && (
-              <Card className="p-5">
-                <div className="flex items-start justify-between mb-3 gap-3">
-                  <div>
-                    <h2 className="font-semibold flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" /> Seat plan
-                    </h2>
-                    <p className="text-ds-11 text-muted-foreground mt-1">
-                      Upgrade or downgrade anytime. Changes apply to your next billing cycle.
-                    </p>
-                  </div>
-                  {currentTier !== "starter" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleManageBilling}
-                      disabled={openingPortal}
-                      className="shrink-0"
-                    >
-                      {openingPortal ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <>
-                          <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Manage
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-2">
-                  {TIERS.map((tier) => {
-                    const isCurrent = tier.id === currentTier;
-                    const isUpgrade = TIER_RANK[tier.id] > TIER_RANK[currentTier];
-                    const isDowngrade = TIER_RANK[tier.id] < TIER_RANK[currentTier];
-                    const wouldFitCurrent = tier.seats >= totalSlots;
-
-                    return (
-                      <div
-                        key={tier.id}
-                        className={`rounded-ds-sm border p-3 ${
-                          isCurrent ? "border-primary/50 bg-primary/5" : "border-border/60 bg-background/50"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="font-medium text-ds-13">{tier.name}</p>
-                            <p className="text-ds-11 text-muted-foreground">
-                              {tier.seats} seats · {tier.price}
-                            </p>
-                          </div>
-                          {isCurrent && <Badge className="text-ds-10 h-5">Current</Badge>}
-                        </div>
-                        {!isCurrent && (
-                          <Button
-                            variant={isUpgrade ? "default" : "outline"}
-                            size="sm"
-                            className="w-full h-8 text-ds-11"
-                            onClick={() => handleUpgrade(tier.id)}
-                            disabled={
-                              upgrading !== null ||
-                              openingPortal ||
-                              (isDowngrade && !wouldFitCurrent)
-                            }
-                          >
-                            {upgrading === tier.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : isUpgrade ? (
-                              "Upgrade"
-                            ) : isDowngrade && !wouldFitCurrent ? (
-                              `Remove ${totalSlots - tier.seats} seat${totalSlots - tier.seats === 1 ? "" : "s"} first`
-                            ) : (
-                              "Switch via portal"
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
-
-            <div className="space-y-2">
-              <h3 className="text-ds-13 font-semibold text-muted-foreground px-1">
-                Team ({activeMembers.length})
-              </h3>
-              {membersLoading ? (
-                <div className="flex justify-center my-8">
-                  <HelprSpinner size={20} />
-                </div>
-              ) : membersError ? (
-                <ErrorState
-                  variant="inline"
-                  title="Couldn't load your team."
-                  body="Tap Try again to reload your team members."
-                  onRetry={() => refetchMembers()}
-                />
-              ) : (
-                <>
-                  {activeMembers.map((m) => (
-                    <Card key={m.id} className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium truncate">{m.full_name || m.email || "Team member"}</p>
-                            {m.role === "owner" && (
-                              <Badge variant="secondary" className="text-ds-11 gap-1">
-                                <Crown className="w-3 h-3" /> Owner
-                              </Badge>
-                            )}
-                          </div>
-                          {m.email && (
-                            <p className="text-ds-11 text-muted-foreground truncate">{m.email}</p>
-                          )}
-                          {m.role !== "owner" && isAdminOrOwner ? (
-                            <div className="mt-2 flex items-center gap-2">
-                              <label
-                                htmlFor={`role-${m.id}`}
-                                className="text-ds-11 text-muted-foreground"
-                              >
-                                Role
-                              </label>
-                              <select
-                                id={`role-${m.id}`}
-                                value={m.extended_role}
-                                onChange={(e) =>
-                                  handleChangeRole(
-                                    m.id,
-                                    e.target.value as Exclude<ExtendedRole, "owner">,
-                                  )
-                                }
-                                disabled={savingRole === m.id}
-                                className="rounded-ds-sm border border-input bg-background px-2 py-1 text-ds-11"
-                              >
-                                {ROLE_SPECS.map((spec) => (
-                                  <option key={spec.id} value={spec.id}>
-                                    {spec.label}
-                                  </option>
-                                ))}
-                              </select>
-                              {savingRole === m.id && (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-                              )}
-                            </div>
-                          ) : (
-                            m.role !== "owner" && (
-                              <Badge variant="outline" className="mt-2 text-ds-10">
-                                {ROLE_LABEL[m.extended_role]}
-                              </Badge>
-                            )
-                          )}
-                        </div>
-                        {isAdminOrOwner && m.role !== "owner" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setRemoveTarget(m)}
-                            aria-label="Remove team member"
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
-
-                  {pendingMembers.length > 0 && (
-                    <>
-                      <h3 className="text-ds-13 font-semibold text-muted-foreground px-1 pt-4">
-                        Pending invites ({pendingMembers.length})
-                      </h3>
-                      {pendingMembers.map((m) => (
-                        <Card key={m.id} className="p-4 flex items-center justify-between bg-muted/30">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4 text-muted-foreground" />
-                              <p className="font-medium truncate">{m.invited_email}</p>
-                              <Badge variant="outline" className="text-ds-10">
-                                {ROLE_LABEL[m.extended_role]}
-                              </Badge>
-                            </div>
-                            <p className="text-ds-11 text-muted-foreground mt-0.5">
-                              Will join when they sign up with this email
-                            </p>
-                          </div>
-                          {isAdminOrOwner && (
-                            <div className="flex items-center gap-1 shrink-0">
-                              {m.invited_email && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleResendInvite(m.invited_email!)}
-                                  aria-label="Resend invite email"
-                                  title="Resend invite email"
-                                >
-                                  <Send className="w-4 h-4 text-muted-foreground" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setRemoveTarget(m)}
-                                aria-label="Cancel pending invite"
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </div>
-                          )}
-                        </Card>
-                      ))}
-                    </>
-                  )}
-                </>
-              )}
-            </div>
+            <MembersTab
+              businessName={business.business_name}
+              isOwner={business.is_owner}
+              isAdminOrOwner={isAdminOrOwner}
+              currentTier={currentTier}
+              SEAT_LIMIT={SEAT_LIMIT}
+              totalSlots={totalSlots}
+              remainingSlots={remainingSlots}
+              activeMembers={activeMembers}
+              pendingMembers={pendingMembers}
+              membersLoading={membersLoading}
+              membersError={membersError}
+              refetchMembers={refetchMembers}
+              inviteEmail={inviteEmail}
+              setInviteEmail={setInviteEmail}
+              inviteEmailValid={inviteEmailValid}
+              inviting={inviting}
+              openingPortal={openingPortal}
+              upgrading={upgrading}
+              savingRole={savingRole}
+              onBulkOpen={() => setBulkOpen(true)}
+              onInvite={handleInvite}
+              onResendInvite={handleResendInvite}
+              onChangeRole={handleChangeRole}
+              onUpgrade={handleUpgrade}
+              onManageBilling={handleManageBilling}
+              onRemoveTarget={setRemoveTarget}
+            />
           </TabsContent>
 
           <TabsContent value="approvals">

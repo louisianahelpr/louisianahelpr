@@ -79,20 +79,29 @@ floats in a lopsided column with blank bands has failed the audit.
 Each of these is a real, non-obvious gotcha that has cost real time — keep
 this list tight; project-specific trivia belongs in code comments, not here.
 
-- **Migrations don't auto-deploy.** Supabase migrations are NOT applied to
-  production automatically — they need a manual `supabase db push`. When a
-  migration adds a new RPC/function, the code calling it MUST ship a graceful
-  fallback for the PGRST202 "function not found" error, so the feature isn't
-  broken on production between merge and the manual push.
-- **Prod must never lag the repo on migrations.** Every migration file in
-  `supabase/migrations/` must have its objects present in production — zero
-  drift is the standing requirement. Because migrations don't auto-deploy,
-  apply each one to prod (surgically, via MCP `apply_migration`, never a blind
-  `db push` — see [[prod-migration-drift]]) as part of the same change that
-  merges it. To audit drift, compare repo files against prod by **object
-  existence** (`to_regclass`/`to_regprocedure`/`information_schema`), NOT by
-  `schema_migrations.version` — MCP-applied migrations are recorded under their
-  apply-time timestamp, so version strings won't match the filenames.
+- **Migrations auto-deploy on merge to main.** `.github/workflows/db-deploy.yml`
+  runs `supabase db push` against prod whenever a commit touching
+  `supabase/migrations/**` lands on main (also manually runnable via
+  `gh workflow run db-deploy.yml`). The ONLY path to prod is a migration file
+  merged to main — no manual pushes, no side channels. Still ship a graceful
+  fallback for the PGRST202 "function not found" error when code calls a
+  brand-new RPC: there's a short window between merge and deploy completing,
+  and a red deploy widens it.
+- **NEVER apply migrations to prod via MCP `apply_migration`.** MCP records the
+  migration under its apply-time timestamp, not the filename version. That
+  mismatch poisoned `schema_migrations` with 45 orphan versions and silently
+  broke every automated deploy from 2026-06-16 until the ledger was repaired on
+  2026-07-01. (MCP `execute_sql` for read-only checks and test-account rows is
+  fine — the ban is on schema changes.) If an out-of-band apply is ever truly
+  unavoidable, immediately reconcile with
+  `supabase migration repair --status reverted/applied` so ledger versions
+  match filenames exactly.
+- **Zero migration drift remains the standing requirement — and it's cheap to
+  check now.** `supabase migration list --linked` must show every version
+  present on BOTH sides (ledger repaired 2026-07-01, so version strings are
+  trustworthy again). The nightly `db-drift-detect.yml` opens a GitHub issue on
+  schema drift. For a deep audit, verify by object existence
+  (`to_regclass`/`to_regprocedure`/`information_schema`).
 - **Migrations must be replay-safe.** A from-scratch rebuild runs every
   migration in timestamp order. Guard DDL against objects that may not exist
   yet (`REVOKE`/`ALTER` on a function defined by a *later* migration →

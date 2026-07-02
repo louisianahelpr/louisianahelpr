@@ -1,0 +1,70 @@
+import { QrCode, Share2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { shareNative } from "@/lib/nativeShare";
+import type { Profile } from "./types";
+
+interface QrCodeModalProps {
+  profile: Profile | null;
+  qrOpen: boolean;
+  setQrOpen: (open: boolean) => void;
+  qrDataUrl: string | null;
+}
+
+export function QrCodeModal({ profile, qrOpen, setQrOpen, qrDataUrl }: QrCodeModalProps) {
+  return (
+    <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+      <DialogContent className="max-w-xs mx-auto text-center">
+        <DialogHeader>
+          <DialogTitle className="text-center">My QR Code</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-4 py-2">
+          {qrDataUrl ? (
+            <img
+              src={qrDataUrl}
+              alt="Verification QR code"
+              className="w-60 h-60 rounded-ds-md"
+              style={{
+                boxShadow: "0 2px 12px hsl(var(--olivewood) / 0.12)",
+              }}
+            />
+          ) : (
+            <div
+              className="w-60 h-60 rounded-ds-md flex items-center justify-center animate-pulse"
+              style={{ background: "hsl(var(--bark) / 0.06)" }}
+            >
+              <QrCode className="w-12 h-12" style={{ color: "hsl(var(--bark) / 0.3)" }} />
+            </div>
+          )}
+          <p className="text-ds-12 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Share with your poster so they can verify you at the door.
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!profile?.user_id) return;
+              await shareNative({
+                title: "Verify me on Helpr",
+                text: `Scan or open this link to verify my identity on Helpr`,
+                url: `https://www.louisianahelpr.com/verify/${profile.user_id}`,
+                dialogTitle: "Share QR Link",
+              });
+            }}
+            className="w-full rounded-ds-md py-3 inline-flex items-center justify-center gap-2 font-semibold text-sm active:scale-[0.99] transition-all"
+            style={{
+              background: "hsl(var(--bark))",
+              color: "hsl(var(--parchment))",
+            }}
+          >
+            <Share2 className="w-4 h-4" />
+            Share QR Link
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

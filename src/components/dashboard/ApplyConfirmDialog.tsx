@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,136 +16,17 @@ import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticLight } from "@/lib/haptics";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
-import type { EnrichedJob } from "@/components/dashboard/types";
-
-/** Mirror ReportDialog's pitch cap so the backend never silently truncates. */
-const MAX_PITCH_LENGTH = 500;
-/** Soft minimum — short pitches read as "lol sure" to posters. We don't
- *  block submission below this (an empty pitch is still allowed), but
- *  we surface the count to nudge the helpr toward a useful intro. */
-const SOFT_MIN_PITCH_LENGTH = 30;
-
-/**
- * Per-job draft key — old single-key behavior meant moving to a different
- * job overwrote your half-written pitch. Scoping by job id keeps each
- * application independent. The `helpr_` prefix is mirrored to Capacitor
- * Preferences (see safeStorage) so a force-quit doesn't lose the draft.
- */
-function pitchDraftKey(jobId: string | undefined | null) {
-  return `helpr_apply_pitch_draft_${jobId ?? "unknown"}`;
-}
-
-/** Legacy single-key draft from before drafts were per-job. We migrate
- *  it once into the current job's key so an in-flight pitch from the
- *  pre-update build isn't dropped. */
-const LEGACY_PITCH_DRAFT_KEY = "helpr_apply_pitch_draft";
-
-/** localStorage key for the helpr's saved default pitch template. */
-const TEMPLATE_KEY = "helpr_pitch_template";
-
-/** Two-to-three sentence starters — clickable to insert/replace. We
- *  swap in time-of-day on the first one so the greeting feels live. */
-function greetingByHour(hour: number) {
-  if (hour < 5) return "Hi"; // late night
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Hi";
-  return "Good evening";
-}
-function buildStarterSentences(job: EnrichedJob | null): string[] {
-  const greet = greetingByHour(new Date().getHours());
-  const cat = (job?.category ?? "this kind of work").toLowerCase().replace(/_/g, " ");
-  const dayLabel = (() => {
-    if (!job?.date_needed) return "";
-    const d = new Date(job.date_needed + "T00:00:00");
-    if (isNaN(d.getTime())) return "";
-    return d.toLocaleDateString(undefined, { weekday: "long" });
-  })();
-  return [
-    `${greet}, I'm available ${dayLabel ? dayLabel : "the day you need"}${job?.start_time ? ` at ${job.start_time}` : ""} and ready to go.`,
-    `I've done ${cat} before and can bring the right tools for the job.`,
-    `Happy to send a quick quote or answer any questions before you decide.`,
-  ];
-}
-
-/**
- * Returns up to 2 context-aware tips for the helpr based on the job's
- * attributes. Empty array when no tips apply — the UI hides the tips block.
- */
-function getApplyTips(job: {
-  is_urgent?: boolean | null;
-  budget?: number | null;
-  pricing_mode?: string;
-  date_needed?: string | null;
-  category?: string | null;
-}): string[] {
-  const tips: string[] = [];
-
-  // Urgent jobs — availability is the key signal
-  if (job.is_urgent) {
-    tips.push("Urgent job — mention your earliest available start time in your message");
-  }
-
-  // High-budget jobs — experience matters more
-  if (job.budget != null && job.budget >= 150) {
-    tips.push("Higher-budget jobs go to Helprs who mention relevant experience");
-  }
-
-  // Bid-mode — price explanation helps
-  if (job.pricing_mode === "accept_bids") {
-    tips.push("For bid jobs, briefly explain what your price includes");
-  }
-
-  // Upcoming date — scheduling matters
-  if (job.date_needed) {
-    const date = new Date(job.date_needed);
-    const daysAway = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (daysAway >= 0 && daysAway <= 3) {
-      tips.push("Job is in the next 3 days — confirm you're available at the date/time");
-    }
-  }
-
-  // Category-specific tips
-  const catTips: Record<string, string> = {
-    handyman:  "List the specific tools you have for this type of work",
-    cleaning:  "Mention if you bring your own supplies or need the poster's",
-    moving:    "Confirm if you have a truck or will need access to one",
-    pet_care:  "Mention any pet care certifications or relevant experience",
-    yard_work: "Specify what equipment you'll use",
-    painting:  "Mention your prep process — posters care about prep as much as painting",
-  };
-  if (job.category && catTips[job.category]) {
-    tips.push(catTips[job.category]);
-  }
-
-  // Never return more than 2 tips — keep it scannable
-  return tips.slice(0, 2);
-}
-
-interface ApplyConfirmDialogProps {
-  /** Whether the dialog is open — true once a feed job has been picked. */
-  open: boolean;
-  /** Closes the dialog (clears the parent's pending-apply job id). */
-  onClose: () => void;
-  /** The job being applied to, resolved from the loaded feed. May be null
-   *  if the pending id isn't in the loaded pages — a generic prompt shows. */
-  confirmApplyJob: EnrichedJob | null;
-  /** Platform commission percentage, for the take-home breakdown. */
-  platformFee: number;
-  applyMessage: string;
-  setApplyMessage: (value: string) => void;
-  applyFiles: File[];
-  setApplyFiles: Dispatch<SetStateAction<File[]>>;
-  /** True while the application is being submitted — disables the controls. */
-  applyLoading: boolean;
-  /** Optional reliability stake amount ($5, $10, $25, or null). */
-  stakeAmount: number | null;
-  setStakeAmount: (value: number | null) => void;
-  /** Proposed bid price (only relevant when job pricing_mode='accept_bids'). */
-  bidPrice: string;
-  setBidPrice: (value: string) => void;
-  /** Submits the application. */
-  handleApplyConfirm: () => void;
-}
+import type { ApplyConfirmDialogProps } from "@/components/dashboard/applyConfirmDialog/types";
+import { ApplyEarningsBreakdown } from "@/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown";
+import {
+  MAX_PITCH_LENGTH,
+  SOFT_MIN_PITCH_LENGTH,
+  pitchDraftKey,
+  LEGACY_PITCH_DRAFT_KEY,
+  TEMPLATE_KEY,
+  buildStarterSentences,
+  getApplyTips,
+} from "@/components/dashboard/applyConfirmDialog/applyConfirmDialogHelpers";
 
 /**
  * ApplyConfirmDialog — the "You're applying" confirmation modal opened
@@ -308,61 +189,7 @@ export function ApplyConfirmDialog({
           <AlertDialogDescription asChild>
             {confirmApplyJob ? (
               <div className="pt-3">
-                {(() => {
-                  const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
-                  const perHelper = confirmApplyJob.budget / helpers;
-                  const commission = perHelper * platformFee / 100;
-                  const payout = perHelper - commission + (confirmApplyJob.urgent_fee ?? 0);
-                  return (
-                    <div
-                      className="rounded-ds-md p-3"
-                      style={{
-                        background:
-                          "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-                          "var(--surface-premium)",
-                        border: "0.5px solid hsl(var(--bark) / 0.22)",
-                        boxShadow:
-                          "inset 0 1px 1px 0 rgba(255,255,255,0.6), " +
-                          "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22)",
-                      }}
-                    >
-                      <p
-                        className="font-serif italic uppercase mb-1.5"
-                        style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-                      >
-                        You earn
-                      </p>
-                      <div className="space-y-1 text-[0.78rem]">
-                        <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                          <span className="font-serif italic">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
-                          <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${perHelper.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                          <span className="font-serif italic">− {platformFee}% platform fee</span>
-                          <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${commission.toFixed(2)}</span>
-                        </div>
-                        {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
-                          <div className="flex justify-between">
-                            <span className="font-serif italic" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus</span>
-                            <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
-                          </div>
-                        )}
-                        <div
-                          className="flex justify-between pt-1.5 mt-1.5 items-baseline"
-                          style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
-                        >
-                          <span className="font-display italic font-bold" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}>Take-home</span>
-                          <span
-                            className="font-display italic font-bold tabular-nums"
-                            style={{ fontSize: "1.15rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
-                          >
-                            ${payout.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
+                <ApplyEarningsBreakdown confirmApplyJob={confirmApplyJob} platformFee={platformFee} />
               </div>
             ) : (
               <p className="font-serif italic pt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

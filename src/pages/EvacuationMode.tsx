@@ -12,7 +12,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -208,7 +208,15 @@ function RegisterPetModal({ ownerId, onClose, onRegistered }: RegisterPetModalPr
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 const EvacuationMode = () => {
-  usePageTitle("Pet Evacuation Help — Helpr");
+  usePageMeta({
+    title: "Pet Evacuation Help — Helpr",
+    description:
+      "Emergency pet evacuation coordination for Louisiana. Register a pet that needs transport or volunteer to help neighbors evacuate their animals safely.",
+    canonical: "https://www.louisianahelpr.com/evacuation",
+    ogTitle: "Pet evacuation help — Louisiana Helpr",
+    ogDescription:
+      "Register a pet that needs transport or volunteer to help during an evacuation.",
+  });
   const { user } = useCurrentUser();
   const userId = user?.id ?? null;
   const queryClient = useQueryClient();

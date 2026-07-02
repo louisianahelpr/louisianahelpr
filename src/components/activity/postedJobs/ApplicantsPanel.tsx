@@ -2,17 +2,18 @@ import { useState, useCallback } from "react";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft, Pencil, Play, Plus, Sparkles, Star, Users, X } from "lucide-react";
+import { ArrowLeft, Pencil, Play, Plus, Sparkles, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { AttachmentLink } from "@/components/AttachmentLink";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { hapticLight } from "@/lib/haptics";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { callUntypedRpc, type ApplicantBidFields } from "./postedJobsHelpers";
 import { useApplicantComparison } from "./useApplicantComparison";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { VideoPreviewModal } from "./VideoPreviewModal";
+import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
+import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
+import { helperInitialsFrom, isImageAttachment } from "./applicantsPanel/applicantsPanelHelpers";
 
 interface ApplicantsPanelProps {
   jobs: Job[];
@@ -173,128 +174,22 @@ export function ApplicantsPanel({
           <div className="max-w-2xl mx-auto w-full">
             {applicationsLoading ? (
               /* Loading: 2 skeleton cards matching the real card height */
-              <div className="space-y-3" aria-label="Loading applicants" aria-busy="true">
-                {[0, 1].map((i) => (
-                  <div
-                    key={i}
-                    className="rounded-ds-md p-3.5 flex items-start gap-3"
-                    style={{
-                      backgroundColor: "hsla(0, 0%, 100%, 0.55)",
-                      backdropFilter: "blur(16px)",
-                      WebkitBackdropFilter: "blur(16px)",
-                      border: "0.5px solid hsl(var(--bark) / 0.18)",
-                    }}
-                  >
-                    <Skeleton className="w-11 h-11 rounded-full shrink-0 mt-0.5" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-3.5 w-2/5" />
-                      <Skeleton className="h-3 w-3/5" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                    <Skeleton className="h-9 w-16 rounded-ds-sm shrink-0" />
-                  </div>
-                ))}
-              </div>
+              <ApplicantsLoadingState />
             ) : applicationsError ? (
               /* Error state */
-              <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-6">
-                <AlertCircle className="w-8 h-8 text-destructive" />
-                <div className="space-y-1">
-                  <p className="font-semibold text-foreground text-ds-15">Couldn't load applicants</p>
-                  <p className="text-ds-13 text-muted-foreground">Check your connection and try again.</p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-ds-md btn-press"
-                  onClick={() => onLoadApplications(selectedJob)}
-                >
-                  Retry
-                </Button>
-              </div>
+              <ApplicantsErrorState onRetry={() => onLoadApplications(selectedJob)} />
             ) : applications.length === 0 ? (
               /* Empty state — warmer copy when no one has applied yet */
-              <div className="flex flex-col items-center text-center gap-5 pt-12 pb-6 px-6">
-                <div
-                  className="w-14 h-14 rounded-full inline-flex items-center justify-center"
-                  style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
-                >
-                  <Users className="w-7 h-7" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} strokeWidth={1.5} />
-                </div>
-                <div className="space-y-1.5">
-                  <p
-                    className="font-display italic font-bold"
-                    style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-                  >
-                    No one has applied yet
-                  </p>
-                  <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.80)" }}>
-                    Your job was just posted! Sharing it reaches more Helprs nearby.
-                  </p>
-                </div>
-                <ShareJobButton
-                  job={{ id: selectedJob.id, title: selectedJob.title, budget: selectedJob.budget, pricingMode: selectedJob.pricing_mode, category: selectedJob.category }}
-                />
-              </div>
+              <ApplicantsEmptyState selectedJob={selectedJob} />
             ) : (
               <div className="space-y-1.5">
                 {/* Sort control — horizontal pill row */}
-                <div className="flex items-center gap-1.5 mb-4 flex-wrap" role="group" aria-label="Sort applicants by">
-                  {(["recommended", "rated", "soonest"] as const).map((opt) => {
-                    const label = opt === "recommended" ? "Recommended" : opt === "rated" ? "Highest rated" : "Soonest available";
-                    const active = applicantSort === opt;
-                    return (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setApplicantSort(opt)}
-                        aria-pressed={active}
-                        className="px-3 py-1.5 rounded-full text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
-                        style={{
-                          background: active ? "hsl(var(--bark) / 0.10)" : "hsla(0, 0%, 100%, 0.45)",
-                          color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.80)",
-                          border: active
-                            ? "0.5px solid hsl(var(--bark) / 0.3)"
-                            : "0.5px solid hsl(var(--bark) / 0.12)",
-                          backdropFilter: "blur(12px)",
-                          WebkitBackdropFilter: "blur(12px)",
-                        }}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                  {/* Bid price sort — only shown for accept_bids jobs with at least one bid */}
-                  {selectedJob.pricing_mode === "accept_bids" &&
-                    sortedApplications.some((sa) => (sa.app as EnrichedApplication & ApplicantBidFields).proposed_price != null) && (
-                      <>
-                        {(["bid_asc", "bid_desc"] as const).map((opt) => {
-                          const label = opt === "bid_asc" ? "Lowest bid" : "Highest bid";
-                          const active = applicantSort === opt;
-                          return (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => setApplicantSort(opt)}
-                              aria-pressed={active}
-                              className="px-3 py-1.5 rounded-full text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
-                              style={{
-                                background: active ? "hsl(var(--heritage-gold) / 0.15)" : "hsl(var(--parchment) / 0.5)",
-                                color: active ? "hsl(var(--heritage-gold))" : "hsl(var(--olivewood) / 0.80)",
-                                border: active
-                                  ? "1px solid hsl(var(--heritage-gold) / 0.4)"
-                                  : "1px solid hsl(var(--olivewood) / 0.15)",
-                                backdropFilter: "blur(12px)",
-                                WebkitBackdropFilter: "blur(12px)",
-                              }}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </>
-                  )}
-                </div>
+                <ApplicantSortControls
+                  applicantSort={applicantSort}
+                  setApplicantSort={setApplicantSort}
+                  selectedJob={selectedJob}
+                  sortedApplications={sortedApplications}
+                />
 
                 {/* Applicant cards */}
                 {sortedApplications.map(({ app, signals, neighborCount }) => {
@@ -310,8 +205,7 @@ export function ApplicantsPanel({
                       ? "hsl(var(--burnt-sienna))"
                       : null;
                   const helperName = formatName(app.profiles?.full_name, "Helpr");
-                  const helperInitials = helperName
-                    .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+                  const helperInitials = helperInitialsFrom(helperName);
                   const isTopPick = applicantSort === "recommended" && app.helper_id === topHelperIdByScore && applications.length > 1;
                   // Show up to 3 trust signals as inline text (scoring signals
                   // already include the neighbor signal when neighborCount > 0)
@@ -691,7 +585,7 @@ export function ApplicantsPanel({
                         {(app.attachment_urls || []).length > 0 && (
                           <div className="flex flex-wrap gap-1.5 pl-14">
                             {(app.attachment_urls || [] as string[]).map((url: string, i: number) => {
-                              const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                              const isImage = isImageAttachment(url);
                               return (
                                 <AttachmentLink
                                   key={i}
